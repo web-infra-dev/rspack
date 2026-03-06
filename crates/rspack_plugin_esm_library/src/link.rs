@@ -264,15 +264,14 @@ impl EsmLibraryPlugin {
       .par_values()
       .map(|info| {
         let mut escaped_names: FxHashMap<String, String> = FxHashMap::default();
-        let mut escaped_identifiers: FxHashMap<String, Vec<String>> = FxHashMap::default();
+        let mut escaped_identifiers: FxHashMap<String, Vec<Atom>> = FxHashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
           &compilation.module_static_cache,
           &compilation.options.context,
         );
-        let splitted_readable_identifier: Vec<String> =
-          split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
         escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
 
         match info {
@@ -515,7 +514,7 @@ var {} = {{}};
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<String, String>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) {
     let context = &compilation.options.context;
 
@@ -1250,7 +1249,7 @@ var {} = {{}};
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
@@ -1509,7 +1508,7 @@ var {} = {{}};
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;

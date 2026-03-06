@@ -22,10 +22,10 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
-    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    get_non_optional_part, parse_order_string,
+    AllowedMemberTypes, AtomMembers, ContextModuleScanResult, ExportedVariableInfo,
+    JavascriptParser, MemberExpressionInfo, Statement, TagInfoData, TopLevelScope,
+    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
+    create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -71,20 +71,29 @@ impl ImportsReferencesState {
     &mut self,
   ) -> impl Iterator<Item = (ImportDependencyLocator, Vec<Vec<Atom>>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
-    inner
-      .into_values()
-      .filter_map(|value| value.dep_locator.map(|locator| (locator, value.references)))
+    inner.into_values().filter_map(|value| {
+      value.dep_locator.map(|locator| {
+        (
+          locator,
+          value
+            .references
+            .into_iter()
+            .map(AtomMembers::into_vec)
+            .collect(),
+        )
+      })
+    })
   }
 }
 
 #[derive(Debug, Default)]
 struct ImportReferences {
   dep_locator: Option<ImportDependencyLocator>,
-  references: Vec<Vec<Atom>>,
+  references: Vec<AtomMembers>,
 }
 
 impl ImportReferences {
-  pub fn add_reference(&mut self, reference: Vec<Atom>) {
+  pub fn add_reference(&mut self, reference: AtomMembers) {
     self.references.push(reference);
   }
 }
@@ -165,7 +174,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
-        refs.push(stack.iter().map(|p| p.id.clone()).collect());
+        refs.push(stack.iter().map(|p| p.id.clone()).collect::<AtomMembers>());
       });
       for ids in refs {
         parser
@@ -177,7 +186,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser
         .dynamic_import_references
         .get_import_mut_expect(&data.import_span)
-        .add_reference(vec![]);
+        .add_reference(AtomMembers::new());
     }
     Some(true)
   }
@@ -202,7 +211,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
-      .add_reference(ids.to_vec());
+      .add_reference(ids.iter().cloned().collect());
     Some(true)
   }
 
@@ -237,7 +246,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
-      .add_reference(ids.to_vec());
+      .add_reference(ids.iter().cloned().collect());
     parser.walk_expr_or_spread(&expr.args);
     Some(true)
   }
@@ -597,7 +606,7 @@ fn walk_import_then_fulfilled_callback(
             .get_import_mut_expect(&import_call.span());
           let mut refs = Vec::new();
           keys.traverse_on_leaf(&mut |stack| {
-            refs.push(stack.iter().map(|p| p.id.clone()).collect());
+            refs.push(stack.iter().map(|p| p.id.clone()).collect::<AtomMembers>());
           });
           for ids in refs {
             import_references.add_reference(ids);
