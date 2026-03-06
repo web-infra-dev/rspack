@@ -411,6 +411,7 @@ const applyModuleDefaults = (
     const commonjs = {
       type: 'javascript/dynamic',
     };
+    // IGNORE(module.rules): Rspack not use case-insensitive regex by default
     const rules: RuleSetRules = [
       {
         mimetype: 'application/node',
@@ -1082,6 +1083,7 @@ const applyOptimizationDefaults = (
       production ? 30 : Number.POSITIVE_INFINITY,
     );
     D(splitChunks, 'automaticNameDelimiter', '-');
+    // IGNORE(splitChunks.cacheGroups): Rspack not use case-insensitive regex by default
     const { cacheGroups } = splitChunks;
     if (cacheGroups) {
       F(cacheGroups, 'default', () => ({
@@ -1093,7 +1095,7 @@ const applyOptimizationDefaults = (
       F(cacheGroups, 'defaultVendors', () => ({
         idHint: 'vendors',
         reuseExistingChunk: true,
-        test: /[\\/]node_modules[\\/]/i,
+        test: /[\\/]node_modules[\\/]/,
         priority: -10,
       }));
     }
