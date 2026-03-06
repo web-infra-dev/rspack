@@ -119,11 +119,28 @@ jobs:
           ref: ${{ steps.hotpath-context.outputs.head_sha }}
           fetch-depth: 0
 
+      - name: Normalize base sha
+        id: normalized-base
+        run: |
+          BASE_SHA="${{ steps.hotpath-context.outputs.base_sha }}"
+          BASE_NOTE=""
+          if ! git show "${BASE_SHA}:packages/rspack-cli/src/utils/profile.ts" 2>/dev/null | grep -q "hotpath"; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+            BASE_NOTE="Original base does not support hotpath; compared against previous commit on this branch instead."
+          fi
+
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          {
+            echo 'base_note<<EOF'
+            echo "$BASE_NOTE"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Prepare base worktree
         id: base-worktree
         run: |
-          BASE_WORKTREE="${RUNNER_TEMP:-/tmp}/rspack-hotpath-base-${{ steps.hotpath-context.outputs.base_sha }}"
-          git worktree add --force --detach "$BASE_WORKTREE" "${{ steps.hotpath-context.outputs.base_sha }}"
+          BASE_WORKTREE="${RUNNER_TEMP:-/tmp}/rspack-hotpath-base-${{ steps.normalized-base.outputs.base_sha }}"
+          git worktree add --force --detach "$BASE_WORKTREE" "${{ steps.normalized-base.outputs.base_sha }}"
           echo "path=$BASE_WORKTREE" >> "$GITHUB_OUTPUT"
 
       - name: Download head bindings
@@ -135,12 +152,12 @@ jobs:
 
       - name: Resolve base artifact run
         id: base-artifact
-        if: ${{ steps.hotpath-context.outputs.base_sha != steps.hotpath-context.outputs.head_sha }}
+        if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha }}
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const baseSha = '${{ steps.hotpath-context.outputs.base_sha }}';
+            const baseSha = '${{ steps.normalized-base.outputs.base_sha }}';
             const { data } = await github.rest.actions.listWorkflowRunsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -161,7 +178,7 @@ jobs:
             core.setOutput('run_id', String(run.id));
 
       - name: Download base bindings
-        if: ${{ steps.hotpath-context.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id != '' }}
+        if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id != '' }}
         uses: actions/download-artifact@v4
         with:
           name: bindings-${{ inputs.target }}
@@ -186,7 +203,7 @@ jobs:
           HOTPATH_BASE_WORKTREE: ${{ steps.base-worktree.outputs.path }}
           HOTPATH_BINDING_TARGET: ${{ inputs.target }}
         run: |
-          bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.hotpath-context.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
+          bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.normalized-base.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
 
       - name: Run bench-diff
         run: |
@@ -204,12 +221,13 @@ jobs:
         id: comment
         if: ${{ success() && steps.hotpath-context.outputs.pr_number != '' }}
         run: |
-          BASE_SHA="${{ steps.hotpath-context.outputs.base_sha }}"
+          BASE_SHA="${{ steps.normalized-base.outputs.base_sha }}"
           HEAD_SHA="${{ steps.hotpath-context.outputs.head_sha }}"
           PR_NUMBER="${{ steps.hotpath-context.outputs.pr_number }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           DIFF_LINES=120
           TOTAL_LINES="$(wc -l < "$METRICS_DIR/diff.txt" | tr -d ' ')"
+          BASE_NOTE="${{ steps.normalized-base.outputs.base_note }}"
 
           {
             echo "pr_number=$PR_NUMBER"
@@ -219,6 +237,9 @@ jobs:
             echo
             echo "> Comparing \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\` on \`${BENCHMARK_DIR}\`"
             echo "> Workflow run: [Open](${RUN_URL})"
+            if [ -n "$BASE_NOTE" ]; then
+              echo "> ${BASE_NOTE}"
+            fi
             echo
             echo '<details><summary>bench-diff</summary>'
             echo
