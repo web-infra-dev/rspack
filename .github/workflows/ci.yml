@@ -82,19 +82,6 @@ jobs:
       prefer_docker: true
       ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-  hotpath-linux-arm64:
-    name: Hotpath Linux ARM64
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: aarch64-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      hotpath: true
-      hotpath-runner: '"codspeed-macro"'
-      ref: ${{ github.event.pull_request.head.sha }}
-
   test-windows:
     name: Test Windows
     needs: [check-changed]
