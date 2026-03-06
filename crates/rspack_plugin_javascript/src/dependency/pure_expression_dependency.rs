@@ -23,7 +23,7 @@ impl PureExpressionDependency {
     Self {
       range,
       used_by_exports: None,
-      id: DependencyId::default(),
+      id: DependencyId::new(),
       module_identifier,
     }
   }
