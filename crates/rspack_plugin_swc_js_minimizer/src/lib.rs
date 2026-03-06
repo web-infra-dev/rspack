@@ -167,21 +167,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
   let all_extracted_comments = Mutex::new(HashMap::new());
-  let extract_comments_condition = options
-    .extract_comments
-    .as_ref()
-    .map(|extract_comment| {
-      RspackRegex::with_flags(
-        extract_comment.condition.as_ref(),
-        extract_comment.condition_flags.as_ref(),
+  let extract_comments_condition = options.extract_comments.as_ref().map(|extract_comment| {
+    RspackRegex::with_flags(
+      extract_comment.condition.as_ref(),
+      extract_comment.condition_flags.as_ref(),
+    )
+    .unwrap_or_else(|_| {
+      panic!(
+        "`/{}/{}` is invalid extractComments condition",
+        extract_comment.condition, extract_comment.condition_flags
       )
-      .unwrap_or_else(|_| {
-        panic!(
-          "`/{}/{}` is invalid extractComments condition",
-          extract_comment.condition, extract_comment.condition_flags
-        )
-      })
-    });
+    })
+  });
   let enter_span = tracing::Span::current();
 
   let tls: ThreadLocal<ObjectPool> = ThreadLocal::new();
