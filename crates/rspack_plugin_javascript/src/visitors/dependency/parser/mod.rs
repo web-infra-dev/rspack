@@ -1269,7 +1269,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn walk_program(&mut self, ast: &Program) {
-    if self.plugin_drive.clone().program(self, ast).is_none() {
+    let drive = self.plugin_drive.clone();
+    if drive.program(self, ast).is_none() {
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
@@ -1291,9 +1292,9 @@ impl<'parser> JavascriptParser<'parser> {
           self.prev_statement = None;
           self.walk_statements(&s.body);
         }
-      };
+      }
     }
-    self.plugin_drive.clone().finish(self);
+    drive.finish(self);
   }
 
   fn set_strict(&mut self, value: bool) {
