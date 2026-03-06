@@ -361,7 +361,7 @@ pub fn collect_side_effects_only_imports(
   exports_info_artifact: &ExportsInfoArtifact,
   module_ukey_to_info: &HashMap<ModuleUkey, (String, bool)>,
 ) -> Vec<RsdoctorSideEffectsOnlyImport> {
-  let active_connections = modules
+  let connections = modules
     .par_iter()
     .flat_map(|(module_id, _)| {
       if module_ukeys.get(module_id).is_none() {
@@ -391,16 +391,13 @@ pub fn collect_side_effects_only_imports(
             exports_info_artifact,
           );
 
-          if !active {
-            return None;
-          }
-
           Some((
             resolved_module,
             RsdoctorSideEffectsOnlyImportConnection {
               origin_module,
               dependency_type,
               user_request,
+              active,
             },
           ))
         })
@@ -411,7 +408,7 @@ pub fn collect_side_effects_only_imports(
   let mut grouped: HashMap<ModuleUkey, Vec<RsdoctorSideEffectsOnlyImportConnection>> =
     HashMap::default();
 
-  for (resolved_module, connection) in active_connections {
+  for (resolved_module, connection) in connections {
     grouped.entry(resolved_module).or_default().push(connection);
   }
 
@@ -425,16 +422,9 @@ pub fn collect_side_effects_only_imports(
         return None;
       }
 
-      if connections.len() != 1 {
-        return None;
-      }
-
-      let connection = &connections[0];
-      if !connection
-        .dependency_type
-        .to_lowercase()
-        .contains("esm import")
-      {
+      // Check if there is exactly one active connection
+      let active_connections_count = connections.iter().filter(|c| c.active).count();
+      if active_connections_count != 1 {
         return None;
       }
 
