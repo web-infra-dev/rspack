@@ -8,7 +8,7 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      Class, ClassMember, Decl, Expr, Function, ModuleDecl, Pat, PropName, VarDecl, VarDeclOrExpr,
+      Class, ClassMember, Decl, Expr, Function, Lit, MemberProp, ModuleDecl, Pat, PropName, VarDecl, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
   },
@@ -82,6 +82,25 @@ fn is_pure_call_expr(
     unreachable!();
   };
   let callee = &call_expr.callee;
+  
+  // Workaround for https://github.com/web-infra-dev/rspack/issues/xxx
+  // require('util').inherits(Constructor, SuperConstructor) should be considered side-effectful
+  // even if swc thinks otherwise.
+  if let Some(callee_expr) = callee.as_expr()
+    && let Expr::Member(member) = &**callee_expr
+    && let Expr::Call(obj_call) = &*member.obj
+    && let Some(obj_callee_expr) = obj_call.callee.as_expr()
+    && let Expr::Ident(ident) = &**obj_callee_expr
+    && ident.sym == "require"
+    && obj_call.args.len() == 1
+    && let Expr::Lit(Lit::Str(s)) = &*obj_call.args[0].expr
+    && s.value == "util"
+    && let MemberProp::Ident(prop) = &member.prop
+    && prop.sym == "inherits"
+  {
+    return false;
+  }
+
   let pure_flag = comments
     .and_then(|comments| {
       if let Some(comment_list) = comments.get_leading(callee.span().lo) {
