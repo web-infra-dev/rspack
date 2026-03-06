@@ -85,7 +85,7 @@ jobs:
 
   hotpath:
     name: Hotpath Benchmark
-    if: inputs.hotpath && inputs.target == 'x86_64-unknown-linux-gnu'
+    if: inputs.hotpath && inputs.target == 'aarch64-unknown-linux-gnu'
     needs: [build]
     runs-on: ${{ fromJSON(inputs.hotpath-runner || inputs.runner) }}
     defaults:
@@ -154,14 +154,14 @@ jobs:
             );
 
             if (!run) {
-              core.setFailed(`No successful CI run found for base sha ${baseSha}`);
+              core.setOutput('run_id', '');
               return;
             }
 
             core.setOutput('run_id', String(run.id));
 
       - name: Download base bindings
-        if: ${{ steps.hotpath-context.outputs.base_sha != steps.hotpath-context.outputs.head_sha }}
+        if: ${{ steps.hotpath-context.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id != '' }}
         uses: actions/download-artifact@v4
         with:
           name: bindings-${{ inputs.target }}
@@ -184,6 +184,7 @@ jobs:
       - name: Run hotpath benchmark
         env:
           HOTPATH_BASE_WORKTREE: ${{ steps.base-worktree.outputs.path }}
+          HOTPATH_BINDING_TARGET: ${{ inputs.target }}
         run: |
           bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.hotpath-context.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
 
