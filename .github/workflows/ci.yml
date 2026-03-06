@@ -56,7 +56,7 @@ jobs:
   test-linux:
     name: Test Linux
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name != 'workflow_dispatch' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-unknown-linux-gnu
@@ -71,7 +71,7 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name != 'workflow_dispatch' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -83,7 +83,7 @@ jobs:
   test-mac:
     name: Test Mac ARM64
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name != 'workflow_dispatch' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin
@@ -95,7 +95,7 @@ jobs:
   test-wasm:
     name: Test WASM
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name != 'workflow_dispatch' }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: wasm32-wasip1-threads
@@ -106,6 +106,7 @@ jobs:
   check-codspeed:
     name: Check Bench Result
     needs: [test-linux]
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     runs-on: ubuntu-24.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -123,6 +124,7 @@ jobs:
   check-cache:
     name: Check Cache Portable
     needs: [test-linux, test-windows]
+    if: ${{ github.event_name != 'workflow_dispatch' }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
       - name: Checkout
@@ -331,7 +333,7 @@ jobs:
         size-limit,
         check-cache,
       ]
-    if: ${{ always() && !cancelled() }}
+    if: ${{ github.event_name != 'workflow_dispatch' && always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Log
