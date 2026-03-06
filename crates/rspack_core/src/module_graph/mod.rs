@@ -6,6 +6,7 @@ use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
+use slotmap::{SlotMap, new_key_type};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -30,6 +31,80 @@ pub type BuildDependency = (
   DependencyId,
   Option<ModuleIdentifier>, /* parent module */
 );
+
+new_key_type! {
+  struct DependencySlot;
+}
+
+#[derive(Debug)]
+struct ModuleGraphDependencies {
+  slots: SlotMap<DependencySlot, BoxDependency>,
+  dependency_id_to_slot: Vec<Option<DependencySlot>>,
+}
+
+impl Default for ModuleGraphDependencies {
+  fn default() -> Self {
+    Self {
+      slots: SlotMap::with_key(),
+      dependency_id_to_slot: Default::default(),
+    }
+  }
+}
+
+impl ModuleGraphDependencies {
+  fn slot(&self, dependency_id: &DependencyId) -> Option<DependencySlot> {
+    self
+      .dependency_id_to_slot
+      .get(dependency_id.as_u32() as usize)
+      .copied()
+      .flatten()
+  }
+
+  fn get(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
+    self
+      .slot(dependency_id)
+      .and_then(|slot| self.slots.get(slot))
+  }
+
+  fn get_mut(&mut self, dependency_id: &DependencyId) -> Option<&mut BoxDependency> {
+    let slot = self.slot(dependency_id)?;
+    self.slots.get_mut(slot)
+  }
+
+  fn insert(&mut self, dependency: BoxDependency) -> Option<BoxDependency> {
+    let dependency_id = *dependency.id();
+    let index = dependency_id.as_u32() as usize;
+
+    if self.dependency_id_to_slot.len() <= index {
+      self.dependency_id_to_slot.resize(index + 1, None);
+    }
+
+    if let Some(slot) = self.dependency_id_to_slot[index]
+      && let Some(stored_dependency) = self.slots.get_mut(slot)
+    {
+      return Some(std::mem::replace(stored_dependency, dependency));
+    }
+
+    let slot = self.slots.insert(dependency);
+    self.dependency_id_to_slot[index] = Some(slot);
+    None
+  }
+
+  fn remove(&mut self, dependency_id: &DependencyId) -> Option<BoxDependency> {
+    let slot = self
+      .dependency_id_to_slot
+      .get_mut(dependency_id.as_u32() as usize)?
+      .take()?;
+    self.slots.remove(slot)
+  }
+
+  fn iter(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+    self
+      .slots
+      .iter()
+      .map(|(_, dependency)| (dependency.id(), dependency))
+  }
+}
 
 /// https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/ModuleGraph.js#L742-L748
 #[derive(Debug, Clone)]
@@ -58,8 +133,8 @@ pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
-  /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  /// Dependencies stored in a `SlotMap`, with direct indexing by `DependencyId`.
+  dependencies: ModuleGraphDependencies,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
@@ -561,7 +636,7 @@ impl ModuleGraph {
   }
 
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
-    self.inner.dependencies.insert(*dependency.id(), dependency);
+    self.inner.dependencies.insert(dependency);
   }
 
   /// Get a dependency by ID, panicking if not found.
@@ -1111,5 +1186,69 @@ impl ModuleGraph {
         }
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_tasks::within_compiler_context_for_testing_sync;
+
+  use super::ModuleGraphDependencies;
+  use crate::{BoxDependency, Context, EntryDependency};
+
+  fn entry_dependency(request: &str) -> BoxDependency {
+    Box::new(EntryDependency::new(
+      request.to_string(),
+      Context::from("/"),
+      None,
+      false,
+    ))
+  }
+
+  #[test]
+  fn dependency_store_keeps_lookup_consistent_after_removal() {
+    within_compiler_context_for_testing_sync(|| {
+      let mut dependencies = ModuleGraphDependencies::default();
+
+      let first = entry_dependency("./first");
+      let first_id = *first.id();
+      let second = entry_dependency("./second");
+      let second_id = *second.id();
+
+      dependencies.insert(first);
+      dependencies.insert(second);
+
+      assert_eq!(
+        dependencies.get(&first_id).map(|dep| dep.id()),
+        Some(&first_id)
+      );
+      assert_eq!(
+        dependencies.remove(&first_id).map(|dep| *dep.id()),
+        Some(first_id)
+      );
+      assert!(dependencies.get(&first_id).is_none());
+
+      let third = entry_dependency("./third");
+      let third_id = *third.id();
+      dependencies.insert(third);
+
+      assert_eq!(
+        dependencies.get(&second_id).map(|dep| dep.id()),
+        Some(&second_id)
+      );
+      assert_eq!(
+        dependencies.get(&third_id).map(|dep| dep.id()),
+        Some(&third_id)
+      );
+
+      let dependency_ids = dependencies
+        .iter()
+        .map(|(dependency_id, _)| *dependency_id)
+        .collect::<Vec<_>>();
+
+      assert_eq!(dependency_ids.len(), 2);
+      assert!(dependency_ids.contains(&second_id));
+      assert!(dependency_ids.contains(&third_id));
+    });
   }
 }
