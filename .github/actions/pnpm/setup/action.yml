@@ -17,6 +17,12 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    - name: Use mirror registry
+      if: ${{ startsWith(runner.name, 'rspack-darwin-') }}
+      shell: bash
+      run: |
+        pnpm config set registry https://registry.npmmirror.com
+
     - name: Install Node.js
       if: ${{ !startsWith(runner.name, 'rspack-darwin-') }}
       uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
