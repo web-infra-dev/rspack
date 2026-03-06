@@ -8,6 +8,7 @@ import path from 'node:path';
 import { rspack } from '@rspack/core';
 
 const DEFAULT_RUST_TRACE_LAYER = 'perfetto';
+const STDIO_TRACE_LAYERS = new Set(['logger', 'hotpath']);
 
 export async function applyProfile(
   filterValue: string,
@@ -16,7 +17,11 @@ export async function applyProfile(
 ) {
   const { asyncExitHook } = await import('exit-hook');
 
-  if (traceLayer !== 'logger' && traceLayer !== 'perfetto') {
+  if (
+    traceLayer !== 'logger' &&
+    traceLayer !== 'perfetto' &&
+    traceLayer !== 'hotpath'
+  ) {
     throw new Error(`unsupported trace layer: ${traceLayer}`);
   }
   const timestamp = Date.now();
@@ -28,12 +33,11 @@ export async function applyProfile(
       defaultOutputDir,
       'rspack.pftrace',
     );
-    const defaultRustTraceLoggerOutput = 'stdout';
+    const defaultRustTraceStdioOutput = 'stdout';
 
-    const defaultTraceOutput =
-      traceLayer === 'perfetto'
-        ? defaultRustTracePerfettoOutput
-        : defaultRustTraceLoggerOutput;
+    const defaultTraceOutput = STDIO_TRACE_LAYERS.has(traceLayer)
+      ? defaultRustTraceStdioOutput
+      : defaultRustTracePerfettoOutput;
 
     traceOutput = defaultTraceOutput;
   } else if (traceOutput !== 'stdout' && traceOutput !== 'stderr') {

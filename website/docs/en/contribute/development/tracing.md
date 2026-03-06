@@ -18,9 +18,9 @@ RSPACK_PROFILE=OVERVIEW rsbuild build
 RSPACK_PROFILE=ALL rsbuild build
 ```
 
-- If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check how we implement [`RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
+- If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check how we implement [`RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-cli/src/utils/profile.ts) for more information.
 
-The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
+When using the default `perfetto` layer, the generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
@@ -29,15 +29,18 @@ The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.d
 
 ## Tracing layer
 
-Rspack supports two types of layers: `perfetto` and `logger`:
+Rspack supports three types of layers: `perfetto`, `logger`, and `hotpath`:
 
 - `perfetto`: The default value, generates a rspack.pftrace file conforming to the [`perfetto proto`](https://perfetto.dev/docs/reference/synthetic-track-event) format, which can be exported to perfetto for complex performance analysis
-- `logger`: Outputs logs directly to the terminal, suitable for simple log analysis or viewing compilation processes in CI environments
+- `logger`: Outputs structured logs directly to the terminal, suitable for simple log analysis or viewing compilation processes in CI environments
+- `hotpath`: Aggregates tracing spans by name and prints a hotpath-style table with `Calls`, `Avg`, `P95`, `Total`, and `% Total`, suitable for quick terminal inspection without opening Perfetto. If the output path ends with `.json`, it emits a diff-friendly JSON report instead
 
 You can specify the layer through the `RSPACK_TRACE_LAYER` environment variable:
 
 ```sh
 RSPACK_TRACE_LAYER=logger
+# or
+RSPACK_TRACE_LAYER=hotpath
 # or
 RSPACK_TRACE_LAYER=perfetto
 ```
@@ -46,13 +49,17 @@ RSPACK_TRACE_LAYER=perfetto
 
 You can specify the output location for traces:
 
-- The default output for the `logger` layer is `stdout`
-- The default output for the `perfetto` layer is `rspack.pftrace`
+- The default output for the `logger` and `hotpath` layers is `stdout`
+- The default output for the `perfetto` layer is `rspack.pftrace` inside `.rspack-profile-${timestamp}-${pid}`
+- When `RSPACK_TRACE_OUTPUT` is a relative file path, `@rspack/cli` resolves it under the generated `.rspack-profile-${timestamp}-${pid}` directory
+- For the `hotpath` layer, output paths ending with `.json` produce a pretty-printed JSON report with raw numeric fields such as `avg_raw`, `total_raw`, and `percent_total_raw`
 
 You can customize the output location through the `RSPACK_TRACE_OUTPUT` environment variable:
 
 ```sh
 RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=./log.txt rspack dev
+RSPACK_TRACE_LAYER=hotpath RSPACK_TRACE_OUTPUT=./hotpath.txt rspack dev
+RSPACK_TRACE_LAYER=hotpath RSPACK_TRACE_OUTPUT=./hotpath.json rspack dev
 RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=./perfetto.pftrace rspack dev
 ```
 

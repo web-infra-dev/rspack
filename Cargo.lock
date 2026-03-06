@@ -5214,7 +5214,10 @@ dependencies = [
  "rspack_fs",
  "rspack_paths",
  "rustc-hash",
+ "serde",
+ "serde_json",
  "tokio",
+ "unicode-width 0.2.2",
 ]
 
 [[package]]
@@ -5223,8 +5226,11 @@ version = "0.100.0-beta.5"
 dependencies = [
  "chrono",
  "rspack_tracing_perfetto",
+ "serde",
  "serde_json",
+ "tracing",
  "tracing-subscriber",
+ "unicode-width 0.2.2",
 ]
 
 [[package]]

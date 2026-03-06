@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use napi::bindgen_prelude::BigInt;
 use napi_derive::napi;
-use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
+use rspack_tracing::{HotpathTracer, PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
 use rspack_util::tracing_preset::{
   TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
 };
@@ -64,9 +64,10 @@ pub(super) fn register_global_trace(
     if let TraceState::Uninitialized = *state {
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "logger" => Box::new(StdoutTracer::default()),
+        "hotpath" => Box::new(HotpathTracer::default()),
         "perfetto" => Box::new(PerfettoTracer::default()),
         _ => anyhow::bail!(
-          "Unexpected layer: {layer}, supported layers:'logger', 'perfetto' "
+          "Unexpected layer: {layer}, supported layers:'logger', 'hotpath', 'perfetto' "
         ),
       };
       if let Some(layer) = tracer.setup(&output) {

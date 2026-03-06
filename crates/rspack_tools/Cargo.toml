@@ -20,7 +20,10 @@ rspack_error     = { workspace = true }
 rspack_fs        = { workspace = true }
 rspack_paths     = { workspace = true }
 rustc-hash       = { workspace = true }
+serde            = { workspace = true }
+serde_json       = { workspace = true }
 tokio            = { workspace = true }
+unicode-width    = { workspace = true }
 
 [lints]
 workspace = true

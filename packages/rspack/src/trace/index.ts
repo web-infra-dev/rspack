@@ -16,7 +16,8 @@ type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 type PartialChromeEvent = MakeOptional<ChromeEvent, 'ts' | 'ph'>;
 
 // this is a tracer for nodejs
-// FIXME: currently we only support chrome layer and do nothing for logger layer
+// FIXME: JavaScript trace events are buffered locally and only materialized on
+// cleanup for non-perfetto layers such as logger/hotpath.
 export class JavaScriptTracer {
   static state: 'uninitialized' | 'on' | 'off' = 'uninitialized';
   // baseline time, we use offset time for tracing to align with rust side time
