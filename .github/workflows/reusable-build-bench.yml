@@ -59,12 +59,12 @@ jobs:
         uses: ./.github/actions/artifact/download
         with:
           name: codspeed-${{ inputs.target }}
-          path: target/codspeed/instrumentation/
+          path: target/codspeed/analysis/
 
       - name: Show Codspeed
         run: |
           ls -Rl target/codspeed/
-          chmod +x  target/codspeed/instrumentation/rspack_benchmark/benches
+          chmod +x  target/codspeed/analysis/rspack_benchmark/benches
 
       - name: Pnpm Setup
         timeout-minutes: 5
