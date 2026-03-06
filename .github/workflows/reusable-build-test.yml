@@ -139,16 +139,6 @@ jobs:
           force-use-github: true
           include-hidden-files: true
 
-      - name: Upload linux JS dist
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '22' }}
-        uses: ./.github/actions/artifact/upload
-        with:
-          name: hotpath-js-dist-${{ inputs.target }}
-          path: |
-            packages/rspack/dist/**
-            packages/rspack-cli/dist/**
-          force-use-github: true
-
       ### *-apple-darwin
       - name: Test apple-darwin
         timeout-minutes: 20 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.

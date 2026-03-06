@@ -7,20 +7,10 @@ BENCHMARK_DIR="${3:-examples/react}"
 
 ROOT_DIR="$(pwd)"
 HEAD_SHA="$(git rev-parse HEAD)"
-RUNNER_TEMP_DIR="${RUNNER_TEMP:-/tmp}"
-BASE_WORKTREE="${RUNNER_TEMP_DIR}/rspack-hotpath-base-${BASE_SHA:0:12}"
-
 mkdir -p "$METRICS_DIR"
 
-cleanup() {
-  git worktree remove --force "$BASE_WORKTREE" >/dev/null 2>&1 || true
-}
-
-trap cleanup EXIT
-
-build_rspack() {
+build_js() {
   pnpm install --frozen-lockfile
-  pnpm run build:binding:dev
   pnpm --filter "@rspack/core" build
   pnpm --filter "@rspack/cli" build
 }
@@ -33,11 +23,7 @@ run_benchmark() {
 
   echo "==> Benchmarking ${label}"
   pushd "$repo_dir" >/dev/null
-  if [ "$role" = "head" ] && [ "${HOTPATH_SKIP_HEAD_BUILD:-}" = "true" ]; then
-    pnpm install --frozen-lockfile
-  else
-    build_rspack
-  fi
+  build_js
 
   pushd "$BENCHMARK_DIR" >/dev/null
   rm -rf dist
@@ -59,5 +45,5 @@ if [ "$BASE_SHA" = "$HEAD_SHA" ]; then
   exit 0
 fi
 
-git worktree add --force --detach "$BASE_WORKTREE" "$BASE_SHA"
+BASE_WORKTREE="${HOTPATH_BASE_WORKTREE:?HOTPATH_BASE_WORKTREE is required when comparing against a different base SHA}"
 run_benchmark "$BASE_WORKTREE" "base" "base (${BASE_SHA})" "${METRICS_DIR}/base.json"
