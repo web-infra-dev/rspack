@@ -74,11 +74,13 @@ From repository root:
 
 ```bash
 pnpm --filter examples-rsbuild-rsc-federation... install
-pnpm --filter examples-rsbuild-rsc-federation run build
-pnpm --filter examples-rsbuild-rsc-federation run verify:manifest
+pnpm --filter examples-rsbuild-rsc-federation run build:verify
 ```
 
-The verification script fails fast on any mismatch and prints the resolved manifest file paths on success.
+The verification scripts fail fast on any mismatch and cover both:
+
+- emitted manifest/stat expectations
+- runtime-plugin registration and invalidation behavior
 
 ## E2E smoke test
 

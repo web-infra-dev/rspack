@@ -194,13 +194,13 @@ function ensureClientManifestEntry(moduleKey, moduleId) {
     return;
   }
   const rscManifest = ensureRscManifest();
-  rscManifest.clientManifest[moduleKey] ||= {
+  rscManifest.clientManifest[moduleKey] = {
     id: moduleId,
     name: CLIENT_REFERENCE_EXPORT,
     chunks: [],
     async: true,
   };
-  rscManifest.serverConsumerModuleMap[moduleId] ||= {
+  rscManifest.serverConsumerModuleMap[moduleId] = {
     [CLIENT_REFERENCE_EXPORT]: {
       id: moduleId,
       name: CLIENT_REFERENCE_EXPORT,
@@ -212,7 +212,7 @@ function ensureClientManifestEntry(moduleKey, moduleId) {
 
 function ensureServerActionManifestEntry(actionId, moduleId) {
   const rscManifest = ensureRscManifest();
-  rscManifest.serverManifest[actionId] ||= {
+  rscManifest.serverManifest[actionId] = {
     id: moduleId,
     name: actionId,
     chunks: [],
@@ -221,7 +221,7 @@ function ensureServerActionManifestEntry(actionId, moduleId) {
 }
 
 function ensureModuleFactory(moduleId, createFactory) {
-  __webpack_require__.m[moduleId] ||= createFactory;
+  __webpack_require__.m[moduleId] = createFactory;
 }
 
 async function readManifestJson(origin, manifestUrl) {
@@ -279,7 +279,7 @@ function toExposeRequest(remoteAlias, exposePath) {
 }
 
 export default function mfRscRegistrationRuntimePlugin() {
-  const registrationFingerprintByAlias = new Map();
+  const registrationStateByAlias = new Map();
   const stagedPayloadByIdentity = new Map();
 
   const loadRemoteModule = (request) =>
@@ -361,20 +361,62 @@ export default function mfRscRegistrationRuntimePlugin() {
     return undefined;
   };
 
-  const registerRscPayload = (remoteAlias, payload) => {
-    const fingerprint = JSON.stringify({
-      id: payload.sourceId,
-      buildVersion: payload.buildVersion,
-      exposeRscKeys: payload.exposePayload.map(
-        (item) => item.moduleIdentity || '',
-      ),
-      sharedRscKeys: payload.sharedPayload.map(
-        (item) => item.moduleIdentity || '',
-      ),
-    });
-    if (registrationFingerprintByAlias.get(remoteAlias) === fingerprint) {
+  const clearRegisteredState = (registeredState) => {
+    if (!registeredState) {
       return;
     }
+
+    const rscManifest = ensureRscManifest();
+    for (const moduleKey of registeredState.clientManifestKeys) {
+      delete rscManifest.clientManifest[moduleKey];
+    }
+    for (const actionId of registeredState.serverActionIds) {
+      delete rscManifest.serverManifest[actionId];
+    }
+    for (const moduleId of registeredState.moduleIds) {
+      delete rscManifest.serverConsumerModuleMap[moduleId];
+      delete __webpack_require__.m[moduleId];
+      if (__webpack_require__.c) {
+        delete __webpack_require__.c[moduleId];
+      }
+    }
+  };
+
+  const createRegistrationFingerprint = (payload) =>
+    JSON.stringify({
+      id: payload.sourceId,
+      buildVersion: payload.buildVersion,
+      exposePayload: payload.exposePayload.map((item) => ({
+        exposePath: item.exposePath,
+        moduleIdentity: item.moduleIdentity,
+        manifestKeys: item.manifestKeys,
+        clientReferences: item.clientReferences,
+        serverActions: item.serverActions,
+      })),
+      sharedPayload: payload.sharedPayload.map((item) => ({
+        pkgName: item.pkgName,
+        shareKey: item.shareKey,
+        moduleIdentity: item.moduleIdentity,
+        manifestKeys: item.manifestKeys,
+        clientReferences: item.clientReferences,
+        serverActions: item.serverActions,
+      })),
+    });
+
+  const registerRscPayload = (remoteAlias, payload) => {
+    const fingerprint = createRegistrationFingerprint(payload);
+    const previousState = registrationStateByAlias.get(remoteAlias);
+    if (previousState?.fingerprint === fingerprint) {
+      return;
+    }
+    clearRegisteredState(previousState);
+
+    const nextState = {
+      fingerprint,
+      clientManifestKeys: new Set(),
+      serverActionIds: new Set(),
+      moduleIds: new Set(),
+    };
 
     for (const expose of payload.exposePayload) {
       const exposeRequest = toExposeRequest(remoteAlias, expose.exposePath);
@@ -386,8 +428,10 @@ export default function mfRscRegistrationRuntimePlugin() {
         registerClientReferenceModule(moduleId, expose.clientReferences, () =>
           loadRemoteModule(exposeRequest),
         );
+        nextState.moduleIds.add(moduleId);
         for (const moduleKey of expose.manifestKeys) {
           ensureClientManifestEntry(moduleKey, moduleId);
+          nextState.clientManifestKeys.add(moduleKey);
         }
       }
 
@@ -399,8 +443,10 @@ export default function mfRscRegistrationRuntimePlugin() {
         registerServerActionModule(moduleId, expose.serverActions, () =>
           loadRemoteModule(exposeRequest),
         );
+        nextState.moduleIds.add(moduleId);
         for (const action of expose.serverActions) {
           ensureServerActionManifestEntry(action.id, moduleId);
+          nextState.serverActionIds.add(action.id);
         }
       }
     }
@@ -414,8 +460,10 @@ export default function mfRscRegistrationRuntimePlugin() {
         registerClientReferenceModule(moduleId, sharedItem.clientReferences, () =>
           loadSharedModule(sharedItem.shareKey),
         );
+        nextState.moduleIds.add(moduleId);
         for (const moduleKey of sharedItem.manifestKeys) {
           ensureClientManifestEntry(moduleKey, moduleId);
+          nextState.clientManifestKeys.add(moduleKey);
         }
       }
 
@@ -427,13 +475,20 @@ export default function mfRscRegistrationRuntimePlugin() {
         registerServerActionModule(moduleId, sharedItem.serverActions, () =>
           loadSharedModule(sharedItem.shareKey),
         );
+        nextState.moduleIds.add(moduleId);
         for (const action of sharedItem.serverActions) {
           ensureServerActionManifestEntry(action.id, moduleId);
+          nextState.serverActionIds.add(action.id);
         }
       }
     }
 
-    registrationFingerprintByAlias.set(remoteAlias, fingerprint);
+    registrationStateByAlias.set(remoteAlias, {
+      fingerprint: nextState.fingerprint,
+      clientManifestKeys: [...nextState.clientManifestKeys],
+      serverActionIds: [...nextState.serverActionIds],
+      moduleIds: [...nextState.moduleIds],
+    });
   };
 
   const tryRegisterManifest = async (args) => {

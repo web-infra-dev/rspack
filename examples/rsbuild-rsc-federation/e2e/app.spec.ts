@@ -71,6 +71,7 @@ for (const app of appUrls) {
       './server-mixed',
     ];
     const expectedClientExposes = ['./button', './composed'];
+    const unexpectedClientExposes = ['./consumer', './server-mixed'];
 
     const statsExposePaths = stats.exposes.map(
       (expose: { path: string }) => expose.path,
@@ -95,11 +96,28 @@ for (const app of appUrls) {
       expect(clientManifestExposePaths).toContain(exposePath);
     }
 
+    for (const exposePath of unexpectedClientExposes) {
+      expect(clientStatsExposePaths).not.toContain(exposePath);
+      expect(clientManifestExposePaths).not.toContain(exposePath);
+    }
+
     const sharedNames = stats.shared.map(
       (shared: { name: string }) => shared.name,
     );
     expect(sharedNames).toContain('rsbuild-rsc-federation-shared');
     expect(sharedNames).toContain(
+      'rsbuild-rsc-federation-shared/server-actions',
+    );
+    const clientSharedNames = clientStats.shared.map(
+      (shared: { name: string }) => shared.name,
+    );
+    const clientManifestSharedNames = clientManifest.shared.map(
+      (shared: { name: string }) => shared.name,
+    );
+    expect(clientSharedNames).not.toContain(
+      'rsbuild-rsc-federation-shared/server-actions',
+    );
+    expect(clientManifestSharedNames).not.toContain(
       'rsbuild-rsc-federation-shared/server-actions',
     );
 

@@ -357,6 +357,22 @@ invariant(
   clientStats.exposes.some((item) => item.path === './composed'),
   'Expected client stats to include expose "./composed"',
 );
+invariant(
+  !clientStats.exposes.some((item) => item.path === './consumer'),
+  'Did not expect client stats to include server-only expose "./consumer"',
+);
+invariant(
+  !clientStats.exposes.some((item) => item.path === './server-mixed'),
+  'Did not expect client stats to include server-only expose "./server-mixed"',
+);
+invariant(
+  !clientManifest.exposes.some((item) => item.path === './consumer'),
+  'Did not expect client manifest to include server-only expose "./consumer"',
+);
+invariant(
+  !clientManifest.exposes.some((item) => item.path === './server-mixed'),
+  'Did not expect client manifest to include server-only expose "./server-mixed"',
+);
 const expectedClientSingletonShares = [
   'react',
   'react/jsx-runtime',
@@ -375,6 +391,18 @@ for (const shareName of expectedClientSingletonShares) {
     `Expected client shared singleton "${shareName}" to be true`,
   );
 }
+invariant(
+  !clientStats.shared.some(
+    (item) => item.name === 'rsbuild-rsc-federation-shared/server-actions',
+  ),
+  'Did not expect client stats to include server-only shared actions entry',
+);
+invariant(
+  !clientManifest.shared.some(
+    (item) => item.name === 'rsbuild-rsc-federation-shared/server-actions',
+  ),
+  'Did not expect client manifest to include server-only shared actions entry',
+);
 
 console.log('[verify-manifest] verified manifest and stats successfully');
 console.log(`[verify-manifest] stats: ${statsPath}`);
