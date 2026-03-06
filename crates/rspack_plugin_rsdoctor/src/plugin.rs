@@ -30,9 +30,9 @@ use crate::{
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
   },
   module_graph::{
-    collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
-    collect_module_ids, collect_module_original_sources, collect_module_side_effects_locations,
-    collect_modules, collect_side_effects_only_imports,
+    collect_concatenated_modules, collect_connections_only_imports, collect_json_module_sizes,
+    collect_module_dependencies, collect_module_ids, collect_module_original_sources,
+    collect_module_side_effects_locations, collect_modules,
   },
 };
 
@@ -72,6 +72,7 @@ pub enum RsdoctorPluginModuleGraphFeature {
   ModuleGraph,
   ModuleIds,
   ModuleSources,
+  TreeShaking, // Retained feature for controlling tree-shaking
 }
 
 impl From<String> for RsdoctorPluginModuleGraphFeature {
@@ -80,6 +81,7 @@ impl From<String> for RsdoctorPluginModuleGraphFeature {
       "graph" => RsdoctorPluginModuleGraphFeature::ModuleGraph,
       "ids" => RsdoctorPluginModuleGraphFeature::ModuleIds,
       "sources" => RsdoctorPluginModuleGraphFeature::ModuleSources,
+      "treeShaking" => RsdoctorPluginModuleGraphFeature::TreeShaking, // Retained feature
       _ => panic!("invalid module graph feature: {value}"),
     }
   }
@@ -91,6 +93,7 @@ impl fmt::Display for RsdoctorPluginModuleGraphFeature {
       RsdoctorPluginModuleGraphFeature::ModuleGraph => write!(f, "graph"),
       RsdoctorPluginModuleGraphFeature::ModuleIds => write!(f, "ids"),
       RsdoctorPluginModuleGraphFeature::ModuleSources => write!(f, "sources"),
+      RsdoctorPluginModuleGraphFeature::TreeShaking => write!(f, "treeShaking"), // Retained feature
     }
   }
 }
@@ -397,18 +400,23 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
-    .values()
-    .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
-    .collect();
-  let side_effects_only_imports = collect_side_effects_only_imports(
-    &modules,
-    &module_ukey_map,
-    module_graph,
-    &compilation.module_graph_cache_artifact,
-    &compilation.exports_info_artifact,
-    &module_ukey_to_info,
-  );
+  let connections_only_imports =
+    if self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::TreeShaking) {
+      let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
+        .values()
+        .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
+        .collect();
+      collect_connections_only_imports(
+        &modules,
+        &module_ukey_map,
+        module_graph,
+        &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
+        &module_ukey_to_info,
+      )
+    } else {
+      vec![]
+    };
 
   // 7. collect chunk modules
   let chunk_modules =
@@ -422,7 +430,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
         chunk_modules,
-        side_effects_only_imports,
+        connections_only_imports,
       })
       .await
     {
