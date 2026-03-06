@@ -23,6 +23,9 @@ use rustc_hash::FxHashSet;
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
 
+static MAX_SIZE_KEY_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("should build regex"));
+
 #[derive(Debug)]
 struct GroupItem {
   module: ModuleIdentifier,
@@ -238,9 +241,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
       &name_for_condition,
     ))
   } else {
-    static RE: LazyLock<Regex> =
-      LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("should build regex"));
-    RE.replace_all(&ident, "")
+    MAX_SIZE_KEY_REGEX.replace_all(&ident, "")
   };
 
   let full_key = format!(

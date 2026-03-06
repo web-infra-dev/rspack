@@ -264,15 +264,14 @@ impl EsmLibraryPlugin {
       .par_values()
       .map(|info| {
         let mut escaped_names: FxHashMap<String, String> = FxHashMap::default();
-        let mut escaped_identifiers: FxHashMap<String, Vec<String>> = FxHashMap::default();
+        let mut escaped_identifiers: FxHashMap<String, Vec<Atom>> = FxHashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
           &compilation.module_static_cache,
           &compilation.options.context,
         );
-        let splitted_readable_identifier: Vec<String> =
-          split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
         escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
 
         match info {
@@ -515,7 +514,7 @@ var {} = {{}};
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<String, String>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) {
     let context = &compilation.options.context;
 
@@ -748,6 +747,24 @@ var {} = {{}};
       }
     }
 
+    // Build a targeted set for external module name deconfliction:
+    // Start from chunk_link.used_names (cross-chunk accumulated names) and add
+    // import binding names from raw_import_stmts. We do NOT use all_used_names here
+    // because it contains binding_to_ref keys (e.g., `cjs`, `foo`) that will be
+    // replaced during rendering and should not block external module names.
+    let mut external_used_names = chunk_link.used_names.clone();
+    for import_spec in chunk_link.raw_import_stmts.values() {
+      if let Some(ns) = &import_spec.ns_import {
+        external_used_names.insert(ns.clone());
+      }
+      for atom in import_spec.atoms.values() {
+        external_used_names.insert(atom.clone());
+      }
+      if let Some(default_import) = &import_spec.default_import {
+        external_used_names.insert(default_import.clone());
+      }
+    }
+
     for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
@@ -761,11 +778,13 @@ var {} = {{}};
           context,
         );
 
-        info.name = Some(find_new_name(
+        let name = find_new_name(
           "",
-          &chunk_link.used_names,
+          &external_used_names,
           &escaped_identifiers[&readable_identifier],
-        ));
+        );
+        external_used_names.insert(name.clone());
+        info.name = Some(name);
       }
     }
 
@@ -1230,7 +1249,7 @@ var {} = {{}};
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
@@ -1489,7 +1508,7 @@ var {} = {{}};
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
