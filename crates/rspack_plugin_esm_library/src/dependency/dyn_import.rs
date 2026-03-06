@@ -239,7 +239,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!("Promise.resolve({ns_ref})"),
+        format!("Promise.resolve({ns_ref})"),
         None,
       );
       return;
