@@ -1,0 +1,2448 @@
+{
+  "rspack_trace_layer": "hotpath",
+  "output_format": "json",
+  "description": "Aggregated tracing spans (avg, p95, total)",
+  "time_elapsed": "2.42 s",
+  "total_elapsed_ns": 2419181459,
+  "percentiles": [
+    95
+  ],
+  "data": [
+    {
+      "name": "rspack_compilation_main::Compiler:build",
+      "calls": 1,
+      "avg": "2.38 s",
+      "avg_raw": 2379266250,
+      "p95": "2.38 s",
+      "percentiles_raw": {
+        "p95": 2379266250
+      },
+      "total": "2.38 s",
+      "total_raw": 2379266250,
+      "percent_total": "98.35%",
+      "percent_total_raw": 9835
+    },
+    {
+      "name": "rspack_compilation_main::Compiler:compile",
+      "calls": 1,
+      "avg": "2.38 s",
+      "avg_raw": 2376876875,
+      "p95": "2.38 s",
+      "percentiles_raw": {
+        "p95": 2376876875
+      },
+      "total": "2.38 s",
+      "total_raw": 2376876875,
+      "percent_total": "98.25%",
+      "percent_total_raw": 9825
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:process_assets",
+      "calls": 1,
+      "avg": "1.99 s",
+      "avg_raw": 1986490750,
+      "p95": "1.99 s",
+      "percentiles_raw": {
+        "p95": 1986490750
+      },
+      "total": "1.99 s",
+      "total_raw": 1986490750,
+      "percent_total": "82.11%",
+      "percent_total_raw": 8211
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationProcessAssets",
+      "calls": 1,
+      "avg": "1.99 s",
+      "avg_raw": 1986482208,
+      "p95": "1.99 s",
+      "percentiles_raw": {
+        "p95": 1986482208
+      },
+      "total": "1.99 s",
+      "total_raw": 1986482208,
+      "percent_total": "82.11%",
+      "percent_total_raw": 8211
+    },
+    {
+      "name": "rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin:process_assets",
+      "calls": 1,
+      "avg": "1.98 s",
+      "avg_raw": 1978242417,
+      "p95": "1.98 s",
+      "percentiles_raw": {
+        "p95": 1978242417
+      },
+      "total": "1.98 s",
+      "total_raw": 1978242417,
+      "percent_total": "81.77%",
+      "percent_total_raw": 8177
+    },
+    {
+      "name": "swc_ecma_minifier::minify",
+      "calls": 1,
+      "avg": "1.86 s",
+      "avg_raw": 1861721834,
+      "p95": "1.86 s",
+      "percentiles_raw": {
+        "p95": 1861721834
+      },
+      "total": "1.86 s",
+      "total_raw": 1861721834,
+      "percent_total": "76.96%",
+      "percent_total_raw": 7696
+    },
+    {
+      "name": "swc_ecma_minifier::compress ast",
+      "calls": 1,
+      "avg": "1.60 s",
+      "avg_raw": 1603389709,
+      "p95": "1.60 s",
+      "percentiles_raw": {
+        "p95": 1603389709
+      },
+      "total": "1.60 s",
+      "total_raw": 1603389709,
+      "percent_total": "66.28%",
+      "percent_total_raw": 6628
+    },
+    {
+      "name": "swc_ecma_minifier::compress::optimize",
+      "calls": 3,
+      "avg": "431.77 ms",
+      "avg_raw": 431774069,
+      "p95": "689.96 ms",
+      "percentiles_raw": {
+        "p95": 689963083
+      },
+      "total": "1.30 s",
+      "total_raw": 1295322208,
+      "percent_total": "53.54%",
+      "percent_total_raw": 5354
+    },
+    {
+      "name": "swc_ecma_minifier::compress::apply full optimizer",
+      "calls": 2,
+      "avg": "464.04 ms",
+      "avg_raw": 464044000,
+      "p95": "490.05 ms",
+      "percentiles_raw": {
+        "p95": 490045666
+      },
+      "total": "928.09 ms",
+      "total_raw": 928088000,
+      "percent_total": "38.36%",
+      "percent_total_raw": 3836
+    },
+    {
+      "name": "rspack_core::normal_module::NormalModule:build",
+      "calls": 13,
+      "avg": "30.27 ms",
+      "avg_raw": 30269567,
+      "p95": "345.22 ms",
+      "percentiles_raw": {
+        "p95": 345220125
+      },
+      "total": "393.50 ms",
+      "total_raw": 393504378,
+      "percent_total": "16.27%",
+      "percent_total_raw": 1627
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:build_module_graph",
+      "calls": 1,
+      "avg": "371.55 ms",
+      "avg_raw": 371547417,
+      "p95": "371.55 ms",
+      "percentiles_raw": {
+        "p95": 371547417
+      },
+      "total": "371.55 ms",
+      "total_raw": 371547417,
+      "percent_total": "15.36%",
+      "percent_total_raw": 1536
+    },
+    {
+      "name": "swc_ecma_minifier::compress::apply pure optimizer",
+      "calls": 2,
+      "avg": "181.08 ms",
+      "avg_raw": 181082229,
+      "p95": "197.40 ms",
+      "percentiles_raw": {
+        "p95": 197398750
+      },
+      "total": "362.16 ms",
+      "total_raw": 362164459,
+      "percent_total": "14.97%",
+      "percent_total_raw": 1497
+    },
+    {
+      "name": "swc_ecma_minifier::remove dead code",
+      "calls": 2,
+      "avg": "154.01 ms",
+      "avg_raw": 154005167,
+      "p95": "184.33 ms",
+      "percentiles_raw": {
+        "p95": 184326459
+      },
+      "total": "308.01 ms",
+      "total_raw": 308010334,
+      "percent_total": "12.73%",
+      "percent_total_raw": 1273
+    },
+    {
+      "name": "swc_ecma_transforms_optimization::simplify::dce::tree-shaker",
+      "calls": 5,
+      "avg": "60.44 ms",
+      "avg_raw": 60442950,
+      "p95": "76.39 ms",
+      "percentiles_raw": {
+        "p95": 76385417
+      },
+      "total": "302.21 ms",
+      "total_raw": 302214750,
+      "percent_total": "12.49%",
+      "percent_total_raw": 1249
+    },
+    {
+      "name": "rspack_core::normal_module::NormalModule:run_loaders",
+      "calls": 13,
+      "avg": "19.50 ms",
+      "avg_raw": 19496240,
+      "p95": "221.43 ms",
+      "percentiles_raw": {
+        "p95": 221434333
+      },
+      "total": "253.45 ms",
+      "total_raw": 253451124,
+      "percent_total": "10.48%",
+      "percent_total_raw": 1048
+    },
+    {
+      "name": "rspack_loader_runner::runner::run_loader:normal",
+      "calls": 12,
+      "avg": "20.69 ms",
+      "avg_raw": 20693545,
+      "p95": "220.95 ms",
+      "percentiles_raw": {
+        "p95": 220954208
+      },
+      "total": "248.32 ms",
+      "total_raw": 248322541,
+      "percent_total": "10.26%",
+      "percent_total_raw": 1026
+    },
+    {
+      "name": "rspack_loader_swc::loader:builtin-swc",
+      "calls": 12,
+      "avg": "20.68 ms",
+      "avg_raw": 20684520,
+      "p95": "220.94 ms",
+      "percentiles_raw": {
+        "p95": 220940625
+      },
+      "total": "248.21 ms",
+      "total_raw": 248214249,
+      "percent_total": "10.26%",
+      "percent_total_raw": 1026
+    },
+    {
+      "name": "swc_ecma_minifier::postcompress",
+      "calls": 1,
+      "avg": "184.60 ms",
+      "avg_raw": 184598041,
+      "p95": "184.60 ms",
+      "percentiles_raw": {
+        "p95": 184598041
+      },
+      "total": "184.60 ms",
+      "total_raw": 184598041,
+      "percent_total": "7.63%",
+      "percent_total_raw": 763
+    },
+    {
+      "name": "rspack_plugin_javascript::parser_and_generator::JavaScriptParser:parse",
+      "calls": 12,
+      "avg": "11.28 ms",
+      "avg_raw": 11278565,
+      "p95": "122.82 ms",
+      "percentiles_raw": {
+        "p95": 122816125
+      },
+      "total": "135.34 ms",
+      "total_raw": 135342791,
+      "percent_total": "5.59%",
+      "percent_total_raw": 559
+    },
+    {
+      "name": "swc_ecma_usage_analyzer::analyzer::analyze",
+      "calls": 2,
+      "avg": "53.51 ms",
+      "avg_raw": 53512395,
+      "p95": "54.92 ms",
+      "percentiles_raw": {
+        "p95": 54923166
+      },
+      "total": "107.02 ms",
+      "total_raw": 107024791,
+      "percent_total": "4.42%",
+      "percent_total_raw": 442
+    },
+    {
+      "name": "swc_ecma_minifier::mangle names",
+      "calls": 1,
+      "avg": "58.56 ms",
+      "avg_raw": 58564791,
+      "p95": "58.56 ms",
+      "percentiles_raw": {
+        "p95": 58564791
+      },
+      "total": "58.56 ms",
+      "total_raw": 58564791,
+      "percent_total": "2.42%",
+      "percent_total_raw": 242
+    },
+    {
+      "name": "rspack_plugin_html::plugin::HtmlRspackPlugin:process_assets",
+      "calls": 1,
+      "avg": "4.89 ms",
+      "avg_raw": 4892792,
+      "p95": "4.89 ms",
+      "percentiles_raw": {
+        "p95": 4892792
+      },
+      "total": "4.89 ms",
+      "total_raw": 4892792,
+      "percent_total": "0.20%",
+      "percent_total_raw": 20
+    },
+    {
+      "name": "rspack_loader_swc::plugin::SwcLoaderPlugin:resolve_loader",
+      "calls": 15,
+      "avg": "299.64 us",
+      "avg_raw": 299644,
+      "p95": "4.39 ms",
+      "percentiles_raw": {
+        "p95": 4391833
+      },
+      "total": "4.49 ms",
+      "total_raw": 4494668,
+      "percent_total": "0.19%",
+      "percent_total_raw": 19
+    },
+    {
+      "name": "rspack_loader_runner::runner::run_loader:process_resource",
+      "calls": 13,
+      "avg": "323.58 us",
+      "avg_raw": 323583,
+      "p95": "482.12 us",
+      "percentiles_raw": {
+        "p95": 482125
+      },
+      "total": "4.21 ms",
+      "total_raw": 4206584,
+      "percent_total": "0.17%",
+      "percent_total_raw": 17
+    },
+    {
+      "name": "rspack_loader_runner::runner::LoaderRunner:process_resource",
+      "calls": 13,
+      "avg": "315.54 us",
+      "avg_raw": 315538,
+      "p95": "475.04 us",
+      "percentiles_raw": {
+        "p95": 475042
+      },
+      "total": "4.10 ms",
+      "total_raw": 4102001,
+      "percent_total": "0.17%",
+      "percent_total_raw": 17
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:code_generation",
+      "calls": 1,
+      "avg": "3.58 ms",
+      "avg_raw": 3581875,
+      "p95": "3.58 ms",
+      "percentiles_raw": {
+        "p95": 3581875
+      },
+      "total": "3.58 ms",
+      "total_raw": 3581875,
+      "percent_total": "0.15%",
+      "percent_total_raw": 15
+    },
+    {
+      "name": "rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin:process_assets",
+      "calls": 1,
+      "avg": "3.19 ms",
+      "avg_raw": 3192792,
+      "p95": "3.19 ms",
+      "percentiles_raw": {
+        "p95": 3192792
+      },
+      "total": "3.19 ms",
+      "total_raw": 3192792,
+      "percent_total": "0.13%",
+      "percent_total_raw": 13
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationOptimizeDependencies",
+      "calls": 1,
+      "avg": "1.93 ms",
+      "avg_raw": 1926667,
+      "p95": "1.93 ms",
+      "percentiles_raw": {
+        "p95": 1926667
+      },
+      "total": "1.93 ms",
+      "total_raw": 1926667,
+      "percent_total": "0.08%",
+      "percent_total_raw": 8
+    },
+    {
+      "name": "rspack_core::compiler::Compile:done",
+      "calls": 1,
+      "avg": "1.90 ms",
+      "avg_raw": 1900125,
+      "p95": "1.90 ms",
+      "percentiles_raw": {
+        "p95": 1900125
+      },
+      "total": "1.90 ms",
+      "total_raw": 1900125,
+      "percent_total": "0.08%",
+      "percent_total_raw": 8
+    },
+    {
+      "name": "rspack_core::compiler::emit_assets",
+      "calls": 1,
+      "avg": "1.78 ms",
+      "avg_raw": 1778416,
+      "p95": "1.78 ms",
+      "percentiles_raw": {
+        "p95": 1778416
+      },
+      "total": "1.78 ms",
+      "total_raw": 1778416,
+      "percent_total": "0.07%",
+      "percent_total_raw": 7
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerThisCompilation",
+      "calls": 1,
+      "avg": "1.75 ms",
+      "avg_raw": 1752833,
+      "p95": "1.75 ms",
+      "percentiles_raw": {
+        "p95": 1752833
+      },
+      "total": "1.75 ms",
+      "total_raw": 1752833,
+      "percent_total": "0.07%",
+      "percent_total_raw": 7
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:process_chunks_runtime_requirements",
+      "calls": 1,
+      "avg": "1.72 ms",
+      "avg_raw": 1717250,
+      "p95": "1.72 ms",
+      "percentiles_raw": {
+        "p95": 1717250
+      },
+      "total": "1.72 ms",
+      "total_raw": 1717250,
+      "percent_total": "0.07%",
+      "percent_total_raw": 7
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::flag_dependency_usage_plugin::FlagDependencyUsagePlugin:optimize_dependencies",
+      "calls": 1,
+      "avg": "1.53 ms",
+      "avg_raw": 1530334,
+      "p95": "1.53 ms",
+      "percentiles_raw": {
+        "p95": 1530334
+      },
+      "total": "1.53 ms",
+      "total_raw": 1530334,
+      "percent_total": "0.06%",
+      "percent_total_raw": 6
+    },
+    {
+      "name": "rspack_core::compilation::finish_modules::Compilation:finish_modules_inner",
+      "calls": 1,
+      "avg": "1.44 ms",
+      "avg_raw": 1441209,
+      "p95": "1.44 ms",
+      "percentiles_raw": {
+        "p95": 1441209
+      },
+      "total": "1.44 ms",
+      "total_raw": 1441209,
+      "percent_total": "0.06%",
+      "percent_total_raw": 6
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerCompilation",
+      "calls": 1,
+      "avg": "1.25 ms",
+      "avg_raw": 1246250,
+      "p95": "1.25 ms",
+      "percentiles_raw": {
+        "p95": 1246250
+      },
+      "total": "1.25 ms",
+      "total_raw": 1246250,
+      "percent_total": "0.05%",
+      "percent_total_raw": 5
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationFinishModules",
+      "calls": 1,
+      "avg": "1.22 ms",
+      "avg_raw": 1219041,
+      "p95": "1.22 ms",
+      "percentiles_raw": {
+        "p95": 1219041
+      },
+      "total": "1.22 ms",
+      "total_raw": 1219041,
+      "percent_total": "0.05%",
+      "percent_total_raw": 5
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:create_hash",
+      "calls": 1,
+      "avg": "1.17 ms",
+      "avg_raw": 1165584,
+      "p95": "1.17 ms",
+      "percentiles_raw": {
+        "p95": 1165584
+      },
+      "total": "1.17 ms",
+      "total_raw": 1165584,
+      "percent_total": "0.05%",
+      "percent_total_raw": 5
+    },
+    {
+      "name": "rspack_core::normal_module::NormalModule:build_hash",
+      "calls": 13,
+      "avg": "78.57 us",
+      "avg_raw": 78573,
+      "p95": "868.58 us",
+      "percentiles_raw": {
+        "p95": 868583
+      },
+      "total": "1.02 ms",
+      "total_raw": 1021459,
+      "percent_total": "0.04%",
+      "percent_total_raw": 4
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationModuleIds",
+      "calls": 1,
+      "avg": "968.62 us",
+      "avg_raw": 968625,
+      "p95": "968.62 us",
+      "percentiles_raw": {
+        "p95": 968625
+      },
+      "total": "968.62 us",
+      "total_raw": 968625,
+      "percent_total": "0.04%",
+      "percent_total_raw": 4
+    },
+    {
+      "name": "rspack_ids::deterministic_module_ids_plugin::DeterministicModuleIdsPlugin:module_ids",
+      "calls": 1,
+      "avg": "956.75 us",
+      "avg_raw": 956750,
+      "p95": "956.75 us",
+      "percentiles_raw": {
+        "p95": 956750
+      },
+      "total": "956.75 us",
+      "total_raw": 956750,
+      "percent_total": "0.04%",
+      "percent_total_raw": 4
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::flag_dependency_exports_plugin::FlagDependencyExportsPlugin:finish_modules",
+      "calls": 1,
+      "avg": "814.79 us",
+      "avg_raw": 814792,
+      "p95": "814.79 us",
+      "percentiles_raw": {
+        "p95": 814792
+      },
+      "total": "814.79 us",
+      "total_raw": 814792,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_compilation_main::Compilation::create_chunk_assets",
+      "calls": 1,
+      "avg": "787.38 us",
+      "avg_raw": 787375,
+      "p95": "787.38 us",
+      "percentiles_raw": {
+        "p95": 787375
+      },
+      "total": "787.38 us",
+      "total_raw": 787375,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationOptimizeChunks",
+      "calls": 1,
+      "avg": "724.12 us",
+      "avg_raw": 724125,
+      "p95": "724.12 us",
+      "percentiles_raw": {
+        "p95": 724125
+      },
+      "total": "724.12 us",
+      "total_raw": 724125,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationOptimizeChunkModules",
+      "calls": 1,
+      "avg": "647.71 us",
+      "avg_raw": 647708,
+      "p95": "647.71 us",
+      "percentiles_raw": {
+        "p95": 647708
+      },
+      "total": "647.71 us",
+      "total_raw": 647708,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_plugin_split_chunks::plugin::SplitChunksPlugin:optimize_chunks",
+      "calls": 1,
+      "avg": "633.42 us",
+      "avg_raw": 633416,
+      "p95": "633.42 us",
+      "percentiles_raw": {
+        "p95": 633416
+      },
+      "total": "633.42 us",
+      "total_raw": 633416,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:SplitChunks",
+      "calls": 1,
+      "avg": "623.71 us",
+      "avg_raw": 623709,
+      "p95": "623.71 us",
+      "percentiles_raw": {
+        "p95": 623709
+      },
+      "total": "623.71 us",
+      "total_raw": 623709,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::module_concatenation_plugin::ModuleConcatenationPlugin:optimize_chunk_modules",
+      "calls": 1,
+      "avg": "613.04 us",
+      "avg_raw": 613041,
+      "p95": "613.04 us",
+      "percentiles_raw": {
+        "p95": 613041
+      },
+      "total": "613.04 us",
+      "total_raw": 613041,
+      "percent_total": "0.03%",
+      "percent_total_raw": 3
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::impl_plugin_for_js_plugin::JsPlugin:render_manifest",
+      "calls": 1,
+      "avg": "475.58 us",
+      "avg_raw": 475583,
+      "p95": "475.58 us",
+      "percentiles_raw": {
+        "p95": 475583
+      },
+      "total": "475.58 us",
+      "total_raw": 475583,
+      "percent_total": "0.02%",
+      "percent_total_raw": 2
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:code_splitting",
+      "calls": 1,
+      "avg": "430.50 us",
+      "avg_raw": 430500,
+      "p95": "430.50 us",
+      "percentiles_raw": {
+        "p95": 430500
+      },
+      "total": "430.50 us",
+      "total_raw": 430500,
+      "percent_total": "0.02%",
+      "percent_total_raw": 2
+    },
+    {
+      "name": "rspack_core::compilation::build_chunk_graph::Compilation:build_chunk_graph",
+      "calls": 1,
+      "avg": "414.46 us",
+      "avg_raw": 414459,
+      "p95": "414.46 us",
+      "percentiles_raw": {
+        "p95": 414459
+      },
+      "total": "414.46 us",
+      "total_raw": 414459,
+      "percent_total": "0.02%",
+      "percent_total_raw": 2
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:finish",
+      "calls": 1,
+      "avg": "371.50 us",
+      "avg_raw": 371500,
+      "p95": "371.50 us",
+      "percentiles_raw": {
+        "p95": 371500
+      },
+      "total": "371.50 us",
+      "total_raw": 371500,
+      "percent_total": "0.02%",
+      "percent_total_raw": 2
+    },
+    {
+      "name": "javascript::Plugin Analysis::DefaultStatsPrinterPlugin::statsPrinter",
+      "calls": 1,
+      "avg": "340.42 us",
+      "avg_raw": 340416,
+      "p95": "340.42 us",
+      "percentiles_raw": {
+        "p95": 340416
+      },
+      "total": "340.42 us",
+      "total_raw": 340416,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::create_module_hashes::Compilation:create_module_hashes",
+      "calls": 1,
+      "avg": "334.62 us",
+      "avg_raw": 334625,
+      "p95": "334.62 us",
+      "percentiles_raw": {
+        "p95": 334625
+      },
+      "total": "334.62 us",
+      "total_raw": 334625,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "javascript::Plugin Analysis::DefaultStatsFactoryPlugin::statsFactory",
+      "calls": 1,
+      "avg": "297.38 us",
+      "avg_raw": 297375,
+      "p95": "297.38 us",
+      "percentiles_raw": {
+        "p95": 297375
+      },
+      "total": "297.38 us",
+      "total_raw": 297375,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "javascript::Plugin Analysis::DefaultStatsPresetPlugin::statsNormalize",
+      "calls": 1,
+      "avg": "282.54 us",
+      "avg_raw": 282541,
+      "p95": "282.54 us",
+      "percentiles_raw": {
+        "p95": 282541
+      },
+      "total": "282.54 us",
+      "total_raw": 282541,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::after_process_assets::Compilation:after_process_assets",
+      "calls": 1,
+      "avg": "253.33 us",
+      "avg_raw": 253334,
+      "p95": "253.33 us",
+      "percentiles_raw": {
+        "p95": 253334
+      },
+      "total": "253.33 us",
+      "total_raw": 253334,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::infer_async_modules_plugin::InferAsyncModulesPlugin:finish_modules",
+      "calls": 1,
+      "avg": "250.58 us",
+      "avg_raw": 250583,
+      "p95": "250.58 us",
+      "percentiles_raw": {
+        "p95": 250583
+      },
+      "total": "250.58 us",
+      "total_raw": 250583,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:SplitChunks:prepare_module_group_map",
+      "calls": 2,
+      "avg": "119.06 us",
+      "avg_raw": 119062,
+      "p95": "170.42 us",
+      "percentiles_raw": {
+        "p95": 170417
+      },
+      "total": "238.12 us",
+      "total_raw": 238125,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAfterProcessAssets",
+      "calls": 1,
+      "avg": "232.50 us",
+      "avg_raw": 232500,
+      "p95": "232.50 us",
+      "percentiles_raw": {
+        "p95": 232500
+      },
+      "total": "232.50 us",
+      "total_raw": 232500,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationOptimizeCodeGeneration",
+      "calls": 1,
+      "avg": "225.83 us",
+      "avg_raw": 225834,
+      "p95": "225.83 us",
+      "percentiles_raw": {
+        "p95": 225834
+      },
+      "total": "225.83 us",
+      "total_raw": 225834,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::mangle_exports_plugin::MangleExportsPlugin:optimize_code_generation",
+      "calls": 1,
+      "avg": "216.25 us",
+      "avg_raw": 216250,
+      "p95": "216.25 us",
+      "percentiles_raw": {
+        "p95": 216250
+      },
+      "total": "216.25 us",
+      "total_raw": 216250,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAdditionalTreeRuntimeRequirements",
+      "calls": 1,
+      "avg": "212.38 us",
+      "avg_raw": 212375,
+      "p95": "212.38 us",
+      "percentiles_raw": {
+        "p95": 212375
+      },
+      "total": "212.38 us",
+      "total_raw": 212375,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationRuntimeRequirementInTree",
+      "calls": 2,
+      "avg": "99.98 us",
+      "avg_raw": 99979,
+      "p95": "135.29 us",
+      "percentiles_raw": {
+        "p95": 135292
+      },
+      "total": "199.96 us",
+      "total_raw": 199959,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationDependencyReferencedExports",
+      "calls": 28,
+      "avg": "6.47 us",
+      "avg_raw": 6474,
+      "p95": "9.96 us",
+      "percentiles_raw": {
+        "p95": 9958
+      },
+      "total": "181.29 us",
+      "total_raw": 181291,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compilation::finish_modules::Compilation:collect_dependencies_diagnostics",
+      "calls": 1,
+      "avg": "172.67 us",
+      "avg_raw": 172667,
+      "p95": "172.67 us",
+      "percentiles_raw": {
+        "p95": 172667
+      },
+      "total": "172.67 us",
+      "total_raw": 172667,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::impl_plugin_for_js_plugin::JsPlugin:chunk_hash",
+      "calls": 1,
+      "avg": "160.12 us",
+      "avg_raw": 160125,
+      "p95": "160.12 us",
+      "percentiles_raw": {
+        "p95": 160125
+      },
+      "total": "160.12 us",
+      "total_raw": 160125,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerFinishMake",
+      "calls": 1,
+      "avg": "130.58 us",
+      "avg_raw": 130583,
+      "p95": "130.58 us",
+      "percentiles_raw": {
+        "p95": 130583
+      },
+      "total": "130.58 us",
+      "total_raw": 130583,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_loader_runner::runner::run_loader:pitch:yield_to_js",
+      "calls": 24,
+      "avg": "5.34 us",
+      "avg_raw": 5343,
+      "p95": "8.71 us",
+      "percentiles_raw": {
+        "p95": 8708
+      },
+      "total": "128.25 us",
+      "total_raw": 128250,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::inline_exports_plugin::InlineExportsPlugin:optimize_dependencies",
+      "calls": 1,
+      "avg": "125.96 us",
+      "avg_raw": 125959,
+      "p95": "125.96 us",
+      "percentiles_raw": {
+        "p95": 125959
+      },
+      "total": "125.96 us",
+      "total_raw": 125959,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerMake",
+      "calls": 1,
+      "avg": "124.04 us",
+      "avg_raw": 124042,
+      "p95": "124.04 us",
+      "percentiles_raw": {
+        "p95": 124042
+      },
+      "total": "124.04 us",
+      "total_raw": 124042,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerAfterEmit",
+      "calls": 1,
+      "avg": "121.25 us",
+      "avg_raw": 121250,
+      "p95": "121.25 us",
+      "percentiles_raw": {
+        "p95": 121250
+      },
+      "total": "121.25 us",
+      "total_raw": 121250,
+      "percent_total": "0.01%",
+      "percent_total_raw": 1
+    },
+    {
+      "name": "javascript::Plugin Analysis::EntryOptionPlugin::entryOption",
+      "calls": 1,
+      "avg": "115.12 us",
+      "avg_raw": 115125,
+      "p95": "115.12 us",
+      "percentiles_raw": {
+        "p95": 115125
+      },
+      "total": "115.12 us",
+      "total_raw": 115125,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_css::plugin::impl_plugin_for_css_plugin::CssPlugin:render_manifest",
+      "calls": 1,
+      "avg": "104.17 us",
+      "avg_raw": 104166,
+      "p95": "104.17 us",
+      "percentiles_raw": {
+        "p95": 104166
+      },
+      "total": "104.17 us",
+      "total_raw": 104166,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationRuntimeModule",
+      "calls": 3,
+      "avg": "34.58 us",
+      "avg_raw": 34583,
+      "p95": "95.54 us",
+      "percentiles_raw": {
+        "p95": 95541
+      },
+      "total": "103.75 us",
+      "total_raw": 103749,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerShouldEmit",
+      "calls": 1,
+      "avg": "100.17 us",
+      "avg_raw": 100166,
+      "p95": "100.17 us",
+      "percentiles_raw": {
+        "p95": 100166
+      },
+      "total": "100.17 us",
+      "total_raw": 100166,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::drive::hook:JavascriptModulesChunkHash",
+      "calls": 1,
+      "avg": "99.88 us",
+      "avg_raw": 99875,
+      "p95": "99.88 us",
+      "percentiles_raw": {
+        "p95": 99875
+      },
+      "total": "99.88 us",
+      "total_raw": 99875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::NodeEnvironmentPlugin::beforeRun",
+      "calls": 1,
+      "avg": "90.29 us",
+      "avg_raw": 90292,
+      "p95": "90.29 us",
+      "percentiles_raw": {
+        "p95": 90292
+      },
+      "total": "90.29 us",
+      "total_raw": 90292,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_loader_lightningcss::plugin::LightningcssLoaderPlugin:resolve_loader",
+      "calls": 15,
+      "avg": "5.99 us",
+      "avg_raw": 5991,
+      "p95": "14.12 us",
+      "percentiles_raw": {
+        "p95": 14125
+      },
+      "total": "89.87 us",
+      "total_raw": 89873,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::executeModule::thisCompilation",
+      "calls": 1,
+      "avg": "86.83 us",
+      "avg_raw": 86833,
+      "p95": "86.83 us",
+      "percentiles_raw": {
+        "p95": 86833
+      },
+      "total": "86.83 us",
+      "total_raw": 86833,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerEmit",
+      "calls": 1,
+      "avg": "86.46 us",
+      "avg_raw": 86459,
+      "p95": "86.46 us",
+      "percentiles_raw": {
+        "p95": 86459
+      },
+      "total": "86.46 us",
+      "total_raw": 86459,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationSeal",
+      "calls": 1,
+      "avg": "85.88 us",
+      "avg_raw": 85875,
+      "p95": "85.88 us",
+      "percentiles_raw": {
+        "p95": 85875
+      },
+      "total": "85.88 us",
+      "total_raw": 85875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::url_plugin::URLPlugin:normal_module_factory_parser",
+      "calls": 16,
+      "avg": "5.29 us",
+      "avg_raw": 5291,
+      "p95": "10.96 us",
+      "percentiles_raw": {
+        "p95": 10958
+      },
+      "total": "84.67 us",
+      "total_raw": 84669,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::runtime_requirements::Compilation:process_modules_runtime_requirements",
+      "calls": 1,
+      "avg": "83.38 us",
+      "avg_raw": 83375,
+      "p95": "83.38 us",
+      "percentiles_raw": {
+        "p95": 83375
+      },
+      "total": "83.38 us",
+      "total_raw": 83375,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerAssetEmitted",
+      "calls": 3,
+      "avg": "25.97 us",
+      "avg_raw": 25972,
+      "p95": "39.58 us",
+      "percentiles_raw": {
+        "p95": 39583
+      },
+      "total": "77.92 us",
+      "total_raw": 77917,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::DefaultStatsPresetPlugin::compilation",
+      "calls": 1,
+      "avg": "77.00 us",
+      "avg_raw": 77000,
+      "p95": "77.00 us",
+      "percentiles_raw": {
+        "p95": 77000
+      },
+      "total": "77.00 us",
+      "total_raw": 77000,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_loader_runner::runner::run_loader:yield_to_js",
+      "calls": 12,
+      "avg": "6.19 us",
+      "avg_raw": 6187,
+      "p95": "9.46 us",
+      "percentiles_raw": {
+        "p95": 9459
+      },
+      "total": "74.25 us",
+      "total_raw": 74252,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:after_seal",
+      "calls": 1,
+      "avg": "72.38 us",
+      "avg_raw": 72375,
+      "p95": "72.38 us",
+      "percentiles_raw": {
+        "p95": 72375
+      },
+      "total": "72.38 us",
+      "total_raw": 72375,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationContentHash",
+      "calls": 1,
+      "avg": "71.33 us",
+      "avg_raw": 71333,
+      "p95": "71.33 us",
+      "percentiles_raw": {
+        "p95": 71333
+      },
+      "total": "71.33 us",
+      "total_raw": 71333,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_loader::JsLoaderRspackPlugin:this_compilation",
+      "calls": 1,
+      "avg": "70.33 us",
+      "avg_raw": 70334,
+      "p95": "70.33 us",
+      "percentiles_raw": {
+        "p95": 70334
+      },
+      "total": "70.33 us",
+      "total_raw": 70334,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_size_limits::SizeLimitsPlugin:after_emit",
+      "calls": 1,
+      "avg": "65.88 us",
+      "avg_raw": 65875,
+      "p95": "65.88 us",
+      "percentiles_raw": {
+        "p95": 65875
+      },
+      "total": "65.88 us",
+      "total_raw": 65875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin:js_chunk_hash",
+      "calls": 1,
+      "avg": "63.67 us",
+      "avg_raw": 63667,
+      "p95": "63.67 us",
+      "percentiles_raw": {
+        "p95": 63667
+      },
+      "total": "63.67 us",
+      "total_raw": 63667,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAfterSeal",
+      "calls": 1,
+      "avg": "61.96 us",
+      "avg_raw": 61959,
+      "p95": "61.96 us",
+      "percentiles_raw": {
+        "p95": 61959
+      },
+      "total": "61.96 us",
+      "total_raw": 61959,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::create_hash::runtime_modules_code_generation",
+      "calls": 1,
+      "avg": "61.75 us",
+      "avg_raw": 61750,
+      "p95": "61.75 us",
+      "percentiles_raw": {
+        "p95": 61750
+      },
+      "total": "61.75 us",
+      "total_raw": 61750,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::impl_plugin_for_js_plugin::JsPlugin:compilation",
+      "calls": 1,
+      "avg": "61.58 us",
+      "avg_raw": 61584,
+      "p95": "61.58 us",
+      "percentiles_raw": {
+        "p95": 61584
+      },
+      "total": "61.58 us",
+      "total_raw": 61584,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationRevokedModules",
+      "calls": 4,
+      "avg": "14.92 us",
+      "avg_raw": 14916,
+      "p95": "21.42 us",
+      "percentiles_raw": {
+        "p95": 21416
+      },
+      "total": "59.67 us",
+      "total_raw": 59666,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationOptimizeModules",
+      "calls": 1,
+      "avg": "59.08 us",
+      "avg_raw": 59083,
+      "p95": "59.08 us",
+      "percentiles_raw": {
+        "p95": 59083
+      },
+      "total": "59.08 us",
+      "total_raw": 59083,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationChunkAsset",
+      "calls": 2,
+      "avg": "29.06 us",
+      "avg_raw": 29062,
+      "p95": "52.67 us",
+      "percentiles_raw": {
+        "p95": 52667
+      },
+      "total": "58.12 us",
+      "total_raw": 58125,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationBeforeModuleIds",
+      "calls": 1,
+      "avg": "51.71 us",
+      "avg_raw": 51708,
+      "p95": "51.71 us",
+      "percentiles_raw": {
+        "p95": 51708
+      },
+      "total": "51.71 us",
+      "total_raw": 51708,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::DefaultStatsFactoryPlugin::compilation",
+      "calls": 1,
+      "avg": "50.12 us",
+      "avg_raw": 50125,
+      "p95": "50.12 us",
+      "percentiles_raw": {
+        "p95": 50125
+      },
+      "total": "50.12 us",
+      "total_raw": 50125,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::DefaultStatsPrinterPlugin::compilation",
+      "calls": 1,
+      "avg": "46.83 us",
+      "avg_raw": 46834,
+      "p95": "46.83 us",
+      "percentiles_raw": {
+        "p95": 46834
+      },
+      "total": "46.83 us",
+      "total_raw": 46834,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_entry::EntryPlugin:make",
+      "calls": 1,
+      "avg": "46.42 us",
+      "avg_raw": 46417,
+      "p95": "46.42 us",
+      "percentiles_raw": {
+        "p95": 46417
+      },
+      "total": "46.42 us",
+      "total_raw": 46417,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_hooks_plugin::JsHooksAdapterPlugin:html_hooks_adapter_compilation",
+      "calls": 1,
+      "avg": "44.79 us",
+      "avg_raw": 44792,
+      "p95": "44.79 us",
+      "percentiles_raw": {
+        "p95": 44792
+      },
+      "total": "44.79 us",
+      "total_raw": 44792,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_loader_runner::runner::run_loader:pitch",
+      "calls": 12,
+      "avg": "3.56 us",
+      "avg_raw": 3555,
+      "p95": "4.38 us",
+      "percentiles_raw": {
+        "p95": 4375
+      },
+      "total": "42.67 us",
+      "total_raw": 42666,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::chunk_prefetch_preload::ChunkPrefetchPreloadPlugin:additional_tree_runtime_requirements",
+      "calls": 1,
+      "avg": "42.38 us",
+      "avg_raw": 42375,
+      "p95": "42.38 us",
+      "percentiles_raw": {
+        "p95": 42375
+      },
+      "total": "42.38 us",
+      "total_raw": 42375,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationOptimizeTree",
+      "calls": 1,
+      "avg": "41.83 us",
+      "avg_raw": 41834,
+      "p95": "41.83 us",
+      "percentiles_raw": {
+        "p95": 41834
+      },
+      "total": "41.83 us",
+      "total_raw": 41834,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAdditionalChunkRuntimeRequirements",
+      "calls": 1,
+      "avg": "40.96 us",
+      "avg_raw": 40958,
+      "p95": "40.96 us",
+      "percentiles_raw": {
+        "p95": 40958
+      },
+      "total": "40.96 us",
+      "total_raw": 40958,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationConcatenationScope",
+      "calls": 12,
+      "avg": "3.38 us",
+      "avg_raw": 3382,
+      "p95": "5.50 us",
+      "percentiles_raw": {
+        "p95": 5500
+      },
+      "total": "40.58 us",
+      "total_raw": 40584,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_hooks_plugin::JsHooksAdapterPlugin:runtime_hooks_adapter_compilation",
+      "calls": 1,
+      "avg": "37.96 us",
+      "avg_raw": 37959,
+      "p95": "37.96 us",
+      "percentiles_raw": {
+        "p95": 37959
+      },
+      "total": "37.96 us",
+      "total_raw": 37959,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_hooks_plugin::JsHooksAdapterPlugin:js_hooks_adapter_compilation",
+      "calls": 1,
+      "avg": "37.00 us",
+      "avg_raw": 37000,
+      "p95": "37.00 us",
+      "percentiles_raw": {
+        "p95": 37000
+      },
+      "total": "37.00 us",
+      "total_raw": 37000,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_hooks_plugin::JsHooksAdapterPlugin:rsdoctor_hooks_adapter_compilation",
+      "calls": 1,
+      "avg": "34.71 us",
+      "avg_raw": 34708,
+      "p95": "34.71 us",
+      "percentiles_raw": {
+        "p95": 34708
+      },
+      "total": "34.71 us",
+      "total_raw": 34708,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_real_content_hash::RealContentHashPlugin:process_assets",
+      "calls": 1,
+      "avg": "32.54 us",
+      "avg_raw": 32542,
+      "p95": "32.54 us",
+      "percentiles_raw": {
+        "p95": 32542
+      },
+      "total": "32.54 us",
+      "total_raw": 32542,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::HtmlRspackPlugin::done",
+      "calls": 1,
+      "avg": "30.58 us",
+      "avg_raw": 30583,
+      "p95": "30.58 us",
+      "percentiles_raw": {
+        "p95": 30583
+      },
+      "total": "30.58 us",
+      "total_raw": 30583,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_css::plugin::impl_plugin_for_css_plugin::CssPlugin:content_hash",
+      "calls": 1,
+      "avg": "30.54 us",
+      "avg_raw": 30541,
+      "p95": "30.54 us",
+      "percentiles_raw": {
+        "p95": 30541
+      },
+      "total": "30.54 us",
+      "total_raw": 30541,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::impl_plugin_for_js_plugin::JsPlugin:content_hash",
+      "calls": 1,
+      "avg": "28.88 us",
+      "avg_raw": 28875,
+      "p95": "28.88 us",
+      "percentiles_raw": {
+        "p95": 28875
+      },
+      "total": "28.88 us",
+      "total_raw": 28875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationChunkIds",
+      "calls": 1,
+      "avg": "28.17 us",
+      "avg_raw": 28167,
+      "p95": "28.17 us",
+      "percentiles_raw": {
+        "p95": 28167
+      },
+      "total": "28.17 us",
+      "total_raw": 28167,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_css::plugin::impl_plugin_for_css_plugin::CssPlugin:runtime_requirements_in_tree",
+      "calls": 2,
+      "avg": "13.12 us",
+      "avg_raw": 13124,
+      "p95": "22.96 us",
+      "percentiles_raw": {
+        "p95": 22958
+      },
+      "total": "26.25 us",
+      "total_raw": 26249,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "javascript::Plugin Analysis::HtmlRspackPlugin::compilation",
+      "calls": 1,
+      "avg": "25.75 us",
+      "avg_raw": 25750,
+      "p95": "25.75 us",
+      "percentiles_raw": {
+        "p95": 25750
+      },
+      "total": "25.75 us",
+      "total_raw": 25750,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_asset::AssetPlugin:render_manifest",
+      "calls": 1,
+      "avg": "24.46 us",
+      "avg_raw": 24458,
+      "p95": "24.46 us",
+      "percentiles_raw": {
+        "p95": 24458
+      },
+      "total": "24.46 us",
+      "total_raw": 24458,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAfterOptimizeModules",
+      "calls": 1,
+      "avg": "24.04 us",
+      "avg_raw": 24042,
+      "p95": "24.04 us",
+      "percentiles_raw": {
+        "p95": 24042
+      },
+      "total": "24.04 us",
+      "total_raw": 24042,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::array_push_callback_chunk_format::ArrayPushCallbackChunkFormatPlugin:compilation",
+      "calls": 1,
+      "avg": "24.00 us",
+      "avg_raw": 24000,
+      "p95": "24.00 us",
+      "percentiles_raw": {
+        "p95": 24000
+      },
+      "total": "24.00 us",
+      "total_raw": 24000,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::bundler_info::BundlerInfoPlugin:runtime_requirements_in_tree",
+      "calls": 2,
+      "avg": "11.92 us",
+      "avg_raw": 11917,
+      "p95": "20.62 us",
+      "percentiles_raw": {
+        "p95": 20625
+      },
+      "total": "23.83 us",
+      "total_raw": 23834,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::runtime_plugin::RuntimePlugin:runtime_requirements_in_tree",
+      "calls": 2,
+      "avg": "10.52 us",
+      "avg_raw": 10521,
+      "p95": "16.96 us",
+      "percentiles_raw": {
+        "p95": 16958
+      },
+      "total": "21.04 us",
+      "total_raw": 21042,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_cleanup_plugin::JsCleanupPlugin:revoked_modules",
+      "calls": 4,
+      "avg": "4.79 us",
+      "avg_raw": 4791,
+      "p95": "6.08 us",
+      "percentiles_raw": {
+        "p95": 6084
+      },
+      "total": "19.17 us",
+      "total_raw": 19167,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_html::drive::hook:HtmlPluginBeforeAssetTagGeneration",
+      "calls": 1,
+      "avg": "18.79 us",
+      "avg_raw": 18792,
+      "p95": "18.79 us",
+      "percentiles_raw": {
+        "p95": 18792
+      },
+      "total": "18.79 us",
+      "total_raw": 18792,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::Compilation:emit_asset",
+      "calls": 3,
+      "avg": "6.25 us",
+      "avg_raw": 6249,
+      "p95": "8.54 us",
+      "percentiles_raw": {
+        "p95": 8541
+      },
+      "total": "18.75 us",
+      "total_raw": 18749,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_ids::deterministic_chunk_ids_plugin::DeterministicChunkIdsPlugin:chunk_ids",
+      "calls": 1,
+      "avg": "18.21 us",
+      "avg_raw": 18208,
+      "p95": "18.21 us",
+      "percentiles_raw": {
+        "p95": 18208
+      },
+      "total": "18.21 us",
+      "total_raw": 18208,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_html::drive::hook:HtmlPluginBeforeEmit",
+      "calls": 1,
+      "avg": "16.83 us",
+      "avg_raw": 16834,
+      "p95": "16.83 us",
+      "percentiles_raw": {
+        "p95": 16834
+      },
+      "total": "16.83 us",
+      "total_raw": 16834,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::startup_chunk_dependencies::StartupChunkDependenciesPlugin:runtime_requirements_in_tree",
+      "calls": 4,
+      "avg": "3.91 us",
+      "avg_raw": 3906,
+      "p95": "4.33 us",
+      "percentiles_raw": {
+        "p95": 4333
+      },
+      "total": "15.62 us",
+      "total_raw": 15625,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin:optimize_chunks",
+      "calls": 1,
+      "avg": "15.46 us",
+      "avg_raw": 15458,
+      "p95": "15.46 us",
+      "percentiles_raw": {
+        "p95": 15458
+      },
+      "total": "15.46 us",
+      "total_raw": 15458,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_wasm::loading_plugin::FetchCompileAsyncWasmPlugin:fetch_compile_async_wasm_plugin_runtime_requirements_in_tree",
+      "calls": 4,
+      "avg": "3.50 us",
+      "avg_raw": 3500,
+      "p95": "4.71 us",
+      "percentiles_raw": {
+        "p95": 4709
+      },
+      "total": "14.00 us",
+      "total_raw": 14000,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_lightning_css_minimizer::LightningCssMinimizerRspackPlugin:chunk_hash",
+      "calls": 1,
+      "avg": "13.62 us",
+      "avg_raw": 13625,
+      "p95": "13.62 us",
+      "percentiles_raw": {
+        "p95": 13625
+      },
+      "total": "13.62 us",
+      "total_raw": 13625,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "swc_ecma_minifier::inline global defs",
+      "calls": 1,
+      "avg": "12.83 us",
+      "avg_raw": 12834,
+      "p95": "12.83 us",
+      "percentiles_raw": {
+        "p95": 12834
+      },
+      "total": "12.83 us",
+      "total_raw": 12834,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::chunk_prefetch_preload::ChunkPrefetchPreloadPlugin:additional_chunk_runtime_requirements",
+      "calls": 1,
+      "avg": "12.83 us",
+      "avg_raw": 12833,
+      "p95": "12.83 us",
+      "percentiles_raw": {
+        "p95": 12833
+      },
+      "total": "12.83 us",
+      "total_raw": 12833,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_binding_api::plugins::js_loader::JsLoaderRspackPlugin:done",
+      "calls": 1,
+      "avg": "12.58 us",
+      "avg_raw": 12583,
+      "p95": "12.58 us",
+      "percentiles_raw": {
+        "p95": 12583
+      },
+      "total": "12.58 us",
+      "total_raw": 12583,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_css::plugin::impl_plugin_for_css_plugin::CssPlugin:compilation",
+      "calls": 1,
+      "avg": "12.38 us",
+      "avg_raw": 12375,
+      "p95": "12.38 us",
+      "percentiles_raw": {
+        "p95": 12375
+      },
+      "total": "12.38 us",
+      "total_raw": 12375,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::concatenated_module::hook:ConcatenatedModuleConcatenatedInfo",
+      "calls": 2,
+      "avg": "6.04 us",
+      "avg_raw": 6041,
+      "p95": "8.83 us",
+      "percentiles_raw": {
+        "p95": 8833
+      },
+      "total": "12.08 us",
+      "total_raw": 12083,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_remove_empty_chunks::RemoveEmptyChunksPlugin:optimize_chunks",
+      "calls": 1,
+      "avg": "10.83 us",
+      "avg_raw": 10834,
+      "p95": "10.83 us",
+      "percentiles_raw": {
+        "p95": 10834
+      },
+      "total": "10.83 us",
+      "total_raw": 10834,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin:optimize_chunks",
+      "calls": 1,
+      "avg": "10.54 us",
+      "avg_raw": 10541,
+      "p95": "10.54 us",
+      "percentiles_raw": {
+        "p95": 10541
+      },
+      "total": "10.54 us",
+      "total_raw": 10541,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_wasm::wasm_plugin::AsyncWasmPlugin:render_manifest",
+      "calls": 1,
+      "avg": "9.92 us",
+      "avg_raw": 9917,
+      "p95": "9.92 us",
+      "percentiles_raw": {
+        "p95": 9917
+      },
+      "total": "9.92 us",
+      "total_raw": 9917,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::drive::hook:JavascriptModulesInlineInRuntimeBailout",
+      "calls": 2,
+      "avg": "4.83 us",
+      "avg_raw": 4833,
+      "p95": "5.92 us",
+      "percentiles_raw": {
+        "p95": 5916
+      },
+      "total": "9.67 us",
+      "total_raw": 9666,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::build_chunk_graph::incremental::update_with_compilation",
+      "calls": 1,
+      "avg": "9.54 us",
+      "avg_raw": 9541,
+      "p95": "9.54 us",
+      "percentiles_raw": {
+        "p95": 9541
+      },
+      "total": "9.54 us",
+      "total_raw": 9541,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationDependentFullHash",
+      "calls": 1,
+      "avg": "9.00 us",
+      "avg_raw": 9000,
+      "p95": "9.00 us",
+      "percentiles_raw": {
+        "p95": 9000
+      },
+      "total": "9.00 us",
+      "total_raw": 9000,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin:runtime_requirements_in_tree",
+      "calls": 2,
+      "avg": "4.46 us",
+      "avg_raw": 4458,
+      "p95": "5.12 us",
+      "percentiles_raw": {
+        "p95": 5125
+      },
+      "total": "8.92 us",
+      "total_raw": 8916,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::jsonp_chunk_loading::JsonpChunkLoadingPlugin:runtime_requirements_in_tree",
+      "calls": 2,
+      "avg": "4.21 us",
+      "avg_raw": 4209,
+      "p95": "4.33 us",
+      "percentiles_raw": {
+        "p95": 4334
+      },
+      "total": "8.42 us",
+      "total_raw": 8418,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_html::drive::hook:HtmlPluginAlterAssetTags",
+      "calls": 1,
+      "avg": "8.29 us",
+      "avg_raw": 8292,
+      "p95": "8.29 us",
+      "percentiles_raw": {
+        "p95": 8292
+      },
+      "total": "8.29 us",
+      "total_raw": 8292,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAfterCodeGeneration",
+      "calls": 1,
+      "avg": "8.12 us",
+      "avg_raw": 8125,
+      "p95": "8.12 us",
+      "percentiles_raw": {
+        "p95": 8125
+      },
+      "total": "8.12 us",
+      "total_raw": 8125,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin:compilation",
+      "calls": 1,
+      "avg": "8.08 us",
+      "avg_raw": 8083,
+      "p95": "8.08 us",
+      "percentiles_raw": {
+        "p95": 8083
+      },
+      "total": "8.08 us",
+      "total_raw": 8083,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationAddEntry",
+      "calls": 1,
+      "avg": "7.88 us",
+      "avg_raw": 7875,
+      "p95": "7.88 us",
+      "percentiles_raw": {
+        "p95": 7875
+      },
+      "total": "7.88 us",
+      "total_raw": 7875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::jsonp_chunk_loading::JsonpChunkLoadingPlugin:additional_tree_runtime_requirements",
+      "calls": 1,
+      "avg": "7.88 us",
+      "avg_raw": 7875,
+      "p95": "7.88 us",
+      "percentiles_raw": {
+        "p95": 7875
+      },
+      "total": "7.88 us",
+      "total_raw": 7875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::url_plugin::URLPlugin:compilation",
+      "calls": 1,
+      "avg": "7.71 us",
+      "avg_raw": 7708,
+      "p95": "7.71 us",
+      "percentiles_raw": {
+        "p95": 7708
+      },
+      "total": "7.71 us",
+      "total_raw": 7708,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_no_emit_on_errors::NoEmitOnErrorsPlugin:should_emit",
+      "calls": 1,
+      "avg": "6.92 us",
+      "avg_raw": 6917,
+      "p95": "6.92 us",
+      "percentiles_raw": {
+        "p95": 6917
+      },
+      "total": "6.92 us",
+      "total_raw": 6917,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_compilation_main::Compilation:create_module_assets",
+      "calls": 1,
+      "avg": "6.42 us",
+      "avg_raw": 6416,
+      "p95": "6.42 us",
+      "percentiles_raw": {
+        "p95": 6416
+      },
+      "total": "6.42 us",
+      "total_raw": 6416,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_html::drive::hook:HtmlPluginAfterEmit",
+      "calls": 1,
+      "avg": "6.33 us",
+      "avg_raw": 6333,
+      "p95": "6.33 us",
+      "percentiles_raw": {
+        "p95": 6333
+      },
+      "total": "6.33 us",
+      "total_raw": 6333,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_html::drive::hook:HtmlPluginAfterTemplateExecution",
+      "calls": 1,
+      "avg": "5.96 us",
+      "avg_raw": 5959,
+      "p95": "5.96 us",
+      "percentiles_raw": {
+        "p95": 5959
+      },
+      "total": "5.96 us",
+      "total_raw": 5959,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::impl_plugin_for_js_plugin::JsPlugin:additional_tree_runtime_requirements",
+      "calls": 1,
+      "avg": "5.88 us",
+      "avg_raw": 5875,
+      "p95": "5.88 us",
+      "percentiles_raw": {
+        "p95": 5875
+      },
+      "total": "5.88 us",
+      "total_raw": 5875,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::runtime_plugin::RuntimePlugin:compilation",
+      "calls": 1,
+      "avg": "5.79 us",
+      "avg_raw": 5792,
+      "p95": "5.79 us",
+      "percentiles_raw": {
+        "p95": 5792
+      },
+      "total": "5.79 us",
+      "total_raw": 5792,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::array_push_callback_chunk_format::ArrayPushCallbackChunkFormatPlugin:additional_chunk_runtime_requirements",
+      "calls": 1,
+      "avg": "5.75 us",
+      "avg_raw": 5750,
+      "p95": "5.75 us",
+      "percentiles_raw": {
+        "p95": 5750
+      },
+      "total": "5.75 us",
+      "total_raw": 5750,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerClose",
+      "calls": 1,
+      "avg": "5.71 us",
+      "avg_raw": 5708,
+      "p95": "5.71 us",
+      "percentiles_raw": {
+        "p95": 5708
+      },
+      "total": "5.71 us",
+      "total_raw": 5708,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::drive::hook:JavascriptModulesRenderChunkContent",
+      "calls": 1,
+      "avg": "5.62 us",
+      "avg_raw": 5625,
+      "p95": "5.62 us",
+      "percentiles_raw": {
+        "p95": 5625
+      },
+      "total": "5.62 us",
+      "total_raw": 5625,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_entry::EntryPlugin:compilation",
+      "calls": 1,
+      "avg": "5.46 us",
+      "avg_raw": 5459,
+      "p95": "5.46 us",
+      "percentiles_raw": {
+        "p95": 5459
+      },
+      "total": "5.46 us",
+      "total_raw": 5459,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_html::drive::hook:HtmlPluginAlterAssetTagGroups",
+      "calls": 1,
+      "avg": "5.38 us",
+      "avg_raw": 5375,
+      "p95": "5.38 us",
+      "percentiles_raw": {
+        "p95": 5375
+      },
+      "total": "5.38 us",
+      "total_raw": 5375,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compiler::hook:CompilerDone",
+      "calls": 1,
+      "avg": "5.33 us",
+      "avg_raw": 5333,
+      "p95": "5.33 us",
+      "percentiles_raw": {
+        "p95": 5333
+      },
+      "total": "5.33 us",
+      "total_raw": 5333,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::drive::hook:JavascriptModulesRenderStartup",
+      "calls": 1,
+      "avg": "5.17 us",
+      "avg_raw": 5166,
+      "p95": "5.17 us",
+      "percentiles_raw": {
+        "p95": 5166
+      },
+      "total": "5.17 us",
+      "total_raw": 5166,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::hook:CompilationRuntimeRequirementInChunk",
+      "calls": 1,
+      "avg": "5.00 us",
+      "avg_raw": 5000,
+      "p95": "5.00 us",
+      "percentiles_raw": {
+        "p95": 5000
+      },
+      "total": "5.00 us",
+      "total_raw": 5000,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::api_plugin::APIPlugin:compilation",
+      "calls": 1,
+      "avg": "4.75 us",
+      "avg_raw": 4750,
+      "p95": "4.75 us",
+      "percentiles_raw": {
+        "p95": 4750
+      },
+      "total": "4.75 us",
+      "total_raw": 4750,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::array_push_callback_chunk_format::ArrayPushCallbackChunkFormatPlugin:js_chunk_hash",
+      "calls": 1,
+      "avg": "4.75 us",
+      "avg_raw": 4750,
+      "p95": "4.75 us",
+      "percentiles_raw": {
+        "p95": 4750
+      },
+      "total": "4.75 us",
+      "total_raw": 4750,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::drive::hook:JavascriptModulesRender",
+      "calls": 1,
+      "avg": "4.71 us",
+      "avg_raw": 4709,
+      "p95": "4.71 us",
+      "percentiles_raw": {
+        "p95": 4709
+      },
+      "total": "4.71 us",
+      "total_raw": 4709,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_wasm::wasm_plugin::AsyncWasmPlugin:compilation",
+      "calls": 1,
+      "avg": "4.71 us",
+      "avg_raw": 4709,
+      "p95": "4.71 us",
+      "percentiles_raw": {
+        "p95": 4709
+      },
+      "total": "4.71 us",
+      "total_raw": 4709,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::bundler_info::BundlerInfoPlugin:additional_tree_runtime_requirements",
+      "calls": 1,
+      "avg": "4.67 us",
+      "avg_raw": 4667,
+      "p95": "4.67 us",
+      "percentiles_raw": {
+        "p95": 4667
+      },
+      "total": "4.67 us",
+      "total_raw": 4667,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::runtime_plugin::RuntimePlugin:js_chunk_hash",
+      "calls": 1,
+      "avg": "4.58 us",
+      "avg_raw": 4584,
+      "p95": "4.58 us",
+      "percentiles_raw": {
+        "p95": 4584
+      },
+      "total": "4.58 us",
+      "total_raw": 4584,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_runtime::import_scripts_chunk_loading::ImportScriptsChunkLoadingPlugin:additional_tree_runtime_requirements",
+      "calls": 1,
+      "avg": "4.50 us",
+      "avg_raw": 4500,
+      "p95": "4.50 us",
+      "percentiles_raw": {
+        "p95": 4500
+      },
+      "total": "4.50 us",
+      "total_raw": 4500,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_javascript::plugin::drive::hook:JavascriptModulesStrictRuntimeBailout",
+      "calls": 1,
+      "avg": "4.46 us",
+      "avg_raw": 4458,
+      "p95": "4.46 us",
+      "percentiles_raw": {
+        "p95": 4458
+      },
+      "total": "4.46 us",
+      "total_raw": 4458,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_core::compilation::build_chunk_graph::incremental::remove_orphan",
+      "calls": 1,
+      "avg": "3.75 us",
+      "avg_raw": 3750,
+      "p95": "3.75 us",
+      "percentiles_raw": {
+        "p95": 3750
+      },
+      "total": "3.75 us",
+      "total_raw": 3750,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    },
+    {
+      "name": "rspack_plugin_worker::WorkerPlugin:compilation",
+      "calls": 1,
+      "avg": "3.38 us",
+      "avg_raw": 3375,
+      "p95": "3.38 us",
+      "percentiles_raw": {
+        "p95": 3375
+      },
+      "total": "3.38 us",
+      "total_raw": 3375,
+      "percent_total": "0.00%",
+      "percent_total_raw": 0
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+name: hotpath-profile
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - '**/*.md'
+      - 'website/**'
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: 'Base commit SHA to compare against'
+        required: true
+        type: string
+      head_sha:
+        description: 'Head commit SHA to benchmark'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    if: github.repository == 'web-infra-dev/rspack'
+    runs-on: [self-hosted, benchmark]
+    timeout-minutes: 90
+    env:
+      BASE_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.base_sha || github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.head_sha || github.event.pull_request.head.sha }}
+      PR_NUMBER: ${{ github.event.pull_request.number || '' }}
+      BENCHMARK_DIR: examples/react
+      METRICS_DIR: ${{ runner.temp }}/hotpath-metrics
+    steps:
+      - name: Checkout head
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ env.HEAD_SHA }}
+          fetch-depth: 0
+
+      - name: Setup Pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 24
+
+      - name: Setup Rust
+        uses: ./.github/actions/rustup
+        with:
+          key: hotpath_profile
+          save-if: true
+
+      - name: Run hotpath benchmark
+        shell: bash
+        run: |
+          bash .github/scripts/run-hotpath-benchmark.sh "$BASE_SHA" "$METRICS_DIR" "$BENCHMARK_DIR"
+
+      - name: Run bench-diff
+        shell: bash
+        run: |
+          cargo xtask bench-diff "$METRICS_DIR/base.json" "$METRICS_DIR/head.json" | tee "$METRICS_DIR/diff.txt"
+
+      - name: Persist metadata
+        shell: bash
+        run: |
+          printf '%s' "$PR_NUMBER" > "$METRICS_DIR/pr_number.txt"
+          printf '%s' "$BASE_SHA" > "$METRICS_DIR/base_sha.txt"
+          printf '%s' "$HEAD_SHA" > "$METRICS_DIR/head_sha.txt"
+          printf '%s' "$BENCHMARK_DIR" > "$METRICS_DIR/benchmark_dir.txt"
+
+      - name: Upload hotpath benchmark artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotpath-benchmark-results
+          path: ${{ env.METRICS_DIR }}
+          retention-days: 7
