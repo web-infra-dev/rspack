@@ -86,7 +86,7 @@ module.exports = {
 			        type: javascript/auto,
 			      },
 			      Object {
-			        test: /\\\\\\.json\\$/,
+			        test: /\\\\\\.json\\$/i,
 			        type: json,
 			      },
 			      Object {
@@ -101,7 +101,7 @@ module.exports = {
 			            },
 			          },
 			        },
-			        test: /\\\\\\.mjs\\$/,
+			        test: /\\\\\\.mjs\\$/i,
 			        type: javascript/esm,
 			      },
 			      Object {
@@ -115,18 +115,18 @@ module.exports = {
 			            },
 			          },
 			        },
-			        test: /\\\\\\.js\\$/,
+			        test: /\\\\\\.js\\$/i,
 			        type: javascript/esm,
 			      },
 			      Object {
-			        test: /\\\\\\.cjs\\$/,
+			        test: /\\\\\\.cjs\\$/i,
 			        type: javascript/dynamic,
 			      },
 			      Object {
 			        descriptionData: Object {
 			          type: commonjs,
 			        },
-			        test: /\\\\\\.js\\$/,
+			        test: /\\\\\\.js\\$/i,
 			        type: javascript/dynamic,
 			      },
 			      Object {
@@ -156,7 +156,7 @@ module.exports = {
 			            },
 			          },
 			        ],
-			        test: /\\\\\\.wasm\\$/,
+			        test: /\\\\\\.wasm\\$/i,
 			        type: webassembly/async,
 			      },
 			      Object {
