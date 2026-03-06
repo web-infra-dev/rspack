@@ -160,7 +160,7 @@ jobs:
     timeout-minutes: 90
     continue-on-error: true
     env:
-      BENCHMARK_DIR: examples/react
+      BENCHMARK_DIR: examples/basic
       METRICS_DIR: ${{ github.workspace }}/.hotpath-metrics
     steps:
       - name: Resolve benchmark context
