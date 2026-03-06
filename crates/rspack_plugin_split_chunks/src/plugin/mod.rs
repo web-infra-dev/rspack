@@ -13,6 +13,7 @@ use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plu
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
+use rustc_hash::FxHashSet;
 use tracing::instrument;
 
 use crate::{
@@ -175,9 +176,22 @@ impl SplitChunksPlugin {
         })
         .collect();
 
+      let mut reverse_index: UkeyMap<ChunkUkey, FxHashSet<String>> = UkeyMap::default();
+      for (key, group) in module_group_map.iter() {
+        for c in &group.chunks {
+          reverse_index.entry(*c).or_default().insert(key.clone());
+        }
+      }
+
       while !module_group_map.is_empty() {
         let (module_group_key, mut module_group) =
           self.find_best_module_group_from_heap(&mut module_group_map, &mut heap);
+
+        for c in &module_group.chunks {
+          if let Some(set) = reverse_index.get_mut(c) {
+            set.remove(&module_group_key);
+          }
+        }
 
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
@@ -267,17 +281,36 @@ impl SplitChunksPlugin {
 
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
+        let affected_keys: FxHashSet<String> = used_chunks
+          .iter()
+          .flat_map(|c| reverse_index.get(c).into_iter().flatten().cloned())
+          .collect();
+
         let (to_remove, to_update) = self.remove_all_modules_from_other_module_groups(
           &module_group,
           &mut module_group_map,
           &used_chunks,
+          &affected_keys,
           compilation,
           &module_sizes,
         );
-        for key in to_remove {
+        for (key, chunks) in to_remove {
           module_group_map.swap_remove(&key);
+          for c in chunks {
+            if let Some(set) = reverse_index.get_mut(&c) {
+              set.remove(&key);
+            }
+          }
         }
-        for (key, group) in to_update {
+        for (key, group, old_chunks) in to_update {
+          for c in old_chunks {
+            if let Some(set) = reverse_index.get_mut(&c) {
+              set.remove(&key);
+            }
+          }
+          for c in &group.chunks {
+            reverse_index.entry(*c).or_default().insert(key.clone());
+          }
           heap.push(ModuleGroupHeapEntry {
             key: key.clone(),
             group: group.clone(),
