@@ -536,7 +536,7 @@ pub fn merge_exports(
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   exports_info: ExportsInfo,
-  exports: &Vec<ExportNameOrSpec>,
+  exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
