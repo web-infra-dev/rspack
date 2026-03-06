@@ -21,7 +21,7 @@ runs:
       if: ${{ startsWith(runner.name, 'rspack-darwin-') }}
       shell: bash
       run: |
-        pnpm config set registry https://registry.npmmirror.com
+        npm config set registry https://registry.npmmirror.com
 
     - name: Install Node.js
       if: ${{ !startsWith(runner.name, 'rspack-darwin-') }}
