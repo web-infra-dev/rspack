@@ -420,15 +420,15 @@ pub fn collect_connections_only_imports(
       }
 
       // Check if there is exactly one active connection
-      let active_connections_count = connections.iter().filter(|c| c.active).count();
-      if active_connections_count != 1 {
+      let active_connections: Vec<_> = connections.into_iter().filter(|c| c.active).collect();
+      if active_connections.len() != 1 {
         return None;
       }
 
       Some(RsdoctorConnectionsOnlyImport {
         module_ukey,
         module_path: path.clone(),
-        connections,
+        connections: active_connections,
       })
     })
     .collect::<Vec<_>>()
