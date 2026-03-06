@@ -153,21 +153,61 @@ jobs:
   hotpath-benchmark:
     name: Hotpath Benchmark
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' && github.repository == 'web-infra-dev/rspack' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && github.repository == 'web-infra-dev/rspack' }}
     runs-on: [self-hosted, benchmark]
     timeout-minutes: 90
     continue-on-error: true
     env:
       BENCHMARK_DIR: examples/react
       METRICS_DIR: ${{ runner.temp }}/hotpath-metrics
-      BASE_SHA: ${{ github.event.pull_request.base.sha }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
     steps:
+      - name: Resolve benchmark context
+        id: hotpath-context
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            if (context.eventName === 'pull_request') {
+              core.setOutput('base_sha', context.payload.pull_request.base.sha);
+              core.setOutput('head_sha', context.payload.pull_request.head.sha);
+              core.setOutput('pr_number', String(context.payload.pull_request.number));
+              return;
+            }
+
+            const branch = context.ref.replace('refs/heads/', '');
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${branch}`,
+              state: 'open',
+              per_page: 1,
+            });
+
+            if (prs.length === 0) {
+              const { data: repo } = await github.rest.repos.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+              });
+              const { data: ref } = await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: `heads/${repo.default_branch}`,
+              });
+              core.setOutput('base_sha', ref.object.sha);
+              core.setOutput('head_sha', context.sha);
+              core.setOutput('pr_number', '');
+              return;
+            }
+
+            const pr = prs[0];
+            core.setOutput('base_sha', pr.base.sha);
+            core.setOutput('head_sha', context.sha);
+            core.setOutput('pr_number', String(pr.number));
+
       - name: Checkout head
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
-          ref: ${{ env.HEAD_SHA }}
+          ref: ${{ steps.hotpath-context.outputs.head_sha }}
           fetch-depth: 0
 
       - name: Setup Pnpm
@@ -184,7 +224,7 @@ jobs:
       - name: Run hotpath benchmark
         shell: bash
         run: |
-          bash .github/scripts/run-hotpath-benchmark.sh "$BASE_SHA" "$METRICS_DIR" "$BENCHMARK_DIR"
+          bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.hotpath-context.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
 
       - name: Run bench-diff
         shell: bash
@@ -201,9 +241,12 @@ jobs:
 
       - name: Compose PR comment
         id: comment
-        if: ${{ success() }}
+        if: ${{ success() && steps.hotpath-context.outputs.pr_number != '' }}
         shell: bash
         run: |
+          BASE_SHA="${{ steps.hotpath-context.outputs.base_sha }}"
+          HEAD_SHA="${{ steps.hotpath-context.outputs.head_sha }}"
+          PR_NUMBER="${{ steps.hotpath-context.outputs.pr_number }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           DIFF_LINES=120
           TOTAL_LINES="$(wc -l < "$METRICS_DIR/diff.txt" | tr -d ' ')"
@@ -232,7 +275,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upsert PR comment
-        if: ${{ success() }}
+        if: ${{ success() && steps.hotpath-context.outputs.pr_number != '' }}
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           COMMENT_BODY: ${{ steps.comment.outputs.body }}
