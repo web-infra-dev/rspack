@@ -189,6 +189,7 @@ pub struct RsdoctorSideEffectsOnlyImportConnection {
   pub origin_module: Option<ModuleUkey>,
   pub dependency_type: String,
   pub user_request: String,
+  pub active: bool,
 }
 
 #[derive(Debug, Default)]
