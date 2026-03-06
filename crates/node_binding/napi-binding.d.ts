@@ -1111,6 +1111,18 @@ export interface JsRsdoctorConnection {
   active: boolean
 }
 
+export interface JsRsdoctorConnectionsOnlyImport {
+  moduleUkey: number
+  modulePath: string
+  connections: Array<JsRsdoctorConnectionsOnlyImportConnection>
+}
+
+export interface JsRsdoctorConnectionsOnlyImportConnection {
+  originModule?: number
+  dependencyType: string
+  userRequest: string
+}
+
 export interface JsRsdoctorDependency {
   ukey: number
   kind: string
@@ -1164,7 +1176,7 @@ export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
-  sideEffectsOnlyImports: Array<JsRsdoctorSideEffectsOnlyImport>
+  connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1213,18 +1225,6 @@ export interface JsRsdoctorSideEffectLocation {
   nodeType: string
   module: number
   request: string
-}
-
-export interface JsRsdoctorSideEffectsOnlyImport {
-  moduleUkey: number
-  modulePath: string
-  connections: Array<JsRsdoctorSideEffectsOnlyImportConnection>
-}
-
-export interface JsRsdoctorSideEffectsOnlyImportConnection {
-  originModule?: number
-  dependencyType: string
-  userRequest: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {

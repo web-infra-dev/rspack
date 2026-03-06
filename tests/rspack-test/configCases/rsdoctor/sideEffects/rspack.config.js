@@ -12,7 +12,7 @@ module.exports = {
 	},
 	plugins: [
 		new RsdoctorPlugin({
-			moduleGraphFeatures: ["graph"],
+			moduleGraphFeatures: ["graph", "treeShaking"], // Updated feature
 			chunkGraphFeatures: false
 		}),
 		{
@@ -25,6 +25,21 @@ module.exports = {
 							"TestPlugin::SideEffects",
 							moduleGraph => {
 								const { modules } = moduleGraph;
+
+								// Collect connectionsOnlyImports
+								const { connectionsOnlyImports } = moduleGraph;
+
+								expect(connectionsOnlyImports.length).toBeGreaterThan(0);
+
+								for (const item of connectionsOnlyImports) {
+									expect(typeof item.moduleUkey).toBe("number");
+									expect(typeof item.modulePath).toBe("string");
+									expect(item.connections.length).toBeGreaterThan(0);
+									for (const conn of item.connections) {
+										expect(typeof conn.dependencyType).toBe("string");
+										expect(typeof conn.userRequest).toBe("string");
+									}
+								}
 
 								// Find modules with sideEffectsLocations
 								const modulesWithSideEffects = modules.filter(
