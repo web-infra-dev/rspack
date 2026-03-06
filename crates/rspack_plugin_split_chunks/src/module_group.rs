@@ -39,7 +39,7 @@ impl<'a> IndexedCacheGroup<'a> {
 ///  A `ModuleGroup` would be transform into multiple `Chunk`s if the `name` dynamic computed
 ///
 /// The original name of `ModuleGroup` is `ChunkInfoItem` borrowed from Webpack
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup

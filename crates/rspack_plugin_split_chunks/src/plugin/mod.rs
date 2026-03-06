@@ -4,7 +4,7 @@ pub mod max_size;
 pub mod min_size;
 mod module_group;
 
-use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
+use std::{borrow::Cow, cmp::Ordering, collections::BinaryHeap, fmt::Debug};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -20,6 +20,7 @@ use crate::{
   common::FallbackCacheGroup,
   get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup},
+  plugin::module_group::ModuleGroupHeapEntry,
 };
 
 type ModuleGroupMap = FxIndexMap<String, ModuleGroup>;
@@ -166,9 +167,17 @@ impl SplitChunksPlugin {
 
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
+      let mut heap: BinaryHeap<ModuleGroupHeapEntry> = module_group_map
+        .iter()
+        .map(|(k, v)| ModuleGroupHeapEntry {
+          key: k.clone(),
+          group: v.clone(),
+        })
+        .collect();
+
       while !module_group_map.is_empty() {
         let (module_group_key, mut module_group) =
-          self.find_best_module_group(&mut module_group_map);
+          self.find_best_module_group_from_heap(&mut module_group_map, &mut heap);
 
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
@@ -258,13 +267,23 @@ impl SplitChunksPlugin {
 
         self.split_from_original_chunks(&module_group, &used_chunks, new_chunk, compilation);
 
-        self.remove_all_modules_from_other_module_groups(
+        let (to_remove, to_update) = self.remove_all_modules_from_other_module_groups(
           &module_group,
           &mut module_group_map,
           &used_chunks,
           compilation,
           &module_sizes,
         );
+        for key in to_remove {
+          module_group_map.swap_remove(&key);
+        }
+        for (key, group) in to_update {
+          heap.push(ModuleGroupHeapEntry {
+            key: key.clone(),
+            group: group.clone(),
+          });
+          module_group_map.insert(key, group);
+        }
 
         if index != priority_len - 1 {
           for module in module_group.modules.iter() {

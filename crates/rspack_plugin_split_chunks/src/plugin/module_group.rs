@@ -1,6 +1,8 @@
 use std::{
   cmp::Ordering,
+  collections::BinaryHeap,
   hash::{Hash, Hasher},
+  sync::Arc,
 };
 
 use dashmap::DashMap;
@@ -28,6 +30,40 @@ use crate::{
     chunk_name::{ChunkNameGetter, ChunkNameGetterFnCtx},
   },
 };
+
+/// Heap entry for selecting the best ModuleGroup. Ordered so that the "best" entry
+/// (by compare_entries) is the max in the BinaryHeap.
+pub(crate) struct ModuleGroupHeapEntry {
+  pub key: String,
+  pub group: ModuleGroup,
+}
+
+impl PartialEq for ModuleGroupHeapEntry {
+  fn eq(&self, other: &Self) -> bool {
+    self.key == other.key
+  }
+}
+
+impl Eq for ModuleGroupHeapEntry {}
+
+impl PartialOrd for ModuleGroupHeapEntry {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for ModuleGroupHeapEntry {
+  fn cmp(&self, other: &Self) -> Ordering {
+    let result = compare_entries((&self.key, &self.group), (&other.key, &other.group));
+    if result < 0f64 {
+      Ordering::Less
+    } else if result > 0f64 {
+      Ordering::Greater
+    } else {
+      Ordering::Equal
+    }
+  }
+}
 
 type ChunksKey = u64;
 
@@ -257,34 +293,27 @@ impl Combinator {
   }
 }
 
+/// Result of removing modules from other groups: keys to remove from map,
+/// and (key, updated group) to re-insert and push to heap.
+pub(crate) type RemoveAllModulesResult = (Vec<String>, Vec<(String, ModuleGroup)>);
+
 impl SplitChunksPlugin {
-  // #[tracing::instrument(skip_all)]
-  pub(crate) fn find_best_module_group(
+  /// Pops from heap until we find a key still present in the map, then removes
+  /// that key from the map and returns (key, group). Uses the map's value (current state).
+  pub(crate) fn find_best_module_group_from_heap(
     &self,
     module_group_map: &mut ModuleGroupMap,
+    heap: &mut BinaryHeap<ModuleGroupHeapEntry>,
   ) -> (String, ModuleGroup) {
-    debug_assert!(!module_group_map.is_empty());
-
-    let best_entry_key = module_group_map
-      .keys()
-      .map(|key| (key, module_group_map.get(key).expect("should have item")))
-      .min_by(|a, b| {
-        let result = compare_entries((a.0, a.1), (b.0, b.1));
-        if result < 0f64 {
-          Ordering::Greater
-        } else if result > 0f64 {
-          Ordering::Less
-        } else {
-          Ordering::Equal
-        }
-      })
-      .map(|(key, _)| key.clone())
-      .expect("at least have one item");
-
-    let best_module_group = module_group_map
-      .swap_remove(&best_entry_key)
-      .expect("This should never happen, please file an issue");
-    (best_entry_key, best_module_group)
+    loop {
+      let entry = heap.pop().expect("heap empty but map non-empty");
+      if module_group_map.contains_key(&entry.key) {
+        let group = module_group_map
+          .swap_remove(&entry.key)
+          .expect("key just checked");
+        return (entry.key, group);
+      }
+    }
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -466,81 +495,99 @@ impl SplitChunksPlugin {
     used_chunks: &UkeySet<ChunkUkey>,
     compilation: &Compilation,
     module_sizes: &ModuleSizes,
-  ) {
-    // remove all modules from other entries and update size
-    let keys_of_invalid_group = module_group_map
-      .par_iter_mut()
+  ) -> RemoveAllModulesResult {
+    let mut to_remove = vec![];
+    let mut to_update = vec![];
+
+    let affected_keys: Vec<String> = module_group_map
+      .iter()
       .filter_map(|(key, other_module_group)| {
-        other_module_group
-          .chunks
-          .intersection(used_chunks)
-          .next()?;
+        other_module_group.chunks.intersection(used_chunks).next()?;
+        Some(key.clone())
+      })
+      .collect();
 
-        let module_count = other_module_group.modules.len();
+    for key in affected_keys {
+      let Some(mut other_module_group) = module_group_map.swap_remove(&key) else {
+        continue;
+      };
 
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
+      let module_count = other_module_group.modules.len();
+
+      let duplicated_modules =
+        if other_module_group.modules.len() > current_module_group.modules.len() {
+          current_module_group
+            .modules
+            .intersection(&other_module_group.modules)
+            .copied()
+            .collect::<Vec<_>>()
         } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
+          other_module_group
+            .modules
+            .intersection(&current_module_group.modules)
+            .copied()
+            .collect::<Vec<_>>()
         };
 
-        for module in duplicated_modules {
-          other_module_group.remove_module(module);
-        }
+      for module in duplicated_modules {
+        other_module_group.remove_module(module);
+      }
 
-        if module_count == other_module_group.modules.len() {
-          // nothing is removed
-          return None;
-        }
+      if module_count == other_module_group.modules.len() {
+        module_group_map.insert(key, other_module_group);
+        continue;
+      }
 
-        if other_module_group.modules.is_empty() {
-          tracing::trace!(
-            "{key} is deleted for having empty modules",
-          );
-          return Some(key.clone());
-        }
+      if other_module_group.modules.is_empty() {
+        tracing::trace!("{key} is deleted for having empty modules");
+        to_remove.push(key);
+        continue;
+      }
 
-        tracing::trace!("other_module_group: {other_module_group:#?}");
-        tracing::trace!("item.modules: {:#?}", current_module_group.modules);
+      tracing::trace!("other_module_group: {other_module_group:#?}");
+      tracing::trace!("item.modules: {:#?}", current_module_group.modules);
 
-        // Since there are modules removed, make sure the rest of chunks are all used.
-        other_module_group.chunks.retain(|c| {
-          compilation.build_chunk_graph_artifact.chunk_graph
-            .is_any_module_in_chunk(other_module_group.modules.iter(), *c)
-        });
+      other_module_group.chunks.retain(|c| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .is_any_module_in_chunk(other_module_group.modules.iter(), *c)
+      });
 
-        let cache_group = other_module_group.get_cache_group(&self.cache_groups);
+      let cache_group = other_module_group.get_cache_group(&self.cache_groups);
 
-        // Since we removed some modules and chunks from the `other_module_group`. There are chances
-        // that the `min_chunks` and `min_size` validation is not satisfied anymore.
+      if other_module_group.chunks.len() < cache_group.min_chunks as usize {
+        tracing::trace!(
+          "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
+          other_module_group.chunks.len(),
+          cache_group.min_chunks
+        );
+        to_remove.push(key);
+        continue;
+      }
 
-        // Validate `min_chunks` again
-        if other_module_group.chunks.len() < cache_group.min_chunks as usize {
-          tracing::trace!(
-            "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
-            other_module_group.chunks.len(),
-            cache_group.min_chunks
-          );
-          return Some(key.clone());
-        }
+      if remove_min_size_violating_modules(
+        &cache_group.key,
+        &mut other_module_group,
+        cache_group,
+        module_sizes,
+      ) || !Self::check_min_size_reduction(
+        &other_module_group.get_sizes(module_sizes),
+        &cache_group.min_size_reduction,
+        other_module_group.chunks.len(),
+      ) {
+        tracing::trace!(
+          "{key} is deleted for violating min_size {:#?}",
+          cache_group.min_size,
+        );
+        to_remove.push(key);
+        continue;
+      }
 
-        // Validate `min_size` again
-        if remove_min_size_violating_modules(&cache_group.key, other_module_group, cache_group, module_sizes)
-          || !Self::check_min_size_reduction(&other_module_group.get_sizes(module_sizes), &cache_group.min_size_reduction, other_module_group.chunks.len()) {
-          tracing::trace!(
-            "{key} is deleted for violating min_size {:#?}",
-            cache_group.min_size,
-          );
-          return Some(key.clone());
-        }
+      to_update.push((key, other_module_group));
+    }
 
-        None
-      })
-      .collect::<Vec<_>>();
-
-    keys_of_invalid_group.into_iter().for_each(|key| {
-      module_group_map.swap_remove(&key);
-    });
+    (to_remove, to_update)
   }
 }
 
