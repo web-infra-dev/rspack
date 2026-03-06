@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
+  ExportsInfoArtifact, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo,
   GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName, property_access, to_normal_comment,
+  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -21,6 +21,7 @@ pub struct CommonJsFullRequireDependency {
   names: Vec<Atom>,
   range: DependencyRange,
   is_call: bool,
+  namespace_object_as_context: bool,
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
@@ -34,6 +35,7 @@ impl CommonJsFullRequireDependency {
     range: DependencyRange,
     loc: Option<DependencyLocation>,
     is_call: bool,
+    namespace_object_as_context: bool,
     optional: bool,
     asi_safe: bool,
   ) -> Self {
@@ -43,6 +45,7 @@ impl CommonJsFullRequireDependency {
       names,
       range,
       is_call,
+      namespace_object_as_context,
       optional,
       asi_safe,
       loc,
@@ -75,32 +78,18 @@ impl Dependency for CommonJsFullRequireDependency {
 
   fn get_referenced_exports(
     &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if self.is_call
-      && module_graph
-        .module_graph_module_by_dependency_id(&self.id)
-        .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| {
-          m.get_exports_type(
-            module_graph,
-            module_graph_cache,
-            exports_info_artifact,
-            false,
-          )
-        })
-        .is_some_and(|t| !matches!(t, ExportsType::Namespace))
-    {
+    if self.namespace_object_as_context && self.is_call {
       if self.names.is_empty() {
-        return vec![ExtendedReferencedExport::Array(vec![])];
-      } else {
-        return vec![ExtendedReferencedExport::Array(
-          self.names[0..self.names.len() - 1].to_vec(),
-        )];
+        return create_exports_object_referenced();
       }
+      return vec![ExtendedReferencedExport::Array(
+        self.names[0..self.names.len().saturating_sub(1)].to_vec(),
+      )];
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
   }

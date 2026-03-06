@@ -20,7 +20,11 @@ use rspack_core::{
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
-use rspack_util::{itoa, location::byte_line_column_to_offset};
+use rspack_util::{
+  itoa,
+  location::byte_line_column_to_offset,
+  prototype_methods::{ARRAY_PROTOTYPE_METHODS, OBJECT_PROTOTYPE_METHODS},
+};
 
 use crate::json_exports_dependency::JsonExportsDependency;
 
@@ -291,6 +295,15 @@ pub fn create_object_for_exports_info(
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> JsonValue {
+  let has_used_prototype_method = |prototype_methods: &[&str]| {
+    prototype_methods.iter().any(|name| {
+      exports_info
+        .get_read_only_export_info(&(*name).into())
+        .get_used(runtime)
+        != UsageState::Unused
+    })
+  };
+
   if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
     return data;
   }
@@ -302,6 +315,10 @@ pub fn create_object_for_exports_info(
     | JsonValue::Number(_)
     | JsonValue::Boolean(_) => unreachable!(),
     JsonValue::Object(mut obj) => {
+      if has_used_prototype_method(OBJECT_PROTOTYPE_METHODS) {
+        return JsonValue::Object(obj);
+      }
+
       let mut used_pair = vec![];
       for (key, value) in obj.iter_mut() {
         let export_info = exports_info.get_read_only_export_info(&key.into());
@@ -338,6 +355,12 @@ pub fn create_object_for_exports_info(
       JsonValue::Object(new_obj)
     }
     JsonValue::Array(arr) => {
+      if has_used_prototype_method(ARRAY_PROTOTYPE_METHODS)
+        || has_used_prototype_method(OBJECT_PROTOTYPE_METHODS)
+      {
+        return JsonValue::Array(arr);
+      }
+
       let original_len = arr.len();
       let mut max_used_index = 0;
       let mut ret = arr

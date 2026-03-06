@@ -5,8 +5,8 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
@@ -433,7 +433,7 @@ struct ParsedExportSpec<'a> {
   name: &'a Atom,
   can_mangle: Option<bool>,
   terminal_binding: bool,
-  exports: Option<&'a ExportSpecExports>,
+  exports: Option<&'a Vec<ExportNameOrSpec>>,
   from: Option<&'a ModuleGraphConnection>,
   from_export: Option<&'a Nullable<Vec<Atom>>>,
   priority: Option<u8>,
@@ -650,7 +650,7 @@ fn merge_nested_exports(
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   export_info: ExportInfo,
-  exports: &ExportSpecExports,
+  exports: &Vec<ExportNameOrSpec>,
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
@@ -678,18 +678,12 @@ fn merge_nested_exports(
     new_exports_info_id
   };
 
-  if exports.unknown_provided {
-    nested_exports_info
-      .as_data_mut(exports_info_artifact)
-      .set_unknown_exports_provided(false, None, None, None, None);
-  }
-
   let (merge_changed, merge_dependencies) = merge_exports(
     mg,
     exports_info_artifact,
     module_id,
     nested_exports_info,
-    &exports.exports,
+    exports,
     global_export_info.clone(),
     dep_id,
   );
