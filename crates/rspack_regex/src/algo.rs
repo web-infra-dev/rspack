@@ -133,7 +133,7 @@ impl Algo {
     // suffix semantics for the inputs we care about (paths/extensions).
     // - 'g' and 'y' don't affect a single `test()` call.
     // - 'i' is handled explicitly via `ignore_case`.
-    // - For 'm', 's', 'u' or any other flag we conservatively bail out.
+    // - For any other flag we conservatively bail out.
     let mut ignore_case = false;
     for flag in flags.chars() {
       match flag {
@@ -142,7 +142,7 @@ impl Algo {
         }
         'g' | 'y' => {}
         // Unsupported for the fast path; fall back to Regress for full semantics.
-        'm' | 's' | 'u' | _ => {
+        _ => {
           return None;
         }
       }
