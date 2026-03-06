@@ -192,22 +192,6 @@ impl Algo {
       }
     }
   }
-
-  pub(crate) fn global(&self) -> bool {
-    match self {
-      Algo::RustRegex(reg) => reg.flags.contains('g'),
-      Algo::Regress(reg) => reg.flags.contains('g'),
-      Algo::EndWith { .. } => false,
-    }
-  }
-
-  pub(crate) fn sticky(&self) -> bool {
-    match self {
-      Algo::RustRegex(reg) => reg.flags.contains('y'),
-      Algo::Regress(reg) => reg.flags.contains('y'),
-      Algo::EndWith { .. } => false,
-    }
-  }
 }
 
 fn is_ends_with_regex(hir: &Hir) -> bool {
@@ -283,6 +267,20 @@ mod test_algo {
   }
 
   #[test]
+  fn end_with_ignore_case_matches_regress_for_ascii() {
+    let algo = Algo::new("\\.js$", "i").unwrap();
+    let regress = HashRegressRegex::new("\\.js$", "i").unwrap();
+    let samples = [
+      "", "file", "file.js", "file.JS", "file.Js", "file.jS", "FILE.JS", "foo.jsx", "foojson",
+      "foo.JSON",
+    ];
+
+    for s in samples {
+      assert_eq!(algo.test(s), regress.find(s).is_some(), "mismatch on {s}");
+    }
+  }
+
+  #[test]
   fn correct_end_with() {
     use std::collections::HashSet;
     let algo = Algo::new("\\.js$", "").unwrap();
@@ -317,8 +315,6 @@ mod test_algo {
   #[test]
   fn rust_regex_flags() {
     let regex = Algo::new_rust_regex("foo", "g").unwrap();
-    assert!(regex.global());
-    assert!(!regex.sticky());
     assert!(regex.test("foo"));
   }
 }
