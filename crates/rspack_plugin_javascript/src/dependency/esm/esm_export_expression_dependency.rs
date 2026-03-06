@@ -58,7 +58,7 @@ impl ESMExportExpressionDependency {
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
-      id: DependencyId::default(),
+      id: DependencyId::new(),
       range,
       range_stmt,
       declaration,

@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
-use slotmap::{SlotMap, new_key_type};
+use slotmap::SecondaryMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -32,77 +32,46 @@ pub type BuildDependency = (
   Option<ModuleIdentifier>, /* parent module */
 );
 
-new_key_type! {
-  struct DependencySlot;
-}
-
 #[derive(Debug)]
 struct ModuleGraphDependencies {
-  slots: SlotMap<DependencySlot, BoxDependency>,
-  dependency_id_to_slot: Vec<Option<DependencySlot>>,
+  inner: SecondaryMap<DependencyId, BoxDependency>,
 }
 
 impl Default for ModuleGraphDependencies {
   fn default() -> Self {
     Self {
-      slots: SlotMap::with_key(),
-      dependency_id_to_slot: Default::default(),
+      inner: SecondaryMap::new(),
     }
   }
 }
 
 impl ModuleGraphDependencies {
-  fn slot(&self, dependency_id: &DependencyId) -> Option<DependencySlot> {
-    self
-      .dependency_id_to_slot
-      .get(dependency_id.as_u32() as usize)
-      .copied()
-      .flatten()
-  }
-
   fn get(&self, dependency_id: &DependencyId) -> Option<&BoxDependency> {
-    self
-      .slot(dependency_id)
-      .and_then(|slot| self.slots.get(slot))
+    self.inner.get(*dependency_id)
   }
 
   fn get_mut(&mut self, dependency_id: &DependencyId) -> Option<&mut BoxDependency> {
-    let slot = self.slot(dependency_id)?;
-    self.slots.get_mut(slot)
+    self.inner.get_mut(*dependency_id)
   }
 
   fn insert(&mut self, dependency: BoxDependency) -> Option<BoxDependency> {
     let dependency_id = *dependency.id();
-    let index = dependency_id.as_u32() as usize;
-
-    if self.dependency_id_to_slot.len() <= index {
-      self.dependency_id_to_slot.resize(index + 1, None);
-    }
-
-    if let Some(slot) = self.dependency_id_to_slot[index]
-      && let Some(stored_dependency) = self.slots.get_mut(slot)
-    {
-      return Some(std::mem::replace(stored_dependency, dependency));
-    }
-
-    let slot = self.slots.insert(dependency);
-    self.dependency_id_to_slot[index] = Some(slot);
-    None
+    assert!(
+      !dependency_id.is_null(),
+      "Dependency with null key cannot be inserted into ModuleGraph"
+    );
+    self.inner.insert(dependency_id, dependency)
   }
 
   fn remove(&mut self, dependency_id: &DependencyId) -> Option<BoxDependency> {
-    let slot = self
-      .dependency_id_to_slot
-      .get_mut(dependency_id.as_u32() as usize)?
-      .take()?;
-    self.slots.remove(slot)
+    if dependency_id.is_null() {
+      return None;
+    }
+    self.inner.remove(*dependency_id)
   }
 
-  fn iter(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
-    self
-      .slots
-      .iter()
-      .map(|(_, dependency)| (dependency.id(), dependency))
+  fn iter(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
+    self.inner.iter()
   }
 }
 
@@ -133,7 +102,7 @@ pub(crate) struct ModuleGraphData {
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
-  /// Dependencies stored in a `SlotMap`, with direct indexing by `DependencyId`.
+  /// Dependencies stored in a slotmap `SecondaryMap`, indexed by `DependencyId`.
   dependencies: ModuleGraphDependencies,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
@@ -631,7 +600,7 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
     self.inner.dependencies.iter()
   }
 
@@ -1243,7 +1212,7 @@ mod tests {
 
       let dependency_ids = dependencies
         .iter()
-        .map(|(dependency_id, _)| *dependency_id)
+        .map(|(dependency_id, _)| dependency_id)
         .collect::<Vec<_>>();
 
       assert_eq!(dependency_ids.len(), 2);

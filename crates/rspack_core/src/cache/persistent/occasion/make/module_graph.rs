@@ -191,7 +191,7 @@ pub async fn recovery_module_graph(
   }
   let mut entry_dependencies: HashSet<DependencyId> = Default::default();
   for mid in entry_module {
-    let dep = TempDependency::default();
+    let dep = TempDependency::new();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
     mg.add_dependency(Box::new(dep));

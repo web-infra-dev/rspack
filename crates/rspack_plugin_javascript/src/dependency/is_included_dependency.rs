@@ -19,7 +19,7 @@ impl IsIncludeDependency {
   pub fn new(range: DependencyRange, request: String) -> Self {
     Self {
       range,
-      id: DependencyId::default(),
+      id: DependencyId::new(),
       request,
       factorize_info: Default::default(),
     }
