@@ -186,24 +186,15 @@ jobs:
             });
 
             if (prs.length === 0) {
-              const { data: repo } = await github.rest.repos.get({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-              });
-              const { data: ref } = await github.rest.git.getRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: `heads/${repo.default_branch}`,
-              });
-              core.setOutput('base_sha', ref.object.sha);
               core.setOutput('head_sha', context.sha);
+              core.setOutput('base_sha', context.sha);
               core.setOutput('pr_number', '');
               return;
             }
 
             const pr = prs[0];
-            core.setOutput('base_sha', pr.base.sha);
             core.setOutput('head_sha', context.sha);
+            core.setOutput('base_sha', context.sha);
             core.setOutput('pr_number', String(pr.number));
 
       - name: Checkout head

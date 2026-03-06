@@ -49,5 +49,10 @@ run_benchmark() {
 
 run_benchmark "$ROOT_DIR" "head (${HEAD_SHA})" "${METRICS_DIR}/head.json"
 
+if [ "$BASE_SHA" = "$HEAD_SHA" ]; then
+  cp "${METRICS_DIR}/head.json" "${METRICS_DIR}/base.json"
+  exit 0
+fi
+
 git worktree add --force --detach "$BASE_WORKTREE" "$BASE_SHA"
 run_benchmark "$BASE_WORKTREE" "base (${BASE_SHA})" "${METRICS_DIR}/base.json"
