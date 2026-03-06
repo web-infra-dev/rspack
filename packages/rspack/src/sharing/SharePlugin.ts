@@ -38,6 +38,10 @@ export type SharedConfig = {
 
 export type NormalizedSharedOptions = [string, SharedConfig][];
 
+function hasMultipleShareScopes(shareScope?: string | string[]) {
+  return Array.isArray(shareScope) && shareScope.filter(Boolean).length > 1;
+}
+
 export function normalizeSharedOptions(
   shared: Shared,
 ): NormalizedSharedOptions {
@@ -114,6 +118,17 @@ export class SharePlugin {
   constructor(options: SharePluginOptions) {
     const enhanced = options.enhanced ?? false;
     const sharedOptions = normalizeSharedOptions(options.shared);
+    if (
+      !enhanced &&
+      (hasMultipleShareScopes(options.shareScope) ||
+        sharedOptions.some(([, config]) =>
+          hasMultipleShareScopes(config.shareScope),
+        ))
+    ) {
+      throw new Error(
+        '[SharePlugin] Multiple share scopes are only supported in enhanced mode. Set `enhanced: true` or provide a single `shareScope`.',
+      );
+    }
     const consumes = createConsumeShareOptions(sharedOptions, enhanced);
     const provides = createProvideShareOptions(sharedOptions, enhanced);
     this._shareScope = options.shareScope;

@@ -30,28 +30,43 @@ export type RemotesConfig = {
   shareScope?: string | string[];
 };
 
+function hasMultipleShareScopes(shareScope?: string | string[]) {
+  return Array.isArray(shareScope) && shareScope.filter(Boolean).length > 1;
+}
+
 export class ContainerReferencePlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerReferencePlugin;
   _options;
 
   constructor(options: ContainerReferencePluginOptions) {
     super();
+    const enhanced = options.enhanced ?? false;
+    const remotes = parseOptions(
+      options.remotes,
+      (item) => ({
+        external: Array.isArray(item) ? item : [item],
+        shareScope: options.shareScope || 'default',
+      }),
+      (item) => ({
+        external: Array.isArray(item.external)
+          ? item.external
+          : [item.external],
+        shareScope: item.shareScope || options.shareScope || 'default',
+      }),
+    );
+    if (
+      !enhanced &&
+      (hasMultipleShareScopes(options.shareScope) ||
+        remotes.some(([, config]) => hasMultipleShareScopes(config.shareScope)))
+    ) {
+      throw new Error(
+        '[ContainerReferencePlugin] Multiple share scopes are only supported in enhanced mode. Set `enhanced: true` or provide a single `shareScope`.',
+      );
+    }
     this._options = {
       remoteType: options.remoteType,
-      remotes: parseOptions(
-        options.remotes,
-        (item) => ({
-          external: Array.isArray(item) ? item : [item],
-          shareScope: options.shareScope || 'default',
-        }),
-        (item) => ({
-          external: Array.isArray(item.external)
-            ? item.external
-            : [item.external],
-          shareScope: item.shareScope || options.shareScope || 'default',
-        }),
-      ),
-      enhanced: options.enhanced ?? false,
+      remotes,
+      enhanced,
     };
   }
 
