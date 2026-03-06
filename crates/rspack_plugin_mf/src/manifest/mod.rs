@@ -527,7 +527,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           record_shared_usage(
             &mut shared_usage_links,
-            &pkg,
+            &manifest_name,
             &module_identifier,
             module_graph,
             compilation,
@@ -811,7 +811,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       let rsc = build_rsc_reference_meta_from_modules(
         compilation,
-        compose_remote_lookup(&federation_container_name, &module_name),
+        compose_remote_lookup(&alias, &module_name),
         remote_usage_module_ids.into_iter(),
       );
       remote_list.push(StatsRemote {

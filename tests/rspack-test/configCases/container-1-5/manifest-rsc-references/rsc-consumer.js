@@ -1,6 +1,6 @@
 "use server";
 
-import remoteButton from "remote/Button";
+import remoteButton from "@remote/alias/Button";
 import { sharedAction, sharedValue } from "shared-rsc";
 
 export async function consumeRemoteAndShared() {

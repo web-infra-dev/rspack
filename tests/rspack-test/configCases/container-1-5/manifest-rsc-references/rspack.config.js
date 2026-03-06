@@ -67,7 +67,7 @@ module.exports = {
 			},
 			remoteType: "script",
 			remotes: {
-				remote: "remote@http://localhost:8000/remoteEntry.js"
+				"@remote/alias": "remote@http://localhost:8000/remoteEntry.js"
 			},
 			shared: {
 				"shared-rsc": {

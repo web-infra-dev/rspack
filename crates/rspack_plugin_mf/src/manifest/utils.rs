@@ -139,11 +139,11 @@ pub fn compose_expose_lookup(container: &str, expose_path: &str) -> String {
   format!("{container}/{expose_key}")
 }
 
-pub fn compose_remote_lookup(federation_container_name: &str, module_name: &str) -> String {
+pub fn compose_remote_lookup(remote_alias: &str, module_name: &str) -> String {
   if module_name.is_empty() || module_name == "." {
-    federation_container_name.to_string()
+    remote_alias.to_string()
   } else {
-    format!("{federation_container_name}/{module_name}")
+    format!("{remote_alias}/{module_name}")
   }
 }
 
