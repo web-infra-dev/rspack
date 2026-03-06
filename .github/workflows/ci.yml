@@ -152,7 +152,7 @@ jobs:
 
   hotpath-benchmark:
     name: Hotpath Benchmark
-    needs: [check-changed]
+    needs: [check-changed, test-linux]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && github.repository == 'web-infra-dev/rspack' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 90
@@ -201,6 +201,20 @@ jobs:
           ref: ${{ steps.hotpath-context.outputs.head_sha }}
           fetch-depth: 0
 
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-x86_64-unknown-linux-gnu
+          path: crates/node_binding/
+          force-use-github: true
+
+      - name: Download JS dist
+        uses: ./.github/actions/artifact/download
+        with:
+          name: hotpath-js-dist-x86_64-unknown-linux-gnu
+          path: .
+          force-use-github: true
+
       - name: Setup Pnpm
         uses: ./.github/actions/pnpm/setup
         with:
@@ -214,6 +228,8 @@ jobs:
 
       - name: Run hotpath benchmark
         shell: bash
+        env:
+          HOTPATH_SKIP_HEAD_BUILD: true
         run: |
           bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.hotpath-context.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
 

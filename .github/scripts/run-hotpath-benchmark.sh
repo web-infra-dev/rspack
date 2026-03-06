@@ -27,12 +27,17 @@ build_rspack() {
 
 run_benchmark() {
   local repo_dir="$1"
-  local label="$2"
-  local output_json="$3"
+  local role="$2"
+  local label="$3"
+  local output_json="$4"
 
   echo "==> Benchmarking ${label}"
   pushd "$repo_dir" >/dev/null
-  build_rspack
+  if [ "$role" = "head" ] && [ "${HOTPATH_SKIP_HEAD_BUILD:-}" = "true" ]; then
+    pnpm install --frozen-lockfile
+  else
+    build_rspack
+  fi
 
   pushd "$BENCHMARK_DIR" >/dev/null
   rm -rf dist
@@ -47,7 +52,7 @@ run_benchmark() {
   popd >/dev/null
 }
 
-run_benchmark "$ROOT_DIR" "head (${HEAD_SHA})" "${METRICS_DIR}/head.json"
+run_benchmark "$ROOT_DIR" "head" "head (${HEAD_SHA})" "${METRICS_DIR}/head.json"
 
 if [ "$BASE_SHA" = "$HEAD_SHA" ]; then
   cp "${METRICS_DIR}/head.json" "${METRICS_DIR}/base.json"
@@ -55,4 +60,4 @@ if [ "$BASE_SHA" = "$HEAD_SHA" ]; then
 fi
 
 git worktree add --force --detach "$BASE_WORKTREE" "$BASE_SHA"
-run_benchmark "$BASE_WORKTREE" "base (${BASE_SHA})" "${METRICS_DIR}/base.json"
+run_benchmark "$BASE_WORKTREE" "base" "base (${BASE_SHA})" "${METRICS_DIR}/base.json"
