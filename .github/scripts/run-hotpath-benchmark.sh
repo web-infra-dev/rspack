@@ -9,19 +9,16 @@ ROOT_DIR="$(pwd)"
 HEAD_SHA="$(git rev-parse HEAD)"
 mkdir -p "$METRICS_DIR"
 
-ensure_binding() {
+require_binding() {
   local repo_dir="$1"
 
   if compgen -G "${repo_dir}/crates/node_binding/*.node" > /dev/null; then
     return
   fi
 
-  local target="${HOTPATH_BINDING_TARGET:?HOTPATH_BINDING_TARGET is required when building fallback binding}"
-  echo "==> Building fallback binding for ${target} in ${repo_dir}"
-  pushd "$repo_dir" >/dev/null
-  pnpm install --frozen-lockfile
-  RUST_TARGET="$target" pnpm --filter @rspack/binding run build:dev
-  popd >/dev/null
+  echo "Missing binding artifact in ${repo_dir}/crates/node_binding" >&2
+  echo "Hotpath benchmark only reuses downloaded bindings and does not build them in CI." >&2
+  return 1
 }
 
 build_js() {
@@ -37,7 +34,7 @@ run_benchmark() {
 
   echo "==> Benchmarking ${label}"
   pushd "$repo_dir" >/dev/null
-  ensure_binding "$repo_dir"
+  require_binding "$repo_dir"
   build_js
 
   pushd "$BENCHMARK_DIR" >/dev/null

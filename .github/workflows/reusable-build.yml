@@ -158,24 +158,38 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const baseSha = '${{ steps.normalized-base.outputs.base_sha }}';
+            const artifactName = 'bindings-${{ inputs.target }}';
             const { data } = await github.rest.actions.listWorkflowRunsForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               head_sha: baseSha,
-              status: 'success',
-              per_page: 50,
+              status: 'completed',
+              per_page: 100,
             });
 
-            const run = (data.workflow_runs || []).find(
-              run => run.name === 'CI' && run.head_sha === baseSha
-            );
+            for (const run of data.workflow_runs || []) {
+              if (run.name !== 'CI' || run.head_sha !== baseSha) {
+                continue;
+              }
 
-            if (!run) {
-              core.setOutput('run_id', '');
-              return;
+              const { data: artifactData } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run.id,
+                per_page: 100,
+              });
+
+              const hasBindings = (artifactData.artifacts || []).some(
+                artifact => artifact.name === artifactName && !artifact.expired
+              );
+
+              if (hasBindings) {
+                core.setOutput('run_id', String(run.id));
+                return;
+              }
             }
 
-            core.setOutput('run_id', String(run.id));
+            core.setOutput('run_id', '');
 
       - name: Download base bindings
         if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id != '' }}
@@ -186,28 +200,28 @@ jobs:
           run-id: ${{ steps.base-artifact.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Validate base bindings availability
+        if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id == '' }}
+        run: |
+          echo "Unable to find reusable bindings artifact for base commit ${{ steps.normalized-base.outputs.base_sha }}." >&2
+          echo "Hotpath benchmark no longer builds bindings in CI; rerun CI on the base commit first." >&2
+          exit 1
+
       - name: Setup Pnpm
         timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
         with:
           node-version: 24
 
-      - name: Setup Rust
-        uses: ./.github/actions/rustup
-        with:
-          key: hotpath_profile
-          save-if: true
-
       - name: Run hotpath benchmark
         env:
           HOTPATH_BASE_WORKTREE: ${{ steps.base-worktree.outputs.path }}
-          HOTPATH_BINDING_TARGET: ${{ inputs.target }}
         run: |
           bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.normalized-base.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
 
       - name: Run bench-diff
         run: |
-          cargo xtask bench-diff "$METRICS_DIR/base.json" "$METRICS_DIR/head.json" | tee "$METRICS_DIR/diff.txt"
+          node .github/scripts/hotpath-bench-diff.mjs "$METRICS_DIR/base.json" "$METRICS_DIR/head.json" | tee "$METRICS_DIR/diff.txt"
 
       - name: Upload hotpath benchmark artifacts
         if: ${{ always() }}
