@@ -20,8 +20,9 @@ pub struct FactorizeTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
+  pub dependencies_marked: bool,
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub original_module_source: Option<BoxSource>,
+  pub original_module_source: Option<Arc<BoxSource>>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
@@ -91,7 +92,7 @@ impl Task<TaskContext> for FactorizeTask {
       Ok(result) => Some(result),
       Err(mut e) => {
         // Wrap source code if available
-        if let Some(s) = self.original_module_source {
+        if let Some(s) = self.original_module_source.as_ref() {
           let has_source_code = e.src.is_some();
           if !has_source_code {
             e.src = Some(s.source().into_string_lossy().into_owned());
@@ -123,6 +124,7 @@ impl Task<TaskContext> for FactorizeTask {
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
+      dependencies_marked: self.dependencies_marked,
       dependencies: create_data.dependencies,
       factorize_info,
       from_unlazy: self.from_unlazy,
@@ -136,6 +138,7 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
+  pub dependencies_marked: bool,
   pub dependencies: Vec<BoxDependency>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
@@ -150,6 +153,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
+      dependencies_marked,
       mut dependencies,
       mut factorize_info,
       from_unlazy,
@@ -173,10 +177,9 @@ impl Task<TaskContext> for FactorizeResultTask {
       .add_files(&resource_id, factorize_info.missing_dependencies());
 
     for dep in &mut dependencies {
-      // Some dependencies do not come from the process_dependencies task,
-      // so add all dependencies here.
-      artifact.affected_dependencies.mark_as_add(dep.id());
-
+      if !dependencies_marked {
+        artifact.affected_dependencies.mark_as_add(dep.id());
+      }
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
         d.factorize_info_mut()
       } else if let Some(d) = dep.as_module_dependency_mut() {
