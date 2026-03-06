@@ -1,6 +1,6 @@
 'use server';
 
-import remoteButton from 'remote/Button';
+import remoteButton from 'remote/button';
 import { mixedValue } from 'rsbuild-rsc-federation-shared';
 import { mixedServerAction } from 'rsbuild-rsc-federation-shared/server-actions';
 import { composeExposeMessage, describeModuleType } from './local-patterns';

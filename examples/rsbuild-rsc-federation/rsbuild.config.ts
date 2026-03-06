@@ -4,7 +4,7 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { rspack } from '@rspack/core';
 import { Layers, pluginRSC } from 'rsbuild-plugin-rsc';
 
-const containerName = 'rsbuild_container';
+const containerName = 'rsbuild_host';
 type EnvironmentName = 'server' | 'client';
 
 const unifiedExposes = {
@@ -109,7 +109,9 @@ export default defineConfig({
       const isServerBuild = target === 'node';
       const environment: EnvironmentName = isServerBuild ? 'server' : 'client';
       const remotes = {
-        remote: 'remote',
+        remote: isServerBuild
+          ? 'remote@http://localhost:3331/mf-manifest.json'
+          : 'remote@http://localhost:3331/mf-manifest.client.json',
       };
 
       if (isServerBuild) {
@@ -124,6 +126,7 @@ export default defineConfig({
           library: isServerBuild
             ? { type: 'commonjs-module' }
             : { type: 'var', name: containerName },
+          remoteType: 'script',
           manifest: isServerBuild ? true : { fileName: 'mf-manifest.client' },
           exposes: resolveExposes(environment),
           remotes,

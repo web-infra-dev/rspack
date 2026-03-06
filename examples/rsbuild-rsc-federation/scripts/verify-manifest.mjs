@@ -80,9 +80,21 @@ invariant(
 
 const clientStats = readJSON(clientStatsPath);
 const clientManifest = readJSON(clientManifestPath);
+const containerName = 'rsbuild_host';
+const sharedPackageName = 'rsbuild-rsc-federation-shared';
+const sharedActionsPackageName = 'rsbuild-rsc-federation-shared/server-actions';
 
-const sharedStats = stats.shared.find((item) => item.name === 'rsc-shared-key');
-invariant(sharedStats, 'Expected shared entry for "rsc-shared-key" in stats');
+const sharedStats = stats.shared.find(
+  (item) => item.name === sharedPackageName,
+);
+invariant(
+  sharedStats,
+  `Expected shared entry for "${sharedPackageName}" in stats`,
+);
+invariant(
+  sharedStats.shareKey === 'rsc-shared-key',
+  `Expected shared shareKey "rsc-shared-key", got "${sharedStats.shareKey}"`,
+);
 invariant(sharedStats.rsc, 'Expected rsc metadata on shared stats entry');
 invariant(
   sharedStats.rsc.lookup === 'rsc-shared-key',
@@ -110,11 +122,15 @@ invariant(
 );
 
 const sharedActionsStats = stats.shared.find(
-  (item) => item.name === 'rsc-shared-actions-key',
+  (item) => item.name === sharedActionsPackageName,
 );
 invariant(
   sharedActionsStats,
-  'Expected shared entry for "rsc-shared-actions-key" in stats',
+  `Expected shared entry for "${sharedActionsPackageName}" in stats`,
+);
+invariant(
+  sharedActionsStats.shareKey === 'rsc-shared-actions-key',
+  `Expected shared actions shareKey "rsc-shared-actions-key", got "${sharedActionsStats.shareKey}"`,
 );
 invariant(
   sharedActionsStats.rsc,
@@ -134,8 +150,8 @@ const exposeStats = stats.exposes.find((item) => item.path === './button');
 invariant(exposeStats, 'Expected expose entry "./button" in stats');
 invariant(exposeStats.rsc, 'Expected rsc metadata on expose stats entry');
 invariant(
-  exposeStats.rsc.lookup === 'rsbuild_container/button',
-  `Expected expose lookup "rsbuild_container/button", got "${exposeStats.rsc.lookup}"`,
+  exposeStats.rsc.lookup === `${containerName}/button`,
+  `Expected expose lookup "${containerName}/button", got "${exposeStats.rsc.lookup}"`,
 );
 invariant(
   exposeStats.rsc.clientReferences.includes('default'),
@@ -155,8 +171,8 @@ invariant(
   'Expected rsc metadata on expose "./consumer"',
 );
 invariant(
-  consumerExposeStats.rsc.lookup === 'rsbuild_container/consumer',
-  `Expected expose lookup "rsbuild_container/consumer", got "${consumerExposeStats.rsc.lookup}"`,
+  consumerExposeStats.rsc.lookup === `${containerName}/consumer`,
+  `Expected expose lookup "${containerName}/consumer", got "${consumerExposeStats.rsc.lookup}"`,
 );
 invariant(
   Array.isArray(consumerExposeStats.rsc.serverActions) &&
@@ -173,8 +189,8 @@ invariant(
   'Expected rsc metadata on expose "./composed"',
 );
 invariant(
-  composedExposeStats.rsc.lookup === 'rsbuild_container/composed',
-  `Expected expose lookup "rsbuild_container/composed", got "${composedExposeStats.rsc.lookup}"`,
+  composedExposeStats.rsc.lookup === `${containerName}/composed`,
+  `Expected expose lookup "${containerName}/composed", got "${composedExposeStats.rsc.lookup}"`,
 );
 invariant(
   composedExposeStats.rsc.clientReferences.includes('default'),
@@ -193,8 +209,8 @@ invariant(
   'Expected rsc metadata on expose "./server-mixed"',
 );
 invariant(
-  serverMixedExposeStats.rsc.lookup === 'rsbuild_container/server-mixed',
-  `Expected expose lookup "rsbuild_container/server-mixed", got "${serverMixedExposeStats.rsc.lookup}"`,
+  serverMixedExposeStats.rsc.lookup === `${containerName}/server-mixed`,
+  `Expected expose lookup "${containerName}/server-mixed", got "${serverMixedExposeStats.rsc.lookup}"`,
 );
 invariant(
   Array.isArray(serverMixedExposeStats.rsc.serverActions) &&
@@ -203,30 +219,38 @@ invariant(
 );
 
 const remoteStats = stats.remotes.find(
-  (item) => item.alias === 'remote' && item.moduleName === 'Button',
+  (item) => item.alias === 'remote' && item.moduleName === 'button',
 );
-invariant(remoteStats, 'Expected remote/Button consumption entry in stats');
+invariant(remoteStats, 'Expected remote/button consumption entry in stats');
 invariant(remoteStats.rsc, 'Expected rsc metadata on remote stats entry');
 invariant(
-  remoteStats.rsc.lookup === 'remote/Button',
-  `Expected remote lookup "remote/Button", got "${remoteStats.rsc.lookup}"`,
+  remoteStats.rsc.lookup === 'remote/button',
+  `Expected remote lookup "remote/button", got "${remoteStats.rsc.lookup}"`,
 );
 
 const manifestShared = manifest.shared.find(
-  (item) => item.name === 'rsc-shared-key',
+  (item) => item.name === sharedPackageName,
 );
 invariant(manifestShared?.rsc, 'Expected shared rsc metadata in manifest');
+invariant(
+  manifestShared.shareKey === 'rsc-shared-key',
+  'Manifest shared shareKey mismatch',
+);
 invariant(
   manifestShared.rsc.lookup === 'rsc-shared-key',
   'Manifest shared lookup mismatch',
 );
 
 const manifestSharedActions = manifest.shared.find(
-  (item) => item.name === 'rsc-shared-actions-key',
+  (item) => item.name === sharedActionsPackageName,
 );
 invariant(
   manifestSharedActions?.rsc,
   'Expected shared actions rsc metadata in manifest',
+);
+invariant(
+  manifestSharedActions.shareKey === 'rsc-shared-actions-key',
+  'Manifest shared actions shareKey mismatch',
 );
 invariant(
   manifestSharedActions.rsc.lookup === 'rsc-shared-actions-key',
@@ -238,7 +262,7 @@ const manifestExpose = manifest.exposes.find(
 );
 invariant(manifestExpose?.rsc, 'Expected expose rsc metadata in manifest');
 invariant(
-  manifestExpose.rsc.lookup === 'rsbuild_container/button',
+  manifestExpose.rsc.lookup === `${containerName}/button`,
   'Manifest expose lookup mismatch',
 );
 
@@ -250,7 +274,7 @@ invariant(
   'Expected expose "./consumer" rsc metadata in manifest',
 );
 invariant(
-  manifestConsumerExpose.rsc.lookup === 'rsbuild_container/consumer',
+  manifestConsumerExpose.rsc.lookup === `${containerName}/consumer`,
   'Manifest expose "./consumer" lookup mismatch',
 );
 
@@ -262,7 +286,7 @@ invariant(
   'Expected expose "./composed" rsc metadata in manifest',
 );
 invariant(
-  manifestComposedExpose.rsc.lookup === 'rsbuild_container/composed',
+  manifestComposedExpose.rsc.lookup === `${containerName}/composed`,
   'Manifest expose "./composed" lookup mismatch',
 );
 
@@ -274,16 +298,16 @@ invariant(
   'Expected expose "./server-mixed" rsc metadata in manifest',
 );
 invariant(
-  manifestServerMixedExpose.rsc.lookup === 'rsbuild_container/server-mixed',
+  manifestServerMixedExpose.rsc.lookup === `${containerName}/server-mixed`,
   'Manifest expose "./server-mixed" lookup mismatch',
 );
 
 const manifestRemote = manifest.remotes.find(
-  (item) => item.alias === 'remote' && item.moduleName === 'Button',
+  (item) => item.alias === 'remote' && item.moduleName === 'button',
 );
 invariant(manifestRemote?.rsc, 'Expected remote rsc metadata in manifest');
 invariant(
-  manifestRemote.rsc.lookup === 'remote/Button',
+  manifestRemote.rsc.lookup === 'remote/button',
   'Manifest remote lookup mismatch',
 );
 
@@ -304,12 +328,12 @@ for (const shareName of expectedSingletonShares) {
 }
 
 invariant(
-  clientStats.name === 'rsbuild_container',
-  `Expected client stats container name "rsbuild_container", got "${clientStats.name}"`,
+  clientStats.name === containerName,
+  `Expected client stats container name "${containerName}", got "${clientStats.name}"`,
 );
 invariant(
-  clientManifest.name === 'rsbuild_container',
-  `Expected client manifest container name "rsbuild_container", got "${clientManifest.name}"`,
+  clientManifest.name === containerName,
+  `Expected client manifest container name "${containerName}", got "${clientManifest.name}"`,
 );
 invariant(
   clientStats.exposes.some((item) => item.path === './button'),

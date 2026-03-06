@@ -1,6 +1,6 @@
 'use client';
 
-import remoteButton from 'remote/Button';
+import remoteButton from 'remote/button';
 import { MixedClientBadge, mixedValue } from 'rsbuild-rsc-federation-shared';
 import {
   composeExposeMessage,

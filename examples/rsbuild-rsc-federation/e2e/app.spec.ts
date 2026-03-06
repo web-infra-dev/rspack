@@ -98,25 +98,42 @@ for (const app of appUrls) {
     const sharedNames = stats.shared.map(
       (shared: { name: string }) => shared.name,
     );
-    expect(sharedNames).toContain('rsc-shared-key');
-    expect(sharedNames).toContain('rsc-shared-actions-key');
+    expect(sharedNames).toContain('rsbuild-rsc-federation-shared');
+    expect(sharedNames).toContain(
+      'rsbuild-rsc-federation-shared/server-actions',
+    );
 
     const sharedActionsEntry = stats.shared.find(
       (shared: {
         name: string;
+        shareKey?: string;
         rsc?: { serverActions?: Array<{ id: string; name: string }> };
-      }) => shared.name === 'rsc-shared-actions-key',
+      }) => shared.name === 'rsbuild-rsc-federation-shared/server-actions',
     );
+    expect(sharedActionsEntry?.shareKey).toBe('rsc-shared-actions-key');
     expect(sharedActionsEntry?.rsc?.serverActions?.length).toBeGreaterThan(0);
 
-    const remoteEntry = stats.remotes.find(
-      (remote: {
-        alias: string;
-        moduleName: string;
-        rsc?: { lookup?: string };
-      }) => remote.alias === 'remote' && remote.moduleName === 'Button',
-    );
-    expect(remoteEntry?.rsc?.lookup).toBe('remote/Button');
+    if (app.name === 'host') {
+      expect(stats.name).toBe('rsbuild_host');
+      expect(manifest.name).toBe('rsbuild_host');
+      expect(clientStats.name).toBe('rsbuild_host');
+      expect(clientManifest.name).toBe('rsbuild_host');
+      const remoteEntry = stats.remotes.find(
+        (remote: {
+          alias: string;
+          moduleName: string;
+          rsc?: { lookup?: string };
+        }) => remote.alias === 'remote' && remote.moduleName === 'button',
+      );
+      expect(remoteEntry?.rsc?.lookup).toBe('remote/button');
+    } else {
+      expect(stats.name).toBe('rsbuild_remote');
+      expect(manifest.name).toBe('rsbuild_remote');
+      expect(clientStats.name).toBe('rsbuild_remote');
+      expect(clientManifest.name).toBe('rsbuild_remote');
+      expect(stats.remotes).toEqual([]);
+      expect(manifest.remotes).toEqual([]);
+    }
 
     expect(remoteEntryText).toContain('server-mixed');
     expect(remoteEntryText).toContain('composed');
