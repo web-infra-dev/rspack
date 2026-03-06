@@ -135,6 +135,57 @@ impl<'a> BasicEvaluatedExpression<'a> {
     expr
   }
 
+  /// Convert this evaluated expression into a `'static` version suitable for caching.
+  ///
+  /// All references to AST nodes (`expression`, `owned_expression`) are dropped; nested
+  /// `BasicEvaluatedExpression` structures are converted recursively.
+  pub fn to_static(&self) -> BasicEvaluatedExpression<'static> {
+    BasicEvaluatedExpression {
+      owned_expression: None,
+      expression: None,
+      ty: self.ty.clone(),
+      range: self.range,
+      falsy: self.falsy,
+      truthy: self.truthy,
+      side_effects: self.side_effects,
+      nullish: self.nullish,
+      boolean: self.boolean,
+      number: self.number,
+      string: self.string.clone(),
+      bigint: self.bigint.clone(),
+      regexp: self.regexp.clone(),
+      array: self.array.clone(),
+      identifier: self.identifier.clone(),
+      root_info: self.root_info.clone(),
+      members: self.members.clone(),
+      members_optionals: self.members_optionals.clone(),
+      member_ranges: self.member_ranges.clone(),
+      items: self
+        .items
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.to_static()).collect()),
+      quasis: self
+        .quasis
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.to_static()).collect()),
+      parts: self
+        .parts
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.to_static()).collect()),
+      prefix: self.prefix.as_ref().map(|p| Box::new(p.to_static())),
+      postfix: self.postfix.as_ref().map(|p| Box::new(p.to_static())),
+      wrapped_inner_expressions: self
+        .wrapped_inner_expressions
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.to_static()).collect()),
+      template_string_kind: self.template_string_kind,
+      options: self
+        .options
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.to_static()).collect()),
+    }
+  }
+
   // pub fn is_unknown(&self) -> bool {
   //   matches!(self.ty, Ty::Unknown)
   // }
@@ -635,6 +686,65 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
 
     Some(basic_evaluated_expression)
+  }
+}
+
+impl BasicEvaluatedExpression<'static> {
+  /// Clone this cached `'static` expression into a non-static version.
+  ///
+  /// This drops any association with concrete AST nodes; callers that need to
+  /// walk expressions should rely on the main AST traversal instead.
+  pub fn clone_for_lifetime<'a>(&self) -> BasicEvaluatedExpression<'a> {
+    BasicEvaluatedExpression {
+      owned_expression: None,
+      expression: None,
+      ty: self.ty.clone(),
+      range: self.range,
+      falsy: self.falsy,
+      truthy: self.truthy,
+      side_effects: self.side_effects,
+      nullish: self.nullish,
+      boolean: self.boolean,
+      number: self.number,
+      string: self.string.clone(),
+      bigint: self.bigint.clone(),
+      regexp: self.regexp.clone(),
+      array: self.array.clone(),
+      identifier: self.identifier.clone(),
+      root_info: self.root_info.clone(),
+      members: self.members.clone(),
+      members_optionals: self.members_optionals.clone(),
+      member_ranges: self.member_ranges.clone(),
+      items: self
+        .items
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.clone_for_lifetime()).collect()),
+      quasis: self
+        .quasis
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.clone_for_lifetime()).collect()),
+      parts: self
+        .parts
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.clone_for_lifetime()).collect()),
+      prefix: self
+        .prefix
+        .as_ref()
+        .map(|p| Box::new(p.clone_for_lifetime())),
+      postfix: self
+        .postfix
+        .as_ref()
+        .map(|p| Box::new(p.clone_for_lifetime())),
+      wrapped_inner_expressions: self
+        .wrapped_inner_expressions
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.clone_for_lifetime()).collect()),
+      template_string_kind: self.template_string_kind,
+      options: self
+        .options
+        .as_ref()
+        .map(|items| items.iter().map(|item| item.clone_for_lifetime()).collect()),
+    }
   }
 }
 

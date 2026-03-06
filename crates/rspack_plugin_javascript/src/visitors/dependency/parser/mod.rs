@@ -380,6 +380,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) is_renaming: Option<Atom>,
   pub(crate) location_advancer: DependencyLocationAdvancer,
   pub(crate) collecting_dependencies_for_block: Option<usize>,
+  /// Cache for `evaluate_expression` results keyed by expression span.
+  /// This avoids recomputing expensive evaluations for the same AST node.
+  eval_cache: FxHashMap<(u32, u32), BasicEvaluatedExpression<'static>>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -563,6 +566,7 @@ impl<'parser> JavascriptParser<'parser> {
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
       collecting_dependencies_for_block: None,
+      eval_cache: FxHashMap::default(),
     }
   }
 
@@ -1331,11 +1335,25 @@ impl<'parser> JavascriptParser<'parser> {
 
 impl JavascriptParser<'_> {
   pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
-    match self.evaluating(expr) {
-      Some(evaluated) => evaluated.with_expression(Some(expr)),
-      None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi())
-        .with_expression(Some(expr)),
+    let span = expr.span();
+    let key = (span.real_lo(), span.real_hi());
+
+    if let Some(cached) = self.eval_cache.get(&key) {
+      return cached.clone_for_lifetime();
     }
+
+    let mut evaluated = match self.evaluating(expr) {
+      Some(evaluated) => evaluated,
+      None => BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi()),
+    };
+
+    // Only cache when we have some useful information; unknown values are cheap.
+    if !evaluated.is_unknown() {
+      self.eval_cache.insert(key, evaluated.to_static());
+    }
+
+    evaluated.set_expression(Some(expr));
+    evaluated
   }
 
   pub fn evaluate<T: Display>(
