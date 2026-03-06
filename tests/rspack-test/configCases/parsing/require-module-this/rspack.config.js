@@ -3,7 +3,7 @@
 const rspack = require("@rspack/core");
 
 /**
- * @param {bool} strictThisContextOnImports 
+ * @param {boolean} strictThisContextOnImports 
  * @param {number} i
  * @returns {import("@rspack/core").Configuration}
  */
