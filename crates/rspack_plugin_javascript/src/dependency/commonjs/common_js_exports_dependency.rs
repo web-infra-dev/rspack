@@ -108,7 +108,7 @@ impl Dependency for CommonJsExportsDependency {
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
       // We can't mangle names that are in an empty object because one could access the prototype property
       // when export isn't set yet. It's different for different targets. so here we only list common properties.
-      // Checkout test case `configCases/mangle/mangle-with-object-prop`
+      // Check out test case `configCases/mangle/mangle-with-object-prop`
       can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
       name,
       ..Default::default()
