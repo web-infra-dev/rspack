@@ -14,9 +14,9 @@ use crate::{
   parser_plugin::inner_graph::state::InnerGraphUsageOperation,
   utils::object_properties::get_attributes,
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo, TagInfoData,
-    get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
-    get_non_optional_part,
+    AllowedMemberTypes, AtomMembers, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
+    TagInfoData, get_non_optional_member_chain_from_expr,
+    get_non_optional_member_chain_from_member, get_non_optional_part,
   },
 };
 
@@ -28,7 +28,7 @@ pub const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";
 pub struct ESMSpecifierData {
   pub name: Atom,
   pub source: Atom,
-  pub ids: Vec<Atom>,
+  pub ids: AtomMembers,
   pub source_order: i32,
   pub phase: ImportPhase,
   pub attributes: Option<ImportAttributes>,
@@ -99,7 +99,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       Some(ESMSpecifierData {
         name: name.clone(),
         source: source.clone(),
-        ids: id.map(|id| vec![id.clone()]).unwrap_or_default(),
+        ids: id.into_iter().cloned().collect(),
         source_order: parser.last_esm_import_order,
         phase,
         attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
@@ -145,7 +145,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       parser.in_short_hand,
       !parser.is_asi_position(expr.span_lo()),
       expr.span.into(),
-      ids,
+      ids.into_vec(),
       parser.in_tagged_template_tag,
       direct_import,
       ExportPresenceMode::None,
@@ -211,7 +211,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       parser.in_short_hand,
       !parser.is_asi_position(ident.span_lo()),
       ident.span.into(),
-      settings.ids,
+      settings.ids.into_vec(),
       parser.in_tagged_template_tag,
       true,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
@@ -271,7 +271,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       false,
       !parser.is_asi_position(call_expr.span_lo()),
       span.into(),
-      ids,
+      ids.into_vec(),
       true,
       direct_import,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
@@ -339,7 +339,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       false,
       !parser.is_asi_position(member_expr.span_lo()),
       span.into(),
-      ids,
+      ids.into_vec(),
       false,
       false, // x.xx()
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
