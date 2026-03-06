@@ -434,14 +434,14 @@ pub fn collect_connections_only_imports(
     .collect::<Vec<_>>()
 }
 
-pub fn collect_side_effects_only_imports(
+pub fn collect_connections_only_imports(
   modules: &IdentifierMap<&BoxModule>,
   module_ukeys: &HashMap<Identifier, ModuleUkey>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   module_ukey_to_info: &HashMap<ModuleUkey, (String, bool)>,
-) -> Vec<RsdoctorSideEffectsOnlyImport> {
+) -> Vec<RsdoctorConnectionsOnlyImport> {
   let connections = modules
     .par_iter()
     .flat_map(|(module_id, _)| {
@@ -474,7 +474,7 @@ pub fn collect_side_effects_only_imports(
 
           Some((
             resolved_module,
-            RsdoctorSideEffectsOnlyImportConnection {
+            RsdoctorConnectionsOnlyImportConnection {
               origin_module,
               dependency_type,
               user_request,
@@ -486,7 +486,7 @@ pub fn collect_side_effects_only_imports(
     })
     .collect::<Vec<_>>();
 
-  let mut grouped: HashMap<ModuleUkey, Vec<RsdoctorSideEffectsOnlyImportConnection>> =
+  let mut grouped: HashMap<ModuleUkey, Vec<RsdoctorConnectionsOnlyImportConnection>> =
     HashMap::default();
 
   for (resolved_module, connection) in connections {
@@ -509,7 +509,7 @@ pub fn collect_side_effects_only_imports(
         return None;
       }
 
-      Some(RsdoctorSideEffectsOnlyImport {
+      Some(RsdoctorConnectionsOnlyImport {
         module_ukey,
         module_path: path.clone(),
         connections,

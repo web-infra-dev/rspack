@@ -12,7 +12,7 @@ module.exports = {
 	},
 	plugins: [
 		new RsdoctorPlugin({
-			moduleGraphFeatures: ["graph"],
+			moduleGraphFeatures: ["graph", "treeShaking"], // Updated feature
 			chunkGraphFeatures: false
 		}),
 		{

@@ -19,8 +19,6 @@ import {
   type JsRsdoctorModuleOriginalSource,
   type JsRsdoctorModuleSourcesPatch,
   type JsRsdoctorSideEffect,
-  type JsRsdoctorSideEffectsOnlyImport,
-  type JsRsdoctorSideEffectsOnlyImportConnection,
   type JsRsdoctorSourcePosition,
   type JsRsdoctorSourceRange,
   type JsRsdoctorStatement,

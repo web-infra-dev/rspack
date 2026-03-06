@@ -1229,18 +1229,6 @@ export interface JsRsdoctorSideEffectLocation {
   request: string
 }
 
-export interface JsRsdoctorSideEffectsOnlyImport {
-  moduleUkey: number
-  modulePath: string
-  connections: Array<JsRsdoctorSideEffectsOnlyImportConnection>
-}
-
-export interface JsRsdoctorSideEffectsOnlyImportConnection {
-  originModule?: number
-  dependencyType: string
-  userRequest: string
-}
-
 export interface JsRsdoctorSourceMapFeatures {
   cheap?: boolean
   module?: boolean

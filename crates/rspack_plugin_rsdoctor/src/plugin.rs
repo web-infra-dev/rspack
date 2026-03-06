@@ -72,6 +72,7 @@ pub enum RsdoctorPluginModuleGraphFeature {
   ModuleGraph,
   ModuleIds,
   ModuleSources,
+  TreeShaking, // Retained feature for controlling tree-shaking
 }
 
 impl From<String> for RsdoctorPluginModuleGraphFeature {
@@ -80,6 +81,7 @@ impl From<String> for RsdoctorPluginModuleGraphFeature {
       "graph" => RsdoctorPluginModuleGraphFeature::ModuleGraph,
       "ids" => RsdoctorPluginModuleGraphFeature::ModuleIds,
       "sources" => RsdoctorPluginModuleGraphFeature::ModuleSources,
+      "treeShaking" => RsdoctorPluginModuleGraphFeature::TreeShaking, // Retained feature
       _ => panic!("invalid module graph feature: {value}"),
     }
   }
@@ -91,6 +93,7 @@ impl fmt::Display for RsdoctorPluginModuleGraphFeature {
       RsdoctorPluginModuleGraphFeature::ModuleGraph => write!(f, "graph"),
       RsdoctorPluginModuleGraphFeature::ModuleIds => write!(f, "ids"),
       RsdoctorPluginModuleGraphFeature::ModuleSources => write!(f, "sources"),
+      RsdoctorPluginModuleGraphFeature::TreeShaking => write!(f, "treeShaking"), // Retained feature
     }
   }
 }

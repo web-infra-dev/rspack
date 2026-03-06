@@ -10,8 +10,7 @@ use rspack_plugin_rsdoctor::{
   RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
   RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
   RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
-  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSideEffectsOnlyImport,
-  RsdoctorSideEffectsOnlyImportConnection, RsdoctorSourcePosition, RsdoctorSourceRange,
+  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSourcePosition, RsdoctorSourceRange,
   RsdoctorStatement, RsdoctorVariable,
 };
 use rustc_hash::FxHashSet;
