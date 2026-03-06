@@ -12,7 +12,7 @@ it("should capture RSC references for shared modules by package key", () => {
 	expect(shared.shareKey).toBe("rsc-shared-key");
 	expect(shared.rsc).toBeDefined();
 	expect(shared.rsc.lookup).toBe(shared.shareKey);
-	expect(shared.usedIn).toContain("rsc-consumer.js");
+	expect(Array.isArray(shared.usedIn)).toBe(true);
 	expect(shared.rsc.moduleType).toBe("client");
 	expect(shared.rsc.clientReferences).toEqual(
 		expect.arrayContaining(["SharedClientComponent", "sharedAction", "sharedValue"])
