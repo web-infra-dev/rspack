@@ -128,7 +128,8 @@ function createRscRegistrationPayload(manifestJson) {
     const moduleIdentity =
       rscMeta.lookup || rscMeta.resource || sharedItem.name;
     sharedPayload.push({
-      shareKey: sharedItem.name,
+      pkgName: sharedItem.name,
+      shareKey: sharedItem.shareKey,
       moduleIdentity,
       manifestKeys: toUniqueStringArray([
         rscMeta.resource,
@@ -294,13 +295,13 @@ export default function mfRscRegistrationRuntimePlugin() {
       .loadRemote(request)
       .then((remoteModule) => normalizeExportedModule(remoteModule));
 
-  const loadSharedModule = (shareKey) =>
+  const loadSharedModule = (pkgName) =>
     __webpack_require__.federation.instance
-      .loadShare(shareKey)
+      .loadShare(pkgName)
       .then((sharedFactory) => {
         if (!sharedFactory) {
           throw new Error(
-            `[mf-rsc-registration-runtime-plugin] Unable to resolve shared module "${shareKey}".`,
+            `[mf-rsc-registration-runtime-plugin] Unable to resolve shared module "${pkgName}".`,
           );
         }
         return normalizeExportedModule(sharedFactory());
@@ -467,7 +468,7 @@ export default function mfRscRegistrationRuntimePlugin() {
         registerClientReferenceModule(
           moduleId,
           sharedItem.clientReferences,
-          () => loadSharedModule(sharedItem.shareKey),
+          () => loadSharedModule(sharedItem.pkgName),
         );
         nextState.moduleIds.add(moduleId);
         for (const moduleKey of sharedItem.manifestKeys) {
@@ -482,7 +483,7 @@ export default function mfRscRegistrationRuntimePlugin() {
           `${remoteAlias}:${sharedItem.moduleIdentity}`,
         );
         registerServerActionModule(moduleId, sharedItem.serverActions, () =>
-          loadSharedModule(sharedItem.shareKey),
+          loadSharedModule(sharedItem.pkgName),
         );
         nextState.moduleIds.add(moduleId);
         for (const action of sharedItem.serverActions) {
