@@ -7,6 +7,7 @@ use rkyv::{
   vec::{ArchivedVec, VecResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
+use smallvec::{Array, SmallVec};
 
 use crate::{Error, Result, with::AsCacheable};
 
@@ -39,7 +40,7 @@ pub struct AsVec<T = AsCacheable> {
 pub trait AsVecConverter {
   type Item;
   fn len(&self) -> usize;
-  fn iter(&self) -> impl Iterator<Item = &Self::Item>;
+  fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Self::Item>;
   fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self>
   where
     Self: Sized;
@@ -91,11 +92,31 @@ impl<T> AsVecConverter for Vec<T> {
   fn len(&self) -> usize {
     self.len()
   }
-  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+  fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Self::Item> {
     <[T]>::iter(self)
   }
   fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
     data.collect::<Result<Vec<_>>>()
+  }
+}
+
+impl<T, A> AsVecConverter for SmallVec<A>
+where
+  T: 'static,
+  A: Array<Item = T>,
+{
+  type Item = T;
+
+  fn len(&self) -> usize {
+    self.as_slice().len()
+  }
+
+  fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Self::Item> {
+    <[T]>::iter(self.as_slice())
+  }
+
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<SmallVec<A>>>()
   }
 }
 
@@ -109,7 +130,7 @@ where
   fn len(&self) -> usize {
     self.len()
   }
-  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+  fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Self::Item> {
     self.iter()
   }
   fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
@@ -127,7 +148,7 @@ where
   fn len(&self) -> usize {
     self.len()
   }
-  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+  fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Self::Item> {
     self.iter()
   }
   fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {

@@ -10,19 +10,21 @@ use rspack_core::{
 };
 use swc_core::ecma::atoms::Atom;
 
+use crate::visitors::AtomMembers;
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExportInfoDependency {
   start: u32,
   end: u32,
   #[cacheable(with=AsVec<AsPreset>)]
-  export_name: Vec<Atom>,
+  export_name: AtomMembers,
   #[cacheable(with=AsPreset)]
   property: Atom,
 }
 
 impl ExportInfoDependency {
-  pub fn new(start: u32, end: u32, export_name: Vec<Atom>, property: Atom) -> Self {
+  pub fn new(start: u32, end: u32, export_name: AtomMembers, property: Atom) -> Self {
     Self {
       start,
       end,

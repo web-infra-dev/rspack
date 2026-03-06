@@ -10,7 +10,8 @@ use rspack_core::{
   PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, to_normal_comment,
 };
-use swc_core::atoms::Atom;
+
+use crate::visitors::AtomMembers;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -18,7 +19,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   #[cacheable(with=AsVec<AsPreset>)]
-  names: Vec<Atom>,
+  names: AtomMembers,
   range: DependencyRange,
   is_call: bool,
   optional: bool,
@@ -30,7 +31,7 @@ pub struct CommonJsFullRequireDependency {
 impl CommonJsFullRequireDependency {
   pub fn new(
     request: String,
-    names: Vec<Atom>,
+    names: AtomMembers,
     range: DependencyRange,
     loc: Option<DependencyLocation>,
     is_call: bool,
@@ -102,7 +103,9 @@ impl Dependency for CommonJsFullRequireDependency {
         )];
       }
     }
-    vec![ExtendedReferencedExport::Array(self.names.clone())]
+    vec![ExtendedReferencedExport::Array(
+      self.names.clone().into_vec(),
+    )]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

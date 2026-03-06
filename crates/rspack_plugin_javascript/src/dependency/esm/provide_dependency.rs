@@ -14,6 +14,8 @@ use rspack_core::{
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
 
+use crate::visitors::AtomMembers;
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ProvideDependency {
@@ -22,7 +24,7 @@ pub struct ProvideDependency {
   request: Atom,
   identifier: String,
   #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  ids: AtomMembers,
   range: DependencyRange,
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
@@ -33,7 +35,7 @@ impl ProvideDependency {
     range: DependencyRange,
     request: Atom,
     identifier: String,
-    ids: Vec<Atom>,
+    ids: AtomMembers,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
@@ -76,7 +78,7 @@ impl Dependency for ProvideDependency {
     if self.ids.is_empty() {
       create_exports_object_referenced()
     } else {
-      vec![ExtendedReferencedExport::Array(self.ids.clone())]
+      vec![ExtendedReferencedExport::Array(self.ids.clone().into_vec())]
     }
   }
 

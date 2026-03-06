@@ -32,9 +32,9 @@ pub fn eval_member_expression<'a>(
         eval.set_identifier(
           info.name.into(),
           info.root_info,
-          Some(info.members.into_vec()),
-          Some(info.members_optionals.into_vec()),
-          Some(info.member_ranges.into_vec()),
+          Some(info.members),
+          Some(info.members_optionals),
+          Some(info.member_ranges),
         );
         Some(eval)
       })

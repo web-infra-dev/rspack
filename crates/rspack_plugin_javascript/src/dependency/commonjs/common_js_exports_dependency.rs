@@ -10,7 +10,8 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
-use swc_core::atoms::Atom;
+
+use crate::visitors::AtomMembers;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
@@ -76,7 +77,7 @@ pub struct CommonJsExportsDependency {
   value_range: Option<DependencyRange>,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
-  names: Vec<Atom>,
+  names: AtomMembers,
 }
 
 impl CommonJsExportsDependency {
@@ -84,7 +85,7 @@ impl CommonJsExportsDependency {
     range: DependencyRange,
     value_range: Option<DependencyRange>,
     base: ExportsBase,
-    names: Vec<Atom>,
+    names: AtomMembers,
   ) -> Self {
     Self {
       id: DependencyId::new(),

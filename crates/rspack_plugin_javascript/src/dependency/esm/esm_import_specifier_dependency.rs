@@ -24,7 +24,8 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  is_export_inlined, visitors::DestructuringAssignmentProperties,
+  is_export_inlined,
+  visitors::{AtomMembers, DestructuringAssignmentProperties},
 };
 
 #[cacheable]
@@ -40,7 +41,7 @@ pub struct ESMImportSpecifierDependency {
   asi_safe: bool,
   range: DependencyRange,
   #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  ids: AtomMembers,
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
@@ -65,7 +66,7 @@ impl ESMImportSpecifierDependency {
     shorthand: bool,
     asi_safe: bool,
     range: DependencyRange,
-    ids: Vec<Atom>,
+    ids: AtomMembers,
     call: bool,
     direct_import: bool,
     export_presence_mode: ExportPresenceMode,

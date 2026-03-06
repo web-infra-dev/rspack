@@ -108,7 +108,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       let mut dep = ESMExportImportedSpecifierDependency::new(
         settings.source,
         settings.source_order,
-        settings.ids.into_vec(),
+        settings.ids,
         Some(export_name.clone()),
         None,
         statement.span().into(),
@@ -195,7 +195,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
     let mut dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
-      local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
+      local_id.into_iter().cloned().collect(),
       export_name.cloned(),
       star_exports,
       statement.span().into(),

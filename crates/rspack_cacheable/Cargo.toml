@@ -25,6 +25,7 @@ rspack_cacheable_macros = { workspace = true }
 rspack_resolver         = { workspace = true }
 rspack_sources          = { workspace = true }
 serde_json              = { workspace = true }
+smallvec                = { workspace = true }
 smol_str                = { workspace = true }
 sugar_path              = { workspace = true }
 swc_core                = { workspace = true, features = ["ecma_ast"] }

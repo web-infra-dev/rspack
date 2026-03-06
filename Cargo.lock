@@ -3799,6 +3799,7 @@ dependencies = [
  "rspack_resolver",
  "rspack_sources",
  "serde_json",
+ "smallvec",
  "smol_str",
  "sugar_path",
  "swc_core",

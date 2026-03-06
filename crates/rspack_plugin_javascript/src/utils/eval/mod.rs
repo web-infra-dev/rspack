@@ -28,7 +28,7 @@ pub use self::{
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
-use crate::visitors::ExportedVariableInfo;
+use crate::visitors::{AtomMembers, ExportedVariableInfo, MemberRanges, OptionalMembers};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum Ty {
@@ -77,9 +77,9 @@ pub struct BasicEvaluatedExpression<'a> {
   array: Option<Vec<String>>,
   identifier: Option<Atom>,
   root_info: Option<ExportedVariableInfo>,
-  members: Option<Vec<Atom>>,
-  members_optionals: Option<Vec<bool>>,
-  member_ranges: Option<Vec<Span>>,
+  members: Option<AtomMembers>,
+  members_optionals: Option<OptionalMembers>,
+  member_ranges: Option<MemberRanges>,
   items: Option<Vec<BasicEvaluatedExpression<'a>>>,
   quasis: Option<Vec<BasicEvaluatedExpression<'a>>>,
   parts: Option<Vec<BasicEvaluatedExpression<'a>>>,
@@ -438,9 +438,9 @@ impl<'a> BasicEvaluatedExpression<'a> {
     &mut self,
     name: Atom,
     root_info: ExportedVariableInfo,
-    members: Option<Vec<Atom>>,
-    members_optionals: Option<Vec<bool>>,
-    member_ranges: Option<Vec<Span>>,
+    members: Option<AtomMembers>,
+    members_optionals: Option<OptionalMembers>,
+    member_ranges: Option<MemberRanges>,
   ) {
     self.ty = Ty::Identifier;
     self.identifier = Some(name);
@@ -520,19 +520,19 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.root_info.as_ref().expect("make sure identifier exist")
   }
 
-  pub fn members(&self) -> Option<&Vec<Atom>> {
+  pub fn members(&self) -> Option<&[Atom]> {
     assert!(self.is_identifier());
-    self.members.as_ref()
+    self.members.as_deref()
   }
 
-  pub fn members_optionals(&self) -> Option<&Vec<bool>> {
+  pub fn members_optionals(&self) -> Option<&[bool]> {
     assert!(self.is_identifier());
-    self.members_optionals.as_ref()
+    self.members_optionals.as_deref()
   }
 
-  pub fn member_ranges(&self) -> Option<&Vec<Span>> {
+  pub fn member_ranges(&self) -> Option<&[Span]> {
     assert!(self.is_identifier());
-    self.member_ranges.as_ref()
+    self.member_ranges.as_deref()
   }
 
   pub fn regexp(&self) -> &Regexp {

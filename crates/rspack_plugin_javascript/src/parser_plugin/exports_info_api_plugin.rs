@@ -7,7 +7,10 @@ use swc_core::{
 };
 
 use super::JavascriptParserPlugin;
-use crate::{dependency::ExportInfoDependency, visitors::JavascriptParser};
+use crate::{
+  dependency::ExportInfoDependency,
+  visitors::{AtomMembers, JavascriptParser},
+};
 
 const EXPORTS_INFO: &str = "__webpack_exports_info__";
 
@@ -29,7 +32,11 @@ impl JavascriptParserPlugin for ExportsInfoApiPlugin {
       let dep = Box::new(ExportInfoDependency::new(
         member_expr.span.real_lo(),
         member_expr.span.real_hi(),
-        members.iter().take(len - 1).cloned().collect::<Vec<_>>(),
+        members
+          .iter()
+          .take(len - 1)
+          .cloned()
+          .collect::<AtomMembers>(),
         prop,
       ));
       parser.add_presentational_dependency(dep);

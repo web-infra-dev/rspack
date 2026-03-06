@@ -16,7 +16,7 @@ use crate::{
     ExportsBase, ModuleDecoratorDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::JavascriptParser,
+  visitors::{AtomMembers, JavascriptParser, OptionalMembers},
 };
 
 fn get_value_of_property_description(expr: &Expr) -> Option<&Expr> {
@@ -129,8 +129,8 @@ impl JavascriptParser<'_> {
 fn parse_require_call<'a>(
   parser: &mut JavascriptParser,
   mut expr: &'a Expr,
-) -> Option<(BasicEvaluatedExpression<'a>, Vec<Atom>)> {
-  let mut ids = Vec::new();
+) -> Option<(BasicEvaluatedExpression<'a>, AtomMembers)> {
+  let mut ids = AtomMembers::new();
   while let Some(member) = expr.as_member() {
     if let Some(prop) = member.prop.as_ident() {
       ids.push(prop.sym.clone());
@@ -192,7 +192,7 @@ fn handle_assign_export(
       parser.in_try,
       range,
       base,
-      remaining.to_vec(),
+      remaining.iter().cloned().collect(),
       ids,
       !parser.is_statement_level_expression(assign_expr.span()),
     )));
@@ -225,7 +225,7 @@ fn handle_assign_export(
     assign_expr.left.span().into(),
     None,
     base,
-    remaining.to_owned(),
+    remaining.iter().cloned().collect(),
   )));
   parser.walk_expression(&assign_expr.right);
   Some(true)
@@ -248,8 +248,11 @@ fn handle_access_export(
   parser.add_dependency(Box::new(CommonJsSelfReferenceDependency::new(
     expr_span.into(),
     base,
-    remaining.to_vec(),
-    remaining_optionals.to_vec(),
+    remaining.iter().cloned().collect(),
+    remaining_optionals
+      .iter()
+      .copied()
+      .collect::<OptionalMembers>(),
     true,
   )));
   if let Some(call_args) = call_args {
@@ -358,7 +361,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         call_expr.span.into(),
         Some(arg2.span().into()),
         base,
-        vec![property.into()],
+        std::iter::once(property.into()).collect(),
       )));
 
       parser.walk_expression(arg2);

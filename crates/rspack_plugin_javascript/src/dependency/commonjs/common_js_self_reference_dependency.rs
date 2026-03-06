@@ -9,9 +9,9 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsedName, property_access_with_optional,
 };
-use swc_core::atoms::Atom;
 
 use super::ExportsBase;
+use crate::visitors::{AtomMembers, OptionalMembers};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -20,8 +20,9 @@ pub struct CommonJsSelfReferenceDependency {
   range: DependencyRange,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
-  names: Vec<Atom>,
-  names_optionals: Vec<bool>,
+  names: AtomMembers,
+  #[cacheable(with=AsVec)]
+  names_optionals: OptionalMembers,
   is_call: bool,
   factorize_info: FactorizeInfo,
 }
@@ -30,8 +31,8 @@ impl CommonJsSelfReferenceDependency {
   pub fn new(
     range: DependencyRange,
     base: ExportsBase,
-    names: Vec<Atom>,
-    names_optionals: Vec<bool>,
+    names: AtomMembers,
+    names_optionals: OptionalMembers,
     is_call: bool,
   ) -> Self {
     Self {
@@ -84,7 +85,9 @@ impl Dependency for CommonJsSelfReferenceDependency {
         )]
       }
     } else {
-      vec![ExtendedReferencedExport::Array(self.names.clone())]
+      vec![ExtendedReferencedExport::Array(
+        self.names.clone().into_vec(),
+      )]
     }
   }
 
@@ -175,9 +178,9 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         )
       };
 
-      used_name.unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+      used_name.unwrap_or_else(|| UsedName::Normal(dep.names.to_vec()))
     } else {
-      UsedName::Normal(dep.names.clone())
+      UsedName::Normal(dep.names.to_vec())
     };
 
     let exports_argument = module.get_exports_argument();

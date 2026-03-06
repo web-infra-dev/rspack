@@ -17,7 +17,7 @@ use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use super::ExportsBase;
-use crate::dependency::commonjs::PROTOTYPE_PROPS;
+use crate::{dependency::commonjs::PROTOTYPE_PROPS, visitors::AtomMembers};
 
 #[cacheable]
 #[allow(unused)]
@@ -29,9 +29,9 @@ pub struct CommonJsExportRequireDependency {
   range: DependencyRange,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
-  names: Vec<Atom>,
+  names: AtomMembers,
   #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  ids: AtomMembers,
   result_used: bool,
   factorize_info: FactorizeInfo,
 }
@@ -42,8 +42,8 @@ impl CommonJsExportRequireDependency {
     optional: bool,
     range: DependencyRange,
     base: ExportsBase,
-    names: Vec<Atom>,
-    ids: Vec<Atom>,
+    names: AtomMembers,
+    ids: AtomMembers,
     result_used: bool,
   ) -> Self {
     Self {

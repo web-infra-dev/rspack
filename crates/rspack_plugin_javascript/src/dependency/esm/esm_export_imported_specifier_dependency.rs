@@ -35,7 +35,9 @@ use super::{
   create_resource_identifier_for_esm_dependency,
   esm_import_dependency::esm_import_dependency_get_linking_error, esm_import_dependency_apply,
 };
-use crate::connection_active_inline_value_for_esm_export_imported_specifier;
+use crate::{
+  connection_active_inline_value_for_esm_export_imported_specifier, visitors::AtomMembers,
+};
 
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
@@ -46,7 +48,7 @@ use crate::connection_active_inline_value_for_esm_export_imported_specifier;
 pub struct ESMExportImportedSpecifierDependency {
   pub id: DependencyId,
   #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  ids: AtomMembers,
   #[cacheable(with=AsOption<AsPreset>)]
   pub name: Option<Atom>,
   #[cacheable(with=AsPreset)]
@@ -68,7 +70,7 @@ impl ESMExportImportedSpecifierDependency {
   pub fn new(
     request: Atom,
     source_order: i32,
-    ids: Vec<Atom>,
+    ids: AtomMembers,
     name: Option<Atom>,
     other_star_exports: Option<Vec<DependencyId>>,
     range: DependencyRange,
