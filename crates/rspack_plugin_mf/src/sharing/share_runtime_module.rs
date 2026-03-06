@@ -11,7 +11,7 @@ use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, utils::json_stringify};
+use crate::{ConsumeVersion, ShareScope, utils::json_stringify};
 
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
 static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -73,11 +73,13 @@ impl RuntimeModule for ShareRuntimeModule {
           continue;
         };
         for item in &data.items {
-          let stages = init_per_scope.entry(item.share_scope.clone()).or_default();
-          let list = stages
-            .entry(item.init_stage)
-            .or_insert_with(LinkedHashSet::default);
-          list.insert(item.init.clone());
+          for scope in item.share_scope.scopes() {
+            let stages = init_per_scope.entry(scope.clone()).or_default();
+            let list = stages
+              .entry(item.init_stage)
+              .or_insert_with(LinkedHashSet::default);
+            list.insert(item.init.clone());
+          }
         }
       }
     }
@@ -159,7 +161,7 @@ pub struct CodeGenerationDataShareInit {
 
 #[derive(Debug, Clone)]
 pub struct ShareInitData {
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub init_stage: DataInitStage,
   pub init: DataInitInfo,
 }
