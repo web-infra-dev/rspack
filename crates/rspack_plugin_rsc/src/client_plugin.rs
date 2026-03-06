@@ -5,23 +5,30 @@ use derive_more::Debug;
 use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
-  ModuleGraph, ModuleId, ModuleIdentifier, ModuleType, Plugin,
+  CompilationParams, CompilerCompilation, CompilerFailed, CompilerMake, CrossOriginLoading,
+  DependenciesBlock, Dependency, DependencyId, DependencyType, Logger, ModuleGraph, ModuleId,
+  ModuleIdentifier, ModuleType, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_mf::ConsumeSharedModule;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
   plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
-  reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
+  reference_manifest::{
+    ClientReferenceManifestEntry, ClientReferenceResolution, CrossOriginMode, ManifestExport,
+    ModuleLoading,
+  },
   rsc_entry_dependency::RscEntryDependency,
   rsc_entry_module::RscEntryModule,
   rsc_entry_module_factory::RscEntryModuleFactory,
-  utils::{encode_uri_path, get_module_resource, is_css_mod},
+  utils::{
+    encode_uri_path, extract_shared_package_from_consume_request, get_canonical_module_resource,
+    is_css_mod, is_federation_virtual_module,
+  },
 };
 
 pub struct RscClientPluginOptions {
@@ -33,7 +40,6 @@ pub struct RscClientPluginOptions {
 pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
-  server_compiler_id: AtomicRefCell<Option<CompilerId>>,
   client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
 }
 
@@ -73,6 +79,209 @@ fn extend_required_chunks(
   }
 }
 
+fn merge_manifest_export(existing: &mut ManifestExport, mut incoming: ManifestExport) {
+  existing.chunks.append(&mut incoming.chunks);
+  existing.chunks.sort();
+  existing.chunks.dedup();
+  existing.r#async = match (existing.r#async, incoming.r#async) {
+    (Some(true), _) | (_, Some(true)) => Some(true),
+    (Some(false), Some(false)) => Some(false),
+    (Some(false), None) | (None, Some(false)) => Some(false),
+    (None, None) => None,
+  };
+}
+
+fn insert_or_merge_manifest_export(
+  key: &str,
+  mut manifest_export: ManifestExport,
+  module_priority: u8,
+  plugin_state: &mut PluginState,
+) {
+  manifest_export.chunks.sort();
+  manifest_export.chunks.dedup();
+  let key_string = key.to_string();
+  let existing_priority = plugin_state
+    .client_module_priorities
+    .get(&key_string)
+    .copied()
+    .unwrap_or(u8::MAX);
+
+  if existing_priority == u8::MAX {
+    plugin_state
+      .client_modules
+      .insert(key_string.clone(), manifest_export);
+    plugin_state
+      .client_module_priorities
+      .insert(key_string, module_priority);
+    return;
+  }
+
+  if module_priority < existing_priority {
+    plugin_state
+      .client_modules
+      .insert(key_string.clone(), manifest_export);
+    plugin_state
+      .client_module_priorities
+      .insert(key_string, module_priority);
+    return;
+  }
+
+  let Some(existing) = plugin_state.client_modules.get_mut(&key_string) else {
+    plugin_state
+      .client_modules
+      .insert(key_string.clone(), manifest_export);
+    plugin_state
+      .client_module_priorities
+      .insert(key_string, module_priority);
+    return;
+  };
+
+  if module_priority == existing_priority {
+    if existing.id == manifest_export.id {
+      merge_manifest_export(existing, manifest_export);
+      return;
+    }
+
+    if existing.chunks.is_empty() && !manifest_export.chunks.is_empty() {
+      *existing = manifest_export;
+    }
+    return;
+  }
+
+  if existing.id == manifest_export.id {
+    merge_manifest_export(existing, manifest_export);
+  }
+}
+
+fn insert_client_reference(
+  key: &str,
+  client_reference: ClientReferenceManifestEntry,
+  module_priority: u8,
+  plugin_state: &mut PluginState,
+) {
+  let key_string = key.to_string();
+  let existing_priority = plugin_state
+    .client_reference_priorities
+    .get(&key_string)
+    .copied()
+    .unwrap_or(u8::MAX);
+
+  if existing_priority == u8::MAX || module_priority < existing_priority {
+    plugin_state
+      .client_references
+      .insert(key_string.clone(), client_reference);
+    plugin_state
+      .client_reference_priorities
+      .insert(key_string, module_priority);
+    return;
+  }
+
+  if module_priority == existing_priority {
+    let should_replace = plugin_state
+      .client_references
+      .get(&key_string)
+      .is_none_or(|existing| existing != &client_reference);
+    if should_replace {
+      plugin_state
+        .client_references
+        .insert(key_string.clone(), client_reference);
+      plugin_state
+        .client_reference_priorities
+        .insert(key_string, module_priority);
+    }
+  }
+}
+
+fn get_shared_resolution(module: &dyn rspack_core::Module) -> Option<ClientReferenceResolution> {
+  let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
+  Some(ClientReferenceResolution::Shared {
+    share_key: consume_shared_module.share_key().to_string(),
+    share_scope: if consume_shared_module.share_scope().is_empty() {
+      vec!["default".to_string()]
+    } else {
+      consume_shared_module.share_scope().to_vec()
+    },
+  })
+}
+
+fn get_client_reference_resolution(
+  module: &dyn rspack_core::Module,
+  alias_request: Option<&str>,
+  is_shared_alias: bool,
+) -> ClientReferenceResolution {
+  if is_shared_alias {
+    return ClientReferenceResolution::Shared {
+      share_key: alias_request.unwrap_or_default().to_string(),
+      share_scope: vec!["default".to_string()],
+    };
+  }
+
+  get_shared_resolution(module).unwrap_or(ClientReferenceResolution::Local)
+}
+
+fn normalize_request_for_resource_matching(request: &str) -> Option<String> {
+  let request_without_query = request.split('?').next().unwrap_or(request);
+  if request_without_query.is_empty() {
+    return None;
+  }
+  extract_shared_package_from_consume_request(request_without_query).or_else(|| {
+    if request_without_query.is_empty() {
+      None
+    } else {
+      Some(request_without_query.to_string())
+    }
+  })
+}
+
+fn is_filtered_shared_request(module_request: &str) -> bool {
+  matches!(module_request, "react" | "react-dom" | "react-dom/server")
+}
+
+fn request_matches_resource(request: &str, resource: &str) -> bool {
+  if request == resource {
+    return true;
+  }
+
+  let Some(normalized_request) = normalize_request_for_resource_matching(request) else {
+    return false;
+  };
+  if normalized_request == resource {
+    return true;
+  }
+  if normalized_request.starts_with('.') || normalized_request.starts_with('/') {
+    return false;
+  }
+
+  resource.contains(&format!("/{normalized_request}/"))
+}
+
+fn module_matches_injected_request(
+  entry_name: &str,
+  module: &dyn rspack_core::Module,
+  compilation: &Compilation,
+  plugin_state: &PluginState,
+) -> bool {
+  let Some(injected_modules) = plugin_state.injected_client_entries.get(entry_name) else {
+    return false;
+  };
+
+  let resource = get_canonical_module_resource(compilation, module);
+  if resource.is_empty() {
+    return false;
+  }
+
+  injected_modules.iter().any(|client_module| {
+    let Some(request) = normalize_request_for_resource_matching(client_module.request.as_str())
+    else {
+      return false;
+    };
+    if is_filtered_shared_request(&request) {
+      return false;
+    }
+    request_matches_resource(&request, &resource)
+  })
+}
+
 #[allow(clippy::too_many_arguments)]
 fn record_module(
   entry_name: &str,
@@ -87,8 +296,8 @@ fn record_module(
     return;
   };
 
-  let resource = get_module_resource(module.as_ref());
-  if resource.is_empty() && !matches!(module.module_type(), ModuleType::Remote) {
+  let resource = get_canonical_module_resource(compilation, module.as_ref());
+  if resource.is_empty() && !is_federation_virtual_module(module.as_ref()) {
     return;
   }
 
@@ -124,7 +333,7 @@ fn record_module(
       .or_default();
 
     for (server_entry, imports) in entry_css_imports {
-      if imports.get(resource.as_ref()).is_some() {
+      if imports.get(&resource).is_some() {
         entry_css_files
           .entry(server_entry.clone())
           .or_default()
@@ -135,15 +344,239 @@ fn record_module(
   }
 
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
-  plugin_state.client_modules.insert(
-    resource.to_string(),
-    ManifestExport {
-      id: module_id.to_string(),
-      name: "*".to_string(),
-      chunks: required_chunks.to_vec(),
-      r#async: Some(is_async),
-    },
+  let mut has_wildcard_client_ref = false;
+  let mut matched_request_aliases: FxHashMap<String, bool> = Default::default();
+  let mut client_ref_exports = module
+    .build_info()
+    .rsc
+    .as_ref()
+    .map(|rsc_meta| {
+      has_wildcard_client_ref = rsc_meta.client_refs.iter().any(|name| *name == "*");
+      let mut refs = rsc_meta
+        .client_refs
+        .iter()
+        .filter(|name| *name != "*" && *name != "__esModule")
+        .map(|name| name.to_string_lossy().into_owned())
+        .collect::<Vec<_>>();
+      refs.sort();
+      refs.dedup();
+      refs
+    })
+    .unwrap_or_default();
+
+  if client_ref_exports.is_empty()
+    && let Some(injected_modules) = plugin_state.injected_client_entries.get(entry_name)
+  {
+    for client_module in injected_modules {
+      if client_module.ids.is_empty() {
+        continue;
+      }
+      let Some(request) = normalize_request_for_resource_matching(client_module.request.as_str())
+      else {
+        continue;
+      };
+      if is_filtered_shared_request(&request) {
+        continue;
+      }
+      if !request_matches_resource(&request, &resource) {
+        continue;
+      }
+      matched_request_aliases
+        .entry(request)
+        .and_modify(|is_shared_alias| *is_shared_alias |= client_module.is_remote)
+        .or_insert(client_module.is_remote);
+      for id in &client_module.ids {
+        if id == "*" {
+          has_wildcard_client_ref = true;
+          continue;
+        }
+        if id == "__esModule" {
+          continue;
+        }
+        client_ref_exports.push(id.clone());
+      }
+    }
+    client_ref_exports.sort();
+    client_ref_exports.dedup();
+  }
+  if has_wildcard_client_ref && !client_ref_exports.iter().any(|name| name == "default") {
+    client_ref_exports.push("default".to_string());
+  }
+  client_ref_exports.sort();
+  client_ref_exports.dedup();
+
+  let mut non_default_exports = client_ref_exports
+    .iter()
+    .filter(|export_name| export_name.as_str() != "default")
+    .cloned()
+    .collect::<Vec<_>>();
+  non_default_exports.sort();
+  non_default_exports.dedup();
+
+  let manifest_export_name = if non_default_exports.len() == 1 {
+    non_default_exports[0].clone()
+  } else if client_ref_exports.len() == 1 {
+    client_ref_exports[0].clone()
+  } else {
+    "*".to_string()
+  };
+
+  let mut manifest_chunks = required_chunks.to_vec();
+  if manifest_chunks.is_empty() && resource.starts_with("mf://") {
+    for chunk_ukey in compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_chunks(module.identifier())
+      .iter()
+    {
+      let Some(chunk) = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get(chunk_ukey)
+      else {
+        continue;
+      };
+      let Some(chunk_id) = chunk.id() else {
+        continue;
+      };
+      for file in chunk
+        .files()
+        .iter()
+        .filter(|f| f.ends_with(".js") || f.ends_with(".mjs") || f.ends_with(".cjs"))
+      {
+        if let Some(asset) = compilation.assets().get(file) {
+          let asset_info = asset.get_info();
+          if asset_info.hot_module_replacement.unwrap_or(false)
+            || asset_info.development.unwrap_or(false)
+          {
+            continue;
+          }
+        }
+        manifest_chunks.push(chunk_id.to_string());
+        manifest_chunks.push(encode_uri_path(file));
+      }
+    }
+    manifest_chunks.sort();
+    manifest_chunks.dedup();
+  }
+
+  let base_manifest_export = ManifestExport {
+    id: module_id.to_string(),
+    name: manifest_export_name,
+    chunks: manifest_chunks,
+    r#async: Some(is_async),
+  };
+  let module_priority = match module.module_type() {
+    ModuleType::Remote => 0,
+    ModuleType::Fallback => 1,
+    ModuleType::ConsumeShared => 3,
+    ModuleType::ProvideShared | ModuleType::ShareContainerShared | ModuleType::SelfReference => 4,
+    _ => 2,
+  };
+
+  insert_or_merge_manifest_export(
+    &resource,
+    base_manifest_export.clone(),
+    module_priority,
+    plugin_state,
   );
+  insert_client_reference(
+    &resource,
+    ClientReferenceManifestEntry {
+      export_name: base_manifest_export.name.clone(),
+      module_id: base_manifest_export.id.clone(),
+      chunks: base_manifest_export.chunks.clone(),
+      r#async: base_manifest_export.r#async,
+      resolution: get_client_reference_resolution(module.as_ref(), None, false),
+    },
+    module_priority,
+    plugin_state,
+  );
+
+  for export_name in &client_ref_exports {
+    let export_manifest_export = ManifestExport {
+      id: base_manifest_export.id.clone(),
+      name: export_name.clone(),
+      chunks: base_manifest_export.chunks.clone(),
+      r#async: base_manifest_export.r#async,
+    };
+    insert_or_merge_manifest_export(
+      &format!("{resource}#{export_name}"),
+      export_manifest_export,
+      module_priority,
+      plugin_state,
+    );
+    insert_client_reference(
+      &format!("{resource}#{export_name}"),
+      ClientReferenceManifestEntry {
+        export_name: export_name.clone(),
+        module_id: base_manifest_export.id.clone(),
+        chunks: base_manifest_export.chunks.clone(),
+        r#async: base_manifest_export.r#async,
+        resolution: get_client_reference_resolution(module.as_ref(), None, false),
+      },
+      module_priority,
+      plugin_state,
+    );
+  }
+
+  for (alias_request, is_shared_alias) in matched_request_aliases {
+    if alias_request == resource {
+      continue;
+    }
+    insert_or_merge_manifest_export(
+      &alias_request,
+      base_manifest_export.clone(),
+      module_priority,
+      plugin_state,
+    );
+    insert_client_reference(
+      &alias_request,
+      ClientReferenceManifestEntry {
+        export_name: base_manifest_export.name.clone(),
+        module_id: base_manifest_export.id.clone(),
+        chunks: base_manifest_export.chunks.clone(),
+        r#async: base_manifest_export.r#async,
+        resolution: get_client_reference_resolution(
+          module.as_ref(),
+          Some(alias_request.as_str()),
+          is_shared_alias,
+        ),
+      },
+      module_priority,
+      plugin_state,
+    );
+    for export_name in &client_ref_exports {
+      let export_manifest_export = ManifestExport {
+        id: base_manifest_export.id.clone(),
+        name: export_name.clone(),
+        chunks: base_manifest_export.chunks.clone(),
+        r#async: base_manifest_export.r#async,
+      };
+      insert_or_merge_manifest_export(
+        &format!("{alias_request}#{export_name}"),
+        export_manifest_export,
+        module_priority,
+        plugin_state,
+      );
+      insert_client_reference(
+        &format!("{alias_request}#{export_name}"),
+        ClientReferenceManifestEntry {
+          export_name: export_name.clone(),
+          module_id: base_manifest_export.id.clone(),
+          chunks: base_manifest_export.chunks.clone(),
+          r#async: base_manifest_export.r#async,
+          resolution: get_client_reference_resolution(
+            module.as_ref(),
+            Some(alias_request.as_str()),
+            is_shared_alias,
+          ),
+        },
+        module_priority,
+        plugin_state,
+      );
+    }
+  }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -182,7 +615,12 @@ fn record_chunk_group(
       .chunk_graph
       .get_chunk_modules_identifier(chunk_ukey);
     for module_identifier in chunk_modules {
-      if !client_entry_modules.contains(module_identifier) {
+      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+        continue;
+      };
+      if !client_entry_modules.contains(module_identifier)
+        && !module_matches_injected_request(entry_name, module.as_ref(), compilation, plugin_state)
+      {
         continue;
       }
       let Some(module_id) =
@@ -190,15 +628,16 @@ fn record_chunk_group(
       else {
         continue;
       };
-      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-        continue;
-      };
 
       if let Some(concatenated_module) = module.as_concatenated_module() {
+        let root_identifier = concatenated_module.get_root();
+        let root_module_id =
+          ChunkGraph::get_module_id(&compilation.module_ids_artifact, root_identifier)
+            .unwrap_or(module_id);
         record_module(
           entry_name,
-          module_id,
-          &concatenated_module.get_root(),
+          root_module_id,
+          &root_identifier,
           chunk_ukey,
           compilation,
           required_chunks,
@@ -243,10 +682,7 @@ fn record_chunk_group(
   }
 }
 
-async fn collect_entry_js_files(
-  compilation: &Compilation,
-  plugin_state: &mut PluginState,
-) -> Result<()> {
+fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginState) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
     let Some(chunk_group) = compilation
       .build_chunk_graph_artifact
@@ -285,6 +721,7 @@ async fn collect_entry_js_files(
 }
 
 fn collect_actions(
+  compilation: &Compilation,
   module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
@@ -295,8 +732,8 @@ fn collect_actions(
     None => return,
   };
 
-  let module_resource = get_module_resource(module.as_ref());
-  if module_resource.is_empty() && !matches!(module.module_type(), ModuleType::Remote) {
+  let module_resource = get_canonical_module_resource(compilation, module.as_ref());
+  if module_resource.is_empty() && !is_federation_virtual_module(module.as_ref()) {
     return;
   }
 
@@ -311,7 +748,7 @@ fn collect_actions(
       .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
       .collect::<Vec<_>>();
 
-    collected_actions.insert(module_resource.to_string(), pairs);
+    collected_actions.insert(module_resource, pairs);
   }
 
   // Collect used exported actions transversely.
@@ -320,6 +757,7 @@ fn collect_actions(
       continue;
     };
     collect_actions(
+      compilation,
       module_graph,
       resolved_module,
       collected_actions,
@@ -349,6 +787,7 @@ fn collect_client_actions_from_dependencies(
         continue;
       };
       collect_actions(
+        compilation,
         module_graph,
         module_identifier,
         &mut collected_actions,
@@ -362,10 +801,10 @@ fn collect_client_actions_from_dependencies(
 
 impl RscClientPlugin {
   pub fn new(options: RscClientPluginOptions) -> Self {
-    Self::new_inner(options.coordinator, Default::default(), Default::default())
+    Self::new_inner(options.coordinator, Default::default())
   }
 
-  async fn traverse_modules(
+  fn traverse_modules(
     &self,
     compilation: &Compilation,
     plugin_state: &mut PluginState,
@@ -508,7 +947,6 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   self.coordinator.start_client_entries_compilation().await?;
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
-  *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
   let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
     rspack_error::error!(
@@ -521,10 +959,10 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   for (entry_name, client_modules) in &plugin_state.injected_client_entries {
     {
       if compilation.entries.get(entry_name).is_none() {
-        compilation.push_diagnostic(Diagnostic::error(
+        compilation.push_diagnostic(Diagnostic::warn(
           "RSC Client Entry Mismatch".to_string(),
           format!(
-            "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
+            "Entry '{}' not found in the client compiler. Skipping injection of client modules: {}",
             entry_name,
             client_modules
               .iter()
@@ -582,13 +1020,11 @@ async fn after_process_assets(
   };
 
   let start = logger.time("create client reference manifest");
-  self
-    .traverse_modules(compilation, &mut plugin_state)
-    .await?;
+  self.traverse_modules(compilation, &mut plugin_state)?;
   logger.time_end(start);
 
   let start = logger.time("record entry js files");
-  collect_entry_js_files(compilation, &mut plugin_state).await?;
+  collect_entry_js_files(compilation, &mut plugin_state)?;
   logger.time_end(start);
 
   for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {

@@ -46,11 +46,48 @@ function sharedByScope(layers) {
         requiredVersion: false,
         shareScope: 'default',
       },
+      'react-dom': {
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'default',
+      },
+      'fake-shared-client': {
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'default',
+      },
     },
     {
       react: {
         import: 'react',
         shareKey: 'react',
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'ssr',
+        layer: layers.ssr,
+        issuerLayer: layers.ssr,
+      },
+      'react-dom': {
+        import: 'react-dom',
+        shareKey: 'react-dom',
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'ssr',
+        layer: layers.ssr,
+        issuerLayer: layers.ssr,
+      },
+      'react-dom/server': {
+        import: 'react-dom/server',
+        shareKey: 'react-dom/server',
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'ssr',
+        layer: layers.ssr,
+        issuerLayer: layers.ssr,
+      },
+      'fake-shared-client': {
+        import: 'fake-shared-client',
+        shareKey: 'fake-shared-client',
         singleton: true,
         requiredVersion: false,
         shareScope: 'ssr',
@@ -68,15 +105,17 @@ function sharedByScope(layers) {
         layer: layers.rsc,
         issuerLayer: layers.rsc,
       },
+      'fake-shared-client': {
+        import: 'fake-shared-client',
+        shareKey: 'fake-shared-client',
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'rsc',
+        layer: layers.rsc,
+        issuerLayer: layers.rsc,
+      },
     },
   ];
-}
-
-function numericIdOptimization() {
-  return {
-    moduleIds: 'natural',
-    chunkIds: 'natural',
-  };
 }
 
 /** @type {import('@rspack/core').Configuration[]} */
@@ -97,9 +136,8 @@ module.exports = [
     output: {
       filename: '[name].js',
       chunkLoading: 'async-node',
-      uniqueName: 'rsc-mf-remote-server',
+      uniqueName: 'rsc-mf-shared-use-client-server',
     },
-    optimization: numericIdOptimization(),
     module: {
       rules: [
         swcLoaderRule,
@@ -127,9 +165,10 @@ module.exports = [
       new ServerPlugin(),
       new rspack.DefinePlugin({
         CLIENT_PATH: JSON.stringify(path.resolve(__dirname, 'src/RemoteClient.js')),
+        SHARED_CLIENT_MARKER: JSON.stringify('fake-shared-client'),
       }),
       new ModuleFederationPlugin({
-        name: 'rsc_remote_9',
+        name: 'rsc_remote_12',
         filename: 'remoteEntry.js',
         library: { type: 'commonjs-module' },
         runtimePlugins: [
@@ -164,9 +203,8 @@ module.exports = [
     },
     output: {
       filename: 'client/[name].js',
-      uniqueName: 'rsc-mf-remote-client',
+      uniqueName: 'rsc-mf-shared-use-client-client',
     },
-    optimization: numericIdOptimization(),
     module: {
       rules: [swcLoaderRule],
     },

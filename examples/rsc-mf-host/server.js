@@ -1,249 +1,19 @@
-import { createRequire } from 'node:module';
+import { Readable } from 'node:stream';
 import rspack from '@rspack/core';
-import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
 import express from 'express';
 import path from 'path';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import { Worker } from 'worker_threads';
 
-const require = createRequire(import.meta.url);
-
-const { ModuleFederationPlugin } = rspack.container;
-const { createPlugins, Layers } = rspack.experiments.rsc;
-const { ServerPlugin, ClientPlugin } = createPlugins();
+import rspackConfig, { rscState } from './rspack.config.js';
 
 const SERVER_PORT = 1716;
-const REMOTE_URL =
-  process.env.RSC_REMOTE_URL || 'http://localhost:1717/remoteEntry.cjs';
-const reactServerPath = path.join(
-  path.dirname(require.resolve('react/package.json')),
-  'react.react-server.js',
-);
+const WORKER_PORT = 3016;
 
 let hotMiddleware;
-let onServerComponentChanged;
 let currentWorker;
 let workerRestartPromise;
-
-const browserTargets = ['last 2 versions', '> 0.2%', 'not dead', 'Firefox ESR'];
-const nodeTargets = ['node 22'];
-
-function jsRule(targets) {
-  return {
-    test: /\.jsx?$/,
-    use: [
-      {
-        loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            parser: {
-              syntax: 'ecmascript',
-              jsx: true,
-            },
-            transform: {
-              react: {
-                runtime: 'automatic',
-              },
-            },
-            experimental: {
-              keepImportAttributes: true,
-            },
-          },
-          env: { targets },
-          rspackExperiments: {
-            reactServerComponents: true,
-          },
-        },
-      },
-    ],
-  };
-}
-
-function tsRule(targets) {
-  return {
-    test: /\.tsx?$/,
-    use: [
-      {
-        loader: 'builtin:swc-loader',
-        options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
-            transform: {
-              react: {
-                runtime: 'automatic',
-              },
-            },
-            experimental: {
-              keepImportAttributes: true,
-            },
-          },
-          env: { targets },
-          rspackExperiments: {
-            reactServerComponents: true,
-          },
-        },
-      },
-    ],
-  };
-}
-
-function cssRule() {
-  return {
-    test: /\.css$/i,
-    type: 'css/auto',
-  };
-}
-
-function sharedByScope(layers) {
-  return [
-    {
-      react: {
-        singleton: true,
-        requiredVersion: false,
-        shareScope: 'default',
-      },
-    },
-    {
-      react: {
-        import: 'react',
-        shareKey: 'react',
-        singleton: true,
-        requiredVersion: false,
-        shareScope: 'ssr',
-        layer: layers.ssr,
-        issuerLayer: layers.ssr,
-      },
-    },
-    {
-      react: {
-        import: reactServerPath,
-        shareKey: 'react',
-        singleton: true,
-        requiredVersion: false,
-        shareScope: 'rsc',
-        layer: layers.rsc,
-        issuerLayer: layers.rsc,
-      },
-    },
-  ];
-}
-
-const SSR_ENTRY = path.resolve(
-  import.meta.dirname,
-  'src/framework/entry.ssr.tsx',
-);
-const RSC_ENTRY = path.resolve(
-  import.meta.dirname,
-  'src/framework/entry.rsc.tsx',
-);
-
-const rspackConfig = [
-  {
-    name: 'client',
-    mode: 'development',
-    target: 'web',
-    context: import.meta.dirname,
-    entry: './src/framework/entry.client.tsx',
-    resolve: {
-      extensions: ['...', '.ts', '.tsx', '.jsx'],
-    },
-    output: {
-      path: path.join(import.meta.dirname, 'dist/static'),
-      publicPath: 'static/',
-    },
-    devtool: 'source-map',
-    module: {
-      rules: [cssRule(), jsRule(browserTargets), tsRule(browserTargets)],
-    },
-    plugins: [
-      new ClientPlugin(),
-      new rspack.HotModuleReplacementPlugin(),
-      new ReactRefreshPlugin(),
-    ],
-  },
-  {
-    name: 'server',
-    mode: 'development',
-    target: 'async-node',
-    context: import.meta.dirname,
-    entry: './src/framework/entry.rsc.tsx',
-    resolve: {
-      extensions: ['...', '.ts', '.tsx', '.jsx'],
-    },
-    output: {
-      path: path.join(import.meta.dirname, 'dist'),
-      filename: '[name].cjs',
-      chunkFilename: '[name].cjs',
-      chunkLoading: 'async-node',
-      library: {
-        type: 'commonjs-module',
-      },
-    },
-    devtool: false,
-    module: {
-      rules: [
-        cssRule(),
-        jsRule(nodeTargets),
-        tsRule(nodeTargets),
-        {
-          resource: SSR_ENTRY,
-          layer: Layers.ssr,
-        },
-        {
-          resource: RSC_ENTRY,
-          layer: Layers.rsc,
-          resolve: {
-            conditionNames: ['react-server', '...'],
-          },
-        },
-        {
-          issuerLayer: Layers.rsc,
-          exclude: SSR_ENTRY,
-          resolve: {
-            conditionNames: ['react-server', '...'],
-          },
-        },
-      ],
-    },
-    plugins: [
-      new ServerPlugin({
-        onServerComponentChanges() {
-          onServerComponentChanged = true;
-          console.log(
-            '[RSC] server component changes detected, restarting server...',
-          );
-        },
-      }),
-      new ModuleFederationPlugin({
-        name: 'rsc_host',
-        filename: 'hostRemoteEntry.cjs',
-        library: {
-          type: 'commonjs-module',
-        },
-        remoteType: 'script',
-        remotes: {
-          rscRemote: `rsc_remote@${REMOTE_URL}`,
-        },
-        runtimePlugins: [
-          require.resolve('@module-federation/node/runtimePlugin'),
-        ],
-        shared: sharedByScope(Layers),
-        experiments: {
-          asyncStartup: true,
-          rsc: true,
-        },
-      }),
-    ],
-    externalsType: 'commonjs',
-    externals: {
-      express: 'express',
-    },
-  },
-];
 
 const compiler = rspack(rspackConfig);
 
@@ -260,10 +30,10 @@ compiler.compilers[1].hooks.done.tapPromise('RestartWorker', async (stats) => {
     }
 
     currentWorker = await createServerWorker();
-    if (onServerComponentChanged) {
+    if (rscState.onServerComponentChanged) {
       hotMiddleware.publish({ type: 'rsc:update' });
     }
-    onServerComponentChanged = false;
+    rscState.onServerComponentChanged = false;
   })();
 
   await workerRestartPromise;
@@ -294,10 +64,63 @@ hotMiddleware = webpackHotMiddleware(compiler.compilers[0], {
 });
 app.use(hotMiddleware);
 
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/__rspack_hmr')) {
+    next();
+    return;
+  }
+
+  if (!currentWorker) {
+    res.status(503).send('RSC worker is not ready');
+    return;
+  }
+
+  const requestUrl = `http://127.0.0.1:${WORKER_PORT}${req.originalUrl}`;
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(req.headers)) {
+    if (value == null || name === 'host' || name === 'content-length') {
+      continue;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        headers.append(name, item);
+      }
+    } else {
+      headers.set(name, value);
+    }
+  }
+
+  const hasBody = req.method !== 'GET' && req.method !== 'HEAD';
+  const response = await fetch(requestUrl, {
+    method: req.method,
+    headers,
+    body: hasBody ? req : undefined,
+    duplex: hasBody ? 'half' : undefined,
+  });
+  res.status(response.status);
+  response.headers.forEach((value, name) => {
+    if (name === 'transfer-encoding' || name === 'content-encoding') {
+      return;
+    }
+    res.setHeader(name, value);
+  });
+
+  if (!response.body) {
+    res.end();
+    return;
+  }
+  Readable.fromWeb(response.body).pipe(res);
+});
+
 function createServerWorker() {
   return new Promise((resolve, reject) => {
     const workerPath = path.join(import.meta.dirname, 'dist/main.cjs');
-    const worker = new Worker(workerPath);
+    const worker = new Worker(workerPath, {
+      env: {
+        ...process.env,
+        RSC_WORKER_PORT: String(WORKER_PORT),
+      },
+    });
 
     worker.on('message', (message) => {
       if (message.type === 'ready') {
@@ -323,5 +146,4 @@ function createServerWorker() {
 
 const server = app.listen(SERVER_PORT, 'localhost', function () {
   console.log('Host dev server is running on %j', server.address());
-  console.log(`Configured remote: ${REMOTE_URL}`);
 });

@@ -24,7 +24,7 @@ export default defineConfig({
     {
       command: 'rm -f todos.json && NO_CSP=true node server.js',
       cwd: remoteDir,
-      url: 'http://localhost:1717/remoteEntry.cjs',
+      url: 'http://localhost:1717/static/mf-manifest.json',
       timeout: 180 * 1000,
       reuseExistingServer: !process.env.CI,
     },

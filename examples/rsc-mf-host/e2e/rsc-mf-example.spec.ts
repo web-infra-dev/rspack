@@ -4,7 +4,7 @@ test('host consumes remote RSC modules and executes remote actions', async ({
   page,
 }) => {
   const remoteEntryResponse = await page.request.get(
-    'http://localhost:1717/remoteEntry.cjs',
+    'http://localhost:1717/static/mf-manifest.json',
   );
   expect(remoteEntryResponse.ok()).toBeTruthy();
 
@@ -16,6 +16,9 @@ test('host consumes remote RSC modules and executes remote actions', async ({
   );
   await expect(page.getByTestId('remote-shell-title')).toHaveText(
     'Remote Todo Shell',
+  );
+  await expect(page.getByTestId('remote-shared-rsc-probe')).toHaveText(
+    'shared-rsc-probe',
   );
   await expect(page.getByTestId('remote-actions-export-count')).toContainText(
     'remote-actions-exports:',

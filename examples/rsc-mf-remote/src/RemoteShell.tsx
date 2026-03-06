@@ -1,6 +1,7 @@
 'use server-entry';
 
 import './Todos.css';
+import SharedComponentClientComponent from 'rsc-shared';
 import { Dialog } from './Dialog';
 import { getServerOnlyLabel } from './serverOnly';
 import { TodoCreate } from './TodoCreate';
@@ -12,6 +13,7 @@ export async function RemoteShell({ id }: { id?: number }) {
     <section data-testid="remote-shell">
       <header>
         <h1 data-testid="remote-shell-title">Remote Todo Shell</h1>
+        <SharedComponentClientComponent />
         <Dialog trigger="+" buttonTestId="remote-add-dialog-button">
           <h2>Add todo</h2>
           <TodoCreate />

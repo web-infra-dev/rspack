@@ -52,6 +52,46 @@ it('should execute all remote server actions via prefixed action ids', async () 
     expect(hostClientManifestKeys.some((key) => key.startsWith('remote-module:rscRemote:'))).toBe(
       true,
     );
+    const remoteClientManifestKeys = Object.keys(remoteManifest.clientManifest || {});
+    expect(remoteClientManifestKeys.length).toBeGreaterThan(0);
+    const hasUnscopedClientManifestAlias = remoteClientManifestKeys.some((key) =>
+      Object.prototype.hasOwnProperty.call(manifest.clientManifest, key),
+    );
+    expect(hasUnscopedClientManifestAlias).toBe(true);
+    const hasScopedClientManifestAlias = remoteClientManifestKeys.some((key) =>
+      Object.prototype.hasOwnProperty.call(
+        manifest.clientManifest,
+        `remote-module:rscRemote:${String(key)}`,
+      ),
+    );
+    expect(hasScopedClientManifestAlias).toBe(true);
+    const scopedClientManifestKey = remoteClientManifestKeys.find(
+      (key) =>
+        String(key).includes('RemoteClient') &&
+        Object.prototype.hasOwnProperty.call(
+          manifest.clientManifest,
+          `remote-module:rscRemote:${String(key)}`,
+        ),
+    );
+    expect(scopedClientManifestKey).toBeDefined();
+    const resolvedClientEntry =
+      manifest.clientManifest[`remote-module:rscRemote:${String(scopedClientManifestKey)}`];
+    expect(resolvedClientEntry?.id).toBeDefined();
+    if (
+      String(resolvedClientEntry.id).startsWith(
+        'webpack/container/remote/rscRemote/',
+      )
+    ) {
+      expect(typeof __webpack_require__.m[resolvedClientEntry.id]).toBe(
+        'function',
+      );
+    }
+    expect(
+      Object.prototype.hasOwnProperty.call(
+        manifest.serverConsumerModuleMap,
+        resolvedClientEntry.id,
+      ),
+    ).toBe(true);
     const remoteScopedManifest = manifest.remoteManifests?.rscRemote;
     expect(remoteScopedManifest?.moduleLoading ?? manifest.moduleLoading?.rscRemote).toEqual(
       remoteManifest.moduleLoading,
@@ -64,6 +104,20 @@ it('should execute all remote server actions via prefixed action ids', async () 
       remoteManifest.entryCssFiles,
     );
 
+    const remoteActionIds = Object.keys(remoteManifest.serverManifest || {});
+    expect(remoteActionIds.length).toBeGreaterThanOrEqual(3);
+    const hasUnscopedActionAlias = remoteActionIds.some((actionId) =>
+      Object.prototype.hasOwnProperty.call(manifest.serverManifest, actionId),
+    );
+    expect(hasUnscopedActionAlias).toBe(true);
+    const hasScopedActionAlias = remoteActionIds.some((actionId) =>
+      Object.prototype.hasOwnProperty.call(
+        manifest.serverManifest,
+        `remote:rscRemote:${String(actionId)}`,
+      ),
+    );
+    expect(hasScopedActionAlias).toBe(true);
+
     const prefixedActionIds = Object.keys(manifest.serverManifest).filter((id) =>
       id.startsWith('remote:rscRemote:'),
     );
@@ -75,6 +129,9 @@ it('should execute all remote server actions via prefixed action ids', async () 
       try {
         const proxyModuleId = manifest.serverManifest[actionId].id;
         const actionProxy = __webpack_require__(proxyModuleId);
+        expect(Object.prototype.hasOwnProperty.call(actionProxy, actionId)).toBe(
+          true,
+        );
         const result = await actionProxy[actionId]('from-host');
         if (typeof result === 'string') {
           actionResults.push(result);
@@ -92,6 +149,29 @@ it('should execute all remote server actions via prefixed action ids', async () 
       ]),
     );
     expect(actionErrors.length).toBeLessThan(prefixedActionIds.length);
+
+    const rawActionResults = [];
+    const rawActionErrors = [];
+    for (const actionId of remoteActionIds) {
+      try {
+        const actionEntry = manifest.serverManifest[actionId];
+        const actionProxy = __webpack_require__(actionEntry.id);
+        expect(
+          Object.prototype.hasOwnProperty.call(actionProxy, actionEntry.name),
+        ).toBe(true);
+        expect(Object.prototype.hasOwnProperty.call(actionProxy, actionId)).toBe(
+          true,
+        );
+        const result = await actionProxy[actionEntry.name]('from-host-raw');
+        if (typeof result === 'string') {
+          rawActionResults.push(result);
+        }
+      } catch (error) {
+        rawActionErrors.push(String(error));
+      }
+    }
+    expect(rawActionResults.length).toBeGreaterThan(0);
+    expect(rawActionErrors.length).toBeLessThan(remoteActionIds.length);
   } finally {
     await closeRemoteServer();
   }

@@ -52,7 +52,7 @@ async function main() {
 
   // register a handler which will be internally called by React
   // on server function request after hydration.
-  setServerCallback(async (id, args) => {
+  const callServer = async (id: string, args: unknown[]) => {
     const temporaryReferences = createTemporaryReferenceSet();
     const renderRequest = createRscRenderRequest(window.location.pathname, {
       id,
@@ -65,7 +65,23 @@ async function main() {
     const { ok, data } = payload.returnValue!;
     if (!ok) throw data;
     return data;
-  });
+  };
+  setServerCallback(callServer);
+
+  try {
+    const remoteRscClientModule = await import('rscRemote/RSCClientBrowser');
+    const setRemoteServerCallback =
+      (remoteRscClientModule as any).setServerCallback ??
+      (remoteRscClientModule as any).default?.setServerCallback;
+    if (typeof setRemoteServerCallback === 'function') {
+      setRemoteServerCallback(callServer);
+    }
+  } catch (error) {
+    console.warn(
+      '[rsc-mf-host] failed to wire remote RSC client callback from rscRemote/RSCClientBrowser',
+      error,
+    );
+  }
 
   // hydration
   const browserRoot = (

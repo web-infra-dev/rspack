@@ -209,17 +209,18 @@ async function nodeHandler(
 }
 
 const app = express();
+const workerPort = Number(process.env.RSC_WORKER_PORT || 3000);
 
 app.use(nodeHandler);
 
 app.use(express.static(import.meta.dirname));
 
-app.listen(3000, () => {
+app.listen(workerPort, () => {
   if (parentPort) {
     parentPort.postMessage({ type: 'ready' });
   }
 
-  console.log('Server is running on http://localhost:3000');
+  console.log(`Server is running on http://localhost:${workerPort}`);
 });
 if (import.meta.webpackHot) {
   import.meta.webpackHot.accept();

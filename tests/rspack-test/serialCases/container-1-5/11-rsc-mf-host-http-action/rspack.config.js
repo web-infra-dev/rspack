@@ -67,11 +67,34 @@ function sharedByScope(layers) {
         requiredVersion: false,
         shareScope: 'default',
       },
+      'react-dom': {
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'default',
+      },
     },
     {
       react: {
         import: 'react',
         shareKey: 'react',
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'ssr',
+        layer: layers.ssr,
+        issuerLayer: layers.ssr,
+      },
+      'react-dom': {
+        import: 'react-dom',
+        shareKey: 'react-dom',
+        singleton: true,
+        requiredVersion: false,
+        shareScope: 'ssr',
+        layer: layers.ssr,
+        issuerLayer: layers.ssr,
+      },
+      'react-dom/server': {
+        import: 'react-dom/server',
+        shareKey: 'react-dom/server',
         singleton: true,
         requiredVersion: false,
         shareScope: 'ssr',
@@ -91,6 +114,28 @@ function sharedByScope(layers) {
       },
     },
   ];
+}
+
+function sharedClientByScope() {
+  return {
+    react: {
+      singleton: true,
+      requiredVersion: false,
+      shareScope: 'default',
+    },
+    'react-dom': {
+      singleton: true,
+      requiredVersion: false,
+      shareScope: 'default',
+    },
+  };
+}
+
+function numericIdOptimization() {
+  return {
+    moduleIds: 'natural',
+    chunkIds: 'natural',
+  };
 }
 
 const remoteSsrEntry = path.join(__dirname, 'remote/src/framework/entry.ssr.js');
@@ -123,8 +168,10 @@ module.exports = [
       filename: 'remote/[name].js',
       chunkFilename: 'remote/[name].js',
       chunkLoading: 'async-node',
+      publicPath: '',
       uniqueName: 'rsc-mf-action-remote-server',
     },
+    optimization: numericIdOptimization(),
     module: {
       rules: [
         createSwcRule(),
@@ -145,6 +192,7 @@ module.exports = [
       new ModuleFederationPlugin({
         name: 'rsc_remote_action',
         filename: 'remote/remoteEntry.js',
+        manifest: true,
         library: { type: 'commonjs-module' },
         runtimePlugins: [
           require.resolve('@module-federation/node/runtimePlugin'),
@@ -204,6 +252,7 @@ module.exports = [
       filename: 'remote-client/[name].js',
       uniqueName: 'rsc-mf-action-remote-client',
     },
+    optimization: numericIdOptimization(),
     module: {
       rules: [createSwcRule()],
     },
@@ -228,6 +277,7 @@ module.exports = [
       chunkLoading: 'async-node',
       uniqueName: 'rsc-mf-action-host-server',
     },
+    optimization: numericIdOptimization(),
     module: {
       rules: [
         createSwcRule(),
@@ -246,7 +296,10 @@ module.exports = [
         library: { type: 'commonjs-module' },
         remoteType: 'script',
         remotes: {
-          rscRemote: `rsc_remote_action@http://127.0.0.1:${REMOTE_PORT}/remote/remoteEntry.js`,
+          rscRemote: {
+            external: `rsc_remote_action@http://127.0.0.1:${REMOTE_PORT}/mf-manifest.json`,
+            shareScope: ['ssr', 'rsc', 'default'],
+          },
         },
         runtimePlugins: [
           require.resolve('@module-federation/node/runtimePlugin'),
@@ -276,9 +329,26 @@ module.exports = [
       filename: 'host-client/[name].js',
       uniqueName: 'rsc-mf-action-host-client',
     },
+    optimization: numericIdOptimization(),
     module: {
       rules: [createSwcRule()],
     },
-    plugins: [new hostPlugins.ClientPlugin()],
+    plugins: [
+      new hostPlugins.ClientPlugin(),
+      new ModuleFederationPlugin({
+        name: 'rsc_host_action_client',
+        remoteType: 'script',
+        remotes: {
+          rscRemote: {
+            external: `rsc_remote_action@http://127.0.0.1:${REMOTE_PORT}/mf-manifest.json`,
+            shareScope: 'default',
+          },
+        },
+        shared: sharedClientByScope(),
+        experiments: {
+          asyncStartup: true,
+        },
+      }),
+    ],
   },
 ];

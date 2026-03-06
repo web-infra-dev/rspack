@@ -13,6 +13,7 @@ import {
   type ServerEntry,
   type TemporaryReferenceSet,
 } from 'react-server-dom-rspack/server.node';
+import SharedComponentClientComponent from 'rsc-shared';
 import { toNodeHandler } from 'srvx/node';
 import { renderHTML } from './entry.ssr.tsx';
 import { parseRenderRequest } from './request.tsx';
@@ -121,30 +122,21 @@ async function handleRequest({
 async function handler(request: Request, id?: number): Promise<Response> {
   const [
     remoteShellModule,
-    remoteDialogModule,
-    remoteTodoCreateModule,
     remoteTodoListModule,
     remoteTodoDetailModule,
-    remoteTodoItemModule,
     remoteServerOnlyModule,
     remoteActionsModule,
   ] = await Promise.all([
     import('rscRemote/RemoteShell'),
-    import('rscRemote/Dialog'),
-    import('rscRemote/TodoCreate'),
     import('rscRemote/TodoList'),
     import('rscRemote/TodoDetail'),
-    import('rscRemote/TodoItem'),
     import('rscRemote/ServerOnly'),
     import('rscRemote/Actions'),
   ]);
 
   const RemoteShell = (remoteShellModule as any).RemoteShell;
-  const RemoteDialog = (remoteDialogModule as any).Dialog;
-  const RemoteTodoCreate = (remoteTodoCreateModule as any).TodoCreate;
   const RemoteTodoList = (remoteTodoListModule as any).TodoList;
   const RemoteTodoDetail = (remoteTodoDetailModule as any).TodoDetail;
-  const RemoteTodoItem = (remoteTodoItemModule as any).TodoItem;
   const getServerOnlyLabel =
     (remoteServerOnlyModule as any).getServerOnlyLabel ??
     (() => 'remote-server-only-missing');
@@ -153,6 +145,12 @@ async function handler(request: Request, id?: number): Promise<Response> {
     remoteActionsModule as any,
   ).length;
   const serverEntry = RemoteShell as ServerEntry<typeof RemoteShell>;
+  const hostManifest = (__webpack_require__ as any).rscM as
+    | { entryJsFiles?: string[] }
+    | undefined;
+  const hostBootstrapScripts = Array.isArray(hostManifest?.entryJsFiles)
+    ? hostManifest.entryJsFiles
+    : undefined;
   const nonce = !process.env.NO_CSP ? crypto.randomUUID() : undefined;
   const nonceMeta = nonce && <meta property="csp-nonce" nonce={nonce} />;
   const root = (
@@ -160,6 +158,10 @@ async function handler(request: Request, id?: number): Promise<Response> {
       {nonceMeta}
       <p data-testid="mf-source">remote-http</p>
       <p data-testid="remote-server-only-label">{getServerOnlyLabel()}</p>
+      <SharedComponentClientComponent
+        testId="host-shared-rsc-probe"
+        label="host-shared-rsc-probe"
+      />
       {serverEntry.entryCssFiles
         ? serverEntry.entryCssFiles.map((href) => (
             <link
@@ -173,13 +175,7 @@ async function handler(request: Request, id?: number): Promise<Response> {
       <RemoteShell id={id} />
       <section data-testid="host-direct-remote-compose">
         <h2>Host direct remote module composition</h2>
-        <RemoteDialog
-          trigger="Add todo from host"
-          buttonTestId="host-direct-dialog-button"
-        >
-          <h3>Host direct remote form</h3>
-          <RemoteTodoCreate />
-        </RemoteDialog>
+        {null}
         <div className="todo-column">
           <RemoteTodoList id={id} />
         </div>
@@ -188,18 +184,6 @@ async function handler(request: Request, id?: number): Promise<Response> {
         ) : (
           <p data-testid="host-direct-empty-detail">Select a todo</p>
         )}
-        <ul className="todo-list" data-testid="host-direct-client-component">
-          <RemoteTodoItem
-            todo={{
-              id: -1,
-              title: 'remote-client-probe',
-              description: 'from host direct consume',
-              dueDate: '2030-01-01',
-              isComplete: false,
-            }}
-            isSelected={false}
-          />
-        </ul>
         <p data-testid="remote-actions-export-count">
           remote-actions-exports:{remoteActionExportCount}
         </p>
@@ -209,7 +193,7 @@ async function handler(request: Request, id?: number): Promise<Response> {
   const response = await handleRequest({
     request,
     getRoot: () => root,
-    bootstrapScripts: serverEntry.entryJsFiles,
+    bootstrapScripts: hostBootstrapScripts,
     nonce,
   });
   if (nonce && response.headers.get('content-type')?.includes('text/html')) {
@@ -281,12 +265,14 @@ app.use(nodeHandler);
 
 app.use(express.static(import.meta.dirname));
 
-app.listen(3000, () => {
+const workerPort = Number(process.env.RSC_WORKER_PORT || 3000);
+
+app.listen(workerPort, () => {
   if (parentPort) {
     parentPort.postMessage({ type: 'ready' });
   }
 
-  console.log('Server is running on http://localhost:3000');
+  console.log(`Server is running on http://localhost:${workerPort}`);
 });
 if (import.meta.webpackHot) {
   import.meta.webpackHot.accept();

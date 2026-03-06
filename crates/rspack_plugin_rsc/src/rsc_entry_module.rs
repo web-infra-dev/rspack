@@ -134,13 +134,17 @@ impl Module for RscEntryModule {
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let mut blocks = vec![];
-    let dependencies: Vec<BoxDependency> = vec![];
+    let mut dependencies: Vec<BoxDependency> = vec![];
 
     for client_module in &self.client_modules {
       let dep = ClientReferenceDependency::new(
         client_module.request.clone(),
         client_module.ids.iter().cloned().map(Into::into).collect(),
       );
+      if client_module.is_remote {
+        dependencies.push(Box::new(dep) as BoxDependency);
+        continue;
+      }
       let block = AsyncDependenciesBlock::new(
         self.identifier,
         None,

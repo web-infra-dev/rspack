@@ -5,7 +5,10 @@ use rspack_core::CompilerId;
 use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 use rustc_hash::FxHashMap;
 
-use crate::reference_manifest::{ManifestExport, ModuleLoading, ServerReferenceManifest};
+use crate::reference_manifest::{
+  ActionReferenceManifest, ClientReferenceManifest, ManifestExport, ModuleLoading,
+  ServerReferenceManifest,
+};
 
 pub type ActionIdNamePair = (Atom, Atom);
 
@@ -15,6 +18,7 @@ pub type ActionIdNamePair = (Atom, Atom);
 pub struct ClientModuleImport {
   pub request: String,
   pub ids: Vec<String>,
+  pub is_remote: bool,
 }
 
 #[derive(Debug, Default)]
@@ -22,9 +26,13 @@ pub struct PluginState {
   pub module_loading: Option<ModuleLoading>,
   pub injected_client_entries: FxHashMap<String, Vec<ClientModuleImport>>,
   pub client_modules: FxHashMap<String, ManifestExport>,
+  pub client_module_priorities: FxHashMap<String, u8>,
+  pub client_references: ClientReferenceManifest,
+  pub client_reference_priorities: FxHashMap<String, u8>,
   pub ssr_modules: FxHashMap<String, ManifestExport>,
   pub client_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>>,
   pub server_actions: ServerReferenceManifest,
+  pub action_references: ActionReferenceManifest,
   pub entry_css_imports: FxHashMap<String, FxHashMap<String, FxIndexSet<String>>>,
   /// Maps entry names to CSS chunk files organized by server entry resource.
   ///
@@ -47,9 +55,13 @@ impl PluginState {
     self.module_loading = None;
     self.injected_client_entries.clear();
     self.client_modules.clear();
+    self.client_module_priorities.clear();
+    self.client_references.clear();
+    self.client_reference_priorities.clear();
     self.ssr_modules.clear();
     self.client_actions_per_entry.clear();
     self.server_actions.clear();
+    self.action_references.clear();
     self.entry_css_imports.clear();
     self.entry_css_files.clear();
     self.entry_js_files.clear();

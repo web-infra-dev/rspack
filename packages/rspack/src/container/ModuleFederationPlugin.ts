@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { dirname, isAbsolute } from 'node:path';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
@@ -21,6 +22,12 @@ const require = createRequire(import.meta.url);
 declare const MF_RUNTIME_CODE: string;
 const RSC_BRIDGE_EXPOSE = './__rspack_rsc_bridge__';
 const RSC_LAYER = 'react-server-components';
+const SSR_LAYER = 'server-side-rendering';
+const RSC_SSR_EXPOSE_PREFIX = './__rspack_rsc_ssr__/';
+const RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER =
+  '@module-federation/webpack-bundler-runtime/rsc-bridge-runtime-plugin';
+const RSC_BRIDGE_EXPOSE_SPECIFIER =
+  '@module-federation/webpack-bundler-runtime/rsc-bridge-expose';
 
 export interface ModuleFederationPluginOptions extends Omit<
   ModuleFederationPluginV1Options,
@@ -45,15 +52,20 @@ export class ModuleFederationPlugin {
 
   apply(compiler: Compiler) {
     const target = compiler.options.target;
-    const isNodeLikeBuild = isNodeLikeTarget(target);
     const isRscMfOptIn = this._options.experiments?.rsc === true;
-    const isRscMfEnabled = isRscMfOptIn && isNodeLikeBuild;
-    const options = isRscMfEnabled
-      ? augmentRscBridgeExposes(this._options)
-      : this._options;
+    const enableRscBridge = isRscMfOptIn && target !== false;
+    const paths = getPaths(this._options, compiler, enableRscBridge);
+    const options =
+      enableRscBridge && paths.rscBridgeExpose
+        ? augmentRscBridgeExposes(this._options, paths.rscBridgeExpose)
+        : this._options;
+    if (enableRscBridge && !paths.rscBridgeExpose) {
+      throw new Error(
+        '[ModuleFederationPlugin] Unable to resolve Module Federation RSC bridge expose module. Ensure @module-federation/webpack-bundler-runtime is up to date.',
+      );
+    }
 
     const { webpack } = compiler;
-    const paths = getPaths(options, compiler);
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
       '@module-federation/runtime': paths.runtime,
@@ -75,7 +87,7 @@ export class ModuleFederationPlugin {
     const asyncStartup = options.experiments?.asyncStartup ?? false;
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
       asyncStartup,
-      rsc: isRscMfEnabled,
+      rsc: enableRscBridge,
     };
 
     // need to wait treeShakingSharedPlugin buildAssets
@@ -93,7 +105,7 @@ export class ModuleFederationPlugin {
           options,
           compiler,
           this._treeShakingSharedPlugin?.buildAssets,
-          isRscMfEnabled,
+          enableRscBridge,
         );
         new ModuleFederationRuntimePlugin({
           entryRuntime,
@@ -114,7 +126,7 @@ export class ModuleFederationPlugin {
           options,
           compiler,
           this._treeShakingSharedPlugin?.buildAssets || {},
-          isRscMfEnabled,
+          enableRscBridge,
         );
         // Pass only the entry runtime to the Rust-side plugin
         new ModuleFederationRuntimePlugin({
@@ -149,6 +161,8 @@ interface RuntimePaths {
   runtimeTools: string;
   bundlerRuntime: string;
   runtime: string;
+  rscBridgeRuntimePlugin?: string;
+  rscBridgeExpose?: string;
 }
 
 interface RemoteInfo {
@@ -267,12 +281,19 @@ function getSharedOptions(
 function getPaths(
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
+  resolveRscBridge = false,
 ): RuntimePaths {
   if (IS_BROWSER) {
     return {
       runtimeTools: '@module-federation/runtime-tools',
       bundlerRuntime: '@module-federation/webpack-bundler-runtime',
       runtime: '@module-federation/runtime',
+      rscBridgeRuntimePlugin: resolveRscBridge
+        ? RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER
+        : undefined,
+      rscBridgeExpose: resolveRscBridge
+        ? RSC_BRIDGE_EXPOSE_SPECIFIER
+        : undefined,
     };
   }
 
@@ -293,17 +314,39 @@ function getPaths(
       throw e;
     }
   }
+  const runtimeResolvePaths = Array.from(
+    new Set([
+      compiler.context,
+      runtimeToolsPath,
+      ...(isAbsolute(runtimeToolsPath) ? [dirname(runtimeToolsPath)] : []),
+    ]),
+  );
   const bundlerRuntimePath = require.resolve(
     '@module-federation/webpack-bundler-runtime',
-    { paths: [runtimeToolsPath] },
+    { paths: runtimeResolvePaths },
   );
   const runtimePath = require.resolve('@module-federation/runtime', {
-    paths: [runtimeToolsPath],
+    paths: runtimeResolvePaths,
   });
+
+  let rscBridgeRuntimePluginPath: string | undefined;
+  let rscBridgeExposePath: string | undefined;
+  if (resolveRscBridge) {
+    rscBridgeRuntimePluginPath = require.resolve(
+      RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER,
+      { paths: runtimeResolvePaths },
+    );
+    rscBridgeExposePath = require.resolve(RSC_BRIDGE_EXPOSE_SPECIFIER, {
+      paths: runtimeResolvePaths,
+    });
+  }
+
   return {
     runtimeTools: runtimeToolsPath,
     bundlerRuntime: bundlerRuntimePath,
     runtime: runtimePath,
+    rscBridgeRuntimePlugin: rscBridgeRuntimePluginPath,
+    rscBridgeExpose: rscBridgeExposePath,
   };
 }
 
@@ -314,17 +357,40 @@ function getDefaultEntryRuntime(
   treeShakingShareFallbacks?: ShareFallback,
   enableRscBridge?: boolean,
 ) {
-  const runtimePlugins = getRuntimePlugins(options);
+  const configuredRuntimePlugins = getRuntimePlugins(options);
+  const rscBridgeRuntimePluginPath = paths.rscBridgeRuntimePlugin;
+  const isRscBridgeRuntimePlugin = (pluginPath: unknown): boolean => {
+    if (typeof pluginPath !== 'string') {
+      return false;
+    }
+    if (
+      pluginPath === rscBridgeRuntimePluginPath ||
+      pluginPath === RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER
+    ) {
+      return true;
+    }
+    const isBridgeRuntimeFilename =
+      pluginPath.endsWith('/rsc-bridge-runtime-plugin.cjs') ||
+      pluginPath.endsWith('\\rsc-bridge-runtime-plugin.cjs');
+    if (isBridgeRuntimeFilename) {
+      return true;
+    }
+    return false;
+  };
+  const runtimePlugins =
+    enableRscBridge && rscBridgeRuntimePluginPath
+      ? configuredRuntimePlugins.some((pluginSpec) => {
+          const pluginPath = Array.isArray(pluginSpec)
+            ? pluginSpec[0]
+            : pluginSpec;
+          return isRscBridgeRuntimePlugin(pluginPath);
+        })
+        ? configuredRuntimePlugins
+        : configuredRuntimePlugins.concat(rscBridgeRuntimePluginPath)
+      : configuredRuntimePlugins;
   const remoteInfos = getRemoteInfos(options);
   const runtimePluginImports = [];
   const runtimePluginVars = [];
-  if (enableRscBridge) {
-    runtimePluginVars.push(
-      `{ plugin: (${getInlineRscRuntimePluginFactorySource()})(${JSON.stringify(
-        getRscActionProxyModuleId(options, compiler),
-      )}), params: undefined }`,
-    );
-  }
   const libraryType = options.library?.type || 'var';
   for (let i = 0; i < runtimePlugins.length; i++) {
     const runtimePluginVar = `__module_federation_runtime_plugin_${i}__`;
@@ -370,23 +436,10 @@ function getDefaultEntryRuntime(
   return `@module-federation/runtime/rspack.js!=!data:text/javascript,${encodeURIComponent(content)}`;
 }
 
-function getTargetValues(target: unknown): string[] {
-  if (Array.isArray(target)) {
-    return target.filter((item): item is string => typeof item === 'string');
-  }
-  return typeof target === 'string' ? [target] : [];
-}
-
-function isNodeLikeTarget(target: unknown): boolean {
-  if (target === false) return false;
-  const targets = getTargetValues(target);
-  return targets.some((value) => value.includes('node'));
-}
-
 function augmentRscBridgeExposes(
   options: ModuleFederationPluginOptions,
+  bridgeModulePath: string,
 ): ModuleFederationPluginOptions {
-  const bridgeModulePath = getRscBridgeExposeRequest();
   if (!options.exposes) {
     return {
       ...options,
@@ -416,312 +469,56 @@ function augmentRscBridgeExposes(
     return options;
   }
 
+  const exposeObject = Object.fromEntries(
+    exposesEntries.map(([key, value]) => [
+      key,
+      value.name
+        ? value.layer
+          ? { import: value.import, name: value.name, layer: value.layer }
+          : { import: value.import, name: value.name }
+        : value.layer
+          ? {
+              import:
+                value.import.length === 1 ? value.import[0] : value.import,
+              layer: value.layer,
+            }
+          : value.import.length === 1
+            ? value.import[0]
+            : value.import,
+    ]),
+  );
+
+  for (const [key, value] of exposesEntries) {
+    if (key === RSC_BRIDGE_EXPOSE || key.startsWith(RSC_SSR_EXPOSE_PREFIX)) {
+      continue;
+    }
+    const normalizedKey = key.startsWith('./') ? key.slice(2) : key;
+    const hiddenSsrExposeKey = `${RSC_SSR_EXPOSE_PREFIX}${normalizedKey}`;
+    if (
+      Object.prototype.hasOwnProperty.call(exposeObject, hiddenSsrExposeKey)
+    ) {
+      continue;
+    }
+    exposeObject[hiddenSsrExposeKey] = value.name
+      ? {
+          import: value.import,
+          name: value.name,
+          layer: SSR_LAYER,
+        }
+      : {
+          import: value.import.length === 1 ? value.import[0] : value.import,
+          layer: SSR_LAYER,
+        };
+  }
+
   return {
     ...options,
     exposes: {
-      ...Object.fromEntries(
-        exposesEntries.map(([key, value]) => [
-          key,
-          value.name
-            ? value.layer
-              ? { import: value.import, name: value.name, layer: value.layer }
-              : { import: value.import, name: value.name }
-            : value.layer
-              ? {
-                  import:
-                    value.import.length === 1 ? value.import[0] : value.import,
-                  layer: value.layer,
-                }
-              : value.import.length === 1
-                ? value.import[0]
-                : value.import,
-        ]),
-      ),
+      ...exposeObject,
       [RSC_BRIDGE_EXPOSE]: {
         import: bridgeModulePath,
         layer: RSC_LAYER,
       },
     },
   };
-}
-
-function getRscActionProxyModuleId(
-  options: ModuleFederationPluginOptions,
-  compiler: Compiler,
-): string {
-  const containerName = options.name ?? compiler.options.output.uniqueName;
-  return `__rspack_mf_rsc_action_proxy__:${containerName || 'container'}`;
-}
-
-function getRscBridgeExposeRequest(): string {
-  const bridgeExposeSource = [
-    'const actionReferenceCache = Object.create(null)',
-    'let scannedExposesForActions = false',
-    'function isObject(value) { return typeof value === "object" && value !== null; }',
-    'function cacheActionReferencesFromExports(exports) {',
-    '  if (typeof exports === "function" && typeof exports.$$id === "string") {',
-    '    actionReferenceCache[exports.$$id] = exports;',
-    '  }',
-    '  if (!isObject(exports)) return;',
-    '  for (const value of Object.values(exports)) {',
-    '    if (typeof value === "function" && typeof value.$$id === "string") {',
-    '      actionReferenceCache[value.$$id] = value;',
-    '    }',
-    '  }',
-    '}',
-    'async function scanExposedModulesForActions() {',
-    '  if (scannedExposesForActions) return;',
-    '  scannedExposesForActions = true;',
-    '  const moduleMap = __webpack_require__.initializeExposesData && __webpack_require__.initializeExposesData.moduleMap;',
-    '  if (!isObject(moduleMap)) return;',
-    '  for (const [exposeName, getFactory] of Object.entries(moduleMap)) {',
-    '    if (exposeName === "./__rspack_rsc_bridge__" || typeof getFactory !== "function") continue;',
-    '    try {',
-    '      const factory = await getFactory();',
-    '      const exports = typeof factory === "function" ? factory() : factory;',
-    '      cacheActionReferencesFromExports(exports);',
-    '      if (isObject(exports) && isObject(exports.default)) {',
-    '        cacheActionReferencesFromExports(exports.default);',
-    '      }',
-    '    } catch (_error) {}',
-    '  }',
-    '}',
-    'export function getManifest() { return __webpack_require__.rscM; }',
-    'export async function executeAction(actionId, args) {',
-    '  await scanExposedModulesForActions();',
-    '  const action = actionReferenceCache[actionId];',
-    '  if (typeof action !== "function") {',
-    '    throw new Error("[ModuleFederationPlugin.rsc] Missing remote action for id \\"" + actionId + "\\". Ensure it is reachable from a federated expose.");',
-    '  }',
-    '  return action(...(Array.isArray(args) ? args : []));',
-    '}',
-  ].join(';');
-  return `@module-federation/runtime/rspack.js!=!data:text/javascript,${encodeURIComponent(bridgeExposeSource)}`;
-}
-
-function getInlineRscRuntimePluginFactorySource(): string {
-  return [
-    'function createRspackRscRuntimePluginFactory(proxyModuleId) {',
-    "  var RSC_BRIDGE_EXPOSE = '__rspack_rsc_bridge__';",
-    "  var ACTION_PREFIX = 'remote:';",
-    "  var MODULE_PREFIX = 'remote-module:';",
-    '  var bridgePromises = Object.create(null);',
-    '  var actionMap = Object.create(null);',
-    '  var mergedRemoteAliases = new Set();',
-    '  var proxyModuleInstalled = false;',
-    '  var isObject = function(value) { return typeof value === "object" && value !== null; };',
-    '  var stableStringify = function(value) {',
-    '    try {',
-    '      return JSON.stringify(value, function(_key, current) {',
-    '        if (Array.isArray(current)) return current;',
-    '        if (!isObject(current)) return current;',
-    '        return Object.fromEntries(Object.keys(current).sort().map(function(key) { return [key, current[key]]; }));',
-    '      });',
-    '    } catch (_error) {',
-    '      return String(value);',
-    '    }',
-    '  };',
-    '  var ensureHostManifest = function() {',
-    '    if (!isObject(__webpack_require__.rscM)) {',
-    '      __webpack_require__.rscM = {};',
-    '    }',
-    '    var manifest = __webpack_require__.rscM;',
-    '    manifest.serverManifest = isObject(manifest.serverManifest) ? manifest.serverManifest : {};',
-    '    manifest.clientManifest = isObject(manifest.clientManifest) ? manifest.clientManifest : {};',
-    '    manifest.serverConsumerModuleMap = isObject(manifest.serverConsumerModuleMap) ? manifest.serverConsumerModuleMap : {};',
-    '    manifest.moduleLoading = isObject(manifest.moduleLoading) ? manifest.moduleLoading : {};',
-    '    manifest.entryCssFiles = isObject(manifest.entryCssFiles) ? manifest.entryCssFiles : {};',
-    '    manifest.entryJsFiles = Array.isArray(manifest.entryJsFiles) ? manifest.entryJsFiles : [];',
-    '    manifest.remoteManifests = isObject(manifest.remoteManifests)',
-    '      ? Object.assign(Object.create(null), manifest.remoteManifests)',
-    '      : Object.create(null);',
-    '    return manifest;',
-    '  };',
-    '  var ensureBridge = async function(alias) {',
-    '    if (!alias) {',
-    "      throw new Error('[ModuleFederationPlugin.rsc] Failed to resolve remote alias for RSC bridge.');",
-    '    }',
-    '    if (bridgePromises[alias]) {',
-    '      return bridgePromises[alias];',
-    '    }',
-    '    var instance = __webpack_require__.federation && __webpack_require__.federation.instance;',
-    '    if (!instance || typeof instance.loadRemote !== "function") {',
-    "      throw new Error('[ModuleFederationPlugin.rsc] Module Federation runtime instance is unavailable while loading the RSC bridge.');",
-    '    }',
-    "    bridgePromises[alias] = Promise.resolve(instance.loadRemote(alias + '/' + RSC_BRIDGE_EXPOSE)).then(function(bridge) {",
-    '      if (!bridge || typeof bridge.getManifest !== "function" || typeof bridge.executeAction !== "function") {',
-    "        throw new Error('[ModuleFederationPlugin.rsc] Remote \"' + alias + '\" is missing the internal RSC bridge expose.');",
-    '      }',
-    '      return bridge;',
-    '    });',
-    '    return bridgePromises[alias];',
-    '  };',
-    '  var ensureActionProxyModule = function() {',
-    '    if (proxyModuleInstalled) return;',
-    '    proxyModuleInstalled = true;',
-    '    __webpack_require__.m[proxyModuleId] = function(module) {',
-    '      module.exports = new Proxy({}, {',
-    '        get: function(_target, property) {',
-    '          if (typeof property !== "string") return undefined;',
-    '          if (!Object.prototype.hasOwnProperty.call(actionMap, property)) return undefined;',
-    '          var mapping = actionMap[property];',
-    '          return async function() {',
-    '            var args = Array.prototype.slice.call(arguments);',
-    '            var bridge = await ensureBridge(mapping.alias);',
-    '            return bridge.executeAction(mapping.rawActionId, args);',
-    '          };',
-    '        },',
-    '      });',
-    '    };',
-    '  };',
-    '  var assertNoConflict = function(target, key, nextValue, alias, section) {',
-    '    if (!Object.prototype.hasOwnProperty.call(target, key)) return;',
-    '    if (stableStringify(target[key]) !== stableStringify(nextValue)) {',
-    "      throw new Error('[ModuleFederationPlugin.rsc] ' + section + ' conflict for \"' + key + '\" while merging remote \"' + alias + '\".');",
-    '    }',
-    '  };',
-    '  var getNamespacedModuleId = function(alias, rawId) {',
-    "    return MODULE_PREFIX + alias + ':' + String(rawId);",
-    '  };',
-    '  var mergeRecord = function(target, source, alias, section) {',
-    '    if (!isObject(source)) return;',
-    '    for (var _i = 0, _entries = Object.entries(source); _i < _entries.length; _i++) {',
-    '      var entry = _entries[_i];',
-    '      var key = entry[0];',
-    '      var value = entry[1];',
-    '      assertNoConflict(target, key, value, alias, section);',
-    '      target[key] = value;',
-    '    }',
-    '  };',
-    '  var cloneEntryCssFiles = function(entryCssFiles) {',
-    '    if (!isObject(entryCssFiles)) return {};',
-    '    return Object.fromEntries(Object.entries(entryCssFiles).map(function(entry) {',
-    '      var resource = entry[0];',
-    '      var files = entry[1];',
-    '      return [resource, Array.isArray(files) ? files.slice() : files];',
-    '    }));',
-    '  };',
-    '  var remapConsumerNode = function(alias, value, namespacedClientIds) {',
-    '    if (!isObject(value)) return value;',
-    '    return Object.fromEntries(Object.entries(value).map(function(entry) {',
-    '      var exportName = entry[0];',
-    '      var exportValue = entry[1];',
-    '      var nextExportValue = isObject(exportValue) ? Object.assign({}, exportValue) : exportValue;',
-    '      if (isObject(nextExportValue) && nextExportValue.id != null) {',
-    '        var rawId = String(nextExportValue.id);',
-    '        nextExportValue.id = Object.prototype.hasOwnProperty.call(namespacedClientIds, rawId)',
-    '          ? namespacedClientIds[rawId]',
-    '          : getNamespacedModuleId(alias, rawId);',
-    '      }',
-    '      return [exportName, nextExportValue];',
-    '    }));',
-    '  };',
-    '  var mergeRemoteManifest = function(alias, remoteManifest) {',
-    '    if (!isObject(remoteManifest)) return;',
-    '    var hostManifest = ensureHostManifest();',
-    '    var namespacedClientIds = Object.create(null);',
-    '    if (isObject(remoteManifest.clientManifest)) {',
-    '      for (var _i = 0, _entries = Object.entries(remoteManifest.clientManifest); _i < _entries.length; _i++) {',
-    '        var entry = _entries[_i];',
-    '        var key = entry[0];',
-    '        var value = entry[1];',
-    "        var scopedClientManifestKey = MODULE_PREFIX + alias + ':' + String(key);",
-    '        var nextValue = isObject(value) ? Object.assign({}, value) : value;',
-    '        if (isObject(nextValue) && nextValue.id != null) {',
-    '          var namespacedClientId = getNamespacedModuleId(alias, nextValue.id);',
-    '          namespacedClientIds[String(nextValue.id)] = namespacedClientId;',
-    '          nextValue.id = namespacedClientId;',
-    '        }',
-    "        assertNoConflict(hostManifest.clientManifest, scopedClientManifestKey, nextValue, alias, 'clientManifest');",
-    '        hostManifest.clientManifest[scopedClientManifestKey] = nextValue;',
-    '      }',
-    '    }',
-    '    if (isObject(remoteManifest.serverConsumerModuleMap)) {',
-    '      for (var _i = 0, _entries = Object.entries(remoteManifest.serverConsumerModuleMap); _i < _entries.length; _i++) {',
-    '        var entry = _entries[_i];',
-    '        var rawModuleId = entry[0];',
-    '        var value = entry[1];',
-    '        var scopedModuleId = Object.prototype.hasOwnProperty.call(namespacedClientIds, String(rawModuleId))',
-    '          ? namespacedClientIds[String(rawModuleId)]',
-    '          : getNamespacedModuleId(alias, rawModuleId);',
-    '        var nextValue = remapConsumerNode(alias, value, namespacedClientIds);',
-    "        assertNoConflict(hostManifest.serverConsumerModuleMap, scopedModuleId, nextValue, alias, 'serverConsumerModuleMap');",
-    '        hostManifest.serverConsumerModuleMap[scopedModuleId] = nextValue;',
-    '      }',
-    '    }',
-    '    var remoteManifestBucket = Object.prototype.hasOwnProperty.call(hostManifest.remoteManifests, alias)',
-    '      ? hostManifest.remoteManifests[alias]',
-    '      : Object.create(null);',
-    '    hostManifest.remoteManifests[alias] = remoteManifestBucket;',
-    '    if (isObject(remoteManifest.moduleLoading)) {',
-    '      var nextModuleLoading = Object.assign({}, remoteManifest.moduleLoading);',
-    "      assertNoConflict(remoteManifestBucket, 'moduleLoading', nextModuleLoading, alias, 'moduleLoading');",
-    '      remoteManifestBucket.moduleLoading = nextModuleLoading;',
-    '      var legacyModuleLoading = isObject(hostManifest.moduleLoading) ? hostManifest.moduleLoading : {};',
-    "      assertNoConflict(legacyModuleLoading, alias, nextModuleLoading, alias, 'moduleLoading');",
-    '      legacyModuleLoading[alias] = nextModuleLoading;',
-    '      hostManifest.moduleLoading = legacyModuleLoading;',
-    '    }',
-    '    if (isObject(remoteManifest.entryCssFiles)) {',
-    '      var nextEntryCssFiles = cloneEntryCssFiles(remoteManifest.entryCssFiles);',
-    "      assertNoConflict(remoteManifestBucket, 'entryCssFiles', nextEntryCssFiles, alias, 'entryCssFiles');",
-    '      remoteManifestBucket.entryCssFiles = nextEntryCssFiles;',
-    '      var legacyEntryCssFiles = isObject(hostManifest.entryCssFiles) ? hostManifest.entryCssFiles : {};',
-    "      assertNoConflict(legacyEntryCssFiles, alias, nextEntryCssFiles, alias, 'entryCssFiles');",
-    '      legacyEntryCssFiles[alias] = nextEntryCssFiles;',
-    '      hostManifest.entryCssFiles = legacyEntryCssFiles;',
-    '    }',
-    '    if (Array.isArray(remoteManifest.entryJsFiles) || isObject(remoteManifest.entryJsFiles)) {',
-    '      var nextEntryJsFiles = Array.isArray(remoteManifest.entryJsFiles)',
-    '        ? remoteManifest.entryJsFiles.slice()',
-    '        : Object.assign({}, remoteManifest.entryJsFiles);',
-    "      assertNoConflict(remoteManifestBucket, 'entryJsFiles', nextEntryJsFiles, alias, 'entryJsFiles');",
-    '      remoteManifestBucket.entryJsFiles = nextEntryJsFiles;',
-    '      var legacyEntryJsFiles = Array.isArray(hostManifest.entryJsFiles) || isObject(hostManifest.entryJsFiles) ? hostManifest.entryJsFiles : {};',
-    "      assertNoConflict(legacyEntryJsFiles, alias, nextEntryJsFiles, alias, 'entryJsFiles');",
-    '      legacyEntryJsFiles[alias] = nextEntryJsFiles;',
-    '      hostManifest.entryJsFiles = legacyEntryJsFiles;',
-    '    }',
-    '    var remoteServerManifest = remoteManifest.serverManifest;',
-    '    if (!isObject(remoteServerManifest)) return;',
-    '    ensureActionProxyModule();',
-    '    for (var _i = 0, _entries = Object.entries(remoteServerManifest); _i < _entries.length; _i++) {',
-    '      var entry = _entries[_i];',
-    '      var rawActionId = entry[0];',
-    '      var actionEntry = entry[1];',
-    "      var prefixedActionId = ACTION_PREFIX + alias + ':' + rawActionId;",
-    '      var hostActionEntry = {',
-    '        id: proxyModuleId,',
-    '        name: prefixedActionId,',
-    '        chunks: [],',
-    '        async: actionEntry && actionEntry.async !== undefined ? actionEntry.async : true,',
-    '      };',
-    "      assertNoConflict(hostManifest.serverManifest, prefixedActionId, hostActionEntry, alias, 'serverManifest');",
-    '      hostManifest.serverManifest[prefixedActionId] = hostActionEntry;',
-    '      actionMap[prefixedActionId] = { alias: alias, rawActionId: rawActionId };',
-    '    }',
-    '  };',
-    '  return function createRspackRscRuntimePlugin() {',
-    '    return {',
-    "      name: 'rspack-rsc-runtime-plugin',",
-    '      onLoad: async function(args) {',
-    '        var alias = (args && args.remote && args.remote.alias) || (args && args.pkgNameOrAlias) || (args && args.remote && args.remote.name);',
-    '        if (!alias) return args;',
-    '        var expose = typeof (args && args.expose) === "string" ? args.expose : "";',
-    '        if (expose.includes(RSC_BRIDGE_EXPOSE)) return args;',
-    '        if (mergedRemoteAliases.has(alias)) return args;',
-    '        mergedRemoteAliases.add(alias);',
-    '        try {',
-    '          var bridge = await ensureBridge(alias);',
-    '          mergeRemoteManifest(alias, bridge.getManifest());',
-    '        } catch (error) {',
-    '          mergedRemoteAliases.delete(alias);',
-    '          throw error;',
-    '        }',
-    '        return args;',
-    '      },',
-    '    };',
-    '  };',
-    '}',
-  ].join('\n');
 }
