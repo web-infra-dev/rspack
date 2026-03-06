@@ -159,7 +159,7 @@ jobs:
     continue-on-error: true
     env:
       BENCHMARK_DIR: examples/react
-      METRICS_DIR: ${{ runner.temp }}/hotpath-metrics
+      METRICS_DIR: ${{ github.workspace }}/.hotpath-metrics
     steps:
       - name: Resolve benchmark context
         id: hotpath-context
