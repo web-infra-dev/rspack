@@ -5140,17 +5140,16 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.19"
+version = "0.4.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "906af46a2773ce1c909fa0913262b7578571b434401280d649573a1f631187ee"
+checksum = "18e2dedc4568248407819e5fd55843b4dc9e3fe657d8794a1bdfcc1211db0d46"
 dependencies = [
  "dyn-clone",
- "json-escape-simd",
  "memchr",
  "rustc-hash",
  "serde",
+ "serde_json",
  "simd-json",
- "simd-utf16-len",
  "static_assertions",
 ]
 
@@ -5561,12 +5560,6 @@ dependencies = [
  "simdutf8",
  "value-trait",
 ]
-
-[[package]]
-name = "simd-utf16-len"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c17a83ac53a3ccce2d4fec2031c22b539d12dc95498e75935a6da589b7b4372"
 
 [[package]]
 name = "simdutf8"
