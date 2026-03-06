@@ -131,17 +131,19 @@ impl Algo {
   fn try_compile_to_end_with_fast_path(expr: &str, flags: &str) -> Option<Algo> {
     // Only optimize when flags are a subset of those that do not affect simple
     // suffix semantics for the inputs we care about (paths/extensions).
-    // - 'g' and 'y' don't affect a single `test()` call.
+    // - 'g' doesn't affect a single `test()` call.
     // - 'i' is handled explicitly via `ignore_case`.
-    // - For any other flag we conservatively bail out.
+    // - 'y' (sticky) changes the allowed start position of matches, so we must
+    //   conservatively bail out of this fast path when it is present.
     let mut ignore_case = false;
     for flag in flags.chars() {
       match flag {
         'i' => {
           ignore_case = true;
         }
-        'g' | 'y' => {}
-        // Unsupported for the fast path; fall back to Regress for full semantics.
+        'g' => {}
+        // Any other flag (including 'y' sticky) is unsupported for the fast
+        // path; fall back to Regress for full JS semantics.
         _ => {
           return None;
         }
@@ -316,5 +318,20 @@ mod test_algo {
   fn rust_regex_flags() {
     let regex = Algo::new_rust_regex("foo", "g").unwrap();
     assert!(regex.test("foo"));
+  }
+
+  #[test]
+  fn sticky_flag_should_not_use_end_with_fast_path() {
+    // In JS, `/\.js$/y.test("foo.js")` is false because the sticky flag forces
+    // the match to start at lastIndex (0 by default), so the suffix-only check
+    // is not semantically correct. We therefore must not use the EndWith fast path.
+    let algo = Algo::new("\\.js$", "y").unwrap();
+    let regress = HashRegressRegex::new("\\.js$", "y").unwrap();
+
+    assert!(algo.is_regress());
+    let samples = ["foo.js", "bar.jsx", ".js", "js"];
+    for s in samples {
+      assert_eq!(algo.test(s), regress.find(s).is_some(), "mismatch on {s}");
+    }
   }
 }
