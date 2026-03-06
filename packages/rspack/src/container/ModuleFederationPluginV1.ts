@@ -16,7 +16,7 @@ export interface ModuleFederationPluginV1Options {
   remoteType?: ExternalsType;
   remotes?: Remotes;
   runtime?: EntryRuntime;
-  shareScope?: string | string[];
+  shareScope?: string;
   shared?: Shared;
   enhanced?: boolean;
 }
