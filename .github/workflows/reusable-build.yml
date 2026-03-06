@@ -85,7 +85,7 @@ jobs:
 
   hotpath:
     name: Hotpath Benchmark
-    if: inputs.hotpath && inputs.target == 'aarch64-unknown-linux-gnu'
+    if: inputs.hotpath && inputs.target == 'x86_64-unknown-linux-gnu'
     needs: [build]
     runs-on: ${{ inputs.hotpath-runner }}
     defaults:
