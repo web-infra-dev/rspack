@@ -257,7 +257,7 @@ async fn normal_module_factory_module(
         .provide_shared_module(
           request,
           &config.share_key,
-          &config.share_scope, // Vec<String> deref to &[String]
+          &config.share_scope,
           config.version.as_ref(),
           config.eager,
           config.singleton,
@@ -278,7 +278,7 @@ async fn normal_module_factory_module(
         .provide_shared_module(
           request,
           &(config.share_key.clone() + remainder),
-          &config.share_scope, // Vec<String> deref to &[String]
+          &config.share_scope,
           config.version.as_ref(),
           config.eager,
           config.singleton,

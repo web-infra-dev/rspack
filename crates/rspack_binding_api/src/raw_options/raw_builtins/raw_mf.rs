@@ -24,13 +24,6 @@ fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
   }
 }
 
-fn assert_share_scope(share_scope: &ShareScope, enhanced: bool) {
-  assert!(
-    enhanced || !matches!(share_scope, ShareScope::Multiple(v) if v.len() > 1),
-    "shareScope as an array with multiple entries requires enhanced=true, got: {share_scope:?}",
-  );
-}
-
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawContainerPluginOptions {
@@ -47,7 +40,6 @@ pub struct RawContainerPluginOptions {
 impl From<RawContainerPluginOptions> for ContainerPluginOptions {
   fn from(value: RawContainerPluginOptions) -> Self {
     let share_scope = into_share_scope(value.share_scope);
-    assert_share_scope(&share_scope, value.enhanced);
     Self {
       name: value.name,
       share_scope,
@@ -92,14 +84,6 @@ pub struct RawContainerReferencePluginOptions {
 impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOptions {
   fn from(value: RawContainerReferencePluginOptions) -> Self {
     let share_scope = value.share_scope.map(into_share_scope);
-    if let Some(ref s) = share_scope {
-      assert_share_scope(s, value.enhanced);
-    }
-    // Validate each remote's share_scope against the plugin-level enhanced flag
-    for remote in &value.remotes {
-      let remote_scope = into_share_scope(remote.share_scope.clone());
-      assert_share_scope(&remote_scope, value.enhanced);
-    }
     Self {
       remote_type: value.remote_type,
       remotes: value.remotes.into_iter().map(|e| e.into()).collect(),

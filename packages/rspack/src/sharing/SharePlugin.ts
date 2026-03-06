@@ -6,6 +6,18 @@ import { isRequiredVersion } from './utils';
 
 export type ShareScope = string | string[];
 
+export function validateShareScope(
+  shareScope: ShareScope,
+  enhanced: boolean,
+  pluginName: string,
+): void {
+  if (Array.isArray(shareScope) && shareScope.length > 1 && !enhanced) {
+    throw new Error(
+      `[${pluginName}] shareScope as an array with multiple entries requires enhanced=true, got: ${JSON.stringify(shareScope)}`,
+    );
+  }
+}
+
 export type SharePluginOptions = {
   shareScope?: ShareScope;
   shared: Shared;

@@ -4,15 +4,13 @@ const { ModuleFederationPlugin } = require("@rspack/core").container;
 /** @type {import("@rspack/core").Configuration} */
 
 const commonConfig = {
-  output: {
-    ignoreBrowserWarnings: true
-  },
   optimization: {
     minimize: false,
     chunkIds: 'named',
     moduleIds: 'named',
   },
   output: {
+    ignoreBrowserWarnings: true,
     publicPath: '/',
     chunkFilename: '[id].js',
   },
