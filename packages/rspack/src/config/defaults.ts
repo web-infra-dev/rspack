@@ -417,7 +417,7 @@ const applyModuleDefaults = (
         type: 'javascript/auto',
       },
       {
-        test: /\.json$/i,
+        test: /\.json$/,
         type: 'json',
       },
       {
@@ -425,22 +425,22 @@ const applyModuleDefaults = (
         type: 'json',
       },
       {
-        test: /\.mjs$/i,
+        test: /\.mjs$/,
         ...esm,
       },
       {
-        test: /\.js$/i,
+        test: /\.js$/,
         descriptionData: {
           type: 'module',
         },
         ...esm,
       },
       {
-        test: /\.cjs$/i,
+        test: /\.cjs$/,
         ...commonjs,
       },
       {
-        test: /\.js$/i,
+        test: /\.js$/,
         descriptionData: {
           type: 'commonjs',
         },
@@ -469,7 +469,7 @@ const applyModuleDefaults = (
         ],
       };
       rules.push({
-        test: /\.wasm$/i,
+        test: /\.wasm$/,
         ...wasm,
       });
       rules.push({
