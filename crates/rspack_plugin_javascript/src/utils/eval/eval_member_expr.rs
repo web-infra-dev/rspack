@@ -12,19 +12,18 @@ pub fn eval_member_expression<'a>(
   member: &'a MemberExpr,
   expr: &'a Expr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
+  let drive = parser.plugin_drive.clone();
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
-    parser
-      .plugin_drive
-      .clone()
+    drive
       .evaluate_identifier(
         parser,
         &info.name,
         member.span.real_lo(),
         member.span.real_hi(),
       )
-      .or_else(|| parser.plugin_drive.clone().evaluate(parser, expr))
+      .or_else(|| drive.evaluate(parser, expr))
       .or_else(|| {
         // TODO: fallback with `evaluateDefinedIdentifier`
         let mut eval =
