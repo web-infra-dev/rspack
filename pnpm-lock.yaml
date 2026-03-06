@@ -19,18 +19,12 @@ importers:
       '@rslint/core':
         specifier: 0.2.1
         version: 0.2.1
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:packages/rspack-cli
       '@rstest/core':
         specifier: ^0.8.5
         version: 0.8.5(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
-      '@types/is-ci':
-        specifier: ^3.0.4
-        version: 3.0.4
       '@types/node':
         specifier: ^20.19.35
         version: 20.19.35
@@ -58,18 +52,9 @@ importers:
       prettier:
         specifier: 3.8.1
         version: 3.8.1
-      prettier-2:
-        specifier: npm:prettier@2.8.8
-        version: prettier@2.8.8
-      rimraf:
-        specifier: ^5.0.10
-        version: 5.0.10
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-      webpack:
-        specifier: 5.102.1
-        version: 5.102.1
       zx:
         specifier: 8.8.5
         version: 8.8.5
@@ -3733,9 +3718,6 @@ packages:
   '@types/http-proxy@1.17.16':
     resolution: {integrity: sha512-sdWoUajOB1cd0A8cRRQ1cfyWNbmFKLAqBB89Y8x5iYyG/mkJHc0YUH8pdWBy2omi9qtCpiIgGjuwO0dQST2l5w==}
 
-  '@types/is-ci@3.0.4':
-    resolution: {integrity: sha512-AkCYCmwlXeuH89DagDCzvCAyltI2v9lh3U3DqSg/GrBYoReAaWwxfXCqMx9UV5MajLZ4ZFwZzV4cABGIxk2XRw==}
-
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
 
@@ -6977,11 +6959,6 @@ packages:
 
   prebundle@1.6.2:
     resolution: {integrity: sha512-LQBxHze1WbN9wn1aEend5nRWU0Ae3UvrXJqRPsi6GGJtQcd21KviUZCVul3EYv73CRL3ts9Vlg9Hg+XibeyTlQ==}
-    hasBin: true
-
-  prettier@2.8.8:
-    resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
-    engines: {node: '>=10.13.0'}
     hasBin: true
 
   prettier@3.7.4:
@@ -11288,10 +11265,6 @@ snapshots:
     dependencies:
       '@types/node': 20.19.35
 
-  '@types/is-ci@3.0.4':
-    dependencies:
-      ci-info: 3.9.0
-
   '@types/istanbul-lib-coverage@2.0.6': {}
 
   '@types/istanbul-lib-report@3.0.3':
@@ -15221,8 +15194,6 @@ snapshots:
       terser: 5.44.1
     transitivePeerDependencies:
       - typescript
-
-  prettier@2.8.8: {}
 
   prettier@3.7.4: {}
 
