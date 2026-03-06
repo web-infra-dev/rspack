@@ -163,7 +163,7 @@ impl ReadableFileSystem for NativeFileSystem {
       return buffer.map_err(Error::from);
     }
 
-    fs::read(path).map_err(Error::from)
+    tokio::fs::read(path).await.to_fs_result()
   }
   #[instrument(skip(self), level = "debug")]
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {

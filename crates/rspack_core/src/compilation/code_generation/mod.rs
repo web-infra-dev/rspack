@@ -134,21 +134,28 @@ pub(crate) async fn code_generation_modules(
   let mut jobs = Vec::new();
   for module in modules {
     let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+    let mut scope: Option<Option<ConcatenationScope>> = None;
     for runtime in chunk_graph.get_module_runtimes_iter(
       module,
       &compilation.build_chunk_graph_artifact.chunk_by_ukey,
     ) {
       let hash = ChunkGraph::get_module_hash(compilation, module, runtime)
         .expect("should have cgm.hash in code generation");
-      let scope = compilation
-        .plugin_driver
-        .compilation_hooks
-        .concatenation_scope
-        .call(compilation, module)
-        .await?;
       if let Some(job) = map.get_mut(hash) {
         job.runtimes.push(runtime.clone());
       } else {
+        let scope = if let Some(scope) = &scope {
+          scope.clone()
+        } else {
+          let new_scope = compilation
+            .plugin_driver
+            .compilation_hooks
+            .concatenation_scope
+            .call(compilation, module)
+            .await?;
+          scope = Some(new_scope.clone());
+          new_scope
+        };
         map.insert(
           hash.clone(),
           CodeGenerationJob {

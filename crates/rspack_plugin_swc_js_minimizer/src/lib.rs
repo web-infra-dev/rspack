@@ -1,5 +1,5 @@
 use std::{
-  collections::HashMap,
+  collections::{HashMap, HashSet},
   hash::Hash,
   path::Path,
   sync::{LazyLock, Mutex, mpsc},
@@ -162,8 +162,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let minimizer_options = &self.options.minimizer_options;
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
-  // collect all extracted comments info
-  let all_extracted_comments = Mutex::new(HashMap::new());
+  let all_extracted_comments = options
+    .extract_comments
+    .as_ref()
+    .map(|_| Mutex::new(HashMap::new()));
   let extract_comments_condition = options
     .extract_comments
     .as_ref()
@@ -239,71 +241,35 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         });
 
         let javascript_compiler = JavaScriptCompiler::new();
-        let comments_op = |comments: &SingleThreadedComments| {
-          if let Some(ref extract_comments) = extract_comments_option {
-            let mut extracted_comments = vec![];
-            // add all matched comments to source
-
-            let (leading_trivial, trailing_trivial) = comments.borrow_all();
-
-            leading_trivial.iter().for_each(|(_, comments)| {
-              comments.iter().for_each(|c| {
-                if extract_comments.condition.is_match(&c.text) {
-                  let comment = match c.kind {
-                    CommentKind::Line => {
-                      format!("//{}", c.text)
-                    }
-                    CommentKind::Block => {
-                      format!("/*{}*/", c.text)
-                    }
-                  };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
-                }
-              });
-            });
-            trailing_trivial.iter().for_each(|(_, comments)| {
-              comments.iter().for_each(|c| {
-                if extract_comments.condition.is_match(&c.text) {
-                  let comment = match c.kind {
-                    CommentKind::Line => {
-                      format!("//{}", c.text)
-                    }
-                    CommentKind::Block => {
-                      format!("/*{}*/", c.text)
-                    }
-                  };
-                  if !extracted_comments.contains(&comment) {
-                    extracted_comments.push(comment);
-                  }
-                }
-              });
-            });
-
-            // if not matched comments, we don't need to emit .License.txt file
-            if !extracted_comments.is_empty() {
-              extracted_comments.sort();
-              all_extracted_comments
-                .lock()
-                .expect("all_extract_comments lock failed")
-                .insert(
-                  filename.to_string(),
-                  ExtractedCommentsInfo {
-                    source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
-                    comments_file_name: extract_comments.filename.clone(),
-                  },
-                );
-            }
-          }
+        let filename_string = filename.to_string();
+        let mut extracted_comments_info = None;
+        let (minify_result, banner) = if let Some(extract_comments_option) = extract_comments_option {
+          let minify_result = javascript_compiler.minify(
+            swc_core::common::FileName::Custom(filename_string.clone()),
+            input,
+            js_minify_options,
+            Some(|comments: &SingleThreadedComments| {
+              extracted_comments_info =
+                collect_extracted_comments_info(&extract_comments_option, comments);
+            }),
+          );
+          let banner = extracted_comments_info
+            .as_ref()
+            .and_then(|_| extract_comments_option.banner);
+          (minify_result, banner)
+        } else {
+          (
+            javascript_compiler.minify(
+              swc_core::common::FileName::Custom(filename_string.clone()),
+              input,
+              js_minify_options,
+              Option::<fn(&SingleThreadedComments)>::None,
+            ),
+            None,
+          )
         };
 
-        let mut output = match javascript_compiler.minify(
-          swc_core::common::FileName::Custom(filename.to_string()),
-          input,
-          js_minify_options,
-          Some(comments_op),
-        ) {
+        let mut output = match minify_result {
             Ok(r) => r,
             Err(e) => {
               let errors = e.into_inner().into_iter().map(|err| {
@@ -316,14 +282,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
-        let banner = if all_extracted_comments
-          .lock()
-          .expect("all_extract_comments lock failed")
-          .contains_key(filename) {
-            extract_comments_option.and_then(|option| option.banner)
-          } else {
-            None
-          };
+        if let Some(extracted_comments_info) = extracted_comments_info {
+          all_extracted_comments
+            .as_ref()
+            .expect("must exist when extract comments enabled")
+            .lock()
+            .expect("all_extract_comments lock failed")
+            .insert(filename_string, extracted_comments_info);
+        }
 
         let source = match banner {
             Some(banner) => {
@@ -399,25 +365,76 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets
-  all_extracted_comments
-    .lock()
-    .expect("all_extracted_comments lock failed")
-    .clone()
-    .into_iter()
-    .for_each(|(_, comments)| {
-      compilation.emit_asset(
-        comments.comments_file_name,
-        CompilationAsset::new(
-          Some(comments.source),
-          AssetInfo {
-            minimized: Some(true),
-            ..Default::default()
-          },
-        ),
-      )
-    });
+  if let Some(all_extracted_comments) = all_extracted_comments {
+    all_extracted_comments
+      .lock()
+      .expect("all_extracted_comments lock failed")
+      .clone()
+      .into_iter()
+      .for_each(|(_, comments)| {
+        compilation.emit_asset(
+          comments.comments_file_name,
+          CompilationAsset::new(
+            Some(comments.source),
+            AssetInfo {
+              minimized: Some(true),
+              ..Default::default()
+            },
+          ),
+        )
+      });
+  }
 
   Ok(())
+}
+
+fn collect_extracted_comments_info(
+  extract_comments: &NormalizedExtractComments<'_>,
+  comments: &SingleThreadedComments,
+) -> Option<ExtractedCommentsInfo> {
+  let mut extracted_comments: HashSet<String> = HashSet::default();
+  let (leading_trivial, trailing_trivial) = comments.borrow_all();
+
+  leading_trivial.iter().for_each(|(_, comments)| {
+    comments.iter().for_each(|comment| {
+      if extract_comments.condition.is_match(&comment.text) {
+        extracted_comments.insert(match comment.kind {
+          CommentKind::Line => {
+            format!("//{}", comment.text)
+          }
+          CommentKind::Block => {
+            format!("/*{}*/", comment.text)
+          }
+        });
+      }
+    });
+  });
+  trailing_trivial.iter().for_each(|(_, comments)| {
+    comments.iter().for_each(|comment| {
+      if extract_comments.condition.is_match(&comment.text) {
+        extracted_comments.insert(match comment.kind {
+          CommentKind::Line => {
+            format!("//{}", comment.text)
+          }
+          CommentKind::Block => {
+            format!("/*{}*/", comment.text)
+          }
+        });
+      }
+    });
+  });
+
+  if extracted_comments.is_empty() {
+    return None;
+  }
+
+  let mut extracted_comments = extracted_comments.into_iter().collect::<Vec<_>>();
+  extracted_comments.sort();
+
+  Some(ExtractedCommentsInfo {
+    source: RawStringSource::from(extracted_comments.join("\n\n")).boxed(),
+    comments_file_name: extract_comments.filename.clone(),
+  })
 }
 
 pub fn match_object(obj: &PluginOptions, str: &str) -> bool {
