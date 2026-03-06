@@ -154,7 +154,7 @@ jobs:
     name: Hotpath Benchmark
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && github.repository == 'web-infra-dev/rspack' }}
-    runs-on: [self-hosted, benchmark]
+    runs-on: ubuntu-22.04
     timeout-minutes: 90
     continue-on-error: true
     env:
