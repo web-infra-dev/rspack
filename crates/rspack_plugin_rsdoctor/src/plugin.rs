@@ -72,7 +72,7 @@ pub enum RsdoctorPluginModuleGraphFeature {
   ModuleGraph,
   ModuleIds,
   ModuleSources,
-  TreeShaking, // Retained feature for controlling tree-shaking
+  TreeShaking,
 }
 
 impl From<String> for RsdoctorPluginModuleGraphFeature {
