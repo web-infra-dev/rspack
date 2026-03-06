@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use rspack_error::Diagnostic;
 use rspack_paths::Utf8PathBuf;
-use rspack_tools::{bench_diff, compare_cache_dir};
+use rspack_tools::compare_cache_dir;
 
 /// Toolkit for debugging and testing rspack internals
 #[derive(Parser, Debug)]
@@ -24,16 +24,6 @@ enum Commands {
     /// Path to the second cache directory
     #[arg(value_name = "CACHE2")]
     cache2: String,
-  },
-  /// Compare two hotpath JSON benchmark reports
-  BenchDiff {
-    /// Path to the baseline hotpath JSON report
-    #[arg(value_name = "BEFORE_JSON")]
-    before_json: String,
-
-    /// Path to the candidate hotpath JSON report
-    #[arg(value_name = "AFTER_JSON")]
-    after_json: String,
   },
 }
 
@@ -62,28 +52,6 @@ async fn main() {
       }
 
       println!("✓ Cache directories are identical");
-    }
-    Commands::BenchDiff {
-      before_json,
-      after_json,
-    } => {
-      let before_path = Utf8PathBuf::from(&before_json);
-      let after_path = Utf8PathBuf::from(&after_json);
-
-      match bench_diff(before_path, after_path) {
-        Ok(output) => {
-          print!("{output}");
-        }
-        Err(err) => {
-          eprintln!(
-            "{}",
-            Diagnostic::from(err)
-              .render_report(true)
-              .expect("render error failed")
-          );
-          std::process::exit(1);
-        }
-      }
     }
   }
 }

@@ -1,6 +1,10 @@
 use clap::{Parser, Subcommand};
 
-use crate::{codegen::CodegenCmd, deny_ext::DenyExtCmd, release_check::ReleaseCheckCmd};
+use crate::{
+  bench_diff::BenchDiffCmd, codegen::CodegenCmd, deny_ext::DenyExtCmd,
+  release_check::ReleaseCheckCmd,
+};
+mod bench_diff;
 mod codegen;
 mod deny_ext;
 mod release_check;
@@ -16,6 +20,8 @@ enum Cmd {
   DenyExt(DenyExtCmd),
   /// codegenerate for workspace version
   Codegen(CodegenCmd),
+  /// compare two hotpath JSON benchmark reports
+  BenchDiff(BenchDiffCmd),
   /// check release criteria for all crates in the workspace
   ReleaseCheck(ReleaseCheckCmd),
 }
@@ -24,6 +30,7 @@ fn main() -> anyhow::Result<()> {
   match args.cmd {
     Cmd::DenyExt(c) => c.run()?,
     Cmd::Codegen(c) => c.run()?,
+    Cmd::BenchDiff(c) => c.run()?,
     Cmd::ReleaseCheck(c) => c.run()?,
   }
   Ok(())

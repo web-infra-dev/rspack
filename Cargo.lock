@@ -5214,10 +5214,7 @@ dependencies = [
  "rspack_fs",
  "rspack_paths",
  "rustc-hash",
- "serde",
- "serde_json",
  "tokio",
- "unicode-width 0.2.2",
 ]
 
 [[package]]
@@ -8425,8 +8422,10 @@ dependencies = [
  "anyhow",
  "cargo_toml",
  "clap",
+ "serde",
  "serde_json",
  "toml 0.8.23",
+ "unicode-width 0.2.2",
 ]
 
 [[package]]
