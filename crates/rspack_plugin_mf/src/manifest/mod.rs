@@ -774,7 +774,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           trimmed.to_string()
         }
       };
-      let (entry, federation_container_name) =
+      let (entry, federation_container_name, lookup_remote_name) =
         if let Some(target) = provided_remote_alias_map.get(&alias) {
           let remote_container_name = if target.name.is_empty() {
             alias.clone()
@@ -784,9 +784,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (
             target.entry.clone().filter(|entry| !entry.is_empty()),
             remote_container_name,
+            alias.clone(),
           )
         } else {
-          (None, alias.clone())
+          (None, alias.clone(), alias.clone())
         };
       let used_in =
         collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names)
@@ -811,7 +812,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       let rsc = build_rsc_reference_meta_from_modules(
         compilation,
-        compose_remote_lookup(&alias, &module_name),
+        compose_remote_lookup(&lookup_remote_name, &module_name),
         remote_usage_module_ids.into_iter(),
       );
       remote_list.push(StatsRemote {
