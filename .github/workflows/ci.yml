@@ -78,7 +78,7 @@ jobs:
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       hotpath: true
-      hotpath-runner: '"codspeed-macro"'
+      hotpath-runner: codspeed-macro
       prefer_docker: true
       ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
