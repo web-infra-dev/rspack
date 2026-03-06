@@ -109,6 +109,7 @@ pub enum Algo {
   /// See details at https://github.com/web-infra-dev/rspack/pull/3113
   EndWith {
     pats: Vec<String>,
+    ignore_case: bool,
   },
   RustRegex(HashRustRegex),
   Regress(HashRegressRegex),
@@ -116,16 +117,10 @@ pub enum Algo {
 
 impl Algo {
   pub(crate) fn new(expr: &str, flags: &str) -> Result<Algo, Error> {
-    let ignore_case = flags.contains('i') || flags.contains('g') || flags.contains('y');
-    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr)
-      && !ignore_case
-    {
+    if let Some(algo) = Self::try_compile_to_end_with_fast_path(expr, flags) {
       Ok(algo)
     } else {
-      match HashRegressRegex::new(expr, flags) {
-        Ok(regex) => Ok(Algo::Regress(regex)),
-        Err(e) => Err(e),
-      }
+      HashRegressRegex::new(expr, flags).map(Algo::Regress)
     }
   }
 
@@ -133,19 +128,52 @@ impl Algo {
     HashRustRegex::new(expr, flags).map(Algo::RustRegex)
   }
 
-  fn try_compile_to_end_with_fast_path(expr: &str) -> Option<Algo> {
+  fn try_compile_to_end_with_fast_path(expr: &str, flags: &str) -> Option<Algo> {
+    // Only optimize when flags are a subset of those that do not affect simple
+    // suffix semantics for the inputs we care about (paths/extensions).
+    // - 'g' doesn't affect a single `test()` call.
+    // - 'i' is handled explicitly via `ignore_case`.
+    // - 'y' (sticky) changes the allowed start position of matches, so we must
+    //   conservatively bail out of this fast path when it is present.
+    let mut ignore_case = false;
+    for flag in flags.chars() {
+      match flag {
+        'i' => {
+          ignore_case = true;
+        }
+        'g' => {}
+        // Any other flag (including 'y' sticky) is unsupported for the fast
+        // path; fall back to Regress for full JS semantics.
+        _ => {
+          return None;
+        }
+      }
+    }
+
     let hir = regex_syntax::parse(expr).ok()?;
     let seq = regex_syntax::hir::literal::Extractor::new()
       .kind(ExtractKind::Suffix)
       .extract(&hir);
     if is_ends_with_regex(&hir) && seq.is_exact() {
-      let pats = seq
-        .literals()?
-        .iter()
-        .map(|item| String::from_utf8_lossy(item.as_bytes()).to_string())
-        .collect::<Vec<_>>();
+      let literals = seq.literals()?;
+      let mut pats = Vec::with_capacity(literals.len());
 
-      Some(Algo::EndWith { pats })
+      if ignore_case {
+        // Only use case-insensitive fast path when all suffix literals are ASCII.
+        for item in literals.iter() {
+          let bytes = item.as_bytes();
+          if !bytes.iter().all(u8::is_ascii) {
+            return None;
+          }
+          pats.push(String::from_utf8_lossy(bytes).to_string());
+        }
+      } else {
+        for item in literals.iter() {
+          pats.push(String::from_utf8_lossy(item.as_bytes()).to_string());
+        }
+      }
+
+      Some(Algo::EndWith { pats, ignore_case })
     } else {
       None
     }
@@ -155,23 +183,15 @@ impl Algo {
     match self {
       Algo::RustRegex(regex) => regex.regex.is_match(str),
       Algo::Regress(regex) => regex.find(str).is_some(),
-      Algo::EndWith { pats } => pats.iter().any(|pat| str.ends_with(pat)),
-    }
-  }
-
-  pub(crate) fn global(&self) -> bool {
-    match self {
-      Algo::RustRegex(reg) => reg.flags.contains('g'),
-      Algo::Regress(reg) => reg.flags.contains('g'),
-      Algo::EndWith { .. } => false,
-    }
-  }
-
-  pub(crate) fn sticky(&self) -> bool {
-    match self {
-      Algo::RustRegex(reg) => reg.flags.contains('y'),
-      Algo::Regress(reg) => reg.flags.contains('y'),
-      Algo::EndWith { .. } => false,
+      Algo::EndWith { pats, ignore_case } => {
+        if *ignore_case {
+          pats
+            .iter()
+            .any(|pat| ends_with_ascii_case_insensitive(str, pat))
+        } else {
+          pats.iter().any(|pat| str.ends_with(pat))
+        }
+      }
     }
   }
 }
@@ -185,6 +205,27 @@ fn is_ends_with_regex(hir: &Hir) -> bool {
   }
 }
 
+fn ends_with_ascii_case_insensitive(s: &str, pat: &str) -> bool {
+  let s_bytes = s.as_bytes();
+  let pat_bytes = pat.as_bytes();
+  let s_len = s_bytes.len();
+  let pat_len = pat_bytes.len();
+
+  if pat_len > s_len {
+    return false;
+  }
+
+  let start = s_len - pat_len;
+  for i in 0..pat_len {
+    let sc = s_bytes[start + i].to_ascii_lowercase();
+    let pc = pat_bytes[i].to_ascii_lowercase();
+    if sc != pc {
+      return false;
+    }
+  }
+  true
+}
+
 #[cfg(test)]
 mod test_algo {
   use super::*;
@@ -192,7 +233,7 @@ mod test_algo {
   impl Algo {
     fn end_with_pats(&self) -> std::collections::HashSet<&str> {
       match self {
-        Algo::EndWith { pats } => pats.iter().map(|s| s.as_str()).collect(),
+        Algo::EndWith { pats, .. } => pats.iter().map(|s| s.as_str()).collect(),
         Algo::Regress(_) | Algo::RustRegex(_) => panic!("expect EndWith"),
       }
     }
@@ -213,7 +254,32 @@ mod test_algo {
   #[test]
   fn should_use_end_with_algo_with_i_flag() {
     assert!(Algo::new("\\.js$", "").unwrap().is_end_with());
-    assert!(!Algo::new("\\.js$", "i").unwrap().is_end_with());
+    assert!(Algo::new("\\.js$", "i").unwrap().is_end_with());
+  }
+
+  #[test]
+  fn end_with_ignore_case_matches_ascii_suffix() {
+    let algo = Algo::new("\\.js$", "i").unwrap();
+    assert!(algo.is_end_with());
+    assert!(algo.test("file.js"));
+    assert!(algo.test("file.JS"));
+    assert!(algo.test("file.Js"));
+    assert!(algo.test("file.jS"));
+    assert!(!algo.test("filejsx"));
+  }
+
+  #[test]
+  fn end_with_ignore_case_matches_regress_for_ascii() {
+    let algo = Algo::new("\\.js$", "i").unwrap();
+    let regress = HashRegressRegex::new("\\.js$", "i").unwrap();
+    let samples = [
+      "", "file", "file.js", "file.JS", "file.Js", "file.jS", "FILE.JS", "foo.jsx", "foojson",
+      "foo.JSON",
+    ];
+
+    for s in samples {
+      assert_eq!(algo.test(s), regress.find(s).is_some(), "mismatch on {s}");
+    }
   }
 
   #[test]
@@ -251,8 +317,21 @@ mod test_algo {
   #[test]
   fn rust_regex_flags() {
     let regex = Algo::new_rust_regex("foo", "g").unwrap();
-    assert!(regex.global());
-    assert!(!regex.sticky());
     assert!(regex.test("foo"));
+  }
+
+  #[test]
+  fn sticky_flag_should_not_use_end_with_fast_path() {
+    // In JS, `/\.js$/y.test("foo.js")` is false because the sticky flag forces
+    // the match to start at lastIndex (0 by default), so the suffix-only check
+    // is not semantically correct. We therefore must not use the EndWith fast path.
+    let algo = Algo::new("\\.js$", "y").unwrap();
+    let regress = HashRegressRegex::new("\\.js$", "y").unwrap();
+
+    assert!(algo.is_regress());
+    let samples = ["foo.js", "bar.jsx", ".js", "js"];
+    for s in samples {
+      assert_eq!(algo.test(s), regress.find(s).is_some(), "mismatch on {s}");
+    }
   }
 }
