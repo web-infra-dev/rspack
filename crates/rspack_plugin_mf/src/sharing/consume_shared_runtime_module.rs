@@ -110,8 +110,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
               .share_scope
               .scopes()
               .first()
-              .map(|s| s.as_str())
-              .unwrap_or("default"),
+              .map_or("default", |s| s.as_str()),
           )
         };
         module_id_to_consume_data_mapping.insert(id, format!(
