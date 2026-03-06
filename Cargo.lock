@@ -5140,12 +5140,10 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "906af46a2773ce1c909fa0913262b7578571b434401280d649573a1f631187ee"
+version = "0.4.18"
+source = "git+https://github.com/rstackjs/rspack-sources.git?rev=8f3f11d942691f9cba9febfc448622ccc10c7eaa#8f3f11d942691f9cba9febfc448622ccc10c7eaa"
 dependencies = [
  "dyn-clone",
- "json-escape-simd",
  "memchr",
  "rustc-hash",
  "serde",
