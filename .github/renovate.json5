@@ -87,6 +87,7 @@
         'miette',
         'rkyv',
         'inventory',
+        'rspack-sources',
       ],
       enabled: false,
     },
