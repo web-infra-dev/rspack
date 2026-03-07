@@ -219,7 +219,7 @@ impl Module for RemoteModule {
     let share_init_items = scopes
       .iter()
       .map(|scope| ShareInitData {
-        share_scope: scope.clone(),
+        share_scope: ShareScope::Single(scope.clone()),
         init_stage: 20,
         init: DataInitInfo::ExternalModuleId(id.cloned()),
       })
