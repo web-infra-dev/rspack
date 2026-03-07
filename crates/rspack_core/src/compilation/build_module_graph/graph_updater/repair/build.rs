@@ -9,7 +9,9 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
   CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
-  compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
+  compilation::build_module_graph::{
+    ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil,
+  },
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -151,7 +153,11 @@ impl Task<TaskContext> for BuildResultTask {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
+          let should_process_now = matches!(&until, LazyUntil::Local(_));
           lazy_dependencies.insert(&dependency, until);
+          if should_process_now {
+            eager_dependencies.push(dependency_id);
+          }
         } else {
           eager_dependencies.push(dependency_id);
         }
