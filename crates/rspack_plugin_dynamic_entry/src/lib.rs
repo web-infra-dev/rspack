@@ -4,7 +4,7 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
-  BoxDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
+  ArcDependency, Compilation, CompilationParams, CompilerCompilation, CompilerMake, Context,
   DependencyId, DependencyType, EntryDependency, EntryOptions, Plugin,
   incremental::IncrementalPasses, internal,
 };
@@ -69,7 +69,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       for entry in import {
         let module_graph = compilation.get_module_graph();
 
-        let entry_dependency: BoxDependency = if let Some(map) =
+        let entry_dependency: ArcDependency = if let Some(map) =
           imported_dependencies.get(entry.as_str())
           && let Some(dependency_id) = map.get(&options)
           && let Some(dependency) = internal::try_dependency_by_id(module_graph, dependency_id)
@@ -80,7 +80,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
             .insert(options.clone(), *dependency_id);
           dependency.clone()
         } else {
-          let dependency: BoxDependency = Box::new(EntryDependency::new(
+          let dependency: ArcDependency = Arc::new(EntryDependency::new(
             entry.clone(),
             self.context.clone(),
             options.layer.clone(),
@@ -102,7 +102,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   } else {
     for EntryDynamicResult { import, options } in decs {
       for entry in import {
-        let entry_dependency: BoxDependency = Box::new(EntryDependency::new(
+        let entry_dependency: ArcDependency = Arc::new(EntryDependency::new(
           entry.clone(),
           self.context.clone(),
           options.layer.clone(),

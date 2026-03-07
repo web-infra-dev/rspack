@@ -6,7 +6,7 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
+  BoxModule, Compilation, CompilationOptimizeChunkModules, Dependency, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
@@ -475,7 +475,7 @@ impl ModuleConcatenationPlugin {
       for (origin_module, connections) in incoming_connections_from_modules.iter() {
         let has_non_esm_connections = connections.iter().any(|connection| {
           let dep = module_graph.dependency_by_id(&connection.dependency_id);
-          !is_esm_dep_like(dep)
+          !is_esm_dep_like(dep.as_ref())
         });
 
         if has_non_esm_connections {
@@ -1106,7 +1106,7 @@ impl ModuleConcatenationPlugin {
           .iter()
           .filter_map(|d| {
             let dep = module_graph.dependency_by_id(d);
-            if !is_esm_dep_like(dep) {
+            if !is_esm_dep_like(dep.as_ref()) {
               return None;
             }
             let con = module_graph.connection_by_dependency_id(d)?;
@@ -1574,7 +1574,7 @@ fn prepare_concatenated_module_connections<F>(
   filter_connection: F,
 ) -> Vec<DependencyId>
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool,
 {
   let mg = compilation.get_module_graph();
   let mut res = vec![];
@@ -1594,7 +1594,7 @@ where
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
       let dep = mg.dependency_by_id(dep_id);
-      if filter_connection(m, connection, dep) {
+      if filter_connection(m, connection, dep.as_ref()) {
         res.push(*dep_id);
       }
     }
@@ -1608,7 +1608,7 @@ fn prepare_concatenated_root_module_connections<F>(
   filter_connection: F,
 ) -> (Vec<DependencyId>, Vec<DependencyId>)
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &dyn Dependency) -> bool,
 {
   let mg = compilation.get_module_graph();
   let mut outgoings = vec![];
@@ -1623,7 +1623,7 @@ where
       .expect("should have connection");
 
     let dep = mg.dependency_by_id(dep_id);
-    if filter_connection(root_module_id, connection, dep) {
+    if filter_connection(root_module_id, connection, dep.as_ref()) {
       outgoings.push(*dep_id);
     }
   }
@@ -1639,7 +1639,7 @@ where
       .connection_by_dependency_id(dep_id)
       .expect("should have connection");
     let dependency = mg.dependency_by_id(dep_id);
-    if filter_connection(root_module_id, connection, dependency) {
+    if filter_connection(root_module_id, connection, dependency.as_ref()) {
       incomings.push(*dep_id);
     }
   }

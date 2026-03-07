@@ -1,8 +1,10 @@
+use std::sync::{Arc, Mutex};
+
 use rspack_cacheable::cacheable;
 use rspack_error::Diagnostic;
 use rspack_paths::ArcPathSet;
 
-use super::{BoxDependency, DependencyId};
+use super::{Dependency, DependencyId};
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
@@ -31,23 +33,13 @@ impl FactorizeInfo {
     }
   }
 
-  pub fn get_from(dep: &BoxDependency) -> Option<&FactorizeInfo> {
+  pub fn get_from(dep: &dyn Dependency) -> Option<FactorizeInfo> {
     if let Some(d) = dep.as_context_dependency() {
-      Some(d.factorize_info())
-    } else if let Some(d) = dep.as_module_dependency() {
-      Some(d.factorize_info())
+      Some(d.factorize_info().clone())
     } else {
-      None
-    }
-  }
-
-  pub fn revoke(dep: &mut BoxDependency) -> Option<FactorizeInfo> {
-    if let Some(d) = dep.as_context_dependency_mut() {
-      Some(std::mem::take(d.factorize_info_mut()))
-    } else if let Some(d) = dep.as_module_dependency_mut() {
-      Some(std::mem::take(d.factorize_info_mut()))
-    } else {
-      None
+      dep
+        .as_module_dependency()
+        .map(|d| d.factorize_info().clone())
     }
   }
 
@@ -73,5 +65,26 @@ impl FactorizeInfo {
 
   pub fn diagnostics(&self) -> &[Diagnostic] {
     &self.diagnostics
+  }
+}
+
+impl rspack_cacheable::with::AsConverter<Arc<Mutex<FactorizeInfo>>> for FactorizeInfo {
+  fn serialize(
+    data: &Arc<Mutex<FactorizeInfo>>,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(
+      data
+        .lock()
+        .expect("dependency factorize_info poisoned")
+        .clone(),
+    )
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Arc<Mutex<FactorizeInfo>>> {
+    Ok(Arc::new(Mutex::new(self)))
   }
 }

@@ -212,7 +212,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             matches!(kind, css_module_lexer::UrlRangeKind::Function),
           ));
           dependencies.push(dep.clone());
-          code_generation_dependencies.push(dep);
+          code_generation_dependencies.push(Arc::new((*dep).clone()));
         }
         css_module_lexer::Dependency::Import {
           request,

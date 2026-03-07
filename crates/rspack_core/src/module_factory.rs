@@ -4,7 +4,7 @@ use rspack_error::{Diagnostic, Result};
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
-  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
+  ArcDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
   ModuleLayer, Resolve, ResolverFactory,
 };
 
@@ -16,7 +16,7 @@ pub struct ModuleFactoryCreateData {
   pub options: Arc<CompilerOptions>,
   pub request: String,
   pub context: Context,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
@@ -29,6 +29,13 @@ pub struct ModuleFactoryCreateData {
 }
 
 impl ModuleFactoryCreateData {
+  pub fn dependency(&self, index: usize) -> &ArcDependency {
+    self
+      .dependencies
+      .get(index)
+      .unwrap_or_else(|| panic!("Dependency at index {index} not found"))
+  }
+
   pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
     self.file_dependencies.insert(file.into());
   }

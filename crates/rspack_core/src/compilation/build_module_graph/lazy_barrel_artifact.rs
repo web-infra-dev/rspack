@@ -6,7 +6,7 @@ use rspack_collections::IdentifierMap;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{BoxDependency, DependencyId, ModuleIdentifier};
+use crate::{ArcDependency, BoxDependency, DependencyId, ModuleIdentifier};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ForwardId {
@@ -26,7 +26,7 @@ impl ForwardedIdSet {
     Self::IdSet(FxHashSet::default())
   }
 
-  pub fn from_dependencies(dependencies: &[BoxDependency]) -> Self {
+  pub fn from_dependencies(dependencies: &[ArcDependency]) -> Self {
     let mut set = FxHashSet::default();
     for dep in dependencies {
       match dep.forward_id() {

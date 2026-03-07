@@ -16,6 +16,57 @@ use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
 
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+struct LazyMakeFlagSer(bool);
+
+#[derive(Debug, Clone, Copy, Default)]
+struct LazyMakeState {
+  lazy: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+struct LazyMakeFlag(std::sync::Arc<std::sync::Mutex<LazyMakeState>>);
+
+impl LazyMakeFlag {
+  fn new(value: bool) -> Self {
+    Self(std::sync::Arc::new(std::sync::Mutex::new(LazyMakeState {
+      lazy: value,
+    })))
+  }
+
+  fn get(&self) -> bool {
+    self.0.lock().expect("dependency lazy_make poisoned").lazy
+  }
+
+  fn set(&self, value: bool) {
+    self.0.lock().expect("dependency lazy_make poisoned").lazy = value;
+  }
+
+  fn take(&self) -> bool {
+    let mut guard = self.0.lock().expect("dependency lazy_make poisoned");
+    let old = guard.lazy;
+    guard.lazy = false;
+    old
+  }
+}
+
+impl rspack_cacheable::with::AsConverter<LazyMakeFlag> for LazyMakeFlagSer {
+  fn serialize(
+    data: &LazyMakeFlag,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(Self(data.get()))
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<LazyMakeFlag> {
+    Ok(LazyMakeFlag::new(self.0))
+  }
+}
+
 // TODO: find a better way to implement this for performance
 // Align with https://github.com/webpack/webpack/blob/51f0f0aeac072f989f8d40247f6c23a1995c5c37/lib/dependencies/HarmonyImportDependency.js#L361-L365
 // This map is used to save the runtime conditions of modules and used by ESMAcceptDependency in hot module replacement.
@@ -68,8 +119,10 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
-  lazy_make: bool,
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
+  #[cacheable(with=rspack_cacheable::with::As<LazyMakeFlagSer>)]
+  lazy_make: LazyMakeFlag,
   star_export: bool,
 }
 
@@ -98,13 +151,13 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       loc,
       factorize_info: Default::default(),
-      lazy_make: false,
+      lazy_make: LazyMakeFlag::new(false),
       star_export,
     }
   }
 
   pub fn set_lazy(&mut self) {
-    self.lazy_make = true;
+    self.lazy_make.set(true);
   }
 }
 
@@ -605,7 +658,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.get().then(|| {
       if self.star_export {
         LazyUntil::Fallback
       } else {
@@ -614,10 +667,8 @@ impl Dependency for ESMImportSideEffectDependency {
     })
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.take()
   }
 }
 
@@ -637,12 +688,18 @@ impl ModuleDependency for ESMImportSideEffectDependency {
     ))
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> std::sync::MutexGuard<'_, FactorizeInfo> {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

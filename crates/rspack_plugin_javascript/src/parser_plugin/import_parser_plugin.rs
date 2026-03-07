@@ -425,7 +425,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       } = create_context_dependency(&param, parser);
 
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
-      let mut dep = ImportContextDependency::new(
+      let dep = ImportContextDependency::new(
         ContextOptions {
           mode: mode.into(),
           recursive: true,
@@ -457,7 +457,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         dyn_imported.span().into(),
         parser.in_try,
       );
-      *dep.critical_mut() = critical;
+      dep.set_critical(critical);
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
       ImportDependencyLocator {

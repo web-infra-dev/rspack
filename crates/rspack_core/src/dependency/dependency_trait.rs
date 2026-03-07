@@ -1,6 +1,5 @@
-use std::{any::Any, fmt::Debug};
+use std::{any::Any, fmt::Debug, sync::Arc};
 
-use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::Diagnostic;
@@ -26,14 +25,7 @@ pub enum AffectType {
 
 #[cacheable_dyn]
 pub trait Dependency:
-  AsDependencyCodeGeneration
-  + AsContextDependency
-  + AsModuleDependency
-  + AsAny
-  + DynClone
-  + Send
-  + Sync
-  + Debug
+  AsDependencyCodeGeneration + AsContextDependency + AsModuleDependency + AsAny + Send + Sync + Debug
 {
   fn id(&self) -> &DependencyId;
 
@@ -127,7 +119,8 @@ pub trait Dependency:
     None
   }
 
-  fn unset_lazy(&mut self) -> bool {
+  #[doc(hidden)]
+  fn unset_lazy(&self) -> bool {
     false
   }
 }
@@ -146,6 +139,5 @@ impl dyn Dependency + '_ {
   }
 }
 
-clone_trait_object!(Dependency);
-
 pub type BoxDependency = Box<dyn Dependency>;
+pub type ArcDependency = Arc<dyn Dependency>;

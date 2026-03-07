@@ -13,7 +13,7 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
+  ArcDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
   DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
@@ -33,7 +33,7 @@ pub struct BeforeResolveData {
   pub context: String,
   pub request: String,
   // assertions
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   // dependency_type
   // file_dependencies
   // missing_dependencies
@@ -55,7 +55,7 @@ pub struct AfterResolveData {
   pub compilation_id: CompilationId,
   pub resource: Utf8PathBuf,
   pub context: String,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   // layer
   // resolve_options
   // file_dependencies: HashSet<String>,
@@ -171,7 +171,7 @@ impl ContextModuleFactory {
     data: &mut ModuleFactoryCreateData,
   ) -> Result<BeforeResolveResult> {
     let dependency = data.dependencies[0]
-      .as_context_dependency_mut()
+      .as_context_dependency()
       .expect("should be context dependency");
     let dependency_options = dependency.options();
 

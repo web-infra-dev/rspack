@@ -47,7 +47,7 @@ pub async fn repair(
           Box::new(factorize::FactorizeTask {
             compiler_id: compilation.compiler_id(),
             compilation_id: compilation.id(),
-            module_factory: compilation.get_dependency_factory(dependency),
+            module_factory: compilation.get_dependency_factory(dependency.as_ref()),
             original_module_identifier: None,
             original_module_source: None,
             issuer: None,

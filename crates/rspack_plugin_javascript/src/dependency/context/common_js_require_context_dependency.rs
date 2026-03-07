@@ -1,4 +1,6 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use std::sync::{Arc, Mutex};
+
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
@@ -22,8 +24,10 @@ pub struct CommonJsRequireContextDependency {
   resource_identifier: ResourceIdentifier,
   options: ContextOptions,
   optional: bool,
-  critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=Skip)]
+  critical: Arc<Mutex<Option<Diagnostic>>>,
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl CommonJsRequireContextDependency {
@@ -43,7 +47,7 @@ impl CommonJsRequireContextDependency {
       resource_identifier,
       optional,
       id: DependencyId::new(),
-      critical: None,
+      critical: Default::default(),
       factorize_info: Default::default(),
     }
   }
@@ -84,7 +88,7 @@ impl Dependency for CommonJsRequireContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
+      return Some(vec![critical]);
     }
     None
   }
@@ -141,20 +145,33 @@ impl ContextDependency for CommonJsRequireContextDependency {
     rspack_core::ContextTypePrefix::Normal
   }
 
-  fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+  fn critical(&self) -> Option<Diagnostic> {
+    self
+      .critical
+      .lock()
+      .expect("context dependency critical poisoned")
+      .clone()
   }
 
-  fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+  fn set_critical(&self, diagnostic: Option<Diagnostic>) {
+    *self
+      .critical
+      .lock()
+      .expect("context dependency critical poisoned") = diagnostic;
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> std::sync::MutexGuard<'_, FactorizeInfo> {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

@@ -9,19 +9,16 @@ use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
-  DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  ArcDependency, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact,
+  Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
+  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
 mod connection;
 pub use connection::*;
 
-use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
-  ModuleIdentifier,
-};
+use crate::{BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact, ModuleIdentifier};
 
 // TODO Here request can be used Atom
 pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
@@ -59,7 +56,7 @@ pub(crate) struct ModuleGraphData {
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  pub(super) dependencies: HashMap<DependencyId, ArcDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
@@ -366,7 +363,7 @@ impl ModuleGraph {
     &mut self,
     old_module: &ModuleIdentifier,
     new_module: &ModuleIdentifier,
-    filter_connection: impl Fn(&ModuleGraphConnection, &Box<dyn Dependency>) -> bool,
+    filter_connection: impl Fn(&ModuleGraphConnection, &dyn Dependency) -> bool,
   ) {
     if old_module == new_module {
       return;
@@ -384,7 +381,7 @@ impl ModuleGraph {
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
       let dependency = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dependency) {
+      if filter_connection(connection, dependency.as_ref()) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");
@@ -415,7 +412,7 @@ impl ModuleGraph {
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
       let dependency = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dependency) {
+      if filter_connection(connection, dependency.as_ref()) {
         let connection = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");
@@ -441,7 +438,7 @@ impl ModuleGraph {
     new_module: &ModuleIdentifier,
     filter_connection: F,
   ) where
-    F: Fn(&ModuleGraphConnection, &BoxDependency) -> bool,
+    F: Fn(&ModuleGraphConnection, &dyn Dependency) -> bool,
   {
     if old_module == new_module {
       return;
@@ -460,7 +457,7 @@ impl ModuleGraph {
         .connection_by_dependency_id(&dep_id)
         .expect("should have connection");
       let dep = self.dependency_by_id(&dep_id);
-      if filter_connection(connection, dep) {
+      if filter_connection(connection, dep.as_ref()) {
         let con = self
           .connection_by_dependency_id_mut(&dep_id)
           .expect("should have connection");
@@ -556,11 +553,11 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &ArcDependency)> {
     self.inner.dependencies.iter()
   }
 
-  pub fn add_dependency(&mut self, dependency: BoxDependency) {
+  pub fn add_dependency(&mut self, dependency: ArcDependency) {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
 
@@ -579,24 +576,11 @@ impl ModuleGraph {
   ///
   /// **Only the binding layer (`rspack_binding_api`) should use `internal::try_dependency_by_id()`**
   /// for graceful handling of missing dependencies in external APIs.
-  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &BoxDependency {
+  pub fn dependency_by_id(&self, dependency_id: &DependencyId) -> &ArcDependency {
     self
       .inner
       .dependencies
       .get(dependency_id)
-      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
-  }
-
-  /// Get a mutable dependency by ID, panicking if not found.
-  ///
-  /// **PREFERRED METHOD**: Use this for ALL internal Rust code when you need to
-  /// modify dependencies. Dependencies should always be accessible in internal
-  /// operations, so this method enforces that invariant with a clear panic message.
-  pub fn dependency_by_id_mut(&mut self, dependency_id: &DependencyId) -> &mut BoxDependency {
-    self
-      .inner
-      .dependencies
-      .get_mut(dependency_id)
       .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 

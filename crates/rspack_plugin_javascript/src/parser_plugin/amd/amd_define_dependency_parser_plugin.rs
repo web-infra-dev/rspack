@@ -262,8 +262,8 @@ impl AMDDefineDependencyParserPlugin {
       attributes: None,
       phase: None,
     };
-    let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
-    *dep.critical_mut() = result.critical;
+    let dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
+    dep.set_critical(result.critical);
     parser.add_dependency(Box::new(dep));
     Some(true)
   }

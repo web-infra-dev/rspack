@@ -5,7 +5,7 @@ use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ModuleFactory,
+  ArcDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
   ResolverFactory,
   module_graph::ModuleGraphModule,
@@ -25,7 +25,7 @@ pub struct FactorizeTask {
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
@@ -38,7 +38,7 @@ impl Task<TaskContext> for FactorizeTask {
     TaskType::Background
   }
   async fn background_run(mut self: Box<Self>) -> TaskResult<TaskContext> {
-    let dependency = &self.dependencies[0];
+    let dependency = self.dependencies[0].as_ref();
 
     let context = if let Some(context) = dependency.get_context()
       && !context.is_empty()
@@ -59,10 +59,12 @@ impl Task<TaskContext> for FactorizeTask {
       .cloned();
 
     let request = self.dependencies[0]
+      .as_ref()
       .as_module_dependency()
       .map(|d| d.request().to_string())
       .or_else(|| {
         self.dependencies[0]
+          .as_ref()
           .as_context_dependency()
           .map(|d| d.request().to_string())
       })
@@ -136,7 +138,7 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependencies: Vec<ArcDependency>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
 }
@@ -150,7 +152,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
-      mut dependencies,
+      dependencies,
       mut factorize_info,
       from_unlazy,
     } = *self;
@@ -172,20 +174,19 @@ impl Task<TaskContext> for FactorizeResultTask {
       .missing_dependencies
       .add_files(&resource_id, factorize_info.missing_dependencies());
 
-    for dep in &mut dependencies {
+    for dep in &dependencies {
       // Some dependencies do not come from the process_dependencies task,
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
 
-      let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
-        d.factorize_info_mut()
-      } else if let Some(d) = dep.as_module_dependency_mut() {
-        d.factorize_info_mut()
+      let info = std::mem::take(&mut factorize_info);
+      if let Some(d) = dep.as_context_dependency() {
+        d.set_factorize_info(info);
+      } else if let Some(d) = dep.as_module_dependency() {
+        d.set_factorize_info(info);
       } else {
         unreachable!("only module dependency and context dependency can factorize")
-      };
-      // write factorize_info to dependencies[0] and set success factorize_info to others
-      *dep_factorize_info = std::mem::take(&mut factorize_info);
+      }
     }
 
     let module_graph = artifact.get_module_graph_mut();

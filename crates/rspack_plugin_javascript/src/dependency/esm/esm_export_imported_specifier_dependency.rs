@@ -37,6 +37,57 @@ use super::{
 };
 use crate::connection_active_inline_value_for_esm_export_imported_specifier;
 
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+struct LazyMakeFlagSer(bool);
+
+#[derive(Debug, Clone, Copy, Default)]
+struct LazyMakeState {
+  lazy: bool,
+}
+
+#[derive(Debug, Clone, Default)]
+struct LazyMakeFlag(std::sync::Arc<std::sync::Mutex<LazyMakeState>>);
+
+impl LazyMakeFlag {
+  fn new(value: bool) -> Self {
+    Self(std::sync::Arc::new(std::sync::Mutex::new(LazyMakeState {
+      lazy: value,
+    })))
+  }
+
+  fn get(&self) -> bool {
+    self.0.lock().expect("dependency lazy_make poisoned").lazy
+  }
+
+  fn set(&self, value: bool) {
+    self.0.lock().expect("dependency lazy_make poisoned").lazy = value;
+  }
+
+  fn take(&self) -> bool {
+    let mut guard = self.0.lock().expect("dependency lazy_make poisoned");
+    let old = guard.lazy;
+    guard.lazy = false;
+    old
+  }
+}
+
+impl rspack_cacheable::with::AsConverter<LazyMakeFlag> for LazyMakeFlagSer {
+  fn serialize(
+    data: &LazyMakeFlag,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(Self(data.get()))
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<LazyMakeFlag> {
+    Ok(LazyMakeFlag::new(self.0))
+  }
+}
+
 // Create _webpack_require__.d(__webpack_exports__, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
@@ -59,8 +110,10 @@ pub struct ESMExportImportedSpecifierDependency {
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   loc: Option<DependencyLocation>,
-  factorize_info: FactorizeInfo,
-  lazy_make: bool,
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
+  #[cacheable(with=rspack_cacheable::with::As<LazyMakeFlagSer>)]
+  lazy_make: LazyMakeFlag,
 }
 
 impl ESMExportImportedSpecifierDependency {
@@ -93,12 +146,12 @@ impl ESMExportImportedSpecifierDependency {
       attributes,
       loc,
       factorize_info: Default::default(),
-      lazy_make: false,
+      lazy_make: LazyMakeFlag::new(false),
     }
   }
 
   pub fn set_lazy(&mut self) {
-    self.lazy_make = true;
+    self.lazy_make.set(true);
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -163,7 +216,7 @@ impl ESMExportImportedSpecifierDependency {
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
       // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
-      return if self.lazy_make {
+      return if self.lazy_make.get() {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -1469,7 +1522,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   }
 
   fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.then(|| {
+    self.lazy_make.get().then(|| {
       if let Some(name) = &self.name {
         LazyUntil::Id(name.clone())
       } else {
@@ -1478,10 +1531,8 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     })
   }
 
-  fn unset_lazy(&mut self) -> bool {
-    let changed = self.lazy_make;
-    self.lazy_make = false;
-    changed
+  fn unset_lazy(&self) -> bool {
+    self.lazy_make.take()
   }
 }
 
@@ -1501,12 +1552,18 @@ impl ModuleDependency for ESMExportImportedSpecifierDependency {
     ))
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> std::sync::MutexGuard<'_, FactorizeInfo> {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

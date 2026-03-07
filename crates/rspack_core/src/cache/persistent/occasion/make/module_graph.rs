@@ -14,7 +14,7 @@ use super::{
   alternatives::{TempDependency, TempModule},
 };
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
+  ArcDependency, AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxModule, Dependency,
   DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
   ModuleIdentifier, RayonConsumer,
   cache::persistent::codec::CacheCodec,
@@ -29,7 +29,7 @@ struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
   pub module: OwnedOrRef<'a, BoxModule>,
   pub dependencies: Vec<(
-    OwnedOrRef<'a, BoxDependency>,
+    OwnedOrRef<'a, ArcDependency>,
     Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   )>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
@@ -71,7 +71,7 @@ pub fn save_module_graph(
         .par_iter()
         .map(|dep_id| {
           (
-            mg.dependency_by_id(dep_id).into(),
+            mg.dependency_by_id(dep_id).clone().into(),
             mg.get_parent_block(dep_id).map(Into::into),
           )
         })
@@ -194,7 +194,8 @@ pub async fn recovery_module_graph(
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
     entry_dependencies.insert(*dep.id());
-    mg.add_dependency(Box::new(dep));
+    let dep: ArcDependency = Arc::new(dep);
+    mg.add_dependency(dep);
     mg.cache_recovery_connection(connection);
   }
 

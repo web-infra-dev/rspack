@@ -132,8 +132,17 @@ impl BuildModuleGraphArtifact {
     {
       self.make_failed_dependencies.remove(&dep_id);
 
-      let dep = mg.dependency_by_id_mut(&dep_id);
-      if let Some(info) = FactorizeInfo::revoke(dep) {
+      let dep = mg.dependency_by_id(&dep_id);
+      let info = if let Some(d) = dep.as_context_dependency() {
+        let mut info = d.factorize_info();
+        Some(std::mem::take(&mut *info))
+      } else if let Some(d) = dep.as_module_dependency() {
+        let mut info = d.factorize_info();
+        Some(std::mem::take(&mut *info))
+      } else {
+        None
+      };
+      if let Some(info) = info {
         let resource_id = ResourceId::from(dep_id);
         self
           .file_dependencies
@@ -161,23 +170,32 @@ impl BuildModuleGraphArtifact {
     self.make_failed_dependencies.remove(dep_id);
 
     let mg = &mut self.module_graph;
-    let revoke_dep_ids =
-      if let Some(factorize_info) = FactorizeInfo::revoke(mg.dependency_by_id_mut(dep_id)) {
-        let resource_id = ResourceId::from(dep_id);
-        self
-          .file_dependencies
-          .remove_files(&resource_id, factorize_info.file_dependencies());
-        self
-          .context_dependencies
-          .remove_files(&resource_id, factorize_info.context_dependencies());
-        self
-          .missing_dependencies
-          .remove_files(&resource_id, factorize_info.missing_dependencies());
-        // related_dep_ids will contain dep_id it self
-        factorize_info.related_dep_ids().to_vec()
-      } else {
-        vec![*dep_id]
-      };
+    let dep = mg.dependency_by_id(dep_id);
+    let factorize_info = if let Some(d) = dep.as_context_dependency() {
+      let mut info = d.factorize_info();
+      Some(std::mem::take(&mut *info))
+    } else if let Some(d) = dep.as_module_dependency() {
+      let mut info = d.factorize_info();
+      Some(std::mem::take(&mut *info))
+    } else {
+      None
+    };
+    let revoke_dep_ids = if let Some(factorize_info) = factorize_info {
+      let resource_id = ResourceId::from(dep_id);
+      self
+        .file_dependencies
+        .remove_files(&resource_id, factorize_info.file_dependencies());
+      self
+        .context_dependencies
+        .remove_files(&resource_id, factorize_info.context_dependencies());
+      self
+        .missing_dependencies
+        .remove_files(&resource_id, factorize_info.missing_dependencies());
+      // related_dep_ids will contain dep_id it self
+      factorize_info.related_dep_ids().to_vec()
+    } else {
+      vec![*dep_id]
+    };
     revoke_dep_ids
       .iter()
       .filter_map(|dep_id| {
@@ -208,7 +226,7 @@ impl BuildModuleGraphArtifact {
     let dep_diagnostics = self.make_failed_dependencies.iter().flat_map(|dep_id| {
       let dep = mg.dependency_by_id(dep_id);
       let origin_module_identifier = mg.get_parent_module(dep_id);
-      FactorizeInfo::get_from(dep)
+      FactorizeInfo::get_from(dep.as_ref())
         .expect("should have factorize info")
         .diagnostics()
         .iter()

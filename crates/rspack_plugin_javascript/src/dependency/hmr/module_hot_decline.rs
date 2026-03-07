@@ -13,7 +13,8 @@ pub struct ModuleHotDeclineDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  factorize_info: FactorizeInfo,
+  #[cacheable(with=rspack_cacheable::with::As<FactorizeInfo>)]
+  factorize_info: std::sync::Arc<std::sync::Mutex<FactorizeInfo>>,
 }
 
 impl ModuleHotDeclineDependency {
@@ -64,12 +65,18 @@ impl ModuleDependency for ModuleHotDeclineDependency {
     true
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+  fn factorize_info(&self) -> std::sync::MutexGuard<'_, FactorizeInfo> {
+    self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned")
   }
 
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+  fn set_factorize_info(&self, info: FactorizeInfo) {
+    *self
+      .factorize_info
+      .lock()
+      .expect("dependency factorize_info poisoned") = info;
   }
 }
 

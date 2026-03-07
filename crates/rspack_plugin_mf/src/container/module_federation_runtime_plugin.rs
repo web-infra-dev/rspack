@@ -5,7 +5,7 @@
 
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
+  ArcDependency, AsyncModulesArtifact, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilerFinishMake,
   EntryOptions, ExportsInfoArtifact, Plugin, RuntimeGlobals, RuntimeModule,
 };
@@ -78,7 +78,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
       .call(&federation_runtime_dep)
       .await?;
 
-    let boxed_dep: BoxDependency = Box::new(federation_runtime_dep);
+    let boxed_dep: ArcDependency = std::sync::Arc::new(federation_runtime_dep);
     let entry_options = EntryOptions::default();
     let args = vec![(boxed_dep, entry_options)];
 

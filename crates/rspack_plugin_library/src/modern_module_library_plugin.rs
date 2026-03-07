@@ -238,7 +238,7 @@ impl ModernModuleLibraryPlugin {
       // remove connection
       mg.revoke_dependency(dep_id, false);
       // overwrite dependency
-      mg.add_dependency(dep);
+      mg.add_dependency(dep.into());
     }
 
     for connection in &external_connections {

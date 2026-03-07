@@ -163,7 +163,7 @@ impl Task<TaskContext> for BuildResultTask {
             index_in_block,
           },
         );
-        module_graph.add_dependency(dependency);
+        module_graph.add_dependency(dependency.into());
       }
       if let Some(current_block) = current_block {
         module.add_block_id(current_block.identifier());

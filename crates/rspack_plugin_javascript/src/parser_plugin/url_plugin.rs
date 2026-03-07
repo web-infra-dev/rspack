@@ -203,13 +203,13 @@ impl JavascriptParserPlugin for URLPlugin {
       phase: None,
     };
 
-    let mut dep = URLContextDependency::new(
+    let dep = URLContextDependency::new(
       options,
       expr.span().into(),
       param.range().into(),
       parser.in_try,
     );
-    *dep.critical_mut() = result.critical;
+    dep.set_critical(result.critical);
     parser.add_dependency(Box::new(dep));
 
     Some(true)

@@ -14,7 +14,7 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
+  ArcDependency, BindingCell, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
   FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
@@ -819,7 +819,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(ArcDependency, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
       callbackify(
@@ -837,7 +837,7 @@ impl JsCompilation {
             .into_iter()
             .map(|dependency_id| {
               let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = FactorizeInfo::get_from(dependency.as_ref())
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());
@@ -923,7 +923,7 @@ impl JsCompilation {
           };
           Ok((dependency, options))
         })
-        .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
+        .collect::<napi::Result<Vec<(ArcDependency, EntryOptions)>>>()
         .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
 
       callbackify(
@@ -941,7 +941,7 @@ impl JsCompilation {
             .into_iter()
             .map(|dependency_id| {
               let dependency = module_graph.dependency_by_id(&dependency_id);
-              if let Some(factorize_info) = FactorizeInfo::get_from(dependency)
+              if let Some(factorize_info) = FactorizeInfo::get_from(dependency.as_ref())
                 && let Some(diagnostic) = factorize_info.diagnostics().first()
               {
                 return Either::A(diagnostic.to_string());

@@ -1,4 +1,5 @@
-use dyn_clone::clone_trait_object;
+use std::sync::Arc;
+
 use rspack_cacheable::cacheable_dyn;
 
 use super::{Dependency, FactorizeInfo};
@@ -24,11 +25,9 @@ pub trait ModuleDependency: Dependency {
     None
   }
 
-  fn factorize_info(&self) -> &FactorizeInfo;
-  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo;
+  fn factorize_info(&self) -> std::sync::MutexGuard<'_, FactorizeInfo>;
+  fn set_factorize_info(&self, info: FactorizeInfo);
 }
-
-clone_trait_object!(ModuleDependency);
 
 pub trait AsModuleDependency {
   fn as_module_dependency(&self) -> Option<&dyn ModuleDependency> {
@@ -50,4 +49,4 @@ impl<T: ModuleDependency> AsModuleDependency for T {
   }
 }
 
-pub type BoxModuleDependency = Box<dyn ModuleDependency>;
+pub type BoxModuleDependency = Arc<dyn ModuleDependency>;
