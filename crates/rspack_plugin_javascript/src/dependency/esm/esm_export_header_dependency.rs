@@ -27,7 +27,7 @@ impl ESMExportHeaderDependency {
       range,
       range_decl,
       loc,
-      id: DependencyId::default(),
+      id: DependencyId::new(),
     }
   }
 }
