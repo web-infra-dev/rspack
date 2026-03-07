@@ -223,14 +223,8 @@ impl Module for ProvideSharedModule {
           .share_scope
           .scopes()
           .iter()
-          .map(|scope| scope.to_string())
-          .chain(
-            self
-              .share_scope
-              .is_empty()
-              .then_some("default".to_string())
-              .into_iter(),
-          )
+          .cloned()
+          .chain(self.share_scope.is_empty().then_some("default".to_string()))
           .map(|scope| ShareInitData {
             share_scope: ShareScope::Single(scope),
             init_stage: 10,
