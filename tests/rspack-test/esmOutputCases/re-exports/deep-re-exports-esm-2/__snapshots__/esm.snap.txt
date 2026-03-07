@@ -2,6 +2,7 @@
 import * as __rspack_external_fs from "fs";
 import * as __rspack_external_path from "path";
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./lib.js"
 /*!****************!*\

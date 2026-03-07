@@ -1,5 +1,6 @@
 ```mjs title=dynamic.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./dynamic.js"
 /*!********************!*\
@@ -36,6 +37,7 @@ export { value };
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 // ./index.js
 it('should support dynamic import', async () => {
 	const mod = await import("./dynamic.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19))

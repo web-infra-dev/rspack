@@ -242,6 +242,12 @@ pub enum ReExportFrom {
   Request(String),
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub enum RawImportSource {
+  Chunk(ChunkUkey),
+  Source((String, Option<String>)),
+}
+
 #[derive(Debug, Clone)]
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
@@ -278,7 +284,7 @@ pub struct ChunkLinkContext {
   /**
   raw import statements
    */
-  pub raw_import_stmts: FxIndexMap<(String, Option<String>), ImportSpec>,
+  pub raw_import_stmts: FxIndexMap<RawImportSource, ImportSpec>,
 
   /**
   `const symbol = __webpack_require__(module_id)`
