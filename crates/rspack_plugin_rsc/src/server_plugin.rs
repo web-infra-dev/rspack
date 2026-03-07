@@ -17,9 +17,10 @@ use serde_json::json;
 
 use crate::{
   component_info::{
-    ClientComponentImports, CssImports, collect_component_info_from_entry_denendency,
+    ClientComponentImports, ComponentInfo, CssImports,
+    collect_component_info_from_entry_denendency, collect_component_info_from_server_entry_modules,
   },
-  constants::LAYERS_NAMES,
+  constants::{LAYERS_NAMES, REMOTE_CLIENT_IMPORT_PREFIX},
   coordinator::Coordinator,
   hot_reloader::track_server_component_changes,
   loaders::{
@@ -184,6 +185,28 @@ impl Plugin for RscServerPlugin {
 }
 
 impl RscServerPlugin {
+  fn merge_component_info(target: &mut ComponentInfo, incoming: ComponentInfo) {
+    target.should_inject_ssr_modules |= incoming.should_inject_ssr_modules;
+
+    for (request, ids) in incoming.client_component_imports {
+      target
+        .client_component_imports
+        .entry(request)
+        .or_default()
+        .extend(ids);
+    }
+
+    for (server_entry, imports) in incoming.css_imports {
+      target
+        .css_imports
+        .entry(server_entry)
+        .or_default()
+        .extend(imports);
+    }
+
+    target.action_imports.extend(incoming.action_imports);
+  }
+
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_ssr_modules_list: Vec<InjectedSsrEntry> = Default::default();
     let mut created_ssr_dependencies_per_entry: FxHashMap<String, Vec<DependencyId>> =
@@ -201,9 +224,31 @@ impl RscServerPlugin {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
 
-      let entry_dependency = &entry_data.dependencies[0];
-      let component_info =
-        collect_component_info_from_entry_denendency(compilation, &runtime, entry_dependency);
+      let mut component_info: ComponentInfo = Default::default();
+      for entry_dependency in &entry_data.dependencies {
+        let next_component_info =
+          collect_component_info_from_entry_denendency(compilation, &runtime, entry_dependency);
+        Self::merge_component_info(&mut component_info, next_component_info);
+      }
+      let module_graph = compilation.get_module_graph();
+      let is_federation_container_entry = entry_data.dependencies.iter().any(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .as_module_dependency()
+          .is_some_and(|module_dependency| {
+            module_dependency
+              .request()
+              .starts_with("webpack/container/entry/")
+          })
+      });
+      if !is_federation_container_entry {
+        let mut server_entry_component_info =
+          collect_component_info_from_server_entry_modules(compilation, &runtime);
+        // Action imports are per-entry and already collected above.
+        // Re-merging them globally can duplicate action modules and produce conflicting IDs.
+        server_entry_component_info.action_imports.clear();
+        Self::merge_component_info(&mut component_info, server_entry_component_info);
+      }
       for (dep, actions) in component_info.action_imports {
         action_entry_imports.insert(dep, actions);
       }
@@ -413,6 +458,7 @@ impl RscServerPlugin {
         modules.push(ClientModuleImport {
           request: request.clone(),
           ids: vec![],
+          is_remote: false,
         });
       }
 
@@ -423,9 +469,16 @@ impl RscServerPlugin {
         .extend(css_imports.into_iter());
 
       for (request, ids) in &client_imports {
+        let (normalized_request, is_remote) =
+          if let Some(stripped_request) = request.strip_prefix(REMOTE_CLIENT_IMPORT_PREFIX) {
+            (stripped_request.to_string(), true)
+          } else {
+            (request.clone(), false)
+          };
         modules.push(ClientModuleImport {
-          request: request.clone(),
+          request: normalized_request,
           ids: ids.iter().cloned().collect(),
+          is_remote,
         });
       }
       modules
@@ -434,9 +487,12 @@ impl RscServerPlugin {
     let client_server_loader = {
       let mut serializer = form_urlencoded::Serializer::new(String::new());
       for (request, ids) in &client_imports {
+        let normalized_request = request
+          .strip_prefix(REMOTE_CLIENT_IMPORT_PREFIX)
+          .unwrap_or(request);
         #[allow(clippy::unwrap_used)]
         let module_json = serde_json::to_string(&json!({
-            "request": request,
+            "request": normalized_request,
             "ids": ids
         }))
         .unwrap();

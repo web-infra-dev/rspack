@@ -1,7 +1,7 @@
 use derive_more::Debug;
 use rspack_core::{
-  Compilation, DependencyId, Module, ModuleIdentifier, PrefetchExportsInfoMode, RscMeta,
-  RscModuleType, RuntimeSpec,
+  Compilation, DependencyId, Module, ModuleIdentifier, ModuleType, PrefetchExportsInfoMode,
+  RscMeta, RscModuleType, RuntimeSpec,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -12,9 +12,12 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
-  constants::{IMAGE_REGEX, LAYERS_NAMES},
+  constants::{IMAGE_REGEX, LAYERS_NAMES, REMOTE_CLIENT_IMPORT_PREFIX},
   plugin_state::ActionIdNamePair,
-  utils::{get_module_resource, is_css_mod},
+  utils::{
+    extract_shared_package_from_consume_request, get_canonical_module_resource, is_css_mod,
+    is_federation_virtual_module,
+  },
 };
 
 // { [client import path]: [exported names] }
@@ -58,6 +61,7 @@ pub fn collect_component_info_from_entry_denendency(
     resolved_module.as_ref(),
     runtime,
     &[],
+    None,
     &mut visited_of_client_components_traverse,
     &mut server_entries,
     &mut component_info,
@@ -66,11 +70,75 @@ pub fn collect_component_info_from_entry_denendency(
   component_info
 }
 
+pub fn collect_component_info_from_server_entry_modules(
+  compilation: &Compilation,
+  runtime: &RuntimeSpec,
+) -> ComponentInfo {
+  let mut component_info: ComponentInfo = Default::default();
+  let mut visited: FxHashSet<ModuleIdentifier> = FxHashSet::default();
+  let mut server_entries: Vec<String> = Default::default();
+  let module_graph = compilation.get_module_graph();
+
+  for (_, module) in module_graph.modules() {
+    let is_server_entry = module
+      .build_info()
+      .rsc
+      .as_ref()
+      .is_some_and(|rsc| rsc.module_type == RscModuleType::ServerEntry);
+    if !is_server_entry {
+      continue;
+    }
+
+    traverse_with_server_entry_context(
+      compilation,
+      module.as_ref(),
+      runtime,
+      &[],
+      None,
+      &mut visited,
+      &mut server_entries,
+      &mut component_info,
+    );
+  }
+
+  component_info
+}
+
+fn is_filtered_shared_request(module_request: &str) -> bool {
+  let Some(normalized_request) = normalize_shared_request(module_request) else {
+    return false;
+  };
+
+  if matches!(
+    normalized_request.as_str(),
+    "react" | "react-dom" | "react-dom/server"
+  ) {
+    return true;
+  }
+
+  let request_without_query = module_request.split('?').next().unwrap_or(module_request);
+  request_without_query.contains("/node_modules/react/")
+    || request_without_query.contains("/node_modules/react-dom/")
+}
+
+fn normalize_shared_request(module_request: &str) -> Option<String> {
+  let request_without_query = module_request.split('?').next().unwrap_or(module_request);
+  extract_shared_package_from_consume_request(request_without_query).or_else(|| {
+    if request_without_query.is_empty() {
+      None
+    } else {
+      Some(request_without_query.to_string())
+    }
+  })
+}
+
+#[allow(clippy::too_many_arguments)]
 fn traverse_with_server_entry_context(
   compilation: &Compilation,
   module: &dyn Module,
   runtime: &RuntimeSpec,
   imported_identifiers: &[String],
+  request_hint: Option<&str>,
   visited: &mut FxHashSet<ModuleIdentifier>,
   server_entries: &mut Vec<String>,
   component_info: &mut ComponentInfo,
@@ -80,13 +148,14 @@ fn traverse_with_server_entry_context(
       .is_some_and(|rsc| rsc.module_type == RscModuleType::ServerEntry)
   };
   if is_server_entry {
-    server_entries.push(get_module_resource(module).to_string());
+    server_entries.push(get_canonical_module_resource(compilation, module));
   }
   filter_client_components(
     compilation,
     module,
     runtime,
     imported_identifiers,
+    request_hint,
     visited,
     server_entries,
     component_info,
@@ -102,19 +171,20 @@ fn filter_client_components(
   module: &dyn Module,
   runtime: &RuntimeSpec,
   imported_identifiers: &[String],
+  request_hint: Option<&str>,
   visited: &mut FxHashSet<ModuleIdentifier>,
   server_entries: &mut Vec<String>,
   component_info: &mut ComponentInfo,
 ) {
-  let resource = get_module_resource(module);
-  if resource.is_empty() {
+  let resource = get_canonical_module_resource(compilation, module);
+  if resource.is_empty() && !is_federation_virtual_module(module) {
     return;
   }
 
   if visited.contains(&module.identifier()) {
     if component_info
       .client_component_imports
-      .contains_key(resource.as_ref())
+      .contains_key(&resource)
     {
       add_client_import(
         module,
@@ -139,7 +209,7 @@ fn filter_client_components(
   let actions = get_actions_from_build_info(module);
   if let Some(actions) = actions {
     component_info.action_imports.push((
-      resource.to_string(),
+      resource.clone(),
       actions
         .iter()
         .map(|(id, exported_name)| (id.clone(), exported_name.clone()))
@@ -169,20 +239,89 @@ fn filter_client_components(
         .css_imports
         .entry(server_entry.clone())
         .or_default()
-        .insert(resource.to_string());
+        .insert(resource.clone());
     }
   } else if is_client_component_entry_module(module) {
     if !component_info
       .client_component_imports
-      .contains_key(resource.as_ref())
+      .contains_key(&resource)
     {
       component_info
         .client_component_imports
-        .insert(resource.to_string(), Default::default());
+        .insert(resource.clone(), Default::default());
     }
     add_client_import(
       module,
-      resource.as_ref(),
+      &resource,
+      imported_identifiers,
+      true,
+      &mut component_info.client_component_imports,
+    );
+    return;
+  } else if matches!(
+    module.module_type(),
+    ModuleType::ConsumeShared
+      | ModuleType::ProvideShared
+      | ModuleType::ShareContainerShared
+      | ModuleType::SelfReference
+  ) && !imported_identifiers.is_empty()
+  {
+    let Some(module_request) = request_hint
+      .and_then(normalize_shared_request)
+      .or_else(|| Some(resource.clone()))
+    else {
+      return;
+    };
+    if is_filtered_shared_request(&module_request) {
+      return;
+    }
+    let tagged_module_request = format!("{REMOTE_CLIENT_IMPORT_PREFIX}{module_request}");
+
+    if !component_info
+      .client_component_imports
+      .contains_key(&tagged_module_request)
+    {
+      component_info
+        .client_component_imports
+        .insert(tagged_module_request.clone(), Default::default());
+    }
+    add_client_import(
+      module,
+      &tagged_module_request,
+      imported_identifiers,
+      true,
+      &mut component_info.client_component_imports,
+    );
+    return;
+  } else if matches!(
+    module.module_type(),
+    ModuleType::Remote | ModuleType::Fallback
+  ) && !imported_identifiers.is_empty()
+  {
+    let Some(module_request) = request_hint
+      .map(|request| request.split('?').next().unwrap_or(request).to_string())
+      .or_else(|| {
+        if resource.is_empty() {
+          None
+        } else {
+          Some(resource.clone())
+        }
+      })
+    else {
+      return;
+    };
+
+    if !component_info
+      .client_component_imports
+      .contains_key(&module_request)
+    {
+      component_info
+        .client_component_imports
+        .insert(module_request.clone(), Default::default());
+    }
+    add_client_import(
+      module,
+      &module_request,
       imported_identifiers,
       true,
       &mut component_info.client_component_imports,
@@ -218,6 +357,9 @@ fn filter_client_components(
     } else {
       dependency_ids.push("*".into());
     }
+    let request_hint = dependency
+      .as_module_dependency()
+      .map(|module_dependency| module_dependency.request());
 
     let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
     else {
@@ -228,6 +370,7 @@ fn filter_client_components(
       resolved_module.as_ref(),
       runtime,
       &dependency_ids,
+      request_hint,
       visited,
       server_entries,
       component_info,
@@ -239,7 +382,7 @@ fn add_client_import(
   module: &dyn Module,
   mod_request: &str,
   imported_identifiers: &[String],
-  is_first_visit_module: bool,
+  _is_first_visit_module: bool,
   client_component_imports: &mut ClientComponentImports,
 ) {
   let rsc = get_module_rsc_information(module);
@@ -252,41 +395,31 @@ fn add_client_import(
     .or_default();
 
   if imported_identifiers
-    .first()
-    .map(|identifier| identifier.as_str())
-    == Some("*")
+    .iter()
+    .any(|identifier| identifier == "*")
   {
-    // If there's collected import path with named import identifiers,
-    // or there's nothing in collected imports are empty.
-    // we should include the whole module.
-    if !is_first_visit_module && !client_imports_set.contains("*") {
-      client_component_imports.insert(
-        mod_request.to_string(),
-        FxHashSet::from_iter(["*".to_string()]),
-      );
-    }
+    client_imports_set.insert("*".to_string());
+    return;
+  }
+
+  let is_auto_module_source_type = assumed_source_type == "auto";
+  if is_auto_module_source_type {
+    client_imports_set.clear();
+    client_imports_set.insert("*".to_string());
   } else {
-    let is_auto_module_source_type = assumed_source_type == "auto";
-    if is_auto_module_source_type {
-      client_component_imports.insert(
-        mod_request.to_string(),
-        FxHashSet::from_iter(["*".to_string()]),
-      );
-    } else {
-      // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
-      // We'll include all modules since it's not able to do tree-shaking.
-      for name in imported_identifiers {
-        // For cjs module default import, we include the whole module since
-        let is_cjs_default_import = is_cjs_module && name == "default";
+    // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
+    // We'll include all modules since it's not able to do tree-shaking.
+    for name in imported_identifiers {
+      // For cjs module default import, we include the whole module since
+      let is_cjs_default_import = is_cjs_module && name == "default";
 
-        // Always include __esModule along with cjs module default export,
-        // to make sure it works with client module proxy from React.
-        if is_cjs_default_import {
-          client_imports_set.insert("__esModule".to_string());
-        }
-
-        client_imports_set.insert(name.clone());
+      // Always include __esModule along with cjs module default export,
+      // to make sure it works with client module proxy from React.
+      if is_cjs_default_import {
+        client_imports_set.insert("__esModule".to_string());
       }
+
+      client_imports_set.insert(name.clone());
     }
   }
 }

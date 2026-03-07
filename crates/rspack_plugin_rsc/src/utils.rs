@@ -1,15 +1,25 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::VecDeque};
 
 use rspack_collections::Identifiable;
-use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedInnerModule, Module,
-  ModuleGraph, ModuleId, ModuleIdentifier, ModuleType,
-};
+use rspack_core::{Compilation, Module, ModuleType, RscModuleType};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 use urlencoding::encode;
 
 use crate::constants::CSS_REGEX;
+
+pub fn is_federation_virtual_module(module: &dyn Module) -> bool {
+  matches!(
+    module.module_type(),
+    ModuleType::Remote
+      | ModuleType::Fallback
+      | ModuleType::ProvideShared
+      | ModuleType::ConsumeShared
+      | ModuleType::ShareContainerShared
+      | ModuleType::SelfReference
+  )
+}
 
 pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   if let Some(module) = module.as_normal_module() {
@@ -24,9 +34,110 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
     Cow::Owned(format!("{mod_path}{mod_query}"))
   } else if let Some(module) = module.as_context_module() {
     Cow::Borrowed(module.identifier().as_str())
+  } else if is_federation_virtual_module(module) {
+    // Federation virtual modules are not normal modules but still need stable,
+    // non-empty identities so manifest/resource collection can include shared
+    // and remote references.
+    Cow::Owned(format!("mf://{}", module.identifier()))
   } else {
     Cow::Borrowed("")
   }
+}
+
+pub fn get_canonical_module_resource(compilation: &Compilation, module: &dyn Module) -> String {
+  if !is_federation_virtual_module(module) {
+    return get_module_resource(module).into_owned();
+  }
+
+  const MAX_BFS_DEPTH: usize = 16;
+  const MAX_VISITED_MODULES: usize = 256;
+
+  let module_graph = compilation.get_module_graph();
+  let mut queue = VecDeque::from([(module.identifier(), 0_usize)]);
+  let mut visited: FxHashSet<_> = FxHashSet::default();
+  let mut fallback_resource: Option<String> = None;
+  visited.insert(module.identifier());
+
+  while let Some((current_identifier, depth)) = queue.pop_front() {
+    if depth >= MAX_BFS_DEPTH {
+      continue;
+    }
+    if visited.len() >= MAX_VISITED_MODULES {
+      break;
+    }
+
+    for dependency_id in module_graph.get_outgoing_deps_in_order(&current_identifier) {
+      if visited.len() >= MAX_VISITED_MODULES {
+        break;
+      }
+      let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+        continue;
+      };
+      let resolved_identifier = connection.resolved_module;
+      if !visited.insert(resolved_identifier) {
+        continue;
+      }
+
+      let Some(resolved_module) = module_graph.module_by_identifier(&resolved_identifier) else {
+        continue;
+      };
+      if !is_federation_virtual_module(resolved_module.as_ref()) {
+        let resolved_resource = get_module_resource(resolved_module.as_ref());
+        if !resolved_resource.is_empty() {
+          let resolved_resource = resolved_resource.into_owned();
+          let is_client_module = resolved_module
+            .build_info()
+            .rsc
+            .as_ref()
+            .is_some_and(|rsc| rsc.module_type == RscModuleType::Client);
+          if is_client_module {
+            return resolved_resource;
+          }
+          fallback_resource.get_or_insert(resolved_resource);
+        }
+      }
+
+      queue.push_back((resolved_identifier, depth + 1));
+    }
+  }
+
+  if let Some(resource) = fallback_resource {
+    return resource;
+  }
+
+  get_module_resource(module).into_owned()
+}
+
+/// Extract the shared package request from a federation consume request.
+///
+/// Examples:
+/// - `webpack/sharing/consume/default/react/react` -> `react`
+/// - `(server-side-rendering)/webpack/sharing/consume/rsc/rsc-shared/rsc-shared` -> `rsc-shared`
+pub fn extract_shared_package_from_consume_request(request: &str) -> Option<String> {
+  const CONSUME_SHARED_PREFIX: &str = "webpack/sharing/consume/";
+
+  let request_without_query = request.split('?').next().unwrap_or(request);
+  let marker_index = request_without_query.find(CONSUME_SHARED_PREFIX)?;
+  let suffix = &request_without_query[marker_index + CONSUME_SHARED_PREFIX.len()..];
+
+  let segments = suffix
+    .split('/')
+    .filter(|segment| !segment.is_empty())
+    .collect::<Vec<_>>();
+  if segments.len() < 3 {
+    return None;
+  }
+
+  // Drop share scope and parse the duplicated `{shareKey}/{request}` tail.
+  let tail = &segments[1..];
+  if tail.len() >= 2 && tail.len() % 2 == 0 {
+    let half = tail.len() / 2;
+    if tail[..half] == tail[half..] {
+      return Some(tail[..half].join("/"));
+    }
+  }
+
+  tail.last().map(|segment| (*segment).to_string())
 }
 
 pub fn is_css_mod(module: &dyn Module) -> bool {
@@ -38,121 +149,6 @@ pub fn is_css_mod(module: &dyn Module) -> bool {
   }
   let resource = get_module_resource(module);
   CSS_REGEX.is_match(resource.as_ref())
-}
-
-pub struct ChunkModules<'a> {
-  compilation: &'a Compilation,
-  module_graph: &'a ModuleGraph,
-  chunk_groups_iter: Box<dyn Iterator<Item = (&'a ChunkGroupUkey, &'a ChunkGroup)> + 'a>,
-  chunks_iter: Option<std::slice::Iter<'a, ChunkUkey>>,
-  modules_iter: Option<std::collections::hash_set::Iter<'a, ModuleIdentifier>>,
-  concatenated_modules_iter: Option<std::slice::Iter<'a, ConcatenatedInnerModule>>,
-  current_chunk: Option<ChunkUkey>,
-  current_chunk_group: Option<&'a ChunkGroup>,
-}
-
-impl<'a> ChunkModules<'a> {
-  pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph) -> Self {
-    let chunk_groups_iter = Box::new(
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .iter(),
-    );
-    Self {
-      compilation,
-      module_graph,
-      chunk_groups_iter,
-      chunks_iter: None,
-      modules_iter: None,
-      concatenated_modules_iter: None,
-      current_chunk: None,
-      current_chunk_group: None,
-    }
-  }
-}
-
-impl<'a> Iterator for ChunkModules<'a> {
-  type Item = (ModuleIdentifier, ModuleId);
-
-  fn next(&mut self) -> Option<Self::Item> {
-    loop {
-      if let Some(concatenated_modules_iter) = self.concatenated_modules_iter.as_mut() {
-        if let Some(module) = concatenated_modules_iter.next() {
-          match ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, module.id) {
-            Some(module_id) => {
-              return Some((module.id, module_id.clone()));
-            }
-            None => {
-              continue;
-            }
-          }
-        } else {
-          self.concatenated_modules_iter = None;
-        }
-      }
-
-      if let Some(modules_iter) = self.modules_iter.as_mut() {
-        if let Some(module_identifier) = modules_iter.next() {
-          match ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, *module_identifier)
-          {
-            Some(module_id) => {
-              return Some((*module_identifier, module_id.clone()));
-            }
-            None => {
-              let Some(module) = self.module_graph.module_by_identifier(module_identifier) else {
-                continue;
-              };
-              let Some(concatenated_module) = module.as_concatenated_module() else {
-                continue;
-              };
-              let concatenated_modules = concatenated_module.get_modules();
-              if !concatenated_modules.is_empty() {
-                self.concatenated_modules_iter = Some(concatenated_module.get_modules().iter());
-                continue;
-              }
-              continue;
-            }
-          }
-        } else {
-          self.modules_iter = None;
-        }
-      }
-
-      if let Some(ref mut chunks_iter) = self.chunks_iter {
-        if let Some(chunk_ukey) = chunks_iter.next() {
-          self.current_chunk = Some(*chunk_ukey);
-
-          let chunk_modules = self
-            .compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .get_chunk_modules_identifier(chunk_ukey);
-
-          if !chunk_modules.is_empty() {
-            self.modules_iter = Some(chunk_modules.iter());
-            continue;
-          }
-          continue;
-        } else {
-          self.chunks_iter = None;
-          self.current_chunk = None;
-          self.current_chunk_group = None;
-        }
-      }
-
-      if let Some((_, chunk_group)) = self.chunk_groups_iter.next() {
-        self.current_chunk_group = Some(chunk_group);
-        if !chunk_group.chunks.is_empty() {
-          self.chunks_iter = Some(chunk_group.chunks.iter());
-          continue;
-        }
-        continue;
-      }
-
-      return None;
-    }
-  }
 }
 
 /// Returns a JSON string literal for `value` (i.e. double-encoded), suitable for embedding into JS.

@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { dirname, isAbsolute } from 'node:path';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
@@ -19,6 +20,14 @@ import { parseOptions } from './options';
 const require = createRequire(import.meta.url);
 
 declare const MF_RUNTIME_CODE: string;
+const RSC_BRIDGE_EXPOSE = './__rspack_rsc_bridge__';
+const RSC_LAYER = 'react-server-components';
+const SSR_LAYER = 'server-side-rendering';
+const RSC_SSR_EXPOSE_PREFIX = './__rspack_rsc_ssr__/';
+const RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER =
+  '@module-federation/webpack-bundler-runtime/rsc-bridge-runtime-plugin';
+const RSC_BRIDGE_EXPOSE_SPECIFIER =
+  '@module-federation/webpack-bundler-runtime/rsc-bridge-expose';
 
 export interface ModuleFederationPluginOptions extends Omit<
   ModuleFederationPluginV1Options,
@@ -42,29 +51,43 @@ export class ModuleFederationPlugin {
   constructor(private _options: ModuleFederationPluginOptions) {}
 
   apply(compiler: Compiler) {
+    const target = compiler.options.target;
+    const isRscMfOptIn = this._options.experiments?.rsc === true;
+    const enableRscBridge = isRscMfOptIn && target !== false;
+    const paths = getPaths(this._options, compiler, enableRscBridge);
+    const options =
+      enableRscBridge && paths.rscBridgeExpose
+        ? augmentRscBridgeExposes(this._options, paths.rscBridgeExpose)
+        : this._options;
+    if (enableRscBridge && !paths.rscBridgeExpose) {
+      throw new Error(
+        '[ModuleFederationPlugin] Unable to resolve Module Federation RSC bridge expose module. Ensure @module-federation/webpack-bundler-runtime is up to date.',
+      );
+    }
+
     const { webpack } = compiler;
-    const paths = getPaths(this._options, compiler);
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
       '@module-federation/runtime': paths.runtime,
       ...compiler.options.resolve.alias,
     };
 
-    const sharedOptions = getSharedOptions(this._options);
+    const sharedOptions = getSharedOptions(options);
     const treeShakingEntries = sharedOptions.filter(
       ([, config]) => config.treeShaking,
     );
     if (treeShakingEntries.length > 0) {
       this._treeShakingSharedPlugin = new TreeShakingSharedPlugin({
-        mfConfig: this._options,
+        mfConfig: options,
         secondary: false,
       });
       this._treeShakingSharedPlugin.apply(compiler);
     }
 
-    const asyncStartup = this._options.experiments?.asyncStartup ?? false;
+    const asyncStartup = options.experiments?.asyncStartup ?? false;
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
       asyncStartup,
+      rsc: enableRscBridge,
     };
 
     // need to wait treeShakingSharedPlugin buildAssets
@@ -79,9 +102,10 @@ export class ModuleFederationPlugin {
         runtimePluginApplied = true;
         const entryRuntime = getDefaultEntryRuntime(
           paths,
-          this._options,
+          options,
           compiler,
           this._treeShakingSharedPlugin?.buildAssets,
+          enableRscBridge,
         );
         new ModuleFederationRuntimePlugin({
           entryRuntime,
@@ -99,9 +123,10 @@ export class ModuleFederationPlugin {
         runtimePluginApplied = true;
         const entryRuntime = getDefaultEntryRuntime(
           paths,
-          this._options,
+          options,
           compiler,
           this._treeShakingSharedPlugin?.buildAssets || {},
+          enableRscBridge,
         );
         // Pass only the entry runtime to the Rust-side plugin
         new ModuleFederationRuntimePlugin({
@@ -113,21 +138,21 @@ export class ModuleFederationPlugin {
 
     // Keep v1 options isolated from v2-only fields like `experiments`.
     const v1Options: ModuleFederationPluginV1Options = {
-      name: this._options.name,
-      exposes: this._options.exposes,
-      filename: this._options.filename,
-      library: this._options.library,
-      remoteType: this._options.remoteType,
-      remotes: this._options.remotes,
-      runtime: this._options.runtime,
-      shareScope: this._options.shareScope,
-      shared: this._options.shared,
+      name: options.name,
+      exposes: options.exposes,
+      filename: options.filename,
+      library: options.library,
+      remoteType: options.remoteType,
+      remotes: options.remotes,
+      runtime: options.runtime,
+      shareScope: options.shareScope,
+      shared: options.shared,
       enhanced: true,
     };
     new webpack.container.ModuleFederationPluginV1(v1Options).apply(compiler);
 
-    if (this._options.manifest) {
-      new ModuleFederationManifestPlugin(this._options).apply(compiler);
+    if (options.manifest) {
+      new ModuleFederationManifestPlugin(options).apply(compiler);
     }
   }
 }
@@ -136,6 +161,8 @@ interface RuntimePaths {
   runtimeTools: string;
   bundlerRuntime: string;
   runtime: string;
+  rscBridgeRuntimePlugin?: string;
+  rscBridgeExpose?: string;
 }
 
 interface RemoteInfo {
@@ -254,12 +281,19 @@ function getSharedOptions(
 function getPaths(
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
+  resolveRscBridge = false,
 ): RuntimePaths {
   if (IS_BROWSER) {
     return {
       runtimeTools: '@module-federation/runtime-tools',
       bundlerRuntime: '@module-federation/webpack-bundler-runtime',
       runtime: '@module-federation/runtime',
+      rscBridgeRuntimePlugin: resolveRscBridge
+        ? RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER
+        : undefined,
+      rscBridgeExpose: resolveRscBridge
+        ? RSC_BRIDGE_EXPOSE_SPECIFIER
+        : undefined,
     };
   }
 
@@ -280,17 +314,39 @@ function getPaths(
       throw e;
     }
   }
+  const runtimeResolvePaths = Array.from(
+    new Set([
+      compiler.context,
+      runtimeToolsPath,
+      ...(isAbsolute(runtimeToolsPath) ? [dirname(runtimeToolsPath)] : []),
+    ]),
+  );
   const bundlerRuntimePath = require.resolve(
     '@module-federation/webpack-bundler-runtime',
-    { paths: [runtimeToolsPath] },
+    { paths: runtimeResolvePaths },
   );
   const runtimePath = require.resolve('@module-federation/runtime', {
-    paths: [runtimeToolsPath],
+    paths: runtimeResolvePaths,
   });
+
+  let rscBridgeRuntimePluginPath: string | undefined;
+  let rscBridgeExposePath: string | undefined;
+  if (resolveRscBridge) {
+    rscBridgeRuntimePluginPath = require.resolve(
+      RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER,
+      { paths: runtimeResolvePaths },
+    );
+    rscBridgeExposePath = require.resolve(RSC_BRIDGE_EXPOSE_SPECIFIER, {
+      paths: runtimeResolvePaths,
+    });
+  }
+
   return {
     runtimeTools: runtimeToolsPath,
     bundlerRuntime: bundlerRuntimePath,
     runtime: runtimePath,
+    rscBridgeRuntimePlugin: rscBridgeRuntimePluginPath,
+    rscBridgeExpose: rscBridgeExposePath,
   };
 }
 
@@ -299,8 +355,39 @@ function getDefaultEntryRuntime(
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
   treeShakingShareFallbacks?: ShareFallback,
+  enableRscBridge?: boolean,
 ) {
-  const runtimePlugins = getRuntimePlugins(options);
+  const configuredRuntimePlugins = getRuntimePlugins(options);
+  const rscBridgeRuntimePluginPath = paths.rscBridgeRuntimePlugin;
+  const isRscBridgeRuntimePlugin = (pluginPath: unknown): boolean => {
+    if (typeof pluginPath !== 'string') {
+      return false;
+    }
+    if (
+      pluginPath === rscBridgeRuntimePluginPath ||
+      pluginPath === RSC_BRIDGE_RUNTIME_PLUGIN_SPECIFIER
+    ) {
+      return true;
+    }
+    const isBridgeRuntimeFilename =
+      pluginPath.endsWith('/rsc-bridge-runtime-plugin.cjs') ||
+      pluginPath.endsWith('\\rsc-bridge-runtime-plugin.cjs');
+    if (isBridgeRuntimeFilename) {
+      return true;
+    }
+    return false;
+  };
+  const runtimePlugins =
+    enableRscBridge && rscBridgeRuntimePluginPath
+      ? configuredRuntimePlugins.some((pluginSpec) => {
+          const pluginPath = Array.isArray(pluginSpec)
+            ? pluginSpec[0]
+            : pluginSpec;
+          return isRscBridgeRuntimePlugin(pluginPath);
+        })
+        ? configuredRuntimePlugins
+        : configuredRuntimePlugins.concat(rscBridgeRuntimePluginPath)
+      : configuredRuntimePlugins;
   const remoteInfos = getRemoteInfos(options);
   const runtimePluginImports = [];
   const runtimePluginVars = [];
@@ -326,13 +413,13 @@ function getDefaultEntryRuntime(
       paths.bundlerRuntime,
     )}`,
     ...runtimePluginImports,
+    `const __module_federation_container_name__ = ${JSON.stringify(
+      options.name ?? compiler.options.output.uniqueName,
+    )}`,
     `const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
       ', ',
     )}].filter(({ plugin }) => plugin).map(({ plugin, params }) => plugin(params))`,
     `const __module_federation_remote_infos__ = ${JSON.stringify(remoteInfos)}`,
-    `const __module_federation_container_name__ = ${JSON.stringify(
-      options.name ?? compiler.options.output.uniqueName,
-    )}`,
     `const __module_federation_share_strategy__ = ${JSON.stringify(
       options.shareStrategy ?? 'version-first',
     )}`,
@@ -347,4 +434,91 @@ function getDefaultEntryRuntime(
         ),
   ].join(';');
   return `@module-federation/runtime/rspack.js!=!data:text/javascript,${encodeURIComponent(content)}`;
+}
+
+function augmentRscBridgeExposes(
+  options: ModuleFederationPluginOptions,
+  bridgeModulePath: string,
+): ModuleFederationPluginOptions {
+  if (!options.exposes) {
+    return {
+      ...options,
+      exposes: {
+        [RSC_BRIDGE_EXPOSE]: {
+          import: bridgeModulePath,
+          layer: RSC_LAYER,
+        },
+      },
+    };
+  }
+
+  const exposesEntries = parseOptions(
+    options.exposes,
+    (item) => ({
+      import: Array.isArray(item) ? item : [item],
+      name: undefined,
+      layer: undefined,
+    }),
+    (item) => ({
+      import: Array.isArray(item.import) ? item.import : [item.import],
+      name: item.name || undefined,
+      layer: item.layer || undefined,
+    }),
+  );
+  if (exposesEntries.some(([key]) => key === RSC_BRIDGE_EXPOSE)) {
+    return options;
+  }
+
+  const exposeObject = Object.fromEntries(
+    exposesEntries.map(([key, value]) => [
+      key,
+      value.name
+        ? value.layer
+          ? { import: value.import, name: value.name, layer: value.layer }
+          : { import: value.import, name: value.name }
+        : value.layer
+          ? {
+              import:
+                value.import.length === 1 ? value.import[0] : value.import,
+              layer: value.layer,
+            }
+          : value.import.length === 1
+            ? value.import[0]
+            : value.import,
+    ]),
+  );
+
+  for (const [key, value] of exposesEntries) {
+    if (key === RSC_BRIDGE_EXPOSE || key.startsWith(RSC_SSR_EXPOSE_PREFIX)) {
+      continue;
+    }
+    const normalizedKey = key.startsWith('./') ? key.slice(2) : key;
+    const hiddenSsrExposeKey = `${RSC_SSR_EXPOSE_PREFIX}${normalizedKey}`;
+    if (
+      Object.prototype.hasOwnProperty.call(exposeObject, hiddenSsrExposeKey)
+    ) {
+      continue;
+    }
+    exposeObject[hiddenSsrExposeKey] = value.name
+      ? {
+          import: value.import,
+          name: value.name,
+          layer: SSR_LAYER,
+        }
+      : {
+          import: value.import.length === 1 ? value.import[0] : value.import,
+          layer: SSR_LAYER,
+        };
+  }
+
+  return {
+    ...options,
+    exposes: {
+      ...exposeObject,
+      [RSC_BRIDGE_EXPOSE]: {
+        import: bridgeModulePath,
+        layer: RSC_LAYER,
+      },
+    },
+  };
 }

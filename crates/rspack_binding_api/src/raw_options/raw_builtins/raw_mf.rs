@@ -359,6 +359,7 @@ impl From<RawModuleFederationRuntimePluginOptions> for ModuleFederationRuntimePl
 pub struct RawModuleFederationRuntimeExperimentsOptions {
   #[napi(js_name = "asyncStartup")]
   pub async_startup: Option<bool>,
+  pub rsc: Option<bool>,
 }
 
 impl From<RawModuleFederationRuntimeExperimentsOptions>
@@ -367,6 +368,7 @@ impl From<RawModuleFederationRuntimeExperimentsOptions>
   fn from(value: RawModuleFederationRuntimeExperimentsOptions) -> Self {
     Self {
       async_startup: value.async_startup.unwrap_or(false),
+      rsc: value.rsc.unwrap_or(false),
     }
   }
 }

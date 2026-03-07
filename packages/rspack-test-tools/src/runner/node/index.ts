@@ -359,6 +359,78 @@ export class NodeRunner implements ITestRunner {
     };
   }
 
+  protected async importModuleFromCjs(
+    specifier: string,
+    fromFile: string,
+  ): Promise<unknown> {
+    this.log(`dynamic import: ${specifier} from ${fromFile}`);
+    const toNamespace = (value: unknown) => {
+      if (value && typeof value === 'object') {
+        return {
+          default: value,
+          ...(value as Record<string, unknown>),
+        };
+      }
+      return { default: value };
+    };
+    const isUrlLike =
+      specifier.startsWith('node:') ||
+      specifier.startsWith('file:') ||
+      specifier.startsWith('data:') ||
+      specifier.startsWith('http://') ||
+      specifier.startsWith('https://');
+    const isBareSpecifier =
+      !isUrlLike && !isRelativePath(specifier) && !path.isAbsolute(specifier);
+
+    if (isBareSpecifier) {
+      const modules = this._options.testConfig.modules;
+      if (modules && specifier in modules) {
+        this.log(`dynamic import mock module: ${specifier}`);
+        return toNamespace(modules[specifier]);
+      }
+    }
+
+    const normalizedSpecifier = (() => {
+      if (isUrlLike) {
+        return specifier;
+      }
+      if (isRelativePath(specifier)) {
+        return pathToFileURL(path.resolve(path.dirname(fromFile), specifier))
+          .href;
+      }
+      if (path.isAbsolute(specifier)) {
+        return pathToFileURL(specifier).href;
+      }
+      return specifier;
+    })();
+
+    try {
+      return await import(normalizedSpecifier);
+    } catch (importError) {
+      const importErrorCode = (importError as NodeJS.ErrnoException).code;
+      const shouldFallbackToRequire =
+        importErrorCode === 'ERR_MODULE_NOT_FOUND' ||
+        importErrorCode === 'ERR_UNKNOWN_FILE_EXTENSION' ||
+        importErrorCode === 'ERR_UNSUPPORTED_DIR_IMPORT' ||
+        importErrorCode === 'ERR_INVALID_MODULE_SPECIFIER' ||
+        importErrorCode === 'ERR_PACKAGE_PATH_NOT_EXPORTED' ||
+        importErrorCode === 'ERR_UNSUPPORTED_ESM_URL_SCHEME';
+      if (!shouldFallbackToRequire) {
+        throw importError;
+      }
+      this.log(
+        `dynamic import fallback require: ${specifier}, reason: ${
+          (importError as Error).message
+        }`,
+      );
+      const required = this.requirers.get('miss')!(
+        path.dirname(fromFile),
+        specifier,
+      );
+      return toNamespace(required);
+    }
+  }
+
   protected createCjsRequirer(): TRunnerRequirer {
     return (currentDirectory, modulePath, context = {}) => {
       if (modulePath === '@rspack/test-tools') {
@@ -432,17 +504,21 @@ export class NodeRunner implements ITestRunner {
       this.log(
         `run mode: ${this._options.runInNewContext ? 'new context' : 'this context'}`,
       );
+      const importModuleDynamically = async (specifier: string) =>
+        this.importModuleFromCjs(specifier, file.path);
 
       try {
         const fn = this._options.runInNewContext
           ? vm.runInNewContext(code, this.globalContext!, {
               filename: file.path,
               lineOffset: -1,
-            })
+              importModuleDynamically,
+            } as any)
           : vm.runInThisContext(code, {
               filename: file.path,
               lineOffset: -1,
-            });
+              importModuleDynamically,
+            } as any);
 
         fn.call(
           this._options.testConfig.nonEsmThis

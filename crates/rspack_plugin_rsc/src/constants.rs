@@ -10,6 +10,8 @@ pub const LAYERS_NAMES: LayersNames = LayersNames {
   server_side_rendering: "server-side-rendering",
 };
 
+pub const REMOTE_CLIENT_IMPORT_PREFIX: &str = "__rspack_rsc_remote__:";
+
 pub struct LayersNames {
   pub react_server_components: &'static str,
   pub server_side_rendering: &'static str,

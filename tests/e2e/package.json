@@ -16,7 +16,7 @@
     "@rspack/browser": "workspace:*",
     "@rspack/dev-server": "2.0.0-beta.1",
     "@rspack/plugin-react-refresh": "^1.6.1",
-    "@module-federation/runtime-tools": "2.1.0",
+    "@module-federation/runtime-tools": "https://pkg.pr.new/@module-federation/runtime-tools@881b30d",
     "@swc/helpers": "0.5.19",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.0.0",

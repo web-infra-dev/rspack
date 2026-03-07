@@ -1,0 +1,41 @@
+{
+  "name": "examples-rsc-mf-host",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "NO_CSP=true node server.js",
+    "test:e2e": "playwright test --config ./playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@module-federation/node": "https://pkg.pr.new/@module-federation/node@881b30d",
+    "@module-federation/rspack": "https://pkg.pr.new/@module-federation/rspack@881b30d",
+    "@module-federation/runtime-tools": "https://pkg.pr.new/@module-federation/runtime-tools@881b30d",
+    "@playwright/test": "1.58.2",
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "@rspack/dev-server": "2.0.0-beta.1",
+    "@rspack/plugin-react-refresh": "^1.6.1",
+    "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.1",
+    "css-loader": "^7.1.4",
+    "react-refresh": "^0.18.0",
+    "react-server-dom-rspack": "0.0.1-beta.1",
+    "run-script-webpack-plugin": "^0.2.3",
+    "typescript": "^5.9.3",
+    "webpack-dev-middleware": "^7.4.5",
+    "webpack-hot-middleware": "^2.26.1",
+    "ws": "^8.19.0"
+  },
+  "dependencies": {
+    "@types/node": "^20.19.35",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "express": "^5.2.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "rsc-html-stream": "^0.0.7",
+    "rsc-shared": "workspace:*",
+    "srvx": "^0.10.1"
+  }
+}
