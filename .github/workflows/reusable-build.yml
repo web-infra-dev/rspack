@@ -27,6 +27,13 @@ on:
         type: boolean
         required: false
         default: false
+      hotpath: # Run hotpath benchmark comparison?
+        type: boolean
+        required: false
+        default: false
+      hotpath-runner:
+        required: false
+        type: string
       ref: # Git reference to checkout
         required: false
         type: string
@@ -39,6 +46,7 @@ on:
 permissions:
   # Allow commenting on issues
   issues: write
+  pull-requests: write
 
 jobs:
   build:
@@ -74,3 +82,235 @@ jobs:
       target: ${{ inputs.target }}
       runner: ${{ inputs.bench-runner || inputs.runner }}
       ref: ${{ inputs.ref }}
+
+  hotpath:
+    name: Hotpath Benchmark
+    if: inputs.hotpath && inputs.target == 'x86_64-unknown-linux-gnu'
+    needs: [build]
+    runs-on: ${{ inputs.hotpath-runner }}
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 90
+    continue-on-error: true
+    env:
+      BENCHMARK_DIR: examples/basic
+      METRICS_DIR: ${{ github.workspace }}/.hotpath-metrics
+    steps:
+      - name: Resolve benchmark context
+        id: hotpath-context
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            if (context.eventName === 'pull_request') {
+              core.setOutput('base_sha', context.payload.pull_request.base.sha);
+              core.setOutput('head_sha', context.payload.pull_request.head.sha);
+              core.setOutput('pr_number', String(context.payload.pull_request.number));
+            } else {
+              core.setOutput('base_sha', context.sha);
+              core.setOutput('head_sha', context.sha);
+              core.setOutput('pr_number', '');
+            }
+
+      - name: Checkout head
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ steps.hotpath-context.outputs.head_sha }}
+          fetch-depth: 0
+
+      - name: Normalize base sha
+        id: normalized-base
+        run: |
+          BASE_SHA="${{ steps.hotpath-context.outputs.base_sha }}"
+          BASE_NOTE=""
+          if ! git show "${BASE_SHA}:packages/rspack-cli/src/utils/profile.ts" 2>/dev/null | grep -q "hotpath"; then
+            BASE_SHA="$(git rev-parse HEAD^)"
+            BASE_NOTE="Original base does not support hotpath; compared against previous commit on this branch instead."
+          fi
+
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          {
+            echo 'base_note<<EOF'
+            echo "$BASE_NOTE"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Prepare base worktree
+        id: base-worktree
+        run: |
+          BASE_WORKTREE="${RUNNER_TEMP:-/tmp}/rspack-hotpath-base-${{ steps.normalized-base.outputs.base_sha }}"
+          git worktree add --force --detach "$BASE_WORKTREE" "${{ steps.normalized-base.outputs.base_sha }}"
+          echo "path=$BASE_WORKTREE" >> "$GITHUB_OUTPUT"
+
+      - name: Download head bindings
+        uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve base artifact run
+        id: base-artifact
+        if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const baseSha = '${{ steps.normalized-base.outputs.base_sha }}';
+            const artifactName = 'bindings-${{ inputs.target }}';
+            const { data } = await github.rest.actions.listWorkflowRunsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head_sha: baseSha,
+              status: 'completed',
+              per_page: 100,
+            });
+
+            for (const run of data.workflow_runs || []) {
+              if (run.name !== 'CI' || run.head_sha !== baseSha) {
+                continue;
+              }
+
+              const { data: artifactData } = await github.rest.actions.listWorkflowRunArtifacts({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: run.id,
+                per_page: 100,
+              });
+
+              const hasBindings = (artifactData.artifacts || []).some(
+                artifact => artifact.name === artifactName && !artifact.expired
+              );
+
+              if (hasBindings) {
+                core.setOutput('run_id', String(run.id));
+                return;
+              }
+            }
+
+            core.setOutput('run_id', '');
+
+      - name: Download base bindings
+        if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: bindings-${{ inputs.target }}
+          path: ${{ steps.base-worktree.outputs.path }}/crates/node_binding/
+          run-id: ${{ steps.base-artifact.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate base bindings availability
+        if: ${{ steps.normalized-base.outputs.base_sha != steps.hotpath-context.outputs.head_sha && steps.base-artifact.outputs.run_id == '' }}
+        run: |
+          echo "Unable to find reusable bindings artifact for base commit ${{ steps.normalized-base.outputs.base_sha }}." >&2
+          echo "Hotpath benchmark no longer builds bindings in CI; rerun CI on the base commit first." >&2
+          exit 1
+
+      - name: Setup Pnpm
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 24
+
+      - name: Run hotpath benchmark
+        env:
+          HOTPATH_BASE_WORKTREE: ${{ steps.base-worktree.outputs.path }}
+        run: |
+          bash .github/scripts/run-hotpath-benchmark.sh "${{ steps.normalized-base.outputs.base_sha }}" "$METRICS_DIR" "$BENCHMARK_DIR"
+
+      - name: Run bench-diff
+        run: |
+          node .github/scripts/hotpath-bench-diff.mjs "$METRICS_DIR/base.json" "$METRICS_DIR/head.json" | tee "$METRICS_DIR/diff.txt"
+
+      - name: Upload hotpath benchmark artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotpath-benchmark-${{ github.event.pull_request.number || github.sha }}
+          path: ${{ env.METRICS_DIR }}
+          retention-days: 7
+
+      - name: Compose PR comment
+        id: comment
+        if: ${{ success() && steps.hotpath-context.outputs.pr_number != '' }}
+        run: |
+          BASE_SHA="${{ steps.normalized-base.outputs.base_sha }}"
+          HEAD_SHA="${{ steps.hotpath-context.outputs.head_sha }}"
+          PR_NUMBER="${{ steps.hotpath-context.outputs.pr_number }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          DIFF_LINES=120
+          TOTAL_LINES="$(wc -l < "$METRICS_DIR/diff.txt" | tr -d ' ')"
+          BASE_NOTE="${{ steps.normalized-base.outputs.base_note }}"
+
+          {
+            echo "pr_number=$PR_NUMBER"
+            echo 'body<<EOF'
+            echo '## 🧪 Hotpath Benchmark'
+            echo '<!-- hotpath-benchmark -->'
+            echo
+            echo "> Comparing \`${BASE_SHA:0:7}\` -> \`${HEAD_SHA:0:7}\` on \`${BENCHMARK_DIR}\`"
+            echo "> Workflow run: [Open](${RUN_URL})"
+            if [ -n "$BASE_NOTE" ]; then
+              echo "> ${BASE_NOTE}"
+            fi
+            echo
+            echo '<details><summary>bench-diff</summary>'
+            echo
+            echo '```text'
+            sed -n "1,${DIFF_LINES}p" "$METRICS_DIR/diff.txt"
+            if [ "$TOTAL_LINES" -gt "$DIFF_LINES" ]; then
+              echo
+              echo "... truncated ${TOTAL_LINES} line diff, see workflow artifact for the full output ..."
+            fi
+            echo '```'
+            echo
+            echo '</details>'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Upsert PR comment
+        if: ${{ success() && steps.hotpath-context.outputs.pr_number != '' }}
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        env:
+          COMMENT_BODY: ${{ steps.comment.outputs.body }}
+          PR_NUMBER: ${{ steps.comment.outputs.pr_number }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const marker = '<!-- hotpath-benchmark -->';
+            const issueNumber = Number(process.env.PR_NUMBER);
+            const body = process.env.COMMENT_BODY;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              per_page: 100,
+            });
+
+            const existing = comments.find(comment =>
+              comment.user?.login === 'github-actions[bot]' &&
+              comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body,
+              });
+            }
+
+      - name: Cleanup base worktree
+        if: ${{ always() }}
+        run: |
+          git worktree remove --force "${{ steps.base-worktree.outputs.path }}" || true

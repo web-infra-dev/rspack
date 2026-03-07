@@ -18,9 +18,9 @@ RSPACK_PROFILE=OVERVIEW rsbuild build
 RSPACK_PROFILE=ALL rsbuild build
 ```
 
-- 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。你可以查看我们如何在 [`@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。
+- 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。你可以查看我们如何在 [`@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-cli/src/utils/profile.ts) 获取更多信息。
 
-生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析：
+使用默认的 `perfetto` layer 时，生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析：
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
@@ -29,15 +29,18 @@ RSPACK_PROFILE=ALL rsbuild build
 
 ## Tracing layer
 
-Rspack 支持 `perfetto` 和 `logger` 两种 layer：
+Rspack 支持 `perfetto`、`logger` 和 `hotpath` 三种 layer：
 
 - `perfetto`：默认值，生成符合 [`perfetto proto`](https://perfetto.dev/docs/reference/synthetic-track-event) 格式的 rspack.pftrace 文件，可导出到 perfetto 进行复杂的性能分析
-- `logger`：直接在终端输出日志，适用于简单的日志分析或在 CI 环境中查看编译流程
+- `logger`：直接在终端输出结构化日志，适用于简单的日志分析或在 CI 环境中查看编译流程
+- `hotpath`：按名称聚合 tracing span，并输出带有 `Calls`、`Avg`、`P95`、`Total` 和 `% Total` 列的 hotpath 风格表格，适合在终端中快速查看热点。如果输出路径以 `.json` 结尾，则会改为输出便于 diff 的 JSON 报告
 
 可以通过 `RSPACK_TRACE_LAYER` 环境变量指定 layer：
 
 ```sh
 RSPACK_TRACE_LAYER=logger
+# 或
+RSPACK_TRACE_LAYER=hotpath
 # 或
 RSPACK_TRACE_LAYER=perfetto
 ```
@@ -46,13 +49,17 @@ RSPACK_TRACE_LAYER=perfetto
 
 可以指定 trace 的输出位置：
 
-- `logger` layer 的默认输出为 `stdout`
-- `perfetto` layer 的默认输出为 `rspack.pftrace`
+- `logger` 和 `hotpath` layer 的默认输出为 `stdout`
+- `perfetto` layer 的默认输出为 `.rspack-profile-${timestamp}-${pid}` 目录下的 `rspack.pftrace`
+- 当 `RSPACK_TRACE_OUTPUT` 为相对路径时，`@rspack/cli` 会将它解析到生成的 `.rspack-profile-${timestamp}-${pid}` 目录下
+- 对于 `hotpath` layer，如果输出路径以 `.json` 结尾，则会输出带有 `avg_raw`、`total_raw` 和 `percent_total_raw` 等原始数值字段的格式化 JSON 报告
 
 通过 `RSPACK_TRACE_OUTPUT` 环境变量可以自定义输出位置：
 
 ```sh
 RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=log.txt rspack dev
+RSPACK_TRACE_LAYER=hotpath RSPACK_TRACE_OUTPUT=hotpath.txt rspack dev
+RSPACK_TRACE_LAYER=hotpath RSPACK_TRACE_OUTPUT=hotpath.json rspack dev
 RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=rspack.pftrace rspack dev
 ```
 

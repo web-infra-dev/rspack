@@ -371,7 +371,7 @@ interface Experiments {
   globalTrace: {
     register: (
       filter: string,
-      layer: 'logger' | 'perfetto',
+      layer: 'logger' | 'perfetto' | 'hotpath',
       output: string,
     ) => Promise<void>;
     cleanup: () => Promise<void>;

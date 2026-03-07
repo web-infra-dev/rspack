@@ -566,7 +566,7 @@ fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
 #[napi]
 fn register_global_trace(
   filter: String,
-  #[napi(ts_arg_type = " \"logger\" | \"perfetto\" ")] layer: String,
+  #[napi(ts_arg_type = " \"logger\" | \"hotpath\" | \"perfetto\" ")] layer: String,
   output: String,
 ) -> anyhow::Result<()> {
   #[cfg(not(feature = "browser"))]

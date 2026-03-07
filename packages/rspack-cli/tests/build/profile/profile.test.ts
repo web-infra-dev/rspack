@@ -4,6 +4,7 @@ import { run } from '../../utils/test-utils';
 
 const defaultTracePath = './rspack.pftrace';
 const customTracePath = './custom/trace.json';
+const hotpathJsonPath = './custom/hotpath.json';
 
 function findDefaultOutputDirname() {
   const files = fs.readdirSync(__dirname);
@@ -14,7 +15,11 @@ function findDefaultOutputDirname() {
 describe('profile', () => {
   afterEach(() => {
     const dirname = findDefaultOutputDirname();
-    [dirname, resolve(__dirname, customTracePath)].forEach((p) => {
+    [
+      dirname,
+      resolve(__dirname, customTracePath),
+      resolve(__dirname, hotpathJsonPath),
+    ].forEach((p) => {
       if (p && fs.existsSync(p)) {
         fs.rmSync(p, { recursive: true });
       }
@@ -108,5 +113,67 @@ describe('profile', () => {
     );
     expect(exitCode).toBe(0);
     expect(stdout.includes('rspack_core::compiler')).toBe(true);
+  });
+
+  it('should be able to use hotpath trace layer and print an aggregated table to stdout', async () => {
+    const { exitCode, stdout } = await run(
+      __dirname,
+      [],
+      {},
+      {
+        NO_COLOR: '1',
+        RSPACK_PROFILE: 'rspack_core::compiler',
+        RSPACK_TRACE_LAYER: 'hotpath',
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    expect(stdout).toContain('Calls');
+    expect(stdout).toContain('Avg');
+    expect(stdout).toContain('P95');
+    expect(stdout).toContain('Total');
+    expect(stdout).toContain('% Total');
+    expect(stdout).toContain('Overall elapsed');
+  });
+
+  it('should be able to use hotpath trace layer and emit json output for diffing', async () => {
+    const { exitCode } = await run(
+      __dirname,
+      [],
+      {},
+      {
+        NO_COLOR: '1',
+        RSPACK_PROFILE: 'rspack_core::compiler',
+        RSPACK_TRACE_LAYER: 'hotpath',
+        RSPACK_TRACE_OUTPUT: hotpathJsonPath,
+      },
+    );
+
+    expect(exitCode).toBe(0);
+    const dirname = findDefaultOutputDirname();
+    const tracePath = resolve(dirname, hotpathJsonPath);
+    expect(fs.existsSync(tracePath)).toBeTruthy();
+
+    const report = JSON.parse(fs.readFileSync(tracePath, 'utf-8'));
+    expect(report.rspack_trace_layer).toBe('hotpath');
+    expect(report.output_format).toBe('json');
+    expect(report.total_elapsed_ns).toBeGreaterThan(0);
+    expect(report.percentiles).toEqual([95]);
+    expect(Array.isArray(report.data)).toBe(true);
+    expect(report.data.length).toBeGreaterThan(0);
+    expect(report.data[0]).toEqual(
+      expect.objectContaining({
+        name: expect.any(String),
+        calls: expect.any(Number),
+        avg_raw: expect.any(Number),
+        total_raw: expect.any(Number),
+        percent_total_raw: expect.any(Number),
+      }),
+    );
+    expect(report.data[0].percentiles_raw).toEqual(
+      expect.objectContaining({
+        p95: expect.any(Number),
+      }),
+    );
   });
 });

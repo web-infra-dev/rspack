@@ -16,9 +16,19 @@ Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析
 
 ```sh
 RSPACK_PROFILE=ALL rspack build
+# 在终端输出聚合后的热点表格
+RSPACK_TRACE_LAYER=hotpath RSPACK_PROFILE=OVERVIEW rspack build
 ```
 
-该命令会生成一个 `.rspack-profile-${timestamp}-${pid}` 文件夹，该文件夹下会包含 `trace.json` 文件，该文件由 Rspack 基于 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录了 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看。
+使用默认的 `perfetto` layer 时，该命令会生成一个 `.rspack-profile-${timestamp}-${pid}` 文件夹，目录下会包含 `rspack.pftrace` 文件。该文件由 Rspack 基于 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看。
+
+如果设置 `RSPACK_TRACE_LAYER=hotpath`，Rspack 会对 tracing 数据进行聚合，并直接在终端输出 hotpath 风格的表格。
+
+如果你需要便于 diff 的产物，可以在 `hotpath` layer 下将 `RSPACK_TRACE_OUTPUT` 设置为 `.json` 文件：
+
+```sh
+RSPACK_TRACE_LAYER=hotpath RSPACK_TRACE_OUTPUT=./hotpath.json RSPACK_PROFILE=OVERVIEW rspack build
+```
 
 > 查看 [Tracing](/contribute/development/tracing) 了解更多。
 

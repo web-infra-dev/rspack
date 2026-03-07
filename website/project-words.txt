@@ -58,6 +58,7 @@ funs
 Hana
 HerringtonDarkholme
 htmlrspackplugin
+hotpath
 idents
 Idents
 iife

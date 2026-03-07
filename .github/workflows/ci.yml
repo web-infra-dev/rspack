@@ -64,6 +64,8 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
       bench: true
+      hotpath: true
+      hotpath-runner: ubuntu-24.04
       prefer_docker: false
       test-runner: '"ubuntu-22.04"'
       bench-runner: '"ubuntu-22.04"'
