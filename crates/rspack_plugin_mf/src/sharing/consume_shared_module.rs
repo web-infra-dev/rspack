@@ -18,7 +18,7 @@ use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ConsumeVersion, utils::json_stringify};
+use crate::{ConsumeOptions, ConsumeVersion, ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -38,10 +38,15 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
+  pub fn share_scope(&self) -> &ShareScope {
+    &self.options.share_scope
+  }
+
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
+    let scopes_key = options.share_scope.key();
     let identifier = format!(
       "consume shared module ({}){} {}@{}{}{}{}{}",
-      options.share_scope.join("|"),
+      &scopes_key,
       options
         .layer
         .as_ref()
@@ -84,7 +89,7 @@ impl ConsumeSharedModule {
           .as_ref()
           .map(|layer| format!("({layer})/"))
           .unwrap_or_default(),
-        options.share_scope.join("|"),
+        &scopes_key,
         &options.share_key,
         options
           .import
@@ -104,10 +109,6 @@ impl ConsumeSharedModule {
 
   pub fn share_key(&self) -> &str {
     &self.options.share_key
-  }
-
-  pub fn share_scope(&self) -> &[String] {
-    &self.options.share_scope
   }
 
   pub fn required_version(&self) -> Option<&ConsumeVersion> {

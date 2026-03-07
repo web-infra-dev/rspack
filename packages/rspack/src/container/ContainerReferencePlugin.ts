@@ -10,13 +10,14 @@ import {
 import { ExternalsPlugin } from '../builtin-plugin/ExternalsPlugin';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
+import { type ShareScope, validateShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 import { parseOptions } from './options';
 
 export type ContainerReferencePluginOptions = {
   remoteType: ExternalsType;
   remotes: Remotes;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Remotes = (RemotesItem | RemotesObject)[] | RemotesObject;
@@ -27,12 +28,8 @@ export type RemotesObject = {
 };
 export type RemotesConfig = {
   external: RemotesItem | RemotesItems;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
 };
-
-function hasMultipleShareScopes(shareScope?: string | string[]) {
-  return Array.isArray(shareScope) && shareScope.filter(Boolean).length > 1;
-}
 
 export class ContainerReferencePlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerReferencePlugin;
@@ -41,6 +38,13 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
   constructor(options: ContainerReferencePluginOptions) {
     super();
     const enhanced = options.enhanced ?? false;
+    if (options.shareScope) {
+      validateShareScope(
+        options.shareScope,
+        enhanced,
+        'ContainerReferencePlugin',
+      );
+    }
     const remotes = parseOptions(
       options.remotes,
       (item) => ({
@@ -54,13 +58,11 @@ export class ContainerReferencePlugin extends RspackBuiltinPlugin {
         shareScope: item.shareScope || options.shareScope || 'default',
       }),
     );
-    if (
-      !enhanced &&
-      (hasMultipleShareScopes(options.shareScope) ||
-        remotes.some(([, config]) => hasMultipleShareScopes(config.shareScope)))
-    ) {
-      throw new Error(
-        '[ContainerReferencePlugin] Multiple share scopes are only supported in enhanced mode. Set `enhanced: true` or provide a single `shareScope`.',
+    for (const [, config] of remotes) {
+      validateShareScope(
+        config.shareScope,
+        enhanced,
+        'ContainerReferencePlugin',
       );
     }
     this._options = {

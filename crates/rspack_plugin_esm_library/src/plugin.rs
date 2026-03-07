@@ -745,7 +745,11 @@ async fn after_factorize(
 
 #[plugin_hook(CompilationOptimizeChunkModules for EsmLibraryPlugin, stage = 100)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
-  let mut groups: FxHashMap<String, Vec<ModuleIdentifier>> = FxHashMap::default();
+  // Group duplicate external modules by (base_id, chunk) so we only merge
+  // duplicates within the same chunk. Merging across chunks would cause a
+  // module to appear in multiple chunks, which violates get_module_chunk's
+  // single-chunk assumption.
+  let mut groups: FxHashMap<(String, ChunkUkey), Vec<ModuleIdentifier>> = FxHashMap::default();
   let mg = compilation.get_module_graph();
   let cg = &compilation.build_chunk_graph_artifact.chunk_graph;
 
@@ -756,19 +760,21 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
       let id_str = id.as_str();
       if modules_map[id].is_external()
         && let Some(pipe_pos) = id_str.rfind('|')
-        && cg
-          .try_get_module_chunks(id)
-          .is_some_and(|chunks| !chunks.is_empty())
+        && let Some(chunks) = cg.try_get_module_chunks(id)
+        && !chunks.is_empty()
       {
         let base = id_str[..pipe_pos].to_string();
-        groups.entry(base).or_default().push(*id);
+        for &chunk in chunks {
+          groups.entry((base.clone(), chunk)).or_default().push(*id);
+        }
       }
     }
   }
 
-  // Phase 2: Merge duplicates
+  // Phase 2: Merge duplicates within the same chunk
   for mut module_ids in groups.into_values() {
     module_ids.sort_unstable();
+    module_ids.dedup();
     if module_ids.len() <= 1 {
       continue;
     }

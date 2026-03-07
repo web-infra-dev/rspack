@@ -264,15 +264,14 @@ impl EsmLibraryPlugin {
       .par_values()
       .map(|info| {
         let mut escaped_names: FxHashMap<String, String> = FxHashMap::default();
-        let mut escaped_identifiers: FxHashMap<String, Vec<String>> = FxHashMap::default();
+        let mut escaped_identifiers: FxHashMap<String, Vec<Atom>> = FxHashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
           &compilation.module_static_cache,
           &compilation.options.context,
         );
-        let splitted_readable_identifier: Vec<String> =
-          split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
         escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
 
         match info {
@@ -416,10 +415,15 @@ impl EsmLibraryPlugin {
                   // When ids is empty, the symbol is directly referenced (not via property
                   // access like ns.readFile), so we need to add an import from the external
                   // source to make the binding available.
+                  //
+                  // Only do this for module-type externals. For other external types
+                  // (e.g., node-commonjs), the binding is already available from the
+                  // scope-hoisted code (e.g., `const X = require(...)`).
                   let module_graph = compilation.get_module_graph();
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
+                    && ext.get_external_type().starts_with("module")
                   {
                     let request = ext.user_request().to_string();
                     let import_spec = chunk_link
@@ -515,7 +519,7 @@ var {} = {{}};
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<String, String>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) {
     let context = &compilation.options.context;
 
@@ -1250,7 +1254,7 @@ var {} = {{}};
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
@@ -1509,7 +1513,7 @@ var {} = {{}};
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
