@@ -37,7 +37,7 @@
     "@types/node": "^20.19.35",
     "@types/react": "^19.2.14",
     "@types/semver": "^7.7.1",
-    "case-police": "~2.1.1",
+    "case-police": "~2.2.0",
     "cspell": "^9.7.0",
     "cspell-ban-words": "0.0.4",
     "rsbuild-plugin-google-analytics": "1.0.5",

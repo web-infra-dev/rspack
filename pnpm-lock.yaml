@@ -1001,8 +1001,8 @@ importers:
         specifier: ^7.7.1
         version: 7.7.1
       case-police:
-        specifier: ~2.1.1
-        version: 2.1.1
+        specifier: ~2.2.0
+        version: 2.2.0
       cspell:
         specifier: ^9.7.0
         version: 9.7.0
@@ -4321,8 +4321,8 @@ packages:
   caniuse-lite@1.0.30001765:
     resolution: {integrity: sha512-LWcNtSyZrakjECqmpP4qdg0MMGdN368D7X8XvvAqOcqMv0RxnlqVKZl2V6/mBR68oYMxOZPLw/gO7DuisMHUvQ==}
 
-  case-police@2.1.1:
-    resolution: {integrity: sha512-b7ntnoig2aVgKDi/OiziUPmbUQO4lVS0qxspY4Fu+U/N8q2iOU2TpsJjHu94S3GDWEjYnmOOQH7PAgt2ColTPQ==}
+  case-police@2.2.0:
+    resolution: {integrity: sha512-bFGvJl/w6+X2DoFB0HTFGxbIk/dClWxM7S0fiIQ63Xg00fL4dw7G+MOAGgVgHlfIda4YmHeRh9mp13xFqxz3hg==}
     hasBin: true
 
   ccount@2.0.1:
@@ -11973,7 +11973,7 @@ snapshots:
 
   caniuse-lite@1.0.30001765: {}
 
-  case-police@2.1.1: {}
+  case-police@2.2.0: {}
 
   ccount@2.0.1: {}
 
