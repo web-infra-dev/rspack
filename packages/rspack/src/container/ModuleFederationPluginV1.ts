@@ -1,10 +1,6 @@
 import type { Compiler } from '../Compiler';
 import type { EntryRuntime, ExternalsType, LibraryOptions } from '../config';
-import {
-  type Shared,
-  SharePlugin,
-  type ShareScope,
-} from '../sharing/SharePlugin';
+import { type Shared, SharePlugin } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 import { ContainerPlugin, type Exposes } from './ContainerPlugin';
 import {
@@ -20,7 +16,7 @@ export interface ModuleFederationPluginV1Options {
   remoteType?: ExternalsType;
   remotes?: Remotes;
   runtime?: EntryRuntime;
-  shareScope?: ShareScope;
+  shareScope?: string;
   shared?: Shared;
   enhanced?: boolean;
 }

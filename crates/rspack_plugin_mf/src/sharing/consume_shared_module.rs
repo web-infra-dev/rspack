@@ -7,18 +7,18 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, json_stringify, json_stringify_str, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ShareScope};
+use crate::{ConsumeOptions, ConsumeVersion, ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -45,8 +45,13 @@ impl ConsumeSharedModule {
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
     let scopes_key = options.share_scope.key();
     let identifier = format!(
-      "consume shared module ({}) {}@{}{}{}{}{}",
+      "consume shared module ({}){} {}@{}{}{}{}{}",
       &scopes_key,
+      options
+        .layer
+        .as_ref()
+        .map(|layer| format!(" ({layer})"))
+        .unwrap_or_default(),
       &options.share_key,
       options
         .required_version
@@ -78,7 +83,12 @@ impl ConsumeSharedModule {
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
-        "webpack/sharing/consume/{}/{}{}",
+        "{}webpack/sharing/consume/{}/{}{}",
+        options
+          .layer
+          .as_ref()
+          .map(|layer| format!("({layer})/"))
+          .unwrap_or_default(),
         &scopes_key,
         &options.share_key,
         options
@@ -95,6 +105,21 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn share_key(&self) -> &str {
+    &self.options.share_key
+  }
+
+  pub fn required_version(&self) -> Option<&ConsumeVersion> {
+    self
+      .options
+      .required_version
+      .as_ref()
+      .and_then(|version| match version {
+        ConsumeVersion::Version(_) => Some(version),
+        ConsumeVersion::False => None,
+      })
   }
 }
 
@@ -155,6 +180,10 @@ impl Module for ConsumeSharedModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.options.layer.as_ref()
+  }
+
   fn get_context(&self) -> Option<Box<Context>> {
     Some(Box::new(self.context.clone()))
   }
@@ -177,7 +206,10 @@ impl Module for ConsumeSharedModule {
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
-      let dep = Box::new(ConsumeSharedFallbackDependency::new(fallback.to_owned()));
+      let dep = Box::new(ConsumeSharedFallbackDependency::new(
+        fallback.to_owned(),
+        self.options.layer.clone(),
+      ));
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
@@ -245,6 +277,7 @@ impl Module for ConsumeSharedModule {
         strict_version: self.options.strict_version,
         singleton: self.options.singleton,
         eager: self.options.eager,
+        layer: self.options.layer.clone(),
         fallback: factory,
         tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });

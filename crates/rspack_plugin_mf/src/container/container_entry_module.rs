@@ -215,6 +215,7 @@ impl Module for ContainerEntryModule {
               Box::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
+                options.layer.clone(),
               )) as Box<dyn Dependency>
             })
             .collect(),
@@ -397,12 +398,13 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify_str(match &self.share_scope {
-          ShareScope::Single(s) => s.as_str(),
-          ShareScope::Multiple(_) => {
-            panic!("ContainerEntryModule: enhanced=false only supports string share scope")
-          }
-        }),
+        share_scope = json_stringify_str(
+          self
+            .share_scope
+            .scopes()
+            .first()
+            .map_or("default", |s| s.as_str())
+        ),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =

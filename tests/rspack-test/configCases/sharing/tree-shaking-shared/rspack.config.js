@@ -26,6 +26,7 @@ module.exports = {
       shared: {
         'ui-lib': {
           requiredVersion: '*',
+          layer: 'ui-layer',
           treeShaking: {
             mode: 'runtime-infer',
           },

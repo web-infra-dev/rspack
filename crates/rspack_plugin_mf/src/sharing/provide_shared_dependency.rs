@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  DependencyType, FactorizeInfo, ModuleDependency, ModuleLayer, ResourceIdentifier,
 };
 
 use super::provide_shared_plugin::ProvideVersion;
@@ -13,6 +13,7 @@ pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
   pub share_scope: ShareScope,
+  pub layer: Option<ModuleLayer>,
   pub name: String,
   pub version: ProvideVersion,
   pub eager: bool,
@@ -35,11 +36,16 @@ impl ProvideSharedDependency {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    layer: Option<ModuleLayer>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
     let resource_identifier = format!(
-      "provide module ({}) {} as {} @ {} {}",
+      "provide module ({}){} {} as {} @ {} {}",
       share_scope.key(),
+      layer
+        .as_ref()
+        .map(|layer| format!(" ({layer})"))
+        .unwrap_or_default(),
       &request,
       &name,
       &version,
@@ -50,6 +56,7 @@ impl ProvideSharedDependency {
       id: DependencyId::new(),
       request,
       share_scope,
+      layer,
       name,
       version,
       eager,
@@ -75,6 +82,10 @@ impl Dependency for ProvideSharedDependency {
 
   fn category(&self) -> &DependencyCategory {
     &DependencyCategory::Esm
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {

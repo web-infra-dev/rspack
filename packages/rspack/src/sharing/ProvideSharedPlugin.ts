@@ -29,6 +29,8 @@ export type ProvidesConfig<Enhanced extends boolean> = Enhanced extends true
   : ProvidesV1Config;
 type ProvidesV1Config = {
   eager?: boolean;
+  layer?: string;
+  request?: string;
   shareKey: string;
   shareScope?: ShareScope;
   version?: false | string;
@@ -57,14 +59,19 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
         shareKey: item,
         version: undefined,
         shareScope: shareScope || 'default',
+        layer: undefined,
+        request: item,
         eager: false,
       };
     },
-    (item) => {
+    (item, key) => {
+      const request = item.request || key;
       const raw = {
-        shareKey: item.shareKey,
+        shareKey: item.shareKey || request,
         version: item.version,
         shareScope: item.shareScope || shareScope || 'default',
+        layer: enhanced ? item.layer : undefined,
+        request,
         eager: !!item.eager,
       };
       if (enhanced) {

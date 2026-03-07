@@ -17,7 +17,9 @@ use crate::options::{
   library::JsLibraryOptions,
 };
 
-fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
+pub type RawShareScope = Either<String, Vec<String>>;
+
+fn into_share_scope(value: RawShareScope) -> ShareScope {
   match value {
     Either::A(s) => ShareScope::Single(s),
     Either::B(list) => ShareScope::Multiple(list),
@@ -28,7 +30,8 @@ fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
 #[napi(object)]
 pub struct RawContainerPluginOptions {
   pub name: String,
-  pub share_scope: Either<String, Vec<String>>,
+  #[napi(ts_type = "string | string[]")]
+  pub share_scope: RawShareScope,
   pub library: JsLibraryOptions,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<JsEntryRuntime>,
@@ -57,6 +60,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
 pub struct RawExposeOptions {
   pub key: String,
   pub name: Option<String>,
+  pub layer: Option<String>,
   pub import: Vec<String>,
 }
 
@@ -66,6 +70,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       value.key,
       ExposeOptions {
         name: value.name,
+        layer: value.layer,
         import: value.import,
       },
     )
@@ -77,7 +82,8 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
 pub struct RawContainerReferencePluginOptions {
   pub remote_type: String,
   pub remotes: Vec<RawRemoteOptions>,
-  pub share_scope: Option<Either<String, Vec<String>>>,
+  #[napi(ts_type = "string | string[] | undefined")]
+  pub share_scope: Option<RawShareScope>,
   pub enhanced: bool,
 }
 
@@ -98,7 +104,8 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
 pub struct RawRemoteOptions {
   pub key: String,
   pub external: Vec<String>,
-  pub share_scope: Either<String, Vec<String>>,
+  #[napi(ts_type = "string | string[]")]
+  pub share_scope: RawShareScope,
 }
 
 impl From<RawRemoteOptions> for (String, RemoteOptions) {
@@ -117,8 +124,11 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
 #[napi(object)]
 pub struct RawProvideOptions {
   pub key: String,
+  pub request: Option<String>,
+  pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: Either<String, Vec<String>>,
+  #[napi(ts_type = "string | string[]")]
+  pub share_scope: RawShareScope,
   #[napi(ts_type = "string | false | undefined")]
   pub version: Option<RawVersion>,
   pub eager: bool,
@@ -134,6 +144,8 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
     (
       value.key,
       ProvideOptions {
+        request: value.request,
+        layer: value.layer,
         share_key: value.share_key,
         share_scope: into_share_scope(value.share_scope),
         version: value.version.map(|v| RawVersionWrapper(v).into()),
@@ -263,10 +275,14 @@ impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptim
 #[napi(object)]
 pub struct RawConsumeOptions {
   pub key: String,
+  pub request: Option<String>,
+  pub issuer_layer: Option<String>,
+  pub layer: Option<String>,
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: Either<String, Vec<String>>,
+  #[napi(ts_type = "string | string[]")]
+  pub share_scope: RawShareScope,
   #[napi(ts_type = "string | false | undefined")]
   pub required_version: Option<RawVersion>,
   pub package_name: Option<String>,
@@ -281,6 +297,9 @@ impl From<RawConsumeOptions> for (String, ConsumeOptions) {
     (
       value.key,
       ConsumeOptions {
+        request: value.request,
+        issuer_layer: value.issuer_layer,
+        layer: value.layer,
         import: value.import,
         import_resolved: value.import_resolved,
         share_key: value.share_key,

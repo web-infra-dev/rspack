@@ -31,6 +31,7 @@ impl ModuleFactory for ProvideSharedModuleFactory {
         dep.singleton,
         dep.required_version.clone(),
         dep.strict_version,
+        dep.layer.clone(),
         dep.tree_shaking_mode.clone(),
       )
       .boxed(),
