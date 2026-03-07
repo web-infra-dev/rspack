@@ -32,7 +32,7 @@ jobs:
       - name: Install cargo-codspeed binary
         uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
-          tool: cargo-codspeed@2.10.1
+          tool: cargo-codspeed@4.3.0
 
       - name: Run Cargo codegen
         run: cargo codegen
@@ -47,4 +47,4 @@ jobs:
         with:
           name: codspeed-${{ inputs.target }}
           path: |
-            target/codspeed/instrumentation/**/
+            target/codspeed/analysis/**/
