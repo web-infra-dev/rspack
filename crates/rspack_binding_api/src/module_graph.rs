@@ -163,11 +163,16 @@ impl JsModuleGraph {
   ) -> napi::Result<Array<'a>> {
     let (compilation, module_graph) = self.as_ref()?;
     let vec = &mut self.connection_vec_buffer;
-    for connection in module_graph.get_outgoing_connections(&module.identifier) {
-      vec.push(ModuleGraphConnectionWrapper::new(
-        connection.dependency_id,
-        compilation,
-      ));
+    if let Some(module_graph_module) =
+      module_graph.module_graph_module_by_identifier(&module.identifier)
+    {
+      vec.reserve(module_graph_module.outgoing_connections().len());
+      for dependency_id in module_graph_module.outgoing_connections() {
+        vec.push(ModuleGraphConnectionWrapper::new(
+          *dependency_id,
+          compilation,
+        ));
+      }
     }
     let mut arr = env.create_array(vec.len() as u32)?;
     for (i, v) in vec.drain(..).enumerate() {
@@ -213,11 +218,16 @@ impl JsModuleGraph {
     let (compilation, module_graph) = self.as_ref()?;
 
     let vec = &mut self.connection_vec_buffer;
-    for connection in module_graph.get_incoming_connections(&module.identifier) {
-      vec.push(ModuleGraphConnectionWrapper::new(
-        connection.dependency_id,
-        compilation,
-      ));
+    if let Some(module_graph_module) =
+      module_graph.module_graph_module_by_identifier(&module.identifier)
+    {
+      vec.reserve(module_graph_module.incoming_connections().len());
+      for dependency_id in module_graph_module.incoming_connections() {
+        vec.push(ModuleGraphConnectionWrapper::new(
+          *dependency_id,
+          compilation,
+        ));
+      }
     }
     let mut arr = env.create_array(vec.len() as u32)?;
     for (i, v) in vec.drain(..).enumerate() {
