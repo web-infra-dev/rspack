@@ -21,6 +21,7 @@ impl FileCounter {
   ///
   /// It will add resource_id at the PathBuf in inner hashmap
   pub fn add_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
+    return;
     for path in paths {
       let list = self.inner.entry(path.clone()).or_default();
       if list.is_empty() {
@@ -38,6 +39,7 @@ impl FileCounter {
   /// If the PathBuf resource_id is empty after reduction, the record will be deleted
   /// If PathBuf does not exist, panic will occur.
   pub fn remove_files(&mut self, resource_id: &ResourceId, paths: &ArcPathSet) {
+    return;
     for path in paths {
       let Some(list) = self.inner.get_mut(path) else {
         panic!("unable to remove untracked file {}", path.to_string_lossy());
