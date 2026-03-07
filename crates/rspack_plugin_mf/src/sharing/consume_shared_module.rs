@@ -96,6 +96,11 @@ impl ConsumeSharedModule {
       source_map_kind: SourceMapKind::empty(),
     }
   }
+
+  /// Get the consume options
+  pub fn get_options(&self) -> &ConsumeOptions {
+    &self.options
+  }
 }
 
 impl Identifiable for ConsumeSharedModule {
