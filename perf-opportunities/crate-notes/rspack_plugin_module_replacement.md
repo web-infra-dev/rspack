@@ -1,0 +1,29 @@
+# rspack_plugin_module_replacement
+
+## Role
+Module replacement (aliasing/rewrites) support.
+
+## Profiling relevance
+- Not visible in react-10k; hot when many replacements are configured.
+- Costs scale with resolver invocation count.
+
+## Perf opportunities
+- Cache replacement decisions by request + context.
+- Avoid repeated resolver calls for identical replacements.
+- Short-circuit when no replacements are configured.
+
+## Key functions/structs to inspect
+- `ContextReplacementPlugin::new` and options parsing (context_replacement.rs).
+- `cmf_before_resolve` / `cmf_after_resolve` hooks (context_replacement.rs).
+- Normal module replacement hooks in `normal_module_replacement.rs`.
+
+## Suggested experiments
+- Profile builds with heavy replacement rules and measure resolver calls.
+- Compare cache hit rates for repeated replacement requests.
+
+## Code pointers
+- `crates/rspack_plugin_module_replacement/Cargo.toml`
+- `crates/rspack_plugin_module_replacement/src/lib.rs`
+- `crates/rspack_plugin_module_replacement/src/context_replacement.rs`
+- `crates/rspack_plugin_module_replacement/src/normal_module_replacement.rs`
+- `crates/rspack_plugin_module_replacement/**`
