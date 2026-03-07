@@ -8,7 +8,8 @@ use rspack_plugin_mf::{
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
   OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
-  SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
+  ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
+  StatsBuildInfo,
 };
 
 use crate::options::{
@@ -18,15 +19,11 @@ use crate::options::{
 
 pub type RawShareScope = Either<String, Vec<String>>;
 
-fn into_share_scope(value: RawShareScope) -> Vec<String> {
-  let scopes = match value {
-    Either::A(scope) => vec![scope],
-    Either::B(scopes) => scopes,
-  };
-  if scopes.is_empty() {
-    return vec!["default".to_string()];
+fn into_share_scope(value: RawShareScope) -> ShareScope {
+  match value {
+    Either::A(s) => ShareScope::Single(s),
+    Either::B(list) => ShareScope::Multiple(list),
   }
-  scopes
 }
 
 #[derive(Debug)]
@@ -45,9 +42,10 @@ pub struct RawContainerPluginOptions {
 
 impl From<RawContainerPluginOptions> for ContainerPluginOptions {
   fn from(value: RawContainerPluginOptions) -> Self {
+    let share_scope = into_share_scope(value.share_scope);
     Self {
       name: value.name,
-      share_scope: into_share_scope(value.share_scope),
+      share_scope,
       library: value.library.into(),
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       filename: value.filename.map(|f| f.into()),
@@ -91,10 +89,11 @@ pub struct RawContainerReferencePluginOptions {
 
 impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOptions {
   fn from(value: RawContainerReferencePluginOptions) -> Self {
+    let share_scope = value.share_scope.map(into_share_scope);
     Self {
       remote_type: value.remote_type,
       remotes: value.remotes.into_iter().map(|e| e.into()).collect(),
-      share_scope: value.share_scope.map(into_share_scope),
+      share_scope,
       enhanced: value.enhanced,
     }
   }

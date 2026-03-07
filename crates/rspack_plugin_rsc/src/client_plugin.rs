@@ -199,7 +199,7 @@ fn get_shared_resolution(module: &dyn rspack_core::Module) -> Option<ClientRefer
     share_scope: if consume_shared_module.share_scope().is_empty() {
       vec!["default".to_string()]
     } else {
-      consume_shared_module.share_scope().to_vec()
+      consume_shared_module.share_scope().scopes().to_vec()
     },
   })
 }

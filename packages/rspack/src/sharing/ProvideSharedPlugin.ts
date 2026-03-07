@@ -9,11 +9,12 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
+import type { ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
 
 export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
   provides: Provides<Enhanced>;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   enhanced?: Enhanced;
 };
 export type Provides<Enhanced extends boolean> =
@@ -31,7 +32,7 @@ type ProvidesV1Config = {
   layer?: string;
   request?: string;
   shareKey: string;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   version?: false | string;
 };
 type ProvidesEnhancedConfig = ProvidesV1Config & ProvidesEnhancedExtraConfig;
@@ -47,7 +48,7 @@ type ProvidesEnhancedExtraConfig = {
 
 export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
   options: Provides<Enhanced>,
-  shareScope?: string | string[],
+  shareScope?: ShareScope,
   enhanced?: boolean,
 ) {
   return parseOptions(

@@ -3,7 +3,7 @@ import { dirname, isAbsolute } from 'node:path';
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
-import type { SharedConfig } from '../sharing/SharePlugin';
+import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
 import { TreeShakingSharedPlugin } from '../sharing/TreeShakingSharedPlugin';
 import { isRequiredVersion } from '../sharing/utils';
 import {
@@ -170,7 +170,7 @@ interface RemoteInfo {
   name?: string;
   entry?: string;
   externalType: ExternalsType;
-  shareScope: string | string[];
+  shareScope: ShareScope;
 }
 
 type RemoteInfos = Record<string, RemoteInfo[]>;
@@ -220,7 +220,7 @@ export function getRemoteInfos(
     options.remotes,
     (item) => ({
       external: Array.isArray(item) ? item : [item],
-      shareScope: options.shareScope || 'default',
+      shareScope: options.shareScope ?? 'default',
     }),
     (item) => ({
       external: Array.isArray(item.external) ? item.external : [item.external],
