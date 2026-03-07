@@ -10,6 +10,7 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
+use rspack_util::prototype_methods::OBJECT_PROTOTYPE_METHODS;
 use swc_core::atoms::Atom;
 
 #[cacheable]
@@ -50,23 +51,6 @@ impl ExportsBase {
     )
   }
 }
-
-// we can't mangle names that are in an empty object because one could access the prototype property
-// when export isn't set yet. It's different for different targets. so here we only list common properties.
-pub static PROTOTYPE_PROPS: [&str; 12] = [
-  "constructor",
-  "__defineGetter__",
-  "__defineSetter__",
-  "hasOwnProperty",
-  "__lookupGetter__",
-  "__lookupSetter__",
-  "isPrototypeOf",
-  "propertyIsEnumerable",
-  "toString",
-  "valueOf",
-  "__proto__",
-  "toLocaleString",
-];
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -122,7 +106,10 @@ impl Dependency for CommonJsExportsDependency {
   ) -> Option<ExportsSpec> {
     let name = self.names[0].clone();
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-      can_mangle: Some(!PROTOTYPE_PROPS.contains(&name.as_str())),
+      // We can't mangle names that are in an empty object because one could access the prototype property
+      // when export isn't set yet. It's different for different targets. so here we only list common properties.
+      // Check out test case `configCases/mangle/mangle-with-object-prop`
+      can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
       name,
       ..Default::default()
     })];

@@ -239,7 +239,6 @@ impl Dependency for ESMImportSpecifierDependency {
       return self.get_referenced_exports_in_destructuring(None);
     }
 
-    let mut namespace_object_as_context = self.namespace_object_as_context;
     if let Some(id) = ids.first()
       && id == "default"
     {
@@ -259,7 +258,6 @@ impl Dependency for ESMImportSpecifierDependency {
             return self.get_referenced_exports_in_destructuring(None);
           }
           ids = &ids[1..];
-          namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
           return create_exports_object_referenced();
@@ -268,7 +266,7 @@ impl Dependency for ESMImportSpecifierDependency {
       }
     }
 
-    if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
+    if self.namespace_object_as_context && self.call {
       if ids.len() == 1 {
         return create_exports_object_referenced();
       }

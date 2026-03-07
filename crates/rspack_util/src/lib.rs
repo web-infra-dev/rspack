@@ -14,6 +14,7 @@ pub mod itoa;
 pub mod location;
 pub mod node_path;
 pub mod number_hash;
+pub mod prototype_methods;
 pub mod queue;
 pub mod ryu_js;
 pub mod size;
