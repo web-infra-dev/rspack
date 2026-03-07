@@ -66,7 +66,6 @@ impl Task<ExecutorTaskContext> for EntryTask {
               )
             })
             .clone(),
-          dependencies_marked: false,
           original_module_identifier: None,
           original_module_source: None,
           issuer: None,

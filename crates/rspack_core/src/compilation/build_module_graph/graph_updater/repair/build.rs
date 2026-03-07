@@ -1,6 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_fs::ReadableFileSystem;
+use rustc_hash::FxHashSet;
 
 use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
@@ -9,9 +10,7 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
   CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
-  compilation::build_module_graph::{
-    ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil,
-  },
+  compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
     task_loop::{Task, TaskResult, TaskType},
@@ -141,11 +140,8 @@ impl Task<TaskContext> for BuildResultTask {
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
-    let root_dependencies_len = build_result.dependencies.len();
-    let root_blocks_len = build_result.blocks.len();
-    let mut queue = VecDeque::with_capacity(root_blocks_len);
-    let mut all_dependencies = Vec::with_capacity(root_dependencies_len);
-    let mut eager_dependencies = Vec::with_capacity(root_dependencies_len);
+    let mut queue = VecDeque::new();
+    let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
@@ -153,13 +149,7 @@ impl Task<TaskContext> for BuildResultTask {
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
-          let should_process_now = matches!(&until, LazyUntil::Local(_));
           lazy_dependencies.insert(&dependency, until);
-          if should_process_now {
-            eager_dependencies.push(dependency_id);
-          }
-        } else {
-          eager_dependencies.push(dependency_id);
         }
         if current_block.is_none() {
           module.add_dependency_id(dependency_id);
@@ -192,16 +182,21 @@ impl Task<TaskContext> for BuildResultTask {
 
     {
       let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
-      mgm.all_dependencies = all_dependencies;
+      mgm.all_dependencies.clone_from(&all_dependencies);
     }
 
     let module_identifier = module.identifier();
 
     module_graph.add_module(module);
 
-    let mut tasks: Vec<Box<dyn Task<TaskContext>>> = Vec::with_capacity(2);
+    let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
 
     let dependencies_to_process = if !lazy_dependencies.is_empty() {
+      let lazy_dependency_ids = lazy_dependencies
+        .all_lazy_dependencies()
+        .collect::<FxHashSet<_>>();
+      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+
       if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
         .artifact
         .module_to_lazy_make
@@ -218,13 +213,13 @@ impl Task<TaskContext> for BuildResultTask {
         tasks.push(Box::new(task));
       }
 
-      eager_dependencies
+      all_dependencies
     } else {
       context
         .artifact
         .module_to_lazy_make
         .update_module_lazy_dependencies(module_identifier, None);
-      eager_dependencies
+      all_dependencies
     };
 
     tasks.push(Box::new(ProcessDependenciesTask {
