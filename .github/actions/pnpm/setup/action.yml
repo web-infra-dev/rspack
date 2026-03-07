@@ -12,6 +12,19 @@ runs:
   using: composite
   steps:
     - name: Install Node.js
+      if: ${{ startsWith(runner.name, 'rspack-darwin-') }}
+      uses: stormslowly/setup-node@v0.0.1
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Use mirror registry
+      if: ${{ startsWith(runner.name, 'rspack-darwin-') }}
+      shell: bash
+      run: |
+        npm config set registry https://registry.npmmirror.com
+
+    - name: Install Node.js
+      if: ${{ !startsWith(runner.name, 'rspack-darwin-') }}
       uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
       with:
         node-version: ${{ inputs.node-version }}
