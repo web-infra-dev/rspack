@@ -2260,6 +2260,7 @@ export interface RawExternalsPresets {
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
+  conditionFlags?: string
 }
 
 export interface RawFallbackCacheGroupOptions {

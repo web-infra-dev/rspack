@@ -21,7 +21,7 @@ use super::{
     CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
   },
 };
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -33,7 +33,7 @@ pub struct ProvideSharedModule {
   lib_ident: String,
   readable_identifier: String,
   name: String,
-  share_scope: Vec<String>,
+  share_scope: ShareScope,
   version: ProvideVersion,
   request: String,
   eager: bool,
@@ -50,7 +50,7 @@ pub struct ProvideSharedModule {
 impl ProvideSharedModule {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: Vec<String>,
+    share_scope: ShareScope,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -61,10 +61,10 @@ impl ProvideSharedModule {
     layer: Option<String>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
-    let share_scope_identifier = share_scope.join("|");
+    let scopes_key = share_scope.key();
     let identifier = format!(
       "provide shared module ({}){} {}@{} = {}",
-      &share_scope_identifier,
+      &scopes_key,
       layer
         .as_ref()
         .map(|layer| format!(" ({layer})"))
@@ -83,7 +83,7 @@ impl ProvideSharedModule {
           .as_ref()
           .map(|layer| format!("({layer})/"))
           .unwrap_or_default(),
-        &share_scope_identifier,
+        &scopes_key,
         &name
       ),
       readable_identifier: identifier,
@@ -219,28 +219,34 @@ impl Module for ProvideSharedModule {
     code_generation_result
       .data
       .insert(CodeGenerationDataShareInit {
-        items: if self.share_scope.is_empty() {
-          vec!["default".to_string()]
-        } else {
-          self.share_scope.clone()
-        }
-        .iter()
-        .map(|scope| ShareInitData {
-          share_scope: scope.clone(),
-          init_stage: 10,
-          init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
-            name: self.name.clone(),
-            version: self.version.clone(),
-            factory: factory.clone(),
-            eager: self.eager,
-            singleton: self.singleton,
-            strict_version: self.strict_version,
-            required_version: self.required_version.clone(),
-            layer: self.layer.clone(),
-            tree_shaking_mode: self.tree_shaking_mode.clone(),
-          }),
-        })
-        .collect(),
+        items: self
+          .share_scope
+          .scopes()
+          .iter()
+          .map(|scope| scope.to_string())
+          .chain(
+            self
+              .share_scope
+              .is_empty()
+              .then_some("default".to_string())
+              .into_iter(),
+          )
+          .map(|scope| ShareInitData {
+            share_scope: ShareScope::Single(scope),
+            init_stage: 10,
+            init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
+              name: self.name.clone(),
+              version: self.version.clone(),
+              factory: factory.clone(),
+              eager: self.eager,
+              singleton: self.singleton,
+              strict_version: self.strict_version,
+              required_version: self.required_version.clone(),
+              layer: self.layer.clone(),
+              tree_shaking_mode: self.tree_shaking_mode.clone(),
+            }),
+          })
+          .collect(),
       });
     Ok(code_generation_result)
   }
