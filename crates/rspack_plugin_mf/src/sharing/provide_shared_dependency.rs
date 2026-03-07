@@ -5,14 +5,14 @@ use rspack_core::{
 };
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub layer: Option<ModuleLayer>,
   pub name: String,
   pub version: ProvideVersion,
@@ -28,7 +28,7 @@ pub struct ProvideSharedDependency {
 impl ProvideSharedDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: Vec<String>,
+    share_scope: ShareScope,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -39,10 +39,9 @@ impl ProvideSharedDependency {
     layer: Option<ModuleLayer>,
     tree_shaking_mode: Option<String>,
   ) -> Self {
-    let share_scope_identifier = share_scope.join("|");
     let resource_identifier = format!(
       "provide module ({}){} {} as {} @ {} {}",
-      &share_scope_identifier,
+      share_scope.key(),
       layer
         .as_ref()
         .map(|layer| format!(" ({layer})"))

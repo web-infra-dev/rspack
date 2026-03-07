@@ -2,7 +2,7 @@ use std::{
   collections::{HashMap, HashSet},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
-  ops::{Deref, DerefMut},
+  ops::Deref,
   path::{Path, PathBuf},
   sync::Arc,
 };
@@ -82,12 +82,6 @@ impl Deref for ArcPath {
 
   fn deref(&self) -> &Self::Target {
     &self.path
-  }
-}
-
-impl DerefMut for ArcPath {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.path
   }
 }
 

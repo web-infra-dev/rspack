@@ -23,6 +23,7 @@ use super::{
   consume_shared_module::ConsumeSharedModule,
   consume_shared_runtime_module::ConsumeSharedRuntimeModule,
 };
+use crate::ShareScope;
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -33,7 +34,7 @@ pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub required_version: Option<ConsumeVersion>,
   pub package_name: Option<String>,
   pub strict_version: bool,

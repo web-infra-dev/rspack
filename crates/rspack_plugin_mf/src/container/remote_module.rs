@@ -20,7 +20,8 @@ use super::{
   remote_to_external_dependency::RemoteToExternalDependency,
 };
 use crate::{
-  CodeGenerationDataShareInit, ShareInitData, sharing::share_runtime_module::DataInitInfo,
+  CodeGenerationDataShareInit, ShareInitData, ShareScope,
+  sharing::share_runtime_module::DataInitInfo,
 };
 
 #[impl_source_map_config]
@@ -35,7 +36,7 @@ pub struct RemoteModule {
   request: String,
   external_requests: Vec<String>,
   pub internal_request: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub remote_key: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -47,18 +48,17 @@ impl RemoteModule {
     request: String,
     external_requests: Vec<String>,
     internal_request: String,
-    share_scope: Vec<String>,
+    share_scope: ShareScope,
     remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
     let lib_ident = format!("webpack/container/remote/{}", &request);
-    let share_scope_identifier = share_scope.join("|");
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "remote ({}) {} {}",
-        share_scope_identifier,
+        share_scope.key(),
         external_requests.join(" "),
         internal_request
       )),
@@ -214,7 +214,7 @@ impl Module for RemoteModule {
     let scopes: Vec<String> = if self.share_scope.is_empty() {
       vec!["default".to_string()]
     } else {
-      self.share_scope.clone()
+      self.share_scope.scopes().to_vec()
     };
     let share_init_items = scopes
       .iter()
