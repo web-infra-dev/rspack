@@ -10,6 +10,7 @@ use rayon::prelude::*;
 use rustc_hash::FxHashSet as HashSet;
 pub mod api_plugin;
 mod drive;
+mod fast_scope_hoisting;
 mod flag_dependency_exports_plugin;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;

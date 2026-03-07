@@ -4,10 +4,6 @@ cacheable modules xx bytes
     ./index.js xx bytes [built] [code generated]
       Statement with side_effects in source code at ./index.js<LINE_COL>-26
       ModuleConcatenation bailout: Module is an entry point
-      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/cjs.js: Module is not an ECMAScript module
-      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/eval.js: Module uses eval()
-      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/module-id.js: Module uses module.id
-      ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/scope-hoisting-bailouts/module-loaded.js: Module uses module.loaded
     ./entry.js xx bytes [built] [code generated]
       ModuleConcatenation bailout: Module is an entry point
     ./cjs.js xx bytes [built] [code generated]

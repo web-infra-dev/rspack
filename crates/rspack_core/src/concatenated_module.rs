@@ -1814,7 +1814,7 @@ impl Module for ConcatenatedModule {
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
               json_stringify(
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
-                  .expect("should have module id")
+                  .unwrap_or_else(|| panic!("should have module id for {:?}", info.module))
               )
             )));
 
