@@ -9,12 +9,13 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
+import type { ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
 import { isRequiredVersion } from './utils';
 
 export type ConsumeSharedPluginOptions = {
   consumes: Consumes;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -31,7 +32,7 @@ export type ConsumesConfig = {
   request?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   singleton?: boolean;
   strictVersion?: boolean;
   treeShakingMode?: 'server-calc' | 'runtime-infer';
@@ -39,7 +40,7 @@ export type ConsumesConfig = {
 
 export function normalizeConsumeShareOptions(
   consumes: Consumes,
-  shareScope?: string | string[],
+  shareScope?: ShareScope,
   enhanced?: boolean,
 ) {
   return parseOptions(

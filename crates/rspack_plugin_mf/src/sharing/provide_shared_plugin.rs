@@ -19,7 +19,7 @@ use super::{
   provide_shared_dependency::ProvideSharedDependency,
   provide_shared_module_factory::ProvideSharedModuleFactory,
 };
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
@@ -31,7 +31,7 @@ pub struct ProvideOptions {
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub version: Option<ProvideVersion>,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -45,7 +45,7 @@ pub struct VersionedProvideOptions {
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub version: ProvideVersion,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -128,7 +128,7 @@ impl ProvideSharedPlugin {
     &self,
     key: &str,
     share_key: &str,
-    share_scope: &[String],
+    share_scope: &ShareScope,
     version: Option<&ProvideVersion>,
     eager: bool,
     singleton: Option<bool>,
@@ -150,7 +150,7 @@ impl ProvideSharedPlugin {
           request: Some(resource.to_string()),
           layer: layer.clone(),
           share_key: share_key.to_string(),
-          share_scope: share_scope.to_vec(),
+          share_scope: share_scope.clone(),
           version: version.to_owned(),
           eager,
           singleton,
@@ -170,7 +170,7 @@ impl ProvideSharedPlugin {
             request: Some(resource.to_string()),
             layer: layer.clone(),
             share_key: share_key.to_string(),
-            share_scope: share_scope.to_vec(),
+            share_scope: share_scope.clone(),
             version: ProvideVersion::Version(version.to_string()),
             eager,
             singleton,
