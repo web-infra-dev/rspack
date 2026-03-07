@@ -138,7 +138,7 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
       } else {
         target_url
       };
-      source.replace(dep.range.start, dep.range.end, &content, None);
+      source.replace(dep.range.start, dep.range.end, content, None);
     }
   }
 }

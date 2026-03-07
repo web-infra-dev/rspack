@@ -649,7 +649,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         } else {
           std::borrow::Cow::Owned(format!("./{relative}"))
         };
-        replace_source.replace(start, end, &import_str, None);
+        replace_source.replace(start, end, import_str.into_owned(), None);
       }
       drop(chunk_ids_to_ukey);
 

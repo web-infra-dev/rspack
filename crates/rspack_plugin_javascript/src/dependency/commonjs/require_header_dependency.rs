@@ -76,7 +76,7 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       None,
     );
   }

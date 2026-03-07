@@ -1136,11 +1136,11 @@ impl Module for ConcatenatedModule {
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(high, &format!(": {new_name}"), None);
+                  source.insert(high, format!(": {new_name}"), None);
                   continue;
                 }
 
-                source.replace(low, high, &new_name, None);
+                source.replace(low, high, new_name.to_string(), None);
               }
             } else {
               // Handle the case when the name is not already used
@@ -1419,7 +1419,7 @@ impl Module for ConcatenatedModule {
           .and_then(|info| info.try_as_concatenated_mut())
           .expect("should have concatenate module info");
         let source = info.source.as_mut().expect("should have source");
-        source.replace(low, high, &name_result.name, None);
+        source.replace(low, high, name_result.name, None);
       }
     }
 

@@ -222,7 +222,7 @@ pub fn render_dyn_import_external_module(
   source.replace(
     import_dep.range.start,
     import_dep.range.end,
-    &format!(
+    format!(
       "import({}{}{})",
       comments_str,
       rspack_util::json_stringify_str(&request.primary),
