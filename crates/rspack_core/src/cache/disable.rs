@@ -10,6 +10,8 @@ pub struct DisableCache;
 #[async_trait::async_trait]
 impl Cache for DisableCache {
   async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
+    let module_executor = compilation.take_module_executor();
     *compilation.build_module_graph_artifact = BuildModuleGraphArtifact::new();
+    compilation.set_module_executor(module_executor);
   }
 }

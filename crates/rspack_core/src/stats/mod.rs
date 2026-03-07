@@ -107,7 +107,7 @@ impl<'compilation> StatsContext<'compilation> {
   }
 
   fn module_executor(&self) -> Option<&'compilation ModuleExecutor> {
-    self.0.module_executor.as_ref()
+    self.0.module_executor()
   }
 }
 

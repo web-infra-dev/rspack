@@ -32,6 +32,7 @@ impl MakeOccasion {
     let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
+      module_executor: _,
       module_graph,
       module_to_lazy_make,
       affected_modules,
@@ -111,6 +112,7 @@ impl MakeOccasion {
     Ok(BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
+      module_executor: Default::default(),
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),

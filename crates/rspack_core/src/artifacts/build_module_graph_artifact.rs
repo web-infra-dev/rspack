@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
-  compilation::build_module_graph::ModuleToLazyMake,
+  compilation::build_module_graph::{ModuleExecutor, ModuleToLazyMake},
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
@@ -27,6 +27,9 @@ pub enum BuildModuleGraphArtifactState {
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug)]
 pub struct BuildModuleGraphArtifact {
+  // module executor runtime state
+  pub module_executor: Option<Box<ModuleExecutor>>,
+
   // temporary data, used by subsequent steps of BuildModuleGraph, should be reset when rebuild.
   /// BuildModuleGraph stage affected modules.
   ///
@@ -72,6 +75,7 @@ impl BuildModuleGraphArtifact {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
     Self {
+      module_executor: Default::default(),
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),

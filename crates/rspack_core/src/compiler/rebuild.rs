@@ -8,11 +8,9 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
-  chunk_graph_chunk::ChunkId,
-  chunk_graph_module::ModuleId,
-  compilation::build_module_graph::ModuleExecutor,
-  incremental::{Incremental, IncrementalPasses},
+  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec, chunk_graph_chunk::ChunkId,
+  chunk_graph_module::ModuleId, compilation::build_module_graph::ModuleExecutor,
+  incremental::Incremental,
 };
 
 impl Compiler {
@@ -91,14 +89,6 @@ impl Compiler {
         self.compiler_context.clone(),
       );
       next_compilation.hot_index = self.compilation.hot_index + 1;
-
-      if next_compilation
-        .incremental
-        .mutations_readable(IncrementalPasses::BUILD_MODULE_GRAPH)
-      {
-        // reuse module executor
-        next_compilation.module_executor = std::mem::take(&mut self.compilation.module_executor);
-      }
 
       // Store old compilation in cache for artifact recovery during run_passes
       // The cache hooks will recover artifacts based on their associated incremental passes

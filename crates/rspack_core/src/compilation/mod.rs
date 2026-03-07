@@ -278,8 +278,8 @@ pub struct Compilation {
 
   import_var_map: IdentifierDashMap<RuntimeKeyMap<ImportVarMap>>,
 
-  // TODO move to MakeArtifact
-  pub module_executor: Option<ModuleExecutor>,
+  // Hold module executor while build_module_graph_artifact is stolen in make stage.
+  active_module_executor: Option<Box<ModuleExecutor>>,
   in_finish_make: AtomicBool,
 
   pub modified_files: ArcPathSet,
@@ -406,10 +406,13 @@ impl Compilation {
 
       import_var_map: IdentifierDashMap::default(),
 
-      module_executor,
+      active_module_executor: Default::default(),
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact {
+        module_executor: module_executor.map(Box::new),
+        ..BuildModuleGraphArtifact::new()
+      }),
       modified_files,
       removed_files,
       input_filesystem,
@@ -427,6 +430,30 @@ impl Compilation {
 
   pub fn compiler_id(&self) -> CompilerId {
     self.compiler_id
+  }
+
+  pub fn module_executor(&self) -> Option<&ModuleExecutor> {
+    if let Some(artifact) = self.build_module_graph_artifact.try_read() {
+      artifact.module_executor.as_deref()
+    } else {
+      self.active_module_executor.as_deref()
+    }
+  }
+
+  pub fn take_module_executor(&mut self) -> Option<Box<ModuleExecutor>> {
+    if let Some(artifact) = self.build_module_graph_artifact.try_write() {
+      artifact.module_executor.take()
+    } else {
+      self.active_module_executor.take()
+    }
+  }
+
+  pub fn set_module_executor(&mut self, module_executor: Option<Box<ModuleExecutor>>) {
+    if let Some(artifact) = self.build_module_graph_artifact.try_write() {
+      artifact.module_executor = module_executor;
+    } else {
+      self.active_module_executor = module_executor;
+    }
   }
 
   pub fn get_module_graph(&self) -> &ModuleGraph {

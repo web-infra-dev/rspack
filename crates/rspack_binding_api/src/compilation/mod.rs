@@ -678,8 +678,7 @@ impl JsCompilation {
       callback,
       within_compiler_context(compiler_context, async {
         let module_executor = compilation
-          .module_executor
-          .as_ref()
+          .module_executor()
           .expect("should have module executor");
         let res = module_executor
           .import_module(

@@ -267,7 +267,9 @@ impl Cache for PersistentCache {
     {
       match self.make_occasion.recovery().await {
         Ok(artifact) => {
+          let module_executor = compilation.take_module_executor();
           *compilation.build_module_graph_artifact = artifact;
+          compilation.set_module_executor(module_executor);
           for (module, _) in compilation
             .build_module_graph_artifact
             .get_module_graph()

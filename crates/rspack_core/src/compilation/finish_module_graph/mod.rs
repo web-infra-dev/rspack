@@ -22,19 +22,20 @@ pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<(
 pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   compilation.in_finish_make.store(false, Ordering::Release);
   // clean up the entry deps
-  let make_artifact = compilation.build_module_graph_artifact.steal();
+  let mut make_artifact = compilation.build_module_graph_artifact.steal();
+  compilation.set_module_executor(make_artifact.module_executor.take());
   let exports_info_artifact = compilation.exports_info_artifact.steal();
-  let (make_artifact, exports_info_artifact) =
+  let (mut make_artifact, exports_info_artifact) =
     finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await?;
+  make_artifact.module_executor = compilation.take_module_executor();
   compilation.build_module_graph_artifact = make_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
   // sync assets to module graph from module_executor
-  if let Some(module_executor) = &mut compilation.module_executor {
-    let mut module_executor = std::mem::take(module_executor);
+  if let Some(mut module_executor) = compilation.take_module_executor() {
     module_executor
       .after_build_module_graph(compilation)
       .await?;
-    compilation.module_executor = Some(module_executor);
+    compilation.set_module_executor(Some(module_executor));
   }
   // make finished, make artifact should be readonly thereafter.
   Ok(())
