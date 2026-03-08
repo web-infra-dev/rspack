@@ -15,13 +15,13 @@ const validateContext = ({ context }: Configuration) => {
   }
 };
 
-const validateOutputPath = ({ output }: Configuration) => {
-  if (output?.path && !isAbsolute(output.path)) {
-    throw new Error(
-      `${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`,
-    );
-  }
-};
+// const validateOutputPath = ({ output }: Configuration) => {
+// 	if (output?.path && !isAbsolute(output.path)) {
+// 		throw new Error(
+// 			`${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`
+// 		);
+// 	}
+// };
 
 const validateSplitChunks = ({ optimization }: Configuration) => {
   if (optimization?.splitChunks) {
@@ -91,8 +91,8 @@ const validateExternalUmd = ({
  * Performs configuration validation that cannot be covered by TypeScript types.
  */
 export function validateRspackConfig(config: Configuration) {
-  validateContext(config);
-  validateOutputPath(config);
-  validateSplitChunks(config);
-  validateExternalUmd(config);
+	validateContext(config);
+	// validateOutputPath(config);
+	validateSplitChunks(config);
+	validateExternalUmd(config);
 }
