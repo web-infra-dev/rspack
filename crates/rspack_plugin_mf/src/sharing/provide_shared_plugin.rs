@@ -16,8 +16,8 @@ use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
 use super::{
-  provide_shared_dependency::ProvideSharedDependency,
-  provide_shared_module_factory::ProvideSharedModuleFactory,
+  create_lookup_key_for_sharing, provide_shared_dependency::ProvideSharedDependency,
+  provide_shared_module_factory::ProvideSharedModuleFactory, strip_lookup_layer_prefix,
 };
 use crate::{ConsumeVersion, ShareScope};
 
@@ -69,22 +69,6 @@ impl ProvideOptions {
       tree_shaking_mode: self.tree_shaking_mode.clone(),
     }
   }
-}
-
-fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
-  if let Some(layer) = layer {
-    return format!("({layer}){request}");
-  }
-  request.to_string()
-}
-
-fn strip_lookup_layer_prefix(lookup: &str) -> &str {
-  if lookup.starts_with('(')
-    && let Some(index) = lookup.find(')')
-  {
-    return &lookup[index + 1..];
-  }
-  lookup
 }
 
 #[rspack_cacheable::cacheable]
