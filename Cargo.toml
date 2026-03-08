@@ -28,7 +28,7 @@ bitflags            = { version = "2.9.1", default-features = false }
 browserslist-rs     = { version = "0.19.0", default-features = false }
 bytes               = { version = "1.11.1", default-features = false }
 camino              = { version = "1.2.2", default-features = false }
-cargo_toml          = { version = "0.21.0", default-features = false }
+cargo_toml          = { version = "0.22.3", default-features = false }
 cfg-if              = { version = "1.0.4", default-features = false }
 chrono              = { version = "0.4.44", default-features = false }
 clap                = { version = "4.5.60", default-features = false }
@@ -103,7 +103,6 @@ termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thread_local        = { version = "1.1.9", default-features = false }
 tokio               = { version = "1.48.0", default-features = false, features = ["rt", "rt-multi-thread"] }
-toml                = { version = "0.8.19", default-features = false, features = ["parse", "display"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.22", default-features = false, features = ["fmt", "registry"] }
 trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
