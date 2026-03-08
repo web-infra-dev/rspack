@@ -218,15 +218,24 @@ invariant(
   'Expected expose "./server-mixed" serverActions to be non-empty',
 );
 
-const remoteStats = stats.remotes.find(
-  (item) => item.alias === 'remote' && item.moduleName === 'button',
-);
-invariant(remoteStats, 'Expected remote/button consumption entry in stats');
-invariant(remoteStats.rsc, 'Expected rsc metadata on remote stats entry');
-invariant(
-  remoteStats.rsc.lookup === 'remote/button',
-  `Expected remote lookup "remote/button", got "${remoteStats.rsc.lookup}"`,
-);
+const expectedRemoteModules = ['button', 'consumer', 'server-mixed'];
+for (const remoteModule of expectedRemoteModules) {
+  const remoteStats = stats.remotes.find(
+    (item) => item.alias === 'remote' && item.moduleName === remoteModule,
+  );
+  invariant(
+    remoteStats,
+    `Expected remote/${remoteModule} consumption entry in stats`,
+  );
+  invariant(
+    remoteStats.rsc,
+    `Expected rsc metadata on remote stats entry for remote/${remoteModule}`,
+  );
+  invariant(
+    remoteStats.rsc.lookup === `remote/${remoteModule}`,
+    `Expected remote lookup "remote/${remoteModule}", got "${remoteStats.rsc.lookup}"`,
+  );
+}
 
 const manifestShared = manifest.shared.find(
   (item) => item.name === sharedPackageName,
@@ -302,14 +311,19 @@ invariant(
   'Manifest expose "./server-mixed" lookup mismatch',
 );
 
-const manifestRemote = manifest.remotes.find(
-  (item) => item.alias === 'remote' && item.moduleName === 'button',
-);
-invariant(manifestRemote?.rsc, 'Expected remote rsc metadata in manifest');
-invariant(
-  manifestRemote.rsc.lookup === 'remote/button',
-  'Manifest remote lookup mismatch',
-);
+for (const remoteModule of expectedRemoteModules) {
+  const manifestRemote = manifest.remotes.find(
+    (item) => item.alias === 'remote' && item.moduleName === remoteModule,
+  );
+  invariant(
+    manifestRemote?.rsc,
+    `Expected remote rsc metadata in manifest for remote/${remoteModule}`,
+  );
+  invariant(
+    manifestRemote.rsc.lookup === `remote/${remoteModule}`,
+    `Manifest remote lookup mismatch for remote/${remoteModule}`,
+  );
+}
 
 const expectedSingletonShares = [
   'react',
@@ -343,6 +357,22 @@ invariant(
   clientStats.exposes.some((item) => item.path === './composed'),
   'Expected client stats to include expose "./composed"',
 );
+invariant(
+  !clientStats.exposes.some((item) => item.path === './consumer'),
+  'Did not expect client stats to include server-only expose "./consumer"',
+);
+invariant(
+  !clientStats.exposes.some((item) => item.path === './server-mixed'),
+  'Did not expect client stats to include server-only expose "./server-mixed"',
+);
+invariant(
+  !clientManifest.exposes.some((item) => item.path === './consumer'),
+  'Did not expect client manifest to include server-only expose "./consumer"',
+);
+invariant(
+  !clientManifest.exposes.some((item) => item.path === './server-mixed'),
+  'Did not expect client manifest to include server-only expose "./server-mixed"',
+);
 const expectedClientSingletonShares = [
   'react',
   'react/jsx-runtime',
@@ -361,6 +391,18 @@ for (const shareName of expectedClientSingletonShares) {
     `Expected client shared singleton "${shareName}" to be true`,
   );
 }
+invariant(
+  !clientStats.shared.some(
+    (item) => item.name === 'rsbuild-rsc-federation-shared/server-actions',
+  ),
+  'Did not expect client stats to include server-only shared actions entry',
+);
+invariant(
+  !clientManifest.shared.some(
+    (item) => item.name === 'rsbuild-rsc-federation-shared/server-actions',
+  ),
+  'Did not expect client manifest to include server-only shared actions entry',
+);
 
 console.log('[verify-manifest] verified manifest and stats successfully');
 console.log(`[verify-manifest] stats: ${statsPath}`);

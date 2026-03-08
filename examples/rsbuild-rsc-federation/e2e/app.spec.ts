@@ -71,6 +71,7 @@ for (const app of appUrls) {
       './server-mixed',
     ];
     const expectedClientExposes = ['./button', './composed'];
+    const unexpectedClientExposes = ['./consumer', './server-mixed'];
 
     const statsExposePaths = stats.exposes.map(
       (expose: { path: string }) => expose.path,
@@ -95,11 +96,28 @@ for (const app of appUrls) {
       expect(clientManifestExposePaths).toContain(exposePath);
     }
 
+    for (const exposePath of unexpectedClientExposes) {
+      expect(clientStatsExposePaths).not.toContain(exposePath);
+      expect(clientManifestExposePaths).not.toContain(exposePath);
+    }
+
     const sharedNames = stats.shared.map(
       (shared: { name: string }) => shared.name,
     );
     expect(sharedNames).toContain('rsbuild-rsc-federation-shared');
     expect(sharedNames).toContain(
+      'rsbuild-rsc-federation-shared/server-actions',
+    );
+    const clientSharedNames = clientStats.shared.map(
+      (shared: { name: string }) => shared.name,
+    );
+    const clientManifestSharedNames = clientManifest.shared.map(
+      (shared: { name: string }) => shared.name,
+    );
+    expect(clientSharedNames).not.toContain(
+      'rsbuild-rsc-federation-shared/server-actions',
+    );
+    expect(clientManifestSharedNames).not.toContain(
       'rsbuild-rsc-federation-shared/server-actions',
     );
 
@@ -118,14 +136,17 @@ for (const app of appUrls) {
       expect(manifest.name).toBe('rsbuild_host');
       expect(clientStats.name).toBe('rsbuild_host');
       expect(clientManifest.name).toBe('rsbuild_host');
-      const remoteEntry = stats.remotes.find(
-        (remote: {
-          alias: string;
-          moduleName: string;
-          rsc?: { lookup?: string };
-        }) => remote.alias === 'remote' && remote.moduleName === 'button',
-      );
-      expect(remoteEntry?.rsc?.lookup).toBe('remote/button');
+      const expectedRemoteModules = ['button', 'consumer', 'server-mixed'];
+      for (const moduleName of expectedRemoteModules) {
+        const remoteEntry = stats.remotes.find(
+          (remote: {
+            alias: string;
+            moduleName: string;
+            rsc?: { lookup?: string };
+          }) => remote.alias === 'remote' && remote.moduleName === moduleName,
+        );
+        expect(remoteEntry?.rsc?.lookup).toBe(`remote/${moduleName}`);
+      }
     } else {
       expect(stats.name).toBe('rsbuild_remote');
       expect(manifest.name).toBe('rsbuild_remote');
