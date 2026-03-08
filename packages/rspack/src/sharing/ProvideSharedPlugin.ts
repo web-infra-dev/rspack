@@ -11,6 +11,11 @@ import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
 import type { ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
+import {
+  resolveShareKey,
+  resolveShareRequest,
+  resolveShareScope,
+} from './utils';
 
 export type ProvideSharedPluginOptions<Enhanced extends boolean = false> = {
   provides: Provides<Enhanced>;
@@ -58,18 +63,18 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
       return {
         shareKey: item,
         version: undefined,
-        shareScope: shareScope || 'default',
+        shareScope: resolveShareScope(undefined, shareScope),
         layer: undefined,
         request: item,
         eager: false,
       };
     },
     (item, key) => {
-      const request = item.request || key;
+      const request = resolveShareRequest(item.request, key);
       const raw = {
-        shareKey: item.shareKey || request,
+        shareKey: resolveShareKey(item.shareKey, request),
         version: item.version,
-        shareScope: item.shareScope || shareScope || 'default',
+        shareScope: resolveShareScope(item.shareScope, shareScope),
         layer: enhanced ? item.layer : undefined,
         request,
         eager: !!item.eager,
