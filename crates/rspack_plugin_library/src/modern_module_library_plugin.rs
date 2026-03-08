@@ -5,8 +5,8 @@ use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -75,8 +75,7 @@ impl ModernModuleLibraryPlugin {
 
     let module_ids: Vec<_> = module_graph
       .module_graph_modules()
-      .keys()
-      .copied()
+      .map(|(id, _)| *id)
       .collect();
 
     let mut concatenated_module_ids = HashSet::default();
@@ -103,9 +102,10 @@ impl ModernModuleLibraryPlugin {
         };
         let reasons = &mgm.optimization_bailout;
 
-        reasons
-          .iter()
-          .any(|r| r.contains("Module is an entry point"))
+        reasons.iter().any(|r| match r {
+          OptimizationBailoutItem::Message(msg) => msg.contains("Module is an entry point"),
+          _ => false,
+        })
       })
       .collect::<HashSet<_>>();
 
@@ -284,6 +284,7 @@ async fn render_startup(
   let exports_type = module.get_exports_type(
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     module.build_meta().strict_esm_module,
   );
   if let Some(exports_final_names) = codegen
@@ -291,8 +292,9 @@ async fn render_startup(
     .get::<CodeGenerationExportsFinalNames>()
     .map(|d: &CodeGenerationExportsFinalNames| d.inner())
   {
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
     for (_, export_info) in exports_info.exports() {
       let info_name = export_info.name().expect("should have name");
       let used_name = export_info

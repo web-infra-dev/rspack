@@ -69,18 +69,6 @@ jobs:
       - name: Check Dependency Version
         run: pnpm run check-dependency-version
 
-      - name: API change check
-        run: |
-          echo "===================================="
-          echo "Note: force build npm packages with \`pnpm build:js\` and  \`pnpm api-extractor:local\` locally to generate API change if \`api-extractor\` check failed."
-          echo "$ pnpm build:js && pnpm api-extractor:local"
-          echo "===================================="
-          pnpm build:js
-          pnpm api-extractor:ci
-
-      - name: Documentation coverage check
-        run: pnpm doc-coverage
-
   lint-website:
     name: Lint and format website
     runs-on: ubuntu-latest

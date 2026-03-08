@@ -212,8 +212,8 @@ which tries to resolve these kind of requests in the current directory too.",
     let mut is_resolving_dir = false; // whether the request is to resolve a directory or not
 
     let file_name = normalized_path.file_name();
-    let utf8_normalized_path =
-      Utf8PathBuf::from_path_buf(normalized_path.clone()).expect("should be a valid utf8 path");
+    let utf8_normalized_path = Utf8PathBuf::from_path_buf(normalized_path.to_path_buf())
+      .expect("should be a valid utf8 path");
 
     let parent_path = match fs.metadata(&utf8_normalized_path).await {
       Ok(metadata) => {

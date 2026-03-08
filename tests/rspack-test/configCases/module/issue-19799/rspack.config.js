@@ -1,7 +1,7 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {(env: Env, options: TestOptions) => import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
@@ -18,7 +18,7 @@ module.exports = (env, { testPath }) => [
 				apply(compiler) {
 					compiler.hooks.compilation.tap("MyPlugin", (compilation) => {
 						const hooks =
-							webpack.javascript.JavascriptModulesPlugin.getCompilationHooks(
+							rspack.javascript.JavascriptModulesPlugin.getCompilationHooks(
 								compilation
 							);
 						hooks.inlineInRuntimeBailout.tap("test", () => "test bailout");

@@ -28,7 +28,7 @@ module.exports = {
 						{
 							name: "Test",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE
 						},
 						assets => {
 							if (

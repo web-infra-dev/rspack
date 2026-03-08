@@ -91,7 +91,6 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **Site**: `website/` directory
 - **Docs**: `website/docs/en/` (English), `website/docs/zh/` (Chinese)
 - **API**: `website/docs/en/api/`
-- **Extract API**: `pnpm run api-extractor:local`
 
 ## Pull request guidelines
 

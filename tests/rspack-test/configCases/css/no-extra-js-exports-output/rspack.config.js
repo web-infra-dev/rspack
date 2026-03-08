@@ -2,7 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /**
  * @param {0 | 1 | 2} i index
@@ -57,7 +57,7 @@ const common = (i) => ({
 						{
 							name: "copy-webpack-plugin",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						() => {
 							const data = fs.readFileSync(
@@ -66,7 +66,7 @@ const common = (i) => ({
 
 							compilation.emitAsset(
 								"test.js",
-								new webpack.sources.RawSource(data)
+								new rspack.sources.RawSource(data)
 							);
 						}
 					);

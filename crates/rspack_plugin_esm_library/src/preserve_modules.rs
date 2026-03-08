@@ -8,6 +8,9 @@ use sugar_path::SugarPath;
 
 use crate::EsmLibraryPlugin;
 
+static EXTENSION_JS: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r".+(\..+)$").expect("failed to compile EXTENSION_REGEXP"));
+
 pub fn entry_modules(compilation: &Compilation) -> FxHashMap<String, IdentifierSet> {
   let module_graph = compilation.get_module_graph();
   compilation
@@ -54,8 +57,7 @@ pub async fn preserve_modules(
   let mut errors = vec![];
   let modules = compilation
     .get_module_graph()
-    .modules()
-    .keys()
+    .modules_keys()
     .copied()
     .collect::<Vec<_>>();
 
@@ -106,9 +108,6 @@ pub async fn preserve_modules(
         .unwrap_or(&compilation.options.output.filename)
         .template()
         .map_or(Cow::Borrowed(".js"), |tpl| {
-          static EXTENSION_JS: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r".+(\..+)$").expect("failed to compile EXTENSION_REGEXP"));
-
           if let Some(captures) = EXTENSION_JS.captures(tpl) {
             Cow::Owned(captures[1].to_string())
           } else {

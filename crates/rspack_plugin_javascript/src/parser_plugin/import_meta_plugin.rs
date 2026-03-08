@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, property_access};
+use rspack_core::{ConstDependency, DependencyRange, ImportMeta, property_access};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
@@ -18,7 +18,7 @@ use crate::{
   },
 };
 
-pub struct ImportMetaPlugin;
+pub struct ImportMetaPlugin(pub(crate) ImportMeta);
 
 impl ImportMetaPlugin {
   fn import_meta_url(&self, parser: &JavascriptParser) -> String {
@@ -32,11 +32,15 @@ impl ImportMetaPlugin {
   }
 
   fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
-    format!(
-      r#"/* unsupported import.meta.{} */ undefined{}"#,
-      members.join("."),
-      property_access(members, 1)
-    )
+    if matches!(self.0, ImportMeta::PreserveUnknown) {
+      format!("import.meta{}", property_access(members, 0))
+    } else {
+      format!(
+        r#"/* unsupported import.meta.{} */ undefined{}"#,
+        members.join("."),
+        property_access(members, 1)
+      )
+    }
   }
 
   fn process_import_meta_resolve(
@@ -50,9 +54,11 @@ impl ImportMetaPlugin {
 
     let argument_expr = &call_expr.args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
+    let range = DependencyRange::from(call_expr.callee.span());
+    let loc = parser.to_dependency_location(range);
     let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
       call_expr.callee.span().into(),
-      Some(parser.source()),
+      loc,
     ));
 
     if param.is_conditional() {
@@ -252,7 +258,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
-              serde_json::to_string(&prop.id).expect("json stringify failed"),
+              rspack_util::json_stringify_str(&prop.id),
               self.import_meta_unknown_property(&vec![prop.id.to_string()])
             ));
           }
@@ -337,6 +343,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
+          if matches!(self.0, ImportMeta::PreserveUnknown) {
+            return Some(true);
+          }
           let members = parser
             .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
             .and_then(|info| match info {

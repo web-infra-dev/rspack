@@ -1,8 +1,9 @@
 use std::{
-  sync::Arc,
+  sync::{Arc, LazyLock},
   time::{Duration, Instant},
 };
 
+use regex::Regex;
 use rspack_core::{
   Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
@@ -13,6 +14,11 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
+
+static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
+    .expect("should initialize rstest flag regex")
+});
 
 use crate::{
   esm_import_dependency::{
@@ -204,9 +210,6 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
     }
   }
 
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
-    .expect("should initialize `Regex`");
-
   for file in files {
     let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
       std::collections::HashMap::new();
@@ -217,7 +220,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       }
 
       let content = old.source().into_string_lossy();
-      let captures: Vec<_> = regex.captures_iter(&content).collect();
+      let captures: Vec<_> = RSTEST_FLAG_RE.captures_iter(&content).collect();
 
       for c in captures {
         let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(2), c.get(3)] else {

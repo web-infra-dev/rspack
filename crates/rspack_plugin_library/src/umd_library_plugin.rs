@@ -2,13 +2,13 @@ use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
-  LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeModule, SourceType,
+  CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest, Filename,
+  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, error};
+use rspack_error::{Result, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -135,7 +135,11 @@ async fn render(
 
   if self.optional_amd_external_as_global {
     for module in &externals {
-      if module_graph.is_optional(&module.id, module_graph_cache) {
+      if module_graph.is_optional(
+        &module.id,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      ) {
         optional_externals.push(*module);
       } else {
         required_externals.push(*module);
@@ -198,7 +202,13 @@ async fn render(
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
       name,
-      externals_require_array("commonjs", &externals, module_graph, module_graph_cache)?,
+      externals_require_array(
+        "commonjs",
+        &externals,
+        module_graph,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      )?,
     );
     let root_code = format!(
       "{}
@@ -232,7 +242,13 @@ async fn render(
     } else {
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-        externals_require_array("commonjs", &externals, module_graph, module_graph_cache)?,
+        externals_require_array(
+          "commonjs",
+          &externals,
+          module_graph,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        )?,
         externals_root_array(&externals)?
       )
     };
@@ -254,7 +270,13 @@ async fn render(
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array("commonjs2", &externals, module_graph, module_graph_cache)?
+    externals_require_array(
+      "commonjs2",
+      &externals,
+      module_graph,
+      module_graph_cache,
+      &compilation.exports_info_artifact,
+    )?
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -323,8 +345,7 @@ impl Plugin for UmdLibraryPlugin {
 }
 
 async fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Result<String> {
-  let value =
-    serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
+  let value = rspack_util::json_stringify_str(v.last().expect("should have last"));
   replace_keys(value, chunk, compilation).await
 }
 
@@ -353,6 +374,7 @@ fn externals_require_array(
   externals: &[&ExternalModule],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Result<String> {
   Ok(
     externals
@@ -364,13 +386,13 @@ fn externals_require_array(
             .get(external_type)
             .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
-        let primary = serde_json::to_string(request.primary()).to_rspack_result()?;
+        let primary = rspack_util::json_stringify_str(request.primary());
         let mut expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
           format!("require({primary})")
         };
-        if module_graph.is_optional(&m.id, module_graph_cache) {
+        if module_graph.is_optional(&m.id, module_graph_cache, exports_info_artifact) {
           expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
         }
         Ok(expr)
@@ -403,12 +425,7 @@ fn externals_root_array(modules: &[&ExternalModule]) -> Result<String> {
 fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S>) -> String {
   accessor
     .into_iter()
-    .map(|s| {
-      format!(
-        "[{}]",
-        serde_json::to_string(s.as_ref()).expect("failed to serde_json::to_string")
-      )
-    })
+    .map(|s| format!("[{}]", rspack_util::json_stringify_str(s.as_ref())))
     .collect::<String>()
 }
 

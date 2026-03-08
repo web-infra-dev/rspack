@@ -13,7 +13,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
   runtime::render_chunk_runtime_modules,
 };
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 
 use crate::{
   generate_entry_startup, get_chunk_output_name, get_relative_path, get_runtime_chunk_output_name,
@@ -101,21 +101,22 @@ async fn js_chunk_hash(
 }
 
 #[plugin_hook(CompilationDependentFullHash for CommonJsChunkFormatPlugin)]
-async fn compilation_dependent_full_hash(
+fn compilation_dependent_full_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-) -> Result<Option<bool>> {
+  dependent_full_hash: &mut bool,
+) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph)
-    && runtime_chunk_has_hash(compilation, chunk_ukey).await?
+    && runtime_chunk_has_hash(compilation, chunk_ukey)?
   {
-    return Ok(Some(true));
+    *dependent_full_hash = true;
   }
-  Ok(None)
+  Ok(())
 }
 
 #[plugin_hook(JavascriptModulesRenderChunk for CommonJsChunkFormatPlugin)]
@@ -135,7 +136,7 @@ async fn render_chunk(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "exports.ids = [{}];\n",
-    json_stringify(chunk.expect_id())
+    json_stringify_str(chunk.expect_id().as_str())
   )));
   sources.add(RawStringSource::from_static("exports.modules = "));
   sources.add(render_source.source.clone());
@@ -157,7 +158,7 @@ async fn render_chunk(
 var {} = require({});
 "#,
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      json_stringify(&get_relative_path(
+      json_stringify_str(&get_relative_path(
         base_chunk_output_name
           .trim_start_matches("/")
           .trim_start_matches("\\"),

@@ -102,8 +102,12 @@ fn eval_typeof<'a>(
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
     res.set_string("bigint".to_string());
     Some(res)
+  } else if arg.is_wrapped() {
+    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+    res.set_string("string".to_string());
+    res.set_side_effects(arg.could_have_side_effects());
+    Some(res)
   } else {
-    // TODO: `arg.is_wrapped()`...
     None
   }
 }

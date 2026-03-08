@@ -20,7 +20,7 @@ module.exports = {
 				const {
 					sources: { ConcatSource, RawSource },
 					Compilation
-				} = compiler.webpack;
+				} = compiler.rspack;
 				compiler.hooks.compilation.tap("compilation", compilation => {
 					function addStage(stage) {
 						compilation.hooks.processAssets.tapPromise(

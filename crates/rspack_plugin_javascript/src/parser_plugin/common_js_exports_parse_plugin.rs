@@ -235,6 +235,7 @@ fn handle_access_export(
   parser: &mut JavascriptParser,
   expr_span: Span,
   remaining: &[Atom],
+  remaining_optionals: &[bool],
   base: ExportsBase,
   call_args: Option<&Vec<ExprOrSpread>>,
 ) -> Option<bool> {
@@ -248,6 +249,7 @@ fn handle_access_export(
     expr_span.into(),
     base,
     remaining.to_vec(),
+    remaining_optionals.to_vec(),
     true,
   )));
   if let Some(call_args) = call_args {
@@ -392,7 +394,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "exports" {
       // exports
-      return handle_access_export(parser, ident.span(), &[], ExportsBase::Exports, None);
+      return handle_access_export(parser, ident.span(), &[], &[], ExportsBase::Exports, None);
     }
 
     None
@@ -410,7 +412,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if parser.is_top_level_this() {
       // this
-      return handle_access_export(parser, expr.span(), &[], ExportsBase::This, None);
+      return handle_access_export(parser, expr.span(), &[], &[], ExportsBase::This, None);
     }
     None
   }
@@ -427,7 +429,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "module.exports" {
       // module.exports
-      return handle_access_export(parser, expr.span(), &[], ExportsBase::ModuleExports, None);
+      return handle_access_export(
+        parser,
+        expr.span(),
+        &[],
+        &[],
+        ExportsBase::ModuleExports,
+        None,
+      );
     }
     None
   }
@@ -438,7 +447,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],
-    _members_optionals: &[bool],
+    members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -447,7 +456,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "exports" {
       // exports.a.b.c
-      return handle_access_export(parser, expr.span(), members, ExportsBase::Exports, None);
+      return handle_access_export(
+        parser,
+        expr.span(),
+        members,
+        members_optionals,
+        ExportsBase::Exports,
+        None,
+      );
     }
 
     if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
@@ -456,6 +472,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser,
         expr.span(),
         &members[1..],
+        &members_optionals[1..],
         ExportsBase::ModuleExports,
         None,
       );
@@ -463,7 +480,14 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
 
     if for_name == "this" && parser.is_top_level_scope() {
       // this.a.b.c
-      return handle_access_export(parser, expr.span(), members, ExportsBase::This, None);
+      return handle_access_export(
+        parser,
+        expr.span(),
+        members,
+        members_optionals,
+        ExportsBase::This,
+        None,
+      );
     }
 
     None
@@ -475,7 +499,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
     expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
-    _members_optionals: &[bool],
+    members_optionals: &[bool],
     _member_ranges: &[Span],
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {
@@ -488,6 +512,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser,
         expr.callee.span(),
         members,
+        members_optionals,
         ExportsBase::Exports,
         Some(&expr.args),
       );
@@ -499,6 +524,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser,
         expr.callee.span(),
         &members[1..],
+        &members_optionals[1..],
         ExportsBase::ModuleExports,
         Some(&expr.args),
       );
@@ -510,6 +536,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
         parser,
         expr.callee.span(),
         members,
+        members_optionals,
         ExportsBase::This,
         Some(&expr.args),
       );

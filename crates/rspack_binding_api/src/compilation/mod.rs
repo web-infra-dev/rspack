@@ -14,8 +14,8 @@ use entries::JsEntries;
 use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
-  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, FactorizeInfo,
-  ModuleIdentifier, Reflector, rspack_sources::BoxSource,
+  BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
+  FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -64,6 +64,23 @@ impl JsCompilation {
     // SAFETY: The memory address of rspack_core::Compilation will not change,
     // so as long as the Compiler is not dropped, we can safely return a 'static reference.
     Ok(unsafe { self.inner.as_mut() })
+  }
+
+  pub(crate) fn exports_info_artifact_mut(
+    &mut self,
+  ) -> napi::Result<&'static mut ExportsInfoArtifact> {
+    let compilation = self.as_mut()?;
+    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
+      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
+      return Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) });
+    }
+    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_write() {
+      return Ok(exports_info_artifact);
+    }
+    Err(napi::Error::new(
+      napi::Status::GenericFailure,
+      "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
+    ))
   }
 }
 
@@ -186,9 +203,8 @@ impl JsCompilation {
   pub fn modules<'a>(&self, env: &'a Env) -> Result<Array<'a>> {
     let compilation = self.as_ref()?;
     let module_graph = compilation.get_module_graph();
-    let modules = module_graph.modules();
-    let mut arr = env.create_array(modules.len() as u32)?;
-    for (i, identifier) in modules.keys().enumerate() {
+    let mut arr = env.create_array(module_graph.modules_len() as u32)?;
+    for (i, identifier) in module_graph.modules_keys().enumerate() {
       arr.set(
         i as u32,
         compilation
@@ -224,8 +240,13 @@ impl JsCompilation {
       compilation
         .get_module_graph()
         .module_graph_modules()
-        .values()
-        .flat_map(|item| item.optimization_bailout.clone())
+        .map(|(_, mgm)| mgm)
+        .flat_map(|item| {
+          item.optimization_bailout.iter().map(|b| match b {
+            OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+            b => b.to_string(),
+          })
+        })
         .map(|item| JsStatsOptimizationBailout { inner: item })
         .collect::<Vec<_>>(),
     )
@@ -495,8 +516,9 @@ impl JsCompilation {
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
       let compilation = compilation.as_ref()?;
+      let stats = compilation.get_stats();
 
-      Ok(compilation.get_stats())
+      Ok(stats)
     })?))
   }
 
@@ -601,6 +623,9 @@ impl JsCompilation {
     let compilation = self
       .as_mut()
       .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+    let exports_info_artifact = self
+      .exports_info_artifact_mut()
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       f,
@@ -613,6 +638,7 @@ impl JsCompilation {
               .into_iter()
               .map(ModuleIdentifier::from)
               .collect::<IdentifierSet>(),
+            exports_info_artifact,
             |modules| {
               modules
                 .into_iter()

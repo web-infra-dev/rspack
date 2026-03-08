@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
@@ -50,6 +50,23 @@ impl ExportsBase {
     )
   }
 }
+
+// we can't mangle names that are in an empty object because one could access the prototype property
+// when export isn't set yet. It's different for different targets. so here we only list common properties.
+pub static PROTOTYPE_PROPS: [&str; 12] = [
+  "constructor",
+  "__defineGetter__",
+  "__defineSetter__",
+  "hasOwnProperty",
+  "__lookupGetter__",
+  "__lookupSetter__",
+  "isPrototypeOf",
+  "propertyIsEnumerable",
+  "toString",
+  "valueOf",
+  "__proto__",
+  "toLocaleString",
+];
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -101,10 +118,12 @@ impl Dependency for CommonJsExportsDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
+    let name = self.names[0].clone();
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-      name: self.names[0].clone(),
-      can_mangle: Some(false), // in webpack, object own property may not be mangled
+      can_mangle: Some(!PROTOTYPE_PROPS.contains(&name.as_str())),
+      name,
       ..Default::default()
     })];
     Some(ExportsSpec {
@@ -168,18 +187,21 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .expect("should have mgm");
 
     let used = if dep.names.is_empty() {
-      let exports_info_used =
-        module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
+      let exports_info_used = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info_used(&module.identifier(), *runtime);
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithoutNames(&exports_info_used),
         *runtime,
         &dep.names,
       )
     } else {
-      let exports_info = module_graph.get_prefetched_exports_info(
-        &module.identifier(),
-        PrefetchExportsInfoMode::Nested(&dep.names),
-      );
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(
+          &module.identifier(),
+          PrefetchExportsInfoMode::Nested(&dep.names),
+        );
       ExportsInfoGetter::get_used_name(
         GetUsedNameParam::WithNames(&exports_info),
         *runtime,

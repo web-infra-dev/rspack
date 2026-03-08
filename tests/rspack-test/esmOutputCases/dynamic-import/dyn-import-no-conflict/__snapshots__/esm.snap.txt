@@ -1,0 +1,29 @@
+```mjs title=main.mjs
+// ./index.js
+it('should support dyn import with no conflicting exports', async () => {
+	const { foo, fooFn } = await import("./shared.mjs")
+	const { bar, barFn } = await import("./shared.mjs")
+
+	expect(foo).toBe(1)
+	expect(bar).toBe(2)
+
+	expect(fooFn()).toBe(1)
+	expect(barFn()).toBe(2)
+})
+
+
+```
+
+```mjs title=shared.mjs
+// ./a.js
+const foo = 1;
+const fooFn = () => 1;
+
+// ./b.js
+const bar = 2;
+const barFn = () => 2;
+
+
+export { bar, barFn, foo, fooFn };
+
+```

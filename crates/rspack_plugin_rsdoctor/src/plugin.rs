@@ -5,11 +5,11 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
+  CompilationParams, CompilerCompilation, ModuleIdsArtifact, OptimizationBailoutItem, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -31,7 +31,8 @@ use crate::{
   },
   module_graph::{
     collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
-    collect_module_ids, collect_module_original_sources, collect_modules,
+    collect_module_ids, collect_module_original_sources, collect_module_side_effects_locations,
+    collect_modules,
   },
 };
 
@@ -267,9 +268,12 @@ async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Opti
   }
 
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
 
-  let json_sizes = collect_json_module_sizes(&modules, module_graph);
+  let json_sizes = collect_json_module_sizes(&modules, &compilation.exports_info_artifact);
 
   JSON_MODULE_SIZE_MAP.insert(compilation.id(), json_sizes);
 
@@ -290,7 +294,10 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
 
   // 1. collect modules
   rsd_modules.extend(collect_modules(
@@ -371,11 +378,26 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
       rsd_module.issuer_path = Some(issuer_path);
       let bailout_reason = module_graph.get_optimization_bailout(module_id);
-      rsd_module.bailout_reason = bailout_reason.iter().cloned().collect();
+      rsd_module.bailout_reason = bailout_reason
+        .iter()
+        .map(|b| match b {
+          OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+          b => b.to_string(),
+        })
+        .collect();
     }
   }
 
-  // 6. collect chunk modules
+  // 6. collect side_effects locations
+  let side_effects_locations_map =
+    collect_module_side_effects_locations(&modules, &module_ukey_map, module_graph);
+  for (module_id, locations) in side_effects_locations_map {
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.side_effects_locations = locations;
+    }
+  }
+
+  // 7. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
@@ -411,7 +433,10 @@ async fn module_ids(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
   let rsd_module_ids = collect_module_ids(
     &modules,
     &MODULE_UKEY_MAP
@@ -449,7 +474,10 @@ async fn after_code_generation(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
   let rsd_module_original_sources = collect_module_original_sources(
     &modules,
     &MODULE_UKEY_MAP

@@ -20,7 +20,8 @@ use super::{
   remote_to_external_dependency::RemoteToExternalDependency,
 };
 use crate::{
-  CodeGenerationDataShareInit, ShareInitData, sharing::share_runtime_module::DataInitInfo,
+  CodeGenerationDataShareInit, ShareInitData, ShareScope,
+  sharing::share_runtime_module::DataInitInfo,
 };
 
 #[impl_source_map_config]
@@ -35,7 +36,7 @@ pub struct RemoteModule {
   request: String,
   external_requests: Vec<String>,
   pub internal_request: String,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub remote_key: String,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
@@ -47,7 +48,7 @@ impl RemoteModule {
     request: String,
     external_requests: Vec<String>,
     internal_request: String,
-    share_scope: String,
+    share_scope: ShareScope,
     remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
@@ -57,7 +58,7 @@ impl RemoteModule {
       dependencies: Default::default(),
       identifier: ModuleIdentifier::from(format!(
         "remote ({}) {} {}",
-        share_scope,
+        share_scope.key(),
         external_requests.join(" "),
         internal_request
       )),
@@ -144,6 +145,7 @@ impl Module for RemoteModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
     _strict: bool,
   ) -> ExportsType {
     ExportsType::Dynamic

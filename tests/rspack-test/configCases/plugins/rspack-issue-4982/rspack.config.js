@@ -14,7 +14,7 @@ module.exports = {
 							filename: "child.js"
 						},
 						[
-							new compiler.webpack.EntryPlugin(
+							new compiler.rspack.EntryPlugin(
 								compiler.context,
 								path.resolve(__dirname, "./child.js"),
 								{ name: "child" }

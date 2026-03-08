@@ -1,6 +1,6 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
@@ -53,7 +53,7 @@ module.exports = [
 			"external-13.css": "css-import external-13.css",
 			"external-14.css": "css-import external-14.css"
 		},
-		plugins: [new webpack.IgnorePlugin({ resourceRegExp: /ignore\.css/ })]
+		plugins: [new rspack.IgnorePlugin({ resourceRegExp: /ignore\.css/ })]
 	},
 	{
 		target: "web",

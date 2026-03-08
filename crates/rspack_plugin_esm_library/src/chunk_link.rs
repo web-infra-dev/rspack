@@ -175,12 +175,11 @@ impl ExternalInterop {
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        serde_json::to_string(
+        rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
             .as_str()
         )
-        .expect("module id to string should success")
       )));
 
       if let Some(namespace_object) = &self.namespace_object {
@@ -225,12 +224,11 @@ impl ExternalInterop {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        serde_json::to_string(
+        rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
             .as_str()
         )
-        .expect("module id to string should success")
       )));
     }
 
@@ -312,11 +310,6 @@ pub struct ChunkLinkContext {
   pub refs: FxHashMap<String, Ref>,
 
   /**
-  Map::<module, (is_module_in_chunk, symbol_binding)>
-  */
-  pub dyn_refs: FxHashMap<String, (bool, Ref)>,
-
-  /**
   all used symbols in current chunk
   */
   pub used_names: FxHashSet<Atom>,
@@ -341,7 +334,6 @@ impl ChunkLinkContext {
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
       refs: Default::default(),
-      dyn_refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),

@@ -4,7 +4,10 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::DependencyRange;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{atoms::Atom, common::Spanned};
+use swc_core::{
+  atoms::Atom,
+  common::{Span, Spanned},
+};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
@@ -22,12 +25,7 @@ impl ProvideParserPlugin {
     Self { provide, names }
   }
 
-  fn add_provide_dep(
-    &self,
-    name: &str,
-    range: DependencyRange,
-    parser: &mut JavascriptParser,
-  ) -> bool {
+  fn add_provide_dep(&self, name: &str, span: Span, parser: &mut JavascriptParser) -> bool {
     if let Some(requests) = self.provide.get(name) {
       let name_identifier = if name.contains(SOURCE_DOT) {
         format!(
@@ -37,6 +35,8 @@ impl ProvideParserPlugin {
       } else {
         name.to_string()
       };
+      let range = DependencyRange::from(span);
+      let loc = parser.to_dependency_location(range);
       let dep = ProvideDependency::new(
         range,
         Atom::from(requests[0].as_str()),
@@ -45,7 +45,7 @@ impl ProvideParserPlugin {
           .iter()
           .map(|s| Atom::from(s.as_str()))
           .collect_vec(),
-        Some(parser.source),
+        loc,
       );
       parser.add_dependency(Box::new(dep));
 
@@ -72,7 +72,7 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if self.add_provide_dep(for_name, expr.callee.span().into(), parser) {
+    if self.add_provide_dep(for_name, expr.callee.span(), parser) {
       // FIXME: webpack use `walk_expression` here
       parser.walk_expr_or_spread(&expr.args);
       return Some(true);
@@ -87,7 +87,7 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     self
-      .add_provide_dep(for_name, expr.span().into(), parser)
+      .add_provide_dep(for_name, expr.span(), parser)
       .then_some(true)
   }
 
@@ -98,7 +98,7 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     self
-      .add_provide_dep(for_name, ident.span.into(), parser)
+      .add_provide_dep(for_name, ident.span, parser)
       .then_some(true)
   }
 }

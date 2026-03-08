@@ -94,7 +94,7 @@ Use [resolveLoader](/config/resolve-loader) to replace worker-loader with worker
 <Tabs>
   <Tab label="ESM">
 ```js title="rspack.config.mjs"
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 

@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ModuleFactory, ResolverFactory, RuntimeTemplate,
-  SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
+  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
 };
 
 #[derive(Debug)]
@@ -30,10 +30,15 @@ pub struct TaskContext {
   pub runtime_template: RuntimeTemplate,
 
   pub artifact: BuildModuleGraphArtifact,
+  pub exports_info_artifact: ExportsInfoArtifact,
 }
 
 impl TaskContext {
-  pub fn new(compilation: &Compilation, artifact: BuildModuleGraphArtifact) -> Self {
+  pub fn new(
+    compilation: &Compilation,
+    artifact: BuildModuleGraphArtifact,
+    exports_info_artifact: ExportsInfoArtifact,
+  ) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
       compilation_id: compilation.id(),
@@ -50,9 +55,12 @@ impl TaskContext {
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
       artifact,
+      exports_info_artifact,
     }
   }
+}
 
+impl TaskContext {
   // TODO use module graph with make artifact
   pub fn get_module_graph_mut(artifact: &mut BuildModuleGraphArtifact) -> &mut ModuleGraph {
     artifact.get_module_graph_mut()
@@ -83,11 +91,25 @@ impl TaskContext {
     );
     compilation.dependency_factories = self.dependency_factories.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
-    compilation.swap_build_module_graph_artifact(&mut self.artifact);
+    std::mem::swap(
+      &mut *compilation.build_module_graph_artifact,
+      &mut self.artifact,
+    );
+    std::mem::swap(
+      &mut *compilation.exports_info_artifact,
+      &mut self.exports_info_artifact,
+    );
     compilation
   }
 
   pub fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
-    compilation.swap_build_module_graph_artifact(&mut self.artifact);
+    std::mem::swap(
+      &mut *compilation.build_module_graph_artifact,
+      &mut self.artifact,
+    );
+    std::mem::swap(
+      &mut *compilation.exports_info_artifact,
+      &mut self.exports_info_artifact,
+    );
   }
 }

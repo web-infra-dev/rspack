@@ -14,8 +14,7 @@ pub struct RequireResolveHeaderDependency {
 }
 
 impl RequireResolveHeaderDependency {
-  pub fn new(range: DependencyRange, source: Option<&str>) -> Self {
-    let loc = range.to_loc(source);
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self {
       id: DependencyId::new(),
       range,

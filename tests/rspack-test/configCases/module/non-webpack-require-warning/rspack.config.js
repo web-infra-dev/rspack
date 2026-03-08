@@ -1,6 +1,6 @@
 "use strict";
 
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
@@ -17,12 +17,12 @@ module.exports = [
 							{
 								name: "copy-webpack-plugin",
 								stage:
-									compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+									compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 							},
 							() => {
 								compilation.emitAsset(
 									"bar.js",
-									new webpack.sources.RawSource("module.exports = 1;")
+									new rspack.sources.RawSource("module.exports = 1;")
 								);
 							}
 						);
@@ -37,7 +37,7 @@ module.exports = [
 		},
 		target: "web",
 		plugins: [
-			new webpack.BannerPlugin({
+			new rspack.BannerPlugin({
 				raw: true,
 				banner:
 					'import { createRequire } from "module"; const require = createRequire(import.meta.url)'

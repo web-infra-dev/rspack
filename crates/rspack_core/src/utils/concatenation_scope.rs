@@ -195,30 +195,6 @@ impl ConcatenationScope {
     }
   }
 
-  pub fn create_dynamic_module_reference(
-    &mut self,
-    module: &ModuleIdentifier,
-    already_in_chunk: bool,
-    id: &Atom,
-  ) -> String {
-    let info = self
-      .modules_map
-      .get(module)
-      .expect("should have module info");
-
-    let export_data = hex::encode(id.as_str());
-    let mut index_buffer = itoa::Buffer::new();
-    let index_str = index_buffer.format(info.index());
-
-    let ref_string =
-      format!("__rspack_module_dynamic_ref{index_str}_{already_in_chunk}_{export_data}");
-
-    let entry = self.dyn_refs.entry(*module).or_default();
-    entry.insert((ref_string.clone(), id.clone()));
-
-    ref_string
-  }
-
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
     matches!(
       self.modules_map.get(module).expect("should have module"),

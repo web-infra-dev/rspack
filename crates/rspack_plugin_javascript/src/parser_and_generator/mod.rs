@@ -8,9 +8,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  DependencyRange, GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource,
+  GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem, SourceType, TemplateContext,
+  TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -306,10 +306,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     if compiler_options.optimization.side_effects.is_true() {
       build_meta.side_effect_free = Some(side_effects_item.is_none());
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
-        let source = source.source().into_string_lossy();
-        let msg = Into::<DependencyRange>::into(item.span)
-          .to_loc(Some(source.as_ref()))?
-          .to_string();
+        let msg = item.loc?.to_string();
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
       });
     }

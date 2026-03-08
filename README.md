@@ -73,6 +73,7 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 | Name                                                                           | Description                                                                   |
 | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
 | [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                   | A curated list of awesome things related to Rstack                            |
+| [agent-skills](https://github.com/rstackjs/agent-skills)                       | A collection of Agent Skills for Rstack                                       |
 | [Rspack 2.x docs](https://v2.rspack.rs/)                                       | Documentation for Rspack 2.x (beta)                                           |
 | [Rspack 1.x docs](https://rspack.rs/)                                          | Documentation for Rspack 1.x (latest)                                         |
 | [Rspack 0.x docs](https://v0.rspack.rs/)                                       | Documentation for Rspack 0.x version                                          |

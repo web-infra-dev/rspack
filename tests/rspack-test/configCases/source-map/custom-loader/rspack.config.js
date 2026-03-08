@@ -3,7 +3,7 @@ module.exports = {
 	devtool: false,
 	plugins: [
 		compiler => {
-			new compiler.webpack.SourceMapDevToolPlugin({}).apply(compiler);
+			new compiler.rspack.SourceMapDevToolPlugin({}).apply(compiler);
 		}
 	],
 	module: {

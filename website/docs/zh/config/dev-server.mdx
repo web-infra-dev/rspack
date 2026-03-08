@@ -631,27 +631,41 @@ export default {
 
 ## devServer.proxy
 
-- **类型：** `[object, function]`
+- **类型：** `ProxyConfigArray`
 
-:::tip
+为开发服务器配置代理规则，把请求转发到指定服务。
 
-Rspack 中 `@rspack/dev-server` 使用的是 `webpack-dev-server` v5 版本，`devServer.proxy` 是数组类型，如果你使用的配置是 v4 版本的对象类型，使用前需要先根据 [webpack-dev-server/migration-v5.md](https://github.com/webpack/webpack-dev-server/blob/master/migration-v5.md) 进行迁移。
+该功能基于 [http-proxy-middleware v3](https://github.com/chimurai/http-proxy-middleware) 实现。你可以使用 `http-proxy-middleware` 提供的 [全部选项](https://github.com/chimurai/http-proxy-middleware#options)。
 
-:::
+### 基础用法
 
-当你有一个单独的 API 后端开发服务器，且希望在同一个域上发送 API 请求时，代理 URL 可能会很有用。
-
-开发服务器使用了强大的 [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) 包。查看其[文档](https://github.com/chimurai/http-proxy-middleware#options)了解更多高级用法。
-请注意，`http-proxy-middleware` 的一些功能不需要 target 选项，例如其 `router` 功能，但你在这里的配置中仍然需要包含 `target` 选项，否则开发服务器不会将其传递给 `http-proxy-middleware`。
-
-如果你有一个运行在 `localhost:3000` 的后端，你可以使用以下配置来启用代理：
+将 `/api/*` 请求转发到 `https://example.com`：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     proxy: [
       {
-        context: ['/api'],
+        // http://localhost:8080/api -> https://example.com/api
+        // http://localhost:8080/api/users -> https://example.com/api/users
+        pathFilter: '/api',
+        target: 'https://example.com',
+      },
+    ],
+  },
+};
+```
+
+你也可以代理到本地服务：
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    proxy: [
+      {
+        // http://localhost:8080/api -> http://localhost:3000/api
+        // http://localhost:8080/api/foo -> http://localhost:3000/api/foo
+        pathFilter: '/api',
         target: 'http://localhost:3000',
       },
     ],
@@ -659,112 +673,42 @@ export default {
 };
 ```
 
-现在，对 `/api/users` 的请求将会代理到 `http://localhost:3000/api/users`。
+### 重写路径
 
-如果你不希望将 `/api` 传递，我们需要重写路径：
+通过 `pathRewrite` 可以重写请求路径，例如把 `/foo` 的请求改写为目标服务的 `/bar`：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     proxy: [
       {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        pathRewrite: { '^/api': '' },
+        // http://localhost:8080/foo -> https://example.com/bar
+        // http://localhost:8080/foo/baz -> https://example.com/bar/baz
+        pathFilter: '/foo',
+        target: 'https://example.com',
+        pathRewrite: { '^/foo': '/bar' },
       },
     ],
   },
 };
 ```
 
-默认情况下，带有无效证书的 HTTPS 后端服务器将不被接受。如果你愿意，可以像下面这样修改你的配置：
+### 路径过滤
+
+`pathFilter` 用于匹配要代理的请求路径，支持字符串、数组和函数，`context` 是它的别名。
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     proxy: [
       {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        secure: false,
-      },
-    ],
-  },
-};
-```
-
-有时你不希望代理所有内容。可以根据函数的返回值来绕过代理。
-
-在该函数中，你可以访问请求、响应和代理选项。
-
-- 返回 `null` 或 `undefined` 继续使用代理处理请求。
-- 返回 `false` 对请求产生一个 404 错误。
-- 返回一个路径以从该路径服务内容，而不是继续代理请求。
-
-例如，对于浏览器请求，你希望服务一个 HTML 页面，但对于 API 请求，你希望将它代理。你可以这样做：
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    proxy: [
-      {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        bypass: function (req, res, proxyOptions) {
-          if (req.headers.accept.indexOf('html') !== -1) {
-            console.log('Skipping proxy for browser request.');
-            return '/index.html';
-          }
+        // 仅代理 /api 开头且不是 HTML 请求的流量
+        // http://localhost:8080/api/users -> https://example.com/api/users
+        pathFilter: (pathname, req) => {
+          const accept = req.headers.accept || '';
+          return pathname.startsWith('/api') && !accept.includes('html');
         },
-      },
-    ],
-  },
-};
-```
-
-如果你想要将多个、特定的路径代理到相同的目标，你可以使用一个或多个带有 `context` 属性的对象的数组：
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    proxy: [
-      {
-        context: ['/auth', '/api'],
-        target: 'http://localhost:3000',
-      },
-    ],
-  },
-};
-```
-
-请注意，默认不会代理对根目录的请求。要启用根代理，应将 `devMiddleware.index` 选项指定为 falsy 值：
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    devMiddleware: {
-      index: false, // 启用根代理
-    },
-    proxy: [
-      {
-        context: () => true,
-        target: 'http://localhost:1234',
-      },
-    ],
-  },
-};
-```
-
-在默认情况下会保留代理时的 host 头部的原始值，你可以将 `changeOrigin` 设置为 `true` 来改变这一行为。这在某些情况下很有用，例如使用[基于名称的虚拟主机](https://en.wikipedia.org/wiki/Virtual_hosting#Name-based)。
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    proxy: [
-      {
-        context: ['/api'],
-        target: 'http://localhost:3000',
-        changeOrigin: true,
+        target: 'https://example.com',
       },
     ],
   },
@@ -860,7 +804,7 @@ export default {
   <Tab label="CJS">
 
 ```js title="rspack.config.cjs"
-const fs = require('fs');
+const fs = require('node:fs');
 const path = require('node:path');
 
 module.exports = {

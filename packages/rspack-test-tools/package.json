@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.0.0-beta.2",
+  "version": "2.0.0-beta.5",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -21,9 +21,7 @@
   },
   "scripts": {
     "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w",
-    "api-extractor": "api-extractor run --verbose",
-    "api-extractor:ci": "api-extractor run --verbose || diff temp/test-tools.api.md etc/test-tools.api.md"
+    "dev": "tsc -b -w"
   },
   "files": [
     "client",
@@ -49,7 +47,7 @@
     "@babel/types": "7.29.0",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
-    "fs-extra": "^11.3.3",
+    "fs-extra": "^11.3.4",
     "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.2.0",
@@ -60,10 +58,10 @@
     "pretty-format": "30.2.0",
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",
-    "terser-webpack-plugin": "^5.3.16",
+    "terser-webpack-plugin": "^5.3.17",
     "webpack": "5.102.1",
     "webpack-merge": "6.0.1",
-    "webpack-sources": "3.3.3",
+    "webpack-sources": "3.3.4",
     "chalk": "^4.1.2"
   },
   "devDependencies": {

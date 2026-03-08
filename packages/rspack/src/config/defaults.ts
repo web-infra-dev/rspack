@@ -112,6 +112,7 @@ export const applyRspackOptionsDefaults = (
     mode: options.mode,
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
+    outputModule: options.output.module,
   });
 
   applyOutputDefaults(options, {
@@ -235,6 +236,7 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'finishModules', true);
     D(options.incremental, 'optimizeDependencies', true);
     D(options.incremental, 'buildChunkGraph', true);
+    D(options.incremental, 'optimizeChunkModules', true);
     D(options.incremental, 'moduleIds', true);
     D(options.incremental, 'chunkIds', true);
     D(options.incremental, 'modulesHashes', true);
@@ -254,7 +256,13 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
-  { deferImport }: { deferImport?: boolean },
+  {
+    deferImport,
+    outputModule,
+  }: {
+    deferImport?: boolean;
+    outputModule: RspackOptionsNormalized['output']['module'];
+  },
 ) => {
   D(parserOptions, 'dynamicImportMode', 'lazy');
   D(parserOptions, 'dynamicImportPrefetch', false);
@@ -263,6 +271,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'exprContextCritical', true);
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);
+  D(parserOptions, 'strictThisContextOnImports', false);
   D(parserOptions, 'wrappedContextRegExp', /.*/);
   D(parserOptions, 'exportsPresence', 'error');
   D(parserOptions, 'requireAsExpression', true);
@@ -272,7 +281,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'commonjs', true);
   D(parserOptions, 'importDynamic', true);
   D(parserOptions, 'worker', ['...']);
-  D(parserOptions, 'importMeta', true);
+  D(parserOptions, 'importMeta', outputModule ? 'preserve-unknown' : true);
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
@@ -304,12 +313,14 @@ const applyModuleDefaults = (
     mode,
     uniqueName,
     deferImport,
+    outputModule,
   }: {
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
+    outputModule: RspackOptionsNormalized['output']['module'];
   },
 ) => {
   assertNotNill(module.parser);
@@ -327,6 +338,7 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.javascript);
   applyJavascriptParserOptionsDefaults(module.parser.javascript, {
     deferImport,
+    outputModule,
   });
 
   F(module.parser, JSON_MODULE_TYPE, () => ({}));
@@ -399,13 +411,14 @@ const applyModuleDefaults = (
     const commonjs = {
       type: 'javascript/dynamic',
     };
+    // IGNORE(module.rules): Rspack not use case-insensitive regex by default
     const rules: RuleSetRules = [
       {
         mimetype: 'application/node',
         type: 'javascript/auto',
       },
       {
-        test: /\.json$/i,
+        test: /\.json$/,
         type: 'json',
       },
       {
@@ -413,22 +426,22 @@ const applyModuleDefaults = (
         type: 'json',
       },
       {
-        test: /\.mjs$/i,
+        test: /\.mjs$/,
         ...esm,
       },
       {
-        test: /\.js$/i,
+        test: /\.js$/,
         descriptionData: {
           type: 'module',
         },
         ...esm,
       },
       {
-        test: /\.cjs$/i,
+        test: /\.cjs$/,
         ...commonjs,
       },
       {
-        test: /\.js$/i,
+        test: /\.js$/,
         descriptionData: {
           type: 'commonjs',
         },
@@ -457,7 +470,7 @@ const applyModuleDefaults = (
         ],
       };
       rules.push({
-        test: /\.wasm$/i,
+        test: /\.wasm$/,
         ...wasm,
       });
       rules.push({
@@ -1070,6 +1083,7 @@ const applyOptimizationDefaults = (
       production ? 30 : Number.POSITIVE_INFINITY,
     );
     D(splitChunks, 'automaticNameDelimiter', '-');
+    // IGNORE(splitChunks.cacheGroups): Rspack not use case-insensitive regex by default
     const { cacheGroups } = splitChunks;
     if (cacheGroups) {
       F(cacheGroups, 'default', () => ({
@@ -1081,7 +1095,7 @@ const applyOptimizationDefaults = (
       F(cacheGroups, 'defaultVendors', () => ({
         idHint: 'vendors',
         reuseExistingChunk: true,
-        test: /[\\/]node_modules[\\/]/i,
+        test: /[\\/]node_modules[\\/]/,
         priority: -10,
       }));
     }

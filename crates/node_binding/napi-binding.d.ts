@@ -1099,6 +1099,18 @@ export interface JsRsdoctorChunkModules {
   modules: Array<number>
 }
 
+export interface JsRsdoctorConnection {
+  ukey: number
+  dependencyId: string
+  module: number
+  originModule?: number
+  resolvedModule: number
+  dependencyType: string
+  userRequest: string
+  loc?: string
+  active: boolean
+}
+
 export interface JsRsdoctorDependency {
   ukey: number
   kind: string
@@ -1124,7 +1136,6 @@ export interface JsRsdoctorExportInfo {
   from?: number
   variable?: number
   identifier?: JsRsdoctorStatement
-  sideEffects: Array<number>
 }
 
 export interface JsRsdoctorJsonModuleSize {
@@ -1146,6 +1157,7 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
+  sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1193,6 +1205,13 @@ export interface JsRsdoctorSideEffect {
   fromDependency?: number
   exports: Array<number>
   variable?: number
+}
+
+export interface JsRsdoctorSideEffectLocation {
+  location: string
+  nodeType: string
+  module: number
+  request: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {
@@ -1739,6 +1758,12 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+  /**
+   * Path to PnP manifest file
+   *
+   * Default `None`
+   */
+  pnpManifest?: string | false
 }
 
 export interface NativeWatcherOptions {
@@ -1905,7 +1930,7 @@ export interface RawConsumeOptions {
   import?: string
   importResolved?: string
   shareKey: string
-  shareScope: string
+  shareScope: string | Array<string>
   requiredVersion?: string | false | undefined
   packageName?: string
   strictVersion: boolean
@@ -1921,7 +1946,7 @@ export interface RawConsumeSharedPluginOptions {
 
 export interface RawContainerPluginOptions {
   name: string
-  shareScope: string
+  shareScope: string | Array<string>
   library: JsLibraryOptions
   runtime?: false | string
   filename?: string
@@ -1932,7 +1957,7 @@ export interface RawContainerPluginOptions {
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
-  shareScope?: string
+  shareScope?: string | Array<string>
   enhanced: boolean
 }
 
@@ -2180,6 +2205,7 @@ export interface RawEnvironment {
 
 export interface RawEsmLibraryPlugin {
   preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
 }
 
 export interface RawEvalDevToolModulePluginOptions {
@@ -2230,6 +2256,7 @@ export interface RawExternalsPresets {
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
+  conditionFlags?: string
 }
 
 export interface RawFallbackCacheGroupOptions {
@@ -2322,6 +2349,7 @@ export interface RawIncremental {
   finishModules: boolean
   optimizeDependencies: boolean
   buildChunkGraph: boolean
+  optimizeChunkModules: boolean
   moduleIds: boolean
   chunkIds: boolean
   modulesHashes: boolean
@@ -2374,13 +2402,14 @@ export interface RawJavascriptParserOptions {
   exprContextCritical?: boolean
   unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
+  strictThisContextOnImports?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
   worker?: Array<string>
   overrideStrict?: string
-  importMeta?: boolean
+  importMeta?: string
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental
@@ -2726,19 +2755,26 @@ export interface RawPathData {
   url?: string
 }
 
+export interface RawProgressPluginHandlerInfo {
+  /** Number of built modules */
+  builtModules: number
+  /** Identifier of the active module (only provided during `build modules` updates) */
+  moduleIdentifier?: string
+}
+
 export interface RawProgressPluginOptions {
   prefix?: string
   profile?: boolean
   template?: string
   tick?: string | Array<string>
   progressChars?: string
-  handler?: (percent: number, msg: string, items: string[]) => void
+  handler?: (percent: number, msg: string, info: RawProgressPluginHandlerInfo) => void
 }
 
 export interface RawProvideOptions {
   key: string
   shareKey: string
-  shareScope: string
+  shareScope: string | Array<string>
   version?: string | false | undefined
   eager: boolean
   singleton?: boolean
@@ -2759,7 +2795,7 @@ export interface RawRemoteAliasTarget {
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
-  shareScope: string
+  shareScope: string | Array<string>
 }
 
 export interface RawResolveOptions {
@@ -2785,6 +2821,7 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
+  pnpManifest?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2812,6 +2849,7 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
+  pnpManifest?: string | false
 }
 
 export interface RawResolveTsconfigOptions {

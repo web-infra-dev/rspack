@@ -12,11 +12,12 @@ import { normalizeConsumeShareOptions } from './ConsumeSharedPlugin';
 import {
   createConsumeShareOptions,
   type NormalizedSharedOptions,
+  type ShareScope,
 } from './SharePlugin';
 
 export type CollectSharedEntryPluginOptions = {
   sharedOptions: NormalizedSharedOptions;
-  shareScope?: string;
+  shareScope?: ShareScope;
 };
 
 export type ShareRequestsMap = Record<
@@ -59,7 +60,7 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
           {
             name: 'CollectSharedEntry',
             stage:
-              compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
+              compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
           },
           () => {
             compilation.getAssets().forEach((asset) => {

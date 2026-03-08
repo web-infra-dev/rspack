@@ -1,4 +1,4 @@
-```mjs title=chunk_js.mjs
+```mjs title=chunk.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import "./index_js.mjs";
 
@@ -7,7 +7,7 @@ const cjs = __webpack_require__("./cjs.js");
 // this will import from the entry chunk
 
 
-cjs.foo;
+cjs.p;
 
 
 ```
@@ -20,7 +20,7 @@ __webpack_require__.add({
   !*** ./cjs.js ***!
   \****************/
 (__unused_rspack_module, exports) {
-exports.foo = () => 42
+exports.p = () => 42
 
 
 },
@@ -30,8 +30,8 @@ const cjs = __webpack_require__("./cjs.js");
 
 
 it('should only contains needed exports', async () => {
-	await import("./chunk_js.mjs")
-	expect((0,cjs.foo)()).toBe(42)
+	await import("./chunk.mjs")
+	expect((0,cjs.p)()).toBe(42)
 
 	const exports = await import(/*webpackIgnore: true*/'./main.mjs')
 
@@ -41,7 +41,7 @@ it('should only contains needed exports', async () => {
 	expect(value()()).toBe(42)
 })
 
-const index_value = () => cjs.foo
+const index_value = () => cjs.p
 
 export { index_value as value };
 

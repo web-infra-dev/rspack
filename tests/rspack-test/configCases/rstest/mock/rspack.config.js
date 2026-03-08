@@ -99,6 +99,8 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   }
 };
 
+__webpack_require__.rstest_mock_require = __webpack_require__.rstest_mock;
+
 __webpack_require__.rstest_do_mock = (id, modFactory) => {
   let requiredModule = undefined
   try {

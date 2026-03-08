@@ -1,12 +1,13 @@
 mod chunk;
 mod max_request;
-mod max_size;
-mod min_size;
+pub mod max_size;
+pub mod min_size;
 mod module_group;
 
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
@@ -17,6 +18,7 @@ use tracing::instrument;
 use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
+  get_module_sizes,
   module_group::{IndexedCacheGroup, ModuleGroup},
 };
 
@@ -52,14 +54,13 @@ impl SplitChunksPlugin {
 
     let mut all_modules = compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect::<Vec<_>>();
     // Sort modules to ensure deterministic processing order
     all_modules.sort_unstable();
 
-    let module_sizes = Self::get_module_sizes(&all_modules, compilation);
+    let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
     logger.time_end(start);
 
@@ -122,7 +123,6 @@ impl SplitChunksPlugin {
     let mut removed_module_chunks: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
 
     let mut combinator = module_group::Combinator::default();
-    let module_graph = compilation.get_module_graph();
 
     if self
       .cache_groups
@@ -139,7 +139,7 @@ impl SplitChunksPlugin {
     {
       combinator.prepare_group_by_used_exports(
         &all_modules,
-        module_graph,
+        &compilation.exports_info_artifact,
         &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         &module_chunks,
         &chunk_index_map,

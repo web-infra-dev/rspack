@@ -424,7 +424,12 @@ var {} = {{}};
               .any(|(origin_module, connections)| {
                 if let Some(origin_module) = origin_module {
                   connections.iter().any(|c| {
-                    c.is_target_active(module_graph, Some(chunk.runtime()), module_graph_cache)
+                    c.is_target_active(
+                      module_graph,
+                      Some(chunk.runtime()),
+                      module_graph_cache,
+                      &compilation.exports_info_artifact,
+                    )
                   }) && compilation
                     .build_chunk_graph_artifact
                     .chunk_graph
@@ -485,7 +490,7 @@ var {} = {{}};
 
           let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)
             .expect("should have module id");
-          let mut module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+          let mut module_id_expr = rspack_util::json_stringify(module_id);
           if runtime_requirements.contains(RuntimeGlobals::ENTRY_MODULE_ID) {
             module_id_expr = format!(
               "{} = {module_id_expr}",

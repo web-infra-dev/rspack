@@ -2,7 +2,7 @@ use std::{borrow::Cow, cell::RefCell};
 
 use napi::{
   Env,
-  bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object},
+  bindgen_prelude::{Array, FromNapiValue, Function, JsObjectValue, Object},
   sys::napi_value,
 };
 use napi_derive::napi;
@@ -503,7 +503,7 @@ pub struct JsStatsModuleCommonAttributes<'a> {
 
   // optimizationBailout
   #[napi(ts_type = "Array<string>")]
-  pub optimization_bailout: Option<StringSliceWrapper<'a>>,
+  pub optimization_bailout: Option<Vec<CowStrWrapper<'a>>>,
 
   // depth
   pub depth: Option<u32>,
@@ -631,7 +631,9 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       source,
       orphan: stats.orphan,
       provided_exports: stats.provided_exports.map(AtomVecWrapper::new),
-      optimization_bailout: stats.optimization_bailout.map(StringSliceWrapper::new),
+      optimization_bailout: stats
+        .optimization_bailout
+        .map(|v| v.into_iter().map(CowStrWrapper::new).collect()),
       pre_order_index: stats.pre_order_index,
       post_order_index: stats.post_order_index,
       cached: stats.cached,
@@ -1076,6 +1078,8 @@ impl JsStats {
     env: &Env,
     js_options: JsStatsOptions,
   ) -> Result<JsStatsCompilationWrapper<'_>> {
+    self.inner.clear_artifact_fallback_flags();
+
     let options = ExtendedStatsOptions::from(js_options);
 
     let hash = options.hash.then(|| self.hash()).flatten();
@@ -1115,6 +1119,11 @@ impl JsStats {
     let errors = self.errors(env)?;
 
     let warnings = self.warnings(env)?;
+
+    let artifact_fallback_flags = self.inner.artifact_fallback_flags();
+    if artifact_fallback_flags != 0 {
+      emit_incomplete_stats_warning(env, artifact_fallback_flags)?;
+    }
 
     Ok(JsStatsCompilationWrapper(JsStatsCompilation {
       assets,
@@ -1230,13 +1239,35 @@ impl JsStats {
   }
 }
 
+fn emit_incomplete_stats_warning(env: &Env, artifact_fallback_flags: u8) -> Result<()> {
+  let fallback_artifacts = Stats::artifact_fallback_names(artifact_fallback_flags);
+  if fallback_artifacts.is_empty() {
+    return Ok(());
+  }
+
+  let artifact_list = fallback_artifacts.join(", ");
+  let message = format!(
+    "Stats output may be incomplete because some compilation artifacts were unavailable ({artifact_list}). \
+For complete stats data, call `stats.toJson()` inside `compiler.hooks.done`."
+  );
+
+  let global = env.get_global()?;
+  let console = global.get_named_property::<Object>("console")?;
+  let warn = console.get_named_property::<Function<'_, (String,), ()>>("warn")?;
+  warn.apply(console, (message,))?;
+  Ok(())
+}
+
 pub fn create_stats_warnings<'a>(
   env: &'a Env,
   compilation: &rspack_core::Compilation,
   warnings: Vec<RspackError>,
   colored: Option<bool>,
 ) -> Result<Array<'a>> {
-  let module_graph = compilation.get_module_graph();
+  let stats = compilation.get_stats();
+  let Some(module_graph) = stats.module_graph() else {
+    return env.create_array(0);
+  };
 
   let mut diagnostics = warnings
     .into_iter()

@@ -1,4 +1,4 @@
-const webpack = require("@rspack/core");
+const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -18,12 +18,12 @@ module.exports = {
 						{
 							name: "copy-webpack-plugin",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						() => {
 							compilation.emitAsset(
 								"mod.js",
-								new webpack.sources.RawSource(
+								new rspack.sources.RawSource(
 									"module.exports = 'module text';\n"
 								)
 							);

@@ -3,8 +3,9 @@ use std::sync::{Arc, atomic::AtomicI32};
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, Identifier, IdentifierMap};
 use rspack_core::{
-  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, Module, ModuleGraph,
-  ModuleIdsArtifact, ModuleType, PrefetchExportsInfoMode, UsageState,
+  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
+  Module, ModuleGraph, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
+  PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -14,12 +15,12 @@ use thread_local::ThreadLocal;
 
 use crate::{
   ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
-  RsdoctorModuleId, RsdoctorModuleOriginalSource,
+  RsdoctorModuleId, RsdoctorModuleOriginalSource, RsdoctorSideEffectLocation,
 };
 
 pub fn collect_json_module_sizes(
   modules: &IdentifierMap<&BoxModule>,
-  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> RsdoctorJsonModuleSizes {
   let mut json_sizes: RsdoctorJsonModuleSizes = RsdoctorJsonModuleSizes::default();
 
@@ -32,8 +33,8 @@ pub fn collect_json_module_sizes(
       continue;
     };
 
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
 
     let final_json = match json_data {
       json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
@@ -45,7 +46,12 @@ pub fn collect_json_module_sizes(
           });
 
         if needs_tree_shaking {
-          create_object_for_exports_info(json_data.clone(), &exports_info, None, module_graph)
+          create_object_for_exports_info(
+            json_data.clone(),
+            &exports_info,
+            None,
+            exports_info_artifact,
+          )
         } else {
           json_data.clone()
         }
@@ -120,6 +126,8 @@ pub fn collect_modules(
           chunks,
           issuer_path: None,
           bailout_reason: HashSet::default(),
+          side_effects: None,
+          side_effects_locations: Vec::new(),
         },
       )
     })
@@ -303,4 +311,43 @@ pub fn collect_module_ids(
       })
     })
     .collect::<Vec<_>>()
+}
+
+pub fn collect_module_side_effects_locations(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_graph: &ModuleGraph,
+) -> HashMap<Identifier, Vec<RsdoctorSideEffectLocation>> {
+  modules
+    .par_iter()
+    .filter_map(|(module_id, module)| {
+      let bailout_reasons = module_graph.get_optimization_bailout(module_id);
+      let module_ukey = module_ukeys.get(module_id)?;
+      let request = if let Some(normal_module) = module.as_normal_module() {
+        normal_module.request().to_string()
+      } else {
+        module.identifier().to_string()
+      };
+
+      let side_effect_locations: Vec<RsdoctorSideEffectLocation> = bailout_reasons
+        .iter()
+        .filter_map(|item| match item {
+          OptimizationBailoutItem::SideEffects { node_type, loc, .. } => {
+            Some(RsdoctorSideEffectLocation {
+              location: loc.clone(),
+              node_type: node_type.clone(),
+              module: *module_ukey,
+              request: request.clone(),
+            })
+          }
+          _ => None,
+        })
+        .collect();
+      if side_effect_locations.is_empty() {
+        None
+      } else {
+        Some((*module_id, side_effect_locations))
+      }
+    })
+    .collect::<HashMap<_, _>>()
 }

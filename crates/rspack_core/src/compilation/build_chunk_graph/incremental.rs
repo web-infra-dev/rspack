@@ -460,7 +460,7 @@ impl CodeSplitter {
 
     let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
     let group_ukey = cgi.chunk_group;
-    cgi.skipped_items = cache_result.skipped_modules.clone();
+    cgi.skipped_items.clone_from(&cache_result.skipped_modules);
 
     let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     for module in &cache_result.modules {
@@ -475,8 +475,12 @@ impl CodeSplitter {
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
       .expect_get_mut(&group_ukey);
-    group.module_pre_order_indices = cache_result.pre_order_indices.clone();
-    group.module_post_order_indices = cache_result.post_order_indices.clone();
+    group
+      .module_pre_order_indices
+      .clone_from(&cache_result.pre_order_indices);
+    group
+      .module_post_order_indices
+      .clone_from(&cache_result.post_order_indices);
 
     for block in &cache_result.outgoings {
       self.make_chunk_group(
@@ -504,7 +508,7 @@ impl CodeSplitter {
     // Thanks!
     let module_graph = compilation.get_module_graph();
     let ordinal_by_module = &mut self.ordinal_by_module;
-    for m in module_graph.modules().keys() {
+    for m in module_graph.modules_keys() {
       if !ordinal_by_module.contains_key(m) {
         ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
       }
@@ -550,8 +554,7 @@ impl CodeSplitter {
       (
         compilation
           .get_module_graph()
-          .modules()
-          .keys()
+          .modules_keys()
           .copied()
           .collect(),
         Default::default(),

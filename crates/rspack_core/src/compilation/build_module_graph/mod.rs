@@ -17,34 +17,37 @@ pub use self::{
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
-use crate::{Compilation, logger::Logger};
+use crate::{Compilation, ExportsInfoArtifact, logger::Logger};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compiler");
   let start = logger.time("build module graph");
-  compilation.do_build_module_graph().await?;
+  do_build_module_graph(compilation).await?;
   logger.time_end(start);
   Ok(())
 }
 
-impl Compilation {
-  #[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn do_build_module_graph(&mut self) -> Result<()> {
-    // run module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.before_build_module_graph(self).await?;
-      self.module_executor = Some(module_executor);
-    }
-
-    let artifact = self.build_module_graph_artifact.steal();
-    let artifact = build_module_graph(self, artifact).await?;
-    self.build_module_graph_artifact = artifact.into();
-
-    self.in_finish_make.store(true, Ordering::Release);
-
-    Ok(())
+#[instrument("Compilation:build_module_graph",target=TRACING_BENCH_TARGET, skip_all)]
+pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> {
+  // run module_executor
+  if let Some(module_executor) = &mut compilation.module_executor {
+    let mut module_executor = std::mem::take(module_executor);
+    module_executor
+      .before_build_module_graph(compilation)
+      .await?;
+    compilation.module_executor = Some(module_executor);
   }
+
+  let artifact = compilation.build_module_graph_artifact.steal();
+  let exports_info_artifact = compilation.exports_info_artifact.steal();
+  let (artifact, exports_info_artifact) =
+    build_module_graph(compilation, artifact, exports_info_artifact).await?;
+  compilation.build_module_graph_artifact = artifact.into();
+  compilation.exports_info_artifact = exports_info_artifact.into();
+
+  compilation.in_finish_make.store(true, Ordering::Release);
+
+  Ok(())
 }
 
 /// make module graph, support incremental rebuild
@@ -54,7 +57,8 @@ impl Compilation {
 pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-) -> Result<BuildModuleGraphArtifact> {
+  exports_info_artifact: ExportsInfoArtifact,
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -80,8 +84,8 @@ pub async fn build_module_graph(
 
   // reset temporary data
   artifact.reset_temporary_data();
-  artifact = update_module_graph(compilation, artifact, params).await?;
-  Ok(artifact)
+  let artifacts = update_module_graph(compilation, artifact, exports_info_artifact, params).await?;
+  Ok(artifacts)
 }
 
 /// Clean up module graph when finish make.
@@ -94,10 +98,12 @@ pub async fn build_module_graph(
 pub async fn finish_build_module_graph(
   compilation: &Compilation,
   artifact: BuildModuleGraphArtifact,
-) -> Result<BuildModuleGraphArtifact> {
+  exports_info_artifact: ExportsInfoArtifact,
+) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   update_module_graph(
     compilation,
     artifact,
+    exports_info_artifact,
     vec![UpdateParam::BuildEntryAndClean(
       compilation
         .entries

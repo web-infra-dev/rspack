@@ -148,10 +148,7 @@ pub async fn get_runtime_chunk_output_name(
   get_chunk_output_name(runtime_chunk, compilation).await
 }
 
-pub async fn runtime_chunk_has_hash(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-) -> Result<bool> {
+pub fn runtime_chunk_has_hash(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> Result<bool> {
   let entry_point = {
     let entry_points = compilation
       .build_chunk_graph_artifact
@@ -224,7 +221,7 @@ pub fn generate_entry_startup(
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
       })
     {
-      let module_id_expr = serde_json::to_string(module_id).expect("invalid module_id");
+      let module_id_expr = rspack_util::json_stringify(module_id);
       module_id_exprs.push(module_id_expr);
     } else {
       continue;

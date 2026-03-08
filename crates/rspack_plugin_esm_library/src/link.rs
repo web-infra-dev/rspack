@@ -5,18 +5,18 @@ use std::{
 };
 
 use rayon::{iter::Either, prelude::*};
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap, UkeySet};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoGetter, ExportsType, FindTargetResult,
-  GetUsedNameParam, IdentCollector, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_name, find_new_name,
-  find_target, get_cached_readable_identifier, get_js_chunk_filename_template,
-  get_module_directives, get_module_hashbang, property_access, property_name,
-  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
-  to_normal_comment,
+  ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
+  PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, escape_name, find_new_name, find_target, get_cached_readable_identifier,
+  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
+  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::ast::Ast;
@@ -73,6 +73,10 @@ pub(crate) struct ExportsContext {
 }
 
 impl EsmLibraryPlugin {
+  fn strict_export_chunk(&self, chunk: ChunkUkey) -> bool {
+    self.strict_export_chunks.borrow().contains(&chunk)
+  }
+
   fn add_chunk_export(
     chunk: ChunkUkey,
     local: Atom,
@@ -260,15 +264,14 @@ impl EsmLibraryPlugin {
       .par_values()
       .map(|info| {
         let mut escaped_names: FxHashMap<String, String> = FxHashMap::default();
-        let mut escaped_identifiers: FxHashMap<String, Vec<String>> = FxHashMap::default();
+        let mut escaped_identifiers: FxHashMap<String, Vec<Atom>> = FxHashMap::default();
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
           &compilation.module_static_cache,
           &compilation.options.context,
         );
-        let splitted_readable_identifier: Vec<String> =
-          split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
         escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
 
         match info {
@@ -366,7 +369,8 @@ impl EsmLibraryPlugin {
           }
 
           let mut ns_obj = Vec::new();
-          for export_info in module_graph
+          for export_info in compilation
+            .exports_info_artifact
             .get_exports_info_data(module_info_id)
             .exports()
             .values()
@@ -385,6 +389,7 @@ impl EsmLibraryPlugin {
                 None,
                 compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
+                &compilation.exports_info_artifact,
                 module_info_id,
                 vec![export_info.name().cloned().unwrap_or("".into())],
                 &mut concate_modules_map,
@@ -398,13 +403,39 @@ impl EsmLibraryPlugin {
                 &mut chunk_link.used_names,
               );
 
-              if let Ref::Symbol(symbol_binding) = &mut binding
-                && matches!(
-                  concate_modules_map.get(&symbol_binding.module),
-                  Some(ModuleInfo::External(_))
-                )
-              {
-                chunk_link.imports.entry(symbol_binding.module).or_default();
+              if let Ref::Symbol(symbol_binding) = &mut binding {
+                let target_info = concate_modules_map.get(&symbol_binding.module);
+                if matches!(target_info, Some(ModuleInfo::External(_))) {
+                  chunk_link.imports.entry(symbol_binding.module).or_default();
+                } else if symbol_binding.ids.is_empty()
+                  && matches!(target_info, Some(ModuleInfo::Concatenated(_)))
+                {
+                  // For module-type externals stored as Concatenated, the raw_export_map
+                  // returns bare symbol names (e.g., "readFile") that aren't local variables.
+                  // When ids is empty, the symbol is directly referenced (not via property
+                  // access like ns.readFile), so we need to add an import from the external
+                  // source to make the binding available.
+                  //
+                  // Only do this for module-type externals. For other external types
+                  // (e.g., node-commonjs), the binding is already available from the
+                  // scope-hoisted code (e.g., `const X = require(...)`).
+                  let module_graph = compilation.get_module_graph();
+                  if let Some(ext) = module_graph
+                    .module_by_identifier(&symbol_binding.module)
+                    .and_then(|m| m.as_external_module())
+                    && ext.get_external_type().starts_with("module")
+                  {
+                    let request = ext.user_request().to_string();
+                    let import_spec = chunk_link
+                      .raw_import_stmts
+                      .entry((request, None))
+                      .or_default();
+                    import_spec
+                      .atoms
+                      .entry(symbol_binding.symbol.clone())
+                      .or_insert_with(|| symbol_binding.symbol.clone());
+                  }
+                }
               }
 
               ns_obj.push(format!(
@@ -488,7 +519,7 @@ var {} = {{}};
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<String, String>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) {
     let context = &compilation.options.context;
 
@@ -511,6 +542,21 @@ var {} = {{}};
     for id in &chunk_link.hoisted_modules {
       let concate_info = concate_modules_map[id].as_concatenated();
       all_used_names.extend(concate_info.all_used_names.clone());
+    }
+
+    // Pre-reserve namespace object names from dyn_import_ns_map so other
+    // symbols don't claim these names during deconflict
+    {
+      let ns_map = self.dyn_import_ns_map.borrow();
+      for id in chunk_link
+        .hoisted_modules
+        .iter()
+        .chain(chunk_link.decl_modules.iter())
+      {
+        if let Some(ns_name) = ns_map.get(id) {
+          all_used_names.insert(ns_name.clone());
+        }
+      }
     }
 
     // deconflict top level symbols
@@ -638,8 +684,15 @@ var {} = {{}};
         }
 
         // Handle namespaceObjectName for concatenated type
-        let namespace_object_name =
-          if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
+        // If this module has a pre-assigned name from dyn_import_ns_map, use it directly
+        let namespace_object_name = {
+          let pre_assigned = {
+            let ns_map = self.dyn_import_ns_map.borrow();
+            ns_map.get(id).cloned()
+          };
+          if let Some(pre_assigned) = pre_assigned {
+            pre_assigned
+          } else if let Some(ref namespace_export_symbol) = concate_info.namespace_export_symbol {
             concate_info
               .get_internal_name(namespace_export_symbol)
               .cloned()
@@ -656,7 +709,8 @@ var {} = {{}};
               &all_used_names,
               &escaped_identifiers[&readable_identifier],
             )
-          };
+          }
+        };
         all_used_names.insert(namespace_object_name.clone());
         concate_info.namespace_object_name = Some(namespace_object_name.clone());
 
@@ -698,6 +752,24 @@ var {} = {{}};
       }
     }
 
+    // Build a targeted set for external module name deconfliction:
+    // Start from chunk_link.used_names (cross-chunk accumulated names) and add
+    // import binding names from raw_import_stmts. We do NOT use all_used_names here
+    // because it contains binding_to_ref keys (e.g., `cjs`, `foo`) that will be
+    // replaced during rendering and should not block external module names.
+    let mut external_used_names = chunk_link.used_names.clone();
+    for import_spec in chunk_link.raw_import_stmts.values() {
+      if let Some(ns) = &import_spec.ns_import {
+        external_used_names.insert(ns.clone());
+      }
+      for atom in import_spec.atoms.values() {
+        external_used_names.insert(atom.clone());
+      }
+      if let Some(default_import) = &import_spec.default_import {
+        external_used_names.insert(default_import.clone());
+      }
+    }
+
     for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
@@ -711,11 +783,13 @@ var {} = {{}};
           context,
         );
 
-        info.name = Some(find_new_name(
+        let name = find_new_name(
           "",
-          &chunk_link.used_names,
+          &external_used_names,
           &escaped_identifiers[&readable_identifier],
-        ));
+        );
+        external_used_names.insert(name.clone());
+        info.name = Some(name);
       }
     }
 
@@ -1035,6 +1109,7 @@ var {} = {{}};
     module_id: ModuleIdentifier,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     collect_own_exports: bool,
   ) -> FxIndexSet<Either<Atom, ModuleIdentifier>> {
     let module = module_graph
@@ -1046,7 +1121,7 @@ var {} = {{}};
     }
 
     let mut exports = if collect_own_exports {
-      let exports_info = module_graph.get_exports_info_data(&module_id);
+      let exports_info = exports_info_artifact.get_exports_info_data(&module_id);
       exports_info
         .exports()
         .iter()
@@ -1058,20 +1133,38 @@ var {} = {{}};
     };
 
     for dep in module.get_dependencies() {
+      let Some(conn) = module_graph.connection_by_dependency_id(dep) else {
+        continue;
+      };
+
+      if !conn.is_active(
+        module_graph,
+        None,
+        module_graph_cache,
+        exports_info_artifact,
+      ) {
+        continue;
+      }
+
       let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
-        let mode = dep.get_mode(module_graph, None, module_graph_cache);
+        let mode = dep.get_mode(
+          module_graph,
+          None,
+          module_graph_cache,
+          exports_info_artifact,
+        );
 
-        if matches!(mode, ExportMode::DynamicReexport(_))
-          && let Some(ref_module) = module_graph.module_identifier_by_dependency_id(&dep.id)
-        {
+        if matches!(mode, ExportMode::DynamicReexport(_)) {
+          let ref_module = conn.module_identifier();
           // collect all exports from ref module
           exports.extend(Self::resolve_re_export_star_from_unknown(
             *ref_module,
             module_graph,
             module_graph_cache,
+            exports_info_artifact,
             true,
           ));
         }
@@ -1081,6 +1174,7 @@ var {} = {{}};
     exports
   }
 
+  #[allow(clippy::too_many_arguments)]
   fn export_namespace_as_default(
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     entry_module: ModuleIdentifier,
@@ -1089,6 +1183,8 @@ var {} = {{}};
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
+    strict_current_chunk: bool,
+    allow_rename: bool,
   ) {
     let module_info = concate_modules_map
       .get_mut(&entry_module)
@@ -1104,7 +1200,7 @@ var {} = {{}};
             .expect("should have namespace name"),
           "default".to_string().into(),
           exports,
-          entry_chunk == current_chunk,
+          !allow_rename && (entry_chunk == current_chunk || strict_current_chunk),
         );
 
         if entry_chunk != current_chunk
@@ -1116,7 +1212,7 @@ var {} = {{}};
             exported,
             "default".to_string().into(),
             exports,
-            true,
+            !allow_rename,
           );
         }
       }
@@ -1139,7 +1235,7 @@ var {} = {{}};
           symbol,
           "default".to_string().into(),
           exports,
-          true,
+          !allow_rename,
         );
       }
     }
@@ -1158,23 +1254,28 @@ var {} = {{}};
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    allow_rename: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
     let module_graph = compilation.get_module_graph();
 
-    let exports_info = module_graph.get_exports_info_data(&entry_module);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&entry_module);
 
     // detect reexport star
     let mut star_re_exports_modules = IdentifierIndexSet::default();
-    let keep_export_name = current_chunk == entry_chunk;
+    let keep_export_name =
+      !allow_rename && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk));
 
     let mut entry_exports = exports_info
       .exports()
       .iter()
-      .filter(|(_, export_info)| {
-        !matches!(export_info.provided(), Some(ExportProvided::NotProvided))
+      .filter(|(name, export_info)| {
+        !(matches!(export_info.provided(), Some(ExportProvided::NotProvided))
+          || allow_rename && export_info.get_used_name(Some(name), None).is_none())
       })
       .map(|(name, _)| name.clone())
       .collect::<FxIndexSet<_>>();
@@ -1183,7 +1284,10 @@ var {} = {{}};
       entry_module,
       module_graph,
       &compilation.module_graph_cache_artifact,
-      true,
+      &compilation.exports_info_artifact,
+      // For dynamic imports (allow_rename=true), own exports are already collected
+      // and filtered by usage above — only collect `export *` targets here.
+      !allow_rename,
     )
     .iter()
     .for_each(|either| {
@@ -1200,6 +1304,7 @@ var {} = {{}};
     let exports_type = module.get_exports_type(
       module_graph,
       &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
       module.build_meta().strict_esm_module,
     );
 
@@ -1212,6 +1317,8 @@ var {} = {{}};
         link,
         exports,
         required,
+        self.strict_export_chunk(current_chunk),
+        allow_rename,
       );
     } else {
       for name in entry_exports {
@@ -1225,6 +1332,7 @@ var {} = {{}};
           None,
           module_graph,
           &compilation.module_graph_cache_artifact,
+          &compilation.exports_info_artifact,
           &entry_module,
           vec![name.clone()],
           concate_modules_map,
@@ -1265,10 +1373,10 @@ var {} = {{}};
                   export_name.clone(),
                   name.clone(),
                   exports,
-                  true,
+                  !allow_rename,
                 );
 
-                if exported.is_none() {
+                if exported.is_none() && !allow_rename {
                   errors.push(
                     rspack_error::error!(
                       "Entry {entry_module} has conflict exports: {name} has already been exported"
@@ -1296,10 +1404,14 @@ var {} = {{}};
                   local_name.clone(),
                   name.clone(),
                   exports,
-                  ref_chunk == entry_chunk,
+                  !allow_rename
+                    && (ref_chunk == entry_chunk || self.strict_export_chunk(ref_chunk)),
                 );
 
-                if exported.is_none() && ref_chunk == entry_chunk {
+                if exported.is_none()
+                  && !allow_rename
+                  && (ref_chunk == entry_chunk || self.strict_export_chunk(ref_chunk))
+                {
                   errors.push(
                     rspack_error::error!(
                       "Entry {entry_module} has conflict exports: {name} has already been exported"
@@ -1317,7 +1429,7 @@ var {} = {{}};
                     exported.clone(),
                     name.clone(),
                     exports,
-                    true,
+                    !allow_rename,
                   );
                 }
               }
@@ -1340,7 +1452,13 @@ var {} = {{}};
               .decl_before_exports
               .insert(format!("var {new_name} = {inlined_value};\n"));
 
-            Self::add_chunk_export(entry_chunk, new_name, name.clone(), exports, true);
+            Self::add_chunk_export(
+              entry_chunk,
+              new_name.clone(),
+              name.clone(),
+              exports,
+              !allow_rename,
+            );
           }
         }
       }
@@ -1354,6 +1472,8 @@ var {} = {{}};
           link,
           exports,
           required,
+          self.strict_export_chunk(current_chunk),
+          allow_rename,
         );
       }
     }
@@ -1393,7 +1513,7 @@ var {} = {{}};
     link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
-    escaped_identifiers: &FxHashMap<String, Vec<String>>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1509,17 +1629,110 @@ var {} = {{}};
           entry_imports,
           &mut exports,
           escaped_identifiers,
+          false,
         ));
+      }
+    }
+
+    // Link dynamic import target exports.
+    // Without facade chunks, exports go directly on the source chunk.
+    // For multi-module chunks where exports may be renamed, we generate a namespace
+    // object and record it in dyn_import_ns_map so that the dyn import template
+    // can render `.then(m => m.<ns_name>)`.
+    {
+      let entry_chunk_ukey_set: UkeySet<ChunkUkey> = compilation
+        .build_chunk_graph_artifact
+        .entrypoints
+        .values()
+        .map(|entrypoint_ukey| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .expect_get(entrypoint_ukey)
+            .get_entrypoint_chunk()
+        })
+        .collect();
+
+      let dyn_targets = {
+        let all_dyn_targets = self.all_dyn_targets.borrow();
+        let mut targets = all_dyn_targets.iter().copied().collect::<Vec<_>>();
+        targets.sort();
+        targets
+      };
+
+      for dyn_target in dyn_targets {
+        let source_chunk = Self::get_module_chunk(dyn_target, compilation);
+        if entry_chunk_ukey_set.contains(&source_chunk) {
+          continue;
+        }
+
+        if compilation
+          .code_generation_results
+          .get_one(&dyn_target)
+          .get(&SourceType::JavaScript)
+          .is_none()
+        {
+          continue;
+        }
+
+        // No facade chunk — exports go directly on source_chunk
+        let target_chunk = source_chunk;
+        let is_strict = self.strict_export_chunk(target_chunk);
+        let allow_rename = !is_strict;
+
+        let needed_namespace = needed_namespace_objects_by_ukey
+          .entry(target_chunk)
+          .or_default();
+        let target_imports = imports.entry(target_chunk).or_default();
+        let required = required.entry(target_chunk).or_default();
+
+        target_imports.entry(dyn_target).or_default();
+
+        // Check if this module has a pre-assigned namespace name (set during optimize_chunks
+        // for scope-hoisted modules in non-strict multi-module chunks).
+        let ns_name = {
+          let ns_map = self.dyn_import_ns_map.borrow();
+          ns_map.get(&dyn_target).cloned()
+        };
+
+        if let Some(ns_name) = ns_name {
+          // When a namespace object exists, consumers access this module via
+          // `.then(m => m.<ns>)` — no need to export individual module exports.
+          // Just export the namespace object itself.
+          needed_namespace.insert(dyn_target);
+
+          Self::add_chunk_export(
+            target_chunk,
+            ns_name.clone(),
+            ns_name.clone(),
+            &mut exports,
+            false,
+          );
+        } else {
+          // No namespace object — export individual module exports directly on the chunk.
+          errors.extend(self.link_entry_module_exports(
+            dyn_target,
+            source_chunk,
+            target_chunk,
+            compilation,
+            concate_modules_map,
+            required,
+            link,
+            needed_namespace,
+            target_imports,
+            &mut exports,
+            escaped_identifiers,
+            allow_rename,
+          ));
+        }
       }
     }
 
     // calculate exports based on imports
     for (chunk, chunk_link) in link.iter_mut() {
       let mut refs = FxIndexMap::default();
-      let mut dyn_refs = FxHashMap::default();
       let needed_namespace_objects = needed_namespace_objects_by_ukey.entry(*chunk).or_default();
       let chunk_imports = imports.entry(*chunk).or_default();
-      let required = required.entry(*chunk).or_default();
       // if one chunk has multiple modules that require the same
       // module, the first module require imported module, the
       // followings should not require the module again.
@@ -1530,6 +1743,8 @@ var {} = {{}};
       // foo; // access foo again, but no require call
       // ```
       for m in chunk_link.hoisted_modules.clone() {
+        let current_required = required.entry(*chunk).or_default();
+
         let module = module_graph
           .module_by_identifier(&m)
           .expect("should have module");
@@ -1544,7 +1759,12 @@ var {} = {{}};
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
-          if !conn.is_target_active(module_graph, None, &compilation.module_graph_cache_artifact) {
+          if !conn.is_target_active(
+            module_graph,
+            None,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+          ) {
             continue;
           }
 
@@ -1574,7 +1794,7 @@ var {} = {{}};
               */
               None,
               &mut chunk_link.used_names,
-              required,
+              current_required,
             );
           }
         }
@@ -1596,6 +1816,7 @@ var {} = {{}};
               Some(m),
               module_graph,
               &compilation.module_graph_cache_artifact,
+              &compilation.exports_info_artifact,
               ref_module,
               options.ids.clone(),
               concate_modules_map,
@@ -1605,7 +1826,7 @@ var {} = {{}};
               module.build_meta().strict_esm_module,
               options.asi_safe,
               &mut Default::default(),
-              required,
+              current_required,
               &mut chunk_link.used_names,
             );
 
@@ -1616,73 +1837,6 @@ var {} = {{}};
                 .to_string(),
               binding,
             );
-          }
-        }
-
-        for (ref_module, all_refs) in &concatenation_scope.dyn_refs {
-          let ref_chunk = Self::get_module_chunk(*ref_module, compilation);
-          let from_other_chunk = ref_chunk != *chunk;
-
-          for (ref_string, ref_atom) in all_refs.iter() {
-            if dyn_refs.contains_key(ref_string) {
-              continue;
-            }
-
-            let mut binding = Self::get_binding(
-              None,
-              module_graph,
-              &compilation.module_graph_cache_artifact,
-              ref_module,
-              vec![ref_atom.clone()],
-              concate_modules_map,
-              needed_namespace_objects,
-              false,
-              false,
-              module.build_meta().strict_esm_module,
-              Some(false),
-              &mut Default::default(),
-              required,
-              &mut chunk_link.used_names,
-            );
-
-            if let Ref::Symbol(symbol_binding) = &mut binding {
-              let module_id = symbol_binding.module;
-              let ref_module_chunk = Self::get_module_chunk(module_id, compilation);
-              let ref_external = concate_modules_map[ref_module].is_external();
-
-              if from_other_chunk && !ref_external {
-                let exported = Self::add_chunk_export(
-                  ref_module_chunk,
-                  symbol_binding.symbol.clone(),
-                  symbol_binding.symbol.clone(),
-                  &mut exports,
-                  false,
-                );
-
-                let mut exported = exported.expect("should have exported");
-
-                if ref_module_chunk != ref_chunk {
-                  // special case
-                  // const { foo, bar } = await import('./re-exports')
-                  // there is a chance that foo is from another chunk, and bar is from re-exports chunk
-                  // so should make sure foo is from another chunk
-                  exported = Self::add_chunk_re_export(
-                    ref_chunk,
-                    ref_module_chunk,
-                    exported.clone(),
-                    exported.clone(),
-                    &mut exports,
-                    false,
-                  )
-                  .expect("should have name")
-                  .clone();
-                }
-
-                symbol_binding.symbol = exported;
-              }
-            }
-
-            dyn_refs.insert(ref_string.clone(), (!from_other_chunk, binding));
           }
         }
       }
@@ -1773,7 +1927,6 @@ var {} = {{}};
 
       chunk_link.needed_namespace_objects = needed_namespace_objects.clone();
       chunk_link.refs = refs;
-      chunk_link.dyn_refs = dyn_refs;
 
       // ensure imports external module
       for m in &chunk_link.decl_modules {
@@ -1785,7 +1938,12 @@ var {} = {{}};
             continue;
           };
 
-          if !conn.is_target_active(module_graph, None, &compilation.module_graph_cache_artifact) {
+          if !conn.is_target_active(
+            module_graph,
+            None,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+          ) {
             continue;
           }
 
@@ -1825,18 +1983,6 @@ var {} = {{}};
             None
           }
         })
-        .chain(
-          chunk_link
-            .dyn_refs
-            .iter()
-            .filter_map(|(_, (_, symbol_ref))| {
-              if let Ref::Symbol(symbol_ref) = symbol_ref {
-                Some(&symbol_ref.symbol)
-              } else {
-                None
-              }
-            }),
-        )
         .collect::<FxHashSet<_>>();
 
       let all_chunk_exported_symbols = &exports[&chunk_link.chunk].exports;
@@ -1937,6 +2083,7 @@ var {} = {{}};
     from: Option<ModuleIdentifier>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     info_id: &ModuleIdentifier,
     mut export_name: Vec<Atom>,
     module_to_info_map: &mut IdentifierIndexMap<ModuleInfo>,
@@ -1952,7 +2099,8 @@ var {} = {{}};
     let module = mg
       .module_by_identifier(info_id)
       .expect("should have module");
-    let exports_type = module.get_exports_type(mg, mg_cache, strict_esm_module);
+    let exports_type =
+      module.get_exports_type(mg, mg_cache, exports_info_artifact, strict_esm_module);
     let info = &mut module_to_info_map[info_id];
 
     if export_name.is_empty() {
@@ -2099,8 +2247,8 @@ var {} = {{}};
       }
     }
 
-    let exports_info =
-      mg.get_prefetched_exports_info(info_id, PrefetchExportsInfoMode::Nested(&export_name));
+    let exports_info = exports_info_artifact
+      .get_prefetched_exports_info(info_id, PrefetchExportsInfoMode::Nested(&export_name));
 
     if export_name.is_empty() {
       let info = module_to_info_map.get_mut_unwrap(info_id);
@@ -2223,6 +2371,7 @@ var {} = {{}};
         let reexport = find_target(
           &export_info,
           mg,
+          exports_info_artifact,
           Arc::new(|module: &ModuleIdentifier| module_to_info_map.contains_key(module)),
           &mut Default::default(),
         );
@@ -2230,7 +2379,7 @@ var {} = {{}};
           FindTargetResult::NoTarget => {}
           FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
-              let exports_info = mg.get_prefetched_exports_info(
+              let exports_info = exports_info_artifact.get_prefetched_exports_info(
                 &target.module,
                 PrefetchExportsInfoMode::Nested(&export),
               );
@@ -2261,6 +2410,7 @@ var {} = {{}};
                 from,
                 mg,
                 mg_cache,
+                exports_info_artifact,
                 &ref_info.id(),
                 if let Some(reexport_export) = reexport.export {
                   [reexport_export, export_name[1..].to_vec()].concat()

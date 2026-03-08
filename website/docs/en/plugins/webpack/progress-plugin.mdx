@@ -18,12 +18,14 @@ Provide a handler function which will be called when hooks report progress. `han
 
 - `percentage`: a number between 0 and 1 indicating the completion percentage of the compilation
 - `message`: a short description of the currently-executing hook
-- `...args`: zero or more additional strings describing the current progress
+- `info`: extra progress information
+  - `builtModules`: number of built modules
+  - `moduleIdentifier`: identifier of the active module (only provided during `build modules` updates)
 
 ```js
-const handler = (percentage, message, ...args) => {
+const handler = (percentage, message, info) => {
   // e.g. Output each progress message directly to the console:
-  console.info(percentage, message, ...args);
+  console.info(percentage, message, info.builtModules, info.moduleIdentifier);
 };
 
 new rspack.ProgressPlugin(handler);

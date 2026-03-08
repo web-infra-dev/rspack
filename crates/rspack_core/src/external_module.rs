@@ -2,10 +2,10 @@ use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{Result, ToStringResultToRspackResultExt, impl_empty_diagnosable_trait};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
-use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
@@ -128,7 +128,7 @@ fn get_source_for_commonjs(module_and_specifiers: Option<&ExternalRequestValue>)
   } else {
     ("undefined", String::new())
   };
-  format!("require({}){}", json_stringify(module_name), properties)
+  format!("require({}){}", json_stringify_str(module_name), properties)
 }
 
 fn get_source_for_import(
@@ -152,7 +152,7 @@ fn get_source_for_import(
       format!(
         "{}{}",
         if let Some(module_and_specifiers) = module_and_specifiers {
-          serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string")
+          rspack_util::json_stringify_str(module_and_specifiers.primary())
         } else {
           "undefined".to_string()
         },
@@ -387,7 +387,7 @@ impl ExternalModule {
           );
           let (request, specifiers) = if let Some(request) = request {
             (
-              json_stringify(request.primary()),
+              json_stringify_str(request.primary()),
               property_access(request.iter(), 1),
             )
           } else {
@@ -412,7 +412,11 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__rspack_external_{}", to_identifier(id));
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
@@ -439,8 +443,11 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache)
-          && let Some(request) = request
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        ) && let Some(request) = request
         {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
@@ -482,7 +489,8 @@ impl ExternalModule {
           };
 
           if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph
+            let exports_info = compilation
+              .exports_info_artifact
               .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
             let used_exports = exports_info.get_used_exports(runtime);
             let meta = &self.dependency_meta.attributes;
@@ -587,8 +595,8 @@ impl ExternalModule {
                     NormalInitFragment::new(
                       format!(
                         "import * as __rspack_external_{} from {}{};\n",
-                        id.clone(),
-                        json_stringify(request.primary()),
+                        id.as_ref(),
+                        json_stringify_str(request.primary()),
                         attributes.unwrap_or_default()
                       ),
                       InitFragmentStage::StageESMImports,
@@ -636,7 +644,7 @@ impl ExternalModule {
                 format!(
                   "import * as __rspack_external_{} from {}{};\n",
                   id.clone(),
-                  json_stringify(request.primary()),
+                  json_stringify_str(request.primary()),
                   {
                     let meta = &self.dependency_meta.attributes;
                     if let Some(meta) = meta {
@@ -698,8 +706,8 @@ if(typeof {global} !== "undefined") return resolve();
           export =
             get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
           global = url_and_global.global,
-          global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
-          url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
+          global_str = rspack_util::json_stringify_str(url_and_global.global),
+          url_str = rspack_util::json_stringify_str(url_and_global.url),
           load_script = runtime_template.render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
         )
       }
@@ -709,7 +717,11 @@ if(typeof {global} !== "undefined") return resolve();
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation.exports_info_artifact,
+        ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
@@ -905,7 +917,7 @@ impl Module for ExternalModule {
           RawStringSource::from(format!(
             "{}.exports = {};",
             runtime_template.render_module_argument(ModuleArgument::Module),
-            serde_json::to_string(request.primary()).to_rspack_result()?
+            rspack_util::json_stringify_str(request.primary())
           ))
           .boxed(),
         );
@@ -919,7 +931,7 @@ impl Module for ExternalModule {
           SourceType::Css,
           RawStringSource::from(format!(
             "@import url({});",
-            serde_json::to_string(request.primary()).to_rspack_result()?
+            rspack_util::json_stringify_str(request.primary())
           ))
           .boxed(),
         );
@@ -952,9 +964,11 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
-    let is_optional = compilation
-      .get_module_graph()
-      .is_optional(&self.id, &compilation.module_graph_cache_artifact);
+    let is_optional = compilation.get_module_graph().is_optional(
+      &self.id,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+    );
     is_optional.dyn_hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

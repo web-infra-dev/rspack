@@ -17,10 +17,10 @@ module.exports = async function loader() {
 		[]
 	);
 
-	const NodeTemplatePlugin = compiler.webpack.node.NodeTemplatePlugin;
+	const NodeTemplatePlugin = compiler.rspack.node.NodeTemplatePlugin;
 	new NodeTemplatePlugin().apply(childCompiler);
 
-	const NodeTargetPlugin = compiler.webpack.node.NodeTargetPlugin;
+	const NodeTargetPlugin = compiler.rspack.node.NodeTargetPlugin;
 	new NodeTargetPlugin().apply(childCompiler);
 
 	const {
@@ -28,7 +28,7 @@ module.exports = async function loader() {
 		library: {
 			EnableLibraryPlugin
 		}
-	} = compiler.webpack;
+	} = compiler.rspack;
 
 	new EnableLibraryPlugin('commonjs2').apply(childCompiler);
 
@@ -41,7 +41,7 @@ module.exports = async function loader() {
 		}
 	});
 
-	const LimitChunkCountPlugin = compiler.webpack.optimize.LimitChunkCountPlugin;
+	const LimitChunkCountPlugin = compiler.rspack.optimize.LimitChunkCountPlugin;
 
 	new LimitChunkCountPlugin({
 		maxChunks: 1

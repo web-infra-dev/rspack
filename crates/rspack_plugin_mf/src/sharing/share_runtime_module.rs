@@ -7,10 +7,11 @@ use rspack_core::{
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, utils::json_stringify};
+use crate::{ConsumeVersion, ShareScope, utils::json_stringify};
 
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
 static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -72,11 +73,13 @@ impl RuntimeModule for ShareRuntimeModule {
           continue;
         };
         for item in &data.items {
-          let stages = init_per_scope.entry(item.share_scope.clone()).or_default();
-          let list = stages
-            .entry(item.init_stage)
-            .or_insert_with(LinkedHashSet::default);
-          list.insert(item.init.clone());
+          for scope in item.share_scope.scopes() {
+            let stages = init_per_scope.entry(scope.clone()).or_default();
+            let list = stages
+              .entry(item.init_stage)
+              .or_insert_with(LinkedHashSet::default);
+            list.insert(item.init.clone());
+          }
         }
       }
     }
@@ -93,8 +96,8 @@ impl RuntimeModule for ShareRuntimeModule {
             DataInitInfo::ProvideSharedInfo(info) => {
               let mut stage = format!(
                 "{{ name: {}, version: {}, factory: {}, eager: {}, treeShakingMode: {}",
-                json_stringify(&info.name),
-                json_stringify(&info.version.to_string()),
+                json_stringify_str(&info.name),
+                json_stringify_str(&info.version.to_string()),
                 info.factory,
                 if info.eager { "1" } else { "0" },
                 json_stringify(&info.tree_shaking_mode),
@@ -106,7 +109,7 @@ impl RuntimeModule for ShareRuntimeModule {
                 }
                 if let Some(required_version) = info.required_version {
                   stage += ", requiredVersion: ";
-                  stage += &json_stringify(&required_version.to_string());
+                  stage += &json_stringify_str(&required_version.to_string());
                 }
                 if let Some(strict_version) = info.strict_version {
                   stage += ", strictVersion: ";
@@ -119,7 +122,7 @@ impl RuntimeModule for ShareRuntimeModule {
             _ => String::new(),
           })
           .collect();
-        format!("{}: [{}]", json_stringify(&scope), stages.join(", "))
+        format!("{}: [{}]", json_stringify_str(&scope), stages.join(", "))
       })
       .collect::<Vec<_>>()
       .join(", ");
@@ -141,7 +144,7 @@ impl RuntimeModule for ShareRuntimeModule {
       require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
-      unique_name = json_stringify(&compilation.options.output.unique_name),
+      unique_name = json_stringify_str(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
     ))
   }
@@ -158,7 +161,7 @@ pub struct CodeGenerationDataShareInit {
 
 #[derive(Debug, Clone)]
 pub struct ShareInitData {
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub init_stage: DataInitStage,
   pub init: DataInitInfo,
 }
