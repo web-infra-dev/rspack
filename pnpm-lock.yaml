@@ -219,6 +219,55 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  examples/rsbuild-rsc-federation-remote:
+    dependencies:
+      react:
+        specifier: ^19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.2.4
+        version: 19.2.4(react@19.2.4)
+      react-server-dom-rspack:
+        specifier: 0.0.1-beta.1
+        version: 0.0.1-beta.1(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      rsbuild-rsc-federation-shared:
+        specifier: workspace:*
+        version: link:../rsbuild-rsc-federation-shared
+    devDependencies:
+      '@module-federation/node':
+        specifier: ^2.7.32
+        version: 2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.102.1)
+      '@module-federation/runtime-tools':
+        specifier: 2.1.0
+        version: 2.1.0
+      '@playwright/test':
+        specifier: 1.58.2
+        version: 1.58.2
+      '@rsbuild/core':
+        specifier: 2.0.0-beta.7
+        version: 2.0.0-beta.7(core-js@3.48.0)
+      '@rsbuild/plugin-react':
+        specifier: ^1.4.5
+        version: 1.4.5(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+      '@types/node':
+        specifier: ^20.19.35
+        version: 20.19.35
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.14)
+      rsbuild-plugin-rsc:
+        specifier: 0.0.1-beta.0
+        version: 0.0.1-beta.0(@rsbuild/core@2.0.0-beta.7(core-js@3.48.0))(react-server-dom-rspack@0.0.1-beta.1(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+
   examples/rsbuild-rsc-federation-shared:
     dependencies:
       react:

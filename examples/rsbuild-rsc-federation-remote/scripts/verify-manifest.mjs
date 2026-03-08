@@ -80,7 +80,7 @@ invariant(
 
 const clientStats = readJSON(clientStatsPath);
 const clientManifest = readJSON(clientManifestPath);
-const containerName = 'rsbuild_host';
+const containerName = 'rsbuild_remote';
 const sharedPackageName = 'rsbuild-rsc-federation-shared';
 const sharedActionsPackageName = 'rsbuild-rsc-federation-shared/server-actions';
 
@@ -218,14 +218,9 @@ invariant(
   'Expected expose "./server-mixed" serverActions to be non-empty',
 );
 
-const remoteStats = stats.remotes.find(
-  (item) => item.alias === 'remote' && item.moduleName === 'button',
-);
-invariant(remoteStats, 'Expected remote/button consumption entry in stats');
-invariant(remoteStats.rsc, 'Expected rsc metadata on remote stats entry');
 invariant(
-  remoteStats.rsc.lookup === 'remote/button',
-  `Expected remote lookup "remote/button", got "${remoteStats.rsc.lookup}"`,
+  Array.isArray(stats.remotes) && stats.remotes.length === 0,
+  `Expected provider stats remotes to be empty, got ${stats.remotes.length}`,
 );
 
 const manifestShared = manifest.shared.find(
@@ -302,13 +297,9 @@ invariant(
   'Manifest expose "./server-mixed" lookup mismatch',
 );
 
-const manifestRemote = manifest.remotes.find(
-  (item) => item.alias === 'remote' && item.moduleName === 'button',
-);
-invariant(manifestRemote?.rsc, 'Expected remote rsc metadata in manifest');
 invariant(
-  manifestRemote.rsc.lookup === 'remote/button',
-  'Manifest remote lookup mismatch',
+  Array.isArray(manifest.remotes) && manifest.remotes.length === 0,
+  `Expected provider manifest remotes to be empty, got ${manifest.remotes.length}`,
 );
 
 const expectedSingletonShares = [
