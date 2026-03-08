@@ -23,6 +23,13 @@ use super::{
 };
 use crate::{ShareScope, utils::json_stringify};
 
+fn non_enhanced_share_scope_name(share_scope: &ShareScope) -> &str {
+  share_scope
+    .scopes()
+    .first()
+    .map_or("default", |scope| scope.as_str())
+}
+
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
@@ -397,12 +404,7 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify_str(match &self.share_scope {
-          ShareScope::Single(s) => s.as_str(),
-          ShareScope::Multiple(_) => {
-            panic!("ContainerEntryModule: enhanced=false only supports string share scope")
-          }
-        }),
+        share_scope = json_stringify_str(non_enhanced_share_scope_name(&self.share_scope)),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
@@ -520,4 +522,27 @@ impl ExposeModuleMap {
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub share_scope: ShareScope,
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn should_use_single_share_scope_for_non_enhanced_container() {
+    let scope = ShareScope::Single("default".to_string());
+    assert_eq!(non_enhanced_share_scope_name(&scope), "default");
+  }
+
+  #[test]
+  fn should_use_first_array_share_scope_for_non_enhanced_container() {
+    let scope = ShareScope::Multiple(vec!["scope-a".to_string(), "scope-b".to_string()]);
+    assert_eq!(non_enhanced_share_scope_name(&scope), "scope-a");
+  }
+
+  #[test]
+  fn should_fallback_to_default_for_empty_array_share_scope() {
+    let scope = ShareScope::Multiple(vec![]);
+    assert_eq!(non_enhanced_share_scope_name(&scope), "default");
+  }
 }
