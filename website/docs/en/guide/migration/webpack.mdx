@@ -161,6 +161,48 @@ module.exports = {
 };
 ```
 
+### terser-webpack-plugin
+
+For projects that use [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) to minify JavaScript, we recommend switching to [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) for better build performance:
+
+```js title="rspack.config.js"
+const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new TerserPlugin(), // [!code --]
+      new rspack.SwcJsMinimizerRspackPlugin(), // [!code ++]
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+:::tip
+When you explicitly configure [optimization.minimizer](/config/optimization#optimizationminimizer), Rspack's default minimizers are disabled, so we recommend keeping both JavaScript and CSS minimizers in the list.
+:::
+
+### css-minimizer-webpack-plugin
+
+For projects that use [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) to minify CSS, we recommend switching to [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) for better build performance:
+
+```js title="rspack.config.js"
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new CssMinimizerPlugin(), // [!code --]
+      new rspack.LightningCssMinimizerRspackPlugin(), // [!code ++]
+    ],
+  },
+};
+```
+
 ## Loaders
 
 Rspack is compatible with most webpack loaders, so existing loaders can typically be reused without changes.

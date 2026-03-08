@@ -14,3 +14,19 @@ pub mod shared_container_plugin;
 pub mod shared_container_runtime_module;
 pub mod shared_used_exports_optimizer_plugin;
 pub mod shared_used_exports_optimizer_runtime_module;
+
+pub(crate) fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
+  if let Some(layer) = layer {
+    return format!("({layer}){request}");
+  }
+  request.to_string()
+}
+
+pub(crate) fn strip_lookup_layer_prefix(lookup: &str) -> &str {
+  if lookup.starts_with('(')
+    && let Some(index) = lookup.find(')')
+  {
+    return &lookup[index + 1..];
+  }
+  lookup
+}
