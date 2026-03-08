@@ -22,7 +22,7 @@
     "@rspack/plugin-preact-refresh": "1.1.5",
     "@rspack/plugin-react-refresh": "^1.6.1",
     "@rspack/test-tools": "workspace:*",
-    "@rstest/core": "^0.8.5",
+    "@rstest/core": "^0.9.0",
     "@swc/helpers": "0.5.19",
     "@swc/plugin-remove-console": "^12.5.0",
     "@types/babel__generator": "7.27.0",
