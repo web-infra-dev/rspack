@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rustc_hash::FxHashMap as HashMap;
 
@@ -73,13 +73,12 @@ impl Task<TaskContext> for ProcessDependenciesTask {
     let module = module_graph
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
-
+    let original_module_source = module
+      .as_normal_module()
+      .and_then(|m| m.source().cloned())
+      .map(Arc::new);
     let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
-      let original_module_source = module_graph
-        .module_by_identifier(&original_module_identifier)
-        .and_then(|m| m.as_normal_module())
-        .and_then(|m| m.source().cloned());
       let dependency = &dependencies[0];
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
@@ -100,7 +99,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         module_factory,
         original_module_identifier: Some(module.identifier()),
         original_module_context: module.get_context(),
-        original_module_source,
+        original_module_source: original_module_source.clone(),
         issuer: module
           .as_normal_module()
           .and_then(|module| module.name_for_condition()),

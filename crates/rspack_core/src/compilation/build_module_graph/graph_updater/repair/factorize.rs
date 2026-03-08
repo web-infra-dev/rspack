@@ -21,7 +21,7 @@ pub struct FactorizeTask {
   pub compilation_id: CompilationId,
   pub module_factory: Arc<dyn ModuleFactory>,
   pub original_module_identifier: Option<ModuleIdentifier>,
-  pub original_module_source: Option<BoxSource>,
+  pub original_module_source: Option<Arc<BoxSource>>,
   pub original_module_context: Option<Box<Context>>,
   pub issuer: Option<Box<str>>,
   pub issuer_layer: Option<ModuleLayer>,
@@ -91,7 +91,7 @@ impl Task<TaskContext> for FactorizeTask {
       Ok(result) => Some(result),
       Err(mut e) => {
         // Wrap source code if available
-        if let Some(s) = self.original_module_source {
+        if let Some(s) = self.original_module_source.as_ref() {
           let has_source_code = e.src.is_some();
           if !has_source_code {
             e.src = Some(s.source().into_string_lossy().into_owned());
