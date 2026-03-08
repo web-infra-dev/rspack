@@ -4,7 +4,8 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
-  RsdoctorChunkModules, RsdoctorConnection, RsdoctorDependency, RsdoctorEntrypoint,
+  RsdoctorChunkModules, RsdoctorConnection, RsdoctorConnectionsOnlyImport,
+  RsdoctorConnectionsOnlyImportConnection, RsdoctorDependency, RsdoctorEntrypoint,
   RsdoctorEntrypointAssets, RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph,
   RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
   RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
@@ -108,6 +109,40 @@ impl From<RsdoctorConnection> for JsRsdoctorConnection {
       user_request: value.user_request,
       loc: value.loc,
       active: value.active,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorConnectionsOnlyImportConnection {
+  pub origin_module: Option<i32>,
+  pub dependency_type: String,
+  pub user_request: String,
+}
+
+impl From<RsdoctorConnectionsOnlyImportConnection> for JsRsdoctorConnectionsOnlyImportConnection {
+  fn from(value: RsdoctorConnectionsOnlyImportConnection) -> Self {
+    JsRsdoctorConnectionsOnlyImportConnection {
+      origin_module: value.origin_module,
+      dependency_type: value.dependency_type,
+      user_request: value.user_request,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorConnectionsOnlyImport {
+  pub module_ukey: i32,
+  pub module_path: String,
+  pub connections: Vec<JsRsdoctorConnectionsOnlyImportConnection>,
+}
+
+impl From<RsdoctorConnectionsOnlyImport> for JsRsdoctorConnectionsOnlyImport {
+  fn from(value: RsdoctorConnectionsOnlyImport) -> Self {
+    JsRsdoctorConnectionsOnlyImport {
+      module_ukey: value.module_ukey,
+      module_path: value.module_path,
+      connections: value.connections.into_iter().map(|c| c.into()).collect(),
     }
   }
 }
@@ -355,6 +390,7 @@ pub struct JsRsdoctorModuleGraph {
   pub modules: Vec<JsRsdoctorModule>,
   pub dependencies: Vec<JsRsdoctorDependency>,
   pub chunk_modules: Vec<JsRsdoctorChunkModules>,
+  pub connections_only_imports: Vec<JsRsdoctorConnectionsOnlyImport>,
 }
 
 impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
@@ -363,6 +399,11 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
       modules: value.modules.into_iter().map(|m| m.into()).collect(),
       dependencies: value.dependencies.into_iter().map(|d| d.into()).collect(),
       chunk_modules: value.chunk_modules.into_iter().map(|c| c.into()).collect(),
+      connections_only_imports: value
+        .connections_only_imports
+        .into_iter()
+        .map(|s| s.into())
+        .collect(),
     }
   }
 }
@@ -509,7 +550,7 @@ impl From<RsdoctorAssetPatch> for JsRsdoctorAssetPatch {
 
 #[napi(object, object_to_js = false)]
 pub struct RawRsdoctorPluginOptions {
-  #[napi(ts_type = "boolean | Array<'graph' | 'ids' | 'sources'>")]
+  #[napi(ts_type = "boolean | Array<'graph' | 'ids' | 'sources' | 'treeShaking'>")]
   pub module_graph_features: Either<bool, Vec<String>>,
   #[napi(ts_type = "boolean | Array<'graph' | 'assets'>")]
   pub chunk_graph_features: Either<bool, Vec<String>>,
@@ -545,6 +586,7 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
           RsdoctorPluginModuleGraphFeature::ModuleGraph,
           RsdoctorPluginModuleGraphFeature::ModuleIds,
           RsdoctorPluginModuleGraphFeature::ModuleSources,
+          RsdoctorPluginModuleGraphFeature::TreeShaking,
         ]),
         Either::A(false) => HashSet::new(),
         Either::B(features) => features

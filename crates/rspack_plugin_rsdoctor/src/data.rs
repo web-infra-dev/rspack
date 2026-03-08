@@ -185,10 +185,26 @@ pub struct RsdoctorSourcePosition {
 }
 
 #[derive(Debug, Default)]
+pub struct RsdoctorConnectionsOnlyImportConnection {
+  pub origin_module: Option<ModuleUkey>,
+  pub dependency_type: String,
+  pub user_request: String,
+  pub active: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct RsdoctorConnectionsOnlyImport {
+  pub module_ukey: ModuleUkey,
+  pub module_path: String,
+  pub connections: Vec<RsdoctorConnectionsOnlyImportConnection>,
+}
+
+#[derive(Debug, Default)]
 pub struct RsdoctorModuleGraph {
   pub modules: Vec<RsdoctorModule>,
   pub dependencies: Vec<RsdoctorDependency>,
   pub chunk_modules: Vec<RsdoctorChunkModules>,
+  pub connections_only_imports: Vec<RsdoctorConnectionsOnlyImport>,
 }
 
 #[derive(Debug, Default)]
