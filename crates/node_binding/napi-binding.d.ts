@@ -560,6 +560,7 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
@@ -2290,6 +2291,13 @@ export interface RawGeneratorOptions {
   cssAuto?: RawCssAutoGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
   json?: RawJsonGeneratorOptions
+}
+
+export interface RawHashedModuleIdsPluginOptions {
+  context?: string
+  hashFunction?: string
+  hashDigest?: string
+  hashDigestLength?: number
 }
 
 export interface RawHtmlRspackPluginBaseOptions {

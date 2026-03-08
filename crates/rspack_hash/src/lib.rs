@@ -29,13 +29,33 @@ impl From<&str> for HashFunction {
 #[derive(Debug, Clone, Copy)]
 pub enum HashDigest {
   Hex,
+  Base64,
+  Base64Url,
+  Base62,
+  Base58,
+  Base52,
+  Base49,
+  Base36,
+  Base32,
+  Base26,
 }
 
 impl From<&str> for HashDigest {
   fn from(value: &str) -> Self {
     match value {
       "hex" => HashDigest::Hex,
-      _ => panic!("Unsupported hash digest: '{value}'. Expected: hex"),
+      "base64" => HashDigest::Base64,
+      "base64url" => HashDigest::Base64Url,
+      "base62" => HashDigest::Base62,
+      "base58" => HashDigest::Base58,
+      "base52" => HashDigest::Base52,
+      "base49" => HashDigest::Base49,
+      "base36" => HashDigest::Base36,
+      "base32" => HashDigest::Base32,
+      "base26" => HashDigest::Base26,
+      _ => panic!(
+        "Unsupported hash digest: '{value}'. Expected one of: hex, base64, base64url, base62, base58, base52, base49, base36, base32, base26"
+      ),
     }
   }
 }
@@ -181,6 +201,15 @@ impl RspackHashDigest {
         let s = hex(inner, &mut buf);
         s.into()
       }
+      HashDigest::Base64 => encode_base_n(inner, BASE64_CHARSET).into(),
+      HashDigest::Base64Url => encode_base_n(inner, BASE64URL_CHARSET).into(),
+      HashDigest::Base62 => encode_base_n(inner, BASE62_CHARSET).into(),
+      HashDigest::Base58 => encode_base_n(inner, BASE58_CHARSET).into(),
+      HashDigest::Base52 => encode_base_n(inner, BASE52_CHARSET).into(),
+      HashDigest::Base49 => encode_base_n(inner, BASE49_CHARSET).into(),
+      HashDigest::Base36 => encode_base_n(inner, BASE36_CHARSET).into(),
+      HashDigest::Base32 => encode_base_n(inner, BASE32_CHARSET).into(),
+      HashDigest::Base26 => encode_base_n(inner, BASE26_CHARSET).into(),
     };
     Self { encoded }
   }
@@ -227,4 +256,50 @@ fn hex<'a>(data: &[u8], output: &'a mut [u8]) -> &'a str {
   //
   // hex is always ascii
   unsafe { std::str::from_utf8_unchecked(&output[..i]) }
+}
+
+// Charsets matching webpack's hash-digest.js ENCODE_TABLE.
+// See: https://github.com/webpack/webpack/blob/main/lib/util/hash/hash-digest.js
+const BASE26_CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyz";
+const BASE32_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+const BASE36_CHARSET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+const BASE49_CHARSET: &[u8] = b"abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
+const BASE52_CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const BASE58_CHARSET: &[u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const BASE62_CHARSET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const BASE64_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const BASE64URL_CHARSET: &[u8] =
+  b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+/// Encodes raw hash bytes into a base-N string using the given charset.
+/// Matches webpack's `encode` in `hash-digest.js`: interprets the buffer as a
+/// big-endian integer and converts to the target base by repeated division.
+fn encode_base_n(data: &[u8], charset: &[u8]) -> String {
+  if data.is_empty() {
+    return String::new();
+  }
+
+  let base = charset.len();
+
+  let mut result = Vec::new();
+  let mut bytes = data.to_vec();
+
+  while !bytes.is_empty() {
+    let mut remainder = 0usize;
+    let mut next = Vec::new();
+    for &b in &bytes {
+      let value = remainder * 256 + b as usize;
+      let digit = value / base;
+      remainder = value % base;
+      if !next.is_empty() || digit > 0 {
+        next.push(digit as u8);
+      }
+    }
+    result.push(charset[remainder]);
+    bytes = next;
+  }
+
+  result.reverse();
+  // SAFETY: all charset bytes are ASCII
+  unsafe { String::from_utf8_unchecked(result) }
 }
