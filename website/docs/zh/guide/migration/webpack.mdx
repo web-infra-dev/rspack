@@ -163,15 +163,16 @@ module.exports = {
 
 对于使用 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 压缩 JavaScript 的项目，建议改用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以获得更好的构建性能：
 
-```diff title="rspack.config.js"
-- const TerserPlugin = require('terser-webpack-plugin');
-+ const { rspack } = require('@rspack/core');
+```js title="rspack.config.js"
+const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
 
 module.exports = {
   optimization: {
     minimizer: [
--     new TerserPlugin(),
-+     new rspack.SwcJsMinimizerRspackPlugin(),
+      new TerserPlugin(), // [!code --]
+      new rspack.SwcJsMinimizerRspackPlugin(), // [!code ++]
+      new rspack.LightningCssMinimizerRspackPlugin(),
     ],
   },
 };
@@ -185,15 +186,16 @@ module.exports = {
 
 对于使用 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 压缩 CSS 的项目，建议改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 以获得更好的构建性能：
 
-```diff title="rspack.config.js"
-- const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
-+ const { rspack } = require('@rspack/core');
+```js title="rspack.config.js"
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
 
 module.exports = {
   optimization: {
     minimizer: [
--     new CssMinimizerPlugin(),
-+     new rspack.LightningCssMinimizerRspackPlugin(),
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new CssMinimizerPlugin(), // [!code --]
+      new rspack.LightningCssMinimizerRspackPlugin(), // [!code ++]
     ],
   },
 };
