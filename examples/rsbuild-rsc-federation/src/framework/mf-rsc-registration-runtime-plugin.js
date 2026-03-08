@@ -45,16 +45,7 @@ function normalizeExportedModule(moduleValue) {
 }
 
 function normalizeStringArray(value) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const deduped = new Set();
-  for (const item of value) {
-    if (typeof item === 'string' && item) {
-      deduped.add(item);
-    }
-  }
-  return [...deduped];
+  return Array.isArray(value) ? toUniqueStringArray(value) : [];
 }
 
 function normalizeServerActions(value) {
@@ -82,6 +73,14 @@ function normalizeServerActions(value) {
   return actions;
 }
 
+function createManifestKeys(rscMeta, moduleIdentity) {
+  return toUniqueStringArray([
+    rscMeta.resource,
+    rscMeta.lookup,
+    moduleIdentity,
+  ]);
+}
+
 function createRscRegistrationPayload(manifestJson) {
   const exposes = Array.isArray(manifestJson?.exposes)
     ? manifestJson.exposes
@@ -105,11 +104,7 @@ function createRscRegistrationPayload(manifestJson) {
     exposePayload.push({
       exposePath: expose.path,
       moduleIdentity,
-      manifestKeys: toUniqueStringArray([
-        rscMeta.resource,
-        rscMeta.lookup,
-        moduleIdentity,
-      ]),
+      manifestKeys: createManifestKeys(rscMeta, moduleIdentity),
       clientReferences,
       serverActions,
     });
@@ -131,11 +126,7 @@ function createRscRegistrationPayload(manifestJson) {
       pkgName: sharedItem.name,
       shareKey: sharedItem.shareKey,
       moduleIdentity,
-      manifestKeys: toUniqueStringArray([
-        rscMeta.resource,
-        rscMeta.lookup,
-        moduleIdentity,
-      ]),
+      manifestKeys: createManifestKeys(rscMeta, moduleIdentity),
       clientReferences,
       serverActions,
     });
