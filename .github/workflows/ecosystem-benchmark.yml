@@ -9,8 +9,7 @@ on:
         required: true
   push:
     branches:
-      - main
-      - v2
+      - v1.x
     paths-ignore:
       - '**/*.md'
       - 'website/**'
@@ -114,7 +113,7 @@ jobs:
         id: run-benchmark
         run: |
           RSPACK_DIR=$(pwd)
-          git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
+          git clone --single-branch --depth 1 -b v1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
