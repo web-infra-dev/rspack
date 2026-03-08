@@ -29,6 +29,7 @@ pub fn ensure_configured_remotes(
         moduleName: ".".to_string(),
         entry: target.entry.clone(),
         usedIn: vec!["UNKNOWN".to_string()],
+        rsc: None,
       });
     }
   }
@@ -133,6 +134,19 @@ pub fn compose_id_with_separator(container: &str, name: &str) -> String {
   format!("{container}:{name}")
 }
 
+pub fn compose_expose_lookup(container: &str, expose_path: &str) -> String {
+  let expose_key = expose_path.trim_start_matches("./");
+  format!("{container}/{expose_key}")
+}
+
+pub fn compose_remote_lookup(remote_alias: &str, module_name: &str) -> String {
+  if module_name.is_empty() || module_name == "." {
+    remote_alias.to_string()
+  } else {
+    format!("{remote_alias}/{module_name}")
+  }
+}
+
 pub fn is_hot_file(file: &str) -> bool {
   file.contains(HOT_UPDATE_SUFFIX)
 }
@@ -157,12 +171,14 @@ pub fn ensure_shared_entry<'a>(
   shared_map: &'a mut HashMap<String, StatsShared>,
   container_name: &str,
   pkg: &str,
+  share_key: &str,
 ) -> &'a mut StatsShared {
   shared_map
     .entry(pkg.to_string())
     .or_insert_with(|| StatsShared {
       id: compose_id_with_separator(container_name, pkg),
       name: pkg.to_string(),
+      share_key: share_key.to_string(),
       version: String::new(),
       requiredVersion: None,
       // default singleton to true
@@ -170,6 +186,7 @@ pub fn ensure_shared_entry<'a>(
       assets: super::data::StatsAssetsGroup::default(),
       usedIn: Vec::new(),
       usedExports: Vec::new(),
+      rsc: None,
     })
 }
 

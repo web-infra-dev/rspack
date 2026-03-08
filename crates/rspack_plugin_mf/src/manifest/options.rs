@@ -17,6 +17,7 @@ pub struct ManifestExposeOption {
 #[derive(Debug, Clone)]
 pub struct ManifestSharedOption {
   pub name: String,
+  pub share_key: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
   pub singleton: Option<bool>,

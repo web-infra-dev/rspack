@@ -1,0 +1,7 @@
+{
+	"name": "manifest-rsc-references",
+	"version": "1.0.0",
+	"dependencies": {
+		"shared-rsc": "^1.0.0"
+	}
+}
