@@ -508,15 +508,19 @@ export default function mfRscRegistrationRuntimePlugin() {
       typeof configuredEntry === 'string' && configuredEntry.endsWith('.json')
         ? configuredEntry
         : undefined;
-    const identityKeys = buildManifestIdentityKeys({
+    const remoteVersion =
+      args?.remoteSnapshot?.version || args?.remoteInfo?.version;
+    const remoteBuildVersion =
+      args?.remoteSnapshot?.buildVersion || args?.remoteInfo?.buildVersion;
+    const identityBase = {
       remoteAlias,
       remoteName,
       remoteEntry: configuredEntry,
-      remoteVersion: args?.remoteSnapshot?.version || args?.remoteInfo?.version,
-      remoteBuildVersion:
-        args?.remoteSnapshot?.buildVersion || args?.remoteInfo?.buildVersion,
+      remoteVersion,
+      remoteBuildVersion,
       manifestUrl,
-    });
+    };
+    const identityKeys = buildManifestIdentityKeys(identityBase);
 
     let payload = getStagedPayload(identityKeys);
     if (!payload) {
@@ -528,14 +532,7 @@ export default function mfRscRegistrationRuntimePlugin() {
       }
       payload = createRscRegistrationPayload(manifestJson);
       const manifestIdentityKeys = buildManifestIdentityKeys({
-        remoteAlias,
-        remoteName,
-        remoteEntry: configuredEntry,
-        remoteVersion:
-          args?.remoteSnapshot?.version || args?.remoteInfo?.version,
-        remoteBuildVersion:
-          args?.remoteSnapshot?.buildVersion || args?.remoteInfo?.buildVersion,
-        manifestUrl,
+        ...identityBase,
         manifestJson,
       });
       cacheStagedPayload(manifestIdentityKeys, payload);
