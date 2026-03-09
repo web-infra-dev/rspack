@@ -56,7 +56,7 @@ module.exports = [
             parser: {
                 javascript: {
                     exportsPresence: false,
-                }
+                },
             },
             rules: [
                 cssRule,

@@ -51,22 +51,13 @@ pub struct RawCollectTypeScriptInfoOptions {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
-  pub(crate) react_server_components: ReactServerComponentsConfig,
+  pub(crate) react_server_components: ReactServerComponentsOptions,
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ReactServerComponentsConfig {
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ReactServerComponentsOptions {
   pub(crate) enabled: bool,
   pub(crate) disable_client_api_checks: bool,
-}
-
-impl Default for ReactServerComponentsConfig {
-  fn default() -> Self {
-    Self {
-      enabled: false,
-      disable_client_api_checks: false,
-    }
-  }
 }
 
 #[derive(Default, Debug)]
