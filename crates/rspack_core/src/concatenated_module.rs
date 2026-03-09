@@ -2,15 +2,14 @@ use std::{
   borrow::Cow,
   collections::BTreeMap,
   fmt::Debug,
-  hash::{BuildHasherDefault, Hasher},
+  hash::Hasher,
   sync::{Arc, LazyLock},
 };
 
-use dashmap::DashMap;
 use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsMap};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -24,7 +23,7 @@ use rspack_util::{
   SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind, swc::join_atom,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
   common::{FileName, Spanned, SyntaxContext},
@@ -54,8 +53,10 @@ use crate::{
   UsedName, UsedNameItem, escape_identifier, filter_runtime, find_target, get_runtime_key,
   impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
   module_update_hash, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
+  render_make_deferred_namespace_mode_from_exports_type,
+  reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -609,8 +610,8 @@ pub struct ConcatenatedModule {
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  #[cacheable(with=AsMap)]
-  cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
+  #[cacheable(with=As<SourceSizeCacheSerde>)]
+  cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
   build_info: BuildInfo,
 }
@@ -635,7 +636,7 @@ impl ConcatenatedModule {
       runtime,
       dependencies: vec![],
       blocks: vec![],
-      cached_source_sizes: DashMap::default(),
+      cached_source_sizes: SourceSizeCache::default(),
       diagnostics: vec![],
       build_info: BuildInfo {
         cacheable: true,
@@ -845,12 +846,16 @@ impl Module for ConcatenatedModule {
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
-      *size_ref
-    } else {
+    if let Some(source_type) = source_type {
+      // Shared cache: builtin SourceType uses fixed atomic slots, Custom uses map fallback.
+      if let Some(size) = self.cached_source_sizes.get(source_type) {
+        return size;
+      }
+
       let size = self.modules.iter().fold(0.0, |acc, cur| acc + cur.size);
-      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
-      size
+      self.cached_source_sizes.get_or_insert(source_type, size)
+    } else {
+      self.modules.iter().fold(0.0, |acc, cur| acc + cur.size)
     }
   }
 
