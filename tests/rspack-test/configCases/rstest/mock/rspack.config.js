@@ -202,6 +202,10 @@ module.exports = [
 		}
 	},
 	rstestEntry("./mockFirstArgIsImport.js"),
+	rstestEntry("./reExportMockedModule.js"),
+	rstestEntry("./reExportDoMockedModule.js"),
+	rstestEntry("./reExportTripleMockedModule.js"),
+	rstestEntry("./reExportTripleDoMockedModule.js"),
 	rstestEntry("./globals/importActual.js"),
 	rstestEntry("./globals-false/importActual.js", { globals: false }),
 	{
