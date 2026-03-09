@@ -87,7 +87,7 @@ use crate::{
   is_source_equal, to_identifier,
 };
 
-define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
+define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
@@ -613,14 +613,16 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
+    let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
       .get_module_graph_mut()
       .add_dependency(entry);
-    if let Some(name) = &entry_name {
+    let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
         data.options.merge(options)?;
+        &mut data.options
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],
@@ -628,17 +630,21 @@ impl Compilation {
           options,
         };
         self.entries.insert(name.to_owned(), data);
+        &mut self
+          .entries
+          .get_mut(name)
+          .expect("entry should exist")
+          .options
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
-    }
+      &mut self.global_entry.options
+    };
 
-    self
-      .plugin_driver
-      .clone()
+    plugin_driver
       .compilation_hooks
       .add_entry
-      .call(self, entry_name.as_deref())
+      .call(entry_name.as_deref(), entry_options)
       .await?;
 
     Ok(())

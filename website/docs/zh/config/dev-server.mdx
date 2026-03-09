@@ -880,11 +880,28 @@ export default {
 
 ## devServer.static
 
-- **类型：** `boolean | string | object | [string, object]`
+- **类型：**
 
-用于配置是否从一些目录（默认为 'public'）启用静态服务器。
+```ts
+type DevServerStatic =
+  | string
+  | boolean
+  | DevServerStaticItem
+  | (string | DevServerStaticItem)[];
+```
 
-此选项允许配置从目录获取静态文件（默认是 'public' 目录）。要禁用请将其设置为 `false`：
+用于配置开发服务器如何提供额外的静态文件。这些文件直接从磁盘目录读取并返回，不会经过 Rspack 编译。
+
+默认情况下，`public` 目录会被提供为静态文件服务。
+
+可以使用以下几种形式：
+
+- `boolean`： `false` 禁用静态文件服务，`true` 以默认选项提供 `public` 目录。
+- `string`：`static.directory` 的简写。
+- `object`：配置一个静态目录。
+- `array`：配置多个静态目录。
+
+将其设置为 `false` 可以禁用静态文件服务：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -894,22 +911,212 @@ export default {
 };
 ```
 
-要监听单个目录：
+将其设置为字符串时，等同于配置 `static.directory`：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
-    static: ['assets'],
+    static: 'assets',
   },
 };
 ```
 
-要监听多个静态目录：
+如果需要提供多个静态目录，可以传入数组：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     static: ['assets', 'css'],
+  },
+};
+```
+
+### directory
+
+- **类型：** `string`
+- **默认值：** `path.join(process.cwd(), 'public')`
+
+用于指定从哪个目录读取静态文件，值为绝对路径。
+
+`directory` 只决定从哪个磁盘目录读取静态文件，不决定 Rspack 编译产物的访问路径。静态文件挂载到哪个 URL 前缀由 [`static.publicPath`](#publicpath) 决定。
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+    },
+  },
+};
+```
+
+如果你有多个静态目录，可以传入对象数组分别配置：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: [
+      {
+        directory: path.join(import.meta.dirname, 'assets'),
+      },
+      {
+        directory: path.join(import.meta.dirname, 'css'),
+      },
+    ],
+  },
+};
+```
+
+### staticOptions
+
+- **类型：** `object`
+
+用于配置底层的静态文件服务选项。可用字段请参考 [express.static](https://expressjs.com/en/api.html#express.static) 文档。
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    static: {
+      staticOptions: {
+        redirect: true,
+      },
+    },
+  },
+};
+```
+
+### publicPath
+
+- **类型：** `string | string[]`
+- **默认值：** `'/'`
+
+用于指定把 [`static.directory`](#directory) 中的文件挂载到哪个 URL 路径下。
+
+例如，如果你希望磁盘上的 `assets/manifest.json` 通过 `/serve-public-path-url/manifest.json` 访问，可以这样配置：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'assets'),
+      publicPath: '/serve-public-path-url',
+    },
+  },
+};
+```
+
+如果需要为多个静态目录分别配置不同的 URL 前缀，可以传入对象数组：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: [
+      {
+        directory: path.join(import.meta.dirname, 'assets'),
+        publicPath: '/serve-public-path-url',
+      },
+      {
+        directory: path.join(import.meta.dirname, 'css'),
+        publicPath: '/other-serve-public-path-url',
+      },
+    ],
+  },
+};
+```
+
+同一个静态目录也可以挂载到多个 URL 前缀：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      publicPath: ['/assets', '/shared-assets'],
+    },
+  },
+};
+```
+
+### serveIndex
+
+- **类型：** `boolean | object`
+- **默认值：** `{ icons: true }`
+
+启用后，dev server 会使用 [`serveIndex`](https://github.com/expressjs/serve-index) 中间件为目录生成索引页。当访问的目录中没有 `index.html` 时，浏览器会展示该目录下的文件列表。
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      serveIndex: true,
+    },
+  },
+};
+```
+
+你也可以传入对象来自定义 [`serveIndex`](https://github.com/expressjs/serve-index) 的选项：
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      serveIndex: {
+        icons: true,
+      },
+    },
+  },
+};
+```
+
+### watch
+
+- **类型：** `boolean | object`
+
+用于控制是否监听 [`static.directory`](#directory) 中的文件变化。默认情况下，静态文件变化会触发整页刷新；如果不希望监听，可以将其设置为 `false`。
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      watch: false,
+    },
+  },
+};
+```
+
+你也可以传入对象来自定义监听选项。可用字段请参考 [`chokidar`](https://github.com/paulmillr/chokidar) 文档。
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      watch: {
+        ignored: '*.txt',
+        usePolling: false,
+      },
+    },
   },
 };
 ```

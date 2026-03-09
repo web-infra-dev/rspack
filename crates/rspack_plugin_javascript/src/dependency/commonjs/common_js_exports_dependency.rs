@@ -230,7 +230,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{}{}", base, property_access(used, 0)),
+          format!("{}{}", base, property_access(used, 0)),
           None,
         );
       } else {
@@ -240,7 +240,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           "__webpack_{}_export__",
           if is_inlined { "inlined" } else { "unused" }
         );
-        source.replace(dep.range.start, dep.range.end, &placeholder_var, None);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          placeholder_var.clone(),
+          None,
+        );
         init_fragments.push(
           NormalInitFragment::new(
             format!("var {placeholder_var};\n"),
@@ -259,7 +264,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             source.replace(
               dep.range.start,
               value_range.start,
-              &format!(
+              format!(
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
@@ -268,7 +273,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               ),
               None,
             );
-            source.replace(value_range.end, dep.range.end, "))", None);
+            source.replace_static(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -283,13 +288,13 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             )
             .boxed(),
           );
-          source.replace(
+          source.replace_static(
             dep.range.start,
             value_range.start,
             "__webpack_unused_export__ = (",
             None,
           );
-          source.replace(value_range.end, dep.range.end, ")", None);
+          source.replace_static(value_range.end, dep.range.end, ")", None);
         }
       } else {
         panic!("Define property need value range");

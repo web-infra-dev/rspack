@@ -415,10 +415,15 @@ impl EsmLibraryPlugin {
                   // When ids is empty, the symbol is directly referenced (not via property
                   // access like ns.readFile), so we need to add an import from the external
                   // source to make the binding available.
+                  //
+                  // Only do this for module-type externals. For other external types
+                  // (e.g., node-commonjs), the binding is already available from the
+                  // scope-hoisted code (e.g., `const X = require(...)`).
                   let module_graph = compilation.get_module_graph();
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
+                    && ext.get_external_type().starts_with("module")
                   {
                     let request = ext.user_request().to_string();
                     let import_spec = chunk_link

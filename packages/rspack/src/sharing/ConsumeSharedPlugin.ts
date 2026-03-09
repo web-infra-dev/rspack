@@ -14,7 +14,7 @@ import { isRequiredVersion } from './utils';
 
 export type ConsumeSharedPluginOptions = {
   consumes: Consumes;
-  shareScope?: string;
+  shareScope?: string | string[];
   enhanced?: boolean;
 };
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -28,7 +28,7 @@ export type ConsumesConfig = {
   packageName?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string;
+  shareScope?: string | string[];
   singleton?: boolean;
   strictVersion?: boolean;
   treeShakingMode?: 'server-calc' | 'runtime-infer';
@@ -36,7 +36,7 @@ export type ConsumesConfig = {
 
 export function normalizeConsumeShareOptions(
   consumes: Consumes,
-  shareScope?: string,
+  shareScope?: string | string[],
 ) {
   return parseOptions(
     consumes,

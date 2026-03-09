@@ -514,10 +514,10 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     match value {
       Some(ExportProvided::Provided) => {
-        source.replace(dep.range.start, dep.range.end, " true", None);
+        source.replace_static(dep.range.start, dep.range.end, " true", None);
       }
       Some(ExportProvided::NotProvided) => {
-        source.replace(dep.range.start, dep.range.end, " false", None)
+        source.replace_static(dep.range.start, dep.range.end, " false", None)
       }
       _ => {
         let Some(used_name) = ExportsInfoGetter::get_used_name(
@@ -540,7 +540,7 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{} in {code}", json_stringify_str(used_name.as_str())),
+          format!("{} in {code}", json_stringify_str(used_name.as_str())),
           None,
         )
       }
@@ -597,9 +597,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
     if dep.shorthand {
-      source.insert(dep.range.end, format!(": {export_expr}").as_str(), None);
+      source.insert(dep.range.end, format!(": {export_expr}"), None);
     } else {
-      source.replace(dep.range.start, dep.range.end, export_expr.as_str(), None);
+      source.replace(dep.range.start, dep.range.end, export_expr, None);
     }
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
@@ -669,7 +669,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           key
         };
-        source.replace(prop.range.start, prop.range.end, &content, None);
+        source.replace(prop.range.start, prop.range.end, content, None);
       });
     }
   }
