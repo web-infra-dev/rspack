@@ -32,16 +32,13 @@ impl From<RawHashedModuleIdsPluginOptions> for HashedModuleIdsPluginOptions {
       context: value.context,
       hash_function: value
         .hash_function
-        .map(|s| HashFunction::from(s.as_str()))
-        .unwrap_or(defaults.hash_function),
+        .map_or(defaults.hash_function, |s| HashFunction::from(s.as_str())),
       hash_digest: value
         .hash_digest
-        .map(|s| HashDigest::from(s.as_str()))
-        .unwrap_or(defaults.hash_digest),
+        .map_or(defaults.hash_digest, |s| HashDigest::from(s.as_str())),
       hash_digest_length: value
         .hash_digest_length
-        .map(|n| n as usize)
-        .unwrap_or(defaults.hash_digest_length),
+        .map_or(defaults.hash_digest_length, |n| n as usize),
     }
   }
 }
