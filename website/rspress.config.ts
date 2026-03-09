@@ -120,7 +120,8 @@ export default defineConfig({
       {
         lang: 'en',
         title: 'Rspack',
-        description: 'The fast Rust-based web bundler',
+        description:
+          'Rust-based bundler for JavaScript and TypeScript with refined webpack API',
         label: 'English',
       },
       {
@@ -153,7 +154,8 @@ export default defineConfig({
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
         url: PUBLISH_URL,
-        description: 'Fast Rust-based web bundler',
+        description:
+          'Rust-based bundler for JavaScript and TypeScript with refined webpack API',
         twitter: {
           site: '@rspack_dev',
           card: 'summary_large_image',

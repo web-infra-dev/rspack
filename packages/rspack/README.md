@@ -4,7 +4,7 @@
 
 # @rspack/core
 
-The fast Rust-based web bundler with webpack-compatible API.
+Rust-based bundler for JavaScript and TypeScript with refined webpack API.
 
 ## Documentation
 
