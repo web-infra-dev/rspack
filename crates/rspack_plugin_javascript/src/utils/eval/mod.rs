@@ -30,30 +30,50 @@ pub use self::{
 };
 use crate::visitors::ExportedVariableInfo;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum Ty {
-  Unknown,
-  Undefined,
-  Null,
-  String,
-  Number,
-  Boolean,
-  RegExp,
-  Conditional,
-  Array,
-  Wrapped,
-  ConstArray,
-  BigInt,
-  Identifier,
-  TemplateString,
-}
-
 type Boolean = bool;
 type Number = f64;
 type Bigint = num_bigint::BigInt;
 // type Array<'a> = &'a ast::ArrayLit;
 type String = std::string::String;
 type Regexp = (String, String); // (expr, flags)
+
+#[derive(Debug, Clone)]
+struct IdentifierData {
+  identifier: Atom,
+  root_info: ExportedVariableInfo,
+  members: Option<Vec<Atom>>,
+  members_optionals: Option<Vec<bool>>,
+  member_ranges: Option<Vec<Span>>,
+}
+
+#[derive(Debug, Clone)]
+struct WrappedData<'a> {
+  prefix: Option<Box<BasicEvaluatedExpression<'a>>>,
+  postfix: Option<Box<BasicEvaluatedExpression<'a>>>,
+  inner_expressions: Vec<BasicEvaluatedExpression<'a>>,
+}
+
+#[derive(Debug, Clone)]
+enum Payload<'a> {
+  Unknown,
+  Undefined,
+  Null,
+  String(String),
+  Number(Number),
+  Boolean(Boolean),
+  RegExp(Regexp),
+  Conditional(Vec<BasicEvaluatedExpression<'a>>),
+  Array(Vec<BasicEvaluatedExpression<'a>>),
+  Wrapped(WrappedData<'a>),
+  ConstArray(Vec<String>),
+  BigInt(Bigint),
+  Identifier(IdentifierData),
+  TemplateString {
+    quasis: Vec<BasicEvaluatedExpression<'a>>,
+    parts: Vec<BasicEvaluatedExpression<'a>>,
+    kind: TemplateStringKind,
+  },
+}
 
 // I really don't want there has many alloc, maybe this can be optimized after
 // parse finished.
@@ -63,31 +83,12 @@ pub struct BasicEvaluatedExpression<'a> {
   owned_expression: Option<Box<Expr>>,
   // During Tpl parsing, this may switch from Some(...) to None, hence separate from owned_expression.
   expression: Option<&'a Expr>,
-  ty: Ty,
+  payload: Payload<'a>,
   range: Option<DependencyRange>,
   falsy: bool,
   truthy: bool,
   side_effects: bool,
   nullish: Option<bool>,
-  boolean: Option<Boolean>,
-  number: Option<Number>,
-  string: Option<String>,
-  bigint: Option<Bigint>,
-  regexp: Option<Regexp>,
-  array: Option<Vec<String>>,
-  identifier: Option<Atom>,
-  root_info: Option<ExportedVariableInfo>,
-  members: Option<Vec<Atom>>,
-  members_optionals: Option<Vec<bool>>,
-  member_ranges: Option<Vec<Span>>,
-  items: Option<Vec<BasicEvaluatedExpression<'a>>>,
-  quasis: Option<Vec<BasicEvaluatedExpression<'a>>>,
-  parts: Option<Vec<BasicEvaluatedExpression<'a>>>,
-  prefix: Option<Box<BasicEvaluatedExpression<'a>>>,
-  postfix: Option<Box<BasicEvaluatedExpression<'a>>>,
-  wrapped_inner_expressions: Option<Vec<BasicEvaluatedExpression<'a>>>,
-  template_string_kind: Option<TemplateStringKind>,
-  options: Option<Vec<BasicEvaluatedExpression<'a>>>,
 }
 
 impl Default for BasicEvaluatedExpression<'_> {
@@ -101,31 +102,12 @@ impl<'a> BasicEvaluatedExpression<'a> {
     Self {
       owned_expression: None,
       expression: None,
-      ty: Ty::Unknown,
+      payload: Payload::Unknown,
       range: None,
       falsy: false,
       truthy: false,
       side_effects: true,
       nullish: None,
-      boolean: None,
-      number: None,
-      bigint: None,
-      array: None,
-      quasis: None,
-      parts: None,
-      identifier: None,
-      root_info: None,
-      members: None,
-      members_optionals: None,
-      member_ranges: None,
-      template_string_kind: None,
-      options: None,
-      string: None,
-      items: None,
-      regexp: None,
-      postfix: None,
-      prefix: None,
-      wrapped_inner_expressions: None,
     }
   }
 
@@ -140,72 +122,72 @@ impl<'a> BasicEvaluatedExpression<'a> {
   // }
 
   pub fn is_identifier(&self) -> bool {
-    matches!(self.ty, Ty::Identifier)
+    matches!(self.payload, Payload::Identifier(_))
   }
 
   pub fn is_null(&self) -> bool {
-    matches!(self.ty, Ty::Null)
+    matches!(self.payload, Payload::Null)
   }
 
   pub fn is_unknown(&self) -> bool {
-    matches!(self.ty, Ty::Unknown)
+    matches!(self.payload, Payload::Unknown)
   }
 
   pub fn is_undefined(&self) -> bool {
-    matches!(self.ty, Ty::Undefined)
+    matches!(self.payload, Payload::Undefined)
   }
 
   pub fn is_conditional(&self) -> bool {
-    matches!(self.ty, Ty::Conditional)
+    matches!(self.payload, Payload::Conditional(_))
   }
 
   pub fn is_string(&self) -> bool {
-    matches!(self.ty, Ty::String)
+    matches!(self.payload, Payload::String(_))
   }
 
   pub fn is_bool(&self) -> bool {
-    matches!(self.ty, Ty::Boolean)
+    matches!(self.payload, Payload::Boolean(_))
   }
 
   pub fn is_array(&self) -> bool {
-    matches!(self.ty, Ty::Array)
+    matches!(self.payload, Payload::Array(_))
   }
 
   pub fn is_const_array(&self) -> bool {
-    matches!(self.ty, Ty::ConstArray)
+    matches!(self.payload, Payload::ConstArray(_))
   }
 
   pub fn is_wrapped(&self) -> bool {
-    matches!(self.ty, Ty::Wrapped)
+    matches!(self.payload, Payload::Wrapped(_))
   }
 
   pub fn is_number(&self) -> bool {
-    matches!(self.ty, Ty::Number)
+    matches!(self.payload, Payload::Number(_))
   }
 
   pub fn is_bigint(&self) -> bool {
-    matches!(self.ty, Ty::BigInt)
+    matches!(self.payload, Payload::BigInt(_))
   }
 
   pub fn is_template_string(&self) -> bool {
-    matches!(self.ty, Ty::TemplateString)
+    matches!(self.payload, Payload::TemplateString { .. })
   }
 
   pub fn is_regexp(&self) -> bool {
-    matches!(self.ty, Ty::RegExp)
+    matches!(self.payload, Payload::RegExp(_))
   }
 
   pub fn is_compile_time_value(&self) -> bool {
     matches!(
-      self.ty,
-      Ty::Undefined
-        | Ty::Null
-        | Ty::String
-        | Ty::Number
-        | Ty::Boolean
-        | Ty::RegExp
-        | Ty::ConstArray
-        | Ty::BigInt
+      self.payload,
+      Payload::Undefined
+        | Payload::Null
+        | Payload::String(_)
+        | Payload::Number(_)
+        | Payload::Boolean(_)
+        | Payload::RegExp(_)
+        | Payload::ConstArray(_)
+        | Payload::BigInt(_)
     )
   }
 
@@ -214,16 +196,16 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn is_primitive_type(&self) -> Option<bool> {
-    match self.ty {
-      Ty::Undefined
-      | Ty::Null
-      | Ty::String
-      | Ty::Number
-      | Ty::Boolean
-      | Ty::BigInt
-      | Ty::Wrapped
-      | Ty::TemplateString => Some(true),
-      Ty::RegExp | Ty::Array | Ty::ConstArray => Some(false),
+    match self.payload {
+      Payload::Undefined
+      | Payload::Null
+      | Payload::String(_)
+      | Payload::Number(_)
+      | Payload::Boolean(_)
+      | Payload::BigInt(_)
+      | Payload::Wrapped(_)
+      | Payload::TemplateString { .. } => Some(true),
+      Payload::RegExp(_) | Payload::Array(_) | Payload::ConstArray(_) => Some(false),
       _ => None,
     }
   }
@@ -298,7 +280,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     } else if self.falsy || self.nullish == Some(true) || self.is_null() || self.is_undefined() {
       Some(false)
     } else if self.is_bool() {
-      self.boolean
+      Some(self.bool())
     } else if self.is_string() {
       Some(!self.string().is_empty())
     } else if self.is_number() {
@@ -324,33 +306,15 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn compare_compile_time_value(&self, b: &BasicEvaluatedExpression) -> bool {
-    if self.ty != b.ty {
-      false
-    } else {
-      match self.ty {
-        Ty::Undefined => matches!(b.ty, Ty::Undefined),
-        Ty::Null => matches!(b.ty, Ty::Null),
-        Ty::String => {
-          b.string.as_ref().expect("should not empty")
-            == self.string.as_ref().expect("should not empty")
-        }
-        Ty::Number => {
-          b.number.as_ref().expect("should not empty")
-            == self.number.as_ref().expect("should not empty")
-        }
-        Ty::Boolean => {
-          b.boolean.as_ref().expect("should not empty")
-            == self.boolean.as_ref().expect("should not empty")
-        }
-        Ty::RegExp => false, // FIXME: maybe we can use std::ptr::eq
-        // Ty::ConstArray => {
-        // },
-        Ty::BigInt => {
-          b.bigint.as_ref().expect("should not empty")
-            == self.bigint.as_ref().expect("should not empty")
-        }
-        _ => unreachable!("can only compare compile-time values"),
-      }
+    match (&self.payload, &b.payload) {
+      (Payload::Undefined, Payload::Undefined) => true,
+      (Payload::Null, Payload::Null) => true,
+      (Payload::String(a), Payload::String(b)) => a == b,
+      (Payload::Number(a), Payload::Number(b)) => a == b,
+      (Payload::Boolean(a), Payload::Boolean(b)) => a == b,
+      (Payload::RegExp(_), Payload::RegExp(_)) => false, // FIXME: maybe we can use std::ptr::eq
+      (Payload::BigInt(a), Payload::BigInt(b)) => a == b,
+      _ => false,
     }
   }
 
@@ -363,24 +327,22 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn set_null(&mut self) {
-    self.ty = Ty::Null;
+    self.payload = Payload::Null;
     self.side_effects = false
   }
 
   pub fn set_undefined(&mut self) {
-    self.ty = Ty::Undefined;
+    self.payload = Payload::Undefined;
     self.side_effects = false;
   }
 
   pub fn set_number(&mut self, number: Number) {
-    self.ty = Ty::Number;
-    self.number = Some(number);
+    self.payload = Payload::Number(number);
     self.side_effects = false;
   }
 
   pub fn set_bigint(&mut self, bigint: BigInt) {
-    self.ty = Ty::BigInt;
-    self.bigint = Some(bigint);
+    self.payload = Payload::BigInt(bigint);
     self.side_effects = false;
   }
 
@@ -403,34 +365,34 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn set_items(&mut self, items: Vec<BasicEvaluatedExpression<'a>>) {
-    self.ty = Ty::Array;
     self.side_effects = items.iter().any(|item| item.could_have_side_effects());
-    self.items = Some(items);
+    self.payload = Payload::Array(items);
   }
 
   pub fn set_array(&mut self, array: Vec<String>) {
-    self.ty = Ty::ConstArray;
+    self.payload = Payload::ConstArray(array);
     self.side_effects = false;
-    self.array = Some(array);
   }
 
   pub fn options(&self) -> &Vec<BasicEvaluatedExpression<'_>> {
-    self.options.as_ref().expect("options should not empty")
+    match &self.payload {
+      Payload::Conditional(options) => options,
+      _ => panic!("options should not empty"),
+    }
   }
 
   pub fn set_options(&mut self, options: Option<Vec<BasicEvaluatedExpression<'a>>>) {
-    self.ty = Ty::Conditional;
-    self.options = options;
+    self.payload = Payload::Conditional(options.unwrap_or_default());
     self.side_effects = true;
   }
 
   pub fn add_options(&mut self, options: Vec<BasicEvaluatedExpression<'a>>) {
-    if let Some(old) = &mut self.options {
-      old.extend(options);
-    } else {
-      self.ty = Ty::Conditional;
-      self.options = Some(options);
-      self.side_effects = true;
+    match &mut self.payload {
+      Payload::Conditional(old) => old.extend(options),
+      _ => {
+        self.payload = Payload::Conditional(options);
+        self.side_effects = true;
+      }
     }
   }
 
@@ -442,18 +404,18 @@ impl<'a> BasicEvaluatedExpression<'a> {
     members_optionals: Option<Vec<bool>>,
     member_ranges: Option<Vec<Span>>,
   ) {
-    self.ty = Ty::Identifier;
-    self.identifier = Some(name);
-    self.root_info = Some(root_info);
-    self.members = members;
-    self.members_optionals = members_optionals;
-    self.member_ranges = member_ranges;
+    self.payload = Payload::Identifier(IdentifierData {
+      identifier: name,
+      root_info,
+      members,
+      members_optionals,
+      member_ranges,
+    });
     self.side_effects = true;
   }
 
   pub fn set_bool(&mut self, boolean: Boolean) {
-    self.ty = Ty::Boolean;
-    self.boolean = Some(boolean);
+    self.payload = Payload::Boolean(boolean);
     self.side_effects = false
   }
 
@@ -467,22 +429,21 @@ impl<'a> BasicEvaluatedExpression<'a> {
     parts: Vec<BasicEvaluatedExpression<'a>>,
     kind: TemplateStringKind,
   ) {
-    self.ty = Ty::TemplateString;
-    self.quasis = Some(quasis);
     self.side_effects = parts.iter().any(|p| p.side_effects);
-    self.parts = Some(parts);
-    self.template_string_kind = Some(kind);
+    self.payload = Payload::TemplateString {
+      quasis,
+      parts,
+      kind,
+    };
   }
 
   pub fn set_string(&mut self, string: String) {
-    self.ty = Ty::String;
-    self.string = Some(string);
+    self.payload = Payload::String(string);
     self.side_effects = false;
   }
 
   pub fn set_regexp(&mut self, regexp: String, flags: String) {
-    self.ty = Ty::RegExp;
-    self.regexp = Some((regexp, flags));
+    self.payload = Payload::RegExp((regexp, flags));
     self.side_effects = false;
   }
 
@@ -492,55 +453,80 @@ impl<'a> BasicEvaluatedExpression<'a> {
     postfix: Option<BasicEvaluatedExpression<'a>>,
     inner_expressions: Vec<BasicEvaluatedExpression<'a>>,
   ) {
-    self.ty = Ty::Wrapped;
-    self.prefix = prefix.map(Box::new);
-    self.postfix = postfix.map(Box::new);
-    self.wrapped_inner_expressions = Some(inner_expressions);
+    self.payload = Payload::Wrapped(WrappedData {
+      prefix: prefix.map(Box::new),
+      postfix: postfix.map(Box::new),
+      inner_expressions,
+    });
     self.side_effects = true;
   }
 
   pub fn string(&self) -> &String {
-    self.string.as_ref().expect("make sure string exist")
+    match &self.payload {
+      Payload::String(string) => string,
+      _ => panic!("make sure string exist"),
+    }
   }
 
   pub fn bigint(&self) -> Option<&BigInt> {
-    self.bigint.as_ref()
+    match &self.payload {
+      Payload::BigInt(bigint) => Some(bigint),
+      _ => None,
+    }
   }
 
   pub fn identifier(&self) -> &Atom {
     assert!(self.is_identifier());
-    self
-      .identifier
-      .as_ref()
-      .expect("make sure identifier exist")
+    match &self.payload {
+      Payload::Identifier(identifier) => &identifier.identifier,
+      _ => panic!("make sure identifier exist"),
+    }
   }
 
   pub fn root_info(&self) -> &ExportedVariableInfo {
     assert!(self.is_identifier());
-    self.root_info.as_ref().expect("make sure identifier exist")
+    match &self.payload {
+      Payload::Identifier(identifier) => &identifier.root_info,
+      _ => panic!("make sure identifier exist"),
+    }
   }
 
   pub fn members(&self) -> Option<&Vec<Atom>> {
     assert!(self.is_identifier());
-    self.members.as_ref()
+    match &self.payload {
+      Payload::Identifier(identifier) => identifier.members.as_ref(),
+      _ => panic!("make sure identifier exist"),
+    }
   }
 
   pub fn members_optionals(&self) -> Option<&Vec<bool>> {
     assert!(self.is_identifier());
-    self.members_optionals.as_ref()
+    match &self.payload {
+      Payload::Identifier(identifier) => identifier.members_optionals.as_ref(),
+      _ => panic!("make sure identifier exist"),
+    }
   }
 
   pub fn member_ranges(&self) -> Option<&Vec<Span>> {
     assert!(self.is_identifier());
-    self.member_ranges.as_ref()
+    match &self.payload {
+      Payload::Identifier(identifier) => identifier.member_ranges.as_ref(),
+      _ => panic!("make sure identifier exist"),
+    }
   }
 
   pub fn regexp(&self) -> &Regexp {
-    self.regexp.as_ref().expect("make sure regexp exist")
+    match &self.payload {
+      Payload::RegExp(regexp) => regexp,
+      _ => panic!("make sure regexp exist"),
+    }
   }
 
   pub fn bool(&self) -> Boolean {
-    self.boolean.expect("make sure bool exist")
+    match &self.payload {
+      Payload::Boolean(boolean) => *boolean,
+      _ => panic!("make sure bool exist"),
+    }
   }
 
   pub fn range(&self) -> (u32, u32) {
@@ -550,12 +536,18 @@ impl<'a> BasicEvaluatedExpression<'a> {
 
   pub fn prefix(&self) -> Option<&BasicEvaluatedExpression<'a>> {
     assert!(self.is_wrapped(), "prefix is only used in wrapped");
-    self.prefix.as_deref()
+    match &self.payload {
+      Payload::Wrapped(wrapped) => wrapped.prefix.as_deref(),
+      _ => panic!("prefix is only used in wrapped"),
+    }
   }
 
   pub fn postfix(&self) -> Option<&BasicEvaluatedExpression<'a>> {
     assert!(self.is_wrapped(), "postfix is only used in wrapped");
-    self.postfix.as_deref()
+    match &self.payload {
+      Payload::Wrapped(wrapped) => wrapped.postfix.as_deref(),
+      _ => panic!("postfix is only used in wrapped"),
+    }
   }
 
   pub fn wrapped_inner_expressions(&self) -> Option<&[BasicEvaluatedExpression<'a>]> {
@@ -563,48 +555,86 @@ impl<'a> BasicEvaluatedExpression<'a> {
       self.is_wrapped(),
       "wrapped_inner_expressions is only used in wrapped"
     );
-    self.wrapped_inner_expressions.as_deref()
+    match &self.payload {
+      Payload::Wrapped(wrapped) => Some(wrapped.inner_expressions.as_slice()),
+      _ => panic!("wrapped_inner_expressions is only used in wrapped"),
+    }
   }
 
   pub fn template_string_kind(&self) -> TemplateStringKind {
     assert!(self.is_template_string());
-    self
-      .template_string_kind
-      .expect("make sure template string exist")
+    match &self.payload {
+      Payload::TemplateString { kind, .. } => *kind,
+      _ => panic!("make sure template string exist"),
+    }
   }
 
   pub fn parts(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string());
-    self
-      .parts
-      .as_ref()
-      .expect("make sure template string exist")
+    match &self.payload {
+      Payload::TemplateString { parts, .. } => parts,
+      _ => panic!("make sure template string exist"),
+    }
   }
 
   pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string(),);
-    self
-      .quasis
-      .as_ref()
-      .expect("quasis must exists for template string")
+    match &self.payload {
+      Payload::TemplateString { quasis, .. } => quasis,
+      _ => panic!("quasis must exists for template string"),
+    }
   }
 
   pub fn items(&self) -> &Vec<BasicEvaluatedExpression<'_>> {
     assert!(self.is_array());
-    self.items.as_ref().expect("items must exists for array")
+    match &self.payload {
+      Payload::Array(items) => items,
+      _ => panic!("items must exists for array"),
+    }
   }
 
   pub fn array(&self) -> &Vec<String> {
     assert!(self.is_const_array());
-    self
-      .array
-      .as_ref()
-      .expect("array must exists for const array")
+    match &self.payload {
+      Payload::ConstArray(array) => array,
+      _ => panic!("array must exists for const array"),
+    }
   }
 
   pub fn number(&self) -> Number {
     assert!(self.is_number());
-    self.number.expect("number must exists in ty::number")
+    match &self.payload {
+      Payload::Number(number) => *number,
+      _ => panic!("number must exists in ty::number"),
+    }
+  }
+
+  pub fn into_options(self) -> Option<Vec<BasicEvaluatedExpression<'a>>> {
+    match self.payload {
+      Payload::Conditional(options) => Some(options),
+      _ => None,
+    }
+  }
+
+  pub fn into_wrapped(
+    self,
+  ) -> Option<(
+    Option<BasicEvaluatedExpression<'a>>,
+    Option<BasicEvaluatedExpression<'a>>,
+    Vec<BasicEvaluatedExpression<'a>>,
+  )> {
+    match self.payload {
+      Payload::Wrapped(WrappedData {
+        prefix,
+        postfix,
+        inner_expressions,
+      }) => Some((prefix.map(|p| *p), postfix.map(|p| *p), inner_expressions)),
+      _ => None,
+    }
+  }
+
+  pub fn range_ref(&self) -> Option<&DependencyRange> {
+    self.range.as_ref()
   }
 
   pub fn set_expression(&mut self, expression: Option<&'a Expr>) {
