@@ -5191,7 +5191,6 @@ dependencies = [
  "insta",
  "rspack_javascript_compiler",
  "rustc-hash",
- "serde_json",
  "swc_core",
 ]
 
