@@ -55,7 +55,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.5",
     "@rslint/core": "0.2.1",
-    "@rstest/core": "^0.8.5",
+    "@rstest/core": "^0.9.1",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.35",
     "check-dependency-version-consistency": "^6.0.0",
