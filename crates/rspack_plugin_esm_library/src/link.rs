@@ -13,7 +13,7 @@ use rspack_core::{
   ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
   PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, escape_name_atom, find_new_name, find_target, get_cached_readable_identifier,
+  UsedNameItem, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
   get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
   property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
   split_readable_identifier, to_normal_comment,
@@ -299,7 +299,7 @@ impl EsmLibraryPlugin {
             for (id, _) in info.binding_to_ref.iter() {
               escaped_names
                 .entry(id.0.clone())
-                .or_insert_with(|| escape_name_atom(id.0.as_str()));
+                .or_insert_with(|| escape_name_atom_ref(&id.0));
             }
 
             if let Some(import_map) = &info.import_map {
@@ -309,12 +309,12 @@ impl EsmLibraryPlugin {
                 for atom in &imported_atoms.specifiers {
                   escaped_names
                     .entry(atom.clone())
-                    .or_insert_with(|| escape_name_atom(atom.as_str()));
+                    .or_insert_with(|| escape_name_atom_ref(atom));
                 }
                 if let Some(ns_import) = &imported_atoms.namespace {
                   escaped_names
                     .entry(ns_import.clone())
-                    .or_insert_with(|| escape_name_atom(ns_import.as_str()));
+                    .or_insert_with(|| escape_name_atom_ref(ns_import));
                 }
               }
             }

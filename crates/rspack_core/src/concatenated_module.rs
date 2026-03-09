@@ -1084,7 +1084,7 @@ impl Module for ConcatenatedModule {
             for (id, _) in info.binding_to_ref.iter() {
               escaped_names
                 .entry(id.0.clone())
-                .or_insert_with(|| escape_name_atom(id.0.as_str()));
+                .or_insert_with(|| escape_name_atom_ref(&id.0));
             }
 
             if let Some(import_map) = &info.import_map {
@@ -1095,13 +1095,13 @@ impl Module for ConcatenatedModule {
                 for atom in specifiers {
                   escaped_names
                     .entry(atom.clone())
-                    .or_insert_with(|| escape_name_atom(atom.as_str()));
+                    .or_insert_with(|| escape_name_atom_ref(atom));
                 }
 
                 if let Some(ns_symbol) = &imported.namespace {
                   escaped_names
                     .entry(ns_symbol.clone())
-                    .or_insert_with(|| escape_name_atom(ns_symbol.as_str()));
+                    .or_insert_with(|| escape_name_atom_ref(ns_symbol));
                 }
               }
             }
@@ -3389,7 +3389,10 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<Atom> {
   let extra_info = REGEX.replace_all(extra_info, "");
   let mut splitted_info: Vec<Atom> = extra_info
     .split('/')
-    .map(|s| Atom::from(escape_identifier(s).into_owned()))
+    .map(|s| match escape_identifier(s) {
+      Cow::Borrowed(s) => Atom::from(s),
+      Cow::Owned(s) => Atom::from(s),
+    })
     .collect();
   splitted_info.reverse();
   splitted_info
@@ -3413,6 +3416,20 @@ pub fn escape_name(name: &str) -> String {
 pub fn escape_name_atom(name: &str) -> Atom {
   match escaped_name(name) {
     Cow::Borrowed(name) => Atom::from(name),
+    Cow::Owned(name) => Atom::from(name),
+  }
+}
+
+pub fn escape_name_atom_ref(name: &Atom) -> Atom {
+  if name == DEFAULT_EXPORT {
+    return Atom::default();
+  }
+  if name == NAMESPACE_OBJECT_EXPORT {
+    return Atom::from("namespaceObject");
+  }
+
+  match escape_identifier(name.as_str()) {
+    Cow::Borrowed(_) => name.clone(),
     Cow::Owned(name) => Atom::from(name),
   }
 }
