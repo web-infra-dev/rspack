@@ -3,7 +3,7 @@
 use std::{hash::Hash, sync::atomic::AtomicU32};
 
 use rspack_collections::{Database, DatabaseItem, ItemUkey, Ukey, UkeySet};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
 #[allow(clippy::enum_variant_names)]
 enum Marker {
@@ -17,15 +17,15 @@ enum Marker {
 static NEXT_CYCLE_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct CycleUkey<T: Hash + Eq + Copy>(Ukey, std::marker::PhantomData<Cycle<T>>);
+struct CycleUkey<T: ItemUkey + Hash + Eq + Copy>(Ukey, std::marker::PhantomData<Cycle<T>>);
 
-impl<T: Hash + Eq + Copy> ItemUkey for CycleUkey<T> {
+impl<T: ItemUkey + Hash + Eq + Copy> ItemUkey for CycleUkey<T> {
   fn ukey(&self) -> Ukey {
     self.0
   }
 }
 
-impl<T: Hash + Eq + Copy> CycleUkey<T> {
+impl<T: ItemUkey + Hash + Eq + Copy> CycleUkey<T> {
   pub fn new() -> Self {
     Self(
       NEXT_CYCLE_UKEY
@@ -36,12 +36,12 @@ impl<T: Hash + Eq + Copy> CycleUkey<T> {
   }
 }
 
-struct Cycle<T: Hash + Eq + Copy> {
+struct Cycle<T: ItemUkey + Hash + Eq + Copy> {
   pub ukey: CycleUkey<T>,
-  pub nodes: FxHashSet<T>,
+  pub nodes: UkeySet<T>,
 }
 
-impl<T: Hash + Eq + Copy> Default for Cycle<T> {
+impl<T: ItemUkey + Hash + Eq + Copy> Default for Cycle<T> {
   fn default() -> Self {
     Self {
       ukey: CycleUkey::<T>::new(),
@@ -50,7 +50,16 @@ impl<T: Hash + Eq + Copy> Default for Cycle<T> {
   }
 }
 
-impl<T: Hash + Eq + Copy> DatabaseItem for Cycle<T> {
+impl<T: ItemUkey + Hash + Eq + Copy> Cycle<T> {
+  fn with_capacity(capacity: usize) -> Self {
+    Self {
+      ukey: CycleUkey::<T>::new(),
+      nodes: UkeySet::with_capacity_and_hasher(capacity, Default::default()),
+    }
+  }
+}
+
+impl<T: ItemUkey + Hash + Eq + Copy> DatabaseItem for Cycle<T> {
   type ItemUkey = CycleUkey<T>;
   fn ukey(&self) -> Self::ItemUkey {
     self.ukey
@@ -61,6 +70,12 @@ static NEXT_NODE_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct NodeUkey<T: Hash + Eq + Copy>(Ukey, std::marker::PhantomData<Node<T>>);
+
+impl<T: Hash + Eq + Copy> ItemUkey for NodeUkey<T> {
+  fn ukey(&self) -> Ukey {
+    self.0
+  }
+}
 
 impl<T: Hash + Eq + Copy> NodeUkey<T> {
   pub fn new() -> Self {
@@ -146,12 +161,12 @@ pub fn find_graph_roots<
 
   // Set of current root modules
   // items will be removed if a new reference to it has been found
-  let mut roots: UkeySet<NodeUkey<Item>> = UkeySet::default();
+  let mut roots = UkeySet::with_capacity_and_hasher(db.len(), Default::default());
 
   // Set of current cycles without references to it
   // cycles will be removed if a new reference to it has been found
   // that is not part of the cycle
-  let mut root_cycles: UkeySet<CycleUkey<NodeUkey<Item>>> = UkeySet::default();
+  let mut root_cycles = UkeySet::with_capacity_and_hasher(db.len(), Default::default());
 
   let mut keys = db.keys().copied().collect::<Vec<_>>();
   keys.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
@@ -213,7 +228,7 @@ pub fn find_graph_roots<
               let cycle = &db.expect_get(&dependency).cycle;
               if cycle.is_none() {
                 let cycle = {
-                  let item = Cycle::<NodeUkey<Item>>::default();
+                  let item = Cycle::<NodeUkey<Item>>::with_capacity(stack.len());
                   let ukey = item.ukey();
                   cycle_db.add(item);
                   cycle_db.get_mut(&ukey).expect("should have item")
@@ -288,8 +303,8 @@ pub fn find_graph_roots<
   for cycle in root_cycles {
     let mut max = 0;
 
-    let mut cycle_roots: UkeySet<NodeUkey<Item>> = Default::default();
     let nodes = &cycle_db.expect_get(&cycle).nodes;
+    let mut cycle_roots = UkeySet::with_capacity_and_hasher(nodes.len(), Default::default());
     for node in nodes.iter() {
       for dep in db.expect_get(node).dependencies.clone() {
         if nodes.contains(&dep) {
