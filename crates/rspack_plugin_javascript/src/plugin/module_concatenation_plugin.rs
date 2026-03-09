@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::VecDeque, rc::Rc, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{
-  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
+  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
 };
 use rspack_core::{
   BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
@@ -1160,7 +1160,7 @@ impl ModuleConcatenationPlugin {
             .map(std::vec::Vec::len)
             .sum::<usize>();
         let mut active_incomings =
-          HashMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
+          UkeyMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
         for connection in incomings
           .from_non_modules
           .iter()
@@ -1503,7 +1503,7 @@ pub struct NoRuntimeModuleCache {
   provided_names: bool,
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: IncomingConnections,
-  active_incomings: HashMap<DependencyId, bool>,
+  active_incomings: UkeyMap<DependencyId, bool>,
   number_of_chunks: usize,
 }
 
@@ -1767,7 +1767,7 @@ fn add_concatenated_module(
 fn is_connection_active_in_runtime(
   connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
-  cached_active_incomings: &HashMap<DependencyId, bool>,
+  cached_active_incomings: &UkeyMap<DependencyId, bool>,
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,

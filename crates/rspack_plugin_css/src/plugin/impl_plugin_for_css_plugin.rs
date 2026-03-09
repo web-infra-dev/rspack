@@ -112,7 +112,7 @@ impl CssPlugin {
       let mut replace = ReplaceSource::new(source);
       for (start, end) in auto_public_path_matches {
         let relative = PublicPath::render_auto_public_path(compilation, output_path);
-        replace.replace(start as u32, end as u32, &relative, None);
+        replace.replace(start as u32, end as u32, relative, None);
       }
       replace.boxed()
     } else {

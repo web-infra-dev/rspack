@@ -365,6 +365,11 @@ impl CommonJsImportsParserPlugin {
         member_expr.span().into(),
         loc,
         is_call,
+        parser
+          .javascript_options
+          .strict_this_context_on_imports
+          .unwrap_or(false)
+          && !members.is_empty(),
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
       )
@@ -699,12 +704,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let mut ids = get_non_optional_part(members, members_optionals);
-    if !members.is_empty()
-      && (parser
-        .javascript_options
-        .strict_this_context_on_imports
-        .unwrap_or(false)
-        || ids.len() > 1)
+    if parser
+      .javascript_options
+      .strict_this_context_on_imports
+      .unwrap_or(false)
+      && !members.is_empty()
     {
       ids = &ids[..ids.len().saturating_sub(1)];
     }
