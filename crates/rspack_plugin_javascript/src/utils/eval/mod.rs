@@ -78,8 +78,6 @@ enum Payload<'a> {
   TemplateString(Box<TemplateStringData<'a>>),
 }
 
-// I really don't want there has many alloc, maybe this can be optimized after
-// parse finished.
 #[derive(Debug, Clone)]
 pub struct BasicEvaluatedExpression<'a> {
   // For 'static-lifetime usage, any reference fields must originate from this owned expression.
