@@ -54,6 +54,13 @@ struct WrappedData<'a> {
 }
 
 #[derive(Debug, Clone)]
+struct TemplateStringData<'a> {
+  quasis: Vec<BasicEvaluatedExpression<'a>>,
+  parts: Vec<BasicEvaluatedExpression<'a>>,
+  kind: TemplateStringKind,
+}
+
+#[derive(Debug, Clone)]
 enum Payload<'a> {
   Unknown,
   Undefined,
@@ -61,18 +68,14 @@ enum Payload<'a> {
   String(String),
   Number(Number),
   Boolean(Boolean),
-  RegExp(Regexp),
+  RegExp(Box<Regexp>),
   Conditional(Vec<BasicEvaluatedExpression<'a>>),
   Array(Vec<BasicEvaluatedExpression<'a>>),
-  Wrapped(WrappedData<'a>),
+  Wrapped(Box<WrappedData<'a>>),
   ConstArray(Vec<String>),
   BigInt(Bigint),
-  Identifier(IdentifierData),
-  TemplateString {
-    quasis: Vec<BasicEvaluatedExpression<'a>>,
-    parts: Vec<BasicEvaluatedExpression<'a>>,
-    kind: TemplateStringKind,
-  },
+  Identifier(Box<IdentifierData>),
+  TemplateString(Box<TemplateStringData<'a>>),
 }
 
 // I really don't want there has many alloc, maybe this can be optimized after
@@ -404,13 +407,13 @@ impl<'a> BasicEvaluatedExpression<'a> {
     members_optionals: Option<Vec<bool>>,
     member_ranges: Option<Vec<Span>>,
   ) {
-    self.payload = Payload::Identifier(IdentifierData {
+    self.payload = Payload::Identifier(Box::new(IdentifierData {
       identifier: name,
       root_info,
       members,
       members_optionals,
       member_ranges,
-    });
+    }));
     self.side_effects = true;
   }
 
@@ -430,11 +433,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
     kind: TemplateStringKind,
   ) {
     self.side_effects = parts.iter().any(|p| p.side_effects);
-    self.payload = Payload::TemplateString {
+    self.payload = Payload::TemplateString(Box::new(TemplateStringData {
       quasis,
       parts,
       kind,
-    };
+    }));
   }
 
   pub fn set_string(&mut self, string: String) {
@@ -443,7 +446,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
   }
 
   pub fn set_regexp(&mut self, regexp: String, flags: String) {
-    self.payload = Payload::RegExp((regexp, flags));
+    self.payload = Payload::RegExp(Box::new((regexp, flags)));
     self.side_effects = false;
   }
 
@@ -453,11 +456,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
     postfix: Option<BasicEvaluatedExpression<'a>>,
     inner_expressions: Vec<BasicEvaluatedExpression<'a>>,
   ) {
-    self.payload = Payload::Wrapped(WrappedData {
+    self.payload = Payload::Wrapped(Box::new(WrappedData {
       prefix: prefix.map(Box::new),
       postfix: postfix.map(Box::new),
       inner_expressions,
-    });
+    }));
     self.side_effects = true;
   }
 
@@ -564,7 +567,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
   pub fn template_string_kind(&self) -> TemplateStringKind {
     assert!(self.is_template_string());
     match &self.payload {
-      Payload::TemplateString { kind, .. } => *kind,
+      Payload::TemplateString(tpl) => tpl.kind,
       _ => panic!("make sure template string exist"),
     }
   }
@@ -572,7 +575,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
   pub fn parts(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string());
     match &self.payload {
-      Payload::TemplateString { parts, .. } => parts,
+      Payload::TemplateString(tpl) => &tpl.parts,
       _ => panic!("make sure template string exist"),
     }
   }
@@ -580,7 +583,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
   pub fn quasis(&self) -> &Vec<BasicEvaluatedExpression<'a>> {
     assert!(self.is_template_string(),);
     match &self.payload {
-      Payload::TemplateString { quasis, .. } => quasis,
+      Payload::TemplateString(tpl) => &tpl.quasis,
       _ => panic!("quasis must exists for template string"),
     }
   }
@@ -624,11 +627,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
     Vec<BasicEvaluatedExpression<'a>>,
   )> {
     match self.payload {
-      Payload::Wrapped(WrappedData {
-        prefix,
-        postfix,
-        inner_expressions,
-      }) => Some((prefix.map(|p| *p), postfix.map(|p| *p), inner_expressions)),
+      Payload::Wrapped(tpl) => Some((
+        tpl.prefix.map(|p| *p),
+        tpl.postfix.map(|p| *p),
+        tpl.inner_expressions,
+      )),
       _ => None,
     }
   }
