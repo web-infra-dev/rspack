@@ -1,4 +1,4 @@
-const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin");
+const ForkTsCheckerWebpackPlugin = require("ts-checker-rspack-plugin");
 
 module.exports = {
 	mode: "development",

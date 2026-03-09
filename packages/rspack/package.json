@@ -58,9 +58,8 @@
     "memfs": "4.53.0",
     "prebundle": "^1.6.2",
     "tinypool": "^1.1.1",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "watchpack": "^2.4.4",
+    "watchpack": "2.4.4",
     "webpack-sources": "3.3.4"
   },
   "dependencies": {
