@@ -129,15 +129,10 @@ impl JavascriptParser<'_> {
   fn walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(m) => {
+        let drive = self.plugin_drive.clone();
         self.enter_statement(
           m,
-          |parser, m| {
-            parser
-              .plugin_drive
-              .clone()
-              .module_declaration(parser, m)
-              .unwrap_or_default()
-          },
+          |parser, m| drive.module_declaration(parser, m).unwrap_or_default(),
           |parser, m| match m {
             ModuleDecl::ExportDefaultDecl(decl) => {
               parser.walk_export_default_declaration(decl);
@@ -185,15 +180,10 @@ impl JavascriptParser<'_> {
   }
 
   pub(crate) fn walk_statement(&mut self, statement: Statement) {
+    let drive = self.plugin_drive.clone();
     self.enter_statement(
       &statement,
-      |parser, _| {
-        parser
-          .plugin_drive
-          .clone()
-          .statement(parser, statement)
-          .unwrap_or_default()
-      },
+      |parser, _| drive.statement(parser, statement).unwrap_or_default(),
       |parser, _| match statement {
         Statement::Block(stmt) => parser.walk_block_statement(stmt),
         Statement::Class(decl) => parser.walk_class_declaration(decl),
@@ -1314,11 +1304,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_identifier(&mut self, identifier: &Ident) {
+    let drive = self.plugin_drive.clone();
     identifier.sym.call_hooks_name(self, |this, for_name| {
-      this
-        .plugin_drive
-        .clone()
-        .identifier(this, identifier, for_name)
+      drive.identifier(this, identifier, for_name)
     });
   }
 
