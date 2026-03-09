@@ -138,7 +138,7 @@ type WatchFiles = {
     | undefined;
 };
 
-type Static = {
+export type DevServerStaticItem = {
   directory?: string | undefined;
   publicPath?: string | string[] | undefined;
   serveIndex?: boolean | ServeIndexOptions | undefined;
@@ -152,6 +152,12 @@ type Static = {
       })
     | undefined;
 };
+
+export type DevServerStatic =
+  | string
+  | boolean
+  | DevServerStaticItem
+  | (string | DevServerStaticItem)[];
 
 type ServerType<
   A extends BasicApplication = BasicApplication,
@@ -294,7 +300,7 @@ export type DevServerOptions<
     | WatchFiles
     | (string | WatchFiles)[]
     | undefined;
-  static?: string | boolean | Static | (string | Static)[] | undefined;
+  static?: DevServerStatic;
   server?: ServerType<A, S> | ServerConfiguration<A, S> | undefined;
   app?: (() => Promise<A>) | undefined;
   webSocketServer?: string | boolean | WebSocketServerConfiguration | undefined;
