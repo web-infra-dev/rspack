@@ -19,6 +19,7 @@ use swc_core::{
 };
 
 fn snapshot_name(root: &Path, input: &Path) -> String {
+  #[allow(clippy::disallowed_methods)]
   input
     .strip_prefix(root)
     .expect("input should under tests dir")

@@ -29,6 +29,8 @@ pub struct CommonJsFullRequireDependency {
 }
 
 impl CommonJsFullRequireDependency {
+  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::fn_params_excessive_bools)]
   pub fn new(
     request: String,
     names: Vec<Atom>,
