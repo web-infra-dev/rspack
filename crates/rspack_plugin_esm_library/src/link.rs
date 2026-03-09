@@ -13,7 +13,7 @@ use rspack_core::{
   ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
   PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, escape_name, find_new_name, find_target, get_cached_readable_identifier,
+  UsedNameItem, escape_name_atom, find_new_name, find_target, get_cached_readable_identifier,
   get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
   property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
   split_readable_identifier, to_normal_comment,
@@ -260,11 +260,31 @@ impl EsmLibraryPlugin {
       })
       .collect();
 
-    let (escaped_names, escaped_identifiers) = concate_modules_map
+    let (escaped_name_entries, escaped_identifier_entries) = concate_modules_map
       .par_values()
       .map(|info| {
-        let mut escaped_names: FxHashMap<String, String> = FxHashMap::default();
-        let mut escaped_identifiers: FxHashMap<String, Vec<Atom>> = FxHashMap::default();
+        let (name_capacity, identifier_capacity) = match info {
+          ModuleInfo::Concatenated(info) => {
+            let import_map = info.import_map.as_ref();
+            let import_sources = import_map.map_or(0, |map| map.len());
+            let imported_names = import_map.map_or(0, |map| {
+              map
+                .values()
+                .map(|imported| {
+                  imported.specifiers.len() + usize::from(imported.namespace.is_some())
+                })
+                .sum::<usize>()
+            });
+            (
+              info.binding_to_ref.len() + imported_names,
+              1 + import_sources,
+            )
+          }
+          ModuleInfo::External(_) => (0, 1),
+        };
+        let mut escaped_names =
+          FxHashMap::with_capacity_and_hasher(name_capacity, Default::default());
+        let mut escaped_identifiers = Vec::with_capacity(identifier_capacity);
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
@@ -272,39 +292,58 @@ impl EsmLibraryPlugin {
           &compilation.options.context,
         );
         let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-        escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
+        escaped_identifiers.push((readable_identifier, splitted_readable_identifier));
 
         match info {
           ModuleInfo::Concatenated(info) => {
             for (id, _) in info.binding_to_ref.iter() {
-              escaped_names.insert(id.0.to_string(), escape_name(id.0.as_str()));
+              escaped_names
+                .entry(id.0.clone())
+                .or_insert_with(|| escape_name_atom(id.0.as_str()));
             }
 
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported_atoms) in import_map.iter() {
                 escaped_identifiers
-                  .insert(source.clone(), split_readable_identifier(source.as_str()));
+                  .push((source.clone(), split_readable_identifier(source.as_str())));
                 for atom in &imported_atoms.specifiers {
-                  escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
+                  escaped_names
+                    .entry(atom.clone())
+                    .or_insert_with(|| escape_name_atom(atom.as_str()));
                 }
                 if let Some(ns_import) = &imported_atoms.namespace {
-                  escaped_names.insert(ns_import.to_string(), escape_name(ns_import.as_str()));
+                  escaped_names
+                    .entry(ns_import.clone())
+                    .or_insert_with(|| escape_name_atom(ns_import.as_str()));
                 }
               }
             }
           }
           ModuleInfo::External(_) => (),
         }
-        (escaped_names, escaped_identifiers)
+        (
+          escaped_names.into_iter().collect::<Vec<_>>(),
+          escaped_identifiers,
+        )
       })
       .reduce(
-        || (FxHashMap::default(), FxHashMap::default()),
-        |mut a, b| {
-          a.0.extend(b.0);
-          a.1.extend(b.1);
+        || (Vec::new(), Vec::new()),
+        |mut a, mut b| {
+          a.0.append(&mut b.0);
+          a.1.append(&mut b.1);
           a
         },
       );
+    let mut escaped_names =
+      FxHashMap::with_capacity_and_hasher(escaped_name_entries.len(), Default::default());
+    for (name, escaped_name) in escaped_name_entries {
+      escaped_names.insert(name, escaped_name);
+    }
+    let mut escaped_identifiers =
+      FxHashMap::with_capacity_and_hasher(escaped_identifier_entries.len(), Default::default());
+    for (identifier, parts) in escaped_identifier_entries {
+      escaped_identifiers.insert(identifier, parts);
+    }
 
     for chunk_link in link.values_mut() {
       self.deconflict_symbols(
@@ -518,7 +557,7 @@ var {} = {{}};
     compilation: &Compilation,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     chunk_link: &mut ChunkLinkContext,
-    escaped_names: &FxHashMap<String, String>,
+    escaped_names: &FxHashMap<Atom, Atom>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) {
     let context = &compilation.options.context;
@@ -616,7 +655,10 @@ var {} = {{}};
                   find_new_name("", &all_used_names, &escaped_identifiers[source])
                 } else {
                   find_new_name(
-                    &escaped_names[atom.as_str()],
+                    escaped_names
+                      .get(atom)
+                      .expect("should have escaped name")
+                      .as_ref(),
                     &all_used_names,
                     &escaped_identifiers[&readable_identifier],
                   )
@@ -655,7 +697,10 @@ var {} = {{}};
 
           if all_used_names.contains(atom) {
             let new_name = find_new_name(
-              &escaped_names[atom.as_str()],
+              escaped_names
+                .get(atom)
+                .expect("should have escaped name")
+                .as_ref(),
               &all_used_names,
               &escaped_identifiers[&readable_identifier],
             );
