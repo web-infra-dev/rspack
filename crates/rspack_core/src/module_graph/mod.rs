@@ -3,6 +3,7 @@ pub mod rollback;
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -43,6 +44,54 @@ pub struct DependencyParents {
   pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
   pub index_in_block: usize,
+}
+
+#[derive(Debug, Default)]
+pub struct IncomingConnectionsByOriginModule<'a> {
+  non_modules: Vec<&'a ModuleGraphConnection>,
+  modules: IdentifierMap<Vec<&'a ModuleGraphConnection>>,
+}
+
+impl<'a> IncomingConnectionsByOriginModule<'a> {
+  fn with_capacity(capacity: usize) -> Self {
+    Self {
+      non_modules: Vec::new(),
+      modules: IdentifierMap::with_capacity_and_hasher(capacity, Default::default()),
+    }
+  }
+
+  fn push(
+    &mut self,
+    origin_module: Option<ModuleIdentifier>,
+    connection: &'a ModuleGraphConnection,
+  ) {
+    if let Some(origin_module) = origin_module {
+      self
+        .modules
+        .entry(origin_module)
+        .or_default()
+        .push(connection);
+    } else {
+      self.non_modules.push(connection);
+    }
+  }
+
+  pub fn non_modules(&self) -> &[&'a ModuleGraphConnection] {
+    &self.non_modules
+  }
+
+  pub fn modules(&self) -> &IdentifierMap<Vec<&'a ModuleGraphConnection>> {
+    &self.modules
+  }
+
+  pub fn into_parts(
+    self,
+  ) -> (
+    Vec<&'a ModuleGraphConnection>,
+    IdentifierMap<Vec<&'a ModuleGraphConnection>>,
+  ) {
+    (self.non_modules, self.modules)
+  }
 }
 
 /// Internal data structure for ModuleGraph
@@ -163,13 +212,14 @@ impl ModuleGraph {
   pub fn get_outcoming_connections_by_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+  ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
+      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -186,13 +236,14 @@ impl ModuleGraph {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
-  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+  ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
+      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -214,22 +265,18 @@ impl ModuleGraph {
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> {
+  ) -> IncomingConnectionsByOriginModule<'_> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> =
-      HashMap::default();
+    let mut map = IncomingConnectionsByOriginModule::with_capacity(connections.len());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      map
-        .entry(con.original_module_identifier)
-        .or_default()
-        .push(con);
+      map.push(con.original_module_identifier, con);
     }
     map
   }

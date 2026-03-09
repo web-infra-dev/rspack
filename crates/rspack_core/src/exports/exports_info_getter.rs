@@ -480,7 +480,29 @@ impl ExportsInfoGetter {
       }
 
       let exports_info = id.as_data(exports_info_artifact);
-      let mut nested_exports = vec![];
+      let extra_nested_exports =
+        usize::from(exports_info.other_exports_info().exports_info().is_some())
+          + usize::from(
+            exports_info
+              .side_effects_only_info()
+              .exports_info()
+              .is_some(),
+          );
+      let nested_exports_capacity = match mode {
+        PrefetchExportsInfoMode::Default => extra_nested_exports,
+        PrefetchExportsInfoMode::Nested(names) => {
+          extra_nested_exports
+            + usize::from(
+              names
+                .first()
+                .and_then(|name| exports_info.exports().get(name))
+                .and_then(|export_info| export_info.exports_info())
+                .is_some(),
+            )
+        }
+        PrefetchExportsInfoMode::Full => exports_info.exports().len() + extra_nested_exports,
+      };
+      let mut nested_exports = Vec::with_capacity(nested_exports_capacity);
       match mode {
         PrefetchExportsInfoMode::Default => {}
         PrefetchExportsInfoMode::Nested(names) => {
@@ -521,7 +543,32 @@ impl ExportsInfoGetter {
       }
     }
 
-    let mut res = UkeyMap::default();
+    let initial_capacity = {
+      let exports_info = id.as_data(exports_info_artifact);
+      let extra_nested_exports =
+        usize::from(exports_info.other_exports_info().exports_info().is_some())
+          + usize::from(
+            exports_info
+              .side_effects_only_info()
+              .exports_info()
+              .is_some(),
+          );
+      match mode {
+        PrefetchExportsInfoMode::Default => 1 + extra_nested_exports,
+        PrefetchExportsInfoMode::Nested(names) => {
+          1 + extra_nested_exports
+            + usize::from(
+              names
+                .first()
+                .and_then(|name| exports_info.exports().get(name))
+                .and_then(|export_info| export_info.exports_info())
+                .is_some(),
+            )
+        }
+        PrefetchExportsInfoMode::Full => 1 + exports_info.exports().len() + extra_nested_exports,
+      }
+    };
+    let mut res = UkeyMap::with_capacity_and_hasher(initial_capacity, Default::default());
     prefetch_exports(id, exports_info_artifact, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
