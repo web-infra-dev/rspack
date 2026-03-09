@@ -1,5 +1,3 @@
-const TOP_OF_FILE = 1;
-
 import { useParams } from "reexport-intermediate";
 
 rs.mock("reexport-intermediate", () => {

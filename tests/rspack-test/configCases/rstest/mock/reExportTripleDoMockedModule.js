@@ -1,5 +1,3 @@
-const TOP_OF_FILE = 1;
-
 it("should doMock A->B->C re-export chain", async () => {
 	rs.doMock("reexport-top", () => {
 		return {
