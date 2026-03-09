@@ -5209,6 +5209,7 @@ dependencies = [
  "clap",
  "itertools 0.14.0",
  "rspack_cacheable",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_fs",

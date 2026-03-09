@@ -12,7 +12,7 @@ use dependencies::JsDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use napi_derive::napi;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
 use rspack_core::{
   BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
   FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
@@ -1021,7 +1021,7 @@ thread_local! {
   // Another point to consider is that when users manually call the build method on Compilation and trigger hooks,
   // Rust no longer maintains the handle mapping, which can cause issues.
   // The solution is to avoid passing Compilation from Rust in the hooks within Compilation and handle it on the JS side instead.
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, WeakReference<JsCompilation>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, WeakReference<JsCompilation>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:
