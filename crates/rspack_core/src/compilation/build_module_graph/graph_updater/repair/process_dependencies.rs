@@ -77,7 +77,14 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       .as_normal_module()
       .and_then(|m| m.source().cloned())
       .map(Arc::new);
-    let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
+    let original_module_context = module.get_context();
+    let issuer = module
+      .as_normal_module()
+      .and_then(|module| module.name_for_condition());
+    let issuer_layer = module.get_layer().cloned();
+    let resolve_options = module.get_resolve_options();
+
+    let mut res: Vec<Box<dyn Task<TaskContext>>> = Vec::with_capacity(sorted_dependencies.len());
     for dependencies in sorted_dependencies.into_values() {
       let dependency = &dependencies[0];
       let dependency_type = dependency.dependency_type();
@@ -97,15 +104,14 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         compiler_id: context.compiler_id,
         compilation_id: context.compilation_id,
         module_factory,
+        dependencies_marked: true,
         original_module_identifier: Some(module.identifier()),
-        original_module_context: module.get_context(),
+        original_module_context: original_module_context.clone(),
         original_module_source: original_module_source.clone(),
-        issuer: module
-          .as_normal_module()
-          .and_then(|module| module.name_for_condition()),
-        issuer_layer: module.get_layer().cloned(),
+        issuer: issuer.clone(),
+        issuer_layer: issuer_layer.clone(),
         dependencies,
-        resolve_options: module.get_resolve_options(),
+        resolve_options: resolve_options.clone(),
         options: context.compiler_options.clone(),
         resolver_factory: context.resolver_factory.clone(),
         from_unlazy,
