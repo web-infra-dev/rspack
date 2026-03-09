@@ -1,7 +1,7 @@
 export const EN_US = {
   // hero
-  heroSlogan: 'Rust-based bundler for JavaScript',
-  heroSubSlogan: 'Seamlessly replace webpack with refined webpack API',
+  heroSlogan: 'Fast Rust-based bundler for the web',
+  heroSubSlogan: 'Seamlessly replace webpack with modernized webpack API',
   getStarted: 'Get Started',
   learnMore: 'Learn More',
 

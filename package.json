@@ -2,7 +2,7 @@
   "name": "monorepo",
   "version": "2.0.0-beta.5",
   "license": "MIT",
-  "description": "Rust-based bundler for JavaScript and TypeScript with refined webpack API",
+  "description": "Fast Rust-based bundler for the web with a modernized webpack API",
   "private": true,
   "main": "./packages/rspack/dist/index.js",
   "scripts": {

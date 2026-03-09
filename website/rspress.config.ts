@@ -121,13 +121,14 @@ export default defineConfig({
         lang: 'en',
         title: 'Rspack',
         description:
-          'Rust-based bundler for JavaScript and TypeScript with refined webpack API',
+          'Fast Rust-based bundler for the web with a modernized webpack API',
         label: 'English',
       },
       {
         lang: 'zh',
         title: 'Rspack',
-        description: '基于 Rust 的高性能 web 打包工具',
+        description:
+          '基于 Rust 的高性能 Web 打包工具，提供现代化的 webpack API',
         label: '简体中文',
       },
     ],
@@ -155,7 +156,7 @@ export default defineConfig({
       pluginOpenGraph({
         url: PUBLISH_URL,
         description:
-          'Rust-based bundler for JavaScript and TypeScript with refined webpack API',
+          'Fast Rust-based bundler for the web with a modernized webpack API',
         twitter: {
           site: '@rspack_dev',
           card: 'summary_large_image',
