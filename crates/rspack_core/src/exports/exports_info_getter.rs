@@ -198,8 +198,12 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     exports_info: &ExportsInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<&ExportInfoData> {
-    let mut list = vec![];
-    for (_, export_info) in self.get_exports_in_exports_info(exports_info) {
+    let data = self
+      .exports
+      .get(exports_info)
+      .expect("should have nested exports info");
+    let mut list = Vec::with_capacity(data.exports().len() + 1);
+    for export_info in data.exports().values() {
       let used = export_info.get_used(runtime);
       if matches!(used, UsageState::Unused) {
         continue;
@@ -480,29 +484,8 @@ impl ExportsInfoGetter {
       }
 
       let exports_info = id.as_data(exports_info_artifact);
-      let extra_nested_exports =
-        usize::from(exports_info.other_exports_info().exports_info().is_some())
-          + usize::from(
-            exports_info
-              .side_effects_only_info()
-              .exports_info()
-              .is_some(),
-          );
-      let nested_exports_capacity = match mode {
-        PrefetchExportsInfoMode::Default => extra_nested_exports,
-        PrefetchExportsInfoMode::Nested(names) => {
-          extra_nested_exports
-            + usize::from(
-              names
-                .first()
-                .and_then(|name| exports_info.exports().get(name))
-                .and_then(|export_info| export_info.exports_info())
-                .is_some(),
-            )
-        }
-        PrefetchExportsInfoMode::Full => exports_info.exports().len() + extra_nested_exports,
-      };
-      let mut nested_exports = Vec::with_capacity(nested_exports_capacity);
+      res.insert(*id, exports_info);
+
       match mode {
         PrefetchExportsInfoMode::Default => {}
         PrefetchExportsInfoMode::Nested(names) => {
@@ -511,34 +494,43 @@ impl ExportsInfoGetter {
             .and_then(|name| exports_info.exports().get(name))
             .and_then(|export_info| export_info.exports_info())
           {
-            nested_exports.push((nested, PrefetchExportsInfoMode::Nested(&names[1..])));
+            prefetch_exports(
+              &nested,
+              exports_info_artifact,
+              res,
+              PrefetchExportsInfoMode::Nested(&names[1..]),
+            );
           }
         }
         PrefetchExportsInfoMode::Full => {
           for export_info in exports_info.exports().values() {
             if let Some(nested_exports_info) = export_info.exports_info() {
-              nested_exports.push((nested_exports_info, PrefetchExportsInfoMode::Full));
+              prefetch_exports(
+                &nested_exports_info,
+                exports_info_artifact,
+                res,
+                PrefetchExportsInfoMode::Full,
+              );
             }
           }
         }
       }
 
       if let Some(other_exports) = exports_info.other_exports_info().exports_info() {
-        nested_exports.push((other_exports, PrefetchExportsInfoMode::Default));
+        prefetch_exports(
+          &other_exports,
+          exports_info_artifact,
+          res,
+          PrefetchExportsInfoMode::Default,
+        );
       }
 
       if let Some(side_exports) = exports_info.side_effects_only_info().exports_info() {
-        nested_exports.push((side_exports, PrefetchExportsInfoMode::Default));
-      }
-
-      res.insert(*id, exports_info);
-
-      for (nested_exports_info, nested_mode) in nested_exports {
         prefetch_exports(
-          &nested_exports_info,
+          &side_exports,
           exports_info_artifact,
           res,
-          nested_mode,
+          PrefetchExportsInfoMode::Default,
         );
       }
     }
