@@ -291,12 +291,12 @@ async fn optimize_dependencies(
 
   let module_graph = build_module_graph_artifact.get_module_graph_mut();
   for module_id in mocked_module_ids {
-    if let Some(module) = module_graph.module_by_identifier_mut(&module_id) {
-      if module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true) {
-        module.set_factory_meta(FactoryMeta {
-          side_effect_free: Some(false),
-        });
-      }
+    if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
+      && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+    {
+      module.set_factory_meta(FactoryMeta {
+        side_effect_free: Some(false),
+      });
     }
   }
 
