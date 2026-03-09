@@ -4,7 +4,7 @@ mod dependencies;
 mod diagnostics;
 pub mod entries;
 
-use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
+use std::{cell::RefCell, path::Path, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;

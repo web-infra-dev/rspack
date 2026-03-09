@@ -14,6 +14,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rustc_hash::FxHashMap as HashMap;
 
 static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
@@ -60,11 +61,7 @@ impl RstestPlugin {
     Self::new_inner(options)
   }
 
-  fn update_source(
-    &self,
-    old: BoxSource,
-    replace_map: &std::collections::HashMap<String, MockFlagPos>,
-  ) -> BoxSource {
+  fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {
     let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
 
@@ -211,8 +208,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
   }
 
   for file in files {
-    let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
-      std::collections::HashMap::new();
+    let mut pos_map: HashMap<String, MockFlagPos> = HashMap::default();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
       // Only handles JavaScript.
       if info.javascript_module.is_none() {

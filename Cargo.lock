@@ -3798,6 +3798,7 @@ dependencies = [
  "rspack_cacheable_macros",
  "rspack_resolver",
  "rspack_sources",
+ "rustc-hash",
  "serde_json",
  "smol_str",
  "sugar_path",
@@ -4907,6 +4908,7 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
+ "rustc-hash",
  "swc_core",
  "tracing",
 ]
@@ -4983,6 +4985,7 @@ dependencies = [
  "rspack_futures",
  "rspack_hook",
  "rspack_util",
+ "rustc-hash",
  "tracing",
 ]
 
@@ -5224,6 +5227,7 @@ version = "0.100.0-beta.5"
 dependencies = [
  "chrono",
  "rspack_tracing_perfetto",
+ "rustc-hash",
  "serde_json",
  "tracing-subscriber",
 ]
