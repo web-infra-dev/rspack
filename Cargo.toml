@@ -308,10 +308,6 @@ opt-level = "s"
 [profile.release.package.rspack_plugin_rsdoctor]
 opt-level = "s"
 
-[profile.release.package.swc_ecma_compat_es3]
-opt-level = "s"
-
-
 [profile.release.package.backtrace]
 opt-level = "s"
 
@@ -412,7 +408,6 @@ opt-level = "s"
 [profile.ci]
 codegen-units       = 256
 debug               = "limited"
-force-unwind-tables = true
 inherits            = "release"
 lto                 = false
 ## reduce little optimization to reduce build time
