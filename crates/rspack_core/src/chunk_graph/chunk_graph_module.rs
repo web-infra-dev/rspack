@@ -21,26 +21,35 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ModuleId {
   inner: Arc<str>,
+  // Precomputed hash of `inner`, similar to `ArcPath`.
+  hash: u64,
 }
 
 impl From<String> for ModuleId {
   fn from(s: String) -> Self {
-    Self { inner: s.into() }
+    Self::new(s.into())
   }
 }
 
 impl From<&str> for ModuleId {
   fn from(s: &str) -> Self {
-    Self { inner: s.into() }
+    Self::new(s.into())
   }
 }
 
 impl From<u32> for ModuleId {
   fn from(n: u32) -> Self {
     Self::from(n.to_string())
+  }
+}
+
+impl Hash for ModuleId {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    // Use the precomputed hash value so hashing in maps/sets is O(1)
+    state.write_u64(self.hash);
   }
 }
 
@@ -64,6 +73,14 @@ impl Serialize for ModuleId {
 }
 
 impl ModuleId {
+  fn new(inner: Arc<str>) -> Self {
+    // Precompute hash once when ModuleId is created, similar to ArcPath.
+    let mut hasher = FxHasher::default();
+    inner.hash(&mut hasher);
+    let hash = hasher.finish();
+    Self { inner, hash }
+  }
+
   pub fn as_number(&self) -> Option<u32> {
     self.inner.parse::<u32>().ok()
   }
