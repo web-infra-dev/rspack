@@ -3,7 +3,7 @@ import type { EN_US } from './enUS';
 export const ZH_CN: Record<keyof typeof EN_US, string> = {
   // hero
   heroSlogan: '基于 Rust 的 JavaScript 打包工具',
-  heroSubSlogan: '以更现代的 API 无缝替换 webpack',
+  heroSubSlogan: '使用优化后的 webpack API 无缝替换 webpack',
   getStarted: '快速开始',
   learnMore: '深入了解',
 
