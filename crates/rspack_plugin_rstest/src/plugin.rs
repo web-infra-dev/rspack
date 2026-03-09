@@ -323,12 +323,12 @@ impl Plugin for RstestPlugin {
         .tap(nmf_parser::new(self));
     }
 
-    if self.options.hoist_mock_module {
-      ctx
-        .compilation_hooks
-        .optimize_dependencies
-        .tap(optimize_dependencies::new(self));
+    ctx
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
 
+    if self.options.hoist_mock_module {
       ctx
         .compilation_hooks
         .process_assets
