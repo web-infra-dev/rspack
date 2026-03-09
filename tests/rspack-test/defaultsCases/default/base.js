@@ -625,9 +625,7 @@ module.exports = {
 			      node_modules,
 			    ],
 			    pnp: false,
-			    roots: Array [
-			      <TEST_ROOT>,
-			    ],
+			    roots: Array [],
 			  },
 			  resolveLoader: Object {
 			    conditionNames: Array [
