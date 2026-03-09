@@ -84,7 +84,7 @@ async fn module_ids(
   let module_graph = compilation.get_module_graph();
 
   modules
-    .sort_unstable_by(|a, b| compare_modules_by_pre_order_index_or_identifier(&module_graph, a, b));
+    .sort_unstable_by(|a, b| compare_modules_by_pre_order_index_or_identifier(module_graph, a, b));
 
   for module_identifier in modules {
     let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
