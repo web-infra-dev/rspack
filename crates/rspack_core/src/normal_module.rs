@@ -1,17 +1,16 @@
 use std::{
   borrow::Cow,
-  hash::{BuildHasherDefault, Hash},
+  hash::Hash,
   sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
   },
 };
 
-use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsMap, AsOption, AsPreset},
+  with::{As, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -27,7 +26,6 @@ use rspack_util::{
   ext::DynHash,
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
-use rustc_hash::FxHasher;
 use serde_json::json;
 use tracing::{Instrument, info_span};
 
@@ -39,8 +37,10 @@ use crate::{
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SourceType, contextify, diagnostics::ModuleBuildError, get_context,
-  module_update_hash,
+  RuntimeGlobals, RuntimeSpec, SourceType, contextify,
+  diagnostics::ModuleBuildError,
+  get_context, module_update_hash,
+  utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
 #[cacheable]
@@ -138,8 +138,8 @@ pub struct NormalModule {
 
   #[allow(unused)]
   debug_id: usize,
-  #[cacheable(with=AsMap)]
-  cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
+  #[cacheable(with=As<SourceSizeCacheSerde>)]
+  cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
 
   code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
@@ -210,7 +210,7 @@ impl NormalModule {
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 
-      cached_source_sizes: DashMap::default(),
+      cached_source_sizes: SourceSizeCache::default(),
       diagnostics: Default::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
@@ -350,12 +350,16 @@ impl Module for NormalModule {
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
-      *size_ref
+    if let Some(source_type) = source_type {
+      // Fast-path: lock-free builtin slots / tiny fallback map for custom source types.
+      if let Some(size) = self.cached_source_sizes.get(source_type) {
+        return size;
+      }
+
+      let size = f64::max(1.0, self.parser_and_generator.size(self, Some(source_type)));
+      self.cached_source_sizes.get_or_insert(source_type, size)
     } else {
-      let size = f64::max(1.0, self.parser_and_generator.size(self, source_type));
-      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
-      size
+      f64::max(1.0, self.parser_and_generator.size(self, source_type))
     }
   }
 
