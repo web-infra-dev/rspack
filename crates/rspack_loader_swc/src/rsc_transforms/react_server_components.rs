@@ -537,7 +537,7 @@ pub fn server_components(
   };
   let disable_client_api_checks = match &config {
     Config::WithOptions(x) => x.disable_client_api_checks,
-    _ => true,
+    _ => false,
   };
   visit_mut_pass(ReactServerComponents {
     is_react_server_layer,

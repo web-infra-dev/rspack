@@ -80,11 +80,11 @@ impl From<RawRspackExperiments> for RspackExperiments {
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
       react_server_components: match value.react_server_components {
-        RawReactServerComponents::Bool(enabled) => ReactServerComponentsConfig {
+        RawReactServerComponents::Bool(enabled) => ReactServerComponentsOptions {
           enabled,
           disable_client_api_checks: false,
         },
-        RawReactServerComponents::WithOptions(opts) => ReactServerComponentsConfig {
+        RawReactServerComponents::WithOptions(opts) => ReactServerComponentsOptions {
           enabled: true,
           disable_client_api_checks: opts.disable_client_api_checks,
         },
