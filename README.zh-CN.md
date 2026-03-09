@@ -16,7 +16,7 @@
 
 [English](./README.md) | 简体中文
 
-Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它在 webpack API 基础上进行优化，能够无缝替换 webpack，并提供闪电般的构建速度。
+Rspack 是一个基于 Rust 编写的高性能 Web 打包工具，它提供现代化的 webpack API，能够无缝替换 webpack，并提供闪电般的构建速度。
 
 ## ✨ 特性
 
