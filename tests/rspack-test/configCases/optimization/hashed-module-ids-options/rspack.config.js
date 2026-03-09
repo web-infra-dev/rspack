@@ -12,17 +12,5 @@ module.exports = [
 				hashDigestLength: 8
 			})
 		]
-	},
-	{
-		optimization: {
-			moduleIds: false
-		},
-		plugins: [
-			new webpack.HashedModuleIdsPlugin({
-				hashFunction: "xxhash64",
-				hashDigest: "base62",
-				hashDigestLength: 6
-			})
-		]
 	}
 ];
