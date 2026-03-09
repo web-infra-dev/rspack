@@ -396,9 +396,6 @@ importers:
       enhanced-resolve:
         specifier: 5.19.0
         version: 5.19.0
-      glob-to-regexp:
-        specifier: ^0.4.1
-        version: 0.4.1
       memfs:
         specifier: 4.53.0
         version: 4.53.0
@@ -783,9 +780,6 @@ importers:
       bundle-loader:
         specifier: ^0.5.6
         version: 0.5.6
-      chalk:
-        specifier: ^4.1.2
-        version: 4.1.2
       coffee-loader:
         specifier: ^1.0.1
         version: 1.0.1(coffeescript@2.7.0)(webpack@5.102.1)
@@ -810,18 +804,12 @@ importers:
       file-loader:
         specifier: ^6.2.0
         version: 6.2.0(webpack@5.102.1)
-      graceful-fs:
-        specifier: ^4.2.11
-        version: 4.2.11
       html-loader:
         specifier: ^5.1.0
         version: 5.1.0(webpack@5.102.1)
       html-webpack-plugin:
         specifier: ^5.6.6
         version: 5.6.6(@rspack/core@packages+rspack)(webpack@5.102.1)
-      is-ci:
-        specifier: 4.1.0
-        version: 4.1.0
       json-loader:
         specifier: ^0.5.7
         version: 0.5.7

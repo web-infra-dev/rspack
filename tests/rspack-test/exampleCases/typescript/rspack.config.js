@@ -1,4 +1,4 @@
-const ForkTsCheckerWebpackPlugin = require("ts-checker-rspack-plugin");
+const { TsCheckerRspackPlugin } = require('ts-checker-rspack-plugin');
 
 module.exports = {
 	mode: "development",
@@ -19,5 +19,5 @@ module.exports = {
 	resolve: {
 		extensions: [".ts", ".js", ".json"]
 	},
-	plugins: [new ForkTsCheckerWebpackPlugin({ async: false })]
+	plugins: [new TsCheckerRspackPlugin({ async: false })]
 };
