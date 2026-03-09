@@ -585,7 +585,7 @@ var {} = {{}};
       }
 
       for (start, end, relative) in replacement {
-        replace_source.replace(start, end, &relative, None);
+        replace_source.replace(start, end, relative, None);
       }
 
       // concate module does this by render_module()
@@ -617,7 +617,12 @@ var {} = {{}};
           unreachable!()
         };
 
-        replace_source.replace(start as u32, end as u32, filename.filename(), None);
+        replace_source.replace(
+          start as u32,
+          end as u32,
+          filename.filename().to_string(),
+          None,
+        );
       }
 
       // concate module does this by render_module()
@@ -744,7 +749,7 @@ var {} = {{}};
           source.replace(
             ident.id.span.real_lo(),
             ident.id.span.real_hi() + 2,
-            &name,
+            name.into_owned(),
             None,
           );
         }
@@ -762,12 +767,7 @@ var {} = {{}};
         } else {
           internal_name.to_string()
         };
-        source.replace(
-          ident.id.span.real_lo(),
-          ident.id.span.real_hi(),
-          &name,
-          None,
-        );
+        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
       }
     }
 

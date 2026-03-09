@@ -1345,11 +1345,11 @@ var {} = {{}};
             let high = span.real_hi();
 
             if identifier.shorthand {
-              replace_source.insert(high, &format!(": {new_name}"), None);
+              replace_source.insert(high, format!(": {new_name}"), None);
               continue;
             }
 
-            replace_source.replace(low, high, &new_name, None);
+            replace_source.replace(low, high, new_name.to_string(), None);
           }
 
           all_used_names.insert(new_name);

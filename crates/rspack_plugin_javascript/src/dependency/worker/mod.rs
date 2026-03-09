@@ -182,7 +182,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     source.replace(
       dep.range_path.start,
       dep.range_path.end,
-      worker_import_str.as_str(),
+      worker_import_str,
       None,
     );
   }
