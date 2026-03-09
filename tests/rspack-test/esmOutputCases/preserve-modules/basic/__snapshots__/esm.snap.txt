@@ -1,5 +1,5 @@
 ```mjs title=demo/index.mjs
-import "../main.mjs";
+import "../other1_index_js-other2_index_js.mjs";
 
 // ./src/demo/index.js
 const demo = () => 'demo'
@@ -12,7 +12,7 @@ export { src_demo };
 
 ```mjs title=index.mjs
 import { src_demo } from "./demo/index.mjs";
-import "./main.mjs";
+import "./other1_index_js-other2_index_js.mjs";
 
 // ./src/index.js
 
@@ -25,7 +25,7 @@ it('should preserve modules', () => {
 
 ```
 
-```mjs title=main.mjs
+```mjs title=other1_index_js-other2_index_js.mjs
 // ./other2/index.js
 // other2
 console.log.bind(console)

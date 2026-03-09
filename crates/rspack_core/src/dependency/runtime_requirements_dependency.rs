@@ -105,6 +105,6 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
       content = format!("{content}()");
     }
 
-    source.replace(dep.range.start, dep.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

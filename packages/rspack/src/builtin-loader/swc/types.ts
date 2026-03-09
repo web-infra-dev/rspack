@@ -34,9 +34,18 @@ export type SwcLoaderOptions = Config & {
     /**
      * Enable React Server Components support.
      */
-    reactServerComponents?: boolean;
+    reactServerComponents?: boolean | ReactServerComponentsOptions;
   };
 };
+
+export interface ReactServerComponentsOptions {
+  /**
+   * Whether to disable the compile-time check that reports errors when React
+   * client-only APIs (e.g. `useState`, `useEffect`) are imported in server
+   * components. Defaults to `false`.
+   */
+  disableClientApiChecks?: boolean;
+}
 
 export interface TerserCompressOptions {
   arguments?: boolean;

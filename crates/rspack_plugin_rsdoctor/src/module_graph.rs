@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_json::create_object_for_exports_info;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashSet as HashSet;
 use thread_local::ThreadLocal;
 
 use crate::{
@@ -72,7 +72,7 @@ pub fn collect_modules(
   module_graph: &ModuleGraph,
   chunk_graph: &ChunkGraph,
   context: &Context,
-) -> HashMap<Identifier, RsdoctorModule> {
+) -> IdentifierMap<RsdoctorModule> {
   let module_ukey_counter: Arc<AtomicI32> = Arc::new(AtomicI32::new(0));
 
   modules
@@ -131,14 +131,14 @@ pub fn collect_modules(
         },
       )
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<IdentifierMap<_>>()
 }
 
 pub fn collect_concatenated_modules(
   modules: &IdentifierMap<&BoxModule>,
 ) -> (
-  HashMap<Identifier, HashSet<Identifier>>,
-  HashMap<Identifier, HashSet<Identifier>>,
+  IdentifierMap<HashSet<Identifier>>,
+  IdentifierMap<HashSet<Identifier>>,
 ) {
   let children_map = modules
     .par_iter()
@@ -153,7 +153,7 @@ pub fn collect_concatenated_modules(
           .collect::<HashSet<_>>(),
       ))
     })
-    .collect::<HashMap<_, _>>();
+    .collect::<IdentifierMap<_>>();
 
   let parent_map = children_map
     .iter()
@@ -164,8 +164,8 @@ pub fn collect_concatenated_modules(
         .collect::<HashSet<_>>()
     })
     .fold(
-      HashMap::default(),
-      |mut acc: HashMap<Identifier, HashSet<Identifier>>, (child, parent)| {
+      IdentifierMap::default(),
+      |mut acc: IdentifierMap<HashSet<Identifier>>, (child, parent)| {
         acc.entry(child).or_default().insert(parent);
         acc
       },
@@ -176,7 +176,7 @@ pub fn collect_concatenated_modules(
 
 pub fn collect_module_original_sources(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) -> Vec<RsdoctorModuleOriginalSource> {
@@ -243,9 +243,9 @@ pub fn collect_module_original_sources(
 
 pub fn collect_module_dependencies(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
-) -> HashMap<Identifier, HashMap<Identifier, (DependencyId, RsdoctorDependency)>> {
+) -> IdentifierMap<IdentifierMap<(DependencyId, RsdoctorDependency)>> {
   let dependency_ukey_counter = Arc::new(AtomicI32::new(0));
 
   modules
@@ -287,16 +287,16 @@ pub fn collect_module_dependencies(
             ),
           ))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<IdentifierMap<(DependencyId, RsdoctorDependency)>>();
 
       Some((module_id.to_owned(), dependencies))
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<IdentifierMap<IdentifierMap<(DependencyId, RsdoctorDependency)>>>()
 }
 
 pub fn collect_module_ids(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_ids: &ModuleIdsArtifact,
 ) -> Vec<RsdoctorModuleId> {
   modules
@@ -315,9 +315,9 @@ pub fn collect_module_ids(
 
 pub fn collect_module_side_effects_locations(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
-) -> HashMap<Identifier, Vec<RsdoctorSideEffectLocation>> {
+) -> IdentifierMap<Vec<RsdoctorSideEffectLocation>> {
   modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -349,5 +349,5 @@ pub fn collect_module_side_effects_locations(
         Some((*module_id, side_effect_locations))
       }
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<IdentifierMap<Vec<RsdoctorSideEffectLocation>>>()
 }

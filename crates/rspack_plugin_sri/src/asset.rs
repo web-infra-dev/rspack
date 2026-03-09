@@ -177,7 +177,8 @@ fn process_chunk_source(
     if let Some(m) = caps.get(0) {
       let replacement = hash_by_placeholders
         .get(m.as_str())
-        .map_or(m.as_str(), |i| i.as_str());
+        .map_or(m.as_str(), |i| i.as_str())
+        .to_string();
       new_source.replace(m.start() as u32, m.end() as u32, replacement, None);
     }
   }
