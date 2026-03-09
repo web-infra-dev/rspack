@@ -101,6 +101,7 @@ jobs:
       target: wasm32-wasip1-threads
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      test-runner: '"ubuntu-22.04"'
       test: true
 
   check-codspeed:
