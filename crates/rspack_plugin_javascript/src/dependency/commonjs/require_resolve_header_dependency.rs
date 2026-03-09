@@ -70,6 +70,6 @@ impl DependencyTemplate for RequireResolveHeaderDependencyTemplate {
       .downcast_ref::<RequireResolveHeaderDependency>()
       .expect("RequireResolveHeaderDependencyTemplate should only be used for RequireResolveHeaderDependency");
 
-    source.replace(dep.range.start, dep.range.end, "/*require.resolve*/", None);
+    source.replace_static(dep.range.start, dep.range.end, "/*require.resolve*/", None);
   }
 }

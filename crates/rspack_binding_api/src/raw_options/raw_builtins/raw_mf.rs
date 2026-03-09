@@ -8,7 +8,8 @@ use rspack_plugin_mf::{
   ManifestSharedOption, ModuleFederationManifestPluginOptions,
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
   OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
-  SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions, StatsBuildInfo,
+  ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
+  StatsBuildInfo,
 };
 
 use crate::options::{
@@ -16,11 +17,18 @@ use crate::options::{
   library::JsLibraryOptions,
 };
 
+fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
+  match value {
+    Either::A(s) => ShareScope::Single(s),
+    Either::B(list) => ShareScope::Multiple(list),
+  }
+}
+
 #[derive(Debug)]
 #[napi(object)]
 pub struct RawContainerPluginOptions {
   pub name: String,
-  pub share_scope: String,
+  pub share_scope: Either<String, Vec<String>>,
   pub library: JsLibraryOptions,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<JsEntryRuntime>,
@@ -31,9 +39,10 @@ pub struct RawContainerPluginOptions {
 
 impl From<RawContainerPluginOptions> for ContainerPluginOptions {
   fn from(value: RawContainerPluginOptions) -> Self {
+    let share_scope = into_share_scope(value.share_scope);
     Self {
       name: value.name,
-      share_scope: value.share_scope,
+      share_scope,
       library: value.library.into(),
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       filename: value.filename.map(|f| f.into()),
@@ -68,16 +77,17 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
 pub struct RawContainerReferencePluginOptions {
   pub remote_type: String,
   pub remotes: Vec<RawRemoteOptions>,
-  pub share_scope: Option<String>,
+  pub share_scope: Option<Either<String, Vec<String>>>,
   pub enhanced: bool,
 }
 
 impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOptions {
   fn from(value: RawContainerReferencePluginOptions) -> Self {
+    let share_scope = value.share_scope.map(into_share_scope);
     Self {
       remote_type: value.remote_type,
       remotes: value.remotes.into_iter().map(|e| e.into()).collect(),
-      share_scope: value.share_scope,
+      share_scope,
       enhanced: value.enhanced,
     }
   }
@@ -88,7 +98,7 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
 pub struct RawRemoteOptions {
   pub key: String,
   pub external: Vec<String>,
-  pub share_scope: String,
+  pub share_scope: Either<String, Vec<String>>,
 }
 
 impl From<RawRemoteOptions> for (String, RemoteOptions) {
@@ -97,7 +107,7 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
       value.key,
       RemoteOptions {
         external: value.external,
-        share_scope: value.share_scope,
+        share_scope: into_share_scope(value.share_scope),
       },
     )
   }
@@ -108,7 +118,7 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
 pub struct RawProvideOptions {
   pub key: String,
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
   pub version: Option<RawVersion>,
   pub eager: bool,
@@ -125,7 +135,7 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
       value.key,
       ProvideOptions {
         share_key: value.share_key,
-        share_scope: value.share_scope,
+        share_scope: into_share_scope(value.share_scope),
         version: value.version.map(|v| RawVersionWrapper(v).into()),
         eager: value.eager,
         singleton: value.singleton,
@@ -256,7 +266,7 @@ pub struct RawConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
   pub required_version: Option<RawVersion>,
   pub package_name: Option<String>,
@@ -274,7 +284,7 @@ impl From<RawConsumeOptions> for (String, ConsumeOptions) {
         import: value.import,
         import_resolved: value.import_resolved,
         share_key: value.share_key,
-        share_scope: value.share_scope,
+        share_scope: into_share_scope(value.share_scope),
         required_version: value.required_version.map(|v| RawVersionWrapper(v).into()),
         package_name: value.package_name,
         strict_version: value.strict_version,

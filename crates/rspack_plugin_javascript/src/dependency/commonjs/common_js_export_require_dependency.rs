@@ -541,7 +541,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         }
         None => format!("/* unused reexport */ {require_expr}"),
       };
-      source.replace(dep.range.start, dep.range.end, expr.as_str(), None)
+      source.replace(dep.range.start, dep.range.end, expr, None)
     } else if dep.base.is_define_property() {
       panic!("TODO")
     } else {
