@@ -5192,9 +5192,9 @@ name = "rspack_swc_plugin_ts_collector"
 version = "0.100.0-beta.5"
 dependencies = [
  "glob",
+ "insta",
  "rspack_javascript_compiler",
  "rustc-hash",
- "serde_json",
  "swc_core",
 ]
 
