@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
+  UsedName, create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -80,12 +80,33 @@ impl Dependency for CommonJsFullRequireDependency {
 
   fn get_referenced_exports(
     &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-    _exports_info_artifact: &ExportsInfoArtifact,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if self.namespace_object_as_context && self.is_call {
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+    let parent_module = module_graph
+      .get_parent_module(&self.id)
+      .expect("should have parent module");
+    let exports_type = get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &self.id,
+      parent_module,
+    );
+
+    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+    // because it's more common in cjs and json
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) {
+      namespace_object_as_context = true;
+    }
+
+    if namespace_object_as_context && self.is_call {
       if self.names.is_empty() {
         return create_exports_object_referenced();
       }

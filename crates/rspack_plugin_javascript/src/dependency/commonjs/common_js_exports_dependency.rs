@@ -10,8 +10,9 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
-use rspack_util::prototype_methods::OBJECT_PROTOTYPE_METHODS;
 use swc_core::atoms::Atom;
+
+use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]

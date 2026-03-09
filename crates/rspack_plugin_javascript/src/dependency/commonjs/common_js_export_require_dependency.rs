@@ -13,11 +13,11 @@ use rspack_core::{
   UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
   create_no_exports_referenced, property_access, to_normal_comment,
 };
-use rspack_util::prototype_methods::OBJECT_PROTOTYPE_METHODS;
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use super::ExportsBase;
+use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
 #[cacheable]
 #[allow(unused)]

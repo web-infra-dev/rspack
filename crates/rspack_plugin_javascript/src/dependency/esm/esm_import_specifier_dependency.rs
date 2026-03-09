@@ -239,19 +239,30 @@ impl Dependency for ESMImportSpecifierDependency {
       return self.get_referenced_exports_in_destructuring(None);
     }
 
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+    let parent_module = module_graph
+      .get_parent_module(&self.id)
+      .expect("should have parent module");
+    let exports_type = get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &self.id,
+      parent_module,
+    );
+
+    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+    // because it's more common in cjs and json
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) {
+      namespace_object_as_context = true;
+    }
+
     if let Some(id) = ids.first()
       && id == "default"
     {
-      let parent_module = module_graph
-        .get_parent_module(&self.id)
-        .expect("should have parent module");
-      let exports_type = get_exports_type(
-        module_graph,
-        module_graph_cache,
-        exports_info_artifact,
-        &self.id,
-        parent_module,
-      );
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {
@@ -266,7 +277,7 @@ impl Dependency for ESMImportSpecifierDependency {
       }
     }
 
-    if self.namespace_object_as_context && self.call {
+    if namespace_object_as_context && self.call {
       if ids.len() == 1 {
         return create_exports_object_referenced();
       }
