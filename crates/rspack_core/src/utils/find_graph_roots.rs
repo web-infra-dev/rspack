@@ -39,6 +39,7 @@ impl<T: ItemUkey + Hash + Eq + Copy> CycleUkey<T> {
 struct Cycle<T: ItemUkey + Hash + Eq + Copy> {
   pub ukey: CycleUkey<T>,
   pub nodes: UkeySet<T>,
+  pub is_root: bool,
 }
 
 impl<T: ItemUkey + Hash + Eq + Copy> Default for Cycle<T> {
@@ -46,6 +47,7 @@ impl<T: ItemUkey + Hash + Eq + Copy> Default for Cycle<T> {
     Self {
       ukey: CycleUkey::<T>::new(),
       nodes: Default::default(),
+      is_root: false,
     }
   }
 }
@@ -55,6 +57,7 @@ impl<T: ItemUkey + Hash + Eq + Copy> Cycle<T> {
     Self {
       ukey: CycleUkey::<T>::new(),
       nodes: UkeySet::with_capacity_and_hasher(capacity, Default::default()),
+      is_root: false,
     }
   }
 }
@@ -163,11 +166,6 @@ pub fn find_graph_roots<
   // items will be removed if a new reference to it has been found
   let mut roots = UkeySet::with_capacity_and_hasher(db.len(), Default::default());
 
-  // Set of current cycles without references to it
-  // cycles will be removed if a new reference to it has been found
-  // that is not part of the cycle
-  let mut root_cycles = UkeySet::with_capacity_and_hasher(db.len(), Default::default());
-
   let mut keys = db.keys().copied().collect::<Vec<_>>();
   keys.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
 
@@ -273,7 +271,7 @@ pub fn find_graph_roots<
             }
             Marker::DoneMaybeRootCycleMarker => {
               if let Some(cycle) = db.expect_get(&dependency).cycle {
-                root_cycles.remove(&cycle);
+                cycle_db.expect_get_mut(&cycle).is_root = false;
               };
               db.expect_get_mut(&dependency).marker = Marker::DoneMarker;
             }
@@ -288,7 +286,7 @@ pub fn find_graph_roots<
         for node in cycle_db.expect_get_mut(&cycle).nodes.iter() {
           db.expect_get_mut(node).marker = Marker::DoneMaybeRootCycleMarker;
         }
-        root_cycles.insert(cycle);
+        cycle_db.expect_get_mut(&cycle).is_root = true;
       } else {
         db.expect_get_mut(&select_node).marker = Marker::DoneAndRootMarker;
         roots.insert(select_node);
@@ -299,6 +297,12 @@ pub fn find_graph_roots<
   // Extract roots from root cycles
   // We take the nodes with most incoming edges
   // inside of the cycle
+
+  let root_cycles = cycle_db
+    .values()
+    .filter(|cycle| cycle.is_root)
+    .map(|cycle| cycle.ukey)
+    .collect::<Vec<_>>();
 
   for cycle in root_cycles {
     let mut max = 0;
