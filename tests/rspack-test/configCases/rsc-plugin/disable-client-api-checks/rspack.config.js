@@ -1,5 +1,5 @@
 const path = require('node:path');
-const { rspack, experiments } = require('@rspack/core');
+const { experiments } = require('@rspack/core');
 
 const { createPlugins, Layers } = experiments.rsc;
 const { ServerPlugin, ClientPlugin } = createPlugins();
@@ -25,15 +25,23 @@ const swcLoaderRule = {
                     },
                 },
                 rspackExperiments: {
-                    reactServerComponents: true,
+                    reactServerComponents: {
+                        disableClientApiChecks: true,
+                    },
                 },
             },
         },
     ],
 };
 
+const cssRule = {
+    test: /\.css$/,
+    type: 'css/auto',
+};
+
 module.exports = [
     {
+        name: 'server',
         mode: 'production',
         target: 'node',
         entry: {
@@ -45,7 +53,13 @@ module.exports = [
             extensions: ['...', '.ts', '.tsx', '.jsx'],
         },
         module: {
+            parser: {
+                javascript: {
+                    exportsPresence: false,
+                },
+            },
             rules: [
+                cssRule,
                 swcLoaderRule,
                 {
                     resource: ssrEntry,
@@ -68,12 +82,10 @@ module.exports = [
         },
         plugins: [
             new ServerPlugin(),
-            new rspack.DefinePlugin({
-                CLIENT_PATH: JSON.stringify(path.resolve(__dirname, 'src/Client.js')),
-            }),
-        ],
+        ]
     },
     {
+        name: 'client',
         mode: 'production',
         target: 'web',
         entry: {
@@ -85,7 +97,10 @@ module.exports = [
             extensions: ['...', '.ts', '.tsx', '.jsx'],
         },
         module: {
-            rules: [swcLoaderRule],
+            rules: [
+                cssRule,
+                swcLoaderRule
+            ],
         },
         plugins: [new ClientPlugin()],
     },

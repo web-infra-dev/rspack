@@ -79,10 +79,6 @@ module.exports = [
                 TODOS_PATH: JSON.stringify(path.join(__dirname, 'src/Todos.js')),
             }),
         ],
-        optimization: {
-            moduleIds: 'named',
-            concatenateModules: true,
-        },
         output: {
             filename: '[name].js',
         },
@@ -106,10 +102,6 @@ module.exports = [
             ],
         },
         plugins: [new ClientPlugin()],
-        optimization: {
-            moduleIds: 'named',
-            concatenateModules: true,
-        },
         output: {
             filename: 'static/[name].js',
             library: {
