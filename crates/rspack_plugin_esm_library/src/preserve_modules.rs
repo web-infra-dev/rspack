@@ -202,6 +202,29 @@ pub async fn preserve_modules(
           .build_chunk_graph_artifact
           .chunk_graph
           .connect_chunk_and_entry_module(new_chunk_ukey, module_id, ukey);
+
+        // Transfer the chunk name from the old entry chunk to the new chunk
+        // to avoid duplicate output filenames. Without this, the old chunk
+        // retains its entry name (e.g., "index") and if it has modules outside
+        // the root (which don't get a filename_template), its output falls back
+        // to `[name].mjs` → "index.mjs", conflicting with the new chunk's
+        // filename_template "index.mjs".
+        let old_chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(&chunk);
+        if let Some(name) = old_chunk.name().map(|s| s.to_string()) {
+          old_chunk.set_name(None);
+          let new_chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get_mut(&new_chunk_ukey);
+          new_chunk.set_name(Some(name.clone()));
+          compilation
+            .build_chunk_graph_artifact
+            .named_chunks
+            .insert(name, new_chunk_ukey);
+        }
       }
     }
   }
