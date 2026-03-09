@@ -1,3 +1,4 @@
+import './checkNodeVersion';
 import * as rspackExports from './exports';
 import { rspack as rspackFn } from './rspack';
 
