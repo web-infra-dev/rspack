@@ -1079,10 +1079,11 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, &Ident),
   {
+    let drive = self.plugin_drive.clone();
     if !ident
       .sym
       .call_hooks_name(self, |parser, for_name| {
-        parser.plugin_drive.clone().pattern(parser, ident, for_name)
+        drive.pattern(parser, ident, for_name)
       })
       .unwrap_or_default()
     {
@@ -1239,6 +1240,7 @@ impl<'parser> JavascriptParser<'parser> {
     pattern: &ObjectPat,
     expr: &'a Expr,
   ) -> Option<&'a Expr> {
+    let drive = self.plugin_drive.clone();
     let expr = if let Some(await_expr) = expr.as_await_expr() {
       &await_expr.arg
     } else {
@@ -1250,9 +1252,7 @@ impl<'parser> JavascriptParser<'parser> {
     {
       self.enter_destructuring_assignment(obj_pat, &assign.right)
     } else {
-      let can_collect = self
-        .plugin_drive
-        .clone()
+      let can_collect = drive
         .can_collect_destructuring_assignment_properties(self, expr)
         .unwrap_or_default();
       can_collect.then_some(expr)

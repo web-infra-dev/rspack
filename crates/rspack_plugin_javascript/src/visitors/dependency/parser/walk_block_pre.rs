@@ -32,12 +32,11 @@ impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
+        let drive = self.plugin_drive.clone();
         self.enter_statement(
           statement,
           |parser, _| {
-            parser
-              .plugin_drive
-              .clone()
+            drive
               .block_pre_module_declaration(parser, decl)
               .unwrap_or_default()
           },
@@ -73,15 +72,10 @@ impl JavascriptParser<'_> {
   }
 
   pub fn block_pre_walk_statement(&mut self, stmt: Statement) {
+    let drive = self.plugin_drive.clone();
     self.enter_statement(
       &stmt,
-      |parser, _| {
-        parser
-          .plugin_drive
-          .clone()
-          .block_pre_statement(parser, stmt)
-          .unwrap_or_default()
-      },
+      |parser, _| drive.block_pre_statement(parser, stmt).unwrap_or_default(),
       |parser, _| match stmt {
         Statement::Class(decl) => parser.block_pre_walk_class_declaration(decl),
         Statement::Var(decl) => parser.block_pre_walk_variable_declaration(decl),
@@ -122,7 +116,6 @@ impl JavascriptParser<'_> {
         self.prev_statement = prev;
         self.block_pre_walk_statement((&decl.decl).into());
         self.enter_declaration(&decl.decl, |parser, def| {
-          let drive = parser.plugin_drive.clone();
           drive.export_specifier(
             parser,
             ExportLocal::Named(export),
@@ -198,7 +191,6 @@ impl JavascriptParser<'_> {
       ExportDefaultDeclaration::Expr(expr) => {
         // Webpack call exportExpression in walk (legacy code maybe)
         // We move it to block_pre_walk for consistent with other export related hook
-        let drive = self.plugin_drive.clone();
         drive.export_expression(self, export, ExportDefaultExpression::Expr(&expr.expr));
       }
     }

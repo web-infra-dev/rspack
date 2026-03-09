@@ -451,22 +451,20 @@ impl JavascriptParser<'_> {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
-      {
-        if drive
+        && drive
           .can_rename(self, &renamed_identifier)
           .unwrap_or_default()
+      {
+        if !drive
+          .rename(self, init, &renamed_identifier)
+          .unwrap_or_default()
         {
-          if !drive
-            .rename(self, init, &renamed_identifier)
-            .unwrap_or_default()
-          {
-            self.set_variable(
-              ident.sym.clone(),
-              ExportedVariableInfo::Name(renamed_identifier.clone()),
-            );
-          }
-          continue;
+          self.set_variable(
+            ident.sym.clone(),
+            ExportedVariableInfo::Name(renamed_identifier.clone()),
+          );
         }
+        continue;
       }
       if !drive.declarator(self, declarator, decl).unwrap_or_default() {
         self.walk_pattern(&declarator.name);
@@ -1024,9 +1022,12 @@ impl JavascriptParser<'_> {
       .map(|param| get_var_name(self, param))
       .collect::<Vec<_>>();
 
-    let mut params = vec![];
-    let mut scope_params = vec![];
+    let mut params = Vec::new();
+    let mut scope_params = Vec::new();
     if let Some(fn_expr) = expr.as_fn_expr() {
+      let param_len = fn_expr.function.params.len();
+      params.reserve(param_len);
+      scope_params.reserve(param_len);
       for (i, pat) in fn_expr.function.params.iter().map(|p| &p.pat).enumerate() {
         // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
         let ident = pat.as_ident().expect("should be a `BindingIdent`");
@@ -1040,6 +1041,9 @@ impl JavascriptParser<'_> {
         }
       }
     } else if let Some(arrow_expr) = expr.as_arrow() {
+      let param_len = arrow_expr.params.len();
+      params.reserve(param_len);
+      scope_params.reserve(param_len);
       for (i, pat) in arrow_expr.params.iter().enumerate() {
         // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
         let ident = pat.as_ident().expect("should be a `BindingIdent`");
