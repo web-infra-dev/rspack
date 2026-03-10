@@ -1,11 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Config } from 'prebundle';
 
-function replaceFileContent(
-  filePath: string,
-  replaceFn: (content: string) => string,
-) {
+function replaceFileContent(filePath, replaceFn) {
   const content = readFileSync(filePath, 'utf-8');
   const newContent = replaceFn(content);
   if (newContent !== content) {
@@ -60,4 +56,4 @@ export default {
       },
     },
   ],
-} satisfies Config;
+};

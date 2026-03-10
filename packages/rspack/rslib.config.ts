@@ -12,7 +12,7 @@ import {
   rspack,
 } from '@rslib/core';
 import packageJson from './package.json' with { type: 'json' };
-import prebundleConfig from './prebundle.config.ts';
+import prebundleConfig from './prebundle.config.js';
 
 const require = createRequire(import.meta.url);
 
