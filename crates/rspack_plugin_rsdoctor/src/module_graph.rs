@@ -1,7 +1,7 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType,
@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_plugin_json::create_object_for_exports_info;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 
 use crate::{
@@ -352,7 +352,7 @@ pub fn collect_module_side_effects_locations(
 
 pub fn collect_connections_only_imports(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
