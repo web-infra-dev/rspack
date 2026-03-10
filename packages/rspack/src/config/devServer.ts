@@ -7,7 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack-dev-server/blob/master/LICENSE
  */
-
 import type { ReadStream } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ServerOptions } from 'node:https';
@@ -122,14 +121,12 @@ type DevMiddlewareOptions<
 
 type BasicApplication = any;
 type ChokidarWatchOptions = { [key: string]: any };
-type ServeIndexOptions = { [key: string]: any };
 type ServeStaticOptions = { [key: string]: any };
 
 type WatchFiles = {
   paths: string | string[];
   options?: ChokidarWatchOptions & {
     aggregateTimeout?: number;
-    ignored?: ChokidarWatchOptions['ignored'];
     poll?: number | boolean;
   };
 };
@@ -137,15 +134,8 @@ type WatchFiles = {
 export type DevServerStaticItem = {
   directory?: string;
   publicPath?: string | string[];
-  serveIndex?: boolean | ServeIndexOptions;
   staticOptions?: ServeStaticOptions;
-  watch?:
-    | boolean
-    | (ChokidarWatchOptions & {
-        aggregateTimeout?: number;
-        ignored?: ChokidarWatchOptions['ignored'];
-        poll?: number | boolean;
-      });
+  watch?: boolean | NonNullable<WatchFiles['options']>;
 };
 
 export type DevServerStatic =
