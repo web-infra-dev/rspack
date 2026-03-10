@@ -28,7 +28,6 @@ use rspack_util::{
   SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
-  swc::join_atom,
 };
 use swc_core::{
   common::{FileName, Spanned, SyntaxContext},
@@ -424,7 +423,7 @@ impl EsmLibraryPlugin {
             }
 
             if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, None) {
-              let mut binding = Self::get_binding(
+              let Some(mut binding) = Self::get_binding(
                 None,
                 compilation.get_module_graph(),
                 &compilation.module_graph_cache_artifact,
@@ -440,7 +439,9 @@ impl EsmLibraryPlugin {
                 &mut Default::default(),
                 &mut chunk_link.required,
                 &mut chunk_link.used_names,
-              );
+              ) else {
+                continue;
+              };
 
               if let Ref::Symbol(symbol_binding) = &mut binding {
                 let target_info = concate_modules_map.get(&symbol_binding.module);
@@ -1345,7 +1346,7 @@ var {} = {{}};
         }
 
         let chunk_link = link.get_mut_unwrap(&current_chunk);
-        let binding = Self::get_binding(
+        let Some(binding) = Self::get_binding(
           None,
           module_graph,
           &compilation.module_graph_cache_artifact,
@@ -1361,7 +1362,9 @@ var {} = {{}};
           &mut Default::default(),
           required,
           &mut chunk_link.used_names,
-        );
+        ) else {
+          continue;
+        };
 
         match binding {
           Ref::Symbol(symbol_binding) => {
@@ -1829,7 +1832,7 @@ var {} = {{}};
               continue;
             }
 
-            let binding = Self::get_binding(
+            let Some(binding) = Self::get_binding(
               Some(m),
               module_graph,
               &compilation.module_graph_cache_artifact,
@@ -1845,7 +1848,9 @@ var {} = {{}};
               &mut Default::default(),
               current_required,
               &mut chunk_link.used_names,
-            );
+            ) else {
+              continue;
+            };
 
             refs.insert(
               ref_string
@@ -2112,7 +2117,7 @@ var {} = {{}};
     already_visited: &mut FxHashSet<ExportInfoHashKey>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
-  ) -> Ref {
+  ) -> Option<Ref> {
     let module = mg
       .module_by_identifier(info_id)
       .expect("should have module");
@@ -2141,12 +2146,12 @@ var {} = {{}};
               .expect("should already set interop namespace"),
           };
 
-          return Ref::Symbol(SymbolRef::new(
+          return Some(Ref::Symbol(SymbolRef::new(
             *info_id,
             symbol,
             export_name.clone(),
             Arc::new(move |binding| binding.symbol.to_string()),
-          ));
+          )));
         }
         ExportsType::DefaultWithNamed => {
           info.set_interop_namespace_object_used(true);
@@ -2167,12 +2172,12 @@ var {} = {{}};
               .expect("should already set interop namespace"),
           };
 
-          return Ref::Symbol(SymbolRef::new(
+          return Some(Ref::Symbol(SymbolRef::new(
             *info_id,
             symbol,
             export_name.clone(),
             Arc::new(|binding| binding.symbol.to_string()),
-          ));
+          )));
         }
         _ => {}
       }
@@ -2185,20 +2190,20 @@ var {} = {{}};
             export_name = export_name[1..].to_vec();
           }
           Some("__esModule") => {
-            return es_module_binding();
+            return Some(es_module_binding());
           }
           _ => {}
         },
         ExportsType::DefaultOnly => {
           if export_name.first().map(|item| item.as_str()) == Some("__esModule") {
-            return es_module_binding();
+            return Some(es_module_binding());
           }
 
           let first_export_id = export_name.remove(0);
           if first_export_id != "default" {
-            return Ref::Inline(
+            return Some(Ref::Inline(
               "/* non-default import from default-exporting module */undefined".into(),
-            );
+            ));
           }
         }
         ExportsType::Dynamic => match export_name.first().map(|atom| atom.as_str()) {
@@ -2224,7 +2229,7 @@ var {} = {{}};
 
             export_name = export_name[1..].to_vec();
 
-            return Ref::Symbol(SymbolRef::new(
+            return Some(Ref::Symbol(SymbolRef::new(
               *info_id,
               symbol,
               export_name.clone(),
@@ -2254,10 +2259,10 @@ var {} = {{}};
 
                 exports
               }),
-            ));
+            )));
           }
           Some("__esModule") => {
-            return es_module_binding();
+            return Some(es_module_binding());
           }
           _ => {}
         },
@@ -2272,7 +2277,7 @@ var {} = {{}};
       match info {
         ModuleInfo::Concatenated(info) => {
           needed_namespace_objects.insert(info.module);
-          return Ref::Symbol(SymbolRef::new(
+          return Some(Ref::Symbol(SymbolRef::new(
             info.module,
             info
               .namespace_object_name
@@ -2280,10 +2285,10 @@ var {} = {{}};
               .expect("should have namespace_object_name"),
             vec![],
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          ));
+          )));
         }
         ModuleInfo::External(info) => {
-          return Ref::Symbol(SymbolRef::new(
+          return Some(Ref::Symbol(SymbolRef::new(
             info.module,
             Self::add_require(
               *info_id,
@@ -2297,7 +2302,7 @@ var {} = {{}};
             .expect("should have name"),
             vec![],
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          ));
+          )));
         }
       }
     }
@@ -2306,7 +2311,9 @@ var {} = {{}};
     let export_info_hash_key = export_info.as_hash_key();
 
     if already_visited.contains(&export_info_hash_key) {
-      return Ref::Inline("/* circular reexport */ Object(function x() { x() }())".into());
+      return Some(Ref::Inline(
+        "/* circular reexport */ Object(function x() { x() }())".into(),
+      ));
     }
 
     already_visited.insert(export_info_hash_key);
@@ -2321,7 +2328,7 @@ var {} = {{}};
             .as_concatenated_mut();
           needed_namespace_objects.insert(info.module);
 
-          return Ref::Symbol(SymbolRef::new(
+          return Some(Ref::Symbol(SymbolRef::new(
             info.module,
             info
               .namespace_object_name
@@ -2329,7 +2336,7 @@ var {} = {{}};
               .expect("should have namespace_object"),
             export_name.clone(),
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          ));
+          )));
         }
 
         let used_name = ExportsInfoGetter::get_used_name(
@@ -2348,22 +2355,22 @@ var {} = {{}};
                   .get_internal_name(&direct_export)
                   .unwrap_or_else(|| panic!("should set internal name for {direct_export}"));
 
-                return Ref::Symbol(SymbolRef::new(
+                return Some(Ref::Symbol(SymbolRef::new(
                   info.module,
                   symbol.clone(),
                   used_name[1..].to_vec(),
                   Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-                ));
+                )));
               }
               UsedName::Inlined(inlined) => {
-                return Ref::Inline(inlined.render(&to_normal_comment(&format!(
+                return Some(Ref::Inline(inlined.render(&to_normal_comment(&format!(
                   "inlined export {}",
                   property_access(&export_name, 0)
-                ))));
+                )))));
               }
             }
           } else {
-            return Ref::Inline("/* unused export */ undefined".into());
+            return Some(Ref::Inline("/* unused export */ undefined".into()));
           }
         }
 
@@ -2377,12 +2384,12 @@ var {} = {{}};
           let name = info
             .get_internal_name(&raw_export_symbol)
             .unwrap_or(&raw_export_symbol);
-          return Ref::Symbol(SymbolRef::new(
+          return Some(Ref::Symbol(SymbolRef::new(
             info.module,
             name.clone(),
             export_name[1..].to_vec(),
             Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
-          ));
+          )));
         }
 
         let reexport = find_target(
@@ -2405,10 +2412,12 @@ var {} = {{}};
                 None,
                 &export,
               ) {
-                return Ref::Inline(inlined.inlined_value().render(&to_normal_comment(&format!(
-                  "inlined export {}",
-                  property_access(&export_name, 0)
-                ))));
+                return Some(Ref::Inline(inlined.inlined_value().render(
+                  &to_normal_comment(&format!(
+                    "inlined export {}",
+                    property_access(&export_name, 0)
+                  )),
+                )));
               }
             }
             panic!(
@@ -2456,7 +2465,7 @@ var {} = {{}};
             &export_name,
           )
           .expect("should have export name");
-          return match used_name {
+          return Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
               info
@@ -2468,21 +2477,17 @@ var {} = {{}};
             )),
             // Inlined namespace export symbol is not possible for now but we compat it here
             UsedName::Inlined(inlined) => Ref::Inline(inlined.render("")),
-          };
+          });
         }
 
         if let Some(UsedName::Inlined(inlined)) = used_name {
-          return Ref::Inline(inlined.render(&to_normal_comment(&format!(
+          return Some(Ref::Inline(inlined.render(&to_normal_comment(&format!(
             "inlined export {}",
             property_access(&export_name, 0)
-          ))));
+          )))));
         }
 
-        panic!(
-          "Cannot get final name for export '{}' of module '{}'",
-          join_atom(export_name.iter(), "."),
-          module.identifier()
-        );
+        return None;
       }
       ModuleInfo::External(info) => {
         if let Some(used_name) = ExportsInfoGetter::get_used_name(
@@ -2490,7 +2495,7 @@ var {} = {{}};
           None,
           &export_name,
         ) {
-          match used_name {
+          Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
               Self::add_require(
@@ -2509,9 +2514,9 @@ var {} = {{}};
             UsedName::Inlined(inlined) => Ref::Inline(inlined.render(&to_normal_comment(
               &format!("inlined export {}", property_access(&export_name, 0)),
             ))),
-          }
+          })
         } else {
-          Ref::Inline("/* unused export */ undefined".into())
+          Some(Ref::Inline("/* unused export */ undefined".into()))
         }
       }
     }
