@@ -1,3 +1,5 @@
+#![allow(clippy::ref_option_ref)]
+
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
@@ -26,9 +28,11 @@ use crate::{
     action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
     client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
-  manifest_runtime_module::{RscManifest, RscManifestRuntimeModule},
+  manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{ActionIdNamePair, ClientModuleImport, PLUGIN_STATES, PluginState},
-  reference_manifest::{build_server_consumer_module_map, build_server_manifest},
+  reference_manifest::{
+    RscEntryManifest, RscManifest, build_server_consumer_module_map, build_server_manifest,
+  },
 };
 
 #[derive(Debug)]
@@ -586,10 +590,25 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
           "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
         )
       })?;
-      let full_manifest = RscManifest {
-        entries: &plugin_state.entries,
-        module_loading,
-      };
+      let empty_consumer_map: FxHashMap<String, crate::reference_manifest::ManifestNode> =
+        FxHashMap::default();
+      let mut full_manifest: RscManifest<'_> = FxHashMap::default();
+      for (name, state) in &plugin_state.entries {
+        full_manifest.insert(
+          name.clone(),
+          RscEntryManifest {
+            server_manifest: &state.server_actions,
+            client_manifest: &state.client_modules,
+            server_consumer_module_map: state
+              .server_consumer_module_map
+              .as_ref()
+              .or(Some(&empty_consumer_map)),
+            module_loading,
+            entry_css_files: &state.entry_css_files,
+            entry_js_files: &state.entry_js_files,
+          },
+        );
+      }
       simd_json::to_string(&full_manifest).to_rspack_result()?
     };
     (on_manifest)(json).await?;

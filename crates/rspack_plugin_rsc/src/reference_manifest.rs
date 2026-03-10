@@ -1,9 +1,11 @@
+#![allow(clippy::ref_option_ref)]
 use std::sync::Arc;
 
 use rspack_core::{ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier};
 use rspack_error::Result;
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashMap;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 
 use crate::{
   constants::LAYERS_NAMES,
@@ -45,6 +47,35 @@ pub struct ModuleLoading {
 }
 
 pub type ServerReferenceManifest = FxHashMap<String, ManifestExport>;
+
+fn serialize_none_as_empty_object<S, T>(val: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+  T: Serialize,
+{
+  match val {
+    Some(v) => v.serialize(serializer),
+    None => {
+      let map = serializer.serialize_map(Some(0))?;
+      map.end()
+    }
+  }
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RscEntryManifest<'a> {
+  pub server_manifest: &'a FxHashMap<String, ManifestExport>,
+  pub client_manifest: &'a FxHashMap<String, ManifestExport>,
+  #[serde(serialize_with = "serialize_none_as_empty_object")]
+  pub server_consumer_module_map: Option<&'a FxHashMap<String, ManifestNode>>,
+  pub module_loading: &'a ModuleLoading,
+  pub entry_css_files: &'a FxHashMap<String, FxIndexSet<String>>,
+  pub entry_js_files: &'a FxIndexSet<String>,
+}
+
+/// Full manifest (all entries) for the onManifest callback. Map from entry name to per-entry manifest.
+pub type RscManifest<'a> = FxHashMap<Arc<str>, RscEntryManifest<'a>>;
 
 fn build_server_manifest_per_entry(
   compilation: &Compilation,

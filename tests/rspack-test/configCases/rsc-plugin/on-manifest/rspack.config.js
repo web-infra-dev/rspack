@@ -76,18 +76,15 @@ module.exports = [
 			new ServerPlugin({
 				onManifest(manifest) {
 					expect(manifest).toBeDefined();
-					expect(manifest).toHaveProperty('moduleLoading');
-					expect(manifest).toHaveProperty('entries');
-
-					expect(manifest.moduleLoading).toHaveProperty('prefix');
-					expect(typeof manifest.moduleLoading.prefix).toBe('string');
-
-					expect(typeof manifest.entries).toBe('object');
-					const entryNames = Object.keys(manifest.entries);
+					expect(typeof manifest).toBe('object');
+					const entryNames = Object.keys(manifest);
 					expect(entryNames.length).toBeGreaterThan(0);
 					expect(entryNames).toContain('main');
 
-					const mainEntry = manifest.entries.main;
+					const mainEntry = manifest.main;
+					expect(mainEntry).toHaveProperty('moduleLoading');
+					expect(mainEntry.moduleLoading).toHaveProperty('prefix');
+					expect(typeof mainEntry.moduleLoading.prefix).toBe('string');
 					expect(mainEntry).toHaveProperty('serverManifest');
 					expect(mainEntry).toHaveProperty('clientManifest');
 					expect(mainEntry).toHaveProperty('serverConsumerModuleMap');

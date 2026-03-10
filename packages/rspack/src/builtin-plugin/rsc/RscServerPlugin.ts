@@ -24,15 +24,13 @@ export interface RscManifestPerEntry {
   serverManifest: Record<string, RscManifestExport>;
   clientManifest: Record<string, RscManifestExport>;
   serverConsumerModuleMap: Record<string, RscManifestNode>;
+  moduleLoading: RscModuleLoading;
   entryCssFiles: Record<string, string[]>;
   entryJsFiles: string[];
 }
 
-/** Full RSC manifest (all entries) passed to onManifest. Maps are keyed by entry name. */
-export interface RscManifest {
-  moduleLoading: RscModuleLoading;
-  entries: Record<string, RscManifestPerEntry>;
-}
+/** Full RSC manifest (all entries) passed to onManifest. Map from entry name to per-entry manifest. */
+export type RscManifest = Record<string, RscManifestPerEntry>;
 
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
