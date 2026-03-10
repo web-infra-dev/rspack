@@ -27,12 +27,13 @@ fn assign_named_module_ids(
       let module = module_graph
         .module_by_identifier(&item)
         .expect("should have module");
-      let name = get_short_module_name(module, context);
+      let name = ModuleId::from(get_short_module_name(module, context));
       (item, name)
     })
     .collect();
-  let mut name_to_items: FxHashMap<String, IdentifierIndexSet> = FxHashMap::default();
-  let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
+  let mut name_to_items: FxHashMap<ModuleId, IdentifierIndexSet> = FxHashMap::default();
+  let mut invalid_and_repeat_names: FxHashSet<ModuleId> =
+    std::iter::once(ModuleId::from(String::new())).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
@@ -41,7 +42,7 @@ fn assign_named_module_ids(
       invalid_and_repeat_names.insert(name);
     }
     // Also rename the conflicting modules in used_ids
-    else if let Some(item) = used_ids.get(&name.as_str().into()) {
+    else if let Some(item) = used_ids.get(&name) {
       items.insert(*item);
       invalid_and_repeat_names.insert(name);
     }
@@ -61,7 +62,7 @@ fn assign_named_module_ids(
       let module = module_graph
         .module_by_identifier(&item)
         .expect("should have module");
-      let long_name = get_long_module_name(&name, module, context);
+      let long_name = ModuleId::from(get_long_module_name(name.as_str(), module, context));
       (item, long_name)
     })
     .collect();
@@ -69,7 +70,7 @@ fn assign_named_module_ids(
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
     // Also rename the conflicting modules in used_ids
-    if let Some(item) = used_ids.get(&name.as_str().into()) {
+    if let Some(item) = used_ids.get(&name) {
       items.insert(*item);
     }
   }
@@ -78,13 +79,12 @@ fn assign_named_module_ids(
   let mut unnamed_items = vec![];
 
   for (name, mut items) in name_to_items {
-    if name.is_empty() {
+    if name.as_str().is_empty() {
       for item in items {
         unnamed_items.push(item)
       }
-    } else if items.len() == 1 && !used_ids.contains_key(&name.as_str().into()) {
+    } else if items.len() == 1 && !used_ids.contains_key(&name) {
       let item = items[0];
-      let name: ModuleId = name.into();
       if ChunkGraph::set_module_id(module_ids, item, name.clone())
         && let Some(mutations) = mutations
       {
@@ -96,13 +96,12 @@ fn assign_named_module_ids(
       let mut i = 0;
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
-        let mut formatted_name = format!("{name}{}", i_buffer.format(i));
-        while name_to_items_keys.contains(&formatted_name)
-          && used_ids.contains_key(&formatted_name.as_str().into())
+        let mut formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
+        while name_to_items_keys.contains(&formatted_name) && used_ids.contains_key(&formatted_name)
         {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
-          formatted_name = format!("{name}{}", i_buffer.format(i));
+          formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
         }
         let name: ModuleId = formatted_name.into();
         if ChunkGraph::set_module_id(module_ids, item, name.clone())
@@ -201,12 +200,12 @@ async fn module_ids(
   if !unnamed_modules.is_empty() {
     let mut next_id = 0;
     for module in unnamed_modules {
-      let mut id = next_id.to_string();
-      while used_ids.contains_key(&id.as_str().into()) {
+      let mut id = ModuleId::from(next_id.to_string());
+      while used_ids.contains_key(&id) {
         next_id += 1;
-        id = next_id.to_string();
+        id = ModuleId::from(next_id.to_string());
       }
-      if ChunkGraph::set_module_id(&mut module_ids, module, id.into())
+      if ChunkGraph::set_module_id(&mut module_ids, module, id)
         && let Some(mutations) = &mut mutations
       {
         mutations.add(Mutation::ModuleSetId { module });
