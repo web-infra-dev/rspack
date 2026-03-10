@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
@@ -34,7 +34,7 @@ pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
+  client_entries_per_entry: AtomicRefCell<FxHashMap<String, UkeySet<DependencyId>>>,
 }
 
 fn extend_required_chunks(
@@ -330,7 +330,7 @@ fn collect_actions(
 
 fn collect_client_actions_from_dependencies(
   compilation: &Compilation,
-  entry_dependencies: &FxHashSet<DependencyId>,
+  entry_dependencies: &UkeySet<DependencyId>,
 ) -> FxHashMap<String, Vec<ActionIdNamePair>> {
   // action file path -> action names
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
