@@ -5,7 +5,9 @@ use rspack_core::CompilerId;
 use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 use rustc_hash::FxHashMap;
 
-use crate::reference_manifest::{ManifestExport, ModuleLoading, ServerReferenceManifest};
+use crate::reference_manifest::{
+  ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest,
+};
 
 pub type ActionIdNamePair = (Atom, Atom);
 
@@ -40,6 +42,7 @@ pub struct PluginState {
   /// - Value: Ordered set of JS chunk file paths (automatically deduplicated)
   pub entry_js_files: FxHashMap<String, FxIndexSet<String>>,
   pub changed_server_components_per_entry: FxHashMap<String, IdentifierSet>,
+  pub server_consumer_module_map: Option<FxHashMap<String, ManifestNode>>,
 }
 
 impl PluginState {
@@ -54,6 +57,7 @@ impl PluginState {
     self.entry_css_files.clear();
     self.entry_js_files.clear();
     self.changed_server_components_per_entry.clear();
+    self.server_consumer_module_map = None;
   }
 }
 

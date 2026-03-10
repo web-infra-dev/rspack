@@ -78,6 +78,7 @@ impl From<&JsRscClientPluginOptions<'_>> for RscClientPluginOptions {
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
   pub on_server_component_changes: Option<Either3<Function<'static, (), ()>, Undefined, Null>>,
+  pub on_manifest: Option<Either3<Function<'static, (String), ()>, Undefined, Null>>,
 }
 
 impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
@@ -106,9 +107,30 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
       _ => None,
     };
 
+    let on_manifest: Option<
+      Box<dyn Fn(String) -> BoxFuture<'static, rspack_error::Result<()>> + Sync + Send>,
+    > = match &value.on_manifest {
+      Some(Either3::A(js_fn)) => {
+        let ts_fn = Arc::new(
+          js_fn
+            .build_threadsafe_function::<(String)>()
+            .callee_handled::<false>()
+            .max_queue_size::<0>()
+            .weak::<true>()
+            .build()?,
+        );
+        Some(Box::new(move |json: String| {
+          let ts_fn = ts_fn.clone();
+          Box::pin(async move { ts_fn.call_async(json).await.to_rspack_result() })
+        }))
+      }
+      _ => None,
+    };
+
     Ok(Self {
       coordinator: value.coordinator.i.clone(),
       on_server_component_changes,
+      on_manifest,
     })
   }
 }

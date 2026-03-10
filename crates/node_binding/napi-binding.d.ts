@@ -1057,9 +1057,37 @@ export interface JsRscClientPluginOptions {
   coordinator: JsCoordinator
 }
 
+/** Manifest export entry (server/client actions, module refs). */
+export interface RscManifestExport {
+  id: string
+  name: string
+  chunks: Array<string>
+  async?: boolean
+}
+
+/** Map of export name to manifest export. */
+export type RscManifestNode = Record<string, RscManifestExport>
+
+/** Module loading config (prefix, crossOrigin). */
+export interface RscModuleLoading {
+  prefix: string
+  crossOrigin?: 'use-credentials' | ''
+}
+
+/** Full RSC manifest (all entries) passed to onManifest. */
+export interface RscManifest {
+  serverManifest: Record<string, RscManifestExport>
+  clientManifest: Record<string, RscManifestExport>
+  serverConsumerModuleMap: Record<string, RscManifestNode>
+  moduleLoading: RscModuleLoading
+  entryCssFiles: Record<string, Record<string, Array<string>>>
+  entryJsFiles: Record<string, Array<string>>
+}
+
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
   onServerComponentChanges?: (() => void) | undefined | null
+  onManifest?: ((manifest: RscManifest) => void) | undefined | null
 }
 
 export interface JsRsdoctorAsset {

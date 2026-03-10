@@ -10,7 +10,7 @@ use rspack_core::{
   CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
   RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
 };
-use rspack_error::Result;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
@@ -26,8 +26,9 @@ use crate::{
     action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
     client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
   },
-  manifest_runtime_module::RscManifestRuntimeModule,
+  manifest_runtime_module::{RscManifest, RscManifestRuntimeModule},
   plugin_state::{ActionIdNamePair, ClientModuleImport, PLUGIN_STATES, PluginState},
+  reference_manifest::{build_server_consumer_module_map, build_server_manifest},
 };
 
 #[derive(Debug)]
@@ -60,9 +61,12 @@ struct InjectedActionEntry {
 
 type OnServerComponentChanges = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
+type OnManifest = Box<dyn Fn(String) -> BoxFuture<'static, Result<()>> + Sync + Send>;
+
 pub struct RscServerPluginOptions {
   pub coordinator: Arc<Coordinator>,
   pub on_server_component_changes: Option<OnServerComponentChanges>,
+  pub on_manifest: Option<OnManifest>,
 }
 
 #[plugin]
@@ -72,6 +76,8 @@ pub struct RscServerPlugin {
   coordinator: Arc<Coordinator>,
   #[debug(skip)]
   on_server_component_changes: Option<OnServerComponentChanges>,
+  #[debug(skip)]
+  on_manifest: Option<OnManifest>,
   prev_server_component_hashes: AtomicRefCell<IdentifierMap<u64>>,
 }
 
@@ -80,6 +86,7 @@ impl RscServerPlugin {
     Self::new_inner(
       options.coordinator,
       options.on_server_component_changes,
+      options.on_manifest,
       Default::default(),
     )
   }
@@ -147,8 +154,16 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
+/// Compute server manifest and server_consumer_module_map once. Stored in plugin_state for
+/// RscManifestRuntimeModule and onManifest to avoid recomputing.
 #[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
-async fn process_assets(&self, _compilation: &mut Compilation) -> Result<()> {
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
+  build_server_manifest(compilation, &mut plugin_state.server_actions)?;
+  plugin_state.server_consumer_module_map = Some(build_server_consumer_module_map(
+    compilation,
+    &plugin_state.client_modules,
+  ));
   self.coordinator.idle().await?;
   Ok(())
 }
@@ -538,6 +553,41 @@ impl RscServerPlugin {
 
 #[plugin_hook(CompilerDone for RscServerPlugin)]
 async fn done(&self, compilation: &Compilation) -> Result<()> {
+  if let Some(on_manifest) = self.on_manifest.as_ref() {
+    let plugin_state = PLUGIN_STATES
+      .get(&compilation.compiler_id())
+      .ok_or_else(|| {
+        rspack_error::error!(
+          "RscServerPlugin: Plugin state not found in done hook for compiler {:#?}.",
+          compilation.compiler_id()
+        )
+      })?;
+    let module_loading = plugin_state.module_loading.as_ref().ok_or_else(|| {
+      rspack_error::error!(
+        "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
+      )
+    })?;
+    let server_consumer_module_map = plugin_state
+      .server_consumer_module_map
+      .as_ref()
+      .ok_or_else(|| {
+        rspack_error::error!(
+          "RscServerPlugin: server_consumer_module_map not found in done hook for compiler {:#?}.",
+          compilation.compiler_id()
+        )
+      })?;
+    let full_manifest = RscManifest {
+      server_manifest: &plugin_state.server_actions,
+      client_manifest: &plugin_state.client_modules,
+      server_consumer_module_map,
+      module_loading,
+      entry_css_files: &plugin_state.entry_css_files,
+      entry_js_files: &plugin_state.entry_js_files,
+    };
+    let json = simd_json::to_string(&full_manifest).to_rspack_result()?;
+    (on_manifest)(json).await?;
+  }
+
   if let Some(on_server_component_changes) = self.on_server_component_changes.as_ref() {
     let plugin_state = PLUGIN_STATES
       .get(&compilation.compiler_id())
