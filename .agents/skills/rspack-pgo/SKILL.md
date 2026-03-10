@@ -18,8 +18,8 @@ Use this when the task is "keep finding the next hotspot and improve it". For ra
 ## Default setup
 
 - Keep the user's main worktree untouched. Use a clean temp worktree for experiments.
-- Default benchmark repo: `/home/yj/github/rspack-bench-repo`
-- Default case: `/home/yj/github/rspack-bench-repo/cases/all`
+- Default benchmark repo: `https://github.com/hardfist/rspack-bench-repo`
+- Default case: `<bench-repo>/cases/all`
 - Test the temp worktree's native binding through `RSPACK_BINDING`; do not rely on the installed `@rspack/binding`.
 - Prefer small, isolated commits. Keep only changes that improve end-to-end time.
 
@@ -51,6 +51,13 @@ The binding used for local benchmark runs should be:
 ### 3) Measure a local baseline
 
 Run the benchmark from the benchmark repo, but point it at the temp worktree binding:
+
+If the benchmark repo is not present yet, clone it to a sibling directory or another scratch location first:
+
+```sh
+git clone https://github.com/hardfist/rspack-bench-repo ../rspack-bench-repo
+cd ../rspack-bench-repo/cases/all
+```
 
 ```sh
 env RSPACK_BINDING=<worktree>/crates/node_binding/rspack.linux-x64-gnu.node \
