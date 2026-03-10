@@ -9,12 +9,8 @@
  */
 
 import type { ReadStream } from 'node:fs';
-import type {
-  Server as HTTPServer,
-  IncomingMessage,
-  ServerOptions,
-  ServerResponse,
-} from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { ServerOptions } from 'node:https';
 import type { Server as ConnectApplication } from 'connect-next';
 import type {
   Filter as ProxyFilter,
@@ -38,6 +34,8 @@ export type DevServerHost = LiteralUnion<
   'local-ip' | 'local-ipv4' | 'local-ipv6',
   string
 >;
+
+type BasicServer = import('node:net').Server | import('node:tls').Server;
 
 export type DevServerOpenOptions = OpenOptions;
 
@@ -156,11 +154,11 @@ export type DevServerStatic =
   | DevServerStaticItem
   | (string | DevServerStaticItem)[];
 
-type ServerType<A extends BasicApplication, S extends HTTPServer> =
+type ServerType<A extends BasicApplication, S extends BasicServer> =
   | LiteralUnion<'http' | 'https' | 'http2', string>
   | ((arg0: ServerOptions, arg1: A) => S);
 
-type ServerConfiguration<A extends BasicApplication, S extends HTTPServer> = {
+type ServerConfiguration<A extends BasicApplication, S extends BasicServer> = {
   type?: ServerType<A, S>;
   options?: ServerOptions;
 };
@@ -255,7 +253,7 @@ export type DevServerClient = {
 
 export type DevServerOptions<
   A extends BasicApplication = ConnectApplication,
-  S extends HTTPServer = HTTPServer,
+  S extends BasicServer = BasicServer,
 > = {
   ipc?: string | boolean;
   host?: DevServerHost;
