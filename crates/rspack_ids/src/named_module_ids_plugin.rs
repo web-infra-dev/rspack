@@ -103,13 +103,12 @@ fn assign_named_module_ids(
           let mut i_buffer = itoa::Buffer::new();
           formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
         }
-        let name: ModuleId = formatted_name.into();
-        if ChunkGraph::set_module_id(module_ids, item, name.clone())
+        if ChunkGraph::set_module_id(module_ids, item, formatted_name.clone())
           && let Some(mutations) = mutations
         {
           mutations.add(Mutation::ModuleSetId { module: item });
         }
-        used_ids.insert(name, item);
+        used_ids.insert(formatted_name, item);
         i += 1;
       }
     }
