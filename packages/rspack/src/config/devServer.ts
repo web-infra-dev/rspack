@@ -39,6 +39,8 @@ export type DevServerHost = LiteralUnion<
   string
 >;
 
+export type DevServerOpenOptions = OpenOptions;
+
 type ResponseData = {
   data: Buffer | ReadStream;
   byteLength: number;

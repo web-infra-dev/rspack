@@ -2941,6 +2941,7 @@ export type {
   DevServerHost,
   DevServerMiddleware,
   DevServerMiddlewareHandler,
+  DevServerOpenOptions,
   DevServerProxyConfigArray,
   DevServerProxyConfigArrayItem,
   DevServerStatic,
