@@ -122,12 +122,28 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     self.data_for(exports_info).exports().iter()
   }
 
+  #[inline]
+  fn get_named_export_in_data<'b>(
+    data: &'b ExportsInfoData,
+    name: &Atom,
+  ) -> Option<&'b ExportInfoData> {
+    data.exports().get(name)
+  }
+
+  #[inline]
+  fn get_read_only_export_info_in_data<'b>(
+    data: &'b ExportsInfoData,
+    name: &Atom,
+  ) -> &'b ExportInfoData {
+    Self::get_named_export_in_data(data, name).unwrap_or_else(|| data.other_exports_info())
+  }
+
   fn get_named_export_in_exports_info(
     &self,
     exports_info: &ExportsInfo,
     name: &Atom,
   ) -> Option<&ExportInfoData> {
-    self.data_for(exports_info).exports().get(name)
+    Self::get_named_export_in_data(self.data_for(exports_info), name)
   }
 
   pub fn get_read_only_export_info(&self, name: &Atom) -> &ExportInfoData {
@@ -139,53 +155,48 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     exports_info: &ExportsInfo,
     name: &Atom,
   ) -> &ExportInfoData {
-    if let Some(export_info) = self.get_named_export_in_exports_info(exports_info, name) {
-      return export_info;
-    }
-    self.get_other_in_exports_info(exports_info)
+    Self::get_read_only_export_info_in_data(self.data_for(exports_info), name)
   }
 
   pub fn get_read_only_export_info_recursive(&self, names: &[Atom]) -> Option<&ExportInfoData> {
-    let (exports_info, name) = self.get_read_only_export_info_recursive_impl(names)?;
-    self.data_for(&exports_info).exports().get(&name)
-  }
-
-  fn get_read_only_export_info_recursive_impl(
-    &self,
-    names: &[Atom],
-  ) -> Option<(ExportsInfo, Atom)> {
     if names.is_empty() {
       return None;
     }
-    let export_info = self.get_read_only_export_info(&names[0]);
-    if names.len() == 1 {
-      return Some((self.entry, names[0].clone()));
-    }
 
-    export_info.exports_info().and_then(move |exports_info| {
-      let redirect = self.redirect(exports_info, true);
-      redirect.get_read_only_export_info_recursive_impl(&names[1..])
-    })
-  }
+    let mut current_data = self.current;
 
-  pub fn get_nested_exports_info(&self, name: Option<&[Atom]>) -> Option<&ExportsInfoData> {
-    let exports_info = self.get_nested_exports_info_impl(name)?;
-    Some(self.data_for(&exports_info))
-  }
+    for (idx, name) in names.iter().enumerate() {
+      let export_info = Self::get_read_only_export_info_in_data(current_data, name);
+      if idx + 1 == names.len() {
+        return Self::get_named_export_in_data(current_data, name);
+      }
 
-  fn get_nested_exports_info_impl(&self, name: Option<&[Atom]>) -> Option<ExportsInfo> {
-    if let Some(name) = name
-      && !name.is_empty()
-    {
-      let info = self.get_read_only_export_info(&name[0]);
-      if let Some(exports_info) = &info.exports_info() {
-        let redirect = self.redirect(*exports_info, true);
-        return redirect.get_nested_exports_info_impl(Some(&name[1..]));
+      if let Some(next_exports_info) = export_info.exports_info() {
+        current_data = self.data_for(&next_exports_info);
       } else {
         return None;
       }
     }
-    Some(self.entry)
+
+    None
+  }
+
+  pub fn get_nested_exports_info(&self, name: Option<&[Atom]>) -> Option<&ExportsInfoData> {
+    let Some(names) = name else {
+      return Some(self.current);
+    };
+    if names.is_empty() {
+      return Some(self.current);
+    }
+
+    let mut current_data = self.current;
+    for name in names {
+      let export_info = Self::get_read_only_export_info_in_data(current_data, name);
+      let next_exports_info = export_info.exports_info()?;
+      current_data = self.data_for(&next_exports_info);
+    }
+
+    Some(current_data)
   }
 
   pub fn get_relevant_exports(&self, runtime: Option<&RuntimeSpec>) -> Vec<&ExportInfoData> {
@@ -375,45 +386,44 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn is_export_provided(&self, names: &[Atom]) -> Option<ExportProvided> {
-    let name = names.first()?;
-    let info_data = self.get_read_only_export_info(name);
-    if let Some(nested_exports_info) = &info_data.exports_info()
-      && names.len() > 1
-    {
-      let redirected = self.redirect(*nested_exports_info, true);
-      return redirected.is_export_provided(&names[1..]);
-    }
-    let provided = info_data.provided()?;
+    names.first()?;
 
-    match provided {
-      ExportProvided::Provided => {
-        if names.len() == 1 {
-          Some(ExportProvided::Provided)
-        } else {
-          None
-        }
+    let mut current_data = self.current;
+
+    for (idx, name) in names.iter().enumerate() {
+      let info_data = Self::get_read_only_export_info_in_data(current_data, name);
+      if idx + 1 == names.len() {
+        return info_data.provided();
       }
-      _ => Some(provided),
+
+      let Some(nested_exports_info) = info_data.exports_info() else {
+        return match info_data.provided()? {
+          ExportProvided::Provided => None,
+          provided => Some(provided),
+        };
+      };
+      current_data = self.data_for(&nested_exports_info);
     }
+
+    None
   }
 
   pub fn get_used(&self, names: &[Atom], runtime: Option<&RuntimeSpec>) -> UsageState {
-    if names.len() == 1 {
-      let value = &names[0];
-      let info = self.get_read_only_export_info(value);
-      let used = info.get_used(runtime);
-      return used;
-    }
     if names.is_empty() {
       return self.other_exports_info().get_used(runtime);
     }
-    let info_data = self.get_read_only_export_info(&names[0]);
-    if let Some(exports_info) = &info_data.exports_info()
-      && names.len() > 1
-    {
-      let redirected = self.redirect(*exports_info, true);
-      return redirected.get_used(&names[1..], runtime);
+
+    let mut current_data = self.current;
+    let mut info_data = Self::get_read_only_export_info_in_data(current_data, &names[0]);
+
+    for name in names.iter().skip(1) {
+      let Some(exports_info) = info_data.exports_info() else {
+        return info_data.get_used(runtime);
+      };
+      current_data = self.data_for(&exports_info);
+      info_data = Self::get_read_only_export_info_in_data(current_data, name);
     }
+
     info_data.get_used(runtime)
   }
 
@@ -630,33 +640,35 @@ impl ExportsInfoGetter {
           }
           return Some(UsedName::Normal(vec![]));
         }
-        let export_info = info.get_read_only_export_info(&names[0]);
-        let first = export_info.get_used_name(Some(&names[0]), runtime)?;
-        let mut arr = match first {
+        let mut current_data = info.current;
+        let mut export_info =
+          PrefetchedExportsInfoWrapper::get_read_only_export_info_in_data(current_data, &names[0]);
+        let mut arr = match export_info.get_used_name(Some(&names[0]), runtime)? {
           UsedNameItem::Str(first) => UsedName::Normal(vec![first]),
           UsedNameItem::Inlined(inlined) => UsedName::Inlined(InlinedUsedName::new(inlined)),
         };
-        if names.len() == 1 {
-          return Some(arr);
-        }
-        if let Some(exports_info) = &export_info.exports_info()
-          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
-        {
-          let nested_exports_info: PrefetchedExportsInfoWrapper<'_> =
-            info.redirect(*exports_info, true);
-          let nested = Self::get_used_name(
-            GetUsedNameParam::WithNames(&nested_exports_info),
-            runtime,
-            &names[1..],
-          )?;
-          let nested = match nested {
-            UsedName::Inlined(_) => return Some(nested),
-            UsedName::Normal(names) => names,
+
+        for (index, name) in names.iter().enumerate().skip(1) {
+          let Some(exports_info) = export_info.exports_info() else {
+            arr.append(names[index..].iter().cloned());
+            return Some(arr);
           };
-          arr.append(nested);
-          return Some(arr);
+          if export_info.get_used(runtime) != UsageState::OnlyPropertiesUsed {
+            arr.append(names[index..].iter().cloned());
+            return Some(arr);
+          }
+
+          current_data = info.data_for(&exports_info);
+          export_info =
+            PrefetchedExportsInfoWrapper::get_read_only_export_info_in_data(current_data, name);
+          match export_info.get_used_name(Some(name), runtime)? {
+            UsedNameItem::Str(next) => arr.append(std::iter::once(next)),
+            UsedNameItem::Inlined(inlined) => {
+              return Some(UsedName::Inlined(InlinedUsedName::new(inlined)));
+            }
+          }
         }
-        arr.append(names.iter().skip(1).cloned());
+
         Some(arr)
       }
     }
