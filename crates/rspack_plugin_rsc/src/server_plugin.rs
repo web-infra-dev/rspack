@@ -61,7 +61,7 @@ struct InjectedActionEntry {
 
 type OnServerComponentChanges = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
-type OnManifest = Box<dyn Fn(String) -> BoxFuture<'static, Result<()>> + Sync + Send>;
+pub type OnManifest = Box<dyn Fn(String) -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
 pub struct RscServerPluginOptions {
   pub coordinator: Arc<Coordinator>,
@@ -572,24 +572,26 @@ impl RscServerPlugin {
 #[plugin_hook(CompilerDone for RscServerPlugin)]
 async fn done(&self, compilation: &Compilation) -> Result<()> {
   if let Some(on_manifest) = self.on_manifest.as_ref() {
-    let plugin_state = PLUGIN_STATES
-      .get(&compilation.compiler_id())
-      .ok_or_else(|| {
+    let json = {
+      let plugin_state = PLUGIN_STATES
+        .get(&compilation.compiler_id())
+        .ok_or_else(|| {
+          rspack_error::error!(
+            "RscServerPlugin: Plugin state not found in done hook for compiler {:#?}.",
+            compilation.compiler_id()
+          )
+        })?;
+      let module_loading = plugin_state.module_loading.as_ref().ok_or_else(|| {
         rspack_error::error!(
-          "RscServerPlugin: Plugin state not found in done hook for compiler {:#?}.",
-          compilation.compiler_id()
+          "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
         )
       })?;
-    let module_loading = plugin_state.module_loading.as_ref().ok_or_else(|| {
-      rspack_error::error!(
-        "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
-      )
-    })?;
-    let full_manifest = RscManifest {
-      entries: &plugin_state.entries,
-      module_loading,
+      let full_manifest = RscManifest {
+        entries: &plugin_state.entries,
+        module_loading,
+      };
+      simd_json::to_string(&full_manifest).to_rspack_result()?
     };
-    let json = simd_json::to_string(&full_manifest).to_rspack_result()?;
     (on_manifest)(json).await?;
   }
 
