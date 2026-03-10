@@ -12,7 +12,7 @@ import {
   rspack,
 } from '@rslib/core';
 import packageJson from './package.json' with { type: 'json' };
-import prebundleConfig from './prebundle.config.mjs';
+import prebundleConfig from './prebundle.config.ts';
 
 const require = createRequire(import.meta.url);
 
@@ -121,7 +121,7 @@ const codmodPlugin: RsbuildPlugin = {
     /**
      * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
      */
-    function replaceBinding(root: SgNode<TypesMap, Kinds<TypesMap>>): Edit[] {
+    function replaceBinding(root: SgNode<TypesMap, Kinds>): Edit[] {
       const edits: Edit[] = [];
 
       // Pattern 1: let binding_namespaceObject = __rspack_createRequire_require("@rspack/binding");
@@ -155,7 +155,7 @@ const codmodPlugin: RsbuildPlugin = {
       return edits;
     }
 
-    api.onAfterBuild(async () => {
+    api.onAfterBuild(() => {
       const dist = fs.readFileSync(
         require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
         'utf-8',
@@ -197,7 +197,10 @@ export default defineConfig({
         build: true,
         alias: {
           // alias to pre-bundled types as they are public API
+          open: './compiled/open',
+          'connect-next': './compiled/connect-next',
           '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist',
+          'http-proxy-middleware': './compiled/http-proxy-middleware',
         },
       },
       redirect: {
