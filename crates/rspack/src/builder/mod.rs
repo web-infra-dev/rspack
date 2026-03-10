@@ -1414,7 +1414,7 @@ fn get_resolve_defaults(
     extensions: Some(vec![]),
     alias_fields: Some(vec![]),
     exports_fields: Some(vec![vec!["exports".to_string()]]),
-    roots: Some(vec![context.to_string()]),
+    roots: Some(vec![]),
     main_fields: Some(vec!["main".to_string()]),
     imports_fields: Some(vec![vec!["imports".to_string()]]),
     by_dependency: Some(ByDependency::from_iter(by_dependency)),

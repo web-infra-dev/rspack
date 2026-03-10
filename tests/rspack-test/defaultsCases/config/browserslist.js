@@ -25,8 +25,5 @@ module.exports = {
 			@@ ... @@
 			-     "uniqueName": "@rspack/tests",
 			+     "uniqueName": "",
-			@@ ... @@
-			-       "<cwd>",
-			+       "<TEST_TOOLS_ROOT>/tests/fixtures/browserslist",
 		`)
 };

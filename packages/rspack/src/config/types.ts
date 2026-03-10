@@ -821,7 +821,6 @@ export type ResolveOptions = {
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
-   * It defaults to the context configuration option.
    * On systems other than Windows, these requests are initially resolved as an absolute path.
    * @default []
    */
