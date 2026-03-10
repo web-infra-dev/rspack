@@ -1060,7 +1060,7 @@ export interface JsRscClientPluginOptions {
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
   onServerComponentChanges?: (() => void) | undefined | null
-  onManifest?: ((string) => void) | undefined | null
+  onManifest?: ((arg: string) => void) | undefined | null
 }
 
 export interface JsRsdoctorAsset {

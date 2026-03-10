@@ -35,7 +35,7 @@ pub struct EntryState {
   pub entry_css_files: FxHashMap<String, FxIndexSet<String>>,
   pub entry_js_files: FxIndexSet<String>,
   pub changed_server_components: IdentifierSet,
-  /// Precomputed in process_assets.
+  /// Precomputed in chunk_ids hook.
   pub server_consumer_module_map: Option<FxHashMap<String, ManifestNode>>,
 }
 

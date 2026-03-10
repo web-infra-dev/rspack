@@ -5,12 +5,12 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
-  BoxDependency, ChunkUkey, Compilation, CompilationParams, CompilationProcessAssets,
-  CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed, CompilerFinishMake,
-  CompilerThisCompilation, Dependency, DependencyId, EntryDependency, EntryOptions, Logger, Plugin,
-  RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
+  BoxDependency, ChunkByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilationChunkIds,
+  CompilationParams, CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed,
+  CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId, EntryDependency,
+  EntryOptions, Logger, Plugin, RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::json;
@@ -163,15 +163,20 @@ async fn runtime_requirements_in_tree(
 
 /// Compute server manifest and server_consumer_module_map once per entry. Stored in plugin_state for
 /// RscManifestRuntimeModule and onManifest to avoid recomputing.
-#[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilationChunkIds for RscServerPlugin, stage = -10000)]
+async fn chunk_ids(
+  &self,
+  compilation: &Compilation,
+  _chunk_by_ukey: &mut ChunkByUkey,
+  _named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<()> {
   let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
-  build_server_manifest(compilation, &mut plugin_state.entries)?;
+  build_server_manifest(compilation, &mut plugin_state)?;
   for (_entry_name, entry_state) in plugin_state.entries.iter_mut() {
     let map = build_server_consumer_module_map(compilation, &entry_state.client_modules);
     entry_state.server_consumer_module_map = Some(map);
   }
-  self.coordinator.idle().await?;
   Ok(())
 }
 
@@ -196,10 +201,7 @@ impl Plugin for RscServerPlugin {
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
 
-    ctx
-      .compilation_hooks
-      .process_assets
-      .tap(process_assets::new(self));
+    ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
 
     Ok(())
   }
@@ -608,6 +610,8 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
       (on_server_component_changes)().await?;
     }
   }
+
+  self.coordinator.idle().await?;
   Ok(())
 }
 

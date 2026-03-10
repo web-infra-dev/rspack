@@ -40,12 +40,8 @@ struct RscEntryManifest<'a> {
   pub client_manifest: &'a FxHashMap<String, ManifestExport>,
   pub server_consumer_module_map: &'a FxHashMap<String, ManifestNode>,
   pub module_loading: &'a ModuleLoading,
-
-  #[serde(serialize_with = "serialize_none_as_empty_object")]
-  pub entry_css_files: Option<&'a FxHashMap<String, FxIndexSet<String>>>,
-
-  #[serde(serialize_with = "serialize_none_as_empty_object")]
-  pub entry_js_files: Option<&'a FxIndexSet<String>>,
+  pub entry_css_files: &'a FxHashMap<String, FxIndexSet<String>>,
+  pub entry_js_files: &'a FxIndexSet<String>,
 }
 
 /// Per-entry manifest view for serialization (supports optional server_consumer_module_map).
@@ -173,7 +169,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let server_consumer_module_map = entry_state.server_consumer_module_map.as_ref().ok_or_else(
       || {
         rspack_error::error!(
-          "RSC server_consumer_module_map not found for entry {:?}. Ensure process_assets hook ran (compiler ID: {}).",
+          "RSC server_consumer_module_map not found for entry {:?}. Ensure chunk_ids hook ran (compiler ID: {}).",
           entry_name,
           server_compiler_id.as_u32()
         )
@@ -190,8 +186,8 @@ impl RuntimeModule for RscManifestRuntimeModule {
       client_manifest,
       server_consumer_module_map,
       module_loading,
-      entry_css_files: Some(&entry_state.entry_css_files),
-      entry_js_files: Some(&entry_state.entry_js_files),
+      entry_css_files: &entry_state.entry_css_files,
+      entry_js_files: &entry_state.entry_js_files,
     };
 
     Ok(formatdoc! {

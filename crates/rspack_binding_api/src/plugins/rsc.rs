@@ -78,7 +78,7 @@ impl From<&JsRscClientPluginOptions<'_>> for RscClientPluginOptions {
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
   pub on_server_component_changes: Option<Either3<Function<'static, (), ()>, Undefined, Null>>,
-  pub on_manifest: Option<Either3<Function<'static, (String), ()>, Undefined, Null>>,
+  pub on_manifest: Option<Either3<Function<'static, String, ()>, Undefined, Null>>,
 }
 
 impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
