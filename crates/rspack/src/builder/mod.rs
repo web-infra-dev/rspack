@@ -791,7 +791,7 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  /// Set options for optimization.  
+  /// Set options for optimization.
   ///
   /// Both are accepted:
   /// - [`OptimizationOptionsBuilder`]
@@ -1167,7 +1167,7 @@ impl CompilerOptionsBuilder {
 
     // apply resolve defaults
     let resolve = {
-      let resolve_defaults = get_resolve_defaults(&context, mode, &target_properties, css);
+      let resolve_defaults = get_resolve_defaults(mode, &target_properties, css);
       if let Some(resolve) = self.resolve.take() {
         resolve_defaults.merge(resolve)
       } else {
@@ -1281,12 +1281,7 @@ impl CompilerOptionsBuilder {
   }
 }
 
-fn get_resolve_defaults(
-  context: &Context,
-  mode: Mode,
-  target_properties: &TargetProperties,
-  css: bool,
-) -> Resolve {
+fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: bool) -> Resolve {
   let mut conditions = vec!["webpack".to_string()];
 
   // Add mode condition
