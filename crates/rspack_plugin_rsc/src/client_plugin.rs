@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
@@ -149,7 +149,7 @@ fn record_module(
 #[allow(clippy::too_many_arguments)]
 fn record_chunk_group(
   entry_name: &str,
-  client_entry_modules: &FxHashSet<ModuleIdentifier>,
+  client_entry_modules: &IdentifierSet,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
   required_chunks: &mut Vec<String>,
@@ -288,7 +288,7 @@ fn collect_actions(
   module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
-  visited_modules: &mut FxHashSet<ModuleIdentifier>,
+  visited_modules: &mut IdentifierSet,
 ) {
   let module = match module_graph.module_by_identifier(module_identifier) {
     Some(m) => m,
@@ -336,7 +336,7 @@ fn collect_client_actions_from_dependencies(
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
 
   // Keep track of checked modules to avoid infinite loops with recursive imports.
-  let mut visited_modules: FxHashSet<Identifier> = Default::default();
+  let mut visited_modules: IdentifierSet = Default::default();
 
   let module_graph = compilation.get_module_graph();
   for entry_dependency_id in entry_dependencies {
@@ -401,7 +401,7 @@ impl RscClientPlugin {
       cross_origin,
     });
 
-    let mut client_entry_modules: FxHashSet<ModuleIdentifier> = Default::default();
+    let mut client_entry_modules: IdentifierSet = Default::default();
     let module_graph = compilation.get_module_graph();
     for entry_data in compilation.entries.values() {
       for dependency_id in &entry_data.include_dependencies {

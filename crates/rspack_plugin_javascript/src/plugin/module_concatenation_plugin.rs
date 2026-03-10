@@ -651,7 +651,7 @@ impl ModuleConcatenationPlugin {
   pub async fn process_concatenated_configuration(
     compilation: &mut Compilation,
     config: ConcatConfiguration,
-    used_modules: &mut HashSet<ModuleIdentifier>,
+    used_modules: &mut IdentifierSet,
   ) -> Result<()> {
     let module_graph = compilation.get_module_graph();
 

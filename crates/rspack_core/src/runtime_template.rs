@@ -7,7 +7,7 @@ use cow_utils::CowUtils;
 use heck::ToSnakeCase;
 use itertools::Itertools;
 use regex::{Captures, Regex};
-use rspack_collections::Identifier;
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
 use rspack_util::{fx_hash::FxIndexSet, json_stringify};
@@ -445,7 +445,7 @@ pub fn get_outgoing_async_modules(
     mg: &ModuleGraph,
     module: &dyn Module,
     set: &mut FxIndexSet<ModuleId>,
-    visited: &mut HashSet<ModuleIdentifier>,
+    visited: &mut IdentifierSet,
   ) {
     let module_identifier = module.identifier();
     if !ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier) {
@@ -485,7 +485,7 @@ pub fn get_outgoing_async_modules(
   }
 
   let mut set = FxIndexSet::default();
-  let mut visited = HashSet::default();
+  let mut visited = IdentifierSet::default();
   helper(
     compilation,
     compilation.get_module_graph(),
