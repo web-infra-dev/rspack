@@ -33,7 +33,7 @@ use crate::{
 
 #[derive(Debug)]
 struct ClientEntry {
-  entry_name: String,
+  entry_name: Arc<str>,
   runtime: RuntimeSpec,
   client_imports: ClientComponentImports,
   css_imports: CssImports,
@@ -48,7 +48,7 @@ struct InjectedSsrEntry {
 
 struct ActionEntry {
   actions: FxHashMap<String, Vec<ActionIdNamePair>>,
-  entry_name: String,
+  entry_name: Arc<str>,
   runtime: RuntimeSpec,
   from_client: bool,
 }
@@ -123,8 +123,15 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 
     let start = logger.time("track server component changes");
     let mut prev_server_component_hashes = self.prev_server_component_hashes.borrow_mut();
-    plugin_state.changed_server_components_per_entry =
+    let changed_per_entry =
       track_server_component_changes(compilation, &mut prev_server_component_hashes);
+    for (entry_name, set) in changed_per_entry {
+      plugin_state
+        .entries
+        .entry(entry_name)
+        .or_default()
+        .changed_server_components = set;
+    }
     logger.time_end(start);
   }
 
@@ -154,16 +161,16 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
-/// Compute server manifest and server_consumer_module_map once. Stored in plugin_state for
+/// Compute server manifest and server_consumer_module_map once per entry. Stored in plugin_state for
 /// RscManifestRuntimeModule and onManifest to avoid recomputing.
 #[plugin_hook(CompilationProcessAssets for RscServerPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
-  build_server_manifest(compilation, &mut plugin_state.server_actions)?;
-  plugin_state.server_consumer_module_map = Some(build_server_consumer_module_map(
-    compilation,
-    &plugin_state.client_modules,
-  ));
+  build_server_manifest(compilation, &mut plugin_state.entries)?;
+  for (_entry_name, entry_state) in plugin_state.entries.iter_mut() {
+    let map = build_server_consumer_module_map(compilation, &entry_state.client_modules);
+    entry_state.server_consumer_module_map = Some(map);
+  }
   self.coordinator.idle().await?;
   Ok(())
 }
@@ -201,16 +208,23 @@ impl Plugin for RscServerPlugin {
 impl RscServerPlugin {
   async fn create_client_entries(&self, compilation: &mut Compilation) -> Result<()> {
     let mut add_ssr_modules_list: Vec<InjectedSsrEntry> = Default::default();
-    let mut created_ssr_dependencies_per_entry: FxHashMap<String, Vec<DependencyId>> =
+    let mut created_ssr_dependencies_per_entry: FxHashMap<Arc<str>, Vec<DependencyId>> =
       Default::default();
     let mut add_action_entry_list: Vec<InjectedActionEntry> = Default::default();
-    let mut server_actions_per_entry: FxHashMap<String, FxHashMap<String, Vec<ActionIdNamePair>>> =
-      Default::default();
+    let mut server_actions_per_entry: FxHashMap<
+      Arc<str>,
+      FxHashMap<String, Vec<ActionIdNamePair>>,
+    > = Default::default();
     let mut created_action_ids: FxHashSet<String> = Default::default();
-    let mut runtime_per_entry: FxHashMap<String, RuntimeSpec> = Default::default();
+    let mut runtime_per_entry: FxHashMap<Arc<str>, RuntimeSpec> = Default::default();
 
     for (entry_name, entry_data) in &compilation.entries {
-      let runtime = get_entry_runtime(entry_name, &entry_data.options, &compilation.entries);
+      let entry_name: Arc<str> = Arc::from(entry_name.to_string());
+      let runtime = get_entry_runtime(
+        entry_name.as_ref(),
+        &entry_data.options,
+        &compilation.entries,
+      );
       runtime_per_entry.insert(entry_name.clone(), runtime.clone());
 
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
@@ -341,7 +355,8 @@ impl RscServerPlugin {
         )
       })?;
 
-    for (entry_name, action_entry_imports) in &plugin_state.client_actions_per_entry {
+    for (entry_name, entry_state) in &plugin_state.entries {
+      let action_entry_imports = &entry_state.client_actions;
       // If an action method is already created in the server layer, we don't
       // need to create it again in the action layer.
       // This is to avoid duplicate action instances and make sure the module
@@ -350,13 +365,13 @@ impl RscServerPlugin {
       let mut remaining_action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> =
         Default::default();
       let runtime = runtime_per_entry
-        .get(entry_name)
+        .get(entry_name.as_ref())
         .cloned()
         .unwrap_or_default();
       for (dependency, actions) in action_entry_imports {
         let mut remaining_actions: Vec<ActionIdNamePair> = Vec::new();
         for action in actions {
-          if !created_action_ids.contains(&format!("{}@{}", entry_name, &action.0)) {
+          if !created_action_ids.contains(&format!("{}@{}", entry_name.as_ref(), &action.0)) {
             remaining_actions.push(action.clone());
           }
         }
@@ -431,10 +446,9 @@ impl RscServerPlugin {
         });
       }
 
-      plugin_state
+      let entry_state = plugin_state.entries.entry(entry_name.clone()).or_default();
+      entry_state
         .entry_css_imports
-        .entry(entry_name.clone())
-        .or_default()
         .extend(css_imports.into_iter());
 
       for (request, ids) in &client_imports {
@@ -468,8 +482,10 @@ impl RscServerPlugin {
     // Add for the client compilation
     // Inject the entry to the client compiler.
     plugin_state
-      .injected_client_entries
-      .insert(entry_name.clone(), client_entries);
+      .entries
+      .entry(entry_name.clone())
+      .or_default()
+      .injected_client_entries = client_entries;
 
     if !should_inject_ssr_modules {
       return None;
@@ -487,7 +503,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(ssr_entry_dependency),
         EntryOptions {
-          name: Some(entry_name),
+          name: Some(entry_name.to_string()),
           ..Default::default()
         },
       ),
@@ -542,7 +558,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(action_entry_dep),
         EntryOptions {
-          name: Some(entry_name),
+          name: Some(entry_name.to_string()),
           layer: Some(layer),
           ..Default::default()
         },
@@ -567,22 +583,9 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
         "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
       )
     })?;
-    let server_consumer_module_map = plugin_state
-      .server_consumer_module_map
-      .as_ref()
-      .ok_or_else(|| {
-        rspack_error::error!(
-          "RscServerPlugin: server_consumer_module_map not found in done hook for compiler {:#?}.",
-          compilation.compiler_id()
-        )
-      })?;
     let full_manifest = RscManifest {
-      server_manifest: &plugin_state.server_actions,
-      client_manifest: &plugin_state.client_modules,
-      server_consumer_module_map,
+      entries: &plugin_state.entries,
       module_loading,
-      entry_css_files: &plugin_state.entry_css_files,
-      entry_js_files: &plugin_state.entry_js_files,
     };
     let json = simd_json::to_string(&full_manifest).to_rspack_result()?;
     (on_manifest)(json).await?;
@@ -597,12 +600,11 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
           compilation.compiler_id()
         )
       })?;
-    let changed_server_components_per_entry = plugin_state
-      .changed_server_components_per_entry
-      .iter()
-      .filter(|(_, changes)| !changes.is_empty())
-      .collect::<FxHashMap<_, _>>();
-    if !changed_server_components_per_entry.is_empty() {
+    let has_changed_server_components = plugin_state
+      .entries
+      .values()
+      .any(|e| !e.changed_server_components.is_empty());
+    if has_changed_server_components {
       (on_server_component_changes)().await?;
     }
   }

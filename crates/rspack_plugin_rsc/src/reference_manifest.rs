@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_core::{ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier};
 use rspack_error::Result;
 use rustc_hash::FxHashMap;
@@ -43,11 +45,39 @@ pub struct ModuleLoading {
 
 pub type ServerReferenceManifest = FxHashMap<String, ManifestExport>;
 
+/// Fills each entry's `server_actions` in `entries` by resolving action-loader modules
+/// to their entries via the chunk graph.
 pub fn build_server_manifest(
   compilation: &Compilation,
-  server_actions: &mut ServerReferenceManifest,
+  entries: &mut FxHashMap<Arc<str>, crate::plugin_state::EntryState>,
 ) -> Result<()> {
+  let mut server_actions_per_entry: FxHashMap<Arc<str>, ServerReferenceManifest> =
+    FxHashMap::default();
   let module_graph = compilation.get_module_graph();
+  let artifact = &compilation.build_chunk_graph_artifact;
+  let chunk_graph = &artifact.chunk_graph;
+
+  // Build module_identifier -> list of entry names (by walking entrypoints -> chunks -> modules).
+  let mut module_to_entries: FxHashMap<ModuleIdentifier, Vec<Arc<str>>> = FxHashMap::default();
+  for (entry_name, group_ukey) in &artifact.entrypoints {
+    let entry_name: Arc<str> = Arc::from(entry_name.to_string());
+
+    let Some(group) = artifact.chunk_group_by_ukey.get(group_ukey) else {
+      continue;
+    };
+    for chunk_ukey in &group.chunks {
+      for module_identifier in chunk_graph.get_chunk_modules_identifier(chunk_ukey).iter() {
+        module_to_entries
+          .entry(*module_identifier)
+          .or_default()
+          .push(entry_name.clone());
+      }
+    }
+  }
+  for entries in module_to_entries.values_mut() {
+    entries.sort();
+    entries.dedup();
+  }
 
   let mut record_module =
     |module_identifier: &ModuleIdentifier, module_id: &ModuleId| -> Result<()> {
@@ -78,21 +108,25 @@ pub fn build_server_manifest(
         }
 
         if let Some(actions) = parse_action_entries(v.into_owned())? {
+          let entry_names = module_to_entries
+            .get(module_identifier)
+            .cloned()
+            .unwrap_or_default();
+          let is_async =
+            ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());
           for action in actions {
-            server_actions.insert(
-              action.id.clone(),
-              ManifestExport {
-                id: module_id.to_string(),
-                name: action.id.clone(),
-                // Server Action modules serve as endpoints rather than code splitting points,
-                // so ensuring chunk loading at runtime is unnecessary.
-                chunks: vec![],
-                r#async: Some(ModuleGraph::is_async(
-                  &compilation.async_modules_artifact,
-                  &module.identifier(),
-                )),
-              },
-            );
+            let export = ManifestExport {
+              id: module_id.to_string(),
+              name: action.id.clone(),
+              chunks: vec![],
+              r#async: Some(is_async),
+            };
+            for entry_name in &entry_names {
+              server_actions_per_entry
+                .entry(entry_name.clone())
+                .or_default()
+                .insert(action.id.clone(), export.clone());
+            }
           }
         }
         break;
@@ -118,6 +152,9 @@ pub fn build_server_manifest(
     record_module(&module.identifier(), module_id)?;
   }
 
+  for (entry_name, manifest) in server_actions_per_entry {
+    entries.entry(entry_name).or_default().server_actions = manifest;
+  }
   Ok(())
 }
 

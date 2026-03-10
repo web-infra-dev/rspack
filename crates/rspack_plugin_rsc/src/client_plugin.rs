@@ -34,7 +34,7 @@ pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
+  client_entries_per_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
 }
 
 fn extend_required_chunks(
@@ -75,7 +75,7 @@ fn extend_required_chunks(
 
 #[allow(clippy::too_many_arguments)]
 fn record_module(
-  entry_name: &str,
+  entry_name: &Arc<str>,
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
   chunk_ukey: &ChunkUkey,
@@ -93,62 +93,76 @@ fn record_module(
   }
 
   if is_css_mod(module.as_ref()) {
-    let (Some(chunk), Some(entry_css_imports)) = (
-      compilation
+    let to_extend: Vec<(String, Vec<String>)> = {
+      let entry_state = match plugin_state.entries.get(entry_name) {
+        Some(s) => s,
+        None => return,
+      };
+      let Some(chunk) = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
-        .get(chunk_ukey),
-      plugin_state.entry_css_imports.get(entry_name),
-    ) else {
-      return;
+        .get(chunk_ukey)
+      else {
+        return;
+      };
+      let _prefix = plugin_state
+        .module_loading
+        .as_ref()
+        .expect("module_loading should be initialized in traverse_modules before recording modules")
+        .prefix
+        .clone();
+      let css_files: Vec<String> = chunk
+        .files()
+        .iter()
+        .filter(|file| file.ends_with(".css"))
+        .map(|file| format!("{_prefix}{file}"))
+        .collect();
+      if css_files.is_empty() {
+        return;
+      }
+      entry_state
+        .entry_css_imports
+        .iter()
+        .filter(|(_, imports)| imports.get(resource.as_ref()).is_some())
+        .map(|(server_entry, _)| (server_entry.clone(), css_files.clone()))
+        .collect()
     };
-
-    let prefix = &plugin_state
-      .module_loading
-      .as_ref()
-      .expect("module_loading should be initialized in traverse_modules before recording modules")
-      .prefix;
-    let css_files: Vec<String> = chunk
-      .files()
-      .iter()
-      .filter(|file| file.ends_with(".css"))
-      .map(|file| format!("{prefix}{file}"))
-      .collect();
-    if css_files.is_empty() {
-      return;
-    }
-
-    let entry_css_files = plugin_state
-      .entry_css_files
-      .entry(entry_name.to_string())
-      .or_default();
-
-    for (server_entry, imports) in entry_css_imports {
-      if imports.get(resource.as_ref()).is_some() {
-        entry_css_files
-          .entry(server_entry.clone())
+    if !to_extend.is_empty() {
+      let entry_state = plugin_state
+        .entries
+        .entry(entry_name.to_string().into())
+        .or_default();
+      for (server_entry, files) in to_extend {
+        entry_state
+          .entry_css_files
+          .entry(server_entry)
           .or_default()
-          .extend(css_files.iter().cloned());
+          .extend(files);
       }
     }
     return;
   }
 
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
-  plugin_state.client_modules.insert(
-    resource.to_string(),
-    ManifestExport {
-      id: module_id.to_string(),
-      name: "*".to_string(),
-      chunks: required_chunks.to_vec(),
-      r#async: Some(is_async),
-    },
-  );
+  plugin_state
+    .entries
+    .entry(entry_name.clone())
+    .or_default()
+    .client_modules
+    .insert(
+      resource.to_string(),
+      ManifestExport {
+        id: module_id.to_string(),
+        name: "*".to_string(),
+        chunks: required_chunks.to_vec(),
+        r#async: Some(is_async),
+      },
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
 fn record_chunk_group(
-  entry_name: &str,
+  entry_name: &Arc<str>,
   client_entry_modules: &FxHashSet<ModuleIdentifier>,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
@@ -255,17 +269,13 @@ async fn collect_entry_js_files(
     else {
       continue;
     };
-    let entry_js_files = plugin_state
-      .entry_js_files
-      .entry(entry_name.clone())
-      .or_default();
     let prefix = &plugin_state
       .module_loading
       .as_ref()
       .expect("module_loading should be initialized in traverse_modules before recording modules")
       .prefix;
 
-    *entry_js_files = chunk_group
+    let entry_js_files = chunk_group
       .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
@@ -280,6 +290,11 @@ async fn collect_entry_js_files(
       })
       .map(|file| format!("{prefix}{file}"))
       .collect::<FxIndexSet<String>>();
+    plugin_state
+      .entries
+      .entry(entry_name.to_string().into())
+      .or_default()
+      .entry_js_files = entry_js_files;
   }
   Ok(())
 }
@@ -438,6 +453,8 @@ impl RscClientPlugin {
     let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
 
     for (entry_name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+      let entry_name: Arc<str> = Arc::from(entry_name.to_string());
+
       let Some(entrypoint) = compilation
         .build_chunk_graph_artifact
         .chunk_group_by_ukey
@@ -451,7 +468,7 @@ impl RscClientPlugin {
       checked_chunks.clear();
 
       record_chunk_group(
-        entry_name,
+        &entry_name,
         &client_entry_modules,
         entrypoint,
         compilation,
@@ -518,9 +535,10 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   })?;
 
   let mut include_dependencies = vec![];
-  for (entry_name, client_modules) in &plugin_state.injected_client_entries {
+  for (entry_name, entry_state) in &plugin_state.entries {
+    let client_modules = &entry_state.injected_client_entries;
     {
-      if compilation.entries.get(entry_name).is_none() {
+      if compilation.entries.get(entry_name.as_ref()).is_none() {
         compilation.push_diagnostic(Diagnostic::error(
           "RSC Client Entry Mismatch".to_string(),
           format!(
@@ -537,7 +555,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(RscEntryDependency::new(
-        entry_name.clone(),
+        entry_name.to_string(),
         client_modules.clone(),
       ));
       self
@@ -553,7 +571,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     #[allow(clippy::unwrap_used)]
-    let entry_data = compilation.entries.get_mut(entry_name).unwrap();
+    let entry_data = compilation.entries.get_mut(entry_name.as_ref()).unwrap();
     entry_data
       .include_dependencies
       .append(&mut include_dependencies);
@@ -594,8 +612,10 @@ async fn after_process_assets(
   for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
     let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
     plugin_state
-      .client_actions_per_entry
-      .insert(entry_name.clone(), client_actions);
+      .entries
+      .entry(entry_name.clone())
+      .or_default()
+      .client_actions = client_actions;
   }
 
   self

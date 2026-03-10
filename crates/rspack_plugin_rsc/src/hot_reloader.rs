@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{Compilation, Module, ModuleGraph, RscModuleType};
@@ -9,15 +12,16 @@ use crate::constants::LAYERS_NAMES;
 pub fn track_server_component_changes(
   compilation: &Compilation,
   prev_server_component_hashes: &mut IdentifierMap<u64>,
-) -> FxHashMap<String, IdentifierSet> {
+) -> FxHashMap<Arc<str>, IdentifierSet> {
   let module_graph = compilation.get_module_graph();
 
   let mut visited_modules: IdentifierSet = Default::default();
-  let mut changed_server_components_per_entry: FxHashMap<String, IdentifierSet> =
+  let mut changed_server_components_per_entry: FxHashMap<Arc<str>, IdentifierSet> =
     Default::default();
   let mut cur_server_component_hashes = Default::default();
 
   for (entry_name, entry_data) in &compilation.entries {
+    let entry_name: Arc<str> = Arc::from(entry_name.to_string());
     visited_modules.clear();
 
     let changed_server_components = changed_server_components_per_entry

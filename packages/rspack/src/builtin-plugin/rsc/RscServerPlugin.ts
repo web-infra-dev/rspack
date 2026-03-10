@@ -20,14 +20,18 @@ export interface RscModuleLoading {
   crossOrigin?: 'use-credentials' | '';
 }
 
-/** Full RSC manifest (all entries) passed to onManifest. */
-export interface RscManifest {
+export interface RscManifestPerEntry {
   serverManifest: Record<string, RscManifestExport>;
   clientManifest: Record<string, RscManifestExport>;
   serverConsumerModuleMap: Record<string, RscManifestNode>;
+  entryCssFiles: Record<string, string[]>;
+  entryJsFiles: string[];
+}
+
+/** Full RSC manifest (all entries) passed to onManifest. Maps are keyed by entry name. */
+export interface RscManifest {
   moduleLoading: RscModuleLoading;
-  entryCssFiles: Record<string, Record<string, string[]>>;
-  entryJsFiles: Record<string, string[]>;
+  entries: Record<string, RscManifestPerEntry>;
 }
 
 export type RscServerPluginOptions = {
