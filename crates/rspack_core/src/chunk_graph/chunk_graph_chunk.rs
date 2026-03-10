@@ -1,6 +1,12 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::{borrow::Borrow, collections::VecDeque, fmt, sync::Arc};
+use std::{
+  borrow::Borrow,
+  collections::VecDeque,
+  fmt,
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
@@ -8,7 +14,7 @@ use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rspack_util::fx_hash::FxIndexSet;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
 
 use crate::{
@@ -26,20 +32,28 @@ pub struct ChunkSizeOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ChunkId {
   inner: Arc<str>,
+  hash: u64,
+}
+
+impl Hash for ChunkId {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    // Use the precomputed hash value so hashing in maps/sets is O(1)
+    state.write_u64(self.hash);
+  }
 }
 
 impl From<String> for ChunkId {
   fn from(s: String) -> Self {
-    Self { inner: s.into() }
+    Self::new(s.into())
   }
 }
 
 impl From<&str> for ChunkId {
   fn from(s: &str) -> Self {
-    Self { inner: s.into() }
+    Self::new(s.into())
   }
 }
 
@@ -65,6 +79,14 @@ impl Borrow<str> for ChunkId {
 }
 
 impl ChunkId {
+  fn new(inner: Arc<str>) -> Self {
+    // Precompute hash once when ModuleId is created, similar to ArcPath.
+    let mut hasher = FxHasher::default();
+    inner.hash(&mut hasher);
+    let hash = hasher.finish();
+    Self { inner, hash }
+  }
+
   pub fn as_str(&self) -> &str {
     &self.inner
   }

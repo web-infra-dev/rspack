@@ -44,15 +44,16 @@ fn assign_named_chunk_ids(
         named_chunk_ids_artifact,
         exports_info_artifact,
       );
-      (item, name)
+      (item, ChunkId::from(name))
     })
     .collect();
-  let mut name_to_items: FxHashMap<String, UkeyIndexSet<ChunkUkey>> = FxHashMap::default();
-  let mut invalid_and_repeat_names: FxHashSet<String> = std::iter::once(String::new()).collect();
+  let mut name_to_items: FxHashMap<ChunkId, UkeyIndexSet<ChunkUkey>> = FxHashMap::default();
+  let mut invalid_and_repeat_names: FxHashSet<ChunkId> =
+    std::iter::once(ChunkId::from(String::new())).collect();
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
       .chunk_short_names
-      .insert(item, name.clone());
+      .insert(item, name.to_string());
 
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
@@ -61,16 +62,16 @@ fn assign_named_chunk_ids(
       invalid_and_repeat_names.insert(name);
     }
     // Also rename the conflicting chunks in used_ids
-    else if let Some(item) = used_ids.get(name.as_str())
+    else if let Some(item) = used_ids.get(&name)
     // Unless the chunk is explicitly using chunk name as id
-      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name)
+      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
     {
       items.insert(*item);
       invalid_and_repeat_names.insert(name);
     }
   }
 
-  let item_name_pair: Vec<(ChunkUkey, String)> = invalid_and_repeat_names
+  let item_name_pair: Vec<(ChunkUkey, ChunkId)> = invalid_and_repeat_names
     .iter()
     .flat_map(|name| {
       let mut res = vec![];
@@ -92,21 +93,21 @@ fn assign_named_chunk_ids(
         named_chunk_ids_artifact,
         exports_info_artifact,
       );
-      (item, long_name)
+      (item, ChunkId::from(long_name))
     })
     .collect();
 
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
       .chunk_long_names
-      .insert(item, name.clone());
+      .insert(item, name.to_string());
 
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
     // Also rename the conflicting chunks in used_ids
-    if let Some(item) = used_ids.get(name.as_str())
+    if let Some(item) = used_ids.get(&name)
     // Unless the chunk is explicitly using chunk name as id
-      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name)
+      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
     {
       items.insert(*item);
     }
@@ -122,14 +123,13 @@ fn assign_named_chunk_ids(
   name_to_items_sorted.sort_by(|a, b| a.0.cmp(&b.0));
 
   for (name, mut items) in name_to_items_sorted {
-    if name.is_empty() {
+    if name.as_str().is_empty() {
       for item in items {
         unnamed_items.push(item)
       }
-    } else if items.len() == 1 && !used_ids.contains_key(name.as_str()) {
+    } else if items.len() == 1 && !used_ids.contains_key(&name) {
       let item = items[0];
       let chunk = chunk_by_ukey.expect_get_mut(&item);
-      let name: ChunkId = name.into();
       if chunk.set_id(name.clone())
         && let Some(mutations) = mutations
       {
@@ -152,22 +152,20 @@ fn assign_named_chunk_ids(
       let mut i = 0;
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
-        let mut formatted_name = format!("{name}{}", i_buffer.format(i));
-        while name_to_items_keys.contains(&formatted_name)
-          && used_ids.contains_key(formatted_name.as_str())
+        let mut formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));
+        while name_to_items_keys.contains(&formatted_name) && used_ids.contains_key(&formatted_name)
         {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
-          formatted_name = format!("{name}{}", i_buffer.format(i));
+          formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));
         }
         let chunk = chunk_by_ukey.expect_get_mut(&item);
-        let name: ChunkId = formatted_name.into();
-        if chunk.set_id(name.clone())
+        if chunk.set_id(formatted_name.clone())
           && let Some(mutations) = mutations
         {
           mutations.add(Mutation::ChunkSetId { chunk: item });
         }
-        used_ids.insert(name, item);
+        used_ids.insert(formatted_name, item);
         i += 1;
       }
     }
@@ -292,13 +290,13 @@ async fn chunk_ids(
     let mut next_id = 0;
     for chunk_ukey in &unnamed_chunks {
       let chunk = chunk_by_ukey.expect_get_mut(chunk_ukey);
-      let mut id = next_id.to_string();
-      while used_ids.contains_key(id.as_str()) {
+      let mut id = ChunkId::from(next_id.to_string());
+      while used_ids.contains_key(&id) {
         next_id += 1;
-        id = next_id.to_string();
+        id = ChunkId::from(next_id.to_string());
       }
 
-      used_ids.insert(id.clone().into(), *chunk_ukey);
+      used_ids.insert(id.clone(), *chunk_ukey);
       if chunk.set_id(id)
         && let Some(mutations) = &mut mutations
       {
