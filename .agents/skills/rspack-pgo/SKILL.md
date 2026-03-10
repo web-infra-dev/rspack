@@ -1,6 +1,12 @@
 ---
 name: rspack-pgo
-description: Run Rspack's perf-guided optimization loop for `cases/all` and similar workloads: create an isolated worktree, build a profiling binding, benchmark with `RSPACK_BINDING`, collect and compare `perf` hotspots, implement small Rust changes, validate, commit, push, and trigger the Ecosystem Benchmark workflow after each pushed commit. Use this when the goal is iterative performance work, not just one-off profiling.
+description: >-
+  Run Rspack's perf-guided optimization loop for `cases/all` and similar
+  workloads: create an isolated worktree, build a profiling binding, benchmark
+  with `RSPACK_BINDING`, collect and compare `perf` hotspots, implement small
+  Rust changes, validate, commit, push, and trigger the Ecosystem Benchmark
+  workflow after each pushed commit. Use this when the goal is iterative
+  performance work, not just one-off profiling.
 ---
 
 # Rspack PGO
