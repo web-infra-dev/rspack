@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, collections::hash_map::Entry, sync::Arc};
 
 use either::Either;
 use itertools::Itertools;
@@ -197,10 +197,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     exports_info: &ExportsInfo,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<&ExportInfoData> {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
+    let data = self.data_for(exports_info);
     let mut list = Vec::with_capacity(data.exports().len() + 1);
     for export_info in data.exports().values() {
       let used = export_info.get_used(runtime);
@@ -478,12 +475,14 @@ impl ExportsInfoGetter {
       res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
-      if res.contains_key(id) {
-        return;
-      }
-
-      let exports_info = id.as_data(exports_info_artifact);
-      res.insert(*id, exports_info);
+      let exports_info = match res.entry(*id) {
+        Entry::Occupied(_) => return,
+        Entry::Vacant(entry) => {
+          let exports_info = id.as_data(exports_info_artifact);
+          entry.insert(exports_info);
+          exports_info
+        }
+      };
 
       match mode {
         PrefetchExportsInfoMode::Default => {}
