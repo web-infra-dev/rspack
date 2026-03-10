@@ -37,6 +37,7 @@ use std::{
 };
 
 use dashmap::DashSet;
+use either::Either;
 use futures::future::BoxFuture;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -464,19 +465,43 @@ impl Compilation {
       .file_dependencies
       .files()
       .chain(&self.file_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .file_dependencies
-      .added_files()
-      .chain(&self.file_dependencies);
-    let updated_files = self
-      .build_module_graph_artifact
-      .file_dependencies
-      .updated_files();
-    let removed_files = self
-      .build_module_graph_artifact
-      .file_dependencies
-      .removed_files();
+    let added_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .file_dependencies
+          .added_files()
+          .chain(&self.file_dependencies),
+      )
+    } else {
+      Either::Right(
+        self
+          .build_module_graph_artifact
+          .file_dependencies
+          .files()
+          .chain(&self.file_dependencies),
+      )
+    };
+    let updated_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .file_dependencies
+          .updated_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
+    let removed_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .file_dependencies
+          .removed_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
     (all_files, added_files, updated_files, removed_files)
   }
 
@@ -493,19 +518,43 @@ impl Compilation {
       .context_dependencies
       .files()
       .chain(&self.context_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .context_dependencies
-      .added_files()
-      .chain(&self.file_dependencies);
-    let updated_files = self
-      .build_module_graph_artifact
-      .context_dependencies
-      .updated_files();
-    let removed_files = self
-      .build_module_graph_artifact
-      .context_dependencies
-      .removed_files();
+    let added_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .context_dependencies
+          .added_files()
+          .chain(&self.file_dependencies),
+      )
+    } else {
+      Either::Right(
+        self
+          .build_module_graph_artifact
+          .context_dependencies
+          .files()
+          .chain(&self.context_dependencies),
+      )
+    };
+    let updated_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .context_dependencies
+          .updated_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
+    let removed_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .context_dependencies
+          .removed_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
     (all_files, added_files, updated_files, removed_files)
   }
 
@@ -522,19 +571,43 @@ impl Compilation {
       .missing_dependencies
       .files()
       .chain(&self.missing_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .missing_dependencies
-      .added_files()
-      .chain(&self.file_dependencies);
-    let updated_files = self
-      .build_module_graph_artifact
-      .missing_dependencies
-      .updated_files();
-    let removed_files = self
-      .build_module_graph_artifact
-      .missing_dependencies
-      .removed_files();
+    let added_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .missing_dependencies
+          .added_files()
+          .chain(&self.file_dependencies),
+      )
+    } else {
+      Either::Right(
+        self
+          .build_module_graph_artifact
+          .missing_dependencies
+          .files()
+          .chain(&self.missing_dependencies),
+      )
+    };
+    let updated_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .missing_dependencies
+          .updated_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
+    let removed_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .missing_dependencies
+          .removed_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
     (all_files, added_files, updated_files, removed_files)
   }
 
@@ -551,19 +624,43 @@ impl Compilation {
       .build_dependencies
       .files()
       .chain(&self.build_dependencies);
-    let added_files = self
-      .build_module_graph_artifact
-      .build_dependencies
-      .added_files()
-      .chain(&self.file_dependencies);
-    let updated_files = self
-      .build_module_graph_artifact
-      .build_dependencies
-      .updated_files();
-    let removed_files = self
-      .build_module_graph_artifact
-      .build_dependencies
-      .removed_files();
+    let added_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .build_dependencies
+          .added_files()
+          .chain(&self.file_dependencies),
+      )
+    } else {
+      Either::Right(
+        self
+          .build_module_graph_artifact
+          .build_dependencies
+          .files()
+          .chain(&self.build_dependencies),
+      )
+    };
+    let updated_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .build_dependencies
+          .updated_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
+    let removed_files = if self.incremental.enabled() {
+      Either::Left(
+        self
+          .build_module_graph_artifact
+          .build_dependencies
+          .removed_files(),
+      )
+    } else {
+      Either::Right(std::iter::empty())
+    };
     (all_files, added_files, updated_files, removed_files)
   }
 

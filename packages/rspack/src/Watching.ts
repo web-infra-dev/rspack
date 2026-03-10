@@ -36,6 +36,9 @@ export class Watching {
   #closed: boolean;
   #collectedChangedFiles?: Set<string>;
   #collectedRemovedFiles?: Set<string>;
+  #lastFileDependencies?: Set<string>;
+  #lastContextDependencies?: Set<string>;
+  #lastMissingDependencies?: Set<string>;
   suspended: boolean;
 
   constructor(
@@ -326,6 +329,38 @@ export class Watching {
     });
   }
 
+  #diffDependencies(
+    current: Set<string>,
+    previous?: Set<string>,
+  ): {
+    added: Set<string>;
+    removed: Set<string>;
+  } {
+    if (!previous) {
+      return {
+        added: new Set(current),
+        removed: new Set(),
+      };
+    }
+
+    const added = new Set<string>();
+    const removed = new Set<string>();
+
+    for (const item of current) {
+      if (!previous.has(item)) {
+        added.add(item);
+      }
+    }
+
+    for (const item of previous) {
+      if (!current.has(item)) {
+        removed.add(item);
+      }
+    }
+
+    return { added, removed };
+  }
+
   /**
    * The reason why this is _done instead of #done, is that in Webpack,
    * it will rewrite this function to another function
@@ -381,18 +416,14 @@ export class Watching {
 
       process.nextTick(() => {
         if (!this.#closed) {
+          const incrementalEnabled =
+            this.compiler.options.incremental !== false;
           const fileDependencies = new Set([
             ...compilation.fileDependencies,
           ]) as unknown as Iterable<string> & {
             added?: Iterable<string>;
             removed?: Iterable<string>;
           };
-          fileDependencies.added = new Set(
-            compilation.__internal__addedFileDependencies,
-          );
-          fileDependencies.removed = new Set(
-            compilation.__internal__removedFileDependencies,
-          );
 
           const contextDependencies = new Set([
             ...compilation.contextDependencies,
@@ -400,12 +431,6 @@ export class Watching {
             added?: Iterable<string>;
             removed?: Iterable<string>;
           };
-          contextDependencies.added = new Set(
-            compilation.__internal__addedContextDependencies,
-          );
-          contextDependencies.removed = new Set(
-            compilation.__internal__removedContextDependencies,
-          );
 
           const missingDependencies = new Set([
             ...compilation.missingDependencies,
@@ -413,12 +438,58 @@ export class Watching {
             added?: Iterable<string>;
             removed?: Iterable<string>;
           };
-          missingDependencies.added = new Set(
-            compilation.__internal__addedMissingDependencies,
-          );
-          missingDependencies.removed = new Set(
-            compilation.__internal__removedMissingDependencies,
-          );
+
+          if (incrementalEnabled) {
+            fileDependencies.added = new Set(
+              compilation.__internal__addedFileDependencies,
+            );
+            fileDependencies.removed = new Set(
+              compilation.__internal__removedFileDependencies,
+            );
+            contextDependencies.added = new Set(
+              compilation.__internal__addedContextDependencies,
+            );
+            contextDependencies.removed = new Set(
+              compilation.__internal__removedContextDependencies,
+            );
+            missingDependencies.added = new Set(
+              compilation.__internal__addedMissingDependencies,
+            );
+            missingDependencies.removed = new Set(
+              compilation.__internal__removedMissingDependencies,
+            );
+          } else {
+            const fileDiff = this.#diffDependencies(
+              fileDependencies as Set<string>,
+              this.#lastFileDependencies,
+            );
+            fileDependencies.added = fileDiff.added;
+            fileDependencies.removed = fileDiff.removed;
+
+            const contextDiff = this.#diffDependencies(
+              contextDependencies as Set<string>,
+              this.#lastContextDependencies,
+            );
+            contextDependencies.added = contextDiff.added;
+            contextDependencies.removed = contextDiff.removed;
+
+            const missingDiff = this.#diffDependencies(
+              missingDependencies as Set<string>,
+              this.#lastMissingDependencies,
+            );
+            missingDependencies.added = missingDiff.added;
+            missingDependencies.removed = missingDiff.removed;
+
+            this.#lastFileDependencies = new Set(
+              fileDependencies as Set<string>,
+            );
+            this.#lastContextDependencies = new Set(
+              contextDependencies as Set<string>,
+            );
+            this.#lastMissingDependencies = new Set(
+              missingDependencies as Set<string>,
+            );
+          }
 
           this.watch(
             fileDependencies,

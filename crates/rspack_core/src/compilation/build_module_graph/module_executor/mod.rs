@@ -29,7 +29,8 @@ use super::{
 };
 use crate::{
   Compilation, CompilationAsset, Context, DependencyId, ExportsInfoArtifact, PublicPath, StealCell,
-  build_module_graph::module_executor::execute::ExecuteResult, task_loop::run_task_loop,
+  build_module_graph::module_executor::execute::ExecuteResult, incremental::IncrementalPasses,
+  task_loop::run_task_loop,
 };
 
 #[derive(Debug)]
@@ -66,6 +67,23 @@ impl ModuleExecutor {
   pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = self.make_artifact.steal();
     let mut exports_info_artifact = self.exports_info_artifact.steal();
+
+    if !compilation.incremental.enabled() {
+      make_artifact.disable_incremental_tracking();
+    }
+
+    if !compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
+      make_artifact = BuildModuleGraphArtifact::new();
+      if !compilation.incremental.enabled() {
+        make_artifact.disable_incremental_tracking();
+      }
+      exports_info_artifact = ExportsInfoArtifact::default();
+      self.entries.clear();
+    }
+
     let mut params = Vec::with_capacity(5);
     params.push(UpdateParam::CheckNeedBuild);
     if !compilation.modified_files.is_empty() {

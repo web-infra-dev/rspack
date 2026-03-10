@@ -16,8 +16,10 @@ pub use self::{
   },
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
+use crate::{
+  BoxDependency, Compilation, ExportsInfoArtifact, incremental::IncrementalPasses, logger::Logger,
+};
 pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
-use crate::{Compilation, ExportsInfoArtifact, logger::Logger};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compiler");
@@ -57,8 +59,34 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
 pub async fn build_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
+  mut exports_info_artifact: ExportsInfoArtifact,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  if !compilation.incremental.enabled() {
+    artifact.disable_incremental_tracking();
+  }
+
+  if !compilation
+    .incremental
+    .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+  {
+    let entry_dependencies: Vec<BoxDependency> = compilation
+      .entries
+      .values()
+      .flat_map(|item| item.all_dependencies())
+      .chain(compilation.global_entry.all_dependencies())
+      .map(|dep_id| artifact.get_module_graph().dependency_by_id(dep_id).clone())
+      .collect();
+
+    artifact = BuildModuleGraphArtifact::new();
+    if !compilation.incremental.enabled() {
+      artifact.disable_incremental_tracking();
+    }
+    for dep in entry_dependencies {
+      artifact.get_module_graph_mut().add_dependency(dep);
+    }
+    exports_info_artifact = ExportsInfoArtifact::default();
+  }
+
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {

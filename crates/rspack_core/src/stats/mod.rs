@@ -46,6 +46,10 @@ impl<'compilation> StatsContext<'compilation> {
     Self(compilation)
   }
 
+  fn incremental_enabled(&self) -> bool {
+    self.0.incremental.enabled()
+  }
+
   fn options(&self) -> &'compilation CompilerOptions {
     self.0.options.as_ref()
   }
@@ -1143,7 +1147,9 @@ impl Stats<'_> {
       .module_graph_module_by_identifier(&identifier)
       .unwrap_or_else(|| panic!("Could not find ModuleGraphModule by identifier: {identifier:?}"));
 
-    let built = if executed {
+    let built = if !self.context.incremental_enabled() {
+      module.as_concatenated_module().is_none()
+    } else if executed {
       self.module_executor_is_module_built(&identifier)
     } else {
       build_module_graph_artifact

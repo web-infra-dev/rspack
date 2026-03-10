@@ -92,6 +92,19 @@ impl Snapshot {
       .await;
   }
 
+  #[tracing::instrument("Cache::Snapshot::replace", skip_all)]
+  pub async fn replace(
+    &self,
+    scope: SnapshotScope,
+    paths: impl Iterator<Item = ArcPath>,
+  ) -> Result<()> {
+    for (key, _) in self.storage.load(scope.name()).await? {
+      self.storage.remove(scope.name(), &key);
+    }
+    self.add(scope, paths).await;
+    Ok(())
+  }
+
   pub fn remove(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
     for item in paths {
       self

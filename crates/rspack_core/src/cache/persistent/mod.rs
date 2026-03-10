@@ -26,7 +26,10 @@ use self::{
   storage::{Storage, StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{BuildModuleGraphArtifactState, Compilation, CompilerOptions, Logger};
+use crate::{
+  BuildModuleGraphArtifactState, Compilation, CompilerOptions, Logger,
+  incremental::IncrementalPasses,
+};
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -161,6 +164,13 @@ impl Cache for PersistentCache {
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
     if self.valid && !compilation.is_rebuild {
+      if !compilation
+        .incremental
+        .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+      {
+        return false;
+      }
+
       let mut is_hot_start = false;
       let mut modified_paths = ArcPathSet::default();
       let mut removed_paths = ArcPathSet::default();
@@ -208,45 +218,58 @@ impl Cache for PersistentCache {
       // save meta
       self.meta_occasion.save();
 
-      // save snapshot
-      // TODO add a all_dependencies to collect dependencies
-      let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
-      let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
-      let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
-      let (_, build_added, build_updated, _) = compilation.build_dependencies();
-      self
-        .snapshot
-        .remove(SnapshotScope::FILE, file_removed.cloned());
-      self
-        .snapshot
-        .remove(SnapshotScope::CONTEXT, context_removed.cloned());
-      self
-        .snapshot
-        .remove(SnapshotScope::MISSING, missing_removed.cloned());
-      self
-        .snapshot
-        .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
-        .await;
-      self
-        .snapshot
-        .add(
-          SnapshotScope::CONTEXT,
-          context_added.chain(context_updated).cloned(),
-        )
-        .await;
-      self
-        .snapshot
-        .add(
-          SnapshotScope::MISSING,
-          missing_added.chain(missing_updated).cloned(),
-        )
-        .await;
-      self.warnings.extend(
+      let build_module_graph_incremental_enabled = compilation
+        .incremental
+        .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH);
+
+      if build_module_graph_incremental_enabled {
+        // save snapshot
+        // TODO add a all_dependencies to collect dependencies
+        let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
+        let (_, context_added, context_updated, context_removed) =
+          compilation.context_dependencies();
+        let (_, missing_added, missing_updated, missing_removed) =
+          compilation.missing_dependencies();
+        let (_, build_added, build_updated, _) = compilation.build_dependencies();
         self
-          .build_deps
-          .add(build_added.chain(build_updated).cloned())
-          .await,
-      );
+          .snapshot
+          .remove(SnapshotScope::FILE, file_removed.cloned());
+        self
+          .snapshot
+          .remove(SnapshotScope::CONTEXT, context_removed.cloned());
+        self
+          .snapshot
+          .remove(SnapshotScope::MISSING, missing_removed.cloned());
+        self
+          .snapshot
+          .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
+          .await;
+        self
+          .snapshot
+          .add(
+            SnapshotScope::CONTEXT,
+            context_added.chain(context_updated).cloned(),
+          )
+          .await;
+        self
+          .snapshot
+          .add(
+            SnapshotScope::MISSING,
+            missing_added.chain(missing_updated).cloned(),
+          )
+          .await;
+        self.warnings.extend(
+          self
+            .build_deps
+            .add(build_added.chain(build_updated).cloned())
+            .await,
+        );
+      } else {
+        let (build_all, _, _, _) = compilation.build_dependencies();
+        self
+          .warnings
+          .extend(self.build_deps.add(build_all.cloned()).await);
+      }
 
       self.save().await;
     }
@@ -258,6 +281,13 @@ impl Cache for PersistentCache {
   }
 
   async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
+    if !compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
+      return;
+    }
+
     // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
     if self.valid
       && matches!(
@@ -282,7 +312,11 @@ impl Cache for PersistentCache {
   }
 
   async fn after_build_module_graph(&self, compilation: &Compilation) {
-    if !self.readonly {
+    if !self.readonly
+      && compilation
+        .incremental
+        .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
+    {
       self
         .make_occasion
         .save(&compilation.build_module_graph_artifact);

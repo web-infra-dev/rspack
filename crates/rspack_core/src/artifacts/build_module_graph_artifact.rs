@@ -95,6 +95,16 @@ impl BuildModuleGraphArtifact {
     &mut self.module_graph
   }
 
+  pub fn disable_incremental_tracking(&mut self) {
+    self.affected_modules.disable();
+    self.affected_dependencies.disable();
+    self.issuer_update_modules.clear();
+    self.file_dependencies.disable_incremental_info();
+    self.context_dependencies.disable_incremental_info();
+    self.missing_dependencies.disable_incremental_info();
+    self.build_dependencies.disable_incremental_info();
+  }
+
   /// revoke a module and return multiple parent ModuleIdentifier and DependencyId pair that can generate it.
   ///
   /// This function will update index on MakeArtifact.

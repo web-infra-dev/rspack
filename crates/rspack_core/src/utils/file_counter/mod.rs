@@ -71,6 +71,10 @@ impl FileCounter {
     self.incremental_info.reset();
   }
 
+  pub fn disable_incremental_info(&mut self) {
+    self.incremental_info.disable();
+  }
+
   /// Added files compared to the `files()` when call reset_incremental_info
   pub fn added_files(&self) -> impl Iterator<Item = &ArcPath> {
     self.incremental_info.added().iter()

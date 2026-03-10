@@ -9,6 +9,7 @@ use rustc_hash::FxBuildHasher;
 ///
 /// The `added`, `updated`, `removed` are disjoint.
 pub struct IncrementalInfo<T, S = FxBuildHasher> {
+  enabled: bool,
   /// The added data but never removed.
   added: HashSet<T, S>,
   /// The added data that has been removed.
@@ -36,6 +37,7 @@ where
 {
   fn default() -> Self {
     Self {
+      enabled: true,
       added: HashSet::default(),
       updated: HashSet::default(),
       removed: HashSet::default(),
@@ -50,6 +52,9 @@ where
 {
   /// Mark a data as added.
   pub fn mark_as_add(&mut self, data: &T) {
+    if !self.enabled {
+      return;
+    }
     if self.removed.remove(data) {
       self.updated.insert(data.clone());
       return;
@@ -62,6 +67,9 @@ where
 
   /// Mark a data as removed.
   pub fn mark_as_remove(&mut self, data: &T) {
+    if !self.enabled {
+      return;
+    }
     if self.added.remove(data) {
       return;
     }
@@ -74,6 +82,11 @@ where
     self.added = HashSet::default();
     self.updated = HashSet::default();
     self.removed = HashSet::default();
+  }
+
+  pub fn disable(&mut self) {
+    self.enabled = false;
+    self.reset();
   }
 
   /// Get added data.
