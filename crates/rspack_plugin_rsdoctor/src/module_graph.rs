@@ -1,7 +1,7 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType,
