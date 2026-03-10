@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{BuildModuleGraphArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, ResourceId, internal};
+use crate::{BuildDependency, Compilation, internal};
 
 /// Cutout module graph.
 ///
@@ -68,16 +68,8 @@ impl Cutout {
             .into_iter()
             .flatten()
             {
-              for resource_id in resource_ids {
-                match resource_id {
-                  ResourceId::Module(mid) => {
-                    force_build_modules.insert(*mid);
-                  }
-                  ResourceId::Dependency(dep_id) => {
-                    force_build_deps.insert(*dep_id);
-                  }
-                }
-              }
+              force_build_modules.extend(resource_ids.modules().iter().copied());
+              force_build_deps.extend(resource_ids.dependencies().iter().copied());
             }
           }
         }

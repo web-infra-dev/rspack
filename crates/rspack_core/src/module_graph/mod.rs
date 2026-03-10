@@ -46,6 +46,54 @@ pub struct DependencyParents {
   pub index_in_block: usize,
 }
 
+#[derive(Debug, Default)]
+pub struct IncomingConnectionsByOriginModule<'a> {
+  non_modules: Vec<&'a ModuleGraphConnection>,
+  modules: IdentifierMap<Vec<&'a ModuleGraphConnection>>,
+}
+
+impl<'a> IncomingConnectionsByOriginModule<'a> {
+  fn with_capacity(capacity: usize) -> Self {
+    Self {
+      non_modules: Vec::new(),
+      modules: IdentifierMap::with_capacity_and_hasher(capacity, Default::default()),
+    }
+  }
+
+  fn push(
+    &mut self,
+    origin_module: Option<ModuleIdentifier>,
+    connection: &'a ModuleGraphConnection,
+  ) {
+    if let Some(origin_module) = origin_module {
+      self
+        .modules
+        .entry(origin_module)
+        .or_default()
+        .push(connection);
+    } else {
+      self.non_modules.push(connection);
+    }
+  }
+
+  pub fn non_modules(&self) -> &[&'a ModuleGraphConnection] {
+    &self.non_modules
+  }
+
+  pub fn modules(&self) -> &IdentifierMap<Vec<&'a ModuleGraphConnection>> {
+    &self.modules
+  }
+
+  pub fn into_parts(
+    self,
+  ) -> (
+    Vec<&'a ModuleGraphConnection>,
+    IdentifierMap<Vec<&'a ModuleGraphConnection>>,
+  ) {
+    (self.non_modules, self.modules)
+  }
+}
+
 /// Internal data structure for ModuleGraph
 /// There're 3 kinds of data in module_graph here
 /// 1. Data only setting during Make Phase which no need for clone or overlay to recover
@@ -170,7 +218,8 @@ impl ModuleGraph {
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> = IdentifierMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
+      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -193,7 +242,8 @@ impl ModuleGraph {
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> = IdentifierMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
+      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -215,22 +265,18 @@ impl ModuleGraph {
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> {
+  ) -> IncomingConnectionsByOriginModule<'_> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> =
-      HashMap::default();
+    let mut map = IncomingConnectionsByOriginModule::with_capacity(connections.len());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      map
-        .entry(con.original_module_identifier)
-        .or_default()
-        .push(con);
+      map.push(con.original_module_identifier, con);
     }
     map
   }

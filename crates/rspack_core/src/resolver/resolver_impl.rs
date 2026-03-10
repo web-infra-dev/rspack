@@ -7,9 +7,8 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::AssertUtf8;
+use rspack_paths::{ArcPathSet, AssertUtf8};
 use rspack_util::location::byte_line_column_to_offset;
-use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
@@ -20,9 +19,9 @@ use crate::{
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
   /// Files that was found on file system
-  pub file_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: ArcPathSet,
   /// Dependencies that was not found on file system
-  pub missing_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: ArcPathSet,
 }
 
 /// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]
@@ -171,10 +170,10 @@ impl Resolver {
       .await;
     resolve_context
       .file_dependencies
-      .extend(context.file_dependencies);
+      .extend(context.file_dependencies.into_iter().map(Into::into));
     resolve_context
       .missing_dependencies
-      .extend(context.missing_dependencies);
+      .extend(context.missing_dependencies.into_iter().map(Into::into));
     match result {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
