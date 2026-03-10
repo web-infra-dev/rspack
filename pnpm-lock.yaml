@@ -129,8 +129,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
 
   examples/react:
     dependencies:
@@ -148,8 +148,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -175,8 +175,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -234,8 +234,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -265,8 +265,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -292,8 +292,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
 
   packages/create-rspack/template-vanilla-ts:
     devDependencies:
@@ -304,8 +304,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -323,8 +323,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       rspack-vue-loader:
         specifier: ^17.5.0
         version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3))
@@ -342,8 +342,8 @@ importers:
         specifier: workspace:*
         version: link:../../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       rspack-vue-loader:
         specifier: ^17.5.0
         version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.29(typescript@5.9.3))
@@ -455,8 +455,8 @@ importers:
         specifier: workspace:*
         version: link:../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
@@ -655,8 +655,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-beta.3
-        version: 2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        specifier: 2.0.0-beta.4
+        version: 2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -3212,8 +3212,8 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/dev-server@2.0.0-beta.3':
-    resolution: {integrity: sha512-u9+gRGqJI0rwvzwvbUunQrTrsVvp3uZN+C7oKeGOST/yzzMhpGEgmtAIM4UaUdZm+JMsja3B5tCZkJ0NyLzloQ==}
+  '@rspack/dev-server@2.0.0-beta.4':
+    resolution: {integrity: sha512-Gb3hcGumYA/zZbR10yzkuXsioxKo+7N1drJI9dJNorhMUinPAU1FiYWnlQIMnIAV3We6n2aXdlZplbXCjVljBQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspack/core': ^2.0.0-0
@@ -10091,7 +10091,7 @@ snapshots:
       '@module-federation/runtime-tools': 2.1.0
       '@swc/helpers': 0.5.19
 
-  '@rspack/dev-server@2.0.0-beta.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)':
+  '@rspack/dev-server@2.0.0-beta.4(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)':
     dependencies:
       '@rspack/core': link:packages/rspack
       '@types/connect-history-api-fallback': 1.5.4
