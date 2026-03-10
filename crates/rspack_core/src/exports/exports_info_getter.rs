@@ -32,6 +32,11 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    */
   exports: Arc<UkeyMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
+   * Cached data for the current entry to avoid repeated UkeyMap lookups
+   * on the hottest access path.
+   */
+  current: &'a ExportsInfoData,
+  /**
    * The entry of the current exports info
    */
   entry: ExportsInfo,
@@ -48,6 +53,11 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   pub fn redirect(&self, entry: ExportsInfo, nested: bool) -> Self {
     Self {
       exports: self.exports.clone(),
+      current: self
+        .exports
+        .get(&entry)
+        .copied()
+        .expect("should have nested exports info"),
       entry,
       mode: if nested {
         match self.mode {
@@ -66,10 +76,19 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
    * Get the data of the current exports info
    */
   pub fn data(&self) -> &ExportsInfoData {
-    self
-      .exports
-      .get(&self.entry)
-      .expect("should have nested exports info")
+    self.current
+  }
+
+  #[inline]
+  fn data_for(&self, exports_info: &ExportsInfo) -> &ExportsInfoData {
+    if *exports_info == self.entry {
+      self.current
+    } else {
+      self
+        .exports
+        .get(exports_info)
+        .expect("should have nested exports info")
+    }
   }
 
   pub fn meta(&self) -> (ExportsInfo, Vec<ExportsInfo>) {
@@ -89,30 +108,18 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   fn get_other_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.other_exports_info()
+    self.data_for(exports_info).other_exports_info()
   }
 
   fn get_side_effects_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.side_effects_only_info()
+    self.data_for(exports_info).side_effects_only_info()
   }
 
   fn get_exports_in_exports_info(
     &self,
     exports_info: &ExportsInfo,
   ) -> impl Iterator<Item = (&Atom, &ExportInfoData)> {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.exports().iter()
+    self.data_for(exports_info).exports().iter()
   }
 
   fn get_named_export_in_exports_info(
@@ -120,11 +127,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     exports_info: &ExportsInfo,
     name: &Atom,
   ) -> Option<&ExportInfoData> {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.exports().get(name)
+    self.data_for(exports_info).exports().get(name)
   }
 
   pub fn get_read_only_export_info(&self, name: &Atom) -> &ExportInfoData {
@@ -144,11 +147,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
   pub fn get_read_only_export_info_recursive(&self, names: &[Atom]) -> Option<&ExportInfoData> {
     let (exports_info, name) = self.get_read_only_export_info_recursive_impl(names)?;
-    let data = self
-      .exports
-      .get(&exports_info)
-      .expect("should have nested exports info");
-    data.exports().get(&name)
+    self.data_for(&exports_info).exports().get(&name)
   }
 
   fn get_read_only_export_info_recursive_impl(
@@ -171,7 +170,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
   pub fn get_nested_exports_info(&self, name: Option<&[Atom]>) -> Option<&ExportsInfoData> {
     let exports_info = self.get_nested_exports_info_impl(name)?;
-    self.exports.get(&exports_info).copied()
+    Some(self.data_for(&exports_info))
   }
 
   fn get_nested_exports_info_impl(&self, name: Option<&[Atom]>) -> Option<ExportsInfo> {
@@ -562,8 +561,13 @@ impl ExportsInfoGetter {
     };
     let mut res = UkeyMap::with_capacity_and_hasher(initial_capacity, Default::default());
     prefetch_exports(id, exports_info_artifact, &mut res, mode.clone());
+    let current = res
+      .get(id)
+      .copied()
+      .expect("should have entry exports info");
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
+      current,
       entry: *id,
       mode,
     }
@@ -668,9 +672,14 @@ impl ExportsInfoGetter {
       .into_iter()
       .map(|e| (e, exports_info_artifact.get_exports_info_by_id(&e)))
       .collect::<UkeyMap<_, _>>();
+    let current = exports
+      .get(&entry)
+      .copied()
+      .expect("should have entry exports info");
 
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(exports),
+      current,
       entry,
       mode: PrefetchExportsInfoMode::Full,
     }
