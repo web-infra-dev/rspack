@@ -1,13 +1,19 @@
+mod db;
 mod error;
 mod fs;
+mod local_storage;
 mod pack;
 
 use std::sync::Arc;
 
+pub use db::DB;
 pub use error::Result;
 pub use fs::{FSError, FSOperation, FSResult, FileSystem, Reader, Writer};
-pub use pack::{PackStorage, PackStorageOptions};
+pub use local_storage::LocalStorage;
+pub use pack::{PackStorage as A, PackStorageOptions};
 use tokio::sync::oneshot::Receiver;
+
+pub type PackStorage = self::local_storage::LocalStorage;
 
 type ItemKey = Vec<u8>;
 type ItemValue = Vec<u8>;

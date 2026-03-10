@@ -1,4 +1,7 @@
-use crate::fs::{BatchFSError, FSError};
+use crate::{
+  db::Error as DBError,
+  fs::{BatchFSError, FSError},
+};
 
 #[derive(Debug)]
 pub struct InvalidDetail {
@@ -87,6 +90,16 @@ pub struct Error {
   r#type: Option<ErrorType>,
   scope: Option<&'static str>,
   inner: ErrorReason,
+}
+
+impl From<DBError> for Error {
+  fn from(e: DBError) -> Self {
+    Self {
+      r#type: None,
+      scope: None,
+      inner: ErrorReason::Error(Box::new(e)),
+    }
+  }
 }
 
 impl From<FSError> for Error {
