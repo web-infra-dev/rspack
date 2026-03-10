@@ -371,7 +371,7 @@ importers:
         version: 1.0.7
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.4
-        version: 1.4.4(@rsbuild/core@1.7.3)
+        version: 1.4.4(@rsbuild/core@2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))
       '@rslib/core':
         specifier: 0.19.6
         version: 0.19.6(typescript@5.9.3)
@@ -409,8 +409,8 @@ importers:
         specifier: ^11.0.0
         version: 11.0.0
       prebundle:
-        specifier: ^1.6.3
-        version: 1.6.3(typescript@5.9.3)
+        specifier: ^1.6.4
+        version: 1.6.4(typescript@5.9.3)
       tinypool:
         specifier: ^1.1.1
         version: 1.1.1
@@ -6573,8 +6573,8 @@ packages:
   preact@10.28.4:
     resolution: {integrity: sha512-uKFfOHWuSNpRFVTnljsCluEFq57OKT+0QdOiQo8XWnQ/pSvg7OpX5eNOejELXJMWy+BwM2nobz0FkvzmnpCNsQ==}
 
-  prebundle@1.6.3:
-    resolution: {integrity: sha512-Ug7WbOOeggPeJacFt0m26OjcpWI7Fq/032aHJtiogoNB9+x4Bi+W0SdjD7GhpDWM9D0T5SI7NS8P4Nlh7D20Kg==}
+  prebundle@1.6.4:
+    resolution: {integrity: sha512-/tGhmRQmH3obwxick6wIXMMn35XjaKP8UWB5itrNsHIqBnI5hXIgzMCsoTzY25bG26NSzT79XZ3trGAmBIr9TQ==}
     hasBin: true
 
   prettier@3.8.1:
@@ -9964,7 +9964,7 @@ snapshots:
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@1.7.3)':
+  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -9990,7 +9990,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 1.7.3
+      '@rsbuild/core': 2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)
 
   '@rsbuild/plugin-react@1.4.5(@rsbuild/core@2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))':
     dependencies:
@@ -14253,7 +14253,7 @@ snapshots:
 
   preact@10.28.4: {}
 
-  prebundle@1.6.3(typescript@5.9.3):
+  prebundle@1.6.4(typescript@5.9.3):
     dependencies:
       '@vercel/ncc': 0.38.4
       cac: 6.7.14

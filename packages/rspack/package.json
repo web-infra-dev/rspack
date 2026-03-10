@@ -58,7 +58,7 @@
     "http-proxy-middleware": "^3.0.5",
     "memfs": "4.53.0",
     "open": "^11.0.0",
-    "prebundle": "^1.6.3",
+    "prebundle": "^1.6.4",
     "tinypool": "^1.1.1",
     "typescript": "^5.9.3",
     "watchpack": "2.4.4",
