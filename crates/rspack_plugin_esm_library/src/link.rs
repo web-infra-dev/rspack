@@ -1274,6 +1274,7 @@ var {} = {{}};
     exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
+    filter_unused: bool,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1291,9 +1292,9 @@ var {} = {{}};
     let mut entry_exports = exports_info
       .exports()
       .iter()
-      .filter(|(name, export_info)| {
+      .filter(|(_, export_info)| {
         !(matches!(export_info.provided(), Some(ExportProvided::NotProvided))
-          || allow_rename && export_info.get_used_name(Some(name), None).is_none())
+          || filter_unused && matches!(export_info.get_used(None), UsageState::Unused))
       })
       .map(|(name, _)| name.clone())
       .collect::<FxIndexSet<_>>();
@@ -1303,9 +1304,10 @@ var {} = {{}};
       module_graph,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      // For dynamic imports (allow_rename=true), own exports are already collected
-      // and filtered by usage above — only collect `export *` targets here.
-      !allow_rename,
+      // When filter_unused is true, own exports are already collected and filtered
+      // by usage above — only collect `export *` targets here.
+      // When filter_unused is false (entry modules), also collect own exports.
+      !filter_unused,
     )
     .iter()
     .for_each(|either| {
@@ -1650,6 +1652,7 @@ var {} = {{}};
           &mut exports,
           escaped_identifiers,
           false,
+          false,
         ));
       }
     }
@@ -1743,6 +1746,7 @@ var {} = {{}};
             &mut exports,
             escaped_identifiers,
             allow_rename,
+            true,
           ));
         }
       }
@@ -2487,7 +2491,7 @@ var {} = {{}};
           )))));
         }
 
-        return None;
+        None
       }
       ModuleInfo::External(info) => {
         if let Some(used_name) = ExportsInfoGetter::get_used_name(
