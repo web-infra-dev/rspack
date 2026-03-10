@@ -28,9 +28,11 @@ pub fn track_server_component_changes(
       .entry(entry_name.clone())
       .or_default();
 
-    let entry_dependency_id = entry_data.dependencies[0];
+    let Some(entry_dependency_id) = entry_data.dependencies.first() else {
+      continue;
+    };
     let Some(resolved_module) = module_graph
-      .get_resolved_module(&entry_dependency_id)
+      .get_resolved_module(entry_dependency_id)
       .and_then(|identifier| compilation.module_by_identifier(identifier))
     else {
       continue;

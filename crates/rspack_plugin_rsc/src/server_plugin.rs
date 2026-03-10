@@ -19,7 +19,7 @@ use serde_json::json;
 
 use crate::{
   component_info::{
-    ClientComponentImports, CssImports, collect_component_info_from_entry_denendency,
+    ClientComponentImports, CssImports, collect_component_info_from_entry_dependency,
   },
   constants::LAYERS_NAMES,
   coordinator::Coordinator,
@@ -236,9 +236,11 @@ impl RscServerPlugin {
       let mut action_entry_imports: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
       let mut client_entries_to_inject = Vec::new();
 
-      let entry_dependency = &entry_data.dependencies[0];
+      let Some(entry_dependency) = entry_data.dependencies.first() else {
+        continue;
+      };
       let component_info =
-        collect_component_info_from_entry_denendency(compilation, &runtime, entry_dependency);
+        collect_component_info_from_entry_dependency(compilation, &runtime, entry_dependency);
       for (dep, actions) in component_info.action_imports {
         action_entry_imports.insert(dep, actions);
       }
