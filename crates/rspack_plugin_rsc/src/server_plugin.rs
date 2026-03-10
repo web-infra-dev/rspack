@@ -221,7 +221,7 @@ impl RscServerPlugin {
     let mut runtime_per_entry: FxHashMap<Arc<str>, RuntimeSpec> = Default::default();
 
     for (entry_name, entry_data) in &compilation.entries {
-      let entry_name: Arc<str> = Arc::from(entry_name.to_string());
+      let entry_name: Arc<str> = Arc::from(entry_name.clone());
       let runtime = get_entry_runtime(
         entry_name.as_ref(),
         &entry_data.options,

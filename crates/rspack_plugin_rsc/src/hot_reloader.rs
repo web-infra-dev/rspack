@@ -21,7 +21,7 @@ pub fn track_server_component_changes(
   let mut cur_server_component_hashes = Default::default();
 
   for (entry_name, entry_data) in &compilation.entries {
-    let entry_name: Arc<str> = Arc::from(entry_name.to_string());
+    let entry_name: Arc<str> = Arc::from(entry_name.clone());
     visited_modules.clear();
 
     let changed_server_components = changed_server_components_per_entry

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
@@ -93,40 +93,43 @@ fn record_module(
   }
 
   if is_css_mod(module.as_ref()) {
-    let to_extend: Vec<(String, Vec<String>)> = {
-      let Some(chunk) = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get(chunk_ukey)
-      else {
-        return;
-      };
-      let prefix = &module_loading.prefix;
-      let css_files: Vec<String> = chunk
-        .files()
-        .iter()
-        .filter(|file| file.ends_with(".css"))
-        .map(|file| format!("{prefix}{file}"))
-        .collect();
-      if css_files.is_empty() {
-        return;
-      }
-      entry_state
-        .entry_css_imports
-        .iter()
-        .filter(|(_, imports)| imports.get(resource.as_ref()).is_some())
-        .map(|(server_entry, _)| (server_entry.clone(), css_files.clone()))
-        .collect()
-    };
-    if !to_extend.is_empty() {
-      for (server_entry, files) in to_extend {
-        entry_state
-          .entry_css_files
-          .entry(server_entry)
-          .or_default()
-          .extend(files);
+    let mut matched_server_entries = Vec::new();
+    for (server_entry, imports) in &entry_state.entry_css_imports {
+      if imports.contains(resource.as_ref()) {
+        matched_server_entries.push(server_entry.clone());
       }
     }
+    if matched_server_entries.is_empty() {
+      return;
+    }
+
+    let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(chunk_ukey)
+    else {
+      return;
+    };
+
+    let prefix = &module_loading.prefix;
+    let css_files: Vec<String> = chunk
+      .files()
+      .iter()
+      .filter(|file| file.ends_with(".css"))
+      .map(|file| format!("{prefix}{file}"))
+      .collect();
+    if css_files.is_empty() {
+      return;
+    }
+
+    for server_entry in matched_server_entries {
+      entry_state
+        .entry_css_files
+        .entry(server_entry.clone())
+        .or_default()
+        .extend(css_files.clone());
+    }
+
     return;
   }
 
@@ -244,6 +247,10 @@ async fn collect_entry_js_files(
   plugin_state: &mut PluginState,
 ) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+      continue;
+    };
+
     let Some(chunk_group) = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
@@ -251,6 +258,7 @@ async fn collect_entry_js_files(
     else {
       continue;
     };
+
     let prefix = &plugin_state
       .module_loading
       .as_ref()
@@ -272,11 +280,8 @@ async fn collect_entry_js_files(
       })
       .map(|file| format!("{prefix}{file}"))
       .collect::<FxIndexSet<String>>();
-    plugin_state
-      .entries
-      .entry(entry_name.to_string().into())
-      .or_default()
-      .entry_js_files = entry_js_files;
+
+    entry_state.entry_js_files = entry_js_files;
   }
   Ok(())
 }
@@ -327,7 +332,7 @@ fn collect_actions(
 
 fn collect_client_actions_from_dependencies(
   compilation: &Compilation,
-  entry_dependencies: &UkeySet<DependencyId>,
+  entry_dependencies: &FxHashSet<DependencyId>,
 ) -> FxHashMap<String, Vec<ActionIdNamePair>> {
   // action file path -> action names
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();

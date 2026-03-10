@@ -126,12 +126,12 @@ fn build_server_manifest_per_entry(
 
     if let Some(concatenated_module) = module.as_concatenated_module() {
       for inner_module in concatenated_module.get_modules() {
-        record_module(&inner_module.id, &module_id)?;
+        record_module(&inner_module.id, module_id)?;
       }
       continue;
     }
 
-    record_module(&module.identifier(), &module_id)?;
+    record_module(&module.identifier(), module_id)?;
   }
 
   Ok(())
