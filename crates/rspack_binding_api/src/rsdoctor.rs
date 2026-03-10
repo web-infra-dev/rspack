@@ -550,7 +550,7 @@ impl From<RsdoctorAssetPatch> for JsRsdoctorAssetPatch {
 
 #[napi(object, object_to_js = false)]
 pub struct RawRsdoctorPluginOptions {
-  #[napi(ts_type = "boolean | Array<'graph' | 'ids' | 'sources' | 'treeShaking'>")]
+  #[napi(ts_type = "boolean | Array<'graph' | 'ids' | 'sources'>")]
   pub module_graph_features: Either<bool, Vec<String>>,
   #[napi(ts_type = "boolean | Array<'graph' | 'assets'>")]
   pub chunk_graph_features: Either<bool, Vec<String>>,
@@ -586,7 +586,6 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
           RsdoctorPluginModuleGraphFeature::ModuleGraph,
           RsdoctorPluginModuleGraphFeature::ModuleIds,
           RsdoctorPluginModuleGraphFeature::ModuleSources,
-          RsdoctorPluginModuleGraphFeature::TreeShaking,
         ]),
         Either::A(false) => HashSet::new(),
         Either::B(features) => features

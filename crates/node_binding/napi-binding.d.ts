@@ -2872,7 +2872,7 @@ export interface RawResolveTsconfigOptions {
 }
 
 export interface RawRsdoctorPluginOptions {
-  moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources' | 'treeShaking'>
+  moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
   sourceMapFeatures?: { module?: boolean; cheap?: boolean } | undefined
 }

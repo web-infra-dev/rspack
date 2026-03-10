@@ -72,7 +72,6 @@ pub enum RsdoctorPluginModuleGraphFeature {
   ModuleGraph,
   ModuleIds,
   ModuleSources,
-  TreeShaking,
 }
 
 impl From<String> for RsdoctorPluginModuleGraphFeature {
@@ -81,7 +80,6 @@ impl From<String> for RsdoctorPluginModuleGraphFeature {
       "graph" => RsdoctorPluginModuleGraphFeature::ModuleGraph,
       "ids" => RsdoctorPluginModuleGraphFeature::ModuleIds,
       "sources" => RsdoctorPluginModuleGraphFeature::ModuleSources,
-      "treeShaking" => RsdoctorPluginModuleGraphFeature::TreeShaking, // Retained feature
       _ => panic!("invalid module graph feature: {value}"),
     }
   }
@@ -93,7 +91,6 @@ impl fmt::Display for RsdoctorPluginModuleGraphFeature {
       RsdoctorPluginModuleGraphFeature::ModuleGraph => write!(f, "graph"),
       RsdoctorPluginModuleGraphFeature::ModuleIds => write!(f, "ids"),
       RsdoctorPluginModuleGraphFeature::ModuleSources => write!(f, "sources"),
-      RsdoctorPluginModuleGraphFeature::TreeShaking => write!(f, "treeShaking"), // Retained feature
     }
   }
 }
@@ -403,23 +400,18 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
-  let connections_only_imports =
-    if self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::TreeShaking) {
-      let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
-        .values()
-        .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
-        .collect();
-      collect_connections_only_imports(
-        &modules,
-        &module_ukey_map,
-        module_graph,
-        &compilation.module_graph_cache_artifact,
-        &compilation.exports_info_artifact,
-        &module_ukey_to_info,
-      )
-    } else {
-      vec![]
-    };
+  let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
+    .values()
+    .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
+    .collect();
+  let connections_only_imports = collect_connections_only_imports(
+    &modules,
+    &module_ukey_map,
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
+    &module_ukey_to_info,
+  );
 
   // 7. collect chunk modules
   let chunk_modules =
