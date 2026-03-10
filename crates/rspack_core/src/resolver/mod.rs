@@ -4,7 +4,6 @@ mod resolver_impl;
 use std::{
   borrow::Borrow,
   fmt,
-  path::PathBuf,
   sync::{Arc, LazyLock},
 };
 
@@ -12,9 +11,8 @@ use regex::Regex;
 use rspack_error::Error;
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
-use rspack_paths::{AssertUtf8, Utf8PathBuf};
+use rspack_paths::{ArcPathSet, AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::insert_zero_width_space_for_fragment;
-use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
 
 pub use self::{
@@ -44,8 +42,8 @@ pub struct ResolveArgs<'a> {
   pub resolve_options: Option<Arc<Resolve>>,
   pub resolve_to_context: bool,
   pub optional: bool,
-  pub file_dependencies: &'a mut FxHashSet<PathBuf>,
-  pub missing_dependencies: &'a mut FxHashSet<PathBuf>,
+  pub file_dependencies: &'a mut ArcPathSet,
+  pub missing_dependencies: &'a mut ArcPathSet,
 }
 
 /// A successful path resolution or an ignored path.
