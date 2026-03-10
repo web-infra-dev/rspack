@@ -139,7 +139,7 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 pnp                 = { version = "0.12.8", default-features = false }
 swc                 = { version = "56.0.0", default-features = false }
 swc_config          = { version = "4.0.0", default-features = false }
-swc_core            = { version = "58.0.3", default-features = false, features = ["parallel_rayon"] }
+swc_core            = { version = "58.0.4", default-features = false, features = ["parallel_rayon"] }
 swc_ecma_minifier   = { version = "46.0.0", default-features = false }
 swc_error_reporters = { version = "21.0.0", default-features = false }
 swc_html            = { version = "31.0.0", default-features = false }
