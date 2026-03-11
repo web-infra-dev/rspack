@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexSet, itoa};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
 
@@ -47,7 +47,7 @@ fn assign_named_chunk_ids(
       (item, ChunkId::from(name))
     })
     .collect();
-  let mut name_to_items: ChunkIdMap<UkeyIndexSet<ChunkUkey>> = ChunkIdMap::default();
+  let mut name_to_items: ChunkIdMap<FxIndexSet<ChunkUkey>> = ChunkIdMap::default();
   let mut invalid_and_repeat_names: ChunkIdSet =
     std::iter::once(ChunkId::from(String::new())).collect();
   for (item, name) in item_name_pair {

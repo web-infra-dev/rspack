@@ -9,7 +9,7 @@ use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
   test::is_hot_test,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
