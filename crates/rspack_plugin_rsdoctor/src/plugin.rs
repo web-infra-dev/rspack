@@ -5,7 +5,7 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
@@ -60,7 +60,7 @@ static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, IdentifierMap<ModuleUk
 
 #[cfg_attr(allocative, allocative::root)]
 static ENTRYPOINT_UKEY_MAP: LazyLock<
-  FxDashMap<CompilationId, UkeyMap<ChunkGroupUkey, EntrypointUkey>>,
+  FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
 > = LazyLock::new(FxDashMap::default);
 
 #[cfg_attr(allocative, allocative::root)]
@@ -194,7 +194,7 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   MODULE_UKEY_MAP.insert(compilation.id(), IdentifierMap::default());
-  ENTRYPOINT_UKEY_MAP.insert(compilation.id(), UkeyMap::default());
+  ENTRYPOINT_UKEY_MAP.insert(compilation.id(), HashMap::default());
   Ok(())
 }
 
@@ -212,10 +212,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let chunks = chunk_by_ukey
     .iter()
     .map(|(k, v)| (*k, v))
-    .collect::<UkeyMap<_, _>>();
+    .collect::<HashMap<_, _>>();
 
-  let mut rsd_chunks = UkeyMap::default();
-  let mut rsd_entrypoints = UkeyMap::default();
+  let mut rsd_chunks = HashMap::default();
+  let mut rsd_entrypoints = HashMap::default();
 
   // 1. collect chunks
   rsd_chunks.extend(collect_chunks(&chunks, chunk_graph, chunk_group_by_ukey));

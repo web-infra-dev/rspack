@@ -1,13 +1,15 @@
 use itertools::Itertools;
-use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
 use rspack_error::Result;
-use rspack_util::test::is_hot_test;
-use rustc_hash::FxHashMap as HashMap;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  test::is_hot_test,
+};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
@@ -130,8 +132,8 @@ pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
 
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
-  chunks: &UkeyIndexSet<ChunkUkey>,
-  chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
+  chunks: &FxIndexSet<ChunkUkey>,
+  chunk_map: &FxIndexMap<ChunkUkey, &Chunk>,
 ) -> String
 where
   F: Fn(&Chunk) -> Option<String>,

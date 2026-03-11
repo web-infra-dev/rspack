@@ -1,5 +1,5 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, CompilationChunkIds,
   ExportsInfoArtifact, Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
@@ -8,14 +8,15 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::itoa;
+use rspack_util::{fx_hash::FxIndexSet, itoa};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
 
 #[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 fn assign_named_chunk_ids(
-  chunks: UkeySet<ChunkUkey>,
+  chunks: FxHashSet<ChunkUkey>,
   chunk_by_ukey: &mut ChunkByUkey,
   chunk_graph: &ChunkGraph,
   chunk_group_by_ukey: &ChunkGroupByUkey,
@@ -210,7 +211,7 @@ async fn chunk_ids(
     .mutations_read(IncrementalPasses::CHUNK_IDS)
   {
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::CHUNK_IDS, %mutations);
-    let mut affected_chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    let mut affected_chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for mutation in mutations.iter() {
       match mutation {
         Mutation::ChunkRemove { chunk } => {
@@ -231,7 +232,7 @@ async fn chunk_ids(
       .retain(|chunk| chunk_by_ukey.contains(chunk) && !affected_chunks.contains(chunk));
   }
 
-  let mut chunks: UkeySet<ChunkUkey> = chunk_by_ukey
+  let mut chunks: FxHashSet<ChunkUkey> = chunk_by_ukey
     .values_mut()
     .map(|chunk| {
       if let Some(id) = named_chunk_ids_artifact.chunk_ids.get(&chunk.ukey()) {

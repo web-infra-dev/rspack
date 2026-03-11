@@ -2,8 +2,8 @@
 
 use std::{hash::Hash, sync::atomic::AtomicU32};
 
-use rspack_collections::{Database, DatabaseItem, ItemUkey, Ukey, UkeySet};
-use rustc_hash::FxHashMap;
+use rspack_collections::{Database, DatabaseItem, ItemUkey, Ukey};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 #[allow(clippy::enum_variant_names)]
 enum Marker {
@@ -38,7 +38,7 @@ impl<T: ItemUkey + Hash + Eq + Copy> CycleUkey<T> {
 
 struct Cycle<T: ItemUkey + Hash + Eq + Copy> {
   pub ukey: CycleUkey<T>,
-  pub nodes: UkeySet<T>,
+  pub nodes: FxHashSet<T>,
   pub is_root: bool,
 }
 
@@ -56,7 +56,7 @@ impl<T: ItemUkey + Hash + Eq + Copy> Cycle<T> {
   fn with_capacity(capacity: usize) -> Self {
     Self {
       ukey: CycleUkey::<T>::new(),
-      nodes: UkeySet::with_capacity_and_hasher(capacity, Default::default()),
+      nodes: FxHashSet::with_capacity_and_hasher(capacity, Default::default()),
       is_root: false,
     }
   }
@@ -164,7 +164,7 @@ pub fn find_graph_roots<
 
   // Set of current root modules
   // items will be removed if a new reference to it has been found
-  let mut roots = UkeySet::with_capacity_and_hasher(db.len(), Default::default());
+  let mut roots = FxHashSet::with_capacity_and_hasher(db.len(), Default::default());
 
   let mut keys = db.keys().copied().collect::<Vec<_>>();
   keys.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
@@ -308,7 +308,7 @@ pub fn find_graph_roots<
     let mut max = 0;
 
     let nodes = &cycle_db.expect_get(&cycle).nodes;
-    let mut cycle_roots = UkeySet::with_capacity_and_hasher(nodes.len(), Default::default());
+    let mut cycle_roots = FxHashSet::with_capacity_and_hasher(nodes.len(), Default::default());
     for node in nodes.iter() {
       for dep in db.expect_get(node).dependencies.clone() {
         if nodes.contains(&dep) {
