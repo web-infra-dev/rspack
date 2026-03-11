@@ -54,7 +54,7 @@
     "browserslist-load-config": "^1.0.1",
     "browserslist-to-es-version": "^1.4.1",
     "connect-next": "^4.0.0",
-    "enhanced-resolve": "5.19.0",
+    "enhanced-resolve": "5.20.0",
     "http-proxy-middleware": "^3.0.5",
     "memfs": "4.53.0",
     "open": "^11.0.0",
