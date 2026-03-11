@@ -3,12 +3,14 @@ import { fileURLToPath } from 'node:url';
 import {
   type Argv,
   checkCancel,
+  copyFolder,
   create,
   type ESLintTemplateName,
   select,
 } from 'create-rstack';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(__dirname, '..');
 
 async function getTemplateName({ template }: Argv) {
   if (typeof template === 'string') {
@@ -54,8 +56,20 @@ function mapESLintTemplate(templateName: string): ESLintTemplateName {
   return `vanilla-${language}` as ESLintTemplateName;
 }
 
+function mapRstestTemplate(templateName: string): string {
+  switch (templateName) {
+    case 'react-js':
+    case 'react-ts':
+    case 'vue-js':
+    case 'vue-ts':
+      return templateName;
+    default:
+      return `vanilla-${templateName.split('-')[1]}`;
+  }
+}
+
 create({
-  root: path.resolve(__dirname, '..'),
+  root,
   name: 'rspack',
   templates: [
     'vanilla-js',
@@ -68,4 +82,23 @@ create({
   skipFiles: ['.npmignore'],
   getTemplateName,
   mapESLintTemplate,
+  extraTools: [
+    {
+      value: 'rstest',
+      label: 'Rstest - testing',
+      order: 'pre',
+      action: ({ templateName, distFolder, addAgentsMdSearchDirs }) => {
+        const rstestTemplate = mapRstestTemplate(templateName);
+        const toolFolder = path.join(root, 'template-rstest');
+        const subFolder = path.join(toolFolder, rstestTemplate);
+
+        copyFolder({
+          from: subFolder,
+          to: distFolder,
+          isMergePackageJson: true,
+        });
+        addAgentsMdSearchDirs(toolFolder);
+      },
+    },
+  ],
 });

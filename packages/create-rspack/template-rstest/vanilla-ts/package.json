@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "test": "rstest",
+    "test:watch": "rstest --watch"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@rstest/core": "^0.9.1",
+    "happy-dom": "^20.8.3"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "test": "rstest",
+    "test:watch": "rstest --watch"
+  },
+  "devDependencies": {
+    "@rsbuild/plugin-vue": "^1.2.6",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/vue": "^8.1.0",
+    "@rstest/core": "^0.9.1",
+    "happy-dom": "^20.8.3"
+  }
+}
