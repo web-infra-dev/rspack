@@ -22,23 +22,27 @@ it("should emit host and remote RSC metadata across serial MF builds", async () 
 	expect(hostShared.name).toBe("rsc-shared-key");
 	expect(hostShared.shareKey).toBe("rsc-shared-key");
 	expect(hostShared.rsc.lookup).toBe("rsc-shared-key");
+	expect(hostShared.rsc.resource).toBe("node_modules/shared-rsc/index.js");
 
 	const hostExpose = hostStats.exposes.find(item => item.path === "./button");
 	expect(hostExpose).toBeDefined();
 	expect(hostExpose.rsc.lookup).toBe("host/button");
+	expect(hostExpose.rsc.resource).toBe("exposed-client.js");
 	expect(hostExpose.rsc.serverActions.length).toBeGreaterThan(0);
 
 	const hostConsumerExpose = hostStats.exposes.find(item => item.path === "./consumer");
 	expect(hostConsumerExpose).toBeDefined();
 	expect(hostConsumerExpose.rsc.lookup).toBe("host/consumer");
+	expect(hostConsumerExpose.rsc.resource).toBe("rsc-consumer.js");
 	expect(hostConsumerExpose.rsc.serverActions.length).toBeGreaterThan(0);
 
 	const remoteButton = hostStats.remotes.find(
 		item => item.alias === "@remote/alias" && item.moduleName === "Button"
 	);
 	expect(remoteButton).toBeDefined();
-	expect(remoteButton.rsc.lookup).toBe("@remote/alias/Button");
+	expect(remoteButton.rsc.lookup).toBe("remote/Button");
 	expect(remoteButton.rsc.moduleType).toBe("server");
+	expect(remoteButton.rsc.resource).toBe("rsc-consumer.js");
 
 	const remoteManifestExpose = remoteManifest.exposes.find(
 		item => item.path === "./Button"

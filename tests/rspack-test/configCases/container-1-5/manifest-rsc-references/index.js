@@ -14,6 +14,7 @@ it("should capture RSC references for shared modules by package key", () => {
 	expect(shared.rsc).toBeDefined();
 	expect(shared.rsc.lookup).toBe(shared.shareKey);
 	expect(shared.rsc.moduleType).toBe("client");
+	expect(shared.rsc.resource).toBe("node_modules/shared-rsc/index.js");
 	expect(shared.rsc.clientReferences).toEqual(
 		expect.arrayContaining(["SharedClientComponent", "sharedAction", "sharedValue"])
 	);
@@ -26,6 +27,7 @@ it("should capture RSC references for exposes by remoteName/exposeKey", () => {
 	expect(expose.rsc).toBeDefined();
 	expect(expose.rsc.lookup).toBe("container/button");
 	expect(expose.rsc.moduleType).toBe("client");
+	expect(expose.rsc.resource).toBe("exposed-client.js");
 	expect(expose.rsc.clientReferences).toEqual(
 		expect.arrayContaining(["default", "exposedAction"])
 	);
@@ -38,8 +40,9 @@ it("should capture RSC context for remote module consumption", () => {
 	);
 	expect(remoteButton).toBeDefined();
 	expect(remoteButton.rsc).toBeDefined();
-	expect(remoteButton.rsc.lookup).toBe("@remote/alias/Button");
+	expect(remoteButton.rsc.lookup).toBe("remote/Button");
 	expect(remoteButton.rsc.moduleType).toBe("server");
+	expect(remoteButton.rsc.resource).toBe("rsc-consumer.js");
 });
 
 it("should persist RSC metadata in mf-manifest.json", () => {
@@ -49,7 +52,8 @@ it("should persist RSC metadata in mf-manifest.json", () => {
 				name: "rsc-shared-key",
 				shareKey: "rsc-shared-key",
 				rsc: expect.objectContaining({
-					lookup: "rsc-shared-key"
+					lookup: "rsc-shared-key",
+					resource: "node_modules/shared-rsc/index.js"
 				})
 			})
 		])
@@ -59,7 +63,8 @@ it("should persist RSC metadata in mf-manifest.json", () => {
 			expect.objectContaining({
 				path: "./button",
 				rsc: expect.objectContaining({
-					lookup: "container/button"
+					lookup: "container/button",
+					resource: "exposed-client.js"
 				})
 			})
 		])
@@ -70,7 +75,8 @@ it("should persist RSC metadata in mf-manifest.json", () => {
 				alias: "@remote/alias",
 				moduleName: "Button",
 				rsc: expect.objectContaining({
-					lookup: "@remote/alias/Button"
+					lookup: "remote/Button",
+					resource: "rsc-consumer.js"
 				})
 			})
 		])
