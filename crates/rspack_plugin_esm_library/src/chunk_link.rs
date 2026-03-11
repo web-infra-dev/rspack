@@ -150,6 +150,7 @@ impl ExternalInterop {
   pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
       let local_name = find_new_name(atom, used_names, &[]);
+      used_names.insert(local_name.clone());
       self.property_access.insert(atom.clone(), local_name);
       self
         .property_access
