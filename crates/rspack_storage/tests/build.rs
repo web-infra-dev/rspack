@@ -1,12 +1,13 @@
 #[cfg(test)]
 mod test_storage_build {
-  use std::{collections::HashMap, path::PathBuf, sync::Arc};
+  use std::{path::PathBuf, sync::Arc};
 
   use rspack_fs::{MemoryFileSystem, NativeFileSystem};
   use rspack_paths::{AssertUtf8, Utf8PathBuf};
   use rspack_storage::{
     BridgeFileSystem, FileSystem, PackStorage, PackStorageOptions, Result, Storage,
   };
+  use rustc_hash::FxHashMap;
 
   pub fn get_native_path(p: &str) -> (PathBuf, PathBuf) {
     let base = std::env::temp_dir()
@@ -97,7 +98,7 @@ mod test_storage_build {
           String::from_utf8(v.to_vec()).expect("should be utf8"),
         )
       })
-      .collect::<HashMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
     assert_eq!(data.len(), 999);
     assert_eq!(
       *data

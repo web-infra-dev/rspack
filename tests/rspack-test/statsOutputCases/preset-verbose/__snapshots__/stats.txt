@@ -135,4 +135,4 @@ WARNING in ./index.js 3:1-17
    ·         ───────
    ╰────
 
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (d65f0ed7b7d561ad)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (784975014f137009)

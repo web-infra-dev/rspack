@@ -54,7 +54,7 @@ pub enum ProcessModuleReferencedExports {
 pub struct ExportSpec {
   pub name: Atom,
   pub export: Option<Nullable<Vec<Atom>>>,
-  pub exports: Option<ExportSpecExports>,
+  pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
   pub priority: Option<u8>,
@@ -62,47 +62,6 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
-}
-
-#[derive(Debug, Default)]
-pub struct ExportSpecExports {
-  pub exports: Vec<ExportNameOrSpec>,
-  /// This is used to tell FlagDependencyExportsPlugin that the nested exports that is not
-  /// fully statical, there are maybe some export that dynamically defined by prototype or
-  /// other way, e.g. json exports or enum exports, it's possible to write:
-  ///
-  /// ```js
-  /// import { obj } from "./data.json";
-  /// obj.toString(); // existed but will have an ESModulesLinkingError for toString not exist
-  /// ```
-  ///
-  /// or
-  ///
-  /// ```ts
-  /// export enum Kind { A, B };
-  /// export namespace Kind {
-  ///   export const isA = (value: Kind) => value === Kind.A
-  /// }
-  /// Kind.isB = (value: Kind) => value === Kind.B
-  /// ```
-  ///
-  /// But for now we only use it for enum exports, if there are issues about json exports then
-  /// we can also apply this to json exports
-  pub unknown_provided: bool,
-}
-
-impl ExportSpecExports {
-  pub fn new(exports: Vec<ExportNameOrSpec>) -> Self {
-    Self {
-      exports,
-      unknown_provided: false,
-    }
-  }
-
-  pub fn with_unknown_provided(mut self, unknown_provided: bool) -> Self {
-    self.unknown_provided = unknown_provided;
-    self
-  }
 }
 
 #[derive(Debug)]

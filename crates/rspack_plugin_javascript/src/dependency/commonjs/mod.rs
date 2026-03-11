@@ -14,7 +14,6 @@ mod require_resolve_header_dependency;
 pub use common_js_export_require_dependency::{
   CommonJsExportRequireDependency, CommonJsExportRequireDependencyTemplate,
 };
-use common_js_exports_dependency::PROTOTYPE_PROPS;
 pub use common_js_exports_dependency::{
   CommonJsExportsDependency, CommonJsExportsDependencyTemplate, ExportsBase,
 };
@@ -38,3 +37,18 @@ pub use require_resolve_dependency::{RequireResolveDependency, RequireResolveDep
 pub use require_resolve_header_dependency::{
   RequireResolveHeaderDependency, RequireResolveHeaderDependencyTemplate,
 };
+
+static OBJECT_PROTOTYPE_METHODS: &[&str] = &[
+  "constructor",
+  "__defineGetter__",
+  "__defineSetter__",
+  "hasOwnProperty",
+  "__lookupGetter__",
+  "__lookupSetter__",
+  "isPrototypeOf",
+  "propertyIsEnumerable",
+  "toString",
+  "valueOf",
+  "__proto__",
+  "toLocaleString",
+];

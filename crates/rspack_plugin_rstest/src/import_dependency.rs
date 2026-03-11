@@ -54,8 +54,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
         dep.dependency_type().as_str(),
         false,
         is_import_actual,
-      )
-      .as_str(),
+      ),
       None,
     );
   }

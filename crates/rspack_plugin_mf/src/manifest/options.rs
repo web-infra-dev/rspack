@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rspack_util::fx_hash::FxHashMap as HashMap;
 
 use crate::manifest::data::StatsBuildInfo;
 
