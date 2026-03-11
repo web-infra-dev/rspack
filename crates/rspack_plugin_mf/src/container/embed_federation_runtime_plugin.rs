@@ -6,6 +6,7 @@
 
 use std::sync::{Arc, Mutex};
 
+use rspack_collections::UkeySet;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
@@ -15,7 +16,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
-use rustc_hash::FxHashSet;
 
 use super::{
   embed_federation_runtime_module::{
@@ -27,7 +27,7 @@ use super::{
 };
 
 struct FederationRuntimeDependencyCollector {
-  collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
+  collected_dependency_ids: Arc<Mutex<UkeySet<DependencyId>>>,
 }
 
 #[async_trait::async_trait]
@@ -46,12 +46,12 @@ impl AddFederationRuntimeDependencyHook for FederationRuntimeDependencyCollector
 #[derive(Debug)]
 pub struct EmbedFederationRuntimePlugin {
   experiments: ModuleFederationRuntimeExperimentsOptions,
-  collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
+  collected_dependency_ids: Arc<Mutex<UkeySet<DependencyId>>>,
 }
 
 impl EmbedFederationRuntimePlugin {
   pub fn new(experiments: ModuleFederationRuntimeExperimentsOptions) -> Self {
-    Self::new_inner(experiments, Arc::new(Mutex::new(FxHashSet::default())))
+    Self::new_inner(experiments, Arc::new(Mutex::new(UkeySet::default())))
   }
 }
 

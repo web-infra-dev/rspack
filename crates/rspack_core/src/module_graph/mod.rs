@@ -1,12 +1,14 @@
 pub mod internal;
 pub mod rollback;
 
+use std::hash::BuildHasherDefault;
+
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierHasher, IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -44,6 +46,54 @@ pub struct DependencyParents {
   pub block: Option<AsyncDependenciesBlockIdentifier>,
   pub module: ModuleIdentifier,
   pub index_in_block: usize,
+}
+
+#[derive(Debug, Default)]
+pub struct IncomingConnectionsByOriginModule<'a> {
+  non_modules: Vec<&'a ModuleGraphConnection>,
+  modules: IdentifierMap<Vec<&'a ModuleGraphConnection>>,
+}
+
+impl<'a> IncomingConnectionsByOriginModule<'a> {
+  fn with_capacity(capacity: usize) -> Self {
+    Self {
+      non_modules: Vec::new(),
+      modules: IdentifierMap::with_capacity_and_hasher(capacity, Default::default()),
+    }
+  }
+
+  fn push(
+    &mut self,
+    origin_module: Option<ModuleIdentifier>,
+    connection: &'a ModuleGraphConnection,
+  ) {
+    if let Some(origin_module) = origin_module {
+      self
+        .modules
+        .entry(origin_module)
+        .or_default()
+        .push(connection);
+    } else {
+      self.non_modules.push(connection);
+    }
+  }
+
+  pub fn non_modules(&self) -> &[&'a ModuleGraphConnection] {
+    &self.non_modules
+  }
+
+  pub fn modules(&self) -> &IdentifierMap<Vec<&'a ModuleGraphConnection>> {
+    &self.modules
+  }
+
+  pub fn into_parts(
+    self,
+  ) -> (
+    Vec<&'a ModuleGraphConnection>,
+    IdentifierMap<Vec<&'a ModuleGraphConnection>>,
+  ) {
+    (self.non_modules, self.modules)
+  }
 }
 
 /// Internal data structure for ModuleGraph
@@ -88,11 +138,13 @@ pub(crate) struct ModuleGraphData {
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_core/src/compilation/build_chunk_graph/code_splitter.rs#L1216
-  module_graph_modules: rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule>,
+  module_graph_modules:
+    rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
-  connections: rollback::OverlayMap<DependencyId, ModuleGraphConnection>,
+  connections:
+    rollback::OverlayMap<DependencyId, ModuleGraphConnection, BuildHasherDefault<FxHasher>>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
@@ -170,7 +222,8 @@ impl ModuleGraph {
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> = IdentifierMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
+      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -193,7 +246,8 @@ impl ModuleGraph {
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> = IdentifierMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
+      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -215,22 +269,18 @@ impl ModuleGraph {
   pub fn get_incoming_connections_by_origin_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> {
+  ) -> IncomingConnectionsByOriginModule<'_> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .incoming_connections();
 
-    let mut map: HashMap<Option<ModuleIdentifier>, Vec<&ModuleGraphConnection>> =
-      HashMap::default();
+    let mut map = IncomingConnectionsByOriginModule::with_capacity(connections.len());
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
         .expect("should have connection");
-      map
-        .entry(con.original_module_identifier)
-        .or_default()
-        .push(con);
+      map.push(con.original_module_identifier, con);
     }
     map
   }

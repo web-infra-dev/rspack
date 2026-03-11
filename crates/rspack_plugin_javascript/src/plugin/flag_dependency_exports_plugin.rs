@@ -14,7 +14,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -69,7 +68,8 @@ impl<'a> FlagDependencyExportsState<'a> {
     // and then merge the exports specs to exports info data
     // and collect the dependencies which will be used to backtrack when target exports info is changed
     let mut batch = modules;
-    let mut dependencies: IdentifierMap<IdentifierSet> = IdentifierMap::default();
+    let mut dependencies: IdentifierMap<IdentifierSet> =
+      IdentifierMap::with_capacity_and_hasher(batch.len(), Default::default());
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
 
@@ -88,7 +88,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         })
         .collect::<Vec<_>>();
 
-      let mut changed_modules = FxHashSet::default();
+      let mut changed_modules =
+        IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
 
       // partition the exports specs into two parts:
       // 1. if the exports info data do not have `redirect_to` and exports specs do not have nested `exports`,
@@ -122,7 +123,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         .par_bridge()
         .map(|(module_id, mut exports_info, exports_specs)| {
           let mut changed = false;
-          let mut dependencies = vec![];
+          let mut dependencies = Vec::with_capacity(exports_specs.len());
           for (dep_id, exports_spec) in exports_specs {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
               self.mg,
