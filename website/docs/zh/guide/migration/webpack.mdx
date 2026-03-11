@@ -159,6 +159,48 @@ module.exports = {
 };
 ```
 
+### terser-webpack-plugin
+
+对于使用 [terser-webpack-plugin](https://github.com/webpack/terser-webpack-plugin) 压缩 JavaScript 的项目，建议改用 [rspack.SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 以获得更好的构建性能：
+
+```js title="rspack.config.js"
+const TerserPlugin = require('terser-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new TerserPlugin(), // [!code --]
+      new rspack.SwcJsMinimizerRspackPlugin(), // [!code ++]
+      new rspack.LightningCssMinimizerRspackPlugin(),
+    ],
+  },
+};
+```
+
+:::tip
+当显式配置 [optimization.minimizer](/config/optimization#optimizationminimizer) 时，Rspack 默认的压缩器会被禁用，因此建议同时保留 JavaScript 和 CSS 的压缩器。
+:::
+
+### css-minimizer-webpack-plugin
+
+对于使用 [css-minimizer-webpack-plugin](https://github.com/webpack/css-minimizer-webpack-plugin) 压缩 CSS 的项目，建议改用 [rspack.LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 以获得更好的构建性能：
+
+```js title="rspack.config.js"
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin'); // [!code --]
+const { rspack } = require('@rspack/core'); // [!code ++]
+
+module.exports = {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new CssMinimizerPlugin(), // [!code --]
+      new rspack.LightningCssMinimizerRspackPlugin(), // [!code ++]
+    ],
+  },
+};
+```
+
 ## Loaders
 
 Rspack 与绝大多数 webpack loader 保持兼容，因此通常可以直接复用现有的 loader 生态，无需额外改造。
