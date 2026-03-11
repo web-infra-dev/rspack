@@ -2,17 +2,18 @@ use itertools::Itertools;
 use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
-  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, get_undo_path,
+  chunk_graph_chunk::{ChunkId, ChunkIdSet},
+  get_js_chunk_filename_template, get_undo_path,
 };
 use rspack_error::Result;
 use rspack_util::test::is_hot_test;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
   compilation: &Compilation,
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
-) -> HashSet<ChunkId> {
+) -> ChunkIdSet {
   match chunk {
     Some(chunk_ukey) => match compilation
       .build_chunk_graph_artifact
@@ -31,17 +32,17 @@ pub fn get_initial_chunk_ids(
               .expect_get(chunk_ukey);
             chunk.expect_id().clone()
           })
-          .collect::<HashSet<_>>();
+          .collect::<ChunkIdSet>();
         js_chunks.insert(chunk.expect_id().clone());
         js_chunks
       }
-      None => HashSet::default(),
+      None => ChunkIdSet::default(),
     },
-    None => HashSet::default(),
+    None => ChunkIdSet::default(),
   }
 }
 
-pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
+pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
   let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
 

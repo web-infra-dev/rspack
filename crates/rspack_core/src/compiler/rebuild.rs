@@ -5,12 +5,11 @@ use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPathSet;
 use rspack_tasks::within_compiler_context;
-use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
-  chunk_graph_chunk::ChunkId,
-  chunk_graph_module::ModuleId,
+  chunk_graph_chunk::ChunkIdMap,
+  chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
   incremental::{Incremental, IncrementalPasses},
 };
@@ -126,8 +125,8 @@ impl Compiler {
 pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
-  pub chunks: FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)>,
-  pub modules: FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>>,
+  pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
+  pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -146,9 +145,7 @@ impl CompilationRecords {
     compilation.hash.clone()
   }
 
-  fn record_modules(
-    compilation: &Compilation,
-  ) -> FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>> {
+  fn record_modules(compilation: &Compilation) -> ModuleIdMap<ChunkIdMap<RspackHashDigest>> {
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -157,7 +154,7 @@ impl CompilationRecords {
       .filter_map(|identifier| {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier)?.clone();
-        let mut hashes = FxHashMap::default();
+        let mut hashes = ChunkIdMap::default();
         for chunk in compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -209,9 +206,7 @@ impl CompilationRecords {
       .collect()
   }
 
-  fn record_chunks(
-    compilation: &Compilation,
-  ) -> FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)> {
+  fn record_chunks(compilation: &Compilation) -> ChunkIdMap<(RuntimeSpec, ModuleIdSet)> {
     compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -220,7 +215,7 @@ impl CompilationRecords {
       .map(|chunk| {
         let chunk_id = chunk.expect_id().clone();
         let chunk_runtime = chunk.runtime().clone();
-        let chunk_modules: FxHashSet<ModuleId> = compilation
+        let chunk_modules: ModuleIdSet = compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_modules_identifier(&chunk.ukey())

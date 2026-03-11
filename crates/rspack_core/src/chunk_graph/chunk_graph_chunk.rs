@@ -7,7 +7,7 @@ use std::{
 };
 
 use hashlink::LinkedHashMap;
-use indexmap::IndexSet;
+use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{
@@ -34,6 +34,7 @@ pub struct ChunkSizeOptions {
 
 pub type ChunkIdMap<V> =
   std::collections::HashMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
+pub type IndexChunkIdMap<V> = IndexMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
 pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<IdentifierHasher>>;
 
 #[cacheable]

@@ -12,8 +12,8 @@ use crate::{
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
-pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
-pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
+pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkIdMap, ChunkSizeOptions, IndexChunkIdMap};
+pub use chunk_graph_module::{ChunkGraphModule, ModuleId, ModuleIdMap};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
