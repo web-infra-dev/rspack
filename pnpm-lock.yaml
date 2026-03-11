@@ -254,7 +254,7 @@ importers:
         version: link:../../packages/rspack
       '@types/node':
         specifier: ^20.19.35
-        version: 20.19.35
+        version: 20.19.37
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
