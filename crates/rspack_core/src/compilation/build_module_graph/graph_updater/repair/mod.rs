@@ -8,7 +8,7 @@ pub mod process_dependencies;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-use self::context::TaskContext;
+use self::{context::TaskContext, factorize::ModuleDependencies};
 use super::BuildModuleGraphArtifact;
 use crate::{
   BuildDependency, Compilation, ExportsInfoArtifact,
@@ -53,7 +53,7 @@ pub async fn repair(
             issuer: None,
             issuer_layer: None,
             original_module_context: None,
-            dependencies: vec![dependency.clone()],
+            dependencies: ModuleDependencies::from_dependency(dependency.clone()),
             resolve_options: None,
             options: compilation.options.clone(),
             resolver_factory: compilation.resolver_factory.clone(),
