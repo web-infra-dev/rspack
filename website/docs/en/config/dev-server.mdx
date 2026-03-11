@@ -1059,43 +1059,6 @@ export default {
 };
 ```
 
-### serveIndex
-
-- **Type:** `boolean | object`
-- **Default:** `{ icons: true }`
-
-When enabled, dev server uses the [`serveIndex`](https://github.com/expressjs/serve-index) middleware to generate directory listings. When a directory does not contain an `index.html`, the browser will display a list of files in that directory.
-
-```js title="rspack.config.mjs"
-import path from 'node:path';
-
-export default {
-  devServer: {
-    static: {
-      directory: path.join(import.meta.dirname, 'public'),
-      serveIndex: true,
-    },
-  },
-};
-```
-
-You can also pass an object to configure [`serveIndex`](https://github.com/expressjs/serve-index):
-
-```js title="rspack.config.mjs"
-import path from 'node:path';
-
-export default {
-  devServer: {
-    static: {
-      directory: path.join(import.meta.dirname, 'public'),
-      serveIndex: {
-        icons: true,
-      },
-    },
-  },
-};
-```
-
 ### watch
 
 - **Type:** `boolean | object`
