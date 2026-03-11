@@ -2532,7 +2532,7 @@ export interface RawManifestExposeOption {
 
 export interface RawManifestSharedOption {
   name: string
-  shareKey: string
+  shareKey?: string
   version?: string
   requiredVersion?: string
   singleton?: boolean

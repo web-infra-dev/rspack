@@ -14,8 +14,9 @@ it("should emit remote RSC manifest data in a standalone build", () => {
 	expect(stats.remotes).toEqual([]);
 	expect(manifest.remotes).toEqual([]);
 
-	const shared = stats.shared.find(item => item.name === "shared-rsc");
+	const shared = stats.shared.find(item => item.shareKey === "rsc-shared-key");
 	expect(shared).toBeDefined();
+	expect(shared.name).toBe("rsc-shared-key");
 	expect(shared.shareKey).toBe("rsc-shared-key");
 	expect(shared.rsc.lookup).toBe("rsc-shared-key");
 	expect(shared.rsc.clientReferences).toEqual(
@@ -36,10 +37,10 @@ it("should emit remote RSC manifest data in a standalone build", () => {
 	expect(consumerExpose.rsc.lookup).toBe("remote/Consumer");
 	expect(consumerExpose.rsc.serverActions.length).toBeGreaterThan(0);
 
-	const manifestShared = manifest.shared.find(item => item.name === "shared-rsc");
+	const manifestShared = manifest.shared.find(item => item.shareKey === "rsc-shared-key");
 	expect(manifestShared).toEqual(
 		expect.objectContaining({
-			name: "shared-rsc",
+			name: "rsc-shared-key",
 			shareKey: "rsc-shared-key",
 			rsc: expect.objectContaining({
 				lookup: "rsc-shared-key"
