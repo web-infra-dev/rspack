@@ -30,7 +30,7 @@ pub struct ComponentInfo {
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
-pub fn collect_component_info_from_entry_denendency(
+pub fn collect_component_info_from_entry_dependency(
   compilation: &Compilation,
   runtime: &RuntimeSpec,
   dependency_id: &DependencyId,
