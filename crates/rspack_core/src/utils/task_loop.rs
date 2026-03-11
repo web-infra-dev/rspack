@@ -96,7 +96,7 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
 
       let task = self.main_task_queue.pop_front();
 
-      // If there's no main tasks and background tasks we are finished.
+      // If there are no main tasks and no background tasks, we are finished.
       if task.is_none() {
         if self.background_task_count == 0 {
           return Ok(());
