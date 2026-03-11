@@ -4,10 +4,9 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TSEnumValue, TemplateContext,
-  TemplateReplaceSource, UsedName,
+  ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
+  ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
+  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -78,20 +77,17 @@ impl Dependency for ESMExportSpecifierDependency {
         name: self.name.clone(),
         inlinable: self.inline.clone(),
         exports: self.enum_value.as_ref().map(|enum_value| {
-          ExportSpecExports::new(
-            enum_value
-              .iter()
-              .map(|(enum_name, enum_member)| {
-                ExportNameOrSpec::ExportSpec(ExportSpec {
-                  name: enum_name.clone(),
-                  inlinable: enum_member.clone(),
-                  can_mangle: Some(false),
-                  ..Default::default()
-                })
+          enum_value
+            .iter()
+            .map(|(enum_name, enum_member)| {
+              ExportNameOrSpec::ExportSpec(ExportSpec {
+                name: enum_name.clone(),
+                inlinable: enum_member.clone(),
+                can_mangle: Some(false),
+                ..Default::default()
               })
-              .collect(),
-          )
-          .with_unknown_provided(true)
+            })
+            .collect()
         }),
         ..Default::default()
       })]),

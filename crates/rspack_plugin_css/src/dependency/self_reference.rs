@@ -123,7 +123,7 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
       source.replace(
         replace.range.start,
         replace.range.end,
-        &escape_css(&replace.local_ident),
+        escape_css(&replace.local_ident).into_owned(),
         None,
       );
     }

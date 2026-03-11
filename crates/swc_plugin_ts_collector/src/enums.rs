@@ -20,6 +20,7 @@ type EnumKeyValueMap = FxHashMap<Wtf8Atom, EnumMemberValue>;
 pub struct ExportedEnumCollector<'a> {
   const_only: bool,
   export_idents: FxHashSet<Atom>,
+  bailout_idents: FxHashSet<Atom>,
   unresolved_ctxt: SyntaxContext,
   collected: &'a mut FxHashMap<Atom, EnumKeyValueMap>,
 }
@@ -40,9 +41,15 @@ impl<'a> ExportedEnumCollector<'a> {
     Self {
       const_only,
       export_idents: Default::default(),
+      bailout_idents: Default::default(),
       unresolved_ctxt,
       collected,
     }
+  }
+
+  fn bailout(&mut self, id: &Atom) {
+    self.bailout_idents.insert(id.clone());
+    self.collected.remove(id);
   }
 
   fn collect(&mut self, enum_decl: &TsEnumDecl) {
@@ -50,6 +57,9 @@ impl<'a> ExportedEnumCollector<'a> {
       return;
     }
     let enum_id = &enum_decl.id.sym;
+    if self.bailout_idents.contains(enum_id) {
+      return;
+    }
     // remove existing enum members for enum merging
     let mut enum_members = self.collected.remove(enum_id).unwrap_or_default();
     // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/js_parser/js_parser.go#L11263-L11320
@@ -307,6 +317,15 @@ impl Visit for ExportedEnumCollector<'_> {
     };
     for decl in node.body.iter().filter_map(|item| item.as_module_decl()) {
       match decl {
+        // bailout for `export namespace Enum {}`
+        ModuleDecl::ExportDecl(ExportDecl {
+          decl: Decl::TsModule(module_decl),
+          ..
+        }) => {
+          if let Some(id) = module_decl.id.as_ident() {
+            self.bailout(&id.sym);
+          }
+        }
         ModuleDecl::ExportDecl(ExportDecl {
           decl: Decl::TsEnum(enum_decl),
           ..

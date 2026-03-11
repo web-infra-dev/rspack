@@ -24,6 +24,7 @@ rkyv                    = { workspace = true }
 rspack_cacheable_macros = { workspace = true }
 rspack_resolver         = { workspace = true }
 rspack_sources          = { workspace = true }
+rustc-hash              = { workspace = true }
 serde_json              = { workspace = true }
 smol_str                = { workspace = true }
 sugar_path              = { workspace = true }

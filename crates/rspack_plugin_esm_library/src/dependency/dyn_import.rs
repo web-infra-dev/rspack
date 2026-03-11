@@ -130,7 +130,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &missing_promise,
+        missing_promise,
         None,
       );
       return;
@@ -193,7 +193,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!(
+        format!(
           "{import_promise}{}",
           then_expr(code_generatable_context, dep_id, request)
         ),
@@ -211,7 +211,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!(
+        format!(
           "{import_promise}{}",
           then_expr(code_generatable_context, dep_id, request)
         ),
@@ -239,7 +239,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!("Promise.resolve({ns_ref})"),
+        format!("Promise.resolve({ns_ref})"),
         None,
       );
       return;
@@ -257,7 +257,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!("{import_promise}.then(m => m.{ns_name})"),
+        format!("{import_promise}.then(m => m.{ns_name})"),
         None,
       );
     } else {
@@ -265,7 +265,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &import_promise,
+        import_promise.into_owned(),
         None,
       );
     }

@@ -2,15 +2,14 @@ use std::{
   borrow::Cow,
   collections::BTreeMap,
   fmt::Debug,
-  hash::{BuildHasherDefault, Hasher},
+  hash::Hasher,
   sync::{Arc, LazyLock},
 };
 
-use dashmap::DashMap;
 use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsMap};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
 use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
@@ -24,7 +23,7 @@ use rspack_util::{
   SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind, swc::join_atom,
 };
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
   common::{FileName, Spanned, SyntaxContext},
@@ -54,8 +53,10 @@ use crate::{
   UsedName, UsedNameItem, escape_identifier, filter_runtime, find_target, get_runtime_key,
   impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
   module_update_hash, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, reserved_names::RESERVED_NAMES,
+  render_make_deferred_namespace_mode_from_exports_type,
+  reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
 type ExportsDefinitionArgs = Vec<(String, String)>;
@@ -609,8 +610,8 @@ pub struct ConcatenatedModule {
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  #[cacheable(with=AsMap)]
-  cached_source_sizes: DashMap<SourceType, f64, BuildHasherDefault<FxHasher>>,
+  #[cacheable(with=As<SourceSizeCacheSerde>)]
+  cached_source_sizes: SourceSizeCache,
   diagnostics: Vec<Diagnostic>,
   build_info: BuildInfo,
 }
@@ -635,7 +636,7 @@ impl ConcatenatedModule {
       runtime,
       dependencies: vec![],
       blocks: vec![],
-      cached_source_sizes: DashMap::default(),
+      cached_source_sizes: SourceSizeCache::default(),
       diagnostics: vec![],
       build_info: BuildInfo {
         cacheable: true,
@@ -845,12 +846,16 @@ impl Module for ConcatenatedModule {
   }
 
   fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    if let Some(size_ref) = source_type.and_then(|st| self.cached_source_sizes.get(st)) {
-      *size_ref
-    } else {
+    if let Some(source_type) = source_type {
+      // Shared cache: builtin SourceType uses fixed atomic slots, Custom uses map fallback.
+      if let Some(size) = self.cached_source_sizes.get(source_type) {
+        return size;
+      }
+
       let size = self.modules.iter().fold(0.0, |acc, cur| acc + cur.size);
-      source_type.and_then(|st| self.cached_source_sizes.insert(*st, size));
-      size
+      self.cached_source_sizes.get_or_insert(source_type, size)
+    } else {
+      self.modules.iter().fold(0.0, |acc, cur| acc + cur.size)
     }
   }
 
@@ -1040,11 +1045,31 @@ impl Module for ConcatenatedModule {
     let module_graph = compilation.get_module_graph();
     let mut import_stmts = IndexMap::<(String, Option<String>), ImportSpec>::default();
 
-    let (escaped_names, escaped_identifiers) = module_to_info_map
+    let (escaped_name_entries, escaped_identifier_entries) = module_to_info_map
       .par_values()
       .map(|info| {
-        let mut escaped_names: HashMap<String, String> = HashMap::default();
-        let mut escaped_identifiers: HashMap<String, Vec<Atom>> = HashMap::default();
+        let (name_capacity, identifier_capacity) = match info {
+          ModuleInfo::Concatenated(info) => {
+            let import_map = info.import_map.as_ref();
+            let import_sources = import_map.map_or(0, |map| map.len());
+            let imported_names = import_map.map_or(0, |map| {
+              map
+                .values()
+                .map(|imported| {
+                  imported.specifiers.len() + usize::from(imported.namespace.is_some())
+                })
+                .sum::<usize>()
+            });
+            (
+              info.binding_to_ref.len() + imported_names,
+              1 + import_sources,
+            )
+          }
+          ModuleInfo::External(_) => (0, 1),
+        };
+        let mut escaped_names =
+          HashMap::with_capacity_and_hasher(name_capacity, Default::default());
+        let mut escaped_identifiers = Vec::with_capacity(identifier_capacity);
         let readable_identifier = get_cached_readable_identifier(
           &info.id(),
           module_graph,
@@ -1052,41 +1077,60 @@ impl Module for ConcatenatedModule {
           &context,
         );
         let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
-        escaped_identifiers.insert(readable_identifier, splitted_readable_identifier);
+        escaped_identifiers.push((readable_identifier, splitted_readable_identifier));
 
         match info {
           ModuleInfo::Concatenated(info) => {
             for (id, _) in info.binding_to_ref.iter() {
-              escaped_names.insert(id.0.to_string(), escape_name(id.0.as_str()));
+              escaped_names
+                .entry(id.0.clone())
+                .or_insert_with(|| escape_name_atom_ref(&id.0));
             }
 
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported) in import_map.iter() {
                 let specifiers = &imported.specifiers;
                 escaped_identifiers
-                  .insert(source.clone(), split_readable_identifier(source.as_str()));
+                  .push((source.clone(), split_readable_identifier(source.as_str())));
                 for atom in specifiers {
-                  escaped_names.insert(atom.to_string(), escape_name(atom.as_str()));
+                  escaped_names
+                    .entry(atom.clone())
+                    .or_insert_with(|| escape_name_atom_ref(atom));
                 }
 
                 if let Some(ns_symbol) = &imported.namespace {
-                  escaped_names.insert(ns_symbol.to_string(), escape_name(ns_symbol.as_str()));
+                  escaped_names
+                    .entry(ns_symbol.clone())
+                    .or_insert_with(|| escape_name_atom_ref(ns_symbol));
                 }
               }
             }
           }
           ModuleInfo::External(_) => (),
         }
-        (escaped_names, escaped_identifiers)
+        (
+          escaped_names.into_iter().collect::<Vec<_>>(),
+          escaped_identifiers,
+        )
       })
       .reduce(
-        || (HashMap::default(), HashMap::default()),
-        |mut a, b| {
-          a.0.extend(b.0);
-          a.1.extend(b.1);
+        || (Vec::new(), Vec::new()),
+        |mut a, mut b| {
+          a.0.append(&mut b.0);
+          a.1.append(&mut b.1);
           a
         },
       );
+    let mut escaped_names =
+      HashMap::with_capacity_and_hasher(escaped_name_entries.len(), Default::default());
+    for (name, escaped_name) in escaped_name_entries {
+      escaped_names.insert(name, escaped_name);
+    }
+    let mut escaped_identifiers =
+      HashMap::with_capacity_and_hasher(escaped_identifier_entries.len(), Default::default());
+    for (identifier, parts) in escaped_identifier_entries {
+      escaped_identifiers.insert(identifier, parts);
+    }
 
     let mut name_allocator = NameAllocator::new(all_used_names);
 
@@ -1119,8 +1163,9 @@ impl Module for ConcatenatedModule {
               // Find a new name and update references
               let new_name = name_allocator.find_new_name(
                 escaped_names
-                  .get(name.as_str())
-                  .expect("should have escaped name"),
+                  .get(name)
+                  .expect("should have escaped name")
+                  .as_ref(),
                 escaped_identifiers
                   .get(&readable_identifier)
                   .expect("should have escaped identifier"),
@@ -1136,11 +1181,11 @@ impl Module for ConcatenatedModule {
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(high, &format!(": {new_name}"), None);
+                  source.insert(high, format!(": {new_name}"), None);
                   continue;
                 }
 
-                source.replace(low, high, &new_name, None);
+                source.replace(low, high, new_name.to_string(), None);
               }
             } else {
               // Handle the case when the name is not already used
@@ -1187,8 +1232,9 @@ impl Module for ConcatenatedModule {
                   } else {
                     name_allocator.find_new_name(
                       escaped_names
-                        .get(atom.as_str())
-                        .expect("should have escaped name"),
+                        .get(atom)
+                        .expect("should have escaped name")
+                        .as_ref(),
                       escaped_identifiers
                         .get(&readable_identifier)
                         .expect("should have escaped identifier"),
@@ -1419,7 +1465,7 @@ impl Module for ConcatenatedModule {
           .and_then(|info| info.try_as_concatenated_mut())
           .expect("should have concatenate module info");
         let source = info.source.as_mut().expect("should have source");
-        source.replace(low, high, &name_result.name, None);
+        source.replace(low, high, name_result.name, None);
       }
     }
 
@@ -3343,21 +3389,49 @@ pub fn split_readable_identifier(extra_info: &str) -> Vec<Atom> {
   let extra_info = REGEX.replace_all(extra_info, "");
   let mut splitted_info: Vec<Atom> = extra_info
     .split('/')
-    .map(|s| Atom::from(escape_identifier(s).into_owned()))
+    .map(|s| match escape_identifier(s) {
+      Cow::Borrowed(s) => Atom::from(s),
+      Cow::Owned(s) => Atom::from(s),
+    })
     .collect();
   splitted_info.reverse();
   splitted_info
 }
 
-pub fn escape_name(name: &str) -> String {
+fn escaped_name(name: &str) -> Cow<'_, str> {
   if name == DEFAULT_EXPORT {
-    return String::new();
+    return Cow::Borrowed("");
   }
   if name == NAMESPACE_OBJECT_EXPORT {
-    return "namespaceObject".to_string();
+    return Cow::Borrowed("namespaceObject");
   }
 
-  escape_identifier(name).into_owned()
+  escape_identifier(name)
+}
+
+pub fn escape_name(name: &str) -> String {
+  escaped_name(name).into_owned()
+}
+
+pub fn escape_name_atom(name: &str) -> Atom {
+  match escaped_name(name) {
+    Cow::Borrowed(name) => Atom::from(name),
+    Cow::Owned(name) => Atom::from(name),
+  }
+}
+
+pub fn escape_name_atom_ref(name: &Atom) -> Atom {
+  if name == DEFAULT_EXPORT {
+    return Atom::default();
+  }
+  if name == NAMESPACE_OBJECT_EXPORT {
+    return Atom::from("namespaceObject");
+  }
+
+  match escape_identifier(name.as_str()) {
+    Cow::Borrowed(_) => name.clone(),
+    Cow::Owned(name) => Atom::from(name),
+  }
 }
 
 #[derive(Clone, Debug)]

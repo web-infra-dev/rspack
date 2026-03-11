@@ -1,4 +1,5 @@
 use derive_more::Debug;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, DependencyId, Module, ModuleIdentifier, ModuleType, PrefetchExportsInfoMode,
   RscMeta, RscModuleType, RuntimeSpec,
@@ -49,7 +50,7 @@ pub fn collect_component_info_from_entry_denendency(
   };
 
   // Keep track of checked modules to avoid infinite loops with recursive imports.
-  let mut visited_of_client_components_traverse: FxHashSet<ModuleIdentifier> = FxHashSet::default();
+  let mut visited_of_client_components_traverse: IdentifierSet = IdentifierSet::default();
 
   // Info to collect.
   let mut server_entries: Vec<String> = Default::default();
@@ -139,7 +140,7 @@ fn traverse_with_server_entry_context(
   runtime: &RuntimeSpec,
   imported_identifiers: &[String],
   request_hint: Option<&str>,
-  visited: &mut FxHashSet<ModuleIdentifier>,
+  visited: &mut IdentifierSet,
   server_entries: &mut Vec<String>,
   component_info: &mut ComponentInfo,
 ) {
@@ -172,7 +173,7 @@ fn filter_client_components(
   runtime: &RuntimeSpec,
   imported_identifiers: &[String],
   request_hint: Option<&str>,
-  visited: &mut FxHashSet<ModuleIdentifier>,
+  visited: &mut IdentifierSet,
   server_entries: &mut Vec<String>,
   component_info: &mut ComponentInfo,
 ) {
