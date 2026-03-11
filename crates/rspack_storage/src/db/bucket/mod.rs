@@ -2,6 +2,7 @@ mod index;
 mod meta;
 mod pack;
 
+use futures::future::try_join_all;
 use pack::{PackGenerator, PackId, PackIdAlloc};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -65,16 +66,28 @@ impl Bucket {
     let mut result = self.hot_pack.clone().data();
 
     // Load and verify all cold packs
-    for (pack_id, index) in self.meta.cold_pack_indexes() {
-      let (pack, hash) = Pack::load(&self.fs, *pack_id).await?;
-      if !index.check_content_hash(hash) {
-        return Err(Error::CorruptedData(format!(
-          "Pack '{}' content hash mismatch: expected {}, got {}",
-          pack_id.pack_name(),
-          index.content_hash(),
-          hash
-        )));
-      }
+    let tasks = self
+      .meta
+      .cold_pack_indexes()
+      .iter()
+      .map(|(pack_id, index)| {
+        let fs = self.fs.clone();
+        let pack_id = *pack_id;
+        async move {
+          let (pack, hash) = Pack::load(&fs, pack_id).await?;
+          if !index.check_content_hash(hash) {
+            return Err(Error::CorruptedData(format!(
+              "Pack '{}' content hash mismatch: expected {}, got {}",
+              pack_id.pack_name(),
+              index.content_hash(),
+              hash
+            )));
+          }
+          Ok(pack)
+        }
+      });
+    let results = try_join_all(tasks).await?;
+    for pack in results {
       result.extend(pack.data());
     }
     Ok(result)
@@ -106,38 +119,50 @@ impl Bucket {
 
     // Initialize pack generator for splitting
     let mut pack_generator = PackGenerator::new(self.max_pack_size);
-    let mut removed_pack_ids: HashSet<_> = need_update_packs.keys().cloned().collect();
-
-    // Add data from affected packs (excluding modified keys)
+    let mut removed_pack_ids: HashSet<_> = HashSet::default();
     for (pack_id, pack) in need_update_packs {
+      removed_pack_ids.insert(pack_id);
+      // Recycle pack id
       self.meta.update_pack_index(pack_id, None);
       pack_generator.extend(pack.data());
     }
-
-    // Add hot pack data
     let hot_pack = std::mem::take(&mut self.hot_pack);
     pack_generator.extend(hot_pack.data());
-
-    // Add new/updated data (filter out deletions where value is None)
     pack_generator.extend(
       data
         .into_iter()
         .filter_map(|(k, v)| v.map(|v| (k, v)))
         .collect(),
     );
-
-    // Split into hot pack + cold packs
     let (hot_pack, new_packs) = pack_generator.finish();
-    self.hot_pack = hot_pack;
 
-    // Write cold packs
-    let mut added_files = vec![];
-    for item in new_packs {
+    // Alloc id for packs
+    let mut pending_packs = Vec::with_capacity(new_packs.len() + 1);
+    pending_packs.push((PackIdAlloc::HOT_PACK_ID, hot_pack));
+    for pack in new_packs {
       let pack_id = self.meta.next_pack_id();
-      // Remove pack_id from removed_pack_ids if it will be reused
-      removed_pack_ids.remove(&pack_id);
-      let index = item.save(&writable_fs, pack_id).await?;
+      pending_packs.push((pack_id, pack));
+    }
+
+    // Perform parallel writes
+    let results = try_join_all(pending_packs.into_iter().map(|(pack_id, pack)| {
+      let fs = writable_fs.clone();
+      async move {
+        let index = pack.save(&fs, pack_id).await?;
+        Ok::<_, Error>((pack_id, pack, index))
+      }
+    }))
+    .await?;
+
+    // Update metadata with results
+    let mut added_files = Vec::with_capacity(results.len());
+    for (pack_id, pack, index) in results {
+      if pack_id == PackIdAlloc::HOT_PACK_ID {
+        self.hot_pack = pack;
+      }
       self.meta.update_pack_index(pack_id, Some(index));
+      // Remove reused pack id
+      removed_pack_ids.remove(&pack_id);
       added_files.push(pack_id.pack_name());
     }
 
@@ -146,16 +171,6 @@ impl Bucket {
       .into_iter()
       .map(|pack_id| pack_id.pack_name())
       .collect();
-
-    // Write hot pack
-    let index = self
-      .hot_pack
-      .save(&writable_fs, PackIdAlloc::HOT_PACK_ID)
-      .await?;
-    self
-      .meta
-      .update_pack_index(PackIdAlloc::HOT_PACK_ID, Some(index));
-    added_files.push(PackIdAlloc::HOT_PACK_ID.pack_name());
 
     // Write metadata
     self.meta.save(&writable_fs).await?;
