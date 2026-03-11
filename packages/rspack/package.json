@@ -56,7 +56,7 @@
     "connect-next": "^4.0.0",
     "enhanced-resolve": "5.20.0",
     "http-proxy-middleware": "^3.0.5",
-    "memfs": "4.53.0",
+    "memfs": "4.56.11",
     "open": "^11.0.0",
     "prebundle": "^1.6.4",
     "tinypool": "^1.1.1",

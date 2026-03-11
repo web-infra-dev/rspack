@@ -130,7 +130,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 2.0.0-beta.5
-        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(tslib@2.8.1)(webpack@5.102.1)
 
   examples/react:
     dependencies:
@@ -149,7 +149,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 2.0.0-beta.5
-        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(tslib@2.8.1)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -176,7 +176,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 2.0.0-beta.5
-        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(tslib@2.8.1)(webpack@5.102.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -270,8 +270,8 @@ importers:
         specifier: ^3.0.5
         version: 3.0.5
       memfs:
-        specifier: 4.53.0
-        version: 4.53.0
+        specifier: 4.56.11
+        version: 4.56.11(tslib@2.8.1)
       open:
         specifier: ^11.0.0
         version: 11.0.0
@@ -309,8 +309,8 @@ importers:
         specifier: ^2.4.5
         version: 2.4.5
       memfs:
-        specifier: 4.53.0
-        version: 4.53.0
+        specifier: 4.56.11
+        version: 4.56.11(tslib@2.8.1)
       webpack-sources:
         specifier: 3.3.4
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
@@ -332,7 +332,7 @@ importers:
         version: link:../rspack
       '@rspack/dev-server':
         specifier: 2.0.0-beta.5
-        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(tslib@2.8.1)(webpack@5.102.1)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
@@ -400,8 +400,8 @@ importers:
         specifier: ^26.1.0
         version: 26.1.0
       memfs:
-        specifier: 4.53.0
-        version: 4.53.0
+        specifier: 4.56.11
+        version: 4.56.11(tslib@2.8.1)
       path-serializer:
         specifier: 0.5.1
         version: 0.5.1
@@ -532,7 +532,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/dev-server':
         specifier: 2.0.0-beta.5
-        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)
+        version: 2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(tslib@2.8.1)(webpack@5.102.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -705,8 +705,8 @@ importers:
         specifier: ^4.17.23
         version: 4.17.23
       memfs:
-        specifier: 4.53.0
-        version: 4.53.0
+        specifier: 4.56.11
+        version: 4.56.11(tslib@2.8.1)
       mime-types:
         specifier: ^3.0.2
         version: 3.0.2
@@ -5794,9 +5794,6 @@ packages:
   medium-zoom@1.1.0:
     resolution: {integrity: sha512-ewyDsp7k4InCUp3jRmwHBRFGyjBimKps/AJLjRSox+2q/2H4p/PNpQf+pwONWlJiOudkBXtbdmVbFjqyybfTmQ==}
 
-  memfs@4.53.0:
-    resolution: {integrity: sha512-TKFRsKjJA30iAc9ZeGH/77v5nLcNUD0GBOL/tAj4O63RPIKNxGDZ54ZyuQM4KjEKEj7gfer/Ta1xAzB+HrEnrA==}
-
   memfs@4.56.11:
     resolution: {integrity: sha512-/GodtwVeKVIHZKLUSr2ZdOxKBC5hHki4JNCU22DoCGPEHr5o2PD5U721zvESKyWwCfTfavFl9WZYgA13OAYK0g==}
     peerDependencies:
@@ -9939,7 +9936,7 @@ snapshots:
       '@module-federation/runtime-tools': 2.1.0
       '@swc/helpers': 0.5.19
 
-  '@rspack/dev-server@2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(webpack@5.102.1)':
+  '@rspack/dev-server@2.0.0-beta.5(@rspack/core@packages+rspack)(selfsigned@5.5.0)(tslib@2.8.1)(webpack@5.102.1)':
     dependencies:
       '@rspack/core': link:packages/rspack
       '@types/connect-history-api-fallback': 1.5.4
@@ -9951,13 +9948,14 @@ snapshots:
       http-proxy-middleware: 3.0.5
       ipaddr.js: 2.3.0
       serve-static: 2.2.1
-      webpack-dev-middleware: 7.4.5(webpack@5.102.1)
+      webpack-dev-middleware: 7.4.5(tslib@2.8.1)(webpack@5.102.1)
       ws: 8.19.0
     optionalDependencies:
       selfsigned: 5.5.0
     transitivePeerDependencies:
       - bufferutil
       - supports-color
+      - tslib
       - utf-8-validate
       - webpack
 
@@ -13216,15 +13214,6 @@ snapshots:
 
   medium-zoom@1.1.0: {}
 
-  memfs@4.53.0:
-    dependencies:
-      '@jsonjoy.com/json-pack': 1.21.0(tslib@2.8.1)
-      '@jsonjoy.com/util': 1.9.0(tslib@2.8.1)
-      glob-to-regex.js: 1.2.0(tslib@2.8.1)
-      thingies: 2.5.0(tslib@2.8.1)
-      tree-dump: 1.1.0(tslib@2.8.1)
-      tslib: 2.8.1
-
   memfs@4.56.11(tslib@2.8.1):
     dependencies:
       '@jsonjoy.com/fs-core': 4.56.11(tslib@2.8.1)
@@ -15404,16 +15393,18 @@ snapshots:
 
   webidl-conversions@7.0.0: {}
 
-  webpack-dev-middleware@7.4.5(webpack@5.102.1):
+  webpack-dev-middleware@7.4.5(tslib@2.8.1)(webpack@5.102.1):
     dependencies:
       colorette: 2.0.20
-      memfs: 4.53.0
+      memfs: 4.56.11(tslib@2.8.1)
       mime-types: 3.0.2
       on-finished: 2.4.1
       range-parser: 1.2.1
       schema-utils: 4.3.3
     optionalDependencies:
       webpack: 5.102.1
+    transitivePeerDependencies:
+      - tslib
 
   webpack-merge@6.0.1:
     dependencies:
