@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
@@ -16,7 +16,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
-  plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
+  plugin_state::{ActionIdNamePair, EntryState, PLUGIN_STATES, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
   rsc_entry_dependency::RscEntryDependency,
   rsc_entry_module::RscEntryModule,
@@ -34,7 +34,7 @@ pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_per_entry: AtomicRefCell<FxHashMap<String, UkeySet<DependencyId>>>,
+  client_entries_per_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
 }
 
 fn extend_required_chunks(
@@ -75,13 +75,13 @@ fn extend_required_chunks(
 
 #[allow(clippy::too_many_arguments)]
 fn record_module(
-  entry_name: &str,
+  module_loading: &ModuleLoading,
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
   required_chunks: &[String],
-  plugin_state: &mut PluginState,
+  entry_state: &mut EntryState,
 ) {
   let Some(module) = compilation.module_by_identifier(module_identifier) else {
     return;
@@ -93,21 +93,25 @@ fn record_module(
   }
 
   if is_css_mod(module.as_ref()) {
-    let (Some(chunk), Some(entry_css_imports)) = (
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get(chunk_ukey),
-      plugin_state.entry_css_imports.get(entry_name),
-    ) else {
+    let mut matched_server_entries = Vec::new();
+    for (server_entry, imports) in &entry_state.entry_css_imports {
+      if imports.contains(resource.as_ref()) {
+        matched_server_entries.push(server_entry.clone());
+      }
+    }
+    if matched_server_entries.is_empty() {
+      return;
+    }
+
+    let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(chunk_ukey)
+    else {
       return;
     };
 
-    let prefix = &plugin_state
-      .module_loading
-      .as_ref()
-      .expect("module_loading should be initialized in traverse_modules before recording modules")
-      .prefix;
+    let prefix = &module_loading.prefix;
     let css_files: Vec<String> = chunk
       .files()
       .iter()
@@ -118,24 +122,19 @@ fn record_module(
       return;
     }
 
-    let entry_css_files = plugin_state
-      .entry_css_files
-      .entry(entry_name.to_string())
-      .or_default();
-
-    for (server_entry, imports) in entry_css_imports {
-      if imports.get(resource.as_ref()).is_some() {
-        entry_css_files
-          .entry(server_entry.clone())
-          .or_default()
-          .extend(css_files.iter().cloned());
-      }
+    for server_entry in matched_server_entries {
+      entry_state
+        .entry_css_files
+        .entry(server_entry.clone())
+        .or_default()
+        .extend(css_files.clone());
     }
+
     return;
   }
 
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
-  plugin_state.client_modules.insert(
+  entry_state.client_modules.insert(
     resource.to_string(),
     ManifestExport {
       id: module_id.to_string(),
@@ -148,14 +147,14 @@ fn record_module(
 
 #[allow(clippy::too_many_arguments)]
 fn record_chunk_group(
-  entry_name: &str,
+  module_loading: &ModuleLoading,
   client_entry_modules: &IdentifierSet,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
   required_chunks: &mut Vec<String>,
   checked_chunk_groups: &mut FxHashSet<ChunkGroupUkey>,
   checked_chunks: &mut FxHashSet<ChunkUkey>,
-  plugin_state: &mut PluginState,
+  entry_state: &mut EntryState,
 ) {
   // Ensure recursion is stopped if we've already checked this chunk group.
   if checked_chunk_groups.contains(&chunk_group.ukey) {
@@ -196,23 +195,23 @@ fn record_chunk_group(
 
       if let Some(concatenated_module) = module.as_concatenated_module() {
         record_module(
-          entry_name,
+          module_loading,
           module_id,
           &concatenated_module.get_root(),
           chunk_ukey,
           compilation,
           required_chunks,
-          plugin_state,
+          entry_state,
         );
       } else {
         record_module(
-          entry_name,
+          module_loading,
           module_id,
           module_identifier,
           chunk_ukey,
           compilation,
           required_chunks,
-          plugin_state,
+          entry_state,
         );
       }
     }
@@ -230,14 +229,14 @@ fn record_chunk_group(
     let start_len = required_chunks.len();
     extend_required_chunks(child, compilation, required_chunks);
     record_chunk_group(
-      entry_name,
+      module_loading,
       client_entry_modules,
       child,
       compilation,
       required_chunks,
       checked_chunk_groups,
       checked_chunks,
-      plugin_state,
+      entry_state,
     );
     required_chunks.truncate(start_len);
   }
@@ -248,6 +247,10 @@ async fn collect_entry_js_files(
   plugin_state: &mut PluginState,
 ) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+      continue;
+    };
+
     let Some(chunk_group) = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
@@ -255,17 +258,14 @@ async fn collect_entry_js_files(
     else {
       continue;
     };
-    let entry_js_files = plugin_state
-      .entry_js_files
-      .entry(entry_name.clone())
-      .or_default();
+
     let prefix = &plugin_state
       .module_loading
       .as_ref()
       .expect("module_loading should be initialized in traverse_modules before recording modules")
       .prefix;
 
-    *entry_js_files = chunk_group
+    let entry_js_files = chunk_group
       .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
@@ -280,6 +280,8 @@ async fn collect_entry_js_files(
       })
       .map(|file| format!("{prefix}{file}"))
       .collect::<FxIndexSet<String>>();
+
+    entry_state.entry_js_files = entry_js_files;
   }
   Ok(())
 }
@@ -330,7 +332,7 @@ fn collect_actions(
 
 fn collect_client_actions_from_dependencies(
   compilation: &Compilation,
-  entry_dependencies: &UkeySet<DependencyId>,
+  entry_dependencies: &FxHashSet<DependencyId>,
 ) -> FxHashMap<String, Vec<ActionIdNamePair>> {
   // action file path -> action names
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
@@ -438,6 +440,14 @@ impl RscClientPlugin {
     let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
 
     for (entry_name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+      let module_loading = plugin_state
+        .module_loading
+        .as_ref()
+        .expect("module_loading should be initialized before recording modules");
+      let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+        continue;
+      };
+
       let Some(entrypoint) = compilation
         .build_chunk_graph_artifact
         .chunk_group_by_ukey
@@ -451,14 +461,14 @@ impl RscClientPlugin {
       checked_chunks.clear();
 
       record_chunk_group(
-        entry_name,
+        module_loading,
         &client_entry_modules,
         entrypoint,
         compilation,
         &mut required_chunks,
         &mut checked_chunk_groups,
         &mut checked_chunks,
-        plugin_state,
+        entry_state,
       );
     }
 
@@ -518,9 +528,10 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   })?;
 
   let mut include_dependencies = vec![];
-  for (entry_name, client_modules) in &plugin_state.injected_client_entries {
+  for (entry_name, entry_state) in &plugin_state.entries {
+    let client_modules = &entry_state.injected_client_entries;
     {
-      if compilation.entries.get(entry_name).is_none() {
+      if compilation.entries.get(entry_name.as_ref()).is_none() {
         compilation.push_diagnostic(Diagnostic::error(
           "RSC Client Entry Mismatch".to_string(),
           format!(
@@ -537,7 +548,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(RscEntryDependency::new(
-        entry_name.clone(),
+        entry_name.to_string(),
         client_modules.clone(),
       ));
       self
@@ -553,7 +564,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     #[allow(clippy::unwrap_used)]
-    let entry_data = compilation.entries.get_mut(entry_name).unwrap();
+    let entry_data = compilation.entries.get_mut(entry_name.as_ref()).unwrap();
     entry_data
       .include_dependencies
       .append(&mut include_dependencies);
@@ -594,8 +605,10 @@ async fn after_process_assets(
   for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
     let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
     plugin_state
-      .client_actions_per_entry
-      .insert(entry_name.clone(), client_actions);
+      .entries
+      .entry(entry_name.clone())
+      .or_default()
+      .client_actions = client_actions;
   }
 
   self
