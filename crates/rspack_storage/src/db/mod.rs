@@ -6,6 +6,7 @@ mod transaction;
 
 use std::{collections::hash_map::Entry, sync::Arc};
 
+use futures::future::try_join_all;
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
 use rustc_hash::FxHashMap as HashMap;
@@ -102,9 +103,6 @@ impl DB {
   ) -> Result<Receiver<RootResult<()>>> {
     let (tx, rx) = channel();
 
-    let mut all_files_to_add = Vec::new();
-    let mut all_files_to_remove = Vec::new();
-
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
     let max_pack_size = self.options.max_pack_size;
@@ -116,21 +114,34 @@ impl DB {
         // Acquire write lock for the entire commit operation
         let mut buckets = buckets.lock().await;
 
+        let mut pending_buckets = Vec::with_capacity(changes.len());
         for (bucket_name, bucket_changes) in changes {
-          // Get or create bucket
-          let bucket = match buckets.entry(bucket_name.clone()) {
-            Entry::Occupied(entry) => entry.into_mut(),
-            Entry::Vacant(entry) => {
-              let fs = transaction.readable_fs().child_fs(&bucket_name);
-              let bucket = Bucket::new(fs, max_pack_size).await?;
-              entry.insert(bucket)
-            }
+          let bucket = if let Some(bucket) = buckets.remove(&bucket_name) {
+            bucket
+          } else {
+            let fs = transaction.readable_fs().child_fs(&bucket_name);
+            Bucket::new(fs, max_pack_size).await?
           };
+          pending_buckets.push((bucket_name, bucket, bucket_changes));
+        }
 
-          // Apply changes and collect file operations
-          let writer_fs = transaction.writable_fs().child_fs(&bucket_name);
-          let (added_pack, removed_pack) = bucket.save(Some(writer_fs), bucket_changes).await?;
+        let results = try_join_all(pending_buckets.into_iter().map(
+          |(bucket_name, mut bucket, changes)| {
+            // Apply changes and collect file operations
+            let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
+            async move {
+              let affacted_files = bucket.save(Some(writable_fs), changes).await?;
+              Ok::<_, Error>((bucket_name, bucket, affacted_files))
+            }
+          },
+        ))
+        .await?;
 
+        let mut all_files_to_add = Vec::new();
+        let mut all_files_to_remove = Vec::new();
+        for (bucket_name, bucket, affacted_files) in results {
+          let (added_pack, removed_pack) = affacted_files;
+          buckets.insert(bucket_name.clone(), bucket);
           all_files_to_add.extend(
             added_pack
               .into_iter()
