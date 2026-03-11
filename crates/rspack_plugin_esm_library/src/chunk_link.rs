@@ -295,6 +295,8 @@ pub struct ChunkLinkContext {
 
   pub init_fragments: Vec<BoxChunkInitFragment>,
 
+  pub hashbang: Option<String>,
+
   /**
   modules that can be scope hoisted
   */
@@ -334,6 +336,7 @@ impl ChunkLinkContext {
       needed_namespace_objects: Default::default(),
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
+      hashbang: None,
       refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),

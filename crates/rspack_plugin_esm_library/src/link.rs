@@ -1603,25 +1603,15 @@ var {} = {{}};
 
         if let Some(hashbang) = &hashbang {
           let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
-          entry_chunk_link.init_fragments.insert(
-            0,
-            Box::new(rspack_core::NormalInitFragment::new(
-              format!("{hashbang}\n"),
-              rspack_core::InitFragmentStage::StageConstants,
-              i32::MIN,
-              rspack_core::InitFragmentKey::unique(),
-              None,
-            )),
-          );
+          entry_chunk_link.hashbang = Some(format!("{hashbang}\n"));
         }
 
         if let Some(directives) = directives {
           let entry_module_chunk_link = link.get_mut_unwrap(&entry_module_chunk);
 
           for (idx, directive) in directives.iter().enumerate() {
-            let insert_pos = if hashbang.is_some() { 1 + idx } else { idx };
             entry_module_chunk_link.init_fragments.insert(
-              insert_pos,
+              idx,
               Box::new(rspack_core::NormalInitFragment::new(
                 format!("{directive}\n"),
                 rspack_core::InitFragmentStage::StageConstants,
