@@ -1,7 +1,7 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifiable, Identifier, IdentifierMap};
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
   Module, ModuleGraph, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
@@ -136,10 +136,7 @@ pub fn collect_modules(
 
 pub fn collect_concatenated_modules(
   modules: &IdentifierMap<&BoxModule>,
-) -> (
-  IdentifierMap<HashSet<Identifier>>,
-  IdentifierMap<HashSet<Identifier>>,
-) {
+) -> (IdentifierMap<IdentifierSet>, IdentifierMap<IdentifierSet>) {
   let children_map = modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -150,7 +147,7 @@ pub fn collect_concatenated_modules(
           .get_modules()
           .iter()
           .map(|m| m.id)
-          .collect::<HashSet<_>>(),
+          .collect::<IdentifierSet>(),
       ))
     })
     .collect::<IdentifierMap<_>>();
@@ -165,7 +162,7 @@ pub fn collect_concatenated_modules(
     })
     .fold(
       IdentifierMap::default(),
-      |mut acc: IdentifierMap<HashSet<Identifier>>, (child, parent)| {
+      |mut acc: IdentifierMap<IdentifierSet>, (child, parent)| {
         acc.entry(child).or_default().insert(parent);
         acc
       },

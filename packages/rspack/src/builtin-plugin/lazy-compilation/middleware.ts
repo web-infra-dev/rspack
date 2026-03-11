@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
 import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
-import type { MiddlewareHandler } from '../../config/devServer';
+import type { DevServerMiddlewareHandler } from '../../config/devServer';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
 const require = createRequire(import.meta.url);
@@ -49,9 +49,10 @@ const getFullServerUrl = ({ serverUrl, prefix }: LazyCompilationOptions) => {
  */
 export const lazyCompilationMiddleware = (
   compiler: Compiler | MultiCompiler,
-): MiddlewareHandler => {
+): DevServerMiddlewareHandler => {
   if (compiler instanceof MultiCompiler) {
-    const middlewareByCompiler: Map<string, MiddlewareHandler> = new Map();
+    const middlewareByCompiler: Map<string, DevServerMiddlewareHandler> =
+      new Map();
 
     let i = 0;
 
@@ -199,7 +200,7 @@ const lazyCompilationMiddlewareInternal = (
   compiler: Compiler | MultiCompiler,
   activeModules: Set<string>,
   lazyCompilationPrefix: string,
-): MiddlewareHandler => {
+): DevServerMiddlewareHandler => {
   const logger = compiler.getInfrastructureLogger('LazyCompilation');
 
   return async (
