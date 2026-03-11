@@ -12,6 +12,8 @@ use rspack_core::{
 };
 use swc_core::atoms::Atom;
 
+use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
+
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum ExportsBase {
@@ -50,23 +52,6 @@ impl ExportsBase {
     )
   }
 }
-
-// we can't mangle names that are in an empty object because one could access the prototype property
-// when export isn't set yet. It's different for different targets. so here we only list common properties.
-pub static PROTOTYPE_PROPS: [&str; 12] = [
-  "constructor",
-  "__defineGetter__",
-  "__defineSetter__",
-  "hasOwnProperty",
-  "__lookupGetter__",
-  "__lookupSetter__",
-  "isPrototypeOf",
-  "propertyIsEnumerable",
-  "toString",
-  "valueOf",
-  "__proto__",
-  "toLocaleString",
-];
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -122,7 +107,10 @@ impl Dependency for CommonJsExportsDependency {
   ) -> Option<ExportsSpec> {
     let name = self.names[0].clone();
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-      can_mangle: Some(!PROTOTYPE_PROPS.contains(&name.as_str())),
+      // We can't mangle names that are in an empty object because one could access the prototype property
+      // when export isn't set yet. It's different for different targets. so here we only list common properties.
+      // Check out test case `configCases/mangle/mangle-with-object-prop`
+      can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
       name,
       ..Default::default()
     })];
@@ -230,7 +218,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{}{}", base, property_access(used, 0)),
+          format!("{}{}", base, property_access(used, 0)),
           None,
         );
       } else {
@@ -240,7 +228,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           "__webpack_{}_export__",
           if is_inlined { "inlined" } else { "unused" }
         );
-        source.replace(dep.range.start, dep.range.end, &placeholder_var, None);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          placeholder_var.clone(),
+          None,
+        );
         init_fragments.push(
           NormalInitFragment::new(
             format!("var {placeholder_var};\n"),
@@ -259,7 +252,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             source.replace(
               dep.range.start,
               value_range.start,
-              &format!(
+              format!(
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
@@ -268,7 +261,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               ),
               None,
             );
-            source.replace(value_range.end, dep.range.end, "))", None);
+            source.replace_static(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -283,13 +276,13 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             )
             .boxed(),
           );
-          source.replace(
+          source.replace_static(
             dep.range.start,
             value_range.start,
             "__webpack_unused_export__ = (",
             None,
           );
-          source.replace(value_range.end, dep.range.end, ")", None);
+          source.replace_static(value_range.end, dep.range.end, ")", None);
         }
       } else {
         panic!("Define property need value range");

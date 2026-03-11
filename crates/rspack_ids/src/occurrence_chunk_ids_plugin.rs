@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
 use rspack_collections::DatabaseItem;
 use rspack_core::{
@@ -8,6 +6,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
 
@@ -47,7 +46,7 @@ async fn chunk_ids(
 
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-  let mut occurs_in_initial_chunks_map = HashMap::new();
+  let mut occurs_in_initial_chunks_map = HashMap::default();
 
   for chunk in chunk_by_ukey.values() {
     let mut occurs = 0;

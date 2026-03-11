@@ -13,6 +13,6 @@ pub fn remove_bom(source: Arc<dyn Source>) -> Arc<dyn Source> {
   }
 
   let mut replace_source = ReplaceSource::new(source);
-  replace_source.replace(0, 3, "", None);
+  replace_source.replace_static(0, 3, "", None);
   replace_source.boxed()
 }

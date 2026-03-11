@@ -5,8 +5,8 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportSpecExports, ExportsInfo, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
@@ -14,7 +14,6 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -69,7 +68,8 @@ impl<'a> FlagDependencyExportsState<'a> {
     // and then merge the exports specs to exports info data
     // and collect the dependencies which will be used to backtrack when target exports info is changed
     let mut batch = modules;
-    let mut dependencies: IdentifierMap<IdentifierSet> = IdentifierMap::default();
+    let mut dependencies: IdentifierMap<IdentifierSet> =
+      IdentifierMap::with_capacity_and_hasher(batch.len(), Default::default());
     while !batch.is_empty() {
       let modules = std::mem::take(&mut batch);
 
@@ -88,7 +88,8 @@ impl<'a> FlagDependencyExportsState<'a> {
         })
         .collect::<Vec<_>>();
 
-      let mut changed_modules = FxHashSet::default();
+      let mut changed_modules =
+        IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
 
       // partition the exports specs into two parts:
       // 1. if the exports info data do not have `redirect_to` and exports specs do not have nested `exports`,
@@ -122,7 +123,7 @@ impl<'a> FlagDependencyExportsState<'a> {
         .par_bridge()
         .map(|(module_id, mut exports_info, exports_specs)| {
           let mut changed = false;
-          let mut dependencies = vec![];
+          let mut dependencies = Vec::with_capacity(exports_specs.len());
           for (dep_id, exports_spec) in exports_specs {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
               self.mg,
@@ -433,7 +434,7 @@ struct ParsedExportSpec<'a> {
   name: &'a Atom,
   can_mangle: Option<bool>,
   terminal_binding: bool,
-  exports: Option<&'a ExportSpecExports>,
+  exports: Option<&'a Vec<ExportNameOrSpec>>,
   from: Option<&'a ModuleGraphConnection>,
   from_export: Option<&'a Nullable<Vec<Atom>>>,
   priority: Option<u8>,
@@ -536,7 +537,7 @@ pub fn merge_exports(
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   exports_info: ExportsInfo,
-  exports: &Vec<ExportNameOrSpec>,
+  exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
@@ -650,7 +651,7 @@ fn merge_nested_exports(
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   export_info: ExportInfo,
-  exports: &ExportSpecExports,
+  exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
@@ -678,18 +679,12 @@ fn merge_nested_exports(
     new_exports_info_id
   };
 
-  if exports.unknown_provided {
-    nested_exports_info
-      .as_data_mut(exports_info_artifact)
-      .set_unknown_exports_provided(false, None, None, None, None);
-  }
-
   let (merge_changed, merge_dependencies) = merge_exports(
     mg,
     exports_info_artifact,
     module_id,
     nested_exports_info,
-    &exports.exports,
+    exports,
     global_export_info.clone(),
     dep_id,
   );

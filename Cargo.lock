@@ -311,11 +311,11 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.9.1"
+version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b8e56985ec62d17e9c1001dc89c88ecd7dc08e47eba5ec7c29c7b5eeecde967"
+checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
 dependencies = [
- "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -603,9 +603,9 @@ checksum = "faed1a83001dc2c9201451030cc317e35bef36c84d3781d7c5bb9f343c397da8"
 
 [[package]]
 name = "cc"
-version = "1.2.46"
+version = "1.2.56"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b97463e1064cb1b1c1384ad0a0b9c8abd0988e2a91f52606c80ef14aadb63e36"
+checksum = "aebf35691d1bfb0ac386a69bac2fde4dd276fb618cf8bf4f5318fe285e821bb2"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -1453,9 +1453,9 @@ dependencies = [
 
 [[package]]
 name = "find-msvc-tools"
-version = "0.1.5"
+version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a3076410a55c90011c298b04d0cfa770b00fa04e1e3c97d3f6c9de105a03844"
+checksum = "5baebc0774151f905a1a2cc41989300b1e6fbb29aff0ceffa1064fdd3088d582"
 
 [[package]]
 name = "fixedbitset"
@@ -2104,7 +2104,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f37dccff2791ab604f9babef0ba14fbe0be30bd368dc541e2b08d07c8aa908f3"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "inotify-sys",
  "libc",
 ]
@@ -2355,7 +2355,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9efb6a77b2389e62735b0b8157be9cc10a159eb4d1c3b864e99db9f297ada1b0"
 dependencies = [
  "ahash 0.8.12",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "const-str",
  "cssparser",
  "cssparser-color",
@@ -2629,7 +2629,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f995fe29e20a4d5bf5af93d3c8384fd53772bbbc1bf3b03e38dce2b1b0425e3"
 dependencies = [
  "anyhow",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "ctor 0.4.1",
  "napi-build",
  "napi-sys",
@@ -2734,7 +2734,7 @@ version = "8.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4d3d07927151ff8575b7087f245456e549fea62edf0ec4e565a5ee50c8402bc3"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "fsevent-sys",
  "inotify",
  "kqueue",
@@ -2905,7 +2905,7 @@ version = "0.28.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "54fd03f1ad26cb6b3ec1b7414fa78a3bd639e7dbb421b1a60513c96ce886a196"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "cssparser",
  "log",
  "phf",
@@ -3369,7 +3369,7 @@ version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03a862b389f93e68874fbf580b9de08dd02facb9a788ebadaf4a3fd33cf58834"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
 ]
 
 [[package]]
@@ -3524,9 +3524,9 @@ dependencies = [
 
 [[package]]
 name = "rspack"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "derive_more",
  "enum-tag",
  "indexmap",
@@ -3601,7 +3601,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_allocator"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "mimalloc",
  "sftrace-setup",
@@ -3610,7 +3610,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_benchmark"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "criterion2",
  "rspack",
@@ -3626,7 +3626,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_api"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -3731,21 +3731,21 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_build"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "napi-build",
 ]
 
 [[package]]
 name = "rspack_binding_builder"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_binding_api",
 ]
 
 [[package]]
 name = "rspack_binding_builder_macros"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3755,7 +3755,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_binding_builder_testing"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "napi",
  "napi-derive",
@@ -3769,11 +3769,11 @@ dependencies = [
 
 [[package]]
 name = "rspack_browser"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 
 [[package]]
 name = "rspack_browserslist"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "browserslist-rs",
  "lightningcss",
@@ -3782,7 +3782,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -3798,6 +3798,7 @@ dependencies = [
  "rspack_cacheable_macros",
  "rspack_resolver",
  "rspack_sources",
+ "rustc-hash",
  "serde_json",
  "smol_str",
  "sugar_path",
@@ -3808,7 +3809,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_macros"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "quote",
  "syn 2.0.117",
@@ -3816,7 +3817,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_test"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -3835,7 +3836,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_collections"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "dashmap 6.1.0",
  "hashlink",
@@ -3843,18 +3844,19 @@ dependencies = [
  "rayon",
  "rspack-allocative",
  "rspack_cacheable",
+ "rustc-hash",
  "serde",
  "ustr-fxhash",
 ]
 
 [[package]]
 name = "rspack_core"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anymap3",
  "async-recursion",
  "async-trait",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "cow-utils",
  "dashmap 6.1.0",
  "derive_more",
@@ -3928,7 +3930,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_error"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anyhow",
  "miette",
@@ -3945,7 +3947,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_fs"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cfg-if",
@@ -3960,7 +3962,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_futures"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_tasks",
  "tokio",
@@ -3968,7 +3970,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hash"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "md4",
  "rspack_cacheable",
@@ -3979,7 +3981,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_hook"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_error",
@@ -3990,7 +3992,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_ids"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "itertools 0.14.0",
  "rayon",
@@ -4005,7 +4007,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_javascript_compiler"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anyhow",
  "base64",
@@ -4027,7 +4029,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_lightningcss"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "derive_more",
@@ -4047,7 +4049,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_preact_refresh"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4060,7 +4062,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_react_refresh"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4073,7 +4075,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_runner"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anymap3",
  "async-trait",
@@ -4096,7 +4098,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_swc"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "either",
@@ -4129,7 +4131,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_loader_testing"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4141,7 +4143,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_location"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "itoa",
  "memchr",
@@ -4150,7 +4152,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4159,7 +4161,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_macros_test"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4177,7 +4179,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "napi",
  "oneshot",
@@ -4189,7 +4191,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_napi_macros"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4198,7 +4200,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_node"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "napi-derive",
  "rspack_binding_api",
@@ -4208,7 +4210,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_paths"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "camino",
  "dashmap 6.1.0",
@@ -4220,7 +4222,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_asset"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "mime_guess",
@@ -4237,7 +4239,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_banner"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "futures",
@@ -4251,7 +4253,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_case_sensitive"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "itertools 0.14.0",
@@ -4265,7 +4267,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_circular_dependencies"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "derive_more",
@@ -4282,7 +4284,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_copy"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more",
@@ -4302,7 +4304,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4330,7 +4332,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_css_chunking"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "indexmap",
  "rspack_collections",
@@ -4345,7 +4347,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_devtool"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
@@ -4372,7 +4374,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dll"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4392,7 +4394,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_dynamic_entry"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "atomic_refcell",
  "derive_more",
@@ -4406,7 +4408,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ensure_chunk_conditions"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4417,7 +4419,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_entry"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4427,7 +4429,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_esm_library"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4456,7 +4458,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_externals"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "regex",
  "rspack_core",
@@ -4469,7 +4471,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_extract_css"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4495,7 +4497,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_hmr"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4516,7 +4518,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_html"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anyhow",
  "atomic_refcell",
@@ -4544,7 +4546,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_ignore"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "derive_more",
  "futures",
@@ -4557,11 +4559,11 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_javascript"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anymap3",
  "async-trait",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "cow-utils",
  "either",
  "fast-glob",
@@ -4600,7 +4602,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_json"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -4613,7 +4615,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lazy_compilation"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4633,7 +4635,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_library"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "futures",
  "regex",
@@ -4653,7 +4655,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_lightning_css_minimizer"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "lightningcss",
  "parcel_sourcemap",
@@ -4670,7 +4672,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_limit_chunk_count"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4681,7 +4683,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_merge_duplicate_chunks"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rayon",
  "rspack_collections",
@@ -4694,7 +4696,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_mf"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "camino",
@@ -4721,7 +4723,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_info_header"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_cacheable",
  "rspack_core",
@@ -4736,7 +4738,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_module_replacement"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "derive_more",
  "futures",
@@ -4751,7 +4753,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_no_emit_on_errors"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -4761,7 +4763,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_progress"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "futures",
  "indicatif",
@@ -4775,7 +4777,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_real_content_hash"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "aho-corasick",
  "atomic_refcell",
@@ -4796,7 +4798,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_duplicate_modules"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "dashmap 6.1.0",
  "rayon",
@@ -4809,7 +4811,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_remove_empty_chunks"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_collections",
  "rspack_core",
@@ -4820,7 +4822,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsc"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4853,7 +4855,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rsdoctor"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "atomic_refcell",
  "futures",
@@ -4876,7 +4878,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rslib"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "rspack_cacheable",
@@ -4897,7 +4899,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_rstest"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "camino",
  "regex",
@@ -4907,13 +4909,14 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_javascript",
  "rspack_util",
+ "rustc-hash",
  "swc_core",
  "tracing",
 ]
 
 [[package]]
 name = "rspack_plugin_runtime"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "atomic_refcell",
@@ -4938,7 +4941,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_runtime_chunk"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "futures",
  "rspack_core",
@@ -4949,7 +4952,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_schemes"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4974,7 +4977,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_size_limits"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "derive_more",
  "futures",
@@ -4983,12 +4986,13 @@ dependencies = [
  "rspack_futures",
  "rspack_hook",
  "rspack_util",
+ "rustc-hash",
  "tracing",
 ]
 
 [[package]]
 name = "rspack_plugin_split_chunks"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "dashmap 6.1.0",
  "derive_more",
@@ -5010,7 +5014,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_sri"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5043,7 +5047,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_swc_js_minimizer"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "once_cell",
@@ -5067,7 +5071,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_wasm"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5087,7 +5091,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_web_worker_template"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_core",
  "rspack_plugin_runtime",
@@ -5095,7 +5099,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_plugin_worker"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "rspack_core",
  "rspack_error",
@@ -5105,7 +5109,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_regex"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "napi",
@@ -5142,22 +5146,22 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.17"
+version = "0.4.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18e2dedc4568248407819e5fd55843b4dc9e3fe657d8794a1bdfcc1211db0d46"
+checksum = "d53fb56d5c7ff13c6fe50715c7a281292b3b3b2db7ac5bdc1a04cadb703c1de5"
 dependencies = [
  "dyn-clone",
  "memchr",
  "rustc-hash",
  "serde",
- "serde_json",
  "simd-json",
+ "simd-utf16-len",
  "static_assertions",
 ]
 
 [[package]]
 name = "rspack_storage"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
@@ -5175,7 +5179,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_import"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "heck",
@@ -5186,29 +5190,30 @@ dependencies = [
 
 [[package]]
 name = "rspack_swc_plugin_ts_collector"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "glob",
+ "insta",
  "rspack_javascript_compiler",
  "rustc-hash",
- "serde_json",
  "swc_core",
 ]
 
 [[package]]
 name = "rspack_tasks"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "tokio",
 ]
 
 [[package]]
 name = "rspack_tools"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "clap",
  "itertools 0.14.0",
  "rspack_cacheable",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_fs",
@@ -5219,17 +5224,18 @@ dependencies = [
 
 [[package]]
 name = "rspack_tracing"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "chrono",
  "rspack_tracing_perfetto",
+ "rustc-hash",
  "serde_json",
  "tracing-subscriber",
 ]
 
 [[package]]
 name = "rspack_tracing_perfetto"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "bytes",
  "micromegas-perfetto",
@@ -5241,11 +5247,11 @@ dependencies = [
 
 [[package]]
 name = "rspack_util"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "anyhow",
  "base64-simd 0.8.0",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "concat-string",
  "cow-utils",
  "dashmap 6.1.0",
@@ -5275,7 +5281,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_watcher"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
  "dashmap 6.1.0",
@@ -5291,7 +5297,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_workspace"
-version = "0.100.0-beta.5"
+version = "0.100.0-beta.6"
 
 [[package]]
 name = "rustc-demangle"
@@ -5311,7 +5317,7 @@ version = "0.38.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93dc38ecbab2eb790ff964bb77fa94faf256fd3e73285fd7ba0903b76bedb85"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "errno",
  "libc",
  "linux-raw-sys 0.4.14",
@@ -5324,7 +5330,7 @@ version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "11181fbabf243db407ef8df94a6ce0b2f9a733bd8be4ad02b4eda9602296cac8"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
@@ -5553,6 +5559,12 @@ dependencies = [
  "simdutf8",
  "value-trait",
 ]
+
+[[package]]
+name = "simd-utf16-len"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c17a83ac53a3ccce2d4fec2031c22b539d12dc95498e75935a6da589b7b4372"
 
 [[package]]
 name = "simdutf8"
@@ -5946,7 +5958,7 @@ version = "21.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "27111582629a1cc116f9cffa6bfa501e6c849e0e66fafdf78cd404dce919117d"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "cbor4ii",
  "is-macro",
  "num-bigint",
@@ -6224,7 +6236,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3975f1c2347ec502c975e4df17dff27f5ba70281e02a314448055ad689979e2a"
 dependencies = [
  "arrayvec",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "indexmap",
  "num-bigint",
  "num_cpus",
@@ -6260,7 +6272,7 @@ version = "35.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "943b8743c57783b35b6c173b0a8ef539a6c1d06ee5d1588b2821992c3fd35f39"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "either",
  "num-bigint",
  "phf",
@@ -6339,7 +6351,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b35f7e4a026dbd065141006fc36556848c9892337f8213dd607198cd9c50da67"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "is-macro",
  "swc_atoms",
  "swc_common",
@@ -6487,7 +6499,7 @@ checksum = "a3f72dc1e23c723c34248d0cf7f0aa8e9ba968cf28d4272c08a84310c2ceb7ce"
 dependencies = [
  "Inflector",
  "anyhow",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "indexmap",
  "is-macro",
  "path-clean 1.0.1",
@@ -6598,7 +6610,7 @@ version = "29.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a26a2082f0ab640cb8fa48c7b5708000c188178a891c9cb970ad714e40350825"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "indexmap",
  "rustc-hash",
  "swc_atoms",
@@ -6699,7 +6711,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48aed221675df537b05f14b1afec967b87c74c9b21452cc07b0bde37b2bcd15b"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "either",
  "num-bigint",
  "rustc-hash",
@@ -6763,7 +6775,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "80b52d456f4e2058d0f82318090e3f454a2316568639922d696968da912c8130"
 dependencies = [
  "auto_impl",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "rustc-hash",
  "swc_atoms",
  "swc_common",
@@ -7005,7 +7017,7 @@ version = "0.27.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc4592f674ce18521c2a81483873a49596655b179f71c5e05d10c1fe66c78745"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "cap-fs-ext",
  "cap-std",
  "fd-lock",
@@ -7615,7 +7627,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f17747bf7f2275572f4e3ed884e8143285a711fbf25999244d61644fe212340"
 dependencies = [
  "anyhow",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "cap-fs-ext",
  "cap-rand",
  "cap-std",
@@ -7707,7 +7719,7 @@ version = "0.222.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4adf50fde1b1a49c1add6a80d47aea500c88db70551805853aa8b88f3ea27ab5"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
 ]
 
 [[package]]
@@ -7716,7 +7728,7 @@ version = "0.235.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "161296c618fa2d63f6ed5fffd1112937e803cb9ec71b32b01a76321555660917"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "hashbrown 0.15.2",
  "indexmap",
  "semver",
@@ -7742,7 +7754,7 @@ checksum = "b6fe976922a16af3b0d67172c473d1fd4f1aa5d0af9c8ba6538c741f3af686f4"
 dependencies = [
  "addr2line",
  "anyhow",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "bumpalo",
  "cc",
  "cfg-if",
@@ -7945,7 +7957,7 @@ checksum = "fc3ea480ce117a35b61e466e4f77422f2b29f744400e05de3ad87d73b8a1877c"
 dependencies = [
  "anyhow",
  "async-trait",
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "thiserror 2.0.17",
  "tracing",
  "wasmtime",
@@ -8334,7 +8346,7 @@ version = "0.36.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f3fd376f71958b862e7afb20cfe5a22830e1963462f3a17f49d82a6c1d1f42d"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
  "windows-sys 0.59.0",
 ]
 
@@ -8344,7 +8356,7 @@ version = "0.39.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.11.0",
 ]
 
 [[package]]

@@ -890,9 +890,28 @@ export default {
 
 ## devServer.static
 
-- **Type:** `boolean | string | object | [string, object]`
+- **Type:**
 
-This option allows configuring options for serving static files from the directory (by default 'public' directory). To disable set it to `false`:
+```ts
+type DevServerStatic =
+  | string
+  | boolean
+  | DevServerStaticItem
+  | (string | DevServerStaticItem)[];
+```
+
+This option controls how the dev server serves static files from disk. These files are read directly from the file system and are not processed by Rspack.
+
+By default, the `public` directory is served.
+
+You can use the following forms:
+
+- `boolean`: `false` disables static file serving; `true` serves the default `public` directory with the default options.
+- `string`: shorthand for `static.directory`.
+- `object`: configure one static directory.
+- `array`: configure multiple static directories.
+
+Set it to `false` to disable static file serving:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -902,22 +921,177 @@ export default {
 };
 ```
 
-To watch a single directory:
+When set to a string, it is equivalent to configuring `static.directory`:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
-    static: ['assets'],
+    static: 'assets',
   },
 };
 ```
 
-To watch multiple static directories:
+To serve multiple static directories, pass an array:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     static: ['assets', 'css'],
+  },
+};
+```
+
+### directory
+
+- **Type:** `string`
+- **Default:** `path.join(process.cwd(), 'public')`
+
+Tells the server which directory to read static files from, the value is an absolute path.
+
+`directory` only controls which folder is read from disk. It does not decide where Rspack compilation assets are served from. The URL prefix for these static files is controlled by [`static.publicPath`](#publicpath).
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+    },
+  },
+};
+```
+
+Provide an array of objects if you have multiple static folders:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: [
+      {
+        directory: path.join(import.meta.dirname, 'assets'),
+      },
+      {
+        directory: path.join(import.meta.dirname, 'css'),
+      },
+    ],
+  },
+};
+```
+
+It is recommended to use an absolute path.
+
+### staticOptions
+
+- **Type:** `object`
+
+Allows configuring lower-level options for serving files. See the [express.static](https://expressjs.com/en/api.html#express.static) documentation for the available options.
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    static: {
+      staticOptions: {
+        redirect: true,
+      },
+    },
+  },
+};
+```
+
+### publicPath
+
+- **Type:** `string | string[]`
+- **Default:** `'/'`
+
+Tells the server at which URL to serve the content from [`static.directory`](#directory).
+
+For example, to serve the file `assets/manifest.json` at `/serve-public-path-url/manifest.json`, configure it like this:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'assets'),
+      publicPath: '/serve-public-path-url',
+    },
+  },
+};
+```
+
+Provide an array of objects if you have multiple static folders with different URL prefixes:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: [
+      {
+        directory: path.join(import.meta.dirname, 'assets'),
+        publicPath: '/serve-public-path-url',
+      },
+      {
+        directory: path.join(import.meta.dirname, 'css'),
+        publicPath: '/other-serve-public-path-url',
+      },
+    ],
+  },
+};
+```
+
+You can also mount the same static directory on multiple URL prefixes:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      publicPath: ['/assets', '/shared-assets'],
+    },
+  },
+};
+```
+
+### watch
+
+- **Type:** `boolean | object`
+
+Controls whether files in [`static.directory`](#directory) are watched for changes. By default, changes to static files trigger a full page reload. Set it to `false` to disable watching.
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      watch: false,
+    },
+  },
+};
+```
+
+You can also pass an object to configure advanced watch options. See the [`chokidar`](https://github.com/paulmillr/chokidar) documentation for the available options.
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  devServer: {
+    static: {
+      directory: path.join(import.meta.dirname, 'public'),
+      watch: {
+        ignored: '*.txt',
+        usePolling: false,
+      },
+    },
   },
 };
 ```

@@ -21,9 +21,7 @@ impl From<CompilerTransformOutput> for TransformOutput {
   fn from(value: CompilerTransformOutput) -> Self {
     Self {
       code: value.code,
-      map: value
-        .map
-        .map(|v| serde_json::to_string(&v).expect("failed to serialize transformOutput.map")),
+      map: value.map.map(|v| v.to_json()),
       diagnostics: value.diagnostics,
     }
   }
