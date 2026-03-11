@@ -1,0 +1,20 @@
+```mjs title=lib.mjs
+// ./lib.js
+const value = () => 42
+const useless = () => 42
+export { value };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should have no other exports', async () => {
+  const { value } = await import("./lib.mjs")
+
+  const ns = await import(/*webpackIgnore: true*/ './main.mjs')
+
+  expect(value()).toBe(42)
+  expect(Reflect.ownKeys(ns).length).toBe(1)
+})
+
+```
