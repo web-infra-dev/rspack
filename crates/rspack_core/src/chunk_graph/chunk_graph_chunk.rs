@@ -1,21 +1,22 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
 use std::{
-  borrow::Borrow,
   collections::VecDeque,
   fmt,
-  hash::{Hash, Hasher},
-  sync::Arc,
+  hash::{BuildHasherDefault, Hash},
 };
 
 use hashlink::LinkedHashMap;
 use indexmap::IndexSet;
 use itertools::Itertools;
-use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_collections::{
+  DatabaseItem, IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet,
+};
 use rspack_util::fx_hash::FxIndexSet;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
+use ustr::Ustr;
 
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
@@ -31,35 +32,29 @@ pub struct ChunkSizeOptions {
   pub entry_chunk_multiplicator: Option<f64>,
 }
 
-#[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ChunkId {
-  inner: Arc<str>,
-  hash: u64,
-}
+pub type ChunkIdMap<V> =
+  std::collections::HashMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
+pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<IdentifierHasher>>;
 
-impl Hash for ChunkId {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    // Use the precomputed hash value so hashing in maps/sets is O(1)
-    state.write_u64(self.hash);
-  }
-}
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ChunkId(#[cacheable(with=AsPreset)] Ustr);
 
 impl From<String> for ChunkId {
   fn from(s: String) -> Self {
-    Self::new(s.into())
+    Self(s.into())
   }
 }
 
 impl From<&str> for ChunkId {
   fn from(s: &str) -> Self {
-    Self::new(s.into())
+    Self(s.into())
   }
 }
 
 impl fmt::Display for ChunkId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.as_str())
+    write!(f, "{}", self.0)
   }
 }
 
@@ -68,27 +63,13 @@ impl Serialize for ChunkId {
   where
     S: Serializer,
   {
-    serializer.serialize_str(self.as_str())
-  }
-}
-
-impl Borrow<str> for ChunkId {
-  fn borrow(&self) -> &str {
-    self.as_str()
+    serializer.serialize_str(self.0.as_str())
   }
 }
 
 impl ChunkId {
-  fn new(inner: Arc<str>) -> Self {
-    // Precompute hash once when ModuleId is created, similar to ArcPath.
-    let mut hasher = FxHasher::default();
-    inner.hash(&mut hasher);
-    let hash = hasher.finish();
-    Self { inner, hash }
-  }
-
   pub fn as_str(&self) -> &str {
-    &self.inner
+    self.0.as_str()
   }
 }
 
@@ -553,8 +534,8 @@ impl ChunkGraph {
     &self,
     chunk: &ChunkUkey,
     compilation: &Compilation,
-  ) -> HashMap<SourceType, f64> {
-    let mut sizes = HashMap::<SourceType, f64>::default();
+  ) -> FxHashMap<SourceType, f64> {
+    let mut sizes = FxHashMap::<SourceType, f64>::default();
     let cgc = self.expect_chunk_graph_chunk(chunk);
     let module_graph = &compilation.get_module_graph();
     for identifier in &cgc.modules {
@@ -715,8 +696,8 @@ impl ChunkGraph {
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
     filter: F,
-  ) -> HashMap<String, bool> {
-    let mut map = HashMap::default();
+  ) -> FxHashMap<String, bool> {
+    let mut map = FxHashMap::default();
 
     let chunk = compilation
       .build_chunk_graph_artifact

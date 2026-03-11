@@ -3,13 +3,12 @@ use rspack_collections::{DatabaseItem, UkeyIndexSet, UkeySet};
 use rspack_core::{
   ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, CompilationChunkIds,
   ExportsInfoArtifact, Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
-  chunk_graph_chunk::ChunkId,
+  chunk_graph_chunk::{ChunkId, ChunkIdMap, ChunkIdSet},
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
-use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
 
@@ -26,7 +25,7 @@ fn assign_named_chunk_ids(
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   delimiter: &str,
-  used_ids: &mut FxHashMap<ChunkId, ChunkUkey>,
+  used_ids: &mut ChunkIdMap<ChunkUkey>,
   named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   mutations: &mut Option<Mutations>,
 ) -> Vec<ChunkUkey> {
@@ -47,8 +46,8 @@ fn assign_named_chunk_ids(
       (item, ChunkId::from(name))
     })
     .collect();
-  let mut name_to_items: FxHashMap<ChunkId, UkeyIndexSet<ChunkUkey>> = FxHashMap::default();
-  let mut invalid_and_repeat_names: FxHashSet<ChunkId> =
+  let mut name_to_items: ChunkIdMap<UkeyIndexSet<ChunkUkey>> = ChunkIdMap::default();
+  let mut invalid_and_repeat_names: ChunkIdSet =
     std::iter::once(ChunkId::from(String::new())).collect();
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
@@ -113,7 +112,7 @@ fn assign_named_chunk_ids(
     }
   }
 
-  let name_to_items_keys = name_to_items.keys().cloned().collect::<FxHashSet<_>>();
+  let name_to_items_keys = name_to_items.keys().cloned().collect::<ChunkIdSet>();
   let mut unnamed_items = vec![];
 
   let mut ordered_chunk_modules_cache = Default::default();
@@ -249,7 +248,7 @@ async fn chunk_ids(
     .mutations_writeable()
     .then(Mutations::default);
 
-  let mut used_ids: FxHashMap<ChunkId, ChunkUkey> = Default::default();
+  let mut used_ids: ChunkIdMap<ChunkUkey> = Default::default();
 
   // Use chunk name as default chunk id
   chunks.retain(|chunk_ukey| {

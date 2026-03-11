@@ -3,12 +3,12 @@ use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{
   ChunkGraph, CompilationModuleIds, Logger, ModuleGraph, ModuleId, ModuleIdentifier,
   ModuleIdsArtifact, Plugin,
+  chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   incremental::{self, IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{comparators::compare_ids, itoa};
-use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::id_helpers::{get_long_module_name, get_short_module_name};
 
@@ -17,7 +17,7 @@ fn assign_named_module_ids(
   modules: IdentifierSet,
   context: &str,
   module_graph: &ModuleGraph,
-  used_ids: &mut FxHashMap<ModuleId, ModuleIdentifier>,
+  used_ids: &mut ModuleIdMap<ModuleIdentifier>,
   module_ids: &mut ModuleIdsArtifact,
   mutations: &mut Option<Mutations>,
 ) -> Vec<ModuleIdentifier> {
@@ -31,8 +31,8 @@ fn assign_named_module_ids(
       (item, name)
     })
     .collect();
-  let mut name_to_items: FxHashMap<ModuleId, IdentifierIndexSet> = FxHashMap::default();
-  let mut invalid_and_repeat_names: FxHashSet<ModuleId> =
+  let mut name_to_items: ModuleIdMap<IdentifierIndexSet> = ModuleIdMap::default();
+  let mut invalid_and_repeat_names: ModuleIdSet =
     std::iter::once(ModuleId::from(String::new())).collect();
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
@@ -75,7 +75,7 @@ fn assign_named_module_ids(
     }
   }
 
-  let name_to_items_keys = name_to_items.keys().cloned().collect::<FxHashSet<_>>();
+  let name_to_items_keys = name_to_items.keys().cloned().collect::<ModuleIdSet>();
   let mut unnamed_items = vec![];
 
   for (name, mut items) in name_to_items {
@@ -129,7 +129,7 @@ async fn module_ids(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let mut module_ids = std::mem::take(module_ids_artifact);
-  let mut used_ids: FxHashMap<ModuleId, ModuleIdentifier> = module_ids
+  let mut used_ids: ModuleIdMap<ModuleIdentifier> = module_ids
     .iter()
     .map(|(&module, id)| (id.clone(), module))
     .collect();
