@@ -18,6 +18,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
   ModuleIdentifier, Plugin, incremental::Mutation,
@@ -36,11 +37,11 @@ use super::{
 #[plugin]
 #[derive(Debug, Default)]
 pub struct HoistContainerReferencesPlugin {
-  federation_deps: Arc<Mutex<FxHashSet<DependencyId>>>,
+  federation_deps: Arc<Mutex<UkeySet<DependencyId>>>,
 }
 
 struct ContainerEntryDepCollector {
-  set: Arc<Mutex<FxHashSet<DependencyId>>>,
+  set: Arc<Mutex<UkeySet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -58,7 +59,7 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
 }
 
 struct FederationRuntimeDepCollector {
-  set: Arc<Mutex<FxHashSet<DependencyId>>>,
+  set: Arc<Mutex<UkeySet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -76,7 +77,7 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
 }
 
 struct RemoteDepCollector {
-  set: Arc<Mutex<FxHashSet<DependencyId>>>,
+  set: Arc<Mutex<UkeySet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -142,9 +143,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     compilation: &Compilation,
     module_id: ModuleIdentifier,
     ty: &str,
-  ) -> FxHashSet<ModuleIdentifier> {
-    let mut collected = FxHashSet::default();
-    let mut visited = FxHashSet::default();
+  ) -> IdentifierSet {
+    let mut collected = IdentifierSet::default();
+    let mut visited = IdentifierSet::default();
     let mut stack = VecDeque::new();
 
     collected.insert(module_id);
@@ -190,7 +191,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .iter()
     .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
     .flat_map(|module| get_all_referenced_modules(compilation, *module, "initial"))
-    .collect::<FxHashSet<_>>();
+    .collect::<IdentifierSet>();
 
   // Hoist referenced modules to their runtime chunk
   let runtime_chunk_by_runtime = compilation

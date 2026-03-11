@@ -2,17 +2,52 @@ mod resource_id;
 
 use std::hash::BuildHasherDefault;
 
+use rspack_collections::{IdentifierSet, UkeySet};
 use rspack_paths::{ArcPath, ArcPathMap, ArcPathSet};
-use rustc_hash::FxHashSet as HashSet;
 use ustr::IdentityHasher;
 
 pub use self::resource_id::ResourceId;
-use crate::utils::incremental_info::IncrementalInfo;
+use crate::{DependencyId, utils::incremental_info::IncrementalInfo};
+
+/// Tracks the modules and dependencies that currently reference a path.
+#[derive(Debug, Default)]
+pub struct PathResourceIds {
+  modules: IdentifierSet,
+  dependencies: UkeySet<DependencyId>,
+}
+
+impl PathResourceIds {
+  fn insert(&mut self, resource_id: &ResourceId) -> bool {
+    match resource_id {
+      ResourceId::Module(module_id) => self.modules.insert(*module_id),
+      ResourceId::Dependency(dependency_id) => self.dependencies.insert(*dependency_id),
+    }
+  }
+
+  fn remove(&mut self, resource_id: &ResourceId) -> bool {
+    match resource_id {
+      ResourceId::Module(module_id) => self.modules.remove(module_id),
+      ResourceId::Dependency(dependency_id) => self.dependencies.remove(dependency_id),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.modules.is_empty() && self.dependencies.is_empty()
+  }
+
+  pub fn modules(&self) -> &IdentifierSet {
+    &self.modules
+  }
+
+  pub fn dependencies(&self) -> &UkeySet<DependencyId> {
+    &self.dependencies
+  }
+}
 
 /// Used to count file usage and track which modules/dependencies use each file
 #[derive(Debug, Default)]
 pub struct FileCounter {
-  inner: ArcPathMap<HashSet<ResourceId>>,
+  inner: ArcPathMap<PathResourceIds>,
   incremental_info: IncrementalInfo<ArcPath, BuildHasherDefault<IdentityHasher>>,
 }
 
@@ -27,7 +62,7 @@ impl FileCounter {
         self.incremental_info.mark_as_add(path);
       }
       // multiple additions are allowed without additional checks to see if the addition was successful
-      list.insert(resource_id.clone());
+      list.insert(resource_id);
     }
   }
 
@@ -62,7 +97,7 @@ impl FileCounter {
   }
 
   /// Get the resource ids (modules/dependencies) that use a specific file
-  pub fn related_resource_ids(&self, path: &ArcPath) -> Option<&HashSet<ResourceId>> {
+  pub fn related_resource_ids(&self, path: &ArcPath) -> Option<&PathResourceIds> {
     self.inner.get(path)
   }
 
@@ -92,6 +127,7 @@ mod test {
   use rspack_paths::{ArcPath, ArcPathSet};
 
   use super::{FileCounter, ResourceId};
+  use crate::DependencyId;
   #[test]
   fn file_counter_is_available() {
     let mut counter = FileCounter::default();
@@ -202,5 +238,34 @@ mod test {
     counter.remove_files(&resource_2, &file_list_a);
     assert_eq!(counter.added_files().count(), 0);
     assert_eq!(counter.removed_files().count(), 1);
+  }
+
+  #[test]
+  fn file_counter_tracks_modules_and_dependencies_separately() {
+    let mut counter = FileCounter::default();
+    let file = ArcPath::from(std::path::PathBuf::from("/a"));
+    let file_list = {
+      let mut list = ArcPathSet::default();
+      list.insert(file.clone());
+      list
+    };
+    let module = ResourceId::Module("A".into());
+    let dependency = ResourceId::Dependency(DependencyId::from(1));
+
+    counter.add_files(&module, &file_list);
+    counter.add_files(&dependency, &file_list);
+
+    let ids = counter
+      .related_resource_ids(&file)
+      .expect("should track path resource ids");
+    assert_eq!(ids.modules().len(), 1);
+    assert_eq!(ids.dependencies().len(), 1);
+
+    counter.remove_files(&module, &file_list);
+    let ids = counter
+      .related_resource_ids(&file)
+      .expect("should keep dependency after removing module");
+    assert!(ids.modules().is_empty());
+    assert_eq!(ids.dependencies().len(), 1);
   }
 }
