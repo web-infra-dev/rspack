@@ -17,8 +17,9 @@ it("should emit host and remote RSC metadata across serial MF builds", async () 
 	expect(remoteStats.name).toBe("remote");
 	expect(remoteManifest.name).toBe("remote");
 
-	const hostShared = hostStats.shared.find(item => item.name === "shared-rsc");
+	const hostShared = hostStats.shared.find(item => item.shareKey === "rsc-shared-key");
 	expect(hostShared).toBeDefined();
+	expect(hostShared.name).toBe("rsc-shared-key");
 	expect(hostShared.shareKey).toBe("rsc-shared-key");
 	expect(hostShared.rsc.lookup).toBe("rsc-shared-key");
 

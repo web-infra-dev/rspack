@@ -116,7 +116,7 @@ export type ManifestExposeOption = {
 
 export type ManifestSharedOption = {
   name: string;
-  shareKey: string;
+  shareKey?: string;
   version?: string;
   requiredVersion?: string;
   singleton?: boolean;
@@ -259,7 +259,9 @@ function collectManifestShared(
         ? config.requiredVersion
         : undefined;
     return {
-      name: key,
+      // Keep backward-compatible manifest/shared naming semantics:
+      // name is the effective runtime share key when provided.
+      name: shareKey,
       shareKey,
       version,
       requiredVersion,
@@ -267,6 +269,16 @@ function collectManifestShared(
     };
   });
   return result.length > 0 ? result : undefined;
+}
+
+function normalizeManifestSharedOptions(
+  shared: ManifestSharedOption[] | undefined,
+): ManifestSharedOption[] | undefined {
+  if (!shared) return undefined;
+  return shared.map((item) => ({
+    ...item,
+    shareKey: item.shareKey ?? item.name,
+  }));
 }
 
 function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
@@ -301,6 +313,9 @@ function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
   if (manifestOptions.shared === undefined && manifestShared) {
     manifestOptions.shared = manifestShared;
   }
+  manifestOptions.shared = normalizeManifestSharedOptions(
+    manifestOptions.shared,
+  );
 
   return {
     ...manifestOptions,
