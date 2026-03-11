@@ -73,13 +73,13 @@ impl ImportsReferencesState {
 
   fn take_all_import_references(
     &mut self,
-  ) -> impl Iterator<Item = (ImportDependencyLocator, Atom, Vec<Vec<Atom>>)> + use<> {
+  ) -> impl Iterator<Item = (ImportDependencyLocator, Option<Atom>, Vec<Vec<Atom>>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
     inner.into_values().filter_map(|value| {
       value.dep_locator.map(|locator| {
         (
           locator,
-          value.variable_name.expect("should have variable_name"),
+          value.variable_name,
           value
             .references
             .into_iter()
@@ -499,7 +499,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       // If the import result is assigned to a variable that is also an ESM
       // named export, importers may access arbitrary properties on it. In that
       // case the entire module must be considered referenced.
-      if parser.build_info.esm_named_exports.contains(&variable_name) {
+      if let Some(variable_name) = variable_name
+        && parser.build_info.esm_named_exports.contains(&variable_name)
+      {
         references.push(vec![]);
       }
       let dep = if let Some(block_idx) = locator.block_idx
