@@ -43,13 +43,13 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.41.0",
+    "@ast-grep/napi": "^0.41.1",
     "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.4",
     "@rslib/core": "0.20.0",
     "@rspack/lite-tapable": "1.1.0",
     "@swc/types": "0.1.25",
-    "@types/node": "^20.19.35",
+    "@types/node": "^20.19.37",
     "@types/watchpack": "^2.4.5",
     "browserslist-load-config": "^1.0.1",
     "browserslist-to-es-version": "^1.4.1",

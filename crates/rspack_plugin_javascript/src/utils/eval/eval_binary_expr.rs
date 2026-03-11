@@ -261,28 +261,19 @@ fn handle_add<'a>(
       res.set_string(format!("{}{}", left.string(), right.string()));
     } else if right.is_number() {
       res.set_string(format!("{}{}", left.string(), right.number()));
-    } else if right.is_wrapped()
-      && let Some(prefix) = right.prefix()
-      && prefix.is_string()
-    {
-      let (start, end) = join_locations(left.range.as_ref(), prefix.range.as_ref());
-      let mut left_prefix = BasicEvaluatedExpression::with_range(start, end);
-      left_prefix.set_string(format!("{}{}", left.string(), prefix.string()));
-      res.set_wrapped(
-        Some(left_prefix),
-        right.postfix.map(|postfix| *postfix),
-        right
-          .wrapped_inner_expressions
-          .expect("wrapped_inner_expressions must be exists under wrapped"),
-      )
     } else if right.is_wrapped() {
-      res.set_wrapped(
-        Some(left),
-        right.postfix.map(|postfix| *postfix),
-        right
-          .wrapped_inner_expressions
-          .expect("wrapped_inner_expressions must be exists under wrapped"),
-      );
+      let (right_prefix, right_postfix, right_inner_expressions) =
+        right.into_wrapped().expect("right should be wrapped");
+      if let Some(prefix) = right_prefix.as_ref()
+        && prefix.is_string()
+      {
+        let (start, end) = join_locations(left.range_ref(), prefix.range_ref());
+        let mut left_prefix = BasicEvaluatedExpression::with_range(start, end);
+        left_prefix.set_string(format!("{}{}", left.string(), prefix.string()));
+        res.set_wrapped(Some(left_prefix), right_postfix, right_inner_expressions)
+      } else {
+        res.set_wrapped(Some(left), right_postfix, right_inner_expressions);
+      }
     } else {
       res.set_wrapped(Some(left), None, vec![right])
     }
@@ -305,103 +296,79 @@ fn handle_add<'a>(
     }
     return None;
   } else if left.is_wrapped() {
-    if let Some(postfix) = &left.postfix
+    let (mut left_prefix, mut left_postfix, mut left_inner_expressions) =
+      left.into_wrapped().expect("left should be wrapped");
+    if let Some(postfix) = left_postfix.as_ref()
       && postfix.is_string()
       && right.is_string()
     {
-      let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
+      let range = join_locations(postfix.range_ref(), right.range_ref());
       let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
       right_postfix.set_string(format!("{}{}", postfix.string(), right.string()));
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left_prefix.take(),
         Some(right_postfix),
-        left
-          .wrapped_inner_expressions
-          .expect("wrapped_inner_expressions must be exists under wrapped"),
+        std::mem::take(&mut left_inner_expressions),
       )
-    } else if let Some(postfix) = &left.postfix
+    } else if let Some(postfix) = left_postfix.as_ref()
       && postfix.is_string()
       && right.is_number()
     {
-      let range = join_locations(postfix.range.as_ref(), right.range.as_ref());
+      let range = join_locations(postfix.range_ref(), right.range_ref());
       let mut right_postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
       right_postfix.set_string(format!("{}{}", postfix.string(), right.number()));
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left_prefix.take(),
         Some(right_postfix),
-        left
-          .wrapped_inner_expressions
-          .expect("wrapped_inner_expressions must be exists under wrapped"),
+        std::mem::take(&mut left_inner_expressions),
       )
     } else if right.is_string() {
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left_prefix.take(),
         Some(right),
-        left
-          .wrapped_inner_expressions
-          .expect("wrapped_inner_expressions must be exists under wrapped"),
+        std::mem::take(&mut left_inner_expressions),
       );
     } else if right.is_number() {
       let range = right.range();
       let mut postfix = BasicEvaluatedExpression::with_range(range.0, range.1);
       postfix.set_string(right.number().to_string());
       res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
+        left_prefix.take(),
         Some(postfix),
-        left
-          .wrapped_inner_expressions
-          .expect("wrapped_inner_expressions must be exists under wrapped"),
+        std::mem::take(&mut left_inner_expressions),
       )
     } else if right.is_wrapped() {
-      let inner_expressions = if let Some(mut left_inner_expression) =
-        left.wrapped_inner_expressions
-        && let Some(mut right_inner_expression) = right.wrapped_inner_expressions
-      {
-        if let Some(postfix) = left.postfix {
-          left_inner_expression.push(*postfix);
-        }
-        if let Some(prefix) = right.prefix {
-          left_inner_expression.push(*prefix);
-        }
-        left_inner_expression.append(&mut right_inner_expression);
-        left_inner_expression
-      } else {
-        vec![]
-      };
-      res.set_wrapped(
-        left.prefix.map(|prefix| *prefix),
-        right.postfix.map(|postfix| *postfix),
-        inner_expressions,
-      );
+      let (right_prefix, right_postfix, mut right_inner_expression) =
+        right.into_wrapped().expect("right should be wrapped");
+      let mut inner_expressions = std::mem::take(&mut left_inner_expressions);
+      if let Some(postfix) = left_postfix.take() {
+        inner_expressions.push(postfix);
+      }
+      if let Some(prefix) = right_prefix {
+        inner_expressions.push(prefix);
+      }
+      inner_expressions.append(&mut right_inner_expression);
+      res.set_wrapped(left_prefix.take(), right_postfix, inner_expressions);
     } else {
-      let inner_expressions =
-        if let Some(mut left_inner_expression) = left.wrapped_inner_expressions {
-          if let Some(postfix) = left.postfix {
-            left_inner_expression.push(*postfix);
-          }
-          left_inner_expression.push(right);
-          left_inner_expression
-        } else {
-          vec![]
-        };
-      res.set_wrapped(left.prefix.map(|prefix| *prefix), None, inner_expressions)
+      let mut inner_expressions = std::mem::take(&mut left_inner_expressions);
+      if let Some(postfix) = left_postfix.take() {
+        inner_expressions.push(postfix);
+      }
+      inner_expressions.push(right);
+      res.set_wrapped(left_prefix.take(), None, inner_expressions)
     }
   } else if right.is_string() {
     res.set_wrapped(None, Some(right), vec![left]);
   } else if right.is_wrapped() {
-    let mut inner_expressions = if let Some(right_prefix) = right.prefix {
-      vec![left, *right_prefix]
+    let (right_prefix, right_postfix, mut right_inner_expressions) =
+      right.into_wrapped().expect("right should be wrapped");
+    let mut inner_expressions = if let Some(right_prefix) = right_prefix {
+      vec![left, right_prefix]
     } else {
       vec![left]
     };
-    if let Some(mut right_inner_expressions) = right.wrapped_inner_expressions {
-      inner_expressions.append(&mut right_inner_expressions)
-    }
-    res.set_wrapped(
-      None,
-      right.postfix.map(|postfix| *postfix),
-      inner_expressions,
-    );
+    inner_expressions.append(&mut right_inner_expressions);
+    res.set_wrapped(None, right_postfix, inner_expressions);
   } else {
     return None;
   }
