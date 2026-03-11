@@ -1,5 +1,4 @@
 use std::{
-  collections::HashMap,
   hash::Hash,
   path::Path,
   sync::{LazyLock, Mutex, mpsc},
@@ -24,7 +23,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_regex::RspackRegex;
-use rspack_util::asset_condition::AssetConditions;
+use rspack_util::{asset_condition::AssetConditions, fx_hash::FxHashMap};
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
   base::config::JsMinifyFormatOptions,
@@ -166,7 +165,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
-  let all_extracted_comments = Mutex::new(HashMap::new());
+  let all_extracted_comments = Mutex::new(FxHashMap::default());
   let extract_comments_condition = options.extract_comments.as_ref().map(|extract_comment| {
     RspackRegex::with_flags(
       extract_comment.condition.as_ref(),

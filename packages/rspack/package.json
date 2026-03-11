@@ -3,7 +3,7 @@
   "version": "2.0.0-beta.5",
   "webpackVersion": "5.75.0",
   "license": "MIT",
-  "description": "The fast Rust-based web bundler with webpack-compatible API",
+  "description": "Fast Rust-based bundler for the web with a modernized webpack API",
   "types": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public",
@@ -54,13 +54,11 @@
     "browserslist-load-config": "^1.0.1",
     "browserslist-to-es-version": "^1.4.1",
     "enhanced-resolve": "5.19.0",
-    "glob-to-regexp": "^0.4.1",
     "memfs": "4.53.0",
     "prebundle": "^1.6.2",
     "tinypool": "^1.1.1",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "watchpack": "^2.4.4",
+    "watchpack": "2.4.4",
     "webpack-sources": "3.3.4"
   },
   "dependencies": {

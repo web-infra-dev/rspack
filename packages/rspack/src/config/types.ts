@@ -2935,7 +2935,11 @@ export type WatchOptions = {
  * */
 export type DevServer = DevServerOptions;
 
-export type { Middleware as DevServerMiddleware } from './devServer';
+export type {
+  DevServerStatic,
+  DevServerStaticItem,
+  Middleware as DevServerMiddleware,
+} from './devServer';
 //#endregion
 
 //#region IgnoreWarnings

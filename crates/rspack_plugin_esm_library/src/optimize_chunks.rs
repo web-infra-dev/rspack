@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
@@ -508,7 +508,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   let module_graph = compilation.get_module_graph();
 
   // Collect all existing named chunks
-  let mut used_names: HashMap<String, usize> = HashMap::default();
+  let mut used_names: FxHashMap<String, usize> = FxHashMap::default();
   for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
     used_names.insert(name.clone(), 1);
   }
@@ -546,7 +546,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   // Compute short names and track duplicates
   // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order
   let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> = Vec::new();
-  let mut name_index_map: HashMap<String, usize> = HashMap::default();
+  let mut name_index_map: FxHashMap<String, usize> = FxHashMap::default();
 
   for (chunk_ukey, module_id) in &candidates {
     let Some(module_path) = module_graph
