@@ -3,6 +3,7 @@ pub mod rollback;
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
+use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -59,7 +60,7 @@ pub(crate) struct ModuleGraphData {
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  dependencies: UkeyMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
@@ -80,9 +81,9 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info.module, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
+  dependency_id_to_parents: UkeyMap<DependencyId, DependencyParents>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
+  connection_to_condition: UkeyMap<DependencyId, DependencyCondition>,
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
@@ -95,7 +96,7 @@ pub(crate) struct ModuleGraphData {
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  dep_meta_map: UkeyMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
@@ -163,13 +164,13 @@ impl ModuleGraph {
   pub fn get_outcoming_connections_by_module(
     &self,
     module_id: &ModuleIdentifier,
-  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+  ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> = IdentifierMap::default();
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)
@@ -186,13 +187,13 @@ impl ModuleGraph {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
-  ) -> HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> {
+  ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
     let connections = self
       .module_graph_module_by_identifier(module_id)
       .expect("should have mgm")
       .outgoing_connections();
 
-    let mut map: HashMap<ModuleIdentifier, Vec<&ModuleGraphConnection>> = HashMap::default();
+    let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> = IdentifierMap::default();
     for dep_id in connections {
       let con = self
         .connection_by_dependency_id(dep_id)

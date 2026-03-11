@@ -142,6 +142,6 @@ impl DependencyTemplate for AMDRequireArrayDependencyTemplate {
       );
 
     let content = dep.get_content(code_generatable_context);
-    source.replace(dep.range.start, dep.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

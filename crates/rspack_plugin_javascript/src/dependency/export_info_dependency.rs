@@ -156,7 +156,7 @@ impl DependencyTemplate for ExportInfoDependencyTemplate {
     source.replace(
       dep.start,
       dep.end,
-      value.unwrap_or("undefined".to_owned()).as_str(),
+      value.unwrap_or("undefined".to_string()),
       None,
     );
   }

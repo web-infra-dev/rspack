@@ -152,6 +152,6 @@ impl DependencyTemplate for RequireContextDependencyTemplate {
 
     let content =
       runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
-    source.replace(dep.range.start, dep.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

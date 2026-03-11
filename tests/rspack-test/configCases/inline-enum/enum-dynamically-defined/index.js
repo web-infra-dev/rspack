@@ -6,6 +6,7 @@ const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileS
 it("should have dynamically defined methods (other exports should be null)", () => {
   expect(Kind.isA(Kind.A)).toBe(true);
   expect(Kind.isB(Kind.B)).toBe(true);
+  expect(Kind.aaa).toBe("aaa");
 })
 
 it("should inline enum if there is no usage of non-statical defined (no usage of other exports)", () => {

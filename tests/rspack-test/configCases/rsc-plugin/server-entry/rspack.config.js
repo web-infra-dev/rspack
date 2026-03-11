@@ -78,10 +78,6 @@ module.exports = [
                 CLIENT_PATH: JSON.stringify(path.resolve(__dirname, 'src/Client.js')),
             }),
         ],
-        optimization: {
-            moduleIds: 'named',
-            concatenateModules: true,
-        },
     },
     {
         mode: 'production',
@@ -101,9 +97,5 @@ module.exports = [
             ],
         },
         plugins: [new ClientPlugin()],
-        optimization: {
-            moduleIds: 'named',
-            concatenateModules: true,
-        },
     },
 ];

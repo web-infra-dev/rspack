@@ -10,12 +10,35 @@ use swc_core::base::config::{
   SourceMapsConfig,
 };
 
+#[derive(Default, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase", default)]
+pub struct RawReactServerComponentsOptions {
+  /// Whether to disable the compile-time check that reports errors when React
+  /// client-only APIs (e.g. `useState`, `useEffect`) are imported in server
+  /// components. Defaults to `false`.
+  #[serde(default)]
+  pub disable_client_api_checks: bool,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum RawReactServerComponents {
+  Bool(bool),
+  WithOptions(RawReactServerComponentsOptions),
+}
+
+impl Default for RawReactServerComponents {
+  fn default() -> Self {
+    RawReactServerComponents::Bool(false)
+  }
+}
+
 #[derive(Default, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct RawRspackExperiments {
   pub import: Option<Vec<RawImportOptions>>,
   #[serde(default)]
-  pub react_server_components: bool,
+  pub react_server_components: RawReactServerComponents,
 }
 
 #[derive(Default, Deserialize, Debug)]
@@ -28,7 +51,13 @@ pub struct RawCollectTypeScriptInfoOptions {
 #[derive(Default, Debug)]
 pub(crate) struct RspackExperiments {
   pub(crate) import: Option<Vec<ImportOptions>>,
-  pub(crate) react_server_components: bool,
+  pub(crate) react_server_components: ReactServerComponentsOptions,
+}
+
+#[derive(Debug, Clone, Default)]
+pub(crate) struct ReactServerComponentsOptions {
+  pub(crate) enabled: bool,
+  pub(crate) disable_client_api_checks: bool,
 }
 
 #[derive(Default, Debug)]
@@ -50,7 +79,16 @@ impl From<RawRspackExperiments> for RspackExperiments {
       import: value
         .import
         .map(|i| i.into_iter().map(|v| v.into()).collect()),
-      react_server_components: value.react_server_components,
+      react_server_components: match value.react_server_components {
+        RawReactServerComponents::Bool(enabled) => ReactServerComponentsOptions {
+          enabled,
+          disable_client_api_checks: false,
+        },
+        RawReactServerComponents::WithOptions(opts) => ReactServerComponentsOptions {
+          enabled: true,
+          disable_client_api_checks: opts.disable_client_api_checks,
+        },
+      },
     }
   }
 }

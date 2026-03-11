@@ -26,7 +26,9 @@ pub use flag_dependency_usage_plugin::*;
 pub use inline_exports_plugin::*;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
-use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
+use rspack_collections::{
+  Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap, UkeyMap,
+};
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
@@ -45,7 +47,6 @@ use rspack_javascript_compiler::ast::Ast;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rustc_hash::FxHashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
@@ -60,7 +61,7 @@ use crate::runtime::{
 
 #[cfg_attr(allocative, allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<
-  SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
+  SyncRwLock<UkeyMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
@@ -1345,11 +1346,11 @@ var {} = {{}};
             let high = span.real_hi();
 
             if identifier.shorthand {
-              replace_source.insert(high, &format!(": {new_name}"), None);
+              replace_source.insert(high, format!(": {new_name}"), None);
               continue;
             }
 
-            replace_source.replace(low, high, &new_name, None);
+            replace_source.replace(low, high, new_name.to_string(), None);
           }
 
           all_used_names.insert(new_name);
