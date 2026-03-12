@@ -651,6 +651,15 @@ impl ModuleGraph {
       .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
   }
 
+  /// Remove and return a dependency by ID, panicking if not found.
+  pub fn take_dependency(&mut self, dependency_id: &DependencyId) -> BoxDependency {
+    self
+      .inner
+      .dependencies
+      .remove(dependency_id)
+      .unwrap_or_else(|| panic!("Dependency with ID {dependency_id:?} not found"))
+  }
+
   /// Uniquely identify a module by its dependency
   pub fn module_graph_module_by_dependency_id(
     &self,

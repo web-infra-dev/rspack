@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{TaskContext, factorize::FactorizeTask};
@@ -46,27 +44,29 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       let resource_identifier = if let Some(module_dependency) = dependency.as_module_dependency() {
         // TODO need implement more dependency `resource_identifier()`
         // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
-        let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
-          Cow::Borrowed(resource_identifier)
-        } else {
-          Cow::Owned(format!(
-            "{}|{}",
-            module_dependency.dependency_type(),
-            module_dependency.request()
-          ))
-        };
-        Some(id)
+        Some(
+          module_dependency
+            .resource_identifier()
+            .map(ToString::to_string)
+            .unwrap_or_else(|| {
+              format!(
+                "{}|{}",
+                module_dependency.dependency_type(),
+                module_dependency.request()
+              )
+            }),
+        )
       } else {
         dependency
           .as_context_dependency()
-          .map(|d| Cow::Borrowed(ContextDependency::resource_identifier(d)))
+          .map(|d| ContextDependency::resource_identifier(d).to_string())
       };
 
       if let Some(resource_identifier) = resource_identifier {
         sorted_dependencies
           .entry(resource_identifier)
           .or_insert(vec![])
-          .push(dependency.clone());
+          .push(module_graph.take_dependency(&dependency_id));
       }
     }
 
