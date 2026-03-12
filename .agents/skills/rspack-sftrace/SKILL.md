@@ -80,26 +80,26 @@ This will generate two files, whose schema format is as follows:
 
 1. sf.pola
 
-  This records all events from sftrace log.
+This records all events from sftrace log.
 
-  | name     | type        | description
-  |----------|-------------|-------------
-  | frame_id | uint64      | a unique id for each frame. a function's entry and exit have same frame id
-  | parent   | uint64      | point to previous frame id. zero means non-existent
-  | tid      | uint32      | thread id
-  | func_id  | uint64      | function unique id
-  | time     | nanoseconds | time elapsed since program started
-  | kind     | uint32      | event type, 1 is entry, 2 is exit, 3 is tail call
+| name     | type        | description                                                                |
+| -------- | ----------- | -------------------------------------------------------------------------- |
+| frame_id | uint64      | a unique id for each frame. a function's entry and exit have same frame id |
+| parent   | uint64      | point to previous frame id. zero means non-existent                        |
+| tid      | uint32      | thread id                                                                  |
+| func_id  | uint64      | function unique id                                                         |
+| time     | nanoseconds | time elapsed since program started                                         |
+| kind     | uint32      | event type, 1 is entry, 2 is exit, 3 is tail call                          |
 
 2. sf.pola.symtab
 
-  This records the function symbol name and file path of `func_id`.
+This records the function symbol name and file path of `func_id`.
 
-  | name    | type   | description
-  |---------|--------|-------------
-  | func_id | uint64 | function unique id
-  | name    | string | function symbol name (demangled)
-  | path    | string | the file path and line number of function
+| name    | type   | description                               |
+| ------- | ------ | ----------------------------------------- |
+| func_id | uint64 | function unique id                        |
+| name    | string | function symbol name (demangled)          |
+| path    | string | the file path and line number of function |
 
 You can use `python-polars` to perform data analysis on `sf.pola`.
 
