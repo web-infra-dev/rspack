@@ -297,6 +297,8 @@ pub struct ChunkLinkContext {
 
   pub hashbang: Option<String>,
 
+  pub directives: Vec<String>,
+
   /**
   modules that can be scope hoisted
   */
@@ -337,6 +339,7 @@ impl ChunkLinkContext {
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
       hashbang: None,
+      directives: Default::default(),
       refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),

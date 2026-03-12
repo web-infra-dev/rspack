@@ -440,6 +440,9 @@ var {} = {{}};
     if let Some(hashbang) = &chunk_link.hashbang {
       final_source.add(RawStringSource::from(hashbang.clone()));
     }
+    for directive in &chunk_link.directives {
+      final_source.add(RawStringSource::from(format!("{directive}\n")));
+    }
     final_source.add(import_source.boxed());
     final_source.add(render_init_fragments(
       ConcatSource::new([

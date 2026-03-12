@@ -1607,20 +1607,8 @@ var {} = {{}};
         }
 
         if let Some(directives) = directives {
-          let entry_module_chunk_link = link.get_mut_unwrap(&entry_module_chunk);
-
-          for (idx, directive) in directives.iter().enumerate() {
-            entry_module_chunk_link.init_fragments.insert(
-              idx,
-              Box::new(rspack_core::NormalInitFragment::new(
-                format!("{directive}\n"),
-                rspack_core::InitFragmentStage::StageConstants,
-                i32::MIN + 1 + idx as i32,
-                rspack_core::InitFragmentKey::unique(),
-                None,
-              )),
-            );
-          }
+          let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+          entry_chunk_link.directives = directives;
         }
 
         /*
