@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -6,17 +6,19 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
-  Context, DependenciesBlock, Dependency, DependencyId, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  RuntimeSpec, SourceType, contextify, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_comment,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::source_map::SourceMapKind;
+use rspack_plugin_javascript::dependency::ImportEagerDependency;
+use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{
   client_reference_dependency::ClientReferenceDependency, plugin_state::ClientModuleImport,
@@ -31,14 +33,16 @@ pub struct RscEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
-  name: String,
+  name: Arc<str>,
+  /// When true, client modules are loaded eagerly (not as code-split points).
+  is_eager: bool,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
 }
 
 impl RscEntryModule {
-  pub fn new(name: String, client_modules: Vec<ClientModuleImport>) -> Self {
+  pub fn new(name: Arc<str>, client_modules: Vec<ClientModuleImport>, is_eager: bool) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
     let identifier = ModuleIdentifier::from(format!(
       "rsc entry ({}) [{}]",
@@ -56,6 +60,7 @@ impl RscEntryModule {
       lib_ident,
       client_modules,
       name,
+      is_eager,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -133,68 +138,137 @@ impl Module for RscEntryModule {
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    let mut blocks = vec![];
-    let dependencies: Vec<BoxDependency> = vec![];
+    if self.is_eager {
+      // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
+      let mut dependencies: Vec<BoxDependency> = vec![];
+      let modules: Vec<(String, FxIndexSet<Atom>)> = self
+        .client_modules
+        .iter()
+        .map(|m| (m.request.clone(), m.ids.clone()))
+        .collect();
+      for (request, ids) in &modules {
+        let referenced_exports = if ids.is_empty() || ids.iter().any(|id| id == "*") {
+          None
+        } else {
+          Some(
+            ids
+              .iter()
+              .map(|id| vec![Atom::from(id.as_str())])
+              .collect::<Vec<_>>(),
+          )
+        };
+        let dep = ImportEagerDependency::new(
+          Atom::from(request.as_str()),
+          DependencyRange { start: 0, end: 0 },
+          referenced_exports,
+          None,
+          ImportPhase::Evaluation,
+        );
+        self.add_dependency_id(*dep.id());
+        dependencies.push(Box::new(dep));
+      }
+      Ok(BuildResult {
+        module: BoxModule::new(self),
+        dependencies,
+        blocks: vec![],
+        optimization_bailouts: vec![],
+      })
+    } else {
+      // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
+      let mut blocks = vec![];
+      let dependencies: Vec<BoxDependency> = vec![];
 
-    for client_module in &self.client_modules {
-      let dep = ClientReferenceDependency::new(
-        client_module.request.clone(),
-        client_module.ids.iter().cloned().map(Into::into).collect(),
-      );
-      let block = AsyncDependenciesBlock::new(
-        self.identifier,
-        None,
-        None,
-        vec![Box::new(dep) as Box<dyn Dependency>],
-        Some(client_module.request.clone()),
-      );
-      blocks.push(Box::new(block));
+      for client_module in &self.client_modules {
+        let dep = ClientReferenceDependency::new(
+          client_module.request.clone(),
+          client_module.ids.iter().cloned().map(Into::into).collect(),
+        );
+        let block = AsyncDependenciesBlock::new(
+          self.identifier,
+          None,
+          None,
+          vec![Box::new(dep) as Box<dyn Dependency>],
+          Some(client_module.request.clone()),
+        );
+        blocks.push(Box::new(block));
+      }
+
+      Ok(BuildResult {
+        module: BoxModule::new(self),
+        dependencies,
+        blocks,
+        optimization_bailouts: vec![],
+      })
     }
-
-    Ok(BuildResult {
-      module: BoxModule::new(self),
-      dependencies,
-      blocks,
-      optimization_bailouts: vec![],
-    })
   }
 
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let ModuleCodeGenerationContext { compilation, .. } = code_generation_context;
+    let ModuleCodeGenerationContext {
+      compilation,
+      runtime_template,
+      ..
+    } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResult::default();
     let module_graph = compilation.get_module_graph();
 
-    let mut comments = Vec::new();
-
-    for block_id in self.get_blocks() {
-      let block = module_graph
-        .block_by_id(block_id)
-        .expect("should have block");
-
-      for dependency_id in block.get_dependencies() {
-        let dependency = module_graph.dependency_by_id(dependency_id);
-        let request = dependency
-          .downcast_ref::<ClientReferenceDependency>()
+    if self.is_eager {
+      let mut parts = Vec::new();
+      for dep_id in self.get_dependencies() {
+        let dependency = module_graph.dependency_by_id(dep_id);
+        let dep = dependency
+          .downcast_ref::<ImportEagerDependency>()
           .unwrap_or_else(|| {
             panic!(
-              "Expected dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
+              "Expected dependency of eager RscEntryModule to be ImportEagerDependency, got {:?}",
               dependency.dependency_type()
             )
-          })
-          .user_request();
-
-        let comment = to_comment(&contextify(compilation.options.context.as_path(), request));
-        comments.push(comment);
+          });
+        let code = runtime_template.module_namespace_promise(
+          compilation,
+          self.identifier,
+          dep.id(),
+          None,
+          dep.request(),
+          "import() eager",
+          false,
+          dep.get_phase(),
+        );
+        parts.push(code);
       }
-    }
+      let source = parts.join("\n");
+      code_generation_result =
+        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    } else {
+      let mut comments = Vec::new();
+      for block_id in self.get_blocks() {
+        let block = module_graph
+          .block_by_id(block_id)
+          .expect("should have block");
 
-    let source = comments.join("\n");
-    code_generation_result =
-      code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+        for dependency_id in block.get_dependencies() {
+          let dependency = module_graph.dependency_by_id(dependency_id);
+          let request = dependency
+            .downcast_ref::<ClientReferenceDependency>()
+            .unwrap_or_else(|| {
+              panic!(
+                "Expected dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
+                dependency.dependency_type()
+              )
+            })
+            .user_request();
+
+          let comment = to_comment(&contextify(compilation.options.context.as_path(), request));
+          comments.push(comment);
+        }
+      }
+      let source = comments.join("\n");
+      code_generation_result =
+        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
+    }
     Ok(code_generation_result)
   }
 

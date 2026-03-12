@@ -14,7 +14,12 @@ impl ModuleFactory for RscEntryModuleFactory {
       .downcast_ref::<RscEntryDependency>()
       .expect("dependency of RscEntryModuleFactory should be RscEntryDependency");
     Ok(ModuleFactoryResult::new_with_module(
-      RscEntryModule::new(dependency.name.clone(), dependency.client_modules.clone()).boxed(),
+      RscEntryModule::new(
+        dependency.name.clone(),
+        dependency.client_modules.clone(),
+        dependency.is_eager,
+      )
+      .boxed(),
     ))
   }
 }
