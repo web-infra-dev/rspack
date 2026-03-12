@@ -2670,7 +2670,6 @@ export interface RawOccurrenceChunkIdsPluginOptions {
 }
 
 export interface RawOptimizationOptions {
-  removeAvailableModules: boolean
   sideEffects: boolean | string
   usedExports: boolean | string
   providedExports: boolean

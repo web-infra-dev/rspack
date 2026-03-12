@@ -36,7 +36,7 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
     .entry("main", "/src/dynamic-0.js")
     .input_filesystem(fs.clone())
     .output_filesystem(fs.clone())
-    .optimization(Optimization::builder().remove_available_modules(true))
+    .optimization(Optimization::builder())
     .incremental(IncrementalOptions::empty_passes())
     .build()
     .unwrap();
