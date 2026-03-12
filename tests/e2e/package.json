@@ -19,7 +19,7 @@
     "@module-federation/runtime-tools": "2.1.0",
     "@swc/helpers": "0.5.19",
     "@types/fs-extra": "11.0.4",
-    "babel-loader": "^10.0.0",
+    "babel-loader": "^10.1.1",
     "fs-extra": "^11.3.4",
     "postcss": "^8.5.8",
     "postcss-loader": "^8.2.1",
@@ -28,7 +28,7 @@
     "react-refresh": "^0.18.0",
     "typescript": "^5.9.3",
     "tailwindcss": "^3.4.19",
-    "vue": "^3.5.29",
+    "vue": "^3.5.30",
     "rspack-vue-loader": "^17.5.0",
     "css-loader": "^7.1.4",
     "ws": "^8.19.0"

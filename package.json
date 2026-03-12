@@ -53,18 +53,18 @@
     "pnpm": "10.26.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.5",
+    "@biomejs/biome": "^2.4.6",
     "@rslint/core": "0.2.1",
-    "@rstest/core": "^0.9.1",
+    "@rstest/core": "^0.9.2",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^20.19.35",
+    "@types/node": "^20.19.37",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
     "heading-case": "^1.0.7",
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
-    "lint-staged": "^16.3.2",
+    "lint-staged": "^16.3.3",
     "prettier": "3.8.1",
     "typescript": "^5.9.3",
     "zx": "8.8.5"
