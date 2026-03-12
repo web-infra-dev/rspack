@@ -896,10 +896,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.process_outdated_chunk_group_info(compilation);
       }
 
-      if self.queue.is_empty() {
-        let queue_delay = std::mem::take(&mut self.queue_delayed);
-        self.queue = queue_delay;
-        self.queue.reverse();
+      if self.queue.is_empty() && !self.queue_delayed.is_empty() {
+        let use_parallel = !std::env::var("RSPACK_SERIAL_CODE_SPLIT")
+          .map(|v| v == "1" || v == "true")
+          .unwrap_or(false);
+
+        if !use_parallel || !self.try_parallel_process_delayed_queue(compilation) {
+          // Fallback: serial processing (original logic)
+          let queue_delay = std::mem::take(&mut self.queue_delayed);
+          self.queue = queue_delay;
+          self.queue.reverse();
+        }
       }
     }
     logger.time_end(start);
@@ -2149,6 +2156,232 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
   }
 
+  fn apply_traversal_result(
+    &mut self,
+    result: ChunkTraversalResult,
+    compilation: &mut Compilation,
+  ) {
+    let chunk = result.chunk;
+    let cgi_ukey = result.chunk_group_info;
+
+    // 1. Connect modules to chunk and update mask
+    {
+      let chunk_mask = self
+        .mask_by_chunk
+        .get_mut(&chunk)
+        .expect("chunk must in mask_by_chunk");
+      for &(_, ordinal) in &result.modules_to_connect {
+        chunk_mask.set_bit(ordinal, true);
+      }
+    }
+    for &(module, _) in &result.modules_to_connect {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .connect_chunk_and_module(chunk, module);
+    }
+
+    // 2. Merge skipped_items and skipped_module_connections into CGI
+    {
+      let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
+      cgi.skipped_items.extend(result.skipped_items);
+      cgi
+        .skipped_module_connections
+        .extend(result.skipped_module_connections);
+    }
+
+    // 3. Assign chunk-group-level pre/post order indices
+    {
+      let cgi = self.chunk_group_infos.expect_get(&cgi_ukey);
+      let chunk_group = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get_mut(&cgi.chunk_group);
+
+      for module in &result.pre_order_modules {
+        #[allow(clippy::map_entry)]
+        if !chunk_group.module_pre_order_indices.contains_key(module) {
+          chunk_group
+            .module_pre_order_indices
+            .insert(*module, chunk_group.next_pre_order_index);
+          chunk_group.next_pre_order_index += 1;
+        }
+      }
+
+      for module in &result.post_order_modules {
+        #[allow(clippy::map_entry)]
+        if !chunk_group.module_post_order_indices.contains_key(module) {
+          chunk_group
+            .module_post_order_indices
+            .insert(*module, chunk_group.next_post_order_index);
+          chunk_group.next_post_order_index += 1;
+        }
+      }
+    }
+
+    // 4. Assign global pre/post order indices on modules
+    {
+      let module_graph = compilation.get_module_graph_mut();
+      for module_id in &result.pre_order_modules {
+        let module = module_graph.module_graph_module_by_identifier_mut(module_id);
+        if module.pre_order_index.is_none() {
+          module.pre_order_index = Some(self.next_free_module_pre_order_index);
+          self.next_free_module_pre_order_index += 1;
+        }
+      }
+
+      for module_id in &result.post_order_modules {
+        let module = module_graph.module_graph_module_by_identifier_mut(module_id);
+        if module.post_order_index.is_none() {
+          module.post_order_index = Some(self.next_free_module_post_order_index);
+          self.next_free_module_post_order_index += 1;
+        }
+      }
+    }
+
+    // 5. Handle discovered async blocks
+    for (block_id, module_id) in result.discovered_async_blocks {
+      self.make_chunk_group(block_id, module_id, cgi_ukey, chunk, compilation);
+    }
+
+    // 6. Update stats
+    self.stat_processed_blocks += result.stat_processed_blocks;
+    self.stat_processed_queue_items += result.stat_processed_queue_items;
+
+    // 7. Add to outdated order index chunk groups
+    self.outdated_order_index_chunk_groups.insert(cgi_ukey);
+  }
+
+  fn try_parallel_process_delayed_queue(&mut self, compilation: &mut Compilation) -> bool {
+    if self.queue_delayed.len() < 2 {
+      return false;
+    }
+
+    // All items must be ProcessBlock (fall back for ProcessEntryBlock)
+    let all_process_blocks = self
+      .queue_delayed
+      .iter()
+      .all(|item| matches!(item, QueueAction::ProcessBlock(_)));
+
+    if !all_process_blocks {
+      return false;
+    }
+
+    let delayed_items: Vec<ProcessBlock> = std::mem::take(&mut self.queue_delayed)
+      .into_iter()
+      .map(|item| match item {
+        QueueAction::ProcessBlock(pb) => pb,
+        _ => unreachable!(),
+      })
+      .collect();
+
+    // Pre-fill block_modules cache for all relevant runtimes
+    {
+      let runtimes: RawHashSet<Option<Arc<RuntimeSpec>>> = delayed_items
+        .iter()
+        .map(|pb| {
+          let cgi = self.chunk_group_infos.expect_get(&pb.chunk_group_info);
+          Some(cgi.runtime.clone())
+        })
+        .collect();
+
+      let all_modules: Vec<ModuleIdentifier> =
+        self.ordinal_by_module.keys().copied().collect::<Vec<_>>();
+
+      for runtime in &runtimes {
+        for &module in &all_modules {
+          self.get_block_modules(module.into(), runtime.clone(), compilation);
+        }
+      }
+    }
+
+    // Batch by CGI key (handle duplicates)
+    let mut batches: Vec<Vec<ProcessBlock>> = vec![vec![]];
+    let mut taken_cgi = HashSet::<CgiUkey>::default();
+
+    for pb in delayed_items {
+      if !taken_cgi.insert(pb.chunk_group_info) {
+        batches.push(vec![]);
+        taken_cgi.clear();
+        taken_cgi.insert(pb.chunk_group_info);
+      }
+      batches.last_mut().expect("should have batch").push(pb);
+    }
+
+    // Process each batch
+    for batch in batches {
+      // Extract task data (immutable borrows)
+      let tasks: Vec<_> = batch
+        .iter()
+        .map(|pb| {
+          let cgi = self.chunk_group_infos.expect_get(&pb.chunk_group_info);
+          let min_available_modules = cgi.min_available_modules.clone();
+          let runtime = cgi.runtime.clone();
+          let chunk_loading = cgi.chunk_loading;
+          let async_chunks = cgi.async_chunks;
+          let existing_modules = compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_chunk_modules_identifier(&pb.chunk)
+            .clone();
+          (
+            pb.clone(),
+            min_available_modules,
+            runtime,
+            chunk_loading,
+            async_chunks,
+            existing_modules,
+          )
+        })
+        .collect();
+
+      // Run parallel DFS
+      let results: Vec<ChunkTraversalResult> = {
+        let ordinal_by_module = &self.ordinal_by_module;
+        let prepared_blocks_map = &self.prepared_blocks_map;
+        let block_modules_runtime_map = &self.block_modules_runtime_map;
+        let block_to_chunk_group = &self.block_to_chunk_group;
+
+        tasks
+          .into_par_iter()
+          .map(
+            |(
+              pb,
+              min_available_modules,
+              runtime,
+              chunk_loading,
+              async_chunks,
+              existing_modules,
+            )| {
+              let block_modules_map = block_modules_runtime_map
+                .get(&Some(runtime))
+                .expect("should have pre-filled block modules");
+
+              parallel_traverse_chunk_group(
+                &pb,
+                &min_available_modules,
+                chunk_loading,
+                async_chunks,
+                ordinal_by_module,
+                block_modules_map,
+                prepared_blocks_map,
+                block_to_chunk_group,
+                &existing_modules,
+              )
+            },
+          )
+          .collect()
+      }; // immutable borrows end here
+
+      // Apply results serially in order
+      for result in results {
+        self.apply_traversal_result(result, compilation);
+      }
+    }
+
+    true
+  }
+
   pub fn prepare(
     &mut self,
     all_modules: &Vec<ModuleIdentifier>,
@@ -2335,6 +2568,163 @@ impl From<AsyncDependenciesBlockIdentifier> for DependenciesBlockIdentifier {
 pub(crate) struct LeaveModule {
   module: ModuleIdentifier,
   chunk_group_info: CgiUkey,
+}
+
+#[derive(Default)]
+struct ChunkTraversalResult {
+  chunk_group_info: CgiUkey,
+  chunk: ChunkUkey,
+  /// Modules to connect to the chunk, in DFS order, with their ordinals
+  modules_to_connect: Vec<(ModuleIdentifier, u64)>,
+  /// Modules skipped because they are in min_available_modules
+  skipped_items: IdentifierIndexSet,
+  /// Connections skipped because active_state is not true
+  skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
+  /// Async blocks discovered during DFS, to be handled by make_chunk_group in Phase 2
+  discovered_async_blocks: Vec<(AsyncDependenciesBlockIdentifier, ModuleIdentifier)>,
+  /// Pre-order traversal sequence of modules
+  pre_order_modules: Vec<ModuleIdentifier>,
+  /// Post-order traversal sequence of modules
+  post_order_modules: Vec<ModuleIdentifier>,
+  /// Number of blocks processed (for stats)
+  stat_processed_blocks: u32,
+  /// Number of queue items processed (for stats)
+  stat_processed_queue_items: u32,
+}
+
+enum LocalAction {
+  AddAndEnterModule(ModuleIdentifier),
+  ProcessBlock {
+    block: DependenciesBlockIdentifier,
+    module: ModuleIdentifier,
+  },
+  LeaveModule(ModuleIdentifier),
+}
+
+fn parallel_traverse_chunk_group(
+  initial_block: &ProcessBlock,
+  min_available_modules: &BigUint,
+  chunk_loading: bool,
+  async_chunks: bool,
+  ordinal_by_module: &IdentifierMap<u64>,
+  block_modules_map: &BlockConnectionMap,
+  prepared_blocks_map: &HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
+  block_to_chunk_group: &HashMap<DependenciesBlockIdentifier, CgiUkey>,
+  existing_chunk_modules: &IdentifierSet,
+) -> ChunkTraversalResult {
+  let mut result = ChunkTraversalResult {
+    chunk_group_info: initial_block.chunk_group_info,
+    chunk: initial_block.chunk,
+    ..Default::default()
+  };
+
+  let mut local_modules_in_chunk: IdentifierSet = existing_chunk_modules.clone();
+  let mut local_stack: Vec<LocalAction> = Vec::new();
+
+  local_stack.push(LocalAction::ProcessBlock {
+    block: initial_block.block,
+    module: initial_block.module,
+  });
+
+  while let Some(action) = local_stack.pop() {
+    result.stat_processed_queue_items += 1;
+
+    match action {
+      LocalAction::ProcessBlock { block, module } => {
+        result.stat_processed_blocks += 1;
+
+        if let Some(block_modules) = block_modules_map.get(&block) {
+          for (dep_module, active_state, connections) in block_modules.iter().rev() {
+            if local_modules_in_chunk.contains(dep_module) {
+              continue;
+            }
+
+            if !active_state.is_true() {
+              result
+                .skipped_module_connections
+                .insert((*dep_module, connections.clone()));
+              if active_state.is_false() {
+                continue;
+              }
+            }
+
+            let ordinal = ordinal_by_module.get(dep_module).unwrap_or_else(|| {
+              panic!("expected a module ordinal for identifier '{dep_module}', but none was found.")
+            });
+
+            if active_state.is_true() && min_available_modules.bit(*ordinal) {
+              result.skipped_items.insert(*dep_module);
+              continue;
+            }
+
+            if active_state.is_true() {
+              local_stack.push(LocalAction::AddAndEnterModule(*dep_module));
+            } else {
+              local_stack.push(LocalAction::ProcessBlock {
+                block: (*dep_module).into(),
+                module,
+              });
+            }
+          }
+        }
+
+        if let Some(blocks) = prepared_blocks_map.get(&block) {
+          for &async_block in blocks {
+            let block_dep_id = DependenciesBlockIdentifier::AsyncDependenciesBlock(async_block);
+
+            if block_to_chunk_group.contains_key(&block_dep_id) {
+              // Block already has a chunk group from a previous iteration
+              result.discovered_async_blocks.push((async_block, module));
+            } else if !async_chunks || !chunk_loading {
+              // Inline: continue DFS into the async block
+              local_stack.push(LocalAction::ProcessBlock {
+                block: async_block.into(),
+                module,
+              });
+            } else {
+              // Defer to Phase 2: create new chunk group
+              result.discovered_async_blocks.push((async_block, module));
+            }
+          }
+        }
+      }
+
+      LocalAction::AddAndEnterModule(module) => {
+        if local_modules_in_chunk.contains(&module) {
+          continue;
+        }
+
+        let ordinal = ordinal_by_module.get(&module).unwrap_or_else(|| {
+          panic!("expected a module ordinal for identifier '{module}', but none was found.")
+        });
+
+        if min_available_modules.bit(*ordinal) {
+          result.skipped_items.insert(module);
+          continue;
+        }
+
+        // "Connect" module to chunk locally
+        local_modules_in_chunk.insert(module);
+        result.modules_to_connect.push((module, *ordinal));
+
+        // Enter module - record pre-order
+        result.pre_order_modules.push(module);
+
+        // Push leave first (processed after subtree), then process block
+        local_stack.push(LocalAction::LeaveModule(module));
+        local_stack.push(LocalAction::ProcessBlock {
+          block: module.into(),
+          module,
+        });
+      }
+
+      LocalAction::LeaveModule(module) => {
+        result.post_order_modules.push(module);
+      }
+    }
+  }
+
+  result
 }
 
 fn extract_block_modules(
