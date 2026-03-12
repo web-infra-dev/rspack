@@ -616,7 +616,7 @@ The default value of the [devtool](/config/devtool) option has changed:
 - When `mode` is `development`, the default value of `devtool` has been changed from `eval` to `cheap-module-source-map`
 - When `mode` is `production` and you are using `@rspack/cli`, the default value of `devtool` has been changed from `source-map` to `false`
 
-If you need source maps in production, we recommend using the following configuration:
+If you need source maps in production, we recommend setting `devtool` to `source-map` or `hidden-source-map`:
 
 ```js title="rspack.config.mjs"
 const isProd = process.env.NODE_ENV === 'production';

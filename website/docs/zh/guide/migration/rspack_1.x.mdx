@@ -616,7 +616,7 @@ export default {
 - 在 `mode` 为 `development` 时，将 `devtool` 的默认值从 `eval` 调整为 `cheap-module-source-map`
 - 在 `mode` 为 `production` 并使用 `@rspack/cli` 时，`devtool` 的默认值从 `source-map` 调整为 `false`
 
-如果你需要在生产环境开启 source map，推荐使用以下配置：
+如果你需要在生产环境开启 source map，推荐设置为 `source-map` 或 `hidden-source-map`：
 
 ```js title="rspack.config.mjs"
 const isProd = process.env.NODE_ENV === 'production';
