@@ -1,7 +1,7 @@
 use std::fmt;
 
 use rspack_cacheable::{cacheable, with::Skip};
-use rspack_collections::UkeySet;
+use rustc_hash::FxHashSet;
 
 use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
 
@@ -38,10 +38,10 @@ impl fmt::Display for OptimizationBailoutItem {
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: UkeySet<DependencyId>,
+  outgoing_connections: FxHashSet<DependencyId>,
   // incoming connections will regenerate by persistent cache recovery.
   #[cacheable(with=Skip)]
-  incoming_connections: UkeySet<DependencyId>,
+  incoming_connections: FxHashSet<DependencyId>,
 
   issuer: ModuleIssuer,
 
@@ -88,11 +88,11 @@ impl ModuleGraphModule {
     self.outgoing_connections.remove(dependency_id);
   }
 
-  pub fn incoming_connections(&self) -> &UkeySet<DependencyId> {
+  pub fn incoming_connections(&self) -> &FxHashSet<DependencyId> {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &UkeySet<DependencyId> {
+  pub fn outgoing_connections(&self) -> &FxHashSet<DependencyId> {
     &self.outgoing_connections
   }
 

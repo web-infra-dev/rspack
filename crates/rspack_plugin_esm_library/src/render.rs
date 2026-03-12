@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
+use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
@@ -18,7 +18,7 @@ use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
-  fx_hash::{FxHashMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
 use crate::{
@@ -53,7 +53,7 @@ impl EsmLibraryPlugin {
       .chunk_group_by_ukey
       .expect_get(group);
     let mut stack = vec![group];
-    let mut visited = UkeySet::default();
+    let mut visited = FxHashSet::default();
 
     while let Some(group) = stack.pop() {
       if !visited.insert(group.ukey) {
@@ -187,7 +187,7 @@ impl EsmLibraryPlugin {
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
-    let mut imported_chunks = UkeyIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
+    let mut imported_chunks = FxIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
     let mut runtime_requirements =
       *ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
@@ -436,19 +436,24 @@ var {} = {{}};
     }
 
     // render init fragments
-    let mut final_source = ConcatSource::new([
-      render_init_fragments(
-        import_source.boxed(),
-        chunk_init_fragments,
-        &mut ChunkRenderContext {},
-      )?,
+    let mut final_source = ConcatSource::default();
+    if let Some(hashbang) = &chunk_link.hashbang {
+      final_source.add(RawStringSource::from(hashbang.clone()));
+    }
+    for directive in &chunk_link.directives {
+      final_source.add(RawStringSource::from(format!("{directive}\n")));
+    }
+    final_source.add(import_source.boxed());
+    final_source.add(render_init_fragments(
       ConcatSource::new([
         runtime_source.boxed(),
         decl_source.boxed(),
         render_source.boxed(),
       ])
       .boxed(),
-    ]);
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?);
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));

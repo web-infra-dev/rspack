@@ -1,7 +1,8 @@
 use std::hash::BuildHasherDefault;
 
-use rspack_collections::{IdentifierHasher, IdentifierSet, UkeySet};
+use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
+use rustc_hash::FxHashSet;
 
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
@@ -54,9 +55,9 @@ pub struct BuildModuleGraphArtifact {
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
   /// Factorize failed dependencies in module graph
-  pub make_failed_dependencies: UkeySet<DependencyId>,
+  pub make_failed_dependencies: FxHashSet<DependencyId>,
   /// Entry dependencies in the module graph
-  pub entry_dependencies: UkeySet<DependencyId>,
+  pub entry_dependencies: FxHashSet<DependencyId>,
   /// The files that current module graph depends on.
   pub file_dependencies: FileCounter,
   /// The directory that current module graph depends on.

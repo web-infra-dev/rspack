@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
@@ -297,8 +298,8 @@ pub async fn process_modules_runtime_requirements(
 #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
 pub async fn process_chunks_runtime_requirements(
   compilation: &mut Compilation,
-  chunks: UkeySet<ChunkUkey>,
-  entries: UkeySet<ChunkUkey>,
+  chunks: FxHashSet<ChunkUkey>,
+  entries: FxHashSet<ChunkUkey>,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compilation");
@@ -327,7 +328,7 @@ pub async fn process_chunks_runtime_requirements(
 
       (*chunk_ukey, set)
     })
-    .collect::<UkeyMap<_, _>>();
+    .collect::<FxHashMap<_, _>>();
 
   for (chunk_ukey, mut set) in chunk_requirements {
     let mut additional_runtime_modules = Vec::new();
