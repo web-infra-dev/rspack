@@ -436,19 +436,24 @@ var {} = {{}};
     }
 
     // render init fragments
-    let mut final_source = ConcatSource::new([
-      render_init_fragments(
-        import_source.boxed(),
-        chunk_init_fragments,
-        &mut ChunkRenderContext {},
-      )?,
+    let mut final_source = ConcatSource::default();
+    if let Some(hashbang) = &chunk_link.hashbang {
+      final_source.add(RawStringSource::from(hashbang.clone()));
+    }
+    for directive in &chunk_link.directives {
+      final_source.add(RawStringSource::from(format!("{directive}\n")));
+    }
+    final_source.add(import_source.boxed());
+    final_source.add(render_init_fragments(
       ConcatSource::new([
         runtime_source.boxed(),
         decl_source.boxed(),
         render_source.boxed(),
       ])
       .boxed(),
-    ]);
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?);
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));
