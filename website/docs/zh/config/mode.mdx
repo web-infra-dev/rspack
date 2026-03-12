@@ -54,15 +54,23 @@ rspack --mode=production
 
 在 production 模式下，Rspack 会自动启用以下优化策略：
 
-- 将代码中的 `process.env.NODE_ENV` 替换为 `'production'`。
-- 将 `optimization.minimize` 的默认值设置为 `true`，并使用 SWC 对代码进行压缩优化。
+- 将 [optimization.nodeEnv](/config/optimization#optimizationnodeenv) 的默认值设置为 `'production'`，从而把代码中的 `process.env.NODE_ENV` 替换为 `'production'`。
+- 将 [optimization.minimize](/config/optimization#optimizationminimize) 的默认值设置为 `true`，并默认启用 JavaScript 和 CSS 压缩器。
+- 将 [optimization.concatenateModules](/config/optimization#optimizationconcatenatemodules) 的默认值设置为 `true`，以启用模块串联（scope hoisting）。
+- 将 [optimization.sideEffects](/config/optimization#optimizationsideeffects) 的默认值设置为 `true`，结合包的 `sideEffects` 信息跳过无副作用模块。
+- 将 [optimization.usedExports](/config/optimization#optimizationusedexports)、[optimization.mangleExports](/config/optimization#optimizationmangleexports) 和 [optimization.innerGraph](/config/optimization#optimizationinnergraph) 的默认值设置为 `true`，以增强 tree shaking 和导出压缩。
+- 将 [optimization.moduleIds](/config/optimization#optimizationmoduleids) 和 [optimization.chunkIds](/config/optimization#optimizationchunkids) 的默认值设置为 `'deterministic'`，提升长期缓存稳定性。
+- 将 [optimization.realContentHash](/config/optimization#optimizationrealcontenthash) 的默认值设置为 `true`。
 
 ### development
 
 在 development 模式下，Rspack 会自动启用以下优化策略：
 
-- 将代码中的 `process.env.NODE_ENV` 替换为 `'development'`。
-- 为模块和 chunks 设置合适的命名格式。
+- 将 [optimization.nodeEnv](/config/optimization#optimizationnodeenv) 的默认值设置为 `'development'`，从而把代码中的 `process.env.NODE_ENV` 替换为 `'development'`。
+- 将 [devtool](/config/devtool) 的默认值设置为 `'cheap-module-source-map'`，便于调试。
+- 将 [cache](/config/cache) 的默认值设置为 `true` 以启用内存缓存，提升开发构建速度。
+- 将 [optimization.moduleIds](/config/optimization#optimizationmoduleids) 和 [optimization.chunkIds](/config/optimization#optimizationchunkids) 的默认值设置为 `'named'`，生成更易读的模块和 chunk 名称。
+- 将 [optimization.emitOnErrors](/config/optimization#optimizationemitonerrors) 的默认值设置为 `true`，即使存在构建错误也保留输出结果，方便本地调试。
 
 ### none
 
