@@ -2,16 +2,16 @@
 
 use std::{
   fmt,
-  hash::{Hash, Hasher},
-  sync::Arc,
+  hash::{BuildHasherDefault, Hash, Hasher},
 };
 
-use rspack_cacheable::cacheable;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_collections::{IdentifierHasher, IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
+use ustr::Ustr;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
@@ -20,42 +20,35 @@ use crate::{
   RuntimeSpecSet, for_each_runtime,
 };
 
+pub type ModuleIdMap<V> =
+  std::collections::HashMap<ModuleId, V, BuildHasherDefault<IdentifierHasher>>;
+pub type ModuleIdSet = std::collections::HashSet<ModuleId, BuildHasherDefault<IdentifierHasher>>;
+
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ModuleId {
-  inner: Arc<str>,
-  // Precomputed hash of `inner`, similar to `ArcPath`.
-  hash: u64,
-}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ModuleId(#[cacheable(with=AsPreset)] Ustr);
 
 impl From<String> for ModuleId {
   fn from(s: String) -> Self {
-    Self::new(s.into())
+    Self(s.into())
   }
 }
 
 impl From<&str> for ModuleId {
   fn from(s: &str) -> Self {
-    Self::new(s.into())
+    Self(s.into())
   }
 }
 
 impl From<u32> for ModuleId {
   fn from(n: u32) -> Self {
-    Self::from(n.to_string())
-  }
-}
-
-impl Hash for ModuleId {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    // Use the precomputed hash value so hashing in maps/sets is O(1)
-    state.write_u64(self.hash);
+    Self(n.to_string().into())
   }
 }
 
 impl fmt::Display for ModuleId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.as_str())
+    write!(f, "{}", self.0)
   }
 }
 
@@ -73,20 +66,12 @@ impl Serialize for ModuleId {
 }
 
 impl ModuleId {
-  fn new(inner: Arc<str>) -> Self {
-    // Precompute hash once when ModuleId is created, similar to ArcPath.
-    let mut hasher = FxHasher::default();
-    inner.hash(&mut hasher);
-    let hash = hasher.finish();
-    Self { inner, hash }
-  }
-
   pub fn as_number(&self) -> Option<u32> {
-    self.inner.parse::<u32>().ok()
+    self.0.as_str().parse::<u32>().ok()
   }
 
   pub fn as_str(&self) -> &str {
-    &self.inner
+    self.0.as_str()
   }
 }
 
