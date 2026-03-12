@@ -622,7 +622,6 @@ If you need source maps in production, we recommend using the following configur
 const isProd = process.env.NODE_ENV === 'production';
 
 export default {
-  mode: isProd ? 'production' : 'development',
   devtool: isProd ? 'source-map' : 'cheap-module-source-map',
 };
 ```
