@@ -77,7 +77,7 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 | [Rspack 2.x docs](https://v2.rspack.rs/)                                       | Documentation for Rspack 2.x (beta)                                           |
 | [Rspack 1.x docs](https://rspack.rs/)                                          | Documentation for Rspack 1.x (latest)                                         |
 | [Rspack 0.x docs](https://v0.rspack.rs/)                                       | Documentation for Rspack 0.x version                                          |
-| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)        | Dev server for Rspack                                                         |
+| [rspack-dev-server](https://github.com/rstackjs/rspack-dev-server)             | Dev server for Rspack                                                         |
 | [rstack-examples](https://github.com/rstackjs/rstack-examples)                 | Examples showcasing Rstack                                                    |
 | [rspack-sources](https://github.com/rstackjs/rspack-sources)                   | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) | Design resources for Rstack                                                   |
