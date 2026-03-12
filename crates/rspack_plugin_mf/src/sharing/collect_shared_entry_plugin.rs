@@ -113,6 +113,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
+      // Layer-aware consume identifiers now include an extra "(layer)" segment,
+      // so use the typed accessor instead of reparsing readable_identifier().
       let key = consume.share_key();
       if key.is_empty() {
         continue;

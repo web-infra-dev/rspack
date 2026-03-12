@@ -247,7 +247,7 @@ impl Module for ConsumeSharedModule {
       json_stringify(&self.options.share_scope),
       json_stringify_str(&self.options.share_key),
     ];
-    if let Some(version) = &self.options.required_version {
+    if let Some(version) = self.required_version() {
       if self.options.strict_version {
         function += "Strict";
       }
@@ -267,6 +267,12 @@ impl Module for ConsumeSharedModule {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
+    let fallback_factory = factory.unwrap_or_else(|| {
+      format!(
+        "()=>()=>{{throw new Error(\"Can not get '{}'\" )}}",
+        self.options.share_key
+      )
+    });
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {
@@ -278,7 +284,7 @@ impl Module for ConsumeSharedModule {
         singleton: self.options.singleton,
         eager: self.options.eager,
         layer: self.options.layer.clone(),
-        fallback: factory,
+        fallback: Some(fallback_factory),
         tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });
     Ok(code_generation_result)

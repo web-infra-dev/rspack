@@ -3,7 +3,8 @@ use std::fmt;
 use either::Either;
 use once_cell::sync::OnceCell;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
+use rustc_hash::FxHashSet;
 
 use crate::{
   AffectType, BoxDependency, ChunkUkey, Compilation, DependencyId, ModuleGraph, ModuleIdentifier,
@@ -15,7 +16,7 @@ pub struct Mutations {
 
   affected_modules_with_module_graph: OnceCell<IdentifierSet>,
   affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
-  affected_chunks_with_chunk_graph: OnceCell<UkeySet<ChunkUkey>>,
+  affected_chunks_with_chunk_graph: OnceCell<FxHashSet<ChunkUkey>>,
 }
 
 impl fmt::Display for Mutations {
@@ -127,7 +128,7 @@ impl Mutations {
       .affected_modules_with_module_graph
       .get_or_init(|| {
         let mut built_modules = IdentifierSet::default();
-        let mut built_dependencies = UkeySet::default();
+        let mut built_dependencies = FxHashSet::default();
         for mutation in self.iter() {
           match mutation {
             Mutation::ModuleAdd { module } | Mutation::ModuleUpdate { module } => {
@@ -154,7 +155,7 @@ impl Mutations {
       .get_or_init(|| {
         let mg = compilation.get_module_graph();
         let mut modules = self.get_affected_modules_with_module_graph(mg);
-        let mut chunks = UkeySet::default();
+        let mut chunks = FxHashSet::default();
         for mutation in self.iter() {
           match mutation {
             Mutation::ModuleSetAsync { module } => {
@@ -209,11 +210,11 @@ impl Mutations {
   pub fn get_affected_chunks_with_chunk_graph(
     &self,
     compilation: &Compilation,
-  ) -> UkeySet<ChunkUkey> {
+  ) -> FxHashSet<ChunkUkey> {
     self
       .affected_chunks_with_chunk_graph
       .get_or_init(|| {
-        self.iter().fold(UkeySet::default(), |mut acc, mutation| {
+        self.iter().fold(FxHashSet::default(), |mut acc, mutation| {
           match mutation {
             Mutation::ModuleSetHashes { module } => {
               acc.extend(
@@ -252,7 +253,7 @@ impl Mutations {
 fn compute_affected_modules_with_module_graph(
   module_graph: &ModuleGraph,
   built_modules: IdentifierSet,
-  built_dependencies: UkeySet<DependencyId>,
+  built_dependencies: FxHashSet<DependencyId>,
 ) -> IdentifierSet {
   fn reduce_affect_type<'a>(dependencies: impl Iterator<Item = &'a BoxDependency>) -> AffectType {
     let mut affected = AffectType::False;

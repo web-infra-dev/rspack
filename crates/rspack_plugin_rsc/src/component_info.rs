@@ -9,7 +9,7 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
@@ -22,7 +22,7 @@ use crate::{
 };
 
 // { [client import path]: [exported names] }
-pub type ClientComponentImports = FxHashMap<String, FxHashSet<String>>;
+pub type ClientComponentImports = FxHashMap<String, FxIndexSet<Atom>>;
 // { [server entry path]: [css imports] }
 pub type CssImports = FxHashMap<String, FxIndexSet<String>>;
 
@@ -138,7 +138,7 @@ fn traverse_with_server_entry_context(
   compilation: &Compilation,
   module: &dyn Module,
   runtime: &RuntimeSpec,
-  imported_identifiers: &[String],
+  imported_identifiers: &[Atom],
   request_hint: Option<&str>,
   visited: &mut IdentifierSet,
   server_entries: &mut Vec<String>,
@@ -171,7 +171,7 @@ fn filter_client_components(
   compilation: &Compilation,
   module: &dyn Module,
   runtime: &RuntimeSpec,
-  imported_identifiers: &[String],
+  imported_identifiers: &[Atom],
   request_hint: Option<&str>,
   visited: &mut IdentifierSet,
   server_entries: &mut Vec<String>,
@@ -334,7 +334,7 @@ fn filter_client_components(
     let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
       continue;
     };
-    let mut dependency_ids = Vec::new();
+    let mut dependency_ids: Vec<Atom> = Vec::new();
 
     // `ids` are the identifiers that are imported from the dependency,
     // if it's present, it's an array of strings.
@@ -353,7 +353,7 @@ fn filter_client_components(
     };
     if let Some(ids) = ids {
       for id in ids {
-        dependency_ids.push(id.to_string());
+        dependency_ids.push(id.clone());
       }
     } else {
       dependency_ids.push("*".into());
@@ -382,8 +382,8 @@ fn filter_client_components(
 fn add_client_import(
   module: &dyn Module,
   mod_request: &str,
-  imported_identifiers: &[String],
-  _is_first_visit_module: bool,
+  imported_identifiers: &[Atom],
+  is_first_visit_module: bool,
   client_component_imports: &mut ClientComponentImports,
 ) {
   let rsc = get_module_rsc_information(module);
@@ -391,36 +391,40 @@ fn add_client_import(
   let assumed_source_type =
     get_assumed_source_type(module, if is_cjs_module { "commonjs" } else { "auto" });
 
-  let client_imports_set = client_component_imports
+  let client_imports_set: &mut FxIndexSet<Atom> = client_component_imports
     .entry(mod_request.to_string())
     .or_default();
 
   if imported_identifiers
-    .iter()
-    .any(|identifier| identifier == "*")
+    .first()
+    .map(|identifier| identifier.as_str())
+    == Some("*")
   {
-    client_imports_set.insert("*".to_string());
-    return;
-  }
-
-  let is_auto_module_source_type = assumed_source_type == "auto";
-  if is_auto_module_source_type {
-    client_imports_set.clear();
-    client_imports_set.insert("*".to_string());
+    // If there's collected import path with named import identifiers,
+    // or there's nothing in collected imports are empty.
+    // we should include the whole module.
+    if !is_first_visit_module && !client_imports_set.contains(&Atom::from("*")) {
+      client_component_imports.insert(mod_request.to_string(), FxIndexSet::from_iter(["*".into()]));
+    }
   } else {
-    // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
-    // We'll include all modules since it's not able to do tree-shaking.
-    for name in imported_identifiers {
-      // For cjs module default import, we include the whole module since
-      let is_cjs_default_import = is_cjs_module && name == "default";
+    let is_auto_module_source_type = assumed_source_type == "auto";
+    if is_auto_module_source_type {
+      client_component_imports.insert(mod_request.to_string(), FxIndexSet::from_iter(["*".into()]));
+    } else {
+      // If it's not analyzed as named ESM exports, e.g. if it's mixing `export *` with named exports,
+      // We'll include all modules since it's not able to do tree-shaking.
+      for name in imported_identifiers {
+        // For cjs module default import, we include the whole module since
+        let is_cjs_default_import = is_cjs_module && name == "default";
 
-      // Always include __esModule along with cjs module default export,
-      // to make sure it works with client module proxy from React.
-      if is_cjs_default_import {
-        client_imports_set.insert("__esModule".to_string());
+        // Always include __esModule along with cjs module default export,
+        // to make sure it works with client module proxy from React.
+        if is_cjs_default_import {
+          client_imports_set.insert("__esModule".into());
+        }
+
+        client_imports_set.insert(name.clone());
       }
-
-      client_imports_set.insert(name.clone());
     }
   }
 }

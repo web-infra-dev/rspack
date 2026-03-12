@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use dashmap::DashMap;
 use once_cell::sync::Lazy;
+use rspack_cacheable::with::{AsPreset, AsVec};
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
 use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
@@ -19,7 +20,8 @@ pub type ActionIdNamePair = (Atom, Atom);
 #[derive(Debug, Clone)]
 pub struct ClientModuleImport {
   pub request: String,
-  pub ids: Vec<String>,
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub ids: FxIndexSet<Atom>,
   pub is_remote: bool,
 }
 

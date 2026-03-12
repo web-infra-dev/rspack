@@ -388,7 +388,7 @@ fn record_module(
         if id == "__esModule" {
           continue;
         }
-        client_ref_exports.push(id.clone());
+        client_ref_exports.push(id.to_string());
       }
     }
     client_ref_exports.sort();
@@ -982,8 +982,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(RscEntryDependency::new(
-        entry_name.to_string(),
+        entry_name.clone(),
         client_modules.clone(),
+        false,
       ));
       self
         .client_entries_per_entry
