@@ -4647,6 +4647,7 @@ dependencies = [
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_plugin_esm_library",
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash",
