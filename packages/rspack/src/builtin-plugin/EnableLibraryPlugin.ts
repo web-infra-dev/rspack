@@ -1,7 +1,8 @@
 import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 
-import type { Compiler, LibraryType } from '..';
+import type { Compiler, LibraryType, OptimizationSplitChunksOptions } from '..';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
+import { EsmLibraryPlugin } from './EsmLibraryPlugin';
 
 const enabledTypes = new WeakMap();
 
@@ -17,7 +18,13 @@ const getEnabledTypes = (compiler: Compiler) => {
 export class EnableLibraryPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.EnableLibraryPlugin;
 
-  constructor(private type: LibraryType) {
+  constructor(
+    private type: LibraryType,
+    private esmLibraryOptions?: {
+      preserveModules?: string;
+      splitChunks?: OptimizationSplitChunksOptions | false;
+    },
+  ) {
     super();
   }
 
@@ -40,6 +47,11 @@ export class EnableLibraryPlugin extends RspackBuiltinPlugin {
     const enabled = getEnabledTypes(compiler);
     if (enabled.has(type)) return;
     enabled.add(type);
+
+    if (type === 'modern-module') {
+      new EsmLibraryPlugin(this.esmLibraryOptions).apply(compiler);
+      return;
+    }
 
     return createBuiltinPlugin(this.name, type);
   }
