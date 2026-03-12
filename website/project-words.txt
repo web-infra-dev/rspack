@@ -176,7 +176,6 @@ shulaoda
 sockjs
 sokra
 solidjs
-spdy
 statoscope
 struct
 suxin2017

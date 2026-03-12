@@ -7,7 +7,7 @@ use std::{
 };
 
 use rayon::prelude::*;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
@@ -26,9 +26,7 @@ pub use flag_dependency_usage_plugin::*;
 pub use inline_exports_plugin::*;
 pub use mangle_exports_plugin::*;
 pub use module_concatenation_plugin::*;
-use rspack_collections::{
-  Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap, UkeyMap,
-};
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, IdentifierMap};
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
@@ -61,7 +59,7 @@ use crate::runtime::{
 
 #[cfg_attr(allocative, allocative::root)]
 static COMPILATION_HOOKS_MAP: LazyLock<
-  SyncRwLock<UkeyMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
+  SyncRwLock<FxHashMap<CompilationId, Arc<RwLock<JavascriptModulesPluginHooks>>>>,
 > = LazyLock::new(Default::default);
 
 #[derive(Debug, Clone)]
