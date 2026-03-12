@@ -897,12 +897,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       if self.queue.is_empty() && !self.queue_delayed.is_empty() {
-        let use_parallel = !std::env::var("RSPACK_SERIAL_CODE_SPLIT")
-          .map(|v| v == "1" || v == "true")
-          .unwrap_or(false);
-
-        if !use_parallel || !self.try_parallel_process_delayed_queue(compilation) {
-          // Fallback: serial processing (original logic)
+        if !self.try_parallel_process_delayed_queue(compilation) {
+          // Fallback: serial processing for ProcessEntryBlock or single-item queue
           let queue_delay = std::mem::take(&mut self.queue_delayed);
           self.queue = queue_delay;
           self.queue.reverse();
