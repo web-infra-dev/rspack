@@ -1,7 +1,4 @@
-use std::{
-  collections::HashSet,
-  sync::atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use rspack_collections::{
   Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
@@ -182,11 +179,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   // In loose mode we guess the dependents of modules from the order
   // assuming that when a module is a dependency of another module
   // it will always appear before it in every chunk.
-  let mut all_dependents: IdentifierMap<HashSet<ModuleIdentifier>> = IdentifierMap::default();
+  let mut all_dependents: IdentifierMap<IdentifierSet> = IdentifierMap::default();
   if !self.strict {
     let start = logger.time("guess the dependents of modules from the order");
     for b in &remaining_modules {
-      let mut dependents = HashSet::new();
+      let mut dependents = IdentifierSet::default();
       'outer: for a in &remaining_modules {
         if a == b {
           continue;

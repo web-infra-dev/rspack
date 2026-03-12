@@ -276,10 +276,10 @@ fn compute_affected_modules_with_module_graph(
       .flat_map(|module_identifier| {
         module_graph
           .get_incoming_connections_by_origin_module(module_identifier)
-          .into_iter()
+          .modules()
+          .iter()
           .filter_map(|(referencing_module, connections)| {
-            let referencing_module = referencing_module?;
-            if all_affected_modules.contains(&referencing_module) {
+            if all_affected_modules.contains(referencing_module) {
               return None;
             }
             match reduce_affect_type(
@@ -288,8 +288,8 @@ fn compute_affected_modules_with_module_graph(
                 .map(|c| module_graph.dependency_by_id(&c.dependency_id)),
             ) {
               AffectType::False => None,
-              AffectType::True => Some(AffectedModuleKind::Direct(referencing_module)),
-              AffectType::Transitive => Some(AffectedModuleKind::Transitive(referencing_module)),
+              AffectType::True => Some(AffectedModuleKind::Direct(*referencing_module)),
+              AffectType::Transitive => Some(AffectedModuleKind::Transitive(*referencing_module)),
             }
           })
           .collect::<Vec<_>>()

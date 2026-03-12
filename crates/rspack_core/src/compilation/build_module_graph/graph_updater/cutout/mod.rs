@@ -1,12 +1,12 @@
 mod fix_build_meta;
 mod fix_issuers;
 
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierSet, UkeySet};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{BuildModuleGraphArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, ResourceId, internal};
+use crate::{BuildDependency, Compilation, internal};
 
 /// Cutout module graph.
 ///
@@ -32,11 +32,11 @@ impl Cutout {
     params: Vec<UpdateParam>,
   ) -> HashSet<BuildDependency> {
     // the entry dependencies after update module graph
-    let mut next_entry_dependencies = HashSet::default();
+    let mut next_entry_dependencies = UkeySet::default();
     // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
     let mut force_build_modules = IdentifierSet::default();
-    let mut force_build_deps = HashSet::default();
+    let mut force_build_deps = UkeySet::default();
 
     let module_graph = artifact.get_module_graph();
 
@@ -68,16 +68,8 @@ impl Cutout {
             .into_iter()
             .flatten()
             {
-              for resource_id in resource_ids {
-                match resource_id {
-                  ResourceId::Module(mid) => {
-                    force_build_modules.insert(*mid);
-                  }
-                  ResourceId::Dependency(dep_id) => {
-                    force_build_deps.insert(*dep_id);
-                  }
-                }
-              }
+              force_build_modules.extend(resource_ids.modules().iter().copied());
+              force_build_deps.extend(resource_ids.dependencies().iter().copied());
             }
           }
         }

@@ -45,9 +45,9 @@ async function build() {
 		const features = [];
 		const envs = { ...process.env };
 		const use_build_std = values.profile === "release"
-				|| values.profile === "release-debug"
-				|| values.profile === "release-wasi"
-				|| values.profile === "profiling";
+			|| values.profile === "release-debug"
+			|| values.profile === "release-wasi"
+			|| values.profile === "profiling";
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -87,6 +87,12 @@ async function build() {
 			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
 				rustflags.push("-Cforce-unwind-tables=no");
 			}
+		} else {
+			// enable unwind-table for backtrace for non-release profile
+			if (!process.env.RUST_TARGET || (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc"))) {
+				rustflags.push("-Cforce-unwind-tables=yes");
+			}
+
 		}
 		if (features.length) {
 			args.push(`--features ${features.join(",")}`);
@@ -142,9 +148,9 @@ async function build() {
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
 				}
 
-				if(process.env.TRACY){
+				if (process.env.TRACY) {
 					// split debug symbols for tracy
-				  spawnSync('dsymutil', [
+					spawnSync('dsymutil', [
 						path.resolve(__dirname, "..", "rspack.darwin-arm64.node")
 					], {
 						stdio: "inherit",

@@ -32,12 +32,11 @@ impl JavascriptParser<'_> {
   pub fn block_pre_walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(decl) => {
+        let drive = self.plugin_drive.clone();
         self.enter_statement(
           statement,
           |parser, _| {
-            parser
-              .plugin_drive
-              .clone()
+            drive
               .block_pre_module_declaration(parser, decl)
               .unwrap_or_default()
           },
@@ -73,15 +72,10 @@ impl JavascriptParser<'_> {
   }
 
   pub fn block_pre_walk_statement(&mut self, stmt: Statement) {
+    let drive = self.plugin_drive.clone();
     self.enter_statement(
       &stmt,
-      |parser, _| {
-        parser
-          .plugin_drive
-          .clone()
-          .block_pre_statement(parser, stmt)
-          .unwrap_or_default()
-      },
+      |parser, _| drive.block_pre_statement(parser, stmt).unwrap_or_default(),
       |parser, _| match stmt {
         Statement::Class(decl) => parser.block_pre_walk_class_declaration(decl),
         Statement::Var(decl) => parser.block_pre_walk_variable_declaration(decl),
@@ -113,10 +107,8 @@ impl JavascriptParser<'_> {
     if export.source().is_some() {
       return;
     }
-    self
-      .plugin_drive
-      .clone()
-      .export(self, ExportLocal::Named(export));
+    let drive = self.plugin_drive.clone();
+    drive.export(self, ExportLocal::Named(export));
     match export {
       ExportNamedDeclaration::Decl(decl) => {
         let prev = self.prev_statement;
@@ -124,7 +116,7 @@ impl JavascriptParser<'_> {
         self.prev_statement = prev;
         self.block_pre_walk_statement((&decl.decl).into());
         self.enter_declaration(&decl.decl, |parser, def| {
-          parser.plugin_drive.clone().export_specifier(
+          drive.export_specifier(
             parser,
             ExportLocal::Named(export),
             &def.sym,
@@ -138,7 +130,7 @@ impl JavascriptParser<'_> {
           ExportNamedDeclaration::named_export_specifiers(named)
         {
           if named.src.is_none() {
-            self.plugin_drive.clone().export_specifier(
+            drive.export_specifier(
               self,
               ExportLocal::Named(export),
               &local_id,
@@ -152,10 +144,8 @@ impl JavascriptParser<'_> {
   }
 
   fn block_pre_walk_export_default_declaration(&mut self, export: ExportDefaultDeclaration) {
-    self
-      .plugin_drive
-      .clone()
-      .export(self, ExportLocal::Default(export));
+    let drive = self.plugin_drive.clone();
+    drive.export(self, ExportLocal::Default(export));
     match export {
       ExportDefaultDeclaration::Decl(decl) => {
         match &decl.decl {
@@ -166,7 +156,7 @@ impl JavascriptParser<'_> {
             self.prev_statement = prev;
             self.block_pre_walk_statement(stmt);
             if let Some(ident) = &c.ident {
-              self.plugin_drive.clone().export_specifier(
+              drive.export_specifier(
                 self,
                 ExportLocal::Default(export),
                 &ident.sym,
@@ -174,11 +164,7 @@ impl JavascriptParser<'_> {
                 ident.span(),
               );
             } else {
-              self.plugin_drive.clone().export_expression(
-                self,
-                export,
-                ExportDefaultExpression::ClassDecl(c),
-              );
+              drive.export_expression(self, export, ExportDefaultExpression::ClassDecl(c));
             }
           }
           DefaultDecl::Fn(f) => {
@@ -188,7 +174,7 @@ impl JavascriptParser<'_> {
             self.prev_statement = prev;
             self.block_pre_walk_statement(stmt);
             if let Some(ident) = &f.ident {
-              self.plugin_drive.clone().export_specifier(
+              drive.export_specifier(
                 self,
                 ExportLocal::Default(export),
                 &ident.sym,
@@ -196,11 +182,7 @@ impl JavascriptParser<'_> {
                 ident.span(),
               );
             } else {
-              self.plugin_drive.clone().export_expression(
-                self,
-                export,
-                ExportDefaultExpression::FnDecl(f),
-              );
+              drive.export_expression(self, export, ExportDefaultExpression::FnDecl(f));
             }
           }
           DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
@@ -209,11 +191,7 @@ impl JavascriptParser<'_> {
       ExportDefaultDeclaration::Expr(expr) => {
         // Webpack call exportExpression in walk (legacy code maybe)
         // We move it to block_pre_walk for consistent with other export related hook
-        self.plugin_drive.clone().export_expression(
-          self,
-          export,
-          ExportDefaultExpression::Expr(&expr.expr),
-        );
+        drive.export_expression(self, export, ExportDefaultExpression::Expr(&expr.expr));
       }
     }
   }

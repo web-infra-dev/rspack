@@ -26,12 +26,12 @@ pub fn eval_cond_expression<'a>(
     let alt = scanner.evaluate_expression(&cond.alt);
     res = BasicEvaluatedExpression::new();
     if cons.is_conditional() {
-      res.set_options(cons.options)
+      res.set_options(cons.into_options())
     } else {
       res.set_options(Some(vec![cons]))
     }
     if alt.is_conditional() {
-      if let Some(options) = alt.options {
+      if let Some(options) = alt.into_options() {
         res.add_options(options)
       }
     } else {

@@ -282,11 +282,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       parser.to_dependency_location(DependencyRange::from(call_expr.callee.span())),
     );
-    dep.namespace_object_as_context = !direct_import
-      && parser
-        .javascript_options
-        .strict_this_context_on_imports
-        .unwrap_or(false);
+    dep.namespace_object_as_context = parser
+      .javascript_options
+      .strict_this_context_on_imports
+      .unwrap_or(false)
+      && !direct_import;
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 

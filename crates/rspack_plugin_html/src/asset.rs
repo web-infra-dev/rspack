@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashMap,
   env,
   hash::Hasher,
   path::{Path, PathBuf},
@@ -17,6 +16,7 @@ use rspack_core::{
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_hash::RspackHash;
 use rspack_paths::Utf8PathBuf;
+use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
@@ -44,9 +44,9 @@ impl HtmlPluginAssets {
     public_path: &str,
     output_path: &Utf8PathBuf,
     html_file_name: &Filename,
-  ) -> Result<(HtmlPluginAssets, HashMap<String, &'a CompilationAsset>)> {
+  ) -> Result<(HtmlPluginAssets, FxHashMap<String, &'a CompilationAsset>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
-    let mut asset_map = HashMap::new();
+    let mut asset_map = FxHashMap::default();
     assets.public_path = public_path.to_string();
 
     let sorted_entry_names: Vec<&String> =

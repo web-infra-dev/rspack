@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use napi::Either;
 use napi_derive::napi;
@@ -11,6 +11,7 @@ use rspack_plugin_mf::{
   ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
   StatsBuildInfo,
 };
+use rspack_util::fx_hash::FxHashMap as HashMap;
 
 use crate::options::{
   entry::{JsEntryRuntime, JsEntryRuntimeWrapper},

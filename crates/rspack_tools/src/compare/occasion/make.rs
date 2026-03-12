@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rspack_collections::UkeyMap;
 pub use rspack_core::cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
   DependencyId,
@@ -81,7 +82,7 @@ impl<'a> ArtifactComparator<'a> {
 
     // First pass: Compare dependencies and build DependencyId mapping
     // DependencyId mapping: dep_id1 -> dep_id2
-    let mut dep_id_map: HashMap<DependencyId, DependencyId> = HashMap::default();
+    let mut dep_id_map: UkeyMap<DependencyId, DependencyId> = UkeyMap::default();
 
     for (module_id, module1) in &modules1 {
       let module2 = modules2
@@ -119,7 +120,7 @@ impl<'a> ArtifactComparator<'a> {
     &self,
     module_id: &rspack_core::ModuleIdentifier,
     debug_info: &DebugInfo,
-    dep_id_map: &HashMap<DependencyId, DependencyId>,
+    dep_id_map: &UkeyMap<DependencyId, DependencyId>,
   ) -> Result<()> {
     // Get outgoing connections for this module from both graphs
     let connections1: Vec<_> = self.mg1.get_outgoing_connections(module_id).collect();
@@ -178,7 +179,7 @@ impl<'a> ArtifactComparator<'a> {
     module1: &rspack_core::BoxModule,
     module2: &rspack_core::BoxModule,
     debug_info: &DebugInfo,
-    dep_id_map: &mut HashMap<DependencyId, DependencyId>,
+    dep_id_map: &mut UkeyMap<DependencyId, DependencyId>,
   ) -> Result<()> {
     let deps1 = module1.get_dependencies();
     let deps2 = module2.get_dependencies();
@@ -229,7 +230,7 @@ impl<'a> ArtifactComparator<'a> {
     module1: &rspack_core::BoxModule,
     module2: &rspack_core::BoxModule,
     debug_info: &DebugInfo,
-    dep_id_map: &HashMap<DependencyId, DependencyId>,
+    dep_id_map: &UkeyMap<DependencyId, DependencyId>,
   ) -> Result<()> {
     let build_info1 = module1.build_info();
     let build_info2 = module2.build_info();
@@ -272,7 +273,7 @@ impl<'a> ArtifactComparator<'a> {
     &self,
     exports1: &[DependencyId],
     exports2: &[DependencyId],
-    dep_id_map: &HashMap<DependencyId, DependencyId>,
+    dep_id_map: &UkeyMap<DependencyId, DependencyId>,
     debug_info: &DebugInfo,
   ) -> Result<()> {
     if exports1.len() != exports2.len() {

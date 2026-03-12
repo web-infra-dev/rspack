@@ -51,12 +51,13 @@ impl RequireReferencesState {
 
   fn take_all_require_references(
     &mut self,
-  ) -> impl Iterator<Item = (RequireDependencyLocator, Vec<Vec<Atom>>)> + use<> {
+  ) -> impl Iterator<Item = (RequireDependencyLocator, Atom, Vec<Vec<Atom>>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
     inner.into_values().filter_map(|value| {
       value.dep_locator.map(|dep_locator| {
         (
           dep_locator,
+          value.variable_name.expect("should have variable_name"),
           value
             .references
             .into_iter()
@@ -71,6 +72,7 @@ impl RequireReferencesState {
 #[derive(Debug, Default)]
 struct RequireReferences {
   dep_locator: Option<RequireDependencyLocator>,
+  variable_name: Option<Atom>,
   references: Vec<AtomMembers>,
 }
 
@@ -101,6 +103,10 @@ fn tag_commonjs_require_referenced(
   parser
     .common_js_require_references
     .add_require(require_span);
+  parser
+    .common_js_require_references
+    .get_require_mut_expect(&require_span)
+    .variable_name = Some(variable_name.clone());
   parser.tag_variable(
     variable_name,
     COMMONJS_REQUIRE_TAG,
@@ -365,6 +371,11 @@ impl CommonJsImportsParserPlugin {
         member_expr.span().into(),
         loc,
         is_call,
+        parser
+          .javascript_options
+          .strict_this_context_on_imports
+          .unwrap_or(false)
+          && !members.is_empty(),
         parser.in_try,
         !parser.is_asi_position(member_expr.span_lo()),
       )
@@ -699,12 +710,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let mut ids = get_non_optional_part(members, members_optionals);
-    if !members.is_empty()
-      && (parser
-        .javascript_options
-        .strict_this_context_on_imports
-        .unwrap_or(false)
-        || ids.len() > 1)
+    if parser
+      .javascript_options
+      .strict_this_context_on_imports
+      .unwrap_or(false)
+      && !members.is_empty()
     {
       ids = &ids[..ids.len().saturating_sub(1)];
     }
@@ -917,10 +927,16 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   }
 
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    for (locator, references) in parser
+    for (locator, variable_name, mut references) in parser
       .common_js_require_references
       .take_all_require_references()
     {
+      // If the require result is assigned to a variable that is also an ESM
+      // named export, importers may access arbitrary properties on it. In that
+      // case the entire module must be considered referenced.
+      if parser.build_info.esm_named_exports.contains(&variable_name) {
+        references.push(vec![]);
+      }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)
       {

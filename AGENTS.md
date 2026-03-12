@@ -35,7 +35,11 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - `pnpm run test:hot` - HMR tests
 - `cd tests/rspack-test && pnpm run test -t "configCases/asset"` - Run filtered tests
 
-Depends on what you have modified, you need to rebuild by `pnpm run build:js` or `pnpm run build:binding:dev` or `pnpm run build:cli:dev` first, then run testing commands to verify the modification.
+Before running tests after code changes:
+
+- If you modified JavaScript/TypeScript code, run `pnpm run build:js` first
+- If you modified Rust code, run `pnpm run build:binding:dev` first
+- If your change spans both JS and Rust, run `pnpm run build:cli:dev` first
 
 ## Debugging
 

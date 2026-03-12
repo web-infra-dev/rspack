@@ -25,7 +25,7 @@ React Server Components rely on the new architecture of React 19. Please ensure 
 
 ## Basic concepts
 
-React Server Component artifacts require cooperative execution across both server and browser environments. To support this architecture, Rspack launches two Compiler instances to separately build the server and browser artifacts. The diagram below illustrates the overall build flow:
+React Server Component artifacts require cooperative execution across both server and browser environments. To support this architecture, Rspack launches **two Compiler instances** to separately build the server and browser artifacts. The diagram below illustrates the overall build flow:
 
 ![RSC Build Flow](https://assets.rspack.rs/rspack/assets/rspack-rsc-build-flow.jpg)
 
@@ -51,12 +51,11 @@ export default [
 
 ## Configure plugin
 
-Rspack supports React Server Components through a pair of coordinating plugins. You need to call `rsc.createPlugins` to generate `ServerPlugin` and `ClientPlugin`, and configure them into their respective Compilers:
+Rspack supports React Server Components through a pair of coordinating plugins. You must **call `rsc.createPlugins()` once** to get `ServerPlugin` and `ClientPlugin`, then attach each to the corresponding Compiler:
 
 ```js title="rspack.config.mjs"
 import { experiments } from '@rspack/core';
 
-// Create a pair of RSC plugins
 const { createPlugins, Layers } = experiments.rsc;
 const { ServerPlugin, ClientPlugin } = createPlugins();
 
@@ -76,85 +75,42 @@ export default [
 ];
 ```
 
-These two plugins internally schedule the build processes of the Client Compiler and Server Compiler, establishing a communication mechanism to synchronize compilation states and module information, handle client components, and generate resource manifests.
+These two plugins internally schedule the build processes of the Client Compiler and Server Compiler, establishing a communication mechanism to synchronize compilation state, module info, and generate the client reference manifest.
 
-## Configure JSX/TSX
+## Configuring build entries
 
-Add `builtin:swc-loader` to process `.jsx` and `.tsx` files. The `rspackExperiments.reactServerComponents` option must be enabled to turn on Rspack's support for RSC syntax.
+You need to configure entries for the Client Compiler and Server Compiler respectively. There **must** be an entry in the Client Compiler with the exact same name as the one in the Server Compiler.
 
 ```js title="rspack.config.mjs"
-const jsxRule = {
-  test: /\.jsx$/,
-  use: {
-    loader: 'builtin:swc-loader',
-    options: {
-      jsc: {
-        parser: {
-          syntax: 'ecmascript',
-          jsx: true,
-        },
-      },
-    },
-    rspackExperiments: {
-      reactServerComponents: true,
-    },
-  },
-  type: 'javascript/auto',
-};
-
-const tsxRule = {
-  test: /\.tsx$/,
-  use: {
-    loader: 'builtin:swc-loader',
-    options: {
-      jsc: {
-        parser: {
-          syntax: 'typescript',
-          tsx: true,
-        },
-      },
-    },
-    rspackExperiments: {
-      reactServerComponents: true,
-    },
-  },
-  type: 'javascript/auto',
-};
-
 export default [
   {
     target: 'web',
-    module: {
-      rules: [jsxRule, tsxRule],
+    entry: {
+      // A 'main' entry with the same name as the server entry must exist,
+      // acting as the module graph root node for the client RSC runtime.
+      main: { import: './src/entry.client.tsx' },
     },
   },
   {
     target: 'node',
-    module: {
-      rules: [jsxRule, tsxRule],
+    entry: {
+      // The server entry name is 'main'
+      main: { import: './src/entry.rsc.tsx' },
     },
   },
 ];
 ```
 
-The loader executes different transformation logic for `"use client"` and `"use server"` directives based on the `layer` to which the module belongs:
+When the Server Compiler finds `"use client"` components, it delegates those modules to the Client Compiler. Because the client config can have multiple entries, the RSC plugin uses a **same-name convention**: the client entry that has the **same name** as a server entry is treated as the RSC runtime mount for that entry.
 
-1. **When the module belongs to `Layers.rsc` (Server Component environment)**, `react-server-dom-rspack` is invoked for transformation:
-   - Modules with `"use client"` are transformed into **Client References**.
-   - Modules with `"use server"` are registered as **Server Actions**, enabling them to respond to remote calls from the client.
-
-2. **When the module does not belong to `Layers.rsc` (e.g., client or SSR environments)**:
-   - `"use server"`: The module is transformed into a **Server Reference**.
-
-The RSC plugin also utilizes the directive information identified by the loader to distinguish between Client Components and Server Components.
+Discovered `"use client"` modules are injected into that matching entry’s module graph. If no client entry with the same name exists, the plugin reports an "RSC Client Entry Mismatch" diagnostic and client components will not load correctly in the browser.
 
 ## Configure layer
 
-In the Server Compiler, Rspack uses [layer](/guide/features/layer) to identify modules that belong to the Server Component (RSC) environment.
+In the Server Compiler, Rspack uses [layer](/guide/features/layer) to distinguish RSC from SSR. The RSC plugin uses these layer names:
 
-To use RSC features, you must explicitly assign RSC components to `Layers.rsc`. The Loader will only transform `"use client"` directives into Client References for modules marked with `Layers.rsc`.
-
-If you need Server-Side Rendering, you can use `Layers.ssr` to identify the SSR entry. SSR is optional; if no modules are assigned to `Layers.ssr`, Rspack will skip the generation of SSR artifacts.
+- **`Layers.rsc`** (`'react-server-components'`): RSC environment. Only modules in this layer have `"use client"` turned into client references and `"use server"` registered as Server Actions.
+- **`Layers.ssr`** (`'server-side-rendering'`): SSR environment. Use this to mark the SSR entry; if no modules are assigned to this layer, Rspack skips SSR output.
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
@@ -174,25 +130,16 @@ export default [
     target: 'node',
     module: {
       rules: [
-        // Assign the SSR entry to Layers.ssr
-        {
-          resource: ssrEntry,
-          layer: Layers.ssr,
-        },
-        // For all modules within the rsc layer, configure resolve.conditionNames
+        { resource: ssrEntry, layer: Layers.ssr },
         {
           resource: rscEntry,
           layer: Layers.rsc,
-          resolve: {
-            conditionNames: ['react-server', '...'],
-          },
+          resolve: { conditionNames: ['react-server', '...'] },
         },
         {
           issuerLayer: Layers.rsc,
           exclude: ssrEntry,
-          resolve: {
-            conditionNames: ['react-server', '...'],
-          },
+          resolve: { conditionNames: ['react-server', '...'] },
         },
       ],
     },
@@ -260,6 +207,76 @@ const response = await handleRequest({
 });
 ```
 
+## Configure JSX/TSX
+
+Add `builtin:swc-loader` for `.jsx` / `.tsx` and enable `rspackExperiments.reactServerComponents` so Rspack parses and transforms RSC directives such as `"use client"`, `"use server"`, and `"use server-entry"`.
+
+```js title="rspack.config.mjs"
+const jsxRule = {
+  test: /\.jsx$/,
+  use: {
+    loader: 'builtin:swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax: 'ecmascript',
+          jsx: true,
+        },
+      },
+    },
+    rspackExperiments: {
+      reactServerComponents: true,
+    },
+  },
+  type: 'javascript/auto',
+};
+
+const tsxRule = {
+  test: /\.tsx$/,
+  use: {
+    loader: 'builtin:swc-loader',
+    options: {
+      jsc: {
+        parser: {
+          syntax: 'typescript',
+          tsx: true,
+        },
+      },
+    },
+    rspackExperiments: {
+      reactServerComponents: true,
+    },
+  },
+  type: 'javascript/auto',
+};
+
+export default [
+  {
+    target: 'web',
+    module: {
+      rules: [jsxRule, tsxRule],
+    },
+  },
+  {
+    target: 'node',
+    module: {
+      rules: [jsxRule, tsxRule],
+    },
+  },
+];
+```
+
+The loader executes different transformation logic for `"use client"` and `"use server"` directives based on the `layer` to which the module belongs:
+
+1. **When the module belongs to `Layers.rsc` (Server Component environment)**, `react-server-dom-rspack` is invoked for transformation:
+   - Modules with `"use client"` are transformed into **Client References**.
+   - Modules with `"use server"` are registered as **Server Actions**, enabling them to respond to remote calls from the client.
+
+2. **When the module does not belong to `Layers.rsc` (e.g., client or SSR environments)**:
+   - `"use server"`: The module is transformed into a **Server Reference**.
+
+The RSC plugin uses the loader’s directive info to tell client and server components apart, and uses it to inject client entries, collect Server Actions, and generate the RSC manifest.
+
 ## Dev server
 
 The RSC architecture requires handling client and server builds, responding to RSC requests, and managing server component HMR. Consequently, Rspack's built-in Dev Server cannot meet these requirements. You need to implement a custom development server to provide the following core capabilities:
@@ -268,7 +285,7 @@ The RSC architecture requires handling client and server builds, responding to R
 - **Server Runtime Management**: Execute server build artifacts in an isolated context (such as Worker Threads or child processes) to ensure environment isolation. Additionally, ensure that when server code updates, the old instance is cleanly destroyed and restarted to execute the new code.
 - **Server Component HMR**: Monitor build changes in server components and notify the browser via communication mechanisms like WebSocket. Upon receiving the signal, the browser should trigger a re-request for RSC to update the page content.
 
-To facilitate Server Component HMR, Rspack exposes the `onServerComponentChanges` hook within the ServerPlugin. You can use this callback to listen for build changes in server components and send update signals to the client:
+To support Server Component HMR, Rspack provides the `onServerComponentChanges` hook on `ServerPlugin` (it runs after a build when server component output has changed). In your custom dev server, use this callback to notify the browser (e.g. via WebSocket) so it can re-request RSC and refresh the page.
 
 ```js title="rspack.config.mjs"
 export default [

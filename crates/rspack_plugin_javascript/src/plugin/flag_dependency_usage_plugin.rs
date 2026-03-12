@@ -143,7 +143,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         .collect::<Vec<_>>();
 
       let mut nested_tasks = vec![];
-      let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> = IdentifierMap::default();
+      let mut non_nested_tasks: IdentifierMap<Vec<NonNestedTask>> =
+        IdentifierMap::with_capacity_and_hasher(batch_res.len(), Default::default());
 
       {
         // partition collected referenced exports to two parts:
@@ -156,8 +157,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           .into_par_iter()
           .map(
             |(runtime, force_side_effects, referenced_exports, module_tasks)| {
-              let mut nested_tasks = vec![];
-              let mut non_nested_tasks = vec![];
+              let mut nested_tasks = Vec::with_capacity(referenced_exports.len());
+              let mut non_nested_tasks = Vec::with_capacity(referenced_exports.len());
               for (module_id, exports) in referenced_exports {
                 let exports_info = self.exports_info_artifact.get_exports_info_data(&module_id);
                 let has_nested = exports.iter().any(|e| match e {
@@ -200,7 +201,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         non_nested_tasks
           .into_par_iter()
           .map(|(module_id, tasks)| {
-            let mut exports_info = self
+            let mut exports_info: ExportsInfoData = self
               .exports_info_artifact
               .get_exports_info_data(&module_id)
               .clone();
@@ -284,7 +285,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     Vec<ProcessBlockTask>,
   ) {
     let mut q = vec![];
-    let mut map: IdentifierMap<ProcessModuleReferencedExports> = IdentifierMap::default();
 
     let (dependencies, async_blocks) = collect_active_dependencies(
       block_id,
@@ -294,11 +294,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       self.exports_info_artifact,
       global,
     );
+    let mut map = IdentifierMap::with_capacity_and_hasher(dependencies.len(), Default::default());
+    q.reserve(async_blocks.len());
     q.extend(async_blocks);
 
     for (dep_id, module_id) in dependencies {
-      let old_referenced_exports = map.remove(&module_id);
-
       let referenced_exports_result = get_dependency_referenced_exports(
         dep_id,
         module_graph,
@@ -319,11 +319,29 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           Some(module_graph),
         );
 
-      if let Some(mut referenced_exports) = referenced_exports_result
-        && let Some(new_referenced_exports) =
-          merge_referenced_exports(old_referenced_exports, referenced_exports)
-      {
-        map.insert(module_id, new_referenced_exports);
+      if let Some(mut referenced_exports) = referenced_exports_result {
+        match map.entry(module_id) {
+          Entry::Occupied(mut occ) => {
+            let merged_referenced_exports = merge_referenced_exports(
+              Some(std::mem::replace(
+                occ.get_mut(),
+                ProcessModuleReferencedExports::ExtendRef(Vec::new()),
+              )),
+              referenced_exports,
+            );
+            if let Some(new_referenced_exports) = merged_referenced_exports {
+              *occ.get_mut() = new_referenced_exports;
+            } else {
+              occ.remove();
+            }
+          }
+          Entry::Vacant(vac) => {
+            if let Some(new_referenced_exports) = merge_referenced_exports(None, referenced_exports)
+            {
+              vac.insert(new_referenced_exports);
+            }
+          }
+        }
       }
     }
 

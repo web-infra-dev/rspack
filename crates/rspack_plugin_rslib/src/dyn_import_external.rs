@@ -11,23 +11,6 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashSet;
 
-fn has_unknown(exports: &rspack_core::ExportNameOrSpec) -> bool {
-  match exports {
-    rspack_core::ExportNameOrSpec::String(_) => false,
-    rspack_core::ExportNameOrSpec::ExportSpec(export_spec) => {
-      if let Some(exports) = &export_spec.exports {
-        if exports.unknown_provided {
-          return true;
-        }
-
-        exports.exports.iter().any(has_unknown)
-      } else {
-        false
-      }
-    }
-  }
-}
-
 pub fn cutout_star_re_export_externals(
   compilation: &Compilation,
   build_module_graph_artifact: &mut BuildModuleGraphArtifact,
@@ -136,9 +119,7 @@ pub fn cutout_star_re_export_externals(
         match &exports.exports {
           rspack_core::ExportsOfExportsSpec::UnknownExports => true,
           rspack_core::ExportsOfExportsSpec::NoExports => false,
-          rspack_core::ExportsOfExportsSpec::Names(export_name_or_specs) => {
-            export_name_or_specs.iter().any(has_unknown)
-          }
+          rspack_core::ExportsOfExportsSpec::Names(_) => false,
         }
       });
 

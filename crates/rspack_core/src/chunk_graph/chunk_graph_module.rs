@@ -2,16 +2,16 @@
 
 use std::{
   fmt,
-  hash::{Hash, Hasher},
-  sync::Arc,
+  hash::{BuildHasherDefault, Hash, Hasher},
 };
 
-use rspack_cacheable::cacheable;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_collections::{IdentifierHasher, IdentifierSet, UkeySet};
 use rspack_hash::RspackHashDigest;
 use rspack_util::ext::DynHash;
 use rustc_hash::FxHasher;
 use serde::{Serialize, Serializer};
+use ustr::Ustr;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
@@ -20,33 +20,35 @@ use crate::{
   RuntimeSpecSet, for_each_runtime,
 };
 
+pub type ModuleIdMap<V> =
+  std::collections::HashMap<ModuleId, V, BuildHasherDefault<IdentifierHasher>>;
+pub type ModuleIdSet = std::collections::HashSet<ModuleId, BuildHasherDefault<IdentifierHasher>>;
+
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ModuleId {
-  inner: Arc<str>,
-}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ModuleId(#[cacheable(with=AsPreset)] Ustr);
 
 impl From<String> for ModuleId {
   fn from(s: String) -> Self {
-    Self { inner: s.into() }
+    Self(s.into())
   }
 }
 
 impl From<&str> for ModuleId {
   fn from(s: &str) -> Self {
-    Self { inner: s.into() }
+    Self(s.into())
   }
 }
 
 impl From<u32> for ModuleId {
   fn from(n: u32) -> Self {
-    Self::from(n.to_string())
+    Self(n.to_string().into())
   }
 }
 
 impl fmt::Display for ModuleId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.as_str())
+    write!(f, "{}", self.0)
   }
 }
 
@@ -65,11 +67,11 @@ impl Serialize for ModuleId {
 
 impl ModuleId {
   pub fn as_number(&self) -> Option<u32> {
-    self.inner.parse::<u32>().ok()
+    self.0.as_str().parse::<u32>().ok()
   }
 
   pub fn as_str(&self) -> &str {
-    &self.inner
+    self.0.as_str()
   }
 }
 

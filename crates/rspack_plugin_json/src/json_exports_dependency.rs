@@ -2,8 +2,8 @@ use json::JsonValue;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCodeGeneration,
-  DependencyId, ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoArtifact,
-  ExportsOfExportsSpec, ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
+  DependencyId, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
 };
 use rspack_util::{ext::DynHash, itoa};
 
@@ -87,8 +87,7 @@ fn get_exports_from_data(
         ExportNameOrSpec::ExportSpec(ExportSpec {
           name: k.into(),
           can_mangle: Some(true),
-          exports: get_exports_from_data(v, exports_depth, cur_depth + 1)
-            .map(ExportSpecExports::new),
+          exports: get_exports_from_data(v, exports_depth, cur_depth + 1),
           ..Default::default()
         })
       })
@@ -106,8 +105,7 @@ fn get_exports_from_data(
           ExportNameOrSpec::ExportSpec(ExportSpec {
             name: i_str.into(),
             can_mangle: Some(true),
-            exports: get_exports_from_data(item, exports_depth, cur_depth + 1)
-              .map(ExportSpecExports::new),
+            exports: get_exports_from_data(item, exports_depth, cur_depth + 1),
             ..Default::default()
           })
         })

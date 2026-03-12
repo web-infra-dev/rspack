@@ -31,7 +31,10 @@ use rspack_plugin_javascript::{
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_split_chunks::CacheGroup;
-use rspack_util::{atom::Atom, fx_hash::FxHashMap};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxHashMap, FxHashSet},
+};
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
@@ -780,6 +783,50 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
 
     let canonical_id = module_ids[0];
+
+    let mut used_exports = FxHashSet::default();
+    let mut used_in_unknown = false;
+
+    for dup_id in &module_ids[1..] {
+      let dup_id_used = compilation
+        .exports_info_artifact
+        .get_exports_info_data(dup_id);
+      if !matches!(
+        dup_id_used.other_exports_info().get_used(None),
+        rspack_core::UsageState::Unused
+      ) {
+        used_in_unknown = true;
+        break;
+      } else {
+        let used = dup_id_used.exports().iter().filter_map(|(name, export)| {
+          if matches!(export.get_used(None), rspack_core::UsageState::Used) {
+            Some(name.clone())
+          } else {
+            None
+          }
+        });
+
+        used_exports.extend(used);
+      }
+    }
+
+    if used_in_unknown {
+      // used in unknown way, we should make canonical_id the same used in unknown way
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data_mut(&canonical_id);
+      exports_info.set_used_in_unknown_way(None);
+    } else {
+      for name in used_exports {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data_mut(&canonical_id);
+
+        let info = exports_info.ensure_export_info(&name);
+        let info = info.as_data_mut(&mut compilation.exports_info_artifact);
+        info.set_used(rspack_core::UsageState::Used, None);
+      }
+    }
 
     for &dup_id in &module_ids[1..] {
       let cg = &mut compilation.build_chunk_graph_artifact.chunk_graph;

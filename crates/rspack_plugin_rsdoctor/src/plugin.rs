@@ -5,7 +5,7 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::{IdentifierMap, UkeyMap};
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
@@ -30,9 +30,9 @@ use crate::{
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
   },
   module_graph::{
-    collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
-    collect_module_ids, collect_module_original_sources, collect_module_side_effects_locations,
-    collect_modules,
+    collect_concatenated_modules, collect_connections_only_imports, collect_json_module_sizes,
+    collect_module_dependencies, collect_module_ids, collect_module_original_sources,
+    collect_module_side_effects_locations, collect_modules,
   },
 };
 
@@ -55,12 +55,12 @@ static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRsdoctorPlugi
   LazyLock::new(Default::default);
 
 #[cfg_attr(allocative, allocative::root)]
-static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, ModuleUkey>>> =
+static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, IdentifierMap<ModuleUkey>>> =
   LazyLock::new(FxDashMap::default);
 
 #[cfg_attr(allocative, allocative::root)]
 static ENTRYPOINT_UKEY_MAP: LazyLock<
-  FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
+  FxDashMap<CompilationId, UkeyMap<ChunkGroupUkey, EntrypointUkey>>,
 > = LazyLock::new(FxDashMap::default);
 
 #[cfg_attr(allocative, allocative::root)]
@@ -193,8 +193,8 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  MODULE_UKEY_MAP.insert(compilation.id(), HashMap::default());
-  ENTRYPOINT_UKEY_MAP.insert(compilation.id(), HashMap::default());
+  MODULE_UKEY_MAP.insert(compilation.id(), IdentifierMap::default());
+  ENTRYPOINT_UKEY_MAP.insert(compilation.id(), UkeyMap::default());
   Ok(())
 }
 
@@ -209,10 +209,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let chunks = chunk_by_ukey.iter().collect::<HashMap<_, _>>();
+  let chunks = chunk_by_ukey
+    .iter()
+    .map(|(k, v)| (*k, v))
+    .collect::<UkeyMap<_, _>>();
 
-  let mut rsd_chunks = HashMap::default();
-  let mut rsd_entrypoints = HashMap::default();
+  let mut rsd_chunks = UkeyMap::default();
+  let mut rsd_entrypoints = UkeyMap::default();
 
   // 1. collect chunks
   rsd_chunks.extend(collect_chunks(&chunks, chunk_graph, chunk_group_by_ukey));
@@ -397,6 +400,19 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
+  let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
+    .values()
+    .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
+    .collect();
+  let connections_only_imports = collect_connections_only_imports(
+    &modules,
+    &module_ukey_map,
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
+    &module_ukey_to_info,
+  );
+
   // 7. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
@@ -409,6 +425,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
         chunk_modules,
+        connections_only_imports,
       })
       .await
     {

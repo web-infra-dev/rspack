@@ -1047,43 +1047,6 @@ export default {
 };
 ```
 
-### serveIndex
-
-- **类型：** `boolean | object`
-- **默认值：** `{ icons: true }`
-
-启用后，dev server 会使用 [`serveIndex`](https://github.com/expressjs/serve-index) 中间件为目录生成索引页。当访问的目录中没有 `index.html` 时，浏览器会展示该目录下的文件列表。
-
-```js title="rspack.config.mjs"
-import path from 'node:path';
-
-export default {
-  devServer: {
-    static: {
-      directory: path.join(import.meta.dirname, 'public'),
-      serveIndex: true,
-    },
-  },
-};
-```
-
-你也可以传入对象来自定义 [`serveIndex`](https://github.com/expressjs/serve-index) 的选项：
-
-```js title="rspack.config.mjs"
-import path from 'node:path';
-
-export default {
-  devServer: {
-    static: {
-      directory: path.join(import.meta.dirname, 'public'),
-      serveIndex: {
-        icons: true,
-      },
-    },
-  },
-};
-```
-
 ### watch
 
 - **类型：** `boolean | object`

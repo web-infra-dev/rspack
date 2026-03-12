@@ -1,17 +1,55 @@
 ```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
 import { __webpack_require__ } from "./runtime.mjs";
 __webpack_require__.add({
+"./cjs.js"
+/*!****************!*\
+  !*** ./cjs.js ***!
+  \****************/
+(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _use_other__rspack_import_0 = __webpack_require__(/*! ./use-other */ "./use-other.js");
+/* import */ var _use_other__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_use_other__rspack_import_0);
+
+
+// use export readFile
+console.log.bind((__webpack_require__(/*! fs */ "fs")/* .readFile */.readFile))
+
+
+},
 "./index.js"
 /*!******************!*\
   !*** ./index.js ***!
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+/* import */ var _cjs__rspack_import_0 = __webpack_require__(/*! ./cjs */ "./cjs.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
+
+
 
 
 // access module so entry is not scope hoisted
 console.log.bind(module)
+
+
+},
+"./use-other.js"
+/*!**********************!*\
+  !*** ./use-other.js ***!
+  \**********************/
+(__unused_rspack_module, __unused_rspack_exports, __webpack_require__) {
+// use export writeFile
+console.log.bind((__webpack_require__(/*! fs */ "fs")/* .writeFile */.writeFile))
+
+
+},
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+
+module.exports = __rspack_external_fs;
 
 
 },
@@ -47,6 +85,28 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
 // webpack/runtime/esm_module_decorator
 (() => {
 __webpack_require__.hmd = (module) => {
@@ -65,6 +125,10 @@ __webpack_require__.hmd = (module) => {
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 // webpack/runtime/make_namespace_object
 (() => {

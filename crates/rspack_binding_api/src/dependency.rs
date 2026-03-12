@@ -5,6 +5,7 @@ use napi::{
   bindgen_prelude::{Array, ToNapiValue},
 };
 use napi_derive::napi;
+use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId, DependencyId, internal};
 use rspack_napi::OneShotInstanceRef;
 use rspack_plugin_javascript::dependency::{
@@ -172,10 +173,10 @@ impl Dependency {
   }
 }
 
-type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<Dependency>>;
+type DependencyInstanceRefs = UkeyMap<DependencyId, OneShotInstanceRef<Dependency>>;
 
 type DependencyInstanceRefsByCompilationId =
-  RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
+  RefCell<UkeyMap<CompilationId, DependencyInstanceRefs>>;
 
 thread_local! {
   static DEPENDENCY_INSTANCE_REFS: DependencyInstanceRefsByCompilationId = Default::default();
@@ -229,7 +230,7 @@ impl ToNapiValue for DependencyWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = HashMap::default();
+            let refs = UkeyMap::default();
             entry.insert(refs)
           }
         };

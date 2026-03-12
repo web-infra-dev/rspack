@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsMap, AsPreset, AsVec},
 };
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, UkeySet};
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -89,10 +89,10 @@ pub struct LazyDependencies {
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   forward_id_to_request: FxHashMap<Atom, Atom>,
   #[cacheable(with=AsMap<AsPreset>)]
-  request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+  request_to_dependencies: FxHashMap<Atom, UkeySet<DependencyId>>,
   #[cacheable(with=AsVec<AsPreset>)]
   terminal_forward_ids: FxHashSet<Atom>,
-  fallback_dependencies: FxHashSet<DependencyId>,
+  fallback_dependencies: UkeySet<DependencyId>,
 }
 
 impl LazyDependencies {
@@ -132,7 +132,7 @@ impl LazyDependencies {
   pub fn requested_lazy_dependencies(
     &self,
     forwarded_ids: &ForwardedIdSet,
-  ) -> FxHashSet<DependencyId> {
+  ) -> UkeySet<DependencyId> {
     match forwarded_ids {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
       ForwardedIdSet::IdSet(set) => set

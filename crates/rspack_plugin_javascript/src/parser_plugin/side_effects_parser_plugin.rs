@@ -351,8 +351,7 @@ pub fn is_pure_expression<'a>(
     unresolved_ctxt: SyntaxContext,
     comments: Option<&'a dyn Comments>,
   ) -> bool {
-    let drive = parser.plugin_drive.clone();
-    if let Some(res) = drive.is_pure(parser, expr) {
+    if let Some(res) = parser.plugin_drive.clone().is_pure(parser, expr) {
       return res;
     }
 

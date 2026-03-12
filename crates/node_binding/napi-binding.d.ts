@@ -1060,6 +1060,7 @@ export interface JsRscClientPluginOptions {
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
   onServerComponentChanges?: (() => void) | undefined | null
+  onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
 }
 
 export interface JsRsdoctorAsset {
@@ -1109,6 +1110,18 @@ export interface JsRsdoctorConnection {
   userRequest: string
   loc?: string
   active: boolean
+}
+
+export interface JsRsdoctorConnectionsOnlyImport {
+  moduleUkey: number
+  modulePath: string
+  connections: Array<JsRsdoctorConnectionsOnlyImportConnection>
+}
+
+export interface JsRsdoctorConnectionsOnlyImportConnection {
+  originModule?: number
+  dependencyType: string
+  userRequest: string
 }
 
 export interface JsRsdoctorDependency {
@@ -1164,6 +1177,7 @@ export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
+  connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
 }
 
 export interface JsRsdoctorModuleGraphModule {
