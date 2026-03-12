@@ -245,7 +245,7 @@ pub(crate) struct CodeSplitter {
   // 2 direction map
   pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, HashSet<CgiUkey>>,
 
-  pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
+  pub(crate) named_chunk_groups: HashMap<Arc<str>, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
@@ -285,9 +285,7 @@ fn add_chunk_in_group(
   request: Option<String>,
 ) -> ChunkGroup {
   let options = ChunkGroupOptions::new(
-    group_options
-      .and_then(|x| x.name())
-      .map(|name| name.to_string()),
+    group_options.and_then(|x| x.name()).map(Arc::clone),
     group_options
       .and_then(|x| x.normal_options())
       .and_then(|x| x.preload_order),
@@ -355,7 +353,7 @@ impl CodeSplitter {
 
   pub fn prepare_entry_input(
     &mut self,
-    name: &str,
+    name: &Arc<str>,
     compilation: &mut Compilation,
   ) -> Result<(ChunkGroupUkey, Vec<ModuleIdentifier>)> {
     let Some(entry_data) = compilation.entries.get(name) else {
@@ -469,12 +467,12 @@ impl CodeSplitter {
     compilation
       .build_chunk_graph_artifact
       .named_chunk_groups
-      .insert(name.to_string(), entrypoint.ukey);
+      .insert(name.clone(), entrypoint.ukey);
 
     compilation
       .build_chunk_graph_artifact
       .entrypoints
-      .insert(name.to_string(), entrypoint.ukey);
+      .insert(name.clone(), entrypoint.ukey);
 
     let entrypoint = {
       let ukey = entrypoint.ukey;
@@ -528,7 +526,7 @@ impl CodeSplitter {
 
     self.chunk_group_info_map.insert(entrypoint.ukey, cgi);
     if let Some(name) = entrypoint.name() {
-      self.named_chunk_groups.insert(name.to_string(), cgi);
+      self.named_chunk_groups.insert(name.clone(), cgi);
     }
 
     let entrypoint_ukey = entrypoint.ukey;
@@ -605,8 +603,11 @@ Remove the 'runtime' option from the entrypoint."
         let referenced_chunks = entry_point_chunk
           .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
-        for dep in depend_on {
-          if let Some(dependency_ukey) = compilation.build_chunk_graph_artifact.entrypoints.get(dep)
+        for depend_entry_name in depend_on {
+          if let Some(dependency_ukey) = compilation
+            .build_chunk_graph_artifact
+            .entrypoints
+            .get(depend_entry_name.as_str())
           {
             let dependency_chunk_ukey = compilation
               .build_chunk_graph_artifact
@@ -615,7 +616,7 @@ Remove the 'runtime' option from the entrypoint."
               .get_entrypoint_chunk();
             if referenced_chunks.contains(&dependency_chunk_ukey) {
               let mut diagnostic = Diagnostic::from(error!(
-                "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+                "Entrypoints '{name}' and '{depend_entry_name}' use 'dependOn' to depend on each other in a circular way."
               ));
               diagnostic.chunk = Some(entry_point.get_entrypoint_chunk().as_u32());
               runtime_errors.push(diagnostic);
@@ -625,7 +626,7 @@ Remove the 'runtime' option from the entrypoint."
             }
             depend_on_entries.push(dependency_ukey);
           } else {
-            panic!("Entry {name} depends on {dep}, but this entry was not found");
+            panic!("Entry {name} depends on {depend_entry_name}, but this entry was not found");
           }
         }
       }
@@ -1555,7 +1556,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
       let cgi = if let Some(entry_options) = entry_options {
         let cgi =
-          if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name)) {
+          if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name.as_ref())) {
             let cgi = self.chunk_group_infos.expect_get(cgi);
 
             compilation
@@ -1614,15 +1615,15 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             entrypoint.index = Some(self.next_chunk_group_index);
 
             if let Some(name) = entrypoint.kind.name() {
-              self.named_async_entrypoints.insert(name.to_owned(), ukey);
+              self.named_async_entrypoints.insert(name.to_string(), ukey);
               compilation
                 .build_chunk_graph_artifact
                 .named_chunk_groups
-                .insert(name.to_owned(), entrypoint.ukey);
+                .insert(Arc::from(name), entrypoint.ukey);
               compilation
                 .build_chunk_graph_artifact
                 .named_chunks
-                .insert(name.to_owned(), chunk.ukey());
+                .insert(name.to_string(), chunk.ukey());
             }
 
             entrypoint.connect_chunk(chunk);
@@ -1654,7 +1655,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         cgi.ukey
       } else {
         let cgi = if let Some(chunk_name) = chunk_name
-          && let Some(cgi) = self.named_chunk_groups.get(chunk_name)
+          && let Some(cgi) = self.named_chunk_groups.get(chunk_name.as_ref())
         {
           let mut cgi = self.chunk_group_infos.expect_get(cgi);
           let block = module_graph
@@ -1712,11 +1713,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk_group.index = Some(self.next_chunk_group_index);
 
           if let Some(name) = chunk_group.kind.name() {
-            self.named_chunk_groups.insert(name.to_owned(), info_ukey);
+            self.named_chunk_groups.insert(Arc::from(name), info_ukey);
             compilation
               .build_chunk_graph_artifact
               .named_chunk_groups
-              .insert(name.to_owned(), chunk_group.ukey);
+              .insert(Arc::from(name), chunk_group.ukey);
           }
 
           chunk_group.connect_chunk(chunk);

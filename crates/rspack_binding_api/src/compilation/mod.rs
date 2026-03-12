@@ -291,7 +291,7 @@ impl JsCompilation {
   }
 
   #[napi]
-  pub fn get_named_chunk_group_keys(&self) -> Result<Vec<String>> {
+  pub fn get_named_chunk_group_keys(&self) -> Result<Vec<&str>> {
     let compilation = self.as_ref()?;
 
     Ok(
@@ -299,7 +299,7 @@ impl JsCompilation {
         .build_chunk_graph_artifact
         .named_chunk_groups
         .keys()
-        .cloned()
+        .map(|s| s.as_ref())
         .collect::<Vec<_>>(),
     )
   }
@@ -311,7 +311,7 @@ impl JsCompilation {
       compilation
         .build_chunk_graph_artifact
         .named_chunk_groups
-        .get(&name)
+        .get(name.as_str())
         .map(|ukey| ChunkGroupWrapper::new(*ukey, compilation)),
     )
   }

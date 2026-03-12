@@ -1,20 +1,15 @@
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
-use indexmap::IndexMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::extract_hash_pattern;
 use crate::{
-  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, EntryData, EntryOptions, FULL_HASH_PLACEHOLDER,
-  Filename, HASH_PLACEHOLDER, RuntimeSpec,
+  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, Entries, EntryData, EntryOptions,
+  FULL_HASH_PLACEHOLDER, Filename, HASH_PLACEHOLDER, RuntimeSpec,
 };
 
-pub fn get_entry_runtime(
-  name: &str,
-  options: &EntryOptions,
-  entries: &IndexMap<String, EntryData>,
-) -> RuntimeSpec {
+pub fn get_entry_runtime(name: &str, options: &EntryOptions, entries: &Entries) -> RuntimeSpec {
   if let Some(depend_on) = &options.depend_on {
     let mut result: RuntimeSpec = Default::default();
     let mut queue = vec![];
@@ -27,7 +22,7 @@ pub fn get_entry_runtime(
         continue;
       }
       visited.insert(name.clone());
-      let Some(EntryData { options, .. }) = entries.get(&name) else {
+      let Some(EntryData { options, .. }) = entries.get(name.as_str()) else {
         continue;
       };
 

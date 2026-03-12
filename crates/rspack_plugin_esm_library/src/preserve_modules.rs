@@ -18,7 +18,7 @@ pub fn entry_modules(compilation: &Compilation) -> FxHashMap<String, IdentifierS
     .iter()
     .map(|(name, item)| {
       (
-        name.clone(),
+        name.to_string(),
         item
           .all_dependencies()
           .chain(compilation.global_entry.all_dependencies())

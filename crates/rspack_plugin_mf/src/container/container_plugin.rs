@@ -19,7 +19,7 @@ use crate::ShareScope;
 
 #[derive(Debug)]
 pub struct ContainerPluginOptions {
-  pub name: String,
+  pub name: Arc<str>,
   pub share_scope: ShareScope,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
@@ -115,7 +115,7 @@ async fn additional_tree_runtime_requirements(
   else {
     return Ok(());
   };
-  if matches!(&entry_options.name, Some(name) if name == &self.options.name)
+  if matches!(&entry_options.name, Some(name) if name.as_ref() == self.options.name.as_ref())
     && compilation
       .build_chunk_graph_artifact
       .chunk_graph

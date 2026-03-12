@@ -40,7 +40,7 @@ pub fn collect_assets_from_chunk(
       .expect_get(cg);
     let skip = group
       .name()
-      .is_some_and(|name| entry_point_names.contains(name));
+      .is_some_and(|name| entry_point_names.contains(name.as_ref()));
     if !skip {
       for chunk_ukey in &group.chunks {
         let group_chunk = compilation
@@ -86,7 +86,7 @@ pub fn collect_assets_from_chunk(
         .expect_get(cg);
       let skip = group
         .name()
-        .is_some_and(|name| entry_point_names.contains(name));
+        .is_some_and(|name| entry_point_names.contains(name.as_ref()));
       if !skip {
         for file in group.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
           if file.ends_with(".css") {

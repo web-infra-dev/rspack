@@ -21,7 +21,7 @@ use super::dll_entry_dependency::DllEntryDependency;
 #[derive(Debug, Default)]
 pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
-  name: String,
+  name: Arc<str>,
 
   factory_meta: Option<FactoryMeta>,
 

@@ -1162,7 +1162,7 @@ impl Module for ContextModule {
             {
               Cow::Owned(format!("{name}{CHUNK_NAME_INDEX_PLACEHOLDER}"))
             } else {
-              Cow::Borrowed(name)
+              Cow::Borrowed(name.as_ref())
             };
 
             let name = name.cow_replace(CHUNK_NAME_INDEX_PLACEHOLDER, &index.to_string());
@@ -1185,7 +1185,7 @@ impl Module for ContextModule {
           Some(self.options.context_options.request.clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-          name,
+          name.map(Arc::from),
           preload_order,
           prefetch_order,
           fetch_priority,

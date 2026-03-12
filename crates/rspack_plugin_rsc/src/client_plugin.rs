@@ -247,7 +247,7 @@ async fn collect_entry_js_files(
   plugin_state: &mut PluginState,
 ) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
-    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_ref()) else {
       continue;
     };
 
@@ -444,7 +444,7 @@ impl RscClientPlugin {
         .module_loading
         .as_ref()
         .expect("module_loading should be initialized before recording modules");
-      let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+      let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_ref()) else {
         continue;
       };
 

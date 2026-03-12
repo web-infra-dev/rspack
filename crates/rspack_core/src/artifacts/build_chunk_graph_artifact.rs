@@ -1,4 +1,4 @@
-use std::mem;
+use std::{mem, sync::Arc};
 
 use futures::Future;
 use indexmap::IndexMap;
@@ -20,9 +20,9 @@ pub struct BuildChunkGraphArtifact {
   pub chunk_by_ukey: ChunkByUkey,
   pub chunk_graph: ChunkGraph,
   pub chunk_group_by_ukey: ChunkGroupByUkey,
-  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub entrypoints: IndexMap<Arc<str>, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
-  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
+  pub named_chunk_groups: HashMap<Arc<str>, ChunkGroupUkey>,
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,

@@ -392,11 +392,11 @@ async fn optimize_modules(
       for cycle in detector.find_cycles_from(module_id) {
         if self.is_cycle_ignored(&module_map, &cycle, compilation) {
           self
-            .handle_cycle_ignored(entrypoint_name.clone(), cycle, diagnostics)
+            .handle_cycle_ignored(entrypoint_name.to_string(), cycle, diagnostics)
             .await?
         } else {
           self
-            .handle_cycle_detected(entrypoint_name.clone(), cycle, compilation, diagnostics)
+            .handle_cycle_detected(entrypoint_name.to_string(), cycle, compilation, diagnostics)
             .await?
         }
       }

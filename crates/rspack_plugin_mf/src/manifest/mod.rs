@@ -103,7 +103,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .build_chunk_graph_artifact
     .entrypoints
     .keys()
-    .cloned()
+    .map(|s| s.to_string())
     .collect();
 
   // Build metaData
@@ -437,7 +437,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .chunk_group_by_ukey
               .expect_get(group_ukey);
             if let Some(name) = group.name()
-              && !entry_point_names.contains(name)
+              && !entry_point_names.contains(name.as_ref())
             {
               for extra_chunk in group.chunks.iter() {
                 entry.insert(*extra_chunk);

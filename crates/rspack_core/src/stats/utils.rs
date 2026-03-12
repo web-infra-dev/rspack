@@ -67,7 +67,7 @@ pub fn get_chunk_group_ordered_children<'a>(
       let cg = chunk_group_by_ukey.expect_get(ukey);
       stats.get_chunk_group(
         module_graph,
-        cg.name().unwrap_or_default(),
+        cg.name().map_or("", |s| s.as_ref()),
         ukey,
         chunk_group_auxiliary,
         false,

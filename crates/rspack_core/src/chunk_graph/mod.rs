@@ -76,7 +76,7 @@ impl ChunkGraph {
           origins.sort();
           Cow::Owned(origins.join("\n"))
         },
-        Cow::Borrowed,
+        |name| Cow::Borrowed(name.as_ref()),
       );
       let table_header = format!("<tr><td bgcolor=\"#aaa\">{chunk_group_name}</td></tr>");
       let bg_color = if chunk_group.is_initial() {

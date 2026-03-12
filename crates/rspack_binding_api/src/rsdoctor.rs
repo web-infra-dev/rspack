@@ -181,7 +181,7 @@ impl From<RsdoctorEntrypoint> for JsRsdoctorEntrypoint {
   fn from(value: RsdoctorEntrypoint) -> Self {
     JsRsdoctorEntrypoint {
       ukey: value.ukey,
-      name: value.name,
+      name: value.name.to_string(),
       chunks: value.chunks.into_iter().collect::<Vec<_>>(),
     }
   }

@@ -105,7 +105,7 @@ fn add_dependencies(
   let mut block =
     AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, vec![dep], None);
   block.set_group_options(GroupOptions::Entrypoint(Box::new(EntryOptions {
-    name,
+    name: name.map(std::sync::Arc::from),
     runtime: Some(runtime.into()),
     chunk_loading: Some(output_options.worker_chunk_loading.clone()),
     wasm_loading: Some(output_options.worker_wasm_loading.clone()),

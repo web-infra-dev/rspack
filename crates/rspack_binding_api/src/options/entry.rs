@@ -54,7 +54,7 @@ pub struct JsEntryOptions {
 impl From<JsEntryOptions> for EntryOptions {
   fn from(value: JsEntryOptions) -> Self {
     Self {
-      name: value.name,
+      name: value.name.map(Into::into),
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       chunk_loading: value.chunk_loading.map(Into::into),
       wasm_loading: value.wasm_loading.map(Into::into),

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -40,12 +40,12 @@ pub struct ContainerEntryModule {
   request: Option<String>,
   version: Option<String>,
   dependency_type: DependencyType,
-  name: String,
+  name: Arc<str>,
 }
 
 impl ContainerEntryModule {
   pub fn new(
-    name: String,
+    name: Arc<str>,
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: ShareScope,
     enhanced: bool,
@@ -81,7 +81,7 @@ impl ContainerEntryModule {
     }
   }
 
-  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
+  pub fn new_share_container_entry(name: Arc<str>, request: String, version: String) -> Self {
     let lib_ident = format!("webpack/share/container/{}", &name);
     Self {
       blocks: Vec::new(),
@@ -221,7 +221,7 @@ impl Module for ContainerEntryModule {
           None,
         );
         block.set_group_options(GroupOptions::ChunkGroup(
-          ChunkGroupOptions::default().name_optional(options.name.clone()),
+          ChunkGroupOptions::default().name_optional(options.name.clone().map(Into::into)),
         ));
         blocks.push(Box::new(block));
       }

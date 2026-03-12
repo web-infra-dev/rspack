@@ -1190,7 +1190,7 @@ impl CompilerOptionsBuilder {
       .into_iter()
       .for_each(|(name, desc)| {
         let entry_options = EntryOptions {
-          name: Some(name),
+          name: Some(name.into()),
           runtime: desc.runtime.map(EntryRuntime::String),
           chunk_loading: desc.chunk_loading,
           wasm_loading: desc.wasm_loading,

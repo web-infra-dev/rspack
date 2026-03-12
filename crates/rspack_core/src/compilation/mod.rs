@@ -69,7 +69,7 @@ use crate::{
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  DependencyType, Entries, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
@@ -205,7 +205,7 @@ pub struct Compilation {
   pub records: Option<CompilationRecords>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
-  pub entries: Entry,
+  pub entries: Entries,
   pub global_entry: EntryData,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
@@ -610,7 +610,7 @@ impl Compilation {
 
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
-    let entry_name: Option<String> = options.name.clone();
+    let entry_name: Option<Arc<str>> = options.name.clone();
     let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
@@ -917,7 +917,7 @@ impl Compilation {
     &mut self.assets
   }
 
-  pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
+  pub fn entrypoints(&self) -> &IndexMap<Arc<str>, ChunkGroupUkey> {
     &self.build_chunk_graph_artifact.entrypoints
   }
 

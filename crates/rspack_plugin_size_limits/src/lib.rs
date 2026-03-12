@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
@@ -99,7 +101,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_entrypoints_over_size_limit_warning(
-    detail: &[(&String, f64, Vec<String>)],
+    detail: &[(&Arc<str>, f64, Vec<String>)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,

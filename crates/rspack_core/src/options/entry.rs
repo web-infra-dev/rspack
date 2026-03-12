@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use indexmap::IndexMap;
 
 use crate::{
   ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath, WasmLoading,
 };
 
-pub type Entry = IndexMap<String, EntryData>;
+pub type Entries = IndexMap<Arc<str>, EntryData>;
 
 pub type EntryItem = Vec<String>;
 

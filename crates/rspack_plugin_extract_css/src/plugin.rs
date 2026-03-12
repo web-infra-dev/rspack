@@ -287,7 +287,7 @@ impl PluginCssExtract {
                         .chunk_group_by_ukey
                         .expect_get(cg);
 
-                      chunk_group.name()
+                      chunk_group.name().map(|s| s.to_string())
                     })
                     .collect::<Vec<_>>()
                     .join(",")
@@ -302,6 +302,7 @@ impl PluginCssExtract {
                         .chunk_group_by_ukey
                         .expect_get(cg)
                         .name()
+                        .map(|s| s.to_string())
                     })
                     .collect::<Vec<_>>()
                     .join(", ")

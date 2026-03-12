@@ -1,6 +1,7 @@
 use std::{
   cmp::Ordering,
   fmt::{self, Display},
+  sync::Arc,
 };
 
 use indexmap::IndexSet;
@@ -291,10 +292,10 @@ impl ChunkGroup {
       .join("+")
   }
 
-  pub fn name(&self) -> Option<&str> {
+  pub fn name(&self) -> Option<&Arc<str>> {
     match &self.kind {
-      ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),
-      ChunkGroupKind::Normal { options } => options.name.as_deref(),
+      ChunkGroupKind::Entrypoint { options, .. } => options.name.as_ref(),
+      ChunkGroupKind::Normal { options } => options.name.as_ref(),
     }
   }
 
@@ -449,7 +450,7 @@ impl EntryRuntime {
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EntryOptions {
-  pub name: Option<String>,
+  pub name: Option<Arc<str>>,
   pub runtime: Option<EntryRuntime>,
   pub chunk_loading: Option<ChunkLoading>,
   pub wasm_loading: Option<WasmLoading>,
@@ -522,7 +523,7 @@ impl Display for ChunkGroupOrderKey {
 #[cacheable]
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ChunkGroupOptions {
-  pub name: Option<String>,
+  pub name: Option<Arc<str>>,
   pub preload_order: Option<i32>,
   pub prefetch_order: Option<i32>,
   pub fetch_priority: Option<DynamicImportFetchPriority>,
@@ -530,7 +531,7 @@ pub struct ChunkGroupOptions {
 
 impl ChunkGroupOptions {
   pub fn new(
-    name: Option<String>,
+    name: Option<Arc<str>>,
     preload_order: Option<i32>,
     prefetch_order: Option<i32>,
     fetch_priority: Option<DynamicImportFetchPriority>,
@@ -542,7 +543,7 @@ impl ChunkGroupOptions {
       fetch_priority,
     }
   }
-  pub fn name_optional(mut self, name: Option<String>) -> Self {
+  pub fn name_optional(mut self, name: Option<Arc<str>>) -> Self {
     self.name = name;
     self
   }
@@ -556,10 +557,10 @@ pub enum GroupOptions {
 }
 
 impl GroupOptions {
-  pub fn name(&self) -> Option<&str> {
+  pub fn name(&self) -> Option<&Arc<str>> {
     match self {
-      Self::Entrypoint(e) => e.name.as_deref(),
-      Self::ChunkGroup(n) => n.name.as_deref(),
+      Self::Entrypoint(e) => e.name.as_ref(),
+      Self::ChunkGroup(n) => n.name.as_ref(),
     }
   }
 

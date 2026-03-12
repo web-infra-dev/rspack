@@ -107,7 +107,7 @@ pub fn collect_chunk_dependencies(
 }
 
 pub fn collect_entrypoints(
-  entrypoints: &IndexMap<String, ChunkGroupUkey>,
+  entrypoints: &IndexMap<Arc<str>, ChunkGroupUkey>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> HashMap<ChunkGroupUkey, RsdoctorEntrypoint> {
@@ -235,7 +235,7 @@ pub fn collect_chunk_assets(
 }
 
 pub fn collect_entrypoint_assets(
-  entrypoints: &IndexMap<String, ChunkGroupUkey>,
+  entrypoints: &IndexMap<Arc<str>, ChunkGroupUkey>,
   rsd_assets: &HashMap<String, RsdoctorAsset>,
   entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,

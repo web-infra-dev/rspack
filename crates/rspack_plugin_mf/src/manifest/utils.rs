@@ -37,7 +37,7 @@ pub fn ensure_configured_remotes(
 pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> HashSet<String> {
   let mut entry_files = HashSet::default();
   for (name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
-    if name == container_name {
+    if name.as_ref() == container_name {
       continue;
     }
     let entrypoint = compilation
@@ -63,13 +63,13 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
           {
             let mut should_filter = false;
             if let Some(chunk_name) = async_chunk.name()
-              && chunk_name.contains(name)
+              && chunk_name.contains(name.as_ref())
             {
               should_filter = true;
             }
             if !should_filter {
               for file in async_chunk.files() {
-                if file.contains(name) {
+                if file.contains(name.as_ref()) {
                   should_filter = true;
                   break;
                 }
