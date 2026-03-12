@@ -8,8 +8,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
   Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeSpec, SourceType, contextify,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -21,7 +21,8 @@ use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  client_reference_dependency::ClientReferenceDependency, plugin_state::ClientModuleImport,
+  client_reference_dependency::ClientReferenceDependency, constants::LAYERS_NAMES,
+  plugin_state::ClientModuleImport,
 };
 
 #[impl_source_map_config]
@@ -35,14 +36,19 @@ pub struct RscEntryModule {
   client_modules: Vec<ClientModuleImport>,
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
-  is_eager: bool,
+  is_server_side_rendering: bool,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
+  layer: Option<ModuleLayer>,
 }
 
 impl RscEntryModule {
-  pub fn new(name: Arc<str>, client_modules: Vec<ClientModuleImport>, is_eager: bool) -> Self {
+  pub fn new(
+    name: Arc<str>,
+    client_modules: Vec<ClientModuleImport>,
+    is_server_side_rendering: bool,
+  ) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
     let identifier = ModuleIdentifier::from(format!(
       "rsc entry ({}) [{}]",
@@ -53,6 +59,12 @@ impl RscEntryModule {
         .collect::<Vec<_>>()
         .join(", ")
     ));
+    let layer = if is_server_side_rendering {
+      Some(LAYERS_NAMES.server_side_rendering.to_string())
+    } else {
+      None
+    };
+
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -60,7 +72,7 @@ impl RscEntryModule {
       lib_ident,
       client_modules,
       name,
-      is_eager,
+      is_server_side_rendering,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -72,6 +84,7 @@ impl RscEntryModule {
         ..Default::default()
       },
       source_map_kind: SourceMapKind::empty(),
+      layer,
     }
   }
 }
@@ -133,12 +146,16 @@ impl Module for RscEntryModule {
     Some(self.lib_ident.as_str().into())
   }
 
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
+  }
+
   async fn build(
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    if self.is_eager {
+    if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
       let mut dependencies: Vec<BoxDependency> = vec![];
       let modules: Vec<(String, FxIndexSet<Atom>)> = self
@@ -179,8 +196,11 @@ impl Module for RscEntryModule {
       let dependencies: Vec<BoxDependency> = vec![];
 
       for client_module in &self.client_modules {
-        let dep =
-          ClientReferenceDependency::new(client_module.request.clone(), client_module.ids.clone());
+        let dep = ClientReferenceDependency::new(
+          client_module.request.clone(),
+          client_module.ids.clone(),
+          self.is_server_side_rendering,
+        );
         let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
@@ -204,17 +224,13 @@ impl Module for RscEntryModule {
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let ModuleCodeGenerationContext {
-      compilation,
-      runtime_template,
-      ..
-    } = code_generation_context;
+    let ModuleCodeGenerationContext { compilation, .. } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResult::default();
     let module_graph = compilation.get_module_graph();
 
-    if self.is_eager {
-      let mut parts = Vec::new();
+    if self.is_server_side_rendering {
+      let mut comments = Vec::new();
       for dep_id in self.get_dependencies() {
         let dependency = module_graph.dependency_by_id(dep_id);
         let dep = dependency
@@ -225,19 +241,13 @@ impl Module for RscEntryModule {
               dependency.dependency_type()
             )
           });
-        let code = runtime_template.module_namespace_promise(
-          compilation,
-          self.identifier,
-          dep.id(),
-          None,
+        let comment = to_comment(&contextify(
+          compilation.options.context.as_path(),
           dep.request(),
-          "import() eager",
-          false,
-          dep.get_phase(),
-        );
-        parts.push(code);
+        ));
+        comments.push(comment);
       }
-      let source = parts.join("\n");
+      let source = comments.join("\n");
       code_generation_result =
         code_generation_result.with_javascript(RawStringSource::from(source).boxed());
     } else {

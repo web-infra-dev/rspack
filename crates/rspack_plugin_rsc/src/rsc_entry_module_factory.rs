@@ -17,7 +17,7 @@ impl ModuleFactory for RscEntryModuleFactory {
       RscEntryModule::new(
         dependency.name.clone(),
         dependency.client_modules.clone(),
-        dependency.is_eager,
+        dependency.is_server_side_rendering,
       )
       .boxed(),
     ))

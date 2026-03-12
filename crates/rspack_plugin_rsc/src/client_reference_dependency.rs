@@ -17,12 +17,17 @@ pub struct ClientReferenceDependency {
   request: String,
   #[cacheable(with=AsVec<AsPreset>)]
   referenced_exports: FxIndexSet<Atom>,
+  is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
 impl ClientReferenceDependency {
-  pub fn new(request: String, referenced_exports: FxIndexSet<Atom>) -> Self {
+  pub fn new(
+    request: String,
+    referenced_exports: FxIndexSet<Atom>,
+    is_server_side_rendering: bool,
+  ) -> Self {
     let resource_identifier = format!("rsc-client-reference={request}").into();
     Self {
       id: DependencyId::new(),
@@ -30,6 +35,7 @@ impl ClientReferenceDependency {
       referenced_exports,
       resource_identifier,
       factorize_info: Default::default(),
+      is_server_side_rendering,
     }
   }
 }

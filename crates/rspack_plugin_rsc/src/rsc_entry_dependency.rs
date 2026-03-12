@@ -16,19 +16,23 @@ pub struct RscEntryDependency {
   pub client_modules: Vec<ClientModuleImport>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   /// When false, client modules are dynamic imports (code-split points).
-  pub is_eager: bool,
+  pub is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
 impl RscEntryDependency {
-  pub fn new(name: Arc<str>, client_modules: Vec<ClientModuleImport>, is_eager: bool) -> Self {
+  pub fn new(
+    name: Arc<str>,
+    client_modules: Vec<ClientModuleImport>,
+    is_server_side_rendering: bool,
+  ) -> Self {
     let resource_identifier = format!("rsc-client-entry-{}", &name).into();
     Self {
       id: DependencyId::new(),
       name,
       client_modules,
-      is_eager,
+      is_server_side_rendering,
       resource_identifier,
       factorize_info: Default::default(),
     }
