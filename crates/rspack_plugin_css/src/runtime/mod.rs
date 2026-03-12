@@ -2,15 +2,14 @@ use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
-  impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkIdSet,
+  compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   chunk_has_css, extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   stringify_chunks,
 };
-use rustc_hash::FxHashSet as HashSet;
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./css_loading.ejs");
 static CSS_LOADING_CREATE_LINK_TEMPLATE: &str = include_str!("./css_loading_create_link.ejs");
@@ -162,7 +161,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-      let mut initial_chunk_ids = HashSet::default();
+      let mut initial_chunk_ids = ChunkIdSet::default();
 
       for chunk_ukey in initial_chunks.iter() {
         let id = compilation
