@@ -8,27 +8,27 @@ use crate::{
 };
 
 pub trait ModulesContainer {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes;
-  fn get_source_types_modules(
+  fn get_sizes<'a>(&'a mut self, module_sizes: &ModuleSizes) -> &'a SplitChunkSizes;
+  fn collect_source_types_modules(
     &self,
     source_types: &[SourceType],
     module_sizes: &ModuleSizes,
-  ) -> IdentifierSet;
+  ) -> Vec<ModuleIdentifier>;
   fn remove_module(&mut self, module: ModuleIdentifier);
-  fn modules(&self) -> &IdentifierSet;
+  fn modules(&self) -> &rspack_collections::IdentifierSet;
 }
 
 impl ModulesContainer for ModuleGroup {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  fn get_sizes<'a>(&'a mut self, module_sizes: &ModuleSizes) -> &'a SplitChunkSizes {
     ModuleGroup::get_sizes(self, module_sizes)
   }
 
-  fn get_source_types_modules(
+  fn collect_source_types_modules(
     &self,
     source_types: &[SourceType],
     module_sizes: &ModuleSizes,
-  ) -> IdentifierSet {
-    ModuleGroup::get_source_types_modules(self, source_types, module_sizes)
+  ) -> Vec<ModuleIdentifier> {
+    ModuleGroup::collect_source_types_modules(self, source_types, module_sizes)
   }
 
   fn remove_module(&mut self, module: ModuleIdentifier) {
@@ -80,7 +80,7 @@ pub(crate) fn remove_min_size_violating_modules(
 
   // Remove modules having violating SourceType
   let violating_modules =
-    module_group.get_source_types_modules(&violating_source_types, module_sizes);
+    module_group.collect_source_types_modules(&violating_source_types, module_sizes);
 
   // question: After removing violating modules, the size of other `SourceType`s of this `ModuleGroup`
   // may not fit again. But Webpack seems ignore this case. Not sure if it is on purpose.
@@ -143,14 +143,16 @@ impl SplitChunksPlugin {
           module_group,
           cache_group,
           module_sizes,
-        ) || !Self::check_min_size_reduction(
-          &module_group.get_sizes(module_sizes),
-          &cache_group.min_size_reduction,
-          module_group.chunks.len(),
         ) {
           Some(module_group_key.clone())
         } else {
-          None
+          let chunk_len = module_group.chunks.len();
+          let sizes = module_group.get_sizes(module_sizes);
+          if !Self::check_min_size_reduction(sizes, &cache_group.min_size_reduction, chunk_len) {
+            Some(module_group_key.clone())
+          } else {
+            None
+          }
         }
       })
       .collect::<Vec<_>>();

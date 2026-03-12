@@ -1,5 +1,6 @@
 use std::{
   cmp::Ordering,
+  collections::BinaryHeap,
   hash::{Hash, Hasher},
 };
 
@@ -23,7 +24,7 @@ use crate::{
   SplitChunksPlugin,
   common::{ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
-  module_group::{IndexedCacheGroup, ModuleGroup, compare_entries},
+  module_group::{IndexedCacheGroup, ModuleGroup},
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -33,6 +34,231 @@ use crate::{
 
 type ChunksKey = u64;
 
+#[derive(Default)]
+pub(crate) struct AffectedModuleGroupIndex {
+  chunk_to_groups: FxHashMap<ChunkUkey, Vec<String>>,
+  module_to_groups: IdentifierMap<Vec<String>>,
+}
+
+impl AffectedModuleGroupIndex {
+  pub(crate) fn from_module_group_map(module_group_map: &ModuleGroupMap) -> Self {
+    let mut index = Self::default();
+
+    for (key, module_group) in module_group_map.iter() {
+      for chunk in &module_group.chunks {
+        index
+          .chunk_to_groups
+          .entry(*chunk)
+          .or_default()
+          .push(key.clone());
+      }
+
+      for module in &module_group.modules {
+        index
+          .module_to_groups
+          .entry(*module)
+          .or_default()
+          .push(key.clone());
+      }
+    }
+
+    index
+  }
+
+  pub(crate) fn collect_affected_keys<'a>(
+    &'a self,
+    current_module_group: &'a ModuleGroup,
+    used_chunks: &FxHashSet<ChunkUkey>,
+  ) -> Vec<&'a str> {
+    let chunk_refs = used_chunks
+      .iter()
+      .filter_map(|chunk| self.chunk_to_groups.get(chunk))
+      .map(Vec::len)
+      .sum::<usize>();
+    let module_refs = current_module_group
+      .modules
+      .iter()
+      .filter_map(|module| self.module_to_groups.get(module))
+      .map(Vec::len)
+      .sum::<usize>();
+
+    if chunk_refs == 0 || module_refs == 0 {
+      return Vec::new();
+    }
+
+    let mut seed = FxHashSet::default();
+    let mut affected = FxHashSet::default();
+
+    if chunk_refs <= module_refs {
+      for keys in used_chunks
+        .iter()
+        .filter_map(|chunk| self.chunk_to_groups.get(chunk))
+      {
+        seed.extend(keys.iter().map(String::as_str));
+      }
+
+      for keys in current_module_group
+        .modules
+        .iter()
+        .filter_map(|module| self.module_to_groups.get(module))
+      {
+        for key in keys {
+          let key = key.as_str();
+          if seed.contains(key) {
+            affected.insert(key);
+          }
+        }
+      }
+    } else {
+      for keys in current_module_group
+        .modules
+        .iter()
+        .filter_map(|module| self.module_to_groups.get(module))
+      {
+        seed.extend(keys.iter().map(String::as_str));
+      }
+
+      for keys in used_chunks
+        .iter()
+        .filter_map(|chunk| self.chunk_to_groups.get(chunk))
+      {
+        for key in keys {
+          let key = key.as_str();
+          if seed.contains(key) {
+            affected.insert(key);
+          }
+        }
+      }
+    }
+
+    affected.into_iter().collect()
+  }
+}
+
+struct ModuleGroupHeapEntry {
+  cache_group_index: u32,
+  chunks_len: usize,
+  key: String,
+  modules: Vec<ModuleIdentifier>,
+  size_reduce_bits: u64,
+  version: u32,
+}
+
+impl ModuleGroupHeapEntry {
+  fn from_module_group(key: &str, version: u32, module_group: &ModuleGroup) -> Self {
+    let chunks_len = module_group.chunks.len();
+    let size_reduce = module_group.get_total_size() * chunks_len.saturating_sub(1) as f64;
+
+    Self {
+      cache_group_index: module_group.cache_group_index,
+      chunks_len,
+      key: key.to_string(),
+      modules: module_group.ordered_module_identifiers(),
+      size_reduce_bits: size_reduce.to_bits(),
+      version,
+    }
+  }
+}
+
+impl PartialEq for ModuleGroupHeapEntry {
+  fn eq(&self, other: &Self) -> bool {
+    self.version == other.version
+      && self.cache_group_index == other.cache_group_index
+      && self.chunks_len == other.chunks_len
+      && self.key == other.key
+      && self.modules == other.modules
+      && self.size_reduce_bits == other.size_reduce_bits
+  }
+}
+
+impl Eq for ModuleGroupHeapEntry {}
+
+impl PartialOrd for ModuleGroupHeapEntry {
+  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for ModuleGroupHeapEntry {
+  fn cmp(&self, other: &Self) -> Ordering {
+    self
+      .chunks_len
+      .cmp(&other.chunks_len)
+      .then_with(|| self.size_reduce_bits.cmp(&other.size_reduce_bits))
+      .then_with(|| other.cache_group_index.cmp(&self.cache_group_index))
+      .then_with(|| self.modules.len().cmp(&other.modules.len()))
+      .then_with(|| self.modules.cmp(&other.modules))
+      .then_with(|| self.key.cmp(&other.key))
+      .then_with(|| self.version.cmp(&other.version))
+  }
+}
+
+#[derive(Default)]
+pub(crate) struct ModuleGroupQueue {
+  heap: BinaryHeap<ModuleGroupHeapEntry>,
+  versions: FxHashMap<String, u32>,
+}
+
+impl ModuleGroupQueue {
+  pub(crate) fn from_module_group_map(module_group_map: &ModuleGroupMap) -> Self {
+    let mut queue = Self::default();
+
+    for (key, module_group) in module_group_map.iter() {
+      queue.versions.insert(key.clone(), 0);
+      queue.heap.push(ModuleGroupHeapEntry::from_module_group(
+        key,
+        0,
+        module_group,
+      ));
+    }
+
+    queue
+  }
+
+  pub(crate) fn pop_best(
+    &mut self,
+    module_group_map: &mut ModuleGroupMap,
+  ) -> Option<(String, ModuleGroup)> {
+    while let Some(entry) = self.heap.pop() {
+      let Some(version) = self.versions.get(&entry.key) else {
+        continue;
+      };
+
+      if *version != entry.version {
+        continue;
+      }
+
+      self.versions.remove(&entry.key);
+      if let Some(module_group) = module_group_map.swap_remove(&entry.key) {
+        return Some((entry.key, module_group));
+      }
+    }
+
+    None
+  }
+
+  pub(crate) fn refresh(&mut self, key: &str, module_group: &ModuleGroup) {
+    let version = self
+      .versions
+      .entry(key.to_string())
+      .and_modify(|version| *version += 1)
+      .or_insert(0);
+    self.heap.push(ModuleGroupHeapEntry::from_module_group(
+      key,
+      *version,
+      module_group,
+    ));
+  }
+
+  pub(crate) fn remove(&mut self, key: &str) {
+    self.versions.remove(key);
+  }
+}
+
+pub(crate) struct ModuleGroupValidationCtx<'a> {
+  pub compilation: &'a Compilation,
+  pub module_sizes: &'a ModuleSizes,
+}
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
@@ -260,35 +486,6 @@ impl Combinator {
 }
 
 impl SplitChunksPlugin {
-  // #[tracing::instrument(skip_all)]
-  pub(crate) fn find_best_module_group(
-    &self,
-    module_group_map: &mut ModuleGroupMap,
-  ) -> (String, ModuleGroup) {
-    debug_assert!(!module_group_map.is_empty());
-
-    let best_entry_key = module_group_map
-      .keys()
-      .map(|key| (key, module_group_map.get(key).expect("should have item")))
-      .min_by(|a, b| {
-        let result = compare_entries((a.0, a.1), (b.0, b.1));
-        if result < 0f64 {
-          Ordering::Greater
-        } else if result > 0f64 {
-          Ordering::Less
-        } else {
-          Ordering::Equal
-        }
-      })
-      .map(|(key, _)| key.clone())
-      .expect("at least have one item");
-
-    let best_module_group = module_group_map
-      .swap_remove(&best_entry_key)
-      .expect("This should never happen, please file an issue");
-    (best_entry_key, best_module_group)
-  }
-
   #[allow(clippy::too_many_arguments)]
   #[instrument(name = "Compilation:SplitChunks:prepare_module_group_map",target=TRACING_BENCH_TARGET, skip_all)]
   pub(crate) async fn prepare_module_group_map(
@@ -464,27 +661,48 @@ impl SplitChunksPlugin {
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
     current_module_group: &ModuleGroup,
+    affected_module_group_index: &AffectedModuleGroupIndex,
+    module_group_queue: &mut ModuleGroupQueue,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &FxHashSet<ChunkUkey>,
-    compilation: &Compilation,
-    module_sizes: &ModuleSizes,
+    validation: ModuleGroupValidationCtx<'_>,
   ) {
+    let ModuleGroupValidationCtx {
+      compilation,
+      module_sizes,
+    } = validation;
+
     // remove all modules from other entries and update size
-    let keys_of_invalid_group = module_group_map
-      .par_iter_mut()
-      .filter_map(|(key, other_module_group)| {
-        other_module_group
+    let keys_of_invalid_group = affected_module_group_index
+      .collect_affected_keys(current_module_group, used_chunks)
+      .into_iter()
+      .filter_map(|key| {
+        let other_module_group = module_group_map.get_mut(key)?;
+
+        if !other_module_group
           .chunks
-          .intersection(used_chunks)
-          .next()?;
+          .iter()
+          .any(|chunk| used_chunks.contains(chunk))
+        {
+          return None;
+        }
 
         let module_count = other_module_group.modules.len();
 
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
-        } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
-        };
+        let duplicated_modules =
+          if other_module_group.modules.len() > current_module_group.modules.len() {
+            current_module_group
+              .modules
+              .intersection(&other_module_group.modules)
+              .copied()
+              .collect::<Vec<_>>()
+          } else {
+            other_module_group
+              .modules
+              .intersection(&current_module_group.modules)
+              .copied()
+              .collect::<Vec<_>>()
+          };
 
         for module in duplicated_modules {
           other_module_group.remove_module(module);
@@ -499,7 +717,7 @@ impl SplitChunksPlugin {
           tracing::trace!(
             "{key} is deleted for having empty modules",
           );
-          return Some(key.clone());
+          return Some(key.to_string());
         }
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
@@ -523,24 +741,44 @@ impl SplitChunksPlugin {
             other_module_group.chunks.len(),
             cache_group.min_chunks
           );
-          return Some(key.clone());
+          return Some(key.to_string());
         }
 
         // Validate `min_size` again
-        if remove_min_size_violating_modules(&cache_group.key, other_module_group, cache_group, module_sizes)
-          || !Self::check_min_size_reduction(&other_module_group.get_sizes(module_sizes), &cache_group.min_size_reduction, other_module_group.chunks.len()) {
+        if remove_min_size_violating_modules(
+          &cache_group.key,
+          other_module_group,
+          cache_group,
+          module_sizes,
+        ) {
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
           );
-          return Some(key.clone());
+          return Some(key.to_string());
         }
 
+        let chunk_len = other_module_group.chunks.len();
+        let sizes = other_module_group.get_sizes(module_sizes);
+        if !Self::check_min_size_reduction(
+          sizes,
+          &cache_group.min_size_reduction,
+          chunk_len,
+        ) {
+          tracing::trace!(
+            "{key} is deleted for violating min_size {:#?}",
+            cache_group.min_size,
+          );
+          return Some(key.to_string());
+        }
+
+        module_group_queue.refresh(key, other_module_group);
         None
       })
       .collect::<Vec<_>>();
 
     keys_of_invalid_group.into_iter().for_each(|key| {
+      module_group_queue.remove(&key);
       module_group_map.swap_remove(&key);
     });
   }
