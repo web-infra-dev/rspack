@@ -104,6 +104,14 @@ impl RuntimeSpec {
     Self::new(inner)
   }
 
+  pub fn from_owned_runtimes(runtimes: impl IntoIterator<Item = RuntimeSpec>) -> Self {
+    let mut inner = UstrSet::default();
+    for runtime in runtimes {
+      inner.extend(runtime.inner);
+    }
+    Self::new(inner)
+  }
+
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
     let r = match runtime {
       Some(EntryRuntime::String(s)) => s,
@@ -370,6 +378,35 @@ mod tests {
     let a = RuntimeSpec::from_iter(["b".into(), "a".into()]);
     let b = RuntimeSpec::from_single("c".into());
     let merged = RuntimeSpec::from_runtimes([&a, &b]);
+
+    assert_eq!(merged.as_str(), "a_b_c");
+  }
+
+  #[test]
+  fn should_rebuild_key_when_inserting_into_single_runtime_spec() {
+    let mut runtime = RuntimeSpec::from_single("b".into());
+
+    runtime.insert("a".into());
+
+    assert_eq!(runtime.as_str(), "a_b");
+  }
+
+  #[test]
+  fn should_clone_runtime_when_extending_empty_runtime_spec() {
+    let mut runtime = RuntimeSpec::default();
+    let other = RuntimeSpec::from_iter(["b".into(), "a".into()]);
+
+    runtime.extend(&other);
+
+    assert_eq!(runtime.as_str(), "a_b");
+  }
+
+  #[test]
+  fn should_merge_owned_runtimes() {
+    let merged = RuntimeSpec::from_owned_runtimes([
+      RuntimeSpec::from_single("b".into()),
+      RuntimeSpec::from_iter(["c".into(), "a".into()]),
+    ]);
 
     assert_eq!(merged.as_str(), "a_b_c");
   }

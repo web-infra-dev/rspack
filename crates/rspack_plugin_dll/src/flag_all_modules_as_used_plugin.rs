@@ -50,12 +50,12 @@ async fn optimize_dependencies(
 ) -> Result<Option<bool>> {
   let entries = &compilation.entries;
 
-  let runtimes = compilation
-    .entries
-    .iter()
-    .map(|(name, entry_data)| get_entry_runtime(name, &entry_data.options, entries))
-    .collect::<Vec<_>>();
-  let runtime = RuntimeSpec::from_runtimes(&runtimes);
+  let runtime = RuntimeSpec::from_owned_runtimes(
+    compilation
+      .entries
+      .iter()
+      .map(|(name, entry_data)| get_entry_runtime(name, &entry_data.options, entries)),
+  );
 
   let mg = build_module_graph_artifact.get_module_graph_mut();
 
