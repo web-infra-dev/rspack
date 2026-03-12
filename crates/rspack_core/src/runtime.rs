@@ -87,21 +87,38 @@ impl RuntimeSpec {
     this
   }
 
+  pub fn from_single(runtime: Ustr) -> Self {
+    let mut inner = UstrSet::default();
+    inner.insert(runtime);
+    Self {
+      inner,
+      key: runtime.as_str().to_string(),
+    }
+  }
+
+  pub fn from_runtimes<'a>(runtimes: impl IntoIterator<Item = &'a RuntimeSpec>) -> Self {
+    let mut inner = UstrSet::default();
+    for runtime in runtimes {
+      inner.extend(runtime.inner.iter().copied());
+    }
+    Self::new(inner)
+  }
+
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
     let r = match runtime {
       Some(EntryRuntime::String(s)) => s,
       _ => entry,
     }
-    .to_string();
-    Self::from_iter([r.into()])
+    .into();
+    Self::from_single(r)
   }
 
   pub fn from_entry_options(options: &EntryOptions) -> Option<Self> {
     let r = match &options.runtime {
-      Some(EntryRuntime::String(s)) => Some(s.to_owned()),
-      _ => options.name.clone(),
+      Some(EntryRuntime::String(s)) => Some(Ustr::from(s.as_str())),
+      _ => options.name.as_deref().map(Ustr::from),
     };
-    r.map(|r| Self::from_iter([r.into()]))
+    r.map(Self::from_single)
   }
 
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {
@@ -112,12 +129,24 @@ impl RuntimeSpec {
   pub fn insert(&mut self, r: Ustr) -> bool {
     let update = self.inner.insert(r);
     if update {
-      self.update_key();
+      if self.inner.len() == 1 {
+        self.key.clear();
+        self.key.push_str(r.as_str());
+      } else {
+        self.update_key();
+      }
     }
     update
   }
 
   pub fn extend(&mut self, other: &Self) {
+    if other.inner.is_empty() {
+      return;
+    }
+    if self.inner.is_empty() {
+      self.clone_from(other);
+      return;
+    }
     let prev = self.inner.len();
     self.inner.extend(other.inner.iter().copied());
     if prev != self.inner.len() {
@@ -130,12 +159,29 @@ impl RuntimeSpec {
       if self.key.is_empty() {
         return;
       }
-      self.key = String::new();
+      self.key.clear();
+      return;
+    }
+    if self.inner.len() == 1 {
+      self.key = self
+        .inner
+        .iter()
+        .next()
+        .expect("runtime spec with len 1 should have one runtime")
+        .as_str()
+        .to_string();
       return;
     }
     let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
     ordered.sort_unstable();
-    self.key = ordered.join("_");
+    let total_len = ordered.iter().map(|s| s.len()).sum::<usize>() + ordered.len() - 1;
+    let mut key = String::with_capacity(total_len);
+    key.push_str(ordered[0]);
+    for runtime in ordered.iter().skip(1) {
+      key.push('_');
+      key.push_str(runtime);
+    }
+    self.key = key;
   }
 
   pub fn as_str(&self) -> &str {
@@ -306,6 +352,27 @@ pub fn get_runtime_key(runtime: &RuntimeSpec) -> &RuntimeKey {
 
 pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
   a.key.cmp(&b.key)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::RuntimeSpec;
+
+  #[test]
+  fn should_keep_single_runtime_key_without_sorting() {
+    let runtime = RuntimeSpec::from_single("runtime-a".into());
+
+    assert_eq!(runtime.as_str(), "runtime-a");
+  }
+
+  #[test]
+  fn should_merge_runtimes_with_single_key_rebuild() {
+    let a = RuntimeSpec::from_iter(["b".into(), "a".into()]);
+    let b = RuntimeSpec::from_single("c".into());
+    let merged = RuntimeSpec::from_runtimes([&a, &b]);
+
+    assert_eq!(merged.as_str(), "a_b_c");
+  }
 }
 
 #[derive(Default, Clone, Debug, PartialEq, Eq)]

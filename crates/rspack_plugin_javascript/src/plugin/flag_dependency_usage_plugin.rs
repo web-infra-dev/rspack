@@ -71,18 +71,21 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let mut q = Queue::new();
     let mg = &mut *module_graph;
 
-    let mut global_runtime: Option<RuntimeSpec> = if self.global {
+    let mut global_runtime_specs = if self.global {
       None
     } else {
-      let mut global_runtime = RuntimeSpec::default();
-      for block in module_graph.blocks().values() {
-        if let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
-          && let Some(runtime) = RuntimeSpec::from_entry_options(options)
-        {
-          global_runtime.extend(&runtime);
-        }
-      }
-      Some(global_runtime)
+      Some(
+        module_graph
+          .blocks()
+          .values()
+          .filter_map(|block| {
+            let Some(GroupOptions::Entrypoint(options)) = block.get_group_options() else {
+              return None;
+            };
+            RuntimeSpec::from_entry_options(options)
+          })
+          .collect::<Vec<_>>(),
+      )
     };
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
@@ -93,8 +96,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       } else {
         Some(get_entry_runtime(entry_name, &entry.options, entries))
       };
-      if let Some(runtime) = runtime.as_ref() {
-        global_runtime.get_or_insert_default().extend(runtime);
+      if let Some(runtime) = runtime.as_ref()
+        && let Some(global_runtime) = global_runtime_specs.as_mut()
+      {
+        global_runtime.push(runtime.clone());
       }
       for &dep in entry.dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
@@ -103,6 +108,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }
     }
+    let global_runtime = global_runtime_specs.map(|runtimes| RuntimeSpec::from_runtimes(&runtimes));
     for dep in self.compilation.global_entry.dependencies.clone() {
       self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
     }
