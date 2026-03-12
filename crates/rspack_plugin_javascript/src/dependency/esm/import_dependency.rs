@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
   ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_refereced_specifiers,
+  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
   get_exports_type,
 };
 use swc_core::ecma::atoms::Atom;
@@ -110,7 +110,7 @@ impl Dependency for ImportDependency {
         &self.id,
         parent_module,
       );
-      create_referenced_exports_by_refereced_specifiers(referenced_specifiers, exports_type)
+      create_referenced_exports_by_referenced_specifiers(referenced_specifiers, exports_type)
     } else {
       create_exports_object_referenced()
     }

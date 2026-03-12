@@ -253,7 +253,7 @@ impl ReferencedSpecifier {
   }
 }
 
-pub fn create_referenced_exports_by_refereced_specifiers(
+pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
 ) -> Vec<ExtendedReferencedExport> {

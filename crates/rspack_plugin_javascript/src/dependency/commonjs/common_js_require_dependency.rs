@@ -8,7 +8,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedSpecifier, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_refereced_specifiers, get_exports_type,
+  create_referenced_exports_by_referenced_specifiers, get_exports_type,
 };
 
 #[cacheable]
@@ -91,7 +91,7 @@ impl Dependency for CommonJsRequireDependency {
         &self.id,
         parent_module,
       );
-      create_referenced_exports_by_refereced_specifiers(referenced_specifiers, exports_type)
+      create_referenced_exports_by_referenced_specifiers(referenced_specifiers, exports_type)
     } else {
       create_exports_object_referenced()
     }

@@ -90,28 +90,6 @@ impl Dependency for CommonJsRequireContextDependency {
     None
   }
 
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-    _exports_info_artifact: &ExportsInfoArtifact,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_specifiers) = &self.options.referenced_specifiers {
-      return referenced_specifiers
-        .iter()
-        .map(|referenced_specifier| {
-          ExtendedReferencedExport::Export(ReferencedExport::new(
-            referenced_specifier.names.clone(),
-            false,
-            false,
-          ))
-        })
-        .collect();
-    }
-    create_exports_object_referenced()
-  }
-
   fn loc(&self) -> Option<DependencyLocation> {
     Some(self.loc.clone())
   }

@@ -10,7 +10,7 @@ use crate::{
   ContextOptions, Dependency, DependencyCategory, DependencyId, DependencyType,
   ExportsInfoArtifact, ExtendedReferencedExport, ImportAttributes, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleLayer, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  create_exports_object_referenced, create_referenced_exports_by_refereced_specifiers,
+  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
 
 #[cacheable]
@@ -104,7 +104,7 @@ impl Dependency for ContextElementDependency {
         exports_info_artifact,
         is_strict,
       );
-      create_referenced_exports_by_refereced_specifiers(referenced_specifiers, exports_type)
+      create_referenced_exports_by_referenced_specifiers(referenced_specifiers, exports_type)
     } else {
       create_exports_object_referenced()
     }
