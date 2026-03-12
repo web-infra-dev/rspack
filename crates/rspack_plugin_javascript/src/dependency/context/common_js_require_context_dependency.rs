@@ -2,10 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier,
-  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
