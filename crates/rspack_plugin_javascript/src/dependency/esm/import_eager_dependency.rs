@@ -7,13 +7,12 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
   ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_referenced_exports_by_refereced_specifiers,
+  get_exports_type,
 };
 use swc_core::ecma::atoms::Atom;
 
-use super::{
-  create_resource_identifier_for_esm_dependency,
-  import_dependency::create_import_dependency_referenced_exports,
-};
+use super::create_resource_identifier_for_esm_dependency;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -94,13 +93,21 @@ impl Dependency for ImportEagerDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
-    create_import_dependency_referenced_exports(
-      &self.id,
-      &self.referenced_specifiers,
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-    )
+    if let Some(referenced_specifiers) = &self.referenced_specifiers {
+      let parent_module = module_graph
+        .get_parent_module(&self.id)
+        .expect("should have parent module");
+      let exports_type = get_exports_type(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        &self.id,
+        parent_module,
+      );
+      create_referenced_exports_by_refereced_specifiers(referenced_specifiers, exports_type)
+    } else {
+      create_exports_object_referenced()
+    }
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

@@ -5,87 +5,14 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
-  get_exports_type,
+  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_refereced_specifiers, get_exports_type,
 };
 use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
-
-pub fn create_import_dependency_referenced_exports(
-  dependency_id: &DependencyId,
-  referenced_specifiers: &Option<Vec<ReferencedSpecifier>>,
-  mg: &ModuleGraph,
-  mg_cache: &ModuleGraphCacheArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> Vec<ExtendedReferencedExport> {
-  if let Some(referenced_specifiers) = referenced_specifiers {
-    let mut refs = vec![];
-    for ReferencedSpecifier {
-      names,
-      is_call,
-      namespace_object_as_context,
-    } in referenced_specifiers
-    {
-      let mut names = names.as_slice();
-      let mut namespace_object_as_context = *namespace_object_as_context;
-      let parent_module = mg
-        .get_parent_module(dependency_id)
-        .expect("should have parent module");
-      let exports_type = get_exports_type(
-        mg,
-        mg_cache,
-        exports_info_artifact,
-        dependency_id,
-        parent_module,
-      );
-
-      // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
-      // because it's more common in cjs and json
-      if matches!(
-        exports_type,
-        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-      ) {
-        namespace_object_as_context = true;
-      }
-
-      if let Some(id) = names.first()
-        && id == "default"
-      {
-        match exports_type {
-          ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
-            if names.len() == 1 {
-              return create_exports_object_referenced();
-            }
-            names = &names[1..];
-          }
-          ExportsType::Dynamic => {
-            return create_exports_object_referenced();
-          }
-          _ => {}
-        }
-      }
-
-      if namespace_object_as_context && *is_call {
-        if names.len() == 1 {
-          return create_exports_object_referenced();
-        }
-        // remove last one
-        names = &names[..names.len().saturating_sub(1)];
-      }
-      refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-        names.to_vec(),
-        false,
-        false,
-      )));
-    }
-    refs
-  } else {
-    create_exports_object_referenced()
-  }
-}
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -172,13 +99,21 @@ impl Dependency for ImportDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
-    create_import_dependency_referenced_exports(
-      &self.id,
-      &self.referenced_specifiers,
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-    )
+    if let Some(referenced_specifiers) = &self.referenced_specifiers {
+      let parent_module = module_graph
+        .get_parent_module(&self.id)
+        .expect("should have parent module");
+      let exports_type = get_exports_type(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        &self.id,
+        parent_module,
+      );
+      create_referenced_exports_by_refereced_specifiers(referenced_specifiers, exports_type)
+    } else {
+      create_exports_object_referenced()
+    }
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
