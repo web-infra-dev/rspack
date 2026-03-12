@@ -1,3 +1,3 @@
-onmessage = event => {
-	postMessage("ok");
+onmessage = (event) => {
+  postMessage('ok');
 };
