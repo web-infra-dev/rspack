@@ -1,7 +1,7 @@
 use std::collections::{VecDeque, hash_map::Entry};
 
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
   CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
@@ -36,7 +36,7 @@ pub struct FlagDependencyUsagePluginProxy<'a> {
   compilation: &'a Compilation,
   build_module_graph_artifact: &'a mut BuildModuleGraphArtifact,
   exports_info_artifact: &'a mut ExportsInfoArtifact,
-  exports_info_module_map: UkeyMap<ExportsInfo, ModuleIdentifier>,
+  exports_info_module_map: HashMap<ExportsInfo, ModuleIdentifier>,
 }
 
 #[allow(unused)]
@@ -52,7 +52,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       compilation,
       build_module_graph_artifact,
       exports_info_artifact,
-      exports_info_module_map: UkeyMap::default(),
+      exports_info_module_map: HashMap::default(),
     }
   }
 

@@ -5,7 +5,7 @@ import { Tabs, Tab } from '@theme';
 
 # DevServer
 
-This page describes the options that affect the behavior of [`@rspack/dev-server`](https://github.com/web-infra-dev/rspack-dev-server) (short: dev-server), based on `webpack-dev-server@5`, which facilitates rapid application development.
+This page describes the options that affect the behavior of [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) (short: dev-server), based on `webpack-dev-server@5`, which facilitates rapid application development.
 
 - **Type:** `object`
 
@@ -179,7 +179,7 @@ export default {
 - **Type:** `boolean | number`
 - **Default:** `true`
 
-Tells dev-server the number of times it should try to reconnect the client. When `true` it will try to reconnect unlimited times.
+Tells dev server the number of times it should try to reconnect the client. When `true` it will try to reconnect unlimited times.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -217,29 +217,10 @@ export default {
 
 ### webSocketTransport
 
-- **Type:** `'ws' | 'sockjs'`
+- **Type:** `'ws' | string`
 - **Default:** `ws`
 
-This option allows us either to choose the current `devServer` transport mode for clients individually or to provide custom client implementation. This allows specifying how the browser or other client communicates with the `devServer`.
-
-:::tip
-Providing `'ws'` or `'sockjs'` to [`webSocketServer`](#devserverwebsocketserver) is a shortcut to setting both `devServer.client.webSocketTransport` and `devServer.webSocketServer` to the given value.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    client: {
-      webSocketTransport: 'ws',
-    },
-    webSocketServer: 'ws',
-  },
-};
-```
-
-:::tip
-When providing a custom client and server implementation make sure that they are compatible with one another to communicate successfully.
-:::
+This option allows us to provide a custom client implementation. This allows specifying how the browser or other client communicates with the `devServer`.
 
 To create a custom client implementation, create a class that extends BaseClient.
 
@@ -276,6 +257,10 @@ export default {
   },
 };
 ```
+
+:::tip
+When providing a custom client and server implementation make sure that they are compatible with one another to communicate successfully.
+:::
 
 ### webSocketURL
 
@@ -510,7 +495,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** `true`
 
-By default, the dev-server will reload/refresh the page when file changes are detected. [`devServer.hot`](#devserverhot) option must be disabled or [`devServer.watchFiles`](#devserverwatchfiles) option must be enabled in order for `liveReload` to take effect. Disable `devServer.liveReload` by setting it to `false`:
+By default, the dev server will reload/refresh the page when file changes are detected. [`devServer.hot`](#devserverhot) option must be disabled or [`devServer.watchFiles`](#devserverwatchfiles) option must be enabled in order for `liveReload` to take effect. Disable `devServer.liveReload` by setting it to `false`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -547,10 +532,10 @@ export default {
 
 ## devServer.open
 
-- **Type:** `boolean | string | object | [string, object]`
+- **Type:** `boolean | string | object | (string | object)[]`
 - **Default:** `true`
 
-Tells dev-server to open the browser after server had been started. Set it to `true` to open your default browser.
+Tells dev server to open the browser after server had been started. Set it to `true` to open your default browser.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -727,7 +712,7 @@ export default {
 
 ## devServer.server
 
-- **Type:** `'http' | 'https' | 'spdy' | string | object`
+- **Type:** `'http' | 'https' | 'http2' | string | object`
 - **Default:** `'http'`
 
 Allows to set server and options (by default `'http'`).
@@ -750,15 +735,19 @@ export default {
 };
 ```
 
-To serve over `HTTP/2` using [spdy](https://www.npmjs.com/package/spdy) with a self-signed certificate:
+To serve over `HTTP/2` with a self-signed certificate:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
-    server: 'spdy',
+    server: 'http2',
   },
 };
 ```
+
+:::tip
+If you use `server: 'https'` or `server: 'http2'` without providing `server.options.key` and `server.options.cert`, install [`selfsigned`](https://www.npmjs.com/package/selfsigned) in your project so dev server can automatically generate a local certificate.
+:::
 
 Use the object syntax to provide your own certificate:
 
@@ -852,10 +841,6 @@ export default {
         throw new Error('@rspack/dev-server is not defined');
       }
 
-      devServer.app.get('/setup-middleware/some/path', (_, response) => {
-        response.send('setup-middlewares option GET');
-      });
-
       // Use the `unshift` method if you want to run a middleware before all other middlewares
       // or when you are migrating from the `onBeforeSetupMiddleware` option
       middlewares.unshift({
@@ -863,7 +848,8 @@ export default {
         // `path` is optional
         path: '/foo/path',
         middleware: (req, res) => {
-          res.send('Foo!');
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.end('Foo!');
         },
       });
 
@@ -874,16 +860,30 @@ export default {
         // `path` is optional
         path: '/foo/bar',
         middleware: (req, res) => {
-          res.send('Foo Bar!');
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.end('Foo Bar!');
         },
       });
 
       middlewares.push((req, res) => {
-        res.send('Hello World!');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end('Hello World!');
       });
 
       return middlewares;
     },
+  },
+};
+```
+
+By default, `@rspack/dev-server` creates a [`connect-next`](https://github.com/rstackjs/connect-next) app. If you need Express-only APIs, provide your own app explicitly:
+
+```js title="rspack.config.mjs"
+import express from 'express';
+
+export default {
+  devServer: {
+    app: async () => express(),
   },
 };
 ```
@@ -1088,7 +1088,7 @@ export default {
     static: {
       directory: path.join(import.meta.dirname, 'public'),
       watch: {
-        ignored: '*.txt',
+        ignored: (filePath) => filePath.endsWith('.txt'),
         usePolling: false,
       },
     },
@@ -1098,45 +1098,79 @@ export default {
 
 ## devServer.watchFiles
 
-- **Type:** `string | object | [string, object]`
+- **Type:** `string | string[] | object | (string | object)[]`
 
-This option allows you to configure a list of globs/directories/files to watch for file changes. For example:
+This option allows you to configure a list of directories/files to watch for file changes, implemented based on [`chokidar`](https://github.com/paulmillr/chokidar).
 
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    watchFiles: ['src/**/*.php', 'public/**/*'],
-  },
-};
-```
+When files matched by `watchFiles` change, dev server triggers a full page refresh in the browser. This is mainly useful for watching files outside the Rspack's module graph, such as HTML templates or other non-bundled assets.
 
-It is possible to configure advanced options for watching files. See the [`chokidar`](https://github.com/paulmillr/chokidar) documentation for the possible options.
+For example, watch a couple of directories and ignore everything except `.php` files:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     watchFiles: {
-      paths: ['src/**/*.php', 'public/**/*'],
+      paths: ['src', 'public'],
       options: {
-        usePolling: false,
+        ignored: (filePath, stats) => {
+          if (!stats?.isFile()) {
+            return false;
+          }
+
+          return !filePath.endsWith('.php');
+        },
       },
     },
   },
 };
 ```
 
-## devServer.webSocketServer
-
-- **Type:** `false | 'sockjs' | 'ws'`
-
-This option allows us either to choose the current web-socket server or to provide custom web-socket server implementation.
-
-The current default mode is `'ws'`. This mode uses [`ws`](https://www.npmjs.com/package/ws) as a server, and native WebSockets on the client.
+You can also provide an array when you need multiple entries:
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
-    webSocketServer: 'ws',
+    watchFiles: [
+      'templates',
+      {
+        paths: 'public',
+        options: {
+          usePolling: false,
+        },
+      },
+    ],
+  },
+};
+```
+
+:::tip
+
+- For more advanced options, see the [`chokidar`](https://github.com/paulmillr/chokidar) documentation.
+- If [`devServer.liveReload`](#devserverlivereload) is set to `false`, changes to these watched files will not refresh the browser.
+
+:::
+
+## devServer.webSocketServer
+
+- **Type:** `boolean | 'ws' | string | object`
+
+This option allows you to provide custom WebSocket server implementation.
+
+The current default mode is `'ws'`. This mode uses [ws](https://www.npmjs.com/package/ws) as a server, and native WebSockets on the client.
+
+For example, using custom WebSocket client and server implementations:
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  devServer: {
+    client: {
+      webSocketTransport: require.resolve('./CustomClient'),
+    },
+    webSocketServer: require.resolve('./CustomServer'),
   },
 };
 ```

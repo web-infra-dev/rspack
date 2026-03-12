@@ -1,8 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use rspack_collections::{
-  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
-  UkeySet,
+  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams, CompilerCompilation,
@@ -12,6 +11,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::CssPlugin;
 use rspack_regex::RspackRegex;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 const MIN_CSS_CHUNK_SIZE: f64 = 30_f64 * 1024_f64;
 const MAX_CSS_CHUNK_SIZE: f64 = 100_f64 * 1024_f64;
@@ -81,8 +81,8 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let logger = compilation.get_logger("rspack.CssChunkingPlugin");
 
   let start = logger.time("collect all css modules and the execpted order of them");
-  let mut chunk_states: UkeyMap<ChunkUkey, ChunkState> = Default::default();
-  let mut chunk_states_by_module: IdentifierIndexMap<UkeyMap<ChunkUkey, usize>> =
+  let mut chunk_states: FxHashMap<ChunkUkey, ChunkState> = Default::default();
+  let mut chunk_states_by_module: IdentifierIndexMap<FxHashMap<ChunkUkey, usize>> =
     Default::default();
 
   // Collect all css modules in chunks and the execpted order of them
@@ -130,7 +130,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           module_chunk_states.insert(*chunk_ukey, i);
         }
         indexmap::map::Entry::Vacant(vacant_entry) => {
-          let mut module_chunk_states = UkeyMap::default();
+          let mut module_chunk_states = FxHashMap::default();
           module_chunk_states.insert(*chunk_ukey, i);
           vacant_entry.insert(module_chunk_states);
         }
@@ -394,7 +394,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let start = logger.time("apply split chunks");
   let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
   for chunk_state in chunk_states.values() {
-    let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    let mut chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for module_identifier in &chunk_state.modules {
       if let Some(new_chunk_ukey) = new_chunks_by_module.get(module_identifier) {
         chunk_graph.disconnect_chunk_and_module(&chunk_state.chunk, *module_identifier);

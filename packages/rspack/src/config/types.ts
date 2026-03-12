@@ -2940,6 +2940,7 @@ export type {
   DevServerHost,
   DevServerMiddleware,
   DevServerMiddlewareHandler,
+  DevServerMiddlewareObject,
   DevServerOpenOptions,
   DevServerProxyConfigArray,
   DevServerProxyConfigArrayItem,

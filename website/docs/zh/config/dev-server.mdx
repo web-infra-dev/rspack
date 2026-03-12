@@ -5,7 +5,7 @@ import { Tabs, Tab } from '@theme';
 
 # DevServer
 
-该选项用于配置 [`@rspack/dev-server`](https://github.com/web-infra-dev/rspack-dev-server) 的行为，基于 `webpack-dev-server@5`，用于快速开发应用程序。
+该选项用于配置 [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) 的行为，基于 `webpack-dev-server@5`，用于快速开发应用程序。
 
 - **类型：** `object`
 
@@ -217,29 +217,10 @@ export default {
 
 ### webSocketTransport
 
-- **类型：** `'ws' | 'sockjs'`
+- **类型：** `'ws' | string`
 - **默认值：** `ws`
 
-此选项允许我们为客户端单独选择当前的开发服务器传输模式，或提供自定义的客户端实现。这使得可以指定浏览器或其他客户端如何与开发服务器进行通信。
-
-:::tip 提示
-设置 [`webSocketServer`](#devserverwebsocketserver) 为 `'ws'` 或 `'sockjs'` 是将 `devServer.client.webSocketTransport` 和 `devServer.webSocketServer` 同时设置为给定值的快捷方式。
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    client: {
-      webSocketTransport: 'ws',
-    },
-    webSocketServer: 'ws',
-  },
-};
-```
-
-:::tip 提示
-当提供自定义的客户端和服务器实现时，请确保它们相互之间兼容，以便能够成功通信。
-:::
+此选项允许我们为客户端提供自定义的客户端实现。这使得可以指定浏览器或其他客户端如何与开发服务器进行通信。
 
 要创建自定义客户端实现，请创建一个继承 `BaseClient` 的类。
 
@@ -276,6 +257,10 @@ export default {
   },
 };
 ```
+
+:::tip 提示
+当提供自定义的客户端和服务器实现时，请确保它们相互之间兼容，以便能够成功通信。
+:::
 
 ### webSocketURL
 
@@ -537,7 +522,7 @@ export default {
 
 ## devServer.open
 
-- **类型：** `boolean | string | object | [string, object]`
+- **类型：** `boolean | string | object | (string | object)[]`
 - **默认值：** `true`
 
 告诉开发服务器启动之后打开浏览器。设置为 `true` 以打开默认浏览器。
@@ -717,7 +702,7 @@ export default {
 
 ## devServer.server
 
-- **类型：** `'http' | 'https' | 'spdy' | string | object`
+- **类型：** `'http' | 'https' | 'http2' | string | object`
 - **默认值：** `'http'`
 
 用于设置服务器（默认为 `"http"`）：
@@ -740,15 +725,19 @@ export default {
 };
 ```
 
-通过 [spdy](https://www.npmjs.com/package/spdy) 使用自签名证书提供 `HTTP/2` 服务：
+通过自签名证书提供 `HTTP/2` 服务：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
-    server: 'spdy',
+    server: 'http2',
   },
 };
 ```
+
+:::tip 提示
+如果你使用 `server: 'https'` 或 `server: 'http2'`，但没有提供 `server.options.key` 和 `server.options.cert`，则需要在项目中安装 [`selfsigned`](https://www.npmjs.com/package/selfsigned)，以便 dev server 自动生成本地证书。
+:::
 
 传递对象提供你自己的证书：
 
@@ -842,10 +831,6 @@ export default {
         throw new Error('@rspack/dev-server is not defined');
       }
 
-      devServer.app.get('/setup-middleware/some/path', (_, response) => {
-        response.send('setup-middlewares option GET');
-      });
-
       // Use the `unshift` method if you want to run a middleware before all other middlewares
       // or when you are migrating from the `onBeforeSetupMiddleware` option
       middlewares.unshift({
@@ -853,7 +838,8 @@ export default {
         // `path` is optional
         path: '/foo/path',
         middleware: (req, res) => {
-          res.send('Foo!');
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.end('Foo!');
         },
       });
 
@@ -864,16 +850,30 @@ export default {
         // `path` is optional
         path: '/foo/bar',
         middleware: (req, res) => {
-          res.send('Foo Bar!');
+          res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+          res.end('Foo Bar!');
         },
       });
 
       middlewares.push((req, res) => {
-        res.send('Hello World!');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end('Hello World!');
       });
 
       return middlewares;
     },
+  },
+};
+```
+
+默认情况下，`@rspack/dev-server` 创建的是 [`connect-next`](https://github.com/rstackjs/connect-next) 应用。如果你需要使用 Express 专有 API，请显式提供你自己的 app：
+
+```js title="rspack.config.mjs"
+import express from 'express';
+
+export default {
+  devServer: {
+    app: async () => express(),
   },
 };
 ```
@@ -1076,7 +1076,7 @@ export default {
     static: {
       directory: path.join(import.meta.dirname, 'public'),
       watch: {
-        ignored: '*.txt',
+        ignored: (filePath) => filePath.endsWith('.txt'),
         usePolling: false,
       },
     },
@@ -1086,45 +1086,79 @@ export default {
 
 ## devServer.watchFiles
 
-- **类型：** `string | object | [string, object]`
+- **类型：** `string | string[] | object | (string | object)[]`
 
-该选项允许你配置一个列表监视文件变化，可以是通配符、目录和文件。例如：
+该选项允许你配置需要监听的目录和文件列表，基于 [chokidar](https://github.com/paulmillr/chokidar) 实现。
 
-```js title="rspack.config.mjs"
-export default {
-  devServer: {
-    watchFiles: ['src/**/*.php', 'public/**/*'],
-  },
-};
-```
+当 `watchFiles` 匹配到的文件发生变化时，dev server 会在浏览器端触发整页刷新。这个选项主要适用于监听 Rspack 的模块图之外的文件，例如 HTML 模板或其他不会参与打包的资源。
 
-你还可以为文件监控配置更多选项。有关的选项，请参阅 [`chokidar`](https://github.com/paulmillr/chokidar) 文档。
+例如，可以监听多个目录，并忽略除 `.php` 以外的文件：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
     watchFiles: {
-      paths: ['src/**/*.php', 'public/**/*'],
+      paths: ['src', 'public'],
       options: {
-        usePolling: false,
+        ignored: (filePath, stats) => {
+          if (!stats?.isFile()) {
+            return false;
+          }
+
+          return !filePath.endsWith('.php');
+        },
       },
     },
   },
 };
 ```
 
-## devServer.webSocketServer
-
-- **类型：** `false | 'sockjs' | 'ws'`
-
-此选项允许我们选择当前的 web-socket 服务器或提供自定义的 web-socket 服务器实现。
-
-当前的默认模式是 `'ws'`。此模式在服务器端使用 [`ws`](https://www.npmjs.com/package/ws) 库，并在客户端使用原生 WebSockets。
+当你需要同时传入多个监听项时，也可以使用数组：
 
 ```js title="rspack.config.mjs"
 export default {
   devServer: {
-    webSocketServer: 'ws',
+    watchFiles: [
+      'templates',
+      {
+        paths: 'public',
+        options: {
+          usePolling: false,
+        },
+      },
+    ],
+  },
+};
+```
+
+:::tip
+
+- 更多监听选项请参考 [`chokidar`](https://github.com/paulmillr/chokidar) 文档。
+- 如果 [`devServer.liveReload`](#devserverlivereload) 被设置为 `false`，这些被监听文件的变化将不会触发浏览器刷新。
+
+:::
+
+## devServer.webSocketServer
+
+- **类型：** `boolean | 'ws' | string | object`
+
+此选项允许你提供自定义的 WebSocket 服务器实现。
+
+当前的默认模式是 `'ws'`。此模式在服务器端使用 [ws](https://www.npmjs.com/package/ws) 库，并在客户端使用原生 WebSockets。
+
+例如，使用自定义的 WebSocket 客户端和服务器实现：
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  devServer: {
+    client: {
+      webSocketTransport: require.resolve('./CustomClient'),
+    },
+    webSocketServer: require.resolve('./CustomServer'),
   },
 };
 ```

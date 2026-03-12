@@ -66,20 +66,92 @@ sftrace record -o "$TRACE_DIR/sf.log" -- pnpm build
 sftrace record -f sftrace.filter -o "$TRACE_DIR/sf.filtered.log" -- pnpm build
 ```
 
-### 5) Analyze sf.log
+### 5) Optional: Analyze sf.log by [polars](https://docs.pola.rs/)
+
+Convert sftrace log to pola dataframe.
+
+```sh
+cd examples/react
+TRACE_DIR="sftrace-YYYYMMDD-HHMMSS" # replace with your run directory
+sftrace convert --type pola "$TRACE_DIR/sf.log" -o "$TRACE_DIR/sf.pola"
+```
+
+This will generate two files, whose schema format is as follows:
+
+1. sf.pola
+
+  This records all events from sftrace log.
+
+  | name     | type        | description
+  |----------|-------------|-------------
+  | frame_id | uint64      | a unique id for each frame. a function's entry and exit have same frame id
+  | parent   | uint64      | point to previous frame id. zero means non-existent
+  | tid      | uint32      | thread id
+  | func_id  | uint64      | function unique id
+  | time     | nanoseconds | time elapsed since program started
+  | kind     | uint32      | event type, 1 is entry, 2 is exit, 3 is tail call
+
+2. sf.pola.symtab
+
+  This records the function symbol name and file path of `func_id`.
+
+  | name    | type   | description
+  |---------|--------|-------------
+  | func_id | uint64 | function unique id
+  | name    | string | function symbol name (demangled)
+  | path    | string | the file path and line number of function
+
+You can use `python-polars` to perform data analysis on `sf.pola`.
+
+```python
+import polars as pl
+
+sf = pl.scan_parquet("./sf.pola")
+symtab = pl.scan_parquet("./sf.pola.symtab")
+
+# Query the functions that appear most frequently
+(
+  sf
+    .filter(pl.col("kind").eq(1))
+    .group_by("func_id")
+    .agg(pl.len().alias("func_count"))
+    .top_k(10, by="func_count")
+    .join(symtab, on="func_id")
+    .collect()
+)
+
+# Query the leaf frame of longest execution time
+(
+  sf
+    .filter(~pl.col("frame_id").is_in(pl.col("parent").implode()))
+    .group_by("frame_id")
+    .agg([
+      pl.col("func_id").first(),
+      pl.col("time").filter(pl.col("kind").eq(1)).first().alias("entry_time"),
+      pl.col("time").filter(pl.col("kind").is_in([2, 3])).last().alias("exit_time"),
+    ])
+    .filter(pl.col("exit_time").is_not_null())
+    .with_columns(pl.col("exit_time").sub("entry_time").alias("duration"))
+    .top_k(10, by="duration")
+    .join(symtab, on="func_id")
+    .collect()
+)
+```
+
+### 6) Optional: Visualization sf.log
 
 Convert sftrace log to perfetto protobuf format.
 
 ```sh
 cd examples/react
 TRACE_DIR="sftrace-YYYYMMDD-HHMMSS" # replace with your run directory
-sftrace convert "$TRACE_DIR/sf.filtered.log" -o "$TRACE_DIR/sf.filtered.pb.gz"
+sftrace convert "$TRACE_DIR/sf.log" -o "$TRACE_DIR/sf.pb.gz"
 ```
 
-### 6) Optional: Visualization using [viztracer](https://github.com/gaogaotiantian/viztracer)
+Visualization using [viztracer](https://github.com/gaogaotiantian/viztracer)
 
 ```sh
-vizviewer --use_external_processor "$TRACE_DIR/sf.filtered.pb.gz"
+vizviewer --use_external_processor "$TRACE_DIR/sf.pb.gz"
 ```
 
 Use this only for visualization.
