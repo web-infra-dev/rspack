@@ -666,3 +666,26 @@ export default {
   },
 };
 ```
+
+### Removed `.wasm` from the default `resolve.byDependency` extensions
+
+Rspack 2.0 no longer includes `.wasm` in the default `resolve.byDependency.*.extensions` values used for JavaScript dependency types.
+
+This only affects extension-less resolution such as `import './module'` or `require('./module')` when you previously relied on it resolving to `./module.wasm`. Explicit imports like `import './module.wasm'` are not affected.
+
+If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
