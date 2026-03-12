@@ -2252,6 +2252,45 @@ it("should work correct for labeled statement", () => {
 	require("./used?n=26")
 });
 
+it("should work correct for labeled statement break in nested switch", () => {
+	exit_switch: {
+		switch (rand()) {
+			default:
+				break exit_switch;
+		}
+
+		throw new Error("fail");
+	}
+
+	require("./used?n=227");
+});
+
+it("should work correct for labeled statement break in try/finally", () => {
+	exit_try: {
+		try {
+			break exit_try;
+		} finally {
+			rand();
+		}
+
+		throw new Error("fail");
+	}
+
+	require("./used?n=228");
+});
+
+it("should still propagate labeled termination without label breaks", () => {
+	no_break: {
+		if (rand()) {
+			return;
+		}
+
+		throw new Error("fail");
+	}
+
+	require("./used?n=229");
+});
+
 it("should work correct for while statement", () => {
 	let n = 0;
 	let x = 0;

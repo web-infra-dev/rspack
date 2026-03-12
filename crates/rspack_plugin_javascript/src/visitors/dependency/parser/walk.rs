@@ -32,6 +32,58 @@ fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
 }
 
+fn statement_has_break_to_label(stmt: &Stmt, label: &Atom) -> bool {
+  match stmt {
+    Stmt::Break(break_stmt) => break_stmt
+      .label
+      .as_ref()
+      .is_some_and(|target| target.sym == *label),
+    Stmt::Block(BlockStmt { stmts, .. }) => stmts
+      .iter()
+      .any(|stmt| statement_has_break_to_label(stmt, label)),
+    Stmt::DoWhile(DoWhileStmt { body, .. })
+    | Stmt::For(ForStmt { body, .. })
+    | Stmt::ForIn(ForInStmt { body, .. })
+    | Stmt::ForOf(ForOfStmt { body, .. })
+    | Stmt::Labeled(LabeledStmt { body, .. })
+    | Stmt::While(WhileStmt { body, .. })
+    | Stmt::With(WithStmt { body, .. }) => statement_has_break_to_label(body, label),
+    Stmt::If(IfStmt { cons, alt, .. }) => {
+      statement_has_break_to_label(cons, label)
+        || alt
+          .as_deref()
+          .is_some_and(|stmt| statement_has_break_to_label(stmt, label))
+    }
+    Stmt::Switch(SwitchStmt { cases, .. }) => cases.iter().any(|case| {
+      case
+        .cons
+        .iter()
+        .any(|stmt| statement_has_break_to_label(stmt, label))
+    }),
+    Stmt::Try(try_stmt) => {
+      try_stmt
+        .block
+        .stmts
+        .iter()
+        .any(|stmt| statement_has_break_to_label(stmt, label))
+        || try_stmt.handler.as_ref().is_some_and(|handler| {
+          handler
+            .body
+            .stmts
+            .iter()
+            .any(|stmt| statement_has_break_to_label(stmt, label))
+        })
+        || try_stmt.finalizer.as_ref().is_some_and(|finalizer| {
+          finalizer
+            .stmts
+            .iter()
+            .any(|stmt| statement_has_break_to_label(stmt, label))
+        })
+    }
+    _ => false,
+  }
+}
+
 impl JavascriptParser<'_> {
   fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
   where
@@ -330,7 +382,16 @@ impl JavascriptParser<'_> {
 
   fn walk_labeled_statement(&mut self, stmt: &LabeledStmt) {
     // TODO: self.hooks.label.get
-    self.walk_nested_statement(&stmt.body);
+    if statement_has_break_to_label(&stmt.body, &stmt.label.sym) {
+      // `break <label>` can bypass trailing terminating statements inside the
+      // labeled statement, but we do not model label targets in `terminated`.
+      let old_terminated = self.terminated;
+      self.terminated = None;
+      self.walk_nested_statement(&stmt.body);
+      self.terminated = old_terminated;
+    } else {
+      self.walk_nested_statement(&stmt.body);
+    }
   }
 
   fn walk_if_statement(&mut self, stmt: &IfStmt) {
