@@ -8,9 +8,15 @@ use crate::{Error, Result};
 pub type Reader = Box<dyn ReadStream>;
 pub type Writer = Box<dyn WriteStream>;
 
+/// Scoped file system wrapper
+///
+/// Confines all file operations to a specified workspace directory,
+/// automatically handles relative path conversion, and provides a unified file operation interface.
 #[derive(Debug, Clone)]
 pub struct ScopeFileSystem {
+  /// Workspace root path
   workspace: Utf8PathBuf,
+  /// Underlying file system implementation
   fs: Arc<dyn IntermediateFileSystem>,
 }
 
@@ -21,6 +27,7 @@ impl std::fmt::Display for ScopeFileSystem {
 }
 
 impl ScopeFileSystem {
+  /// Creates a memory-based file system
   #[cfg(test)]
   pub fn new_memory_fs(workspace: Utf8PathBuf) -> Self {
     Self {
@@ -29,15 +36,18 @@ impl ScopeFileSystem {
     }
   }
 
+  /// Creates a new scoped file system
   pub fn new(workspace: Utf8PathBuf, fs: Arc<dyn IntermediateFileSystem>) -> Self {
     Self { workspace, fs }
   }
 
+  /// Ensures the workspace directory exists, creates it if not
   pub async fn ensure_exist(&self) -> Result<()> {
     self.fs.create_dir_all(&self.workspace).await?;
     Ok(())
   }
 
+  /// Removes the entire workspace directory and its contents
   pub async fn remove(&self) -> Result<()> {
     if let Err(e) = self.fs.remove_dir_all(&self.workspace).await {
       let e: Error = e.into();
@@ -48,6 +58,12 @@ impl ScopeFileSystem {
     Ok(())
   }
 
+  /// Moves a file between two scoped file systems
+  ///
+  /// # Arguments
+  /// * `from` - Source scoped file system
+  /// * `to` - Target scoped file system
+  /// * `relative_path` - Relative path of the file
   pub async fn move_to(
     from: &ScopeFileSystem,
     to: &ScopeFileSystem,
@@ -59,6 +75,9 @@ impl ScopeFileSystem {
     Ok(())
   }
 
+  /// Creates a child scoped file system
+  ///
+  /// Returns a new ScopeFileSystem whose workspace is a subdirectory of the current one
   pub fn child_fs(&self, relative_path: impl AsRef<Utf8Path>) -> Self {
     let workspace = self.workspace.join(relative_path);
     Self {
@@ -67,12 +86,16 @@ impl ScopeFileSystem {
     }
   }
 
+  /// Gets file or directory metadata
   pub async fn stat(&self, relative_path: impl AsRef<Utf8Path>) -> Result<FileMetadata> {
     let path = self.workspace.join(relative_path);
     let stat = self.fs.stat(&path).await?;
     Ok(stat)
   }
 
+  /// Removes the specified file
+  ///
+  /// Does not return an error if the file doesn't exist
   pub async fn remove_file(&self, relative_path: impl AsRef<Utf8Path>) -> Result<()> {
     let path = self.workspace.join(relative_path);
     if let Err(e) = self.fs.remove_file(&path).await {
@@ -84,6 +107,8 @@ impl ScopeFileSystem {
     Ok(())
   }
 
+  /// Writes file content
+  #[cfg(test)]
   pub async fn write(&self, relative_path: impl AsRef<Utf8Path>, bytes: &[u8]) -> Result<()> {
     let path = self.workspace.join(relative_path);
     self
@@ -94,20 +119,26 @@ impl ScopeFileSystem {
     Ok(())
   }
 
+  /// Reads entire file content
+  #[cfg(test)]
   pub async fn read(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Vec<u8>> {
     let path = self.workspace.join(relative_path);
     let data = self.fs.read_file(&path).await?;
     Ok(data)
   }
 
+  /// Creates a file read stream (for large files)
   pub async fn stream_read(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Reader> {
     let path = self.workspace.join(relative_path);
     let reader = self.fs.create_read_stream(&path).await?;
     Ok(reader)
   }
 
+  /// Creates a file write stream (for large files)
+  ///
+  /// If the file already exists, it will be deleted first
   pub async fn stream_write(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Writer> {
-    self.remove_file(&relative_path).await?;
+    let _ = self.remove_file(&relative_path).await;
 
     let path = self.workspace.join(relative_path);
     self
@@ -118,6 +149,7 @@ impl ScopeFileSystem {
     Ok(writer)
   }
 
+  /// Lists all direct children in the workspace directory
   pub async fn list_child(&self) -> Result<Vec<String>> {
     let childs = self.fs.read_dir(&self.workspace).await?;
     Ok(childs)

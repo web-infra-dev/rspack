@@ -31,6 +31,12 @@ impl From<FSError> for Error {
   }
 }
 
+impl From<Error> for rspack_error::Error {
+  fn from(value: Error) -> Self {
+    rspack_error::error!(value.to_string())
+  }
+}
+
 impl Error {
   /// Returns true if the error is caused by a missing file or directory.
   pub fn is_not_found(&self) -> bool {

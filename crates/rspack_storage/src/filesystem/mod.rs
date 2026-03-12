@@ -11,16 +11,22 @@ pub use self::options::FileSystemOptions;
 use self::{db::DB, scope_fs::ScopeFileSystem};
 use crate::{Key, Result, Storage, Value};
 
+/// File system-based persistent storage implementation
+///
+/// Uses pack file format to merge multiple small files for better I/O efficiency.
+/// Maintains an in-memory buffer for batched writes to reduce disk operations.
 #[derive(Debug)]
 pub struct FileSystemStorage {
+  /// Underlying database responsible for pack file read/write
   db: DB,
+  /// In-memory staged update operations, grouped by scope
+  /// Value of Some(value) indicates write, None indicates deletion
   updates: Mutex<HashMap<String, HashMap<Vec<u8>, Option<Vec<u8>>>>>,
 }
 
 impl FileSystemStorage {
+  /// Creates a new file system storage instance
   pub fn new(options: FileSystemOptions) -> Self {
-    // TODO add clean feature
-    // TODO clean load failed buckets?
     let fs = ScopeFileSystem::new(options.directory, options.fs);
     Self {
       db: DB::new(options.max_pack_size, fs),
@@ -49,14 +55,16 @@ impl Storage for FileSystemStorage {
   }
 
   fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+    // Take all pending updates and clear the memory buffer
     let updates = std::mem::take(&mut *self.updates.lock().expect("should get lock"));
-    let t = self.db.save(
+    // Convert updates to Vec format and trigger database save
+    let res = self.db.save(
       updates
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().collect()))
         .collect(),
     )?;
-    Ok(t)
+    Ok(res)
   }
 
   async fn reset(&self) {
