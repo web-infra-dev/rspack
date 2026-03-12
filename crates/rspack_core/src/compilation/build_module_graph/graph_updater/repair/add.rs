@@ -4,7 +4,7 @@ use super::{
   TaskContext, build::BuildTask, factorize::ModuleDependencies, lazy::process_unlazy_dependencies,
 };
 use crate::{
-  BoxModule, ModuleIdentifier,
+  BoxModule, ForwardId, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -46,7 +46,8 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(self.dependencies.dependencies());
+    let forwarded_ids =
+      forwarded_ids_from_module_graph(module_graph, self.dependencies.dependency_ids());
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -136,14 +137,35 @@ fn set_resolved_module(
   dependencies: ModuleDependencies,
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
-  let (dependencies, _) = dependencies.into_parts();
-  for dependency in dependencies {
+  let (dependency, dependency_ids) = dependencies.into_parts();
+  for dependency_id in dependency_ids {
     module_graph.set_resolved_module(
       original_module_identifier,
-      *dependency.id(),
+      dependency_id,
       module_identifier,
     )?;
-    module_graph.add_dependency(dependency);
   }
+  module_graph.add_dependency(dependency);
   Ok(())
+}
+
+fn forwarded_ids_from_module_graph(
+  module_graph: &ModuleGraph,
+  dependency_ids: &[crate::DependencyId],
+) -> ForwardedIdSet {
+  let mut set = ForwardedIdSet::empty();
+
+  for dependency_id in dependency_ids {
+    match module_graph.dependency_by_id(dependency_id).forward_id() {
+      ForwardId::All => return ForwardedIdSet::All,
+      ForwardId::Id(id) => {
+        if let ForwardedIdSet::IdSet(ids) = &mut set {
+          ids.insert(id);
+        }
+      }
+      ForwardId::Empty => {}
+    }
+  }
+
+  set
 }
