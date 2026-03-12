@@ -5155,7 +5155,6 @@ name = "rspack_storage"
 version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
- "cow-utils",
  "futures",
  "itertools 0.14.0",
  "rayon",

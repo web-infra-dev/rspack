@@ -1,28 +1,24 @@
-mod db;
 mod error;
-mod fs;
-mod local_storage;
-mod pack;
+mod filesystem;
+mod memory;
 
 use std::sync::Arc;
 
-pub use db::DB;
-pub use error::Result;
-pub use fs::{FSError, FSOperation, FSResult, FileSystem, Reader, Writer};
-pub use local_storage::LocalStorage;
-pub use pack::{PackStorage as A, PackStorageOptions};
 use tokio::sync::oneshot::Receiver;
 
-pub type PackStorage = self::local_storage::LocalStorage;
+pub use self::{
+  error::{Error, Result},
+  filesystem::{FileSystemOptions, FileSystemStorage},
+};
 
-type ItemKey = Vec<u8>;
-type ItemValue = Vec<u8>;
-type ItemPairs = Vec<(Arc<ItemKey>, Arc<ItemValue>)>;
+pub type Key = Vec<u8>;
+pub type Value = Vec<u8>;
+pub type KVPairs<V = Value> = Vec<(Key, V)>;
 
 #[async_trait::async_trait]
 pub trait Storage: std::fmt::Debug + Sync + Send {
-  async fn load(&self, scope: &'static str) -> Result<Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>>;
-  fn set(&self, scope: &'static str, key: Vec<u8>, value: Vec<u8>);
+  async fn load(&self, scope: &'static str) -> Result<KVPairs>;
+  fn set(&self, scope: &'static str, key: Key, value: Value);
   fn remove(&self, scope: &'static str, key: &[u8]);
   fn trigger_save(&self) -> Result<Receiver<Result<()>>>;
   async fn reset(&self);

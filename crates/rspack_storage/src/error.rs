@@ -1,200 +1,49 @@
-use crate::{
-  db::Error as DBError,
-  fs::{BatchFSError, FSError},
-};
+use std::io::ErrorKind;
 
+use rspack_fs::Error as FSError;
+
+/// Rspack storage errors.
 #[derive(Debug)]
-pub struct InvalidDetail {
-  pub reason: String,
-  pub packs: Vec<String>,
-}
-
-#[derive(Debug)]
-pub enum ValidateResult {
-  NotExists,
-  Valid,
-  Invalid(InvalidDetail),
-}
-
-impl ValidateResult {
-  pub fn invalid(reason: &str) -> Self {
-    Self::Invalid(InvalidDetail {
-      reason: reason.to_string(),
-      packs: vec![],
-    })
-  }
-  pub fn invalid_with_packs(reason: &str, packs: Vec<String>) -> Self {
-    Self::Invalid(InvalidDetail {
-      reason: reason.to_string(),
-      packs,
-    })
-  }
-  pub fn is_valid(&self) -> bool {
-    matches!(self, ValidateResult::Valid)
-  }
-}
-
-#[derive(Debug)]
-pub enum ErrorReason {
-  Reason(String),
-  Detail(InvalidDetail),
-  Error(Box<dyn std::error::Error + Send + Sync>),
-}
-
-impl std::fmt::Display for ErrorReason {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ErrorReason::Detail(detail) => {
-        write!(f, "{}", detail.reason)?;
-        for line in detail.packs.iter().take(5) {
-          write!(f, "\n{line}")?;
-        }
-        if detail.packs.len() > 5 {
-          write!(f, "\n...")?;
-        }
-      }
-      ErrorReason::Error(e) => {
-        if let Some(e) = e.downcast_ref::<Error>() {
-          write!(f, "{}", e.inner)?;
-        } else {
-          write!(f, "{e}")?;
-        }
-      }
-      ErrorReason::Reason(e) => {
-        write!(f, "{e}")?;
-      }
-    };
-    Ok(())
-  }
-}
-
-#[derive(Debug)]
-pub enum ErrorType {
-  Validate,
-  Save,
-  Load,
-}
-
-impl std::fmt::Display for ErrorType {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ErrorType::Validate => write!(f, "validate"),
-      ErrorType::Save => write!(f, "save"),
-      ErrorType::Load => write!(f, "load"),
-    }
-  }
-}
-
-#[derive(Debug)]
-pub struct Error {
-  r#type: Option<ErrorType>,
-  scope: Option<&'static str>,
-  inner: ErrorReason,
-}
-
-impl From<DBError> for Error {
-  fn from(e: DBError) -> Self {
-    Self {
-      r#type: None,
-      scope: None,
-      inner: ErrorReason::Error(Box::new(e)),
-    }
-  }
-}
-
-impl From<FSError> for Error {
-  fn from(e: FSError) -> Self {
-    Self {
-      r#type: None,
-      scope: None,
-      inner: ErrorReason::Error(Box::new(e)),
-    }
-  }
-}
-
-impl From<BatchFSError> for Error {
-  fn from(e: BatchFSError) -> Self {
-    Self {
-      r#type: None,
-      scope: None,
-      inner: ErrorReason::Error(Box::new(e)),
-    }
-  }
-}
-
-impl Error {
-  pub fn from_detail(
-    r#type: Option<ErrorType>,
-    scope: Option<&'static str>,
-    detail: InvalidDetail,
-  ) -> Self {
-    Self {
-      r#type,
-      scope,
-      inner: ErrorReason::Detail(detail),
-    }
-  }
-  pub fn from_error(
-    r#type: Option<ErrorType>,
-    scope: Option<&'static str>,
-    error: Box<dyn std::error::Error + Send + Sync>,
-  ) -> Self {
-    Self {
-      r#type,
-      scope,
-      inner: ErrorReason::Error(error),
-    }
-  }
-  pub fn from_reason(
-    r#type: Option<ErrorType>,
-    scope: Option<&'static str>,
-    reason: String,
-  ) -> Self {
-    Self {
-      r#type,
-      scope,
-      inner: ErrorReason::Reason(reason),
-    }
-  }
+pub enum Error {
+  /// File system operation error
+  FS(FSError),
+  /// Data format parsing error (e.g., invalid pack file structure)
+  InvalidFormat(String),
+  /// Data integrity error (e.g., hash mismatch)
+  CorruptedData(String),
 }
 
 impl std::fmt::Display for Error {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    if let Some(t) = &self.r#type {
-      write!(f, "{t} ")?;
-      if let Some(scope) = self.scope {
-        write!(f, "scope `{scope}` ")?;
+    match self {
+      Error::FS(e) => write!(f, "{}", e),
+      Error::InvalidFormat(s) => write!(f, "{}", s),
+      Error::CorruptedData(s) => write!(f, "{}", s),
+    }
+  }
+}
+
+impl std::error::Error for Error {}
+
+impl From<FSError> for Error {
+  fn from(e: FSError) -> Self {
+    Error::FS(e)
+  }
+}
+
+impl Error {
+  /// Returns true if the error is caused by a missing file or directory.
+  pub fn is_not_found(&self) -> bool {
+    match self {
+      Error::FS(FSError::Io(e)) => {
+        if matches!(e.kind(), ErrorKind::NotFound) {
+          return true;
+        }
+        let error_content = e.to_string().to_ascii_lowercase();
+        error_content.contains("no such file") || error_content.contains("file not exists")
       }
-      write!(f, "failed due to")?;
-      write!(f, " {}", self.inner)?;
-    } else {
-      write!(f, "{}", self.inner)?;
+      _ => false,
     }
-
-    Ok(())
-  }
-}
-
-impl std::error::Error for Error {
-  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-    match &self.inner {
-      ErrorReason::Error(error) => error.source(),
-      _ => None,
-    }
-  }
-}
-
-impl From<Error> for rspack_error::Error {
-  fn from(value: Error) -> rspack_error::Error {
-    let mut error = rspack_error::Error::warning(value.to_string());
-    error.code = Some(format!(
-      "Error::{}",
-      value
-        .r#type
-        .as_ref()
-        .map_or(String::new(), |t| t.to_string())
-    ));
-    error
   }
 }
 

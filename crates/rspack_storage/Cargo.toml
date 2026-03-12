@@ -10,7 +10,6 @@ version.workspace = true
 
 [dependencies]
 async-trait  = { workspace = true }
-cow-utils    = { workspace = true }
 futures      = { workspace = true }
 itertools    = { workspace = true }
 rayon        = { workspace = true }
