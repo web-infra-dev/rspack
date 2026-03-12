@@ -10,6 +10,7 @@ pub use amd_library_plugin::AmdLibraryPlugin;
 pub use assign_library_plugin::*;
 pub use export_property_library_plugin::ExportPropertyLibraryPlugin;
 use rspack_core::{BoxPlugin, PluginExt};
+use rspack_plugin_esm_library::EsmLibraryPlugin;
 pub use system_library_plugin::SystemLibraryPlugin;
 pub use umd_library_plugin::UmdLibraryPlugin;
 
@@ -112,6 +113,9 @@ pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>)
       plugins
         .push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, true).boxed());
       plugins.push(ModuleLibraryPlugin::default().boxed());
+    }
+    "modern-module" => {
+      plugins.push(EsmLibraryPlugin::default().boxed());
     }
     "system" => {
       plugins.push(
