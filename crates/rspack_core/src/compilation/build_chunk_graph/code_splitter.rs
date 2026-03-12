@@ -118,7 +118,7 @@ impl ChunkGroupInfo {
     for chunk in &chunk_group.chunks {
       let mask = mask_by_chunk
         .get(chunk)
-        .expect("chunk must in mask_by_chunk");
+        .expect("chunk must be in mask_by_chunk");
       new_resulting_available_modules |= mask
     }
 
@@ -1163,7 +1163,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let chunk_mask = self
       .mask_by_chunk
       .get_mut(&item.chunk)
-      .expect("chunk must in mask_by_chunk");
+      .expect("chunk must be in mask_by_chunk");
     chunk_mask.set_bit(*module_ordinal, true);
 
     self.add_and_enter_module(
@@ -1211,7 +1211,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let chunk_mask = self
       .mask_by_chunk
       .get_mut(&item.chunk)
-      .expect("chunk must in mask_by_chunk");
+      .expect("chunk must be in mask_by_chunk");
     chunk_mask.set_bit(*module_ordinal, true);
 
     self.enter_module(
@@ -2166,7 +2166,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let chunk_mask = self
         .mask_by_chunk
         .get_mut(&chunk)
-        .expect("chunk must in mask_by_chunk");
+        .expect("chunk must be in mask_by_chunk");
       for &(_, ordinal) in &result.modules_to_connect {
         chunk_mask.set_bit(ordinal, true);
       }
@@ -2306,16 +2306,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
     }
 
-    // Batch by CGI key (handle duplicates)
+    // Batch by CGI key and chunk key (handle duplicates)
     let mut batches: Vec<Vec<ProcessBlock>> = vec![vec![]];
     let mut taken_cgi = HashSet::<CgiUkey>::default();
+    let mut taken_chunks = HashSet::<ChunkUkey>::default();
 
     for pb in delayed_items {
-      if !taken_cgi.insert(pb.chunk_group_info) {
+      let cgi_conflict = !taken_cgi.insert(pb.chunk_group_info);
+      let chunk_conflict = !taken_chunks.insert(pb.chunk);
+
+      if cgi_conflict || chunk_conflict {
         batches.push(vec![]);
         taken_cgi.clear();
+        taken_chunks.clear();
         taken_cgi.insert(pb.chunk_group_info);
+        taken_chunks.insert(pb.chunk);
       }
+
       batches.last_mut().expect("should have batch").push(pb);
     }
 
