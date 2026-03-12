@@ -31,7 +31,7 @@ pub struct DB {
 
 impl DB {
   /// Creates a new database instance at the specified root directory.
-  pub fn new(max_pack_size: usize, fs: ScopeFileSystem) -> Self {
+  pub fn new(fs: ScopeFileSystem, max_pack_size: usize) -> Self {
     Self {
       max_pack_size,
       fs,
@@ -162,7 +162,59 @@ impl DB {
 
   /// Removes the entire database from disk, deleting all buckets and data.
   pub async fn reset(&self) -> Result<()> {
+    self.flush().await;
+    self.buckets.lock().await.clear();
     self.fs.remove().await?;
+    Ok(())
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::{DB, HashMap, Result, ScopeFileSystem};
+
+  #[tokio::test]
+  #[cfg_attr(miri, ignore)]
+  async fn test_db() -> Result<()> {
+    let fs = ScopeFileSystem::new_memory_fs("/".into());
+    let db = DB::new(fs, 25);
+    let name_1 = "name1";
+    let name_2 = "name2";
+    assert!(db.bucket_names().await?.is_empty());
+    assert!(db.load(name_1).await?.is_empty());
+
+    let data: Vec<_> = (0..9)
+      .into_iter()
+      .map(|num| {
+        (
+          format!("key{num}").as_bytes().to_vec(),
+          Some(format!("value{num}").as_bytes().to_vec()),
+        )
+      })
+      .collect();
+
+    let mut datas = HashMap::default();
+    datas.insert(String::from(name_1), data.clone());
+    datas.insert(String::from(name_2), data);
+    // save data and wait finish
+    let _ = db.save(datas);
+    db.flush().await;
+
+    let mut data1 = db.load(name_1).await?;
+    data1.sort();
+    let mut data2 = db.load(name_2).await?;
+    data2.sort();
+    assert_eq!(data1.len(), 9);
+    assert_eq!(data1, data2);
+
+    let mut names = db.bucket_names().await?;
+    names.sort();
+    assert_eq!(names, vec![String::from(name_1), String::from(name_2)]);
+
+    db.reset().await?;
+    assert!(db.bucket_names().await?.is_empty());
+    assert!(db.load(name_1).await?.is_empty());
+
     Ok(())
   }
 }

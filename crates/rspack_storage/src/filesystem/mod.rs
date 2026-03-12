@@ -29,7 +29,7 @@ impl FileSystemStorage {
   pub fn new(options: FileSystemOptions) -> Self {
     let fs = ScopeFileSystem::new(options.directory, options.fs);
     Self {
-      db: DB::new(options.max_pack_size, fs),
+      db: DB::new(fs, options.max_pack_size),
       updates: Default::default(),
     }
   }
