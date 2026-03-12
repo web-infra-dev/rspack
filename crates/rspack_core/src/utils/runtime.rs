@@ -3,12 +3,11 @@ use std::borrow::Cow;
 use cow_utils::CowUtils;
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use ustr::UstrSet;
 
 use super::extract_hash_pattern;
 use crate::{
-  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, EntryData, EntryOptions, EntryRuntime,
-  FULL_HASH_PLACEHOLDER, Filename, HASH_PLACEHOLDER, RuntimeSpec,
+  CHUNK_HASH_PLACEHOLDER, CONTENT_HASH_PLACEHOLDER, EntryData, EntryOptions, FULL_HASH_PLACEHOLDER,
+  Filename, HASH_PLACEHOLDER, RuntimeSpec,
 };
 
 pub fn get_entry_runtime(
@@ -17,7 +16,7 @@ pub fn get_entry_runtime(
   entries: &IndexMap<String, EntryData>,
 ) -> RuntimeSpec {
   if let Some(depend_on) = &options.depend_on {
-    let mut result = UstrSet::default();
+    let mut result: RuntimeSpec = Default::default();
     let mut queue = vec![];
     queue.extend(depend_on.clone());
 
@@ -37,14 +36,10 @@ pub fn get_entry_runtime(
           queue.push(depend.clone());
         }
       } else {
-        let runtime = match options.runtime.as_ref() {
-          Some(EntryRuntime::String(runtime)) => runtime.as_str(),
-          _ => name.as_str(),
-        };
-        result.insert(runtime.into());
+        result.extend(&RuntimeSpec::from_entry(&name, options.runtime.as_ref()));
       }
     }
-    RuntimeSpec::new(result)
+    result
   } else {
     RuntimeSpec::from_entry(name, options.runtime.as_ref())
   }

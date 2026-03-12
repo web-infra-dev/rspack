@@ -87,13 +87,12 @@ impl RuntimeSpec {
     this
   }
 
-  pub fn from_single(runtime: Ustr) -> Self {
+  pub fn from_runtimes<'a>(runtimes: impl IntoIterator<Item = &'a RuntimeSpec>) -> Self {
     let mut inner = UstrSet::default();
-    inner.insert(runtime);
-    Self {
-      inner,
-      key: runtime.as_str().to_string(),
+    for runtime in runtimes {
+      inner.extend(runtime.inner.iter().copied());
     }
+    Self::new(inner)
   }
 
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
@@ -101,16 +100,16 @@ impl RuntimeSpec {
       Some(EntryRuntime::String(s)) => s,
       _ => entry,
     }
-    .into();
-    Self::from_single(r)
+    .to_string();
+    Self::from_iter([r.into()])
   }
 
   pub fn from_entry_options(options: &EntryOptions) -> Option<Self> {
     let r = match &options.runtime {
-      Some(EntryRuntime::String(s)) => Some(Ustr::from(s.as_str())),
-      _ => options.name.as_deref().map(Ustr::from),
+      Some(EntryRuntime::String(s)) => Some(s.to_owned()),
+      _ => options.name.clone(),
     };
-    r.map(Self::from_single)
+    r.map(|r| Self::from_iter([r.into()]))
   }
 
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {
