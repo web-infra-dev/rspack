@@ -1,13 +1,7 @@
-use std::{
-  collections::{HashMap, HashSet},
-  fmt::Debug,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{fmt::Debug, hash::Hash};
 
-use dashmap::{DashMap, DashSet};
-use indexmap::{IndexMap, IndexSet};
 use rayon::prelude::*;
-use rustc_hash::FxHasher;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 #[macro_export]
@@ -20,14 +14,6 @@ macro_rules! impl_item_ukey {
     }
   };
 }
-
-pub type UkeyMap<K, V> = HashMap<K, V, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyIndexMap<K, V> = IndexMap<K, V, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyDashMap<K, V> = DashMap<K, V, BuildHasherDefault<UkeyHasher>>;
-
-pub type UkeySet<K> = HashSet<K, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyIndexSet<K> = IndexSet<K, BuildHasherDefault<UkeyHasher>>;
-pub type UkeyDashSet<K> = DashSet<K, BuildHasherDefault<UkeyHasher>>;
 
 pub trait ItemUkey {
   fn ukey(&self) -> Ukey;
@@ -61,8 +47,6 @@ impl From<Ukey> for u32 {
   }
 }
 
-pub type UkeyHasher = FxHasher;
-
 pub trait DatabaseItem
 where
   Self: Sized,
@@ -72,7 +56,7 @@ where
 }
 
 pub struct Database<Item: DatabaseItem> {
-  inner: HashMap<<Item as DatabaseItem>::ItemUkey, Item, BuildHasherDefault<UkeyHasher>>,
+  inner: FxHashMap<<Item as DatabaseItem>::ItemUkey, Item>,
 }
 
 impl<Item: DatabaseItem> Debug for Database<Item> {

@@ -5,8 +5,9 @@ use std::sync::{
 
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
 use super::{
   Storage,
@@ -130,7 +131,7 @@ pub fn save_module_graph(
 pub async fn recovery_module_graph(
   storage: &Arc<dyn Storage>,
   codec: &CacheCodec,
-) -> Result<(ModuleGraph, ModuleToLazyMake, UkeySet<DependencyId>)> {
+) -> Result<(ModuleGraph, ModuleToLazyMake, FxHashSet<DependencyId>)> {
   let mut need_check_dep = vec![];
   let mut mg = ModuleGraph::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
@@ -188,7 +189,7 @@ pub async fn recovery_module_graph(
       entry_module.push(mgm.module_identifier);
     };
   }
-  let mut entry_dependencies: UkeySet<DependencyId> = Default::default();
+  let mut entry_dependencies: FxHashSet<DependencyId> = Default::default();
   for mid in entry_module {
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);

@@ -5,7 +5,7 @@ use std::hash::BuildHasherDefault;
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierHasher, IdentifierMap, UkeyMap};
+use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::{FxHashMap as HashMap, FxHasher};
@@ -110,7 +110,7 @@ pub(crate) struct ModuleGraphData {
   pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: UkeyMap<DependencyId, BoxDependency>,
+  dependencies: HashMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
 
@@ -131,9 +131,9 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info.module, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: UkeyMap<DependencyId, DependencyParents>,
+  dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
   // TODO try move condition as connection field
-  connection_to_condition: UkeyMap<DependencyId, DependencyCondition>,
+  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
@@ -148,7 +148,7 @@ pub(crate) struct ModuleGraphData {
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  dep_meta_map: UkeyMap<DependencyId, DependencyExtraMeta>,
+  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {

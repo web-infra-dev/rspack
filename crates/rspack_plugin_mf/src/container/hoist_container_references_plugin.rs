@@ -18,7 +18,7 @@ use std::{
 };
 
 use async_trait::async_trait;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
   ModuleIdentifier, Plugin, incremental::Mutation,
@@ -37,11 +37,11 @@ use super::{
 #[plugin]
 #[derive(Debug, Default)]
 pub struct HoistContainerReferencesPlugin {
-  federation_deps: Arc<Mutex<UkeySet<DependencyId>>>,
+  federation_deps: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 struct ContainerEntryDepCollector {
-  set: Arc<Mutex<UkeySet<DependencyId>>>,
+  set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -59,7 +59,7 @@ impl super::federation_modules_plugin::AddContainerEntryDependencyHook
 }
 
 struct FederationRuntimeDepCollector {
-  set: Arc<Mutex<UkeySet<DependencyId>>>,
+  set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait]
@@ -77,7 +77,7 @@ impl super::federation_modules_plugin::AddFederationRuntimeDependencyHook
 }
 
 struct RemoteDepCollector {
-  set: Arc<Mutex<UkeySet<DependencyId>>>,
+  set: Arc<Mutex<FxHashSet<DependencyId>>>,
 }
 
 #[async_trait]

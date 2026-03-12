@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rustc_hash::FxHashSet;
 
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
@@ -83,7 +84,7 @@ pub async fn create_chunk_assets(
         .chunk_by_ukey
         .contains(chunk)
     });
-    let chunks: UkeySet<ChunkUkey> = mutations
+    let chunks: FxHashSet<ChunkUkey> = mutations
       .iter()
       .filter_map(|mutation| match mutation {
         Mutation::ChunkSetHashes { chunk } => Some(*chunk),
