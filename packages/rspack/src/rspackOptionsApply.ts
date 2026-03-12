@@ -33,7 +33,6 @@ import {
   EnableLibraryPlugin,
   EnableWasmLoadingPlugin,
   EnsureChunkConditionsPlugin,
-  EsmLibraryPlugin,
   EvalDevToolModulePlugin,
   EvalSourceMapDevToolPlugin,
   ExternalsPlugin,
@@ -310,16 +309,19 @@ export class RspackOptionsApply {
             '`modern-module` cannot used together with other library types',
           );
         }
-
         enableLibSplitChunks = true;
-        new EsmLibraryPlugin({
-          preserveModules: options.output.library?.preserveModules,
-          splitChunks: options.optimization.splitChunks,
-        }).apply(compiler);
-      } else {
-        for (const type of options.output.enabledLibraryTypes) {
-          new EnableLibraryPlugin(type).apply(compiler);
-        }
+      }
+
+      for (const type of options.output.enabledLibraryTypes) {
+        new EnableLibraryPlugin(
+          type,
+          type === 'modern-module'
+            ? {
+                preserveModules: options.output.library?.preserveModules,
+                splitChunks: options.optimization.splitChunks,
+              }
+            : undefined,
+        ).apply(compiler);
       }
     }
 
