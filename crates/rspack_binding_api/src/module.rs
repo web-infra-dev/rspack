@@ -3,7 +3,7 @@ use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
-use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
@@ -15,6 +15,7 @@ use rspack_napi::{
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
+use rustc_hash::FxHashMap;
 
 use crate::{
   COMPILER_REFERENCES, JsCompiler,
@@ -493,7 +494,7 @@ type ModuleInstanceMutRef<'a> = Either5<
 
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
-type ModuleInstanceNapiRefsByCompilerId = RefCell<UkeyMap<CompilerId, ModuleInstanceNapiRefs>>;
+type ModuleInstanceNapiRefsByCompilerId = RefCell<FxHashMap<CompilerId, ModuleInstanceNapiRefs>>;
 
 thread_local! {
   static MODULE_INSTANCE_REFS: ModuleInstanceNapiRefsByCompilerId = Default::default();

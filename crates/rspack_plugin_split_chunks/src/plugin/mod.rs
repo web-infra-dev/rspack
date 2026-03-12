@@ -8,11 +8,12 @@ use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{DatabaseItem, IdentifierMap, UkeyMap, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
+use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::instrument;
 
 use crate::{
@@ -64,7 +65,7 @@ impl SplitChunksPlugin {
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
     logger.time_end(start);
 
-    let chunk_index_map: UkeyMap<ChunkUkey, u64> = {
+    let chunk_index_map: FxHashMap<ChunkUkey, u64> = {
       let mut ordered_chunks = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -119,8 +120,8 @@ impl SplitChunksPlugin {
       priority_cache_groups.push((priority, cache_groups.into_iter().collect::<Vec<_>>()));
     }
 
-    let mut max_size_setting_map: UkeyMap<ChunkUkey, MaxSizeSetting> = Default::default();
-    let mut removed_module_chunks: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
+    let mut max_size_setting_map: FxHashMap<ChunkUkey, MaxSizeSetting> = Default::default();
+    let mut removed_module_chunks: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
 
     let mut combinator = module_group::Combinator::default();
 

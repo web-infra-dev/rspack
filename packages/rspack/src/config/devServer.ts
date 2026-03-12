@@ -10,7 +10,7 @@
 import type { ReadStream } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ServerOptions } from 'node:https';
-import type { Server as ConnectApplication } from 'connect-next';
+import type { Server as ConnectApplication, NextFunction } from 'connect-next';
 import type {
   Filter as ProxyFilter,
   Options as ProxyOptions,
@@ -36,7 +36,9 @@ export type DevServerHost = LiteralUnion<
 
 type BasicServer = import('node:net').Server | import('node:tls').Server;
 
-export type DevServerOpenOptions = OpenOptions;
+export type DevServerOpenOptions = OpenOptions & {
+  target?: string | string[];
+};
 
 type ResponseData = {
   data: Buffer | ReadStream;
@@ -44,11 +46,11 @@ type ResponseData = {
 };
 
 type ModifyResponseData<
-  RequestInternal extends IncomingMessage = IncomingMessage,
-  ResponseInternal extends ServerResponse = ServerResponse,
+  Req extends IncomingMessage = IncomingMessage,
+  Res extends ServerResponse = ServerResponse,
 > = (
-  req: RequestInternal,
-  res: ResponseInternal,
+  req: Req,
+  res: Res,
   data: Buffer | ReadStream,
   byteLength: number,
 ) => ResponseData;
@@ -90,8 +92,8 @@ type HistoryApiFallbackOptions = {
 };
 
 type DevMiddlewareOptions<
-  RequestInternal extends IncomingMessage = IncomingMessage,
-  ResponseInternal extends ServerResponse = ServerResponse,
+  Req extends IncomingMessage = IncomingMessage,
+  Res extends ServerResponse = ServerResponse,
 > = {
   mimeTypes?: {
     [key: string]: string;
@@ -105,7 +107,7 @@ type DevMiddlewareOptions<
   serverSideRender?: boolean;
   outputFileSystem?: OutputFileSystem;
   index?: string | boolean;
-  modifyResponseData?: ModifyResponseData<RequestInternal, ResponseInternal>;
+  modifyResponseData?: ModifyResponseData<Req, Res>;
   etag?: 'strong' | 'weak';
   lastModified?: boolean;
   cacheControl?:
@@ -158,8 +160,6 @@ type WebSocketServerConfiguration = {
   options?: Record<string, any>;
 };
 
-type NextFunction = (err?: any) => void;
-
 export type DevServerProxyConfigArrayItem = {
   /**
    * Alias for `pathFilter` in `http-proxy-middleware` options.
@@ -179,10 +179,7 @@ export type DevServerProxyConfigArray = (
 
 type Callback = (stats?: Stats | MultiStats) => any;
 
-type DevMiddlewareContext<
-  _RequestInternal extends IncomingMessage = IncomingMessage,
-  _ResponseInternal extends ServerResponse = ServerResponse,
-> = {
+type DevMiddlewareContext = {
   state: boolean;
   stats: Stats | MultiStats | undefined;
   callbacks: Callback[];
@@ -194,26 +191,35 @@ type DevMiddlewareContext<
 };
 
 export type DevServerMiddlewareHandler<
-  RequestInternal extends IncomingMessage = IncomingMessage,
-  ResponseInternal extends ServerResponse = ServerResponse,
+  Req extends IncomingMessage = IncomingMessage,
+  Res extends ServerResponse = ServerResponse,
+> = (req: Req, res: Res, next: NextFunction) => void | Promise<void>;
+
+export type DevServerMiddlewareErrorHandler<
+  Req extends IncomingMessage = IncomingMessage,
+  Res extends ServerResponse = ServerResponse,
 > = (
-  req: RequestInternal,
-  res: ResponseInternal,
+  error: any,
+  req: Req,
+  res: Res,
   next: NextFunction,
 ) => void | Promise<void>;
 
-type DevServerMiddlewareObject<
-  RequestInternal extends IncomingMessage = IncomingMessage,
-  ResponseInternal extends ServerResponse = ServerResponse,
+export type DevServerMiddlewareObject<
+  Req extends IncomingMessage = IncomingMessage,
+  Res extends ServerResponse = ServerResponse,
 > = {
   name?: string;
   path?: string;
-  middleware: DevServerMiddlewareHandler<RequestInternal, ResponseInternal>;
+  middleware:
+    | DevServerMiddlewareHandler<Req, Res>
+    | DevServerMiddlewareErrorHandler<Req, Res>;
 };
 
 export type DevServerMiddleware =
   | DevServerMiddlewareObject
-  | DevServerMiddlewareHandler;
+  | DevServerMiddlewareHandler
+  | DevServerMiddlewareErrorHandler;
 
 type OverlayMessageOptions = boolean | ((error: Error) => void);
 
@@ -263,7 +269,11 @@ export type DevServerOptions<
     | LiteralUnion<'ws', string>
     | WebSocketServerConfiguration;
   proxy?: DevServerProxyConfigArray;
-  open?: string | boolean | OpenOptions | (string | OpenOptions)[];
+  open?:
+    | string
+    | boolean
+    | DevServerOpenOptions
+    | (string | DevServerOpenOptions)[];
   setupExitSignals?: boolean;
   client?: boolean | DevServerClient;
   headers?:
