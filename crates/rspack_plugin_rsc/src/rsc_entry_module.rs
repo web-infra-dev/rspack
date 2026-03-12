@@ -179,10 +179,8 @@ impl Module for RscEntryModule {
       let dependencies: Vec<BoxDependency> = vec![];
 
       for client_module in &self.client_modules {
-        let dep = ClientReferenceDependency::new(
-          client_module.request.clone(),
-          client_module.ids.iter().cloned().map(Into::into).collect(),
-        );
+        let dep =
+          ClientReferenceDependency::new(client_module.request.clone(), client_module.ids.clone());
         let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
