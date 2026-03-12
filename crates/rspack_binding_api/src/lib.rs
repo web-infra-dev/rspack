@@ -205,7 +205,6 @@ impl JsCompiler {
         rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
       ));
       plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
-      plugins.push(Box::new(rspack_plugin_rsc::ClientEntryLoaderPlugin::new()));
       plugins.push(Box::new(rspack_plugin_rsc::ActionEntryLoaderPlugin::new()));
       plugins.push(Box::new(
         rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
