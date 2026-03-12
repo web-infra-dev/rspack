@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_refereced_specifiers, get_exports_type,
+  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
+  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_referenced_exports_by_refereced_specifiers,
+  get_exports_type,
 };
 use swc_core::ecma::atoms::Atom;
 

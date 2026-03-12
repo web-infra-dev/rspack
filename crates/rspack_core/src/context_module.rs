@@ -23,7 +23,6 @@ use rspack_util::{
   source_map::{ModuleSourceMapConfig, SourceMapKind},
 };
 use rustc_hash::FxHashMap as HashMap;
-use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,

@@ -22,10 +22,10 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    AllowedMemberTypes, AtomMembers, ContextModuleScanResult, ExportedVariableInfo,
-    JavascriptParser, MemberExpressionInfo, Statement, TagInfoData, TopLevelScope,
-    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
-    create_traceable_error, get_non_optional_part, parse_order_string,
+    AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
+    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
+    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
+    get_non_optional_part, parse_order_string,
   },
 };
 

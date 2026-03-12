@@ -2,17 +2,11 @@ pub mod eval;
 pub mod mangle_exports;
 pub mod object_properties;
 
-use rspack_cacheable::{
-  cacheable,
-  with::{AsPreset, AsVec},
-};
 use rspack_core::ModuleType;
 use rspack_error::Error;
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{SourceFile, Span, Spanned};
-
-use crate::visitors::AtomMembers;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct EcmaError(String, Span);

@@ -8,7 +8,6 @@ use rspack_core::{
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
-use swc_core::atoms::Atom;
 
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
