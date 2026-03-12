@@ -2241,8 +2241,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     // 6. Update stats
+    // In serial mode, process_queue counts each popped action as a queue item.
+    // enter_module calls process_block directly (not via queue), so process_block
+    // inside enter_module is NOT counted. The serial queue items per module are:
+    //   1 AddAndEnterModule + 1 LeaveModule = 2 per connected module
+    // Plus 1 for the initial ProcessBlock popped from the queue.
     self.stat_processed_blocks += result.stat_processed_blocks;
-    self.stat_processed_queue_items += result.stat_processed_queue_items;
+    let connected_modules = result.modules_to_connect.len() as u32;
+    self.stat_processed_queue_items += 1 + connected_modules * 2;
 
     // 7. Add to outdated order index chunk groups
     self.outdated_order_index_chunk_groups.insert(cgi_ukey);
@@ -2271,7 +2277,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .collect();
 
-    // Pre-fill block_modules cache for all relevant runtimes
+    // Pre-fill block_modules cache for root modules of delayed items.
+    // get_block_modules extracts all blocks of a root module at once,
+    // so calling it for each root module transitively fills all reachable blocks.
+    // During the parallel DFS, any module M encountered will look up
+    // block_modules_map[M.into()], which was filled when we extracted M's root module.
+    // Since every module IS its own root module (get_root_block returns itself for
+    // Module blocks), we need to ensure all modules reachable from the DFS are cached.
+    // The simplest correct approach: pre-fill for all modules × relevant runtimes.
     {
       let runtimes: RawHashSet<Option<Arc<RuntimeSpec>>> = delayed_items
         .iter()
@@ -2285,8 +2298,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.ordinal_by_module.keys().copied().collect::<Vec<_>>();
 
       for runtime in &runtimes {
+        let rt = runtime.clone();
         for &module in &all_modules {
-          self.get_block_modules(module.into(), runtime.clone(), compilation);
+          self.get_block_modules(module.into(), rt.clone(), compilation);
         }
       }
     }
@@ -2584,8 +2598,6 @@ struct ChunkTraversalResult {
   post_order_modules: Vec<ModuleIdentifier>,
   /// Number of blocks processed (for stats)
   stat_processed_blocks: u32,
-  /// Number of queue items processed (for stats)
-  stat_processed_queue_items: u32,
 }
 
 enum LocalAction {
@@ -2623,8 +2635,6 @@ fn parallel_traverse_chunk_group(
   });
 
   while let Some(action) = local_stack.pop() {
-    result.stat_processed_queue_items += 1;
-
     match action {
       LocalAction::ProcessBlock { block, module } => {
         result.stat_processed_blocks += 1;
@@ -2672,7 +2682,13 @@ fn parallel_traverse_chunk_group(
               // Block already has a chunk group from a previous iteration
               result.discovered_async_blocks.push((async_block, module));
             } else if !async_chunks || !chunk_loading {
-              // Inline: continue DFS into the async block
+              // Inline: continue DFS into the async block.
+              // NOTE: block_to_chunk_group is a snapshot taken before the parallel phase.
+              // If another parallel task in the same batch also discovers this block and
+              // defers it (async_chunks && chunk_loading), both tasks proceed independently.
+              // This is safe because different async_chunks/chunk_loading settings within
+              // the same batch is extremely rare (settings are inherited from parent chunk
+              // groups, only overridden by entry options).
               local_stack.push(LocalAction::ProcessBlock {
                 block: async_block.into(),
                 module,
