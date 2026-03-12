@@ -269,7 +269,11 @@ export type DevServerOptions<
     | LiteralUnion<'ws', string>
     | WebSocketServerConfiguration;
   proxy?: DevServerProxyConfigArray;
-  open?: string | boolean | OpenOptions | (string | OpenOptions)[];
+  open?:
+    | string
+    | boolean
+    | DevServerOpenOptions
+    | (string | DevServerOpenOptions)[];
   setupExitSignals?: boolean;
   client?: boolean | DevServerClient;
   headers?:
