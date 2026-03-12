@@ -1,8 +1,6 @@
 mod amd_library_plugin;
 mod assign_library_plugin;
 mod export_property_library_plugin;
-mod modern_module;
-mod modern_module_library_plugin;
 mod module_library_plugin;
 mod system_library_plugin;
 mod umd_library_plugin;
@@ -15,10 +13,7 @@ use rspack_core::{BoxPlugin, PluginExt};
 pub use system_library_plugin::SystemLibraryPlugin;
 pub use umd_library_plugin::UmdLibraryPlugin;
 
-use crate::{
-  modern_module_library_plugin::ModernModuleLibraryPlugin,
-  module_library_plugin::ModuleLibraryPlugin,
-};
+use crate::module_library_plugin::ModuleLibraryPlugin;
 
 pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>) {
   let ns_object_used = library_type != "module";
@@ -117,12 +112,6 @@ pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>)
       plugins
         .push(ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, true).boxed());
       plugins.push(ModuleLibraryPlugin::default().boxed());
-    }
-    "modern-module" => {
-      plugins.push(
-        ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, false).boxed(),
-      );
-      plugins.push(ModernModuleLibraryPlugin::default().boxed());
     }
     "system" => {
       plugins.push(
