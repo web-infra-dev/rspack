@@ -57,7 +57,7 @@ impl MatchGroup {
     }
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -92,27 +92,27 @@ impl MatchGroup {
       }
     }
 
-    self.sizes.clone()
+    &self.sizes
   }
 }
 
 impl ModulesContainer for MatchGroup {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  fn get_sizes<'a>(&'a mut self, module_sizes: &ModuleSizes) -> &'a SplitChunkSizes {
     MatchGroup::get_sizes(self, module_sizes)
   }
 
-  fn get_source_types_modules(
+  fn collect_source_types_modules(
     &self,
     ty: &[SourceType],
     module_sizes: &ModuleSizes,
-  ) -> IdentifierSet {
+  ) -> Vec<ModuleIdentifier> {
     // if there is only one source type, we can just use the `source_types_modules` directly
     // instead of iterating over all modules
     if ty.len() == 1 {
       self
         .source_types_modules
         .get(ty.first().expect("should have at least one source type"))
-        .cloned()
+        .map(|modules| modules.iter().copied().collect())
         .unwrap_or_default()
     } else {
       self

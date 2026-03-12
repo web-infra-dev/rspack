@@ -255,6 +255,11 @@ impl ModuleGroupQueue {
   }
 }
 
+pub(crate) struct ModuleGroupValidationCtx<'a> {
+  pub compilation: &'a Compilation,
+  pub module_sizes: &'a ModuleSizes,
+}
+
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
@@ -661,9 +666,13 @@ impl SplitChunksPlugin {
     module_group_queue: &mut ModuleGroupQueue,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &FxHashSet<ChunkUkey>,
-    compilation: &Compilation,
-    module_sizes: &ModuleSizes,
+    validation: ModuleGroupValidationCtx<'_>,
   ) {
+    let ModuleGroupValidationCtx {
+      compilation,
+      module_sizes,
+    } = validation;
+
     // remove all modules from other entries and update size
     let keys_of_invalid_group = affected_module_group_index
       .collect_affected_keys(current_module_group, used_chunks)
@@ -737,8 +746,12 @@ impl SplitChunksPlugin {
         }
 
         // Validate `min_size` again
-        if remove_min_size_violating_modules(&cache_group.key, other_module_group, cache_group, module_sizes)
-          || !Self::check_min_size_reduction(&other_module_group.get_sizes(module_sizes), &cache_group.min_size_reduction, other_module_group.chunks.len()) {
+        if remove_min_size_violating_modules(
+          &cache_group.key,
+          other_module_group,
+          cache_group,
+          module_sizes,
+        ) {
           tracing::trace!(
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
@@ -746,7 +759,21 @@ impl SplitChunksPlugin {
           return Some(key.to_string());
         }
 
-        module_group_queue.refresh(key, &other_module_group);
+        let chunk_len = other_module_group.chunks.len();
+        let sizes = other_module_group.get_sizes(module_sizes);
+        if !Self::check_min_size_reduction(
+          sizes,
+          &cache_group.min_size_reduction,
+          chunk_len,
+        ) {
+          tracing::trace!(
+            "{key} is deleted for violating min_size {:#?}",
+            cache_group.min_size,
+          );
+          return Some(key.to_string());
+        }
+
+        module_group_queue.refresh(key, other_module_group);
         None
       })
       .collect::<Vec<_>>();

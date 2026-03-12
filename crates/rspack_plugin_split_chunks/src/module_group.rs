@@ -75,18 +75,18 @@ impl ModuleGroup {
     }
   }
 
-  pub fn get_source_types_modules(
+  pub fn collect_source_types_modules(
     &self,
     ty: &[SourceType],
     module_sizes: &ModuleSizes,
-  ) -> IdentifierSet {
+  ) -> Vec<ModuleIdentifier> {
     // if there is only one source type, we can just use the `source_types_modules` directly
     // instead of iterating over all modules
     if ty.len() == 1 {
       self
         .source_types_modules
         .get(ty.first().expect("should have at least one source type"))
-        .cloned()
+        .map(|modules| modules.iter().copied().collect())
         .unwrap_or_default()
     } else {
       self
@@ -141,7 +141,7 @@ impl ModuleGroup {
     self.total_size
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -176,6 +176,6 @@ impl ModuleGroup {
       }
     }
 
-    self.sizes.clone()
+    &self.sizes
   }
 }

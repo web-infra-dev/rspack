@@ -16,7 +16,7 @@ use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::instrument;
 
-use self::module_group::{AffectedModuleGroupIndex, ModuleGroupQueue};
+use self::module_group::{AffectedModuleGroupIndex, ModuleGroupQueue, ModuleGroupValidationCtx};
 use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
@@ -275,8 +275,10 @@ impl SplitChunksPlugin {
           &mut module_group_queue,
           &mut module_group_map,
           &used_chunks,
-          compilation,
-          &module_sizes,
+          ModuleGroupValidationCtx {
+            compilation,
+            module_sizes: &module_sizes,
+          },
         );
 
         if index != priority_len - 1 {
