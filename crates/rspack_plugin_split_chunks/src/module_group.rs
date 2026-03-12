@@ -120,6 +120,15 @@ impl ModuleGroup {
     &cache_groups[self.cache_group_index as usize]
   }
 
+  pub fn ordered_module_identifiers(&self) -> Vec<ModuleIdentifier> {
+    self
+      .modules
+      .iter()
+      .copied()
+      .sorted_unstable_by(|a, b| a.precomputed_hash().cmp(&b.precomputed_hash()))
+      .collect()
+  }
+
   pub fn get_total_size(&self) -> f64 {
     if !self.added.is_empty() || !self.removed.is_empty() {
       unreachable!("should update sizes before get total size");
@@ -164,69 +173,4 @@ impl ModuleGroup {
 
     self.sizes.clone()
   }
-}
-
-pub(crate) fn compare_entries(
-  (a_key, a): (&String, &ModuleGroup),
-  (b_key, b): (&String, &ModuleGroup),
-) -> f64 {
-  // 1. by priority
-  // no need to compare priority anymore because we already pick all cache groups with same priority
-  // let diff_priority = a.cache_group_priority - b.cache_group_priority;
-  // if diff_priority != 0f64 {
-  //   return diff_priority;
-  // }
-  // 2. by number of chunks
-  let a_chunks_len = a.chunks.len();
-  let b_chunks_len = b.chunks.len();
-  let diff_count = a_chunks_len as f64 - b_chunks_len as f64;
-  if diff_count != 0f64 {
-    return diff_count;
-  }
-
-  // 3. by size reduction
-  let a_size_reduce = a.get_total_size() * (a_chunks_len - 1) as f64;
-  let b_size_reduce = b.get_total_size() * (b_chunks_len - 1) as f64;
-  let diff_size_reduce = a_size_reduce - b_size_reduce;
-  if diff_size_reduce != 0f64 {
-    return diff_size_reduce;
-  }
-
-  // 4. by cache group index
-  let index_diff = b.cache_group_index as f64 - a.cache_group_index as f64;
-  if index_diff != 0f64 {
-    return index_diff;
-  }
-
-  // 5. by number of modules (to be able to compare by identifier)
-  let modules_a_len = a.modules.len();
-  let modules_b_len = b.modules.len();
-  let diff = modules_a_len as f64 - modules_b_len as f64;
-  if diff != 0f64 {
-    return diff;
-  }
-
-  let mut modules_a = a
-    .modules
-    .iter()
-    .sorted_unstable_by(|a, b| a.precomputed_hash().cmp(&b.precomputed_hash()));
-  let mut modules_b = b
-    .modules
-    .iter()
-    .sorted_unstable_by(|a, b| a.precomputed_hash().cmp(&b.precomputed_hash()));
-
-  loop {
-    match (modules_a.next(), modules_b.next()) {
-      (None, None) => break,
-      (Some(a), Some(b)) => {
-        let res = a.cmp(b);
-        if !res.is_eq() {
-          return res as i32 as f64;
-        }
-      }
-      _ => unreachable!(),
-    }
-  }
-
-  a_key.cmp(b_key) as i32 as f64
 }
