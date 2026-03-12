@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use either::Either;
 use itertools::Itertools;
-use rspack_collections::UkeyMap;
 use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::FxHashMap;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
@@ -30,7 +30,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<UkeyMap<ExportsInfo, &'a ExportsInfoData>>,
+  exports: Arc<FxHashMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
    * The entry of the current exports info
    */
@@ -476,7 +476,7 @@ impl ExportsInfoGetter {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       exports_info_artifact: &'a ExportsInfoArtifact,
-      res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
+      res: &mut FxHashMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
@@ -560,7 +560,7 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::Full => 1 + exports_info.exports().len() + extra_nested_exports,
       }
     };
-    let mut res = UkeyMap::with_capacity_and_hasher(initial_capacity, Default::default());
+    let mut res = FxHashMap::with_capacity_and_hasher(initial_capacity, Default::default());
     prefetch_exports(id, exports_info_artifact, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
@@ -667,7 +667,7 @@ impl ExportsInfoGetter {
     let exports = exports
       .into_iter()
       .map(|e| (e, exports_info_artifact.get_exports_info_by_id(&e)))
-      .collect::<UkeyMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(exports),
