@@ -33,6 +33,107 @@ use crate::{
 
 type ChunksKey = u64;
 
+#[derive(Default)]
+pub(crate) struct AffectedModuleGroupIndex {
+  chunk_to_groups: FxHashMap<ChunkUkey, Vec<String>>,
+  module_to_groups: IdentifierMap<Vec<String>>,
+}
+
+impl AffectedModuleGroupIndex {
+  pub(crate) fn from_module_group_map(module_group_map: &ModuleGroupMap) -> Self {
+    let mut index = Self::default();
+
+    for (key, module_group) in module_group_map.iter() {
+      for chunk in &module_group.chunks {
+        index
+          .chunk_to_groups
+          .entry(*chunk)
+          .or_default()
+          .push(key.clone());
+      }
+
+      for module in &module_group.modules {
+        index
+          .module_to_groups
+          .entry(*module)
+          .or_default()
+          .push(key.clone());
+      }
+    }
+
+    index
+  }
+
+  pub(crate) fn collect_affected_keys<'a>(
+    &'a self,
+    current_module_group: &'a ModuleGroup,
+    used_chunks: &FxHashSet<ChunkUkey>,
+  ) -> Vec<&'a str> {
+    let chunk_refs = used_chunks
+      .iter()
+      .filter_map(|chunk| self.chunk_to_groups.get(chunk))
+      .map(Vec::len)
+      .sum::<usize>();
+    let module_refs = current_module_group
+      .modules
+      .iter()
+      .filter_map(|module| self.module_to_groups.get(module))
+      .map(Vec::len)
+      .sum::<usize>();
+
+    if chunk_refs == 0 || module_refs == 0 {
+      return Vec::new();
+    }
+
+    let mut seed = FxHashSet::default();
+    let mut affected = FxHashSet::default();
+
+    if chunk_refs <= module_refs {
+      for keys in used_chunks
+        .iter()
+        .filter_map(|chunk| self.chunk_to_groups.get(chunk))
+      {
+        seed.extend(keys.iter().map(String::as_str));
+      }
+
+      for keys in current_module_group
+        .modules
+        .iter()
+        .filter_map(|module| self.module_to_groups.get(module))
+      {
+        for key in keys {
+          let key = key.as_str();
+          if seed.contains(key) {
+            affected.insert(key);
+          }
+        }
+      }
+    } else {
+      for keys in current_module_group
+        .modules
+        .iter()
+        .filter_map(|module| self.module_to_groups.get(module))
+      {
+        seed.extend(keys.iter().map(String::as_str));
+      }
+
+      for keys in used_chunks
+        .iter()
+        .filter_map(|chunk| self.chunk_to_groups.get(chunk))
+      {
+        for key in keys {
+          let key = key.as_str();
+          if seed.contains(key) {
+            affected.insert(key);
+          }
+        }
+      }
+    }
+
+    affected.into_iter().collect()
+  }
+}
+
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
@@ -464,27 +565,43 @@ impl SplitChunksPlugin {
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
     current_module_group: &ModuleGroup,
+    affected_module_group_index: &AffectedModuleGroupIndex,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &FxHashSet<ChunkUkey>,
     compilation: &Compilation,
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
-    let keys_of_invalid_group = module_group_map
-      .par_iter_mut()
-      .filter_map(|(key, other_module_group)| {
-        other_module_group
+    let keys_of_invalid_group = affected_module_group_index
+      .collect_affected_keys(current_module_group, used_chunks)
+      .into_iter()
+      .filter_map(|key| {
+        let other_module_group = module_group_map.get_mut(key)?;
+
+        if !other_module_group
           .chunks
-          .intersection(used_chunks)
-          .next()?;
+          .iter()
+          .any(|chunk| used_chunks.contains(chunk))
+        {
+          return None;
+        }
 
         let module_count = other_module_group.modules.len();
 
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
+        let duplicated_modules =
+          if other_module_group.modules.len() > current_module_group.modules.len() {
+            current_module_group
+              .modules
+              .intersection(&other_module_group.modules)
+              .copied()
+              .collect::<Vec<_>>()
         } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
-        };
+            other_module_group
+              .modules
+              .intersection(&current_module_group.modules)
+              .copied()
+              .collect::<Vec<_>>()
+          };
 
         for module in duplicated_modules {
           other_module_group.remove_module(module);
@@ -499,7 +616,7 @@ impl SplitChunksPlugin {
           tracing::trace!(
             "{key} is deleted for having empty modules",
           );
-          return Some(key.clone());
+          return Some(key.to_string());
         }
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
@@ -523,7 +640,7 @@ impl SplitChunksPlugin {
             other_module_group.chunks.len(),
             cache_group.min_chunks
           );
-          return Some(key.clone());
+          return Some(key.to_string());
         }
 
         // Validate `min_size` again
@@ -533,7 +650,7 @@ impl SplitChunksPlugin {
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
           );
-          return Some(key.clone());
+          return Some(key.to_string());
         }
 
         None
