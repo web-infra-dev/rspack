@@ -242,7 +242,13 @@ __webpack_require__.d(__webpack_exports__, {
 
 ## optimization.mergeDuplicateChunks
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
 
 是否合并重复的 chunks，将 `optimization.mergeDuplicateChunks` 设置成 `false` 来关闭该优化。
 

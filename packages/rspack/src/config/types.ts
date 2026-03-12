@@ -2564,7 +2564,9 @@ export type Optimization = {
   /**
    * Whether to merge chunks which contain the same modules.
    * Setting optimization.mergeDuplicateChunks to false will disable this optimization.
-   * @default true
+   *
+   * The value is `true` in production mode.
+   * The value is `false` in development mode.
    */
   mergeDuplicateChunks?: boolean;
 

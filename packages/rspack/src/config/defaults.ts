@@ -1030,7 +1030,7 @@ const applyOptimizationDefaults = (
   // IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
   D(optimization, 'removeAvailableModules', true);
   D(optimization, 'removeEmptyChunks', true);
-  D(optimization, 'mergeDuplicateChunks', true);
+  F(optimization, 'mergeDuplicateChunks', () => !development);
   F(optimization, 'moduleIds', (): 'natural' | 'named' | 'deterministic' => {
     if (production) return 'deterministic';
     if (development) return 'named';

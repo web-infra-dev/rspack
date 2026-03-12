@@ -242,7 +242,13 @@ __webpack_require__.d(__webpack_exports__, {
 
 ## optimization.mergeDuplicateChunks
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
+<PropertyType
+  type="boolean"
+  defaultValueList={[
+    { defaultValue: 'true', mode: 'production' },
+    { defaultValue: 'false', mode: 'development' },
+  ]}
+/>
 
 Whether to merge chunks which contain the same modules. Setting `optimization.mergeDuplicateChunks` to `false` will disable this optimization.
 

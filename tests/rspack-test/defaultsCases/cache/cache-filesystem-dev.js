@@ -46,6 +46,9 @@ module.exports = {
 			-     "chunkIds": "natural",
 			+     "chunkIds": "named",
 			@@ ... @@
+			-     "mergeDuplicateChunks": true,
+			+     "mergeDuplicateChunks": false,
+			@@ ... @@
 			-     "moduleIds": "natural",
 			-     "nodeEnv": false,
 			+     "moduleIds": "named",
