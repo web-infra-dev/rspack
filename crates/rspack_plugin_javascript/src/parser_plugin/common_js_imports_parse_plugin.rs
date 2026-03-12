@@ -73,19 +73,14 @@ struct RequireReferences {
 
 impl RequireReferences {
   pub fn add_reference(&mut self, reference: Vec<Atom>) {
-    self.references.push(ReferencedSpecifier {
-      names: reference,
-      is_call: false,
-      namespace_object_as_context: false,
-    });
+    self.references.push(ReferencedSpecifier::new(reference));
   }
 
   pub fn add_call_reference(&mut self, reference: Vec<Atom>, namespace_object_as_context: bool) {
-    self.references.push(ReferencedSpecifier {
-      names: reference,
-      is_call: true,
+    self.references.push(ReferencedSpecifier::new_call(
+      reference,
       namespace_object_as_context,
-    });
+    ));
   }
 }
 
@@ -407,11 +402,7 @@ impl CommonJsImportsParserPlugin {
             let mut refs = Vec::new();
             keys.traverse_on_leaf(&mut |stack| {
               let names = stack.iter().map(|p| p.id.clone()).collect();
-              refs.push(ReferencedSpecifier {
-                names,
-                is_call: false,
-                namespace_object_as_context: false,
-              });
+              refs.push(ReferencedSpecifier::new(names));
             });
             refs
           });
@@ -452,11 +443,7 @@ impl CommonJsImportsParserPlugin {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
           let names = stack.iter().map(|p| p.id.clone()).collect();
-          refs.push(ReferencedSpecifier {
-            names,
-            is_call: false,
-            namespace_object_as_context: false,
-          });
+          refs.push(ReferencedSpecifier::new(names));
         });
         refs
       });
@@ -953,11 +940,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       // named export, importers may access arbitrary properties on it. In that
       // case the entire module must be considered referenced.
       if parser.build_info.esm_named_exports.contains(&variable_name) {
-        references.push(ReferencedSpecifier {
-          names: vec![],
-          is_call: false,
-          namespace_object_as_context: false,
-        });
+        references.push(ReferencedSpecifier::new(vec![]));
       }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)

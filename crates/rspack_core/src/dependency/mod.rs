@@ -235,6 +235,24 @@ pub struct ReferencedSpecifier {
   pub namespace_object_as_context: bool,
 }
 
+impl ReferencedSpecifier {
+  pub fn new(names: Vec<Atom>) -> Self {
+    Self {
+      names,
+      is_call: false,
+      namespace_object_as_context: false,
+    }
+  }
+
+  pub fn new_call(names: Vec<Atom>, namespace_object_as_context: bool) -> Self {
+    Self {
+      names,
+      is_call: true,
+      namespace_object_as_context,
+    }
+  }
+}
+
 pub fn create_referenced_exports_by_refereced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
