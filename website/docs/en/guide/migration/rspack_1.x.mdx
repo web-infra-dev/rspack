@@ -609,10 +609,22 @@ export default {
 
 ## Other changes
 
-### Changed default value of devtool
+### Changed `devtool` default value
+
+The default value of the [devtool](/config/devtool) option has changed:
 
 - When `mode` is `development`, the default value of `devtool` has been changed from `eval` to `cheap-module-source-map`
-- When `mode` is `production`, the default value of `devtool` in `@rspack/cli` has been changed from `source-map` to `false`
+- When `mode` is `production` and you are using `@rspack/cli`, the default value of `devtool` has been changed from `source-map` to `false`
+
+If you need source maps in production, we recommend using the following configuration:
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  devtool: isProd ? 'source-map' : 'cheap-module-source-map',
+};
+```
 
 ### Removed runtime module deprecated properties
 
