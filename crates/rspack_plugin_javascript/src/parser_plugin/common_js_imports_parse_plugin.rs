@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType,
+  DependencyCategory, DependencyRange, DependencyType, ReferencedSpecifier,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
@@ -119,7 +119,7 @@ fn create_commonjs_require_context_dependency(
   param: &BasicEvaluatedExpression,
   call_expr: &CallExpr,
   arg_expr: &Expr,
-  referenced_exports: Option<Vec<Vec<Atom>>>,
+  referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
 
@@ -138,7 +138,7 @@ fn create_commonjs_require_context_dependency(
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
-    referenced_exports,
+    referenced_specifiers,
     attributes: None,
     phase: None,
   };
@@ -186,7 +186,7 @@ fn create_require_resolve_context_dependency(
     replaces: result.replaces,
     start,
     end,
-    referenced_exports: None,
+    referenced_specifiers: None,
     attributes: None,
     phase: None,
   };
@@ -432,13 +432,18 @@ impl CommonJsImportsParserPlugin {
     let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
       unreachable!("ensure require includes arguments")
     };
-    let referenced_exports = parser
+    let referenced_specifiers = parser
       .destructuring_assignment_properties
       .get(&call_expr.span)
       .map(|keys| {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
-          refs.push(stack.iter().map(|p| p.id.clone()).collect());
+          let names = stack.iter().map(|p| p.id.clone()).collect();
+          refs.push(ReferencedSpecifier {
+            names,
+            is_call: false,
+            namespace_object_as_context: false,
+          });
         });
         refs
       });
@@ -447,7 +452,7 @@ impl CommonJsImportsParserPlugin {
       param,
       call_expr,
       argument_expr,
-      referenced_exports,
+      referenced_specifiers,
     );
     let dep_idx = parser.next_dependency_idx();
     if let Some(require_references) = parser
@@ -563,7 +568,7 @@ impl CommonJsImportsParserPlugin {
         replaces: Vec::new(),
         start,
         end,
-        referenced_exports: None,
+        referenced_specifiers: None,
         attributes: None,
         phase: None,
       },
@@ -958,7 +963,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
           let dep = dep
             .downcast_mut::<CommonJsRequireContextDependency>()
             .expect("Failed to downcast to CommonJsRequireContextDependency");
-          dep.set_referenced_exports(references);
+          dep.set_referenced_specifiers(references);
         }
         _ => unreachable!(),
       }

@@ -7,7 +7,7 @@ use indoc::formatdoc;
 use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec, Unsupported},
+  with::{AsCacheable, AsOption, AsPreset, AsVec, Unsupported},
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -33,8 +33,8 @@ use crate::{
   DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, Resolve, RuntimeGlobals, RuntimeSpec,
-  SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
+  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
+  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
   impl_module_meta_info, module_update_hash, to_path,
 };
 
@@ -137,8 +137,8 @@ pub struct ContextOptions {
   pub replaces: Vec<(String, u32, u32)>,
   pub start: u32,
   pub end: u32,
-  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
-  pub referenced_exports: Option<Vec<Vec<Atom>>>,
+  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
+  pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
 }
@@ -1103,9 +1103,19 @@ impl Module for ContextModule {
       id += " exclude: ";
       id += &exclude.to_pretty_string(true);
     }
-    if let Some(exports) = &self.options.context_options.referenced_exports {
+    if let Some(specifiers) = &self.options.context_options.referenced_specifiers {
       id += " referencedExports: ";
-      id += &exports.iter().map(|ids| ids.iter().join(".")).join(", ");
+      id += &specifiers
+        .iter()
+        .map(|specifier| {
+          let s = specifier.names.iter().join(".");
+          if specifier.namespace_object_as_context && specifier.is_call {
+            format!("*.{s}()")
+          } else {
+            s
+          }
+        })
+        .join(", ");
     }
     Some(Cow::Owned(id))
   }
@@ -1297,9 +1307,18 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|exclude: ";
     id += &exclude.to_source_string();
   }
-  if let Some(exports) = &options.context_options.referenced_exports {
+  if let Some(specifiers) = &options.context_options.referenced_specifiers {
     id += "|referencedExports: ";
-    id += &exports.iter().map(|ids| ids.iter().join(".")).join(", ");
+    id += &specifiers
+      .iter()
+      .map(|specifier| {
+        if specifier.namespace_object_as_context && specifier.is_call {
+          format!("*.{}()", specifier.names.iter().join("."))
+        } else {
+          specifier.names.iter().join(".")
+        }
+      })
+      .join(", ");
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {

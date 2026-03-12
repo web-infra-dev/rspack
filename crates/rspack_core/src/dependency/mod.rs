@@ -31,6 +31,10 @@ pub use entry::*;
 pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
@@ -219,4 +223,13 @@ impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
       swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ReferencedSpecifier {
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub names: Vec<Atom>,
+  pub is_call: bool,
+  pub namespace_object_as_context: bool,
 }

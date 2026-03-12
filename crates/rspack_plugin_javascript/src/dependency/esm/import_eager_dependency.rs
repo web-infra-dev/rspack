@@ -1,12 +1,12 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec},
+  with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -22,8 +22,8 @@ pub struct ImportEagerDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   range: DependencyRange,
-  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
-  referenced_exports: Option<Vec<Vec<Atom>>>,
+  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
+  referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   resource_identifier: ResourceIdentifier,
@@ -34,7 +34,7 @@ impl ImportEagerDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_exports: Option<Vec<Vec<Atom>>>,
+    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
     attributes: Option<ImportAttributes>,
     phase: ImportPhase,
   ) -> Self {
@@ -44,7 +44,7 @@ impl ImportEagerDependency {
       request,
       range,
       id: DependencyId::new(),
-      referenced_exports,
+      referenced_specifiers,
       attributes,
       phase,
       resource_identifier,
@@ -52,8 +52,8 @@ impl ImportEagerDependency {
     }
   }
 
-  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
-    self.referenced_exports = Some(referenced_exports);
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.referenced_specifiers = Some(referenced_specifiers);
   }
 }
 
@@ -96,7 +96,7 @@ impl Dependency for ImportEagerDependency {
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
       &self.id,
-      &self.referenced_exports,
+      &self.referenced_specifiers,
       module_graph,
       module_graph_cache,
       exports_info_artifact,

@@ -1,13 +1,14 @@
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset, AsVec},
+  with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ExportsType, ExtendedReferencedExport, FactorizeInfo, ImportAttributes, ImportPhase,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  get_exports_type,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -15,41 +16,67 @@ use super::create_resource_identifier_for_esm_dependency;
 
 pub fn create_import_dependency_referenced_exports(
   dependency_id: &DependencyId,
-  referenced_exports: &Option<Vec<Vec<Atom>>>,
+  referenced_specifiers: &Option<Vec<ReferencedSpecifier>>,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<ExtendedReferencedExport> {
-  if let Some(referenced_exports) = referenced_exports {
+  if let Some(referenced_specifiers) = referenced_specifiers {
     let mut refs = vec![];
-    for referenced_export in referenced_exports {
-      if let Some(first) = referenced_export.first()
-        && first == "default"
+    for ReferencedSpecifier {
+      names,
+      is_call,
+      namespace_object_as_context,
+    } in referenced_specifiers
+    {
+      let mut names = names.as_slice();
+      let mut namespace_object_as_context = *namespace_object_as_context;
+      let parent_module = mg
+        .get_parent_module(dependency_id)
+        .expect("should have parent module");
+      let exports_type = get_exports_type(
+        mg,
+        mg_cache,
+        exports_info_artifact,
+        dependency_id,
+        parent_module,
+      );
+
+      // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+      // because it's more common in cjs and json
+      if matches!(
+        exports_type,
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+      ) {
+        namespace_object_as_context = true;
+      }
+
+      if let Some(id) = names.first()
+        && id == "default"
       {
-        let Some(strict) = mg
-          .get_parent_module(dependency_id)
-          .and_then(|id| mg.module_by_identifier(id))
-          .map(|m| m.build_meta().strict_esm_module)
-        else {
-          return create_exports_object_referenced();
-        };
-        let Some(imported_module) = mg
-          .module_identifier_by_dependency_id(dependency_id)
-          .and_then(|id| mg.module_by_identifier(id))
-        else {
-          return create_exports_object_referenced();
-        };
-        let exports_type =
-          imported_module.get_exports_type(mg, mg_cache, exports_info_artifact, strict);
-        if matches!(
-          exports_type,
-          ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-        ) {
-          return create_exports_object_referenced();
+        match exports_type {
+          ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+            if names.len() == 1 {
+              return create_exports_object_referenced();
+            }
+            names = &names[1..];
+          }
+          ExportsType::Dynamic => {
+            return create_exports_object_referenced();
+          }
+          _ => {}
         }
       }
+
+      if namespace_object_as_context && *is_call {
+        if names.len() == 1 {
+          return create_exports_object_referenced();
+        }
+        // remove last one
+        names = &names[..names.len().saturating_sub(1)];
+      }
       refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-        referenced_export.clone(),
+        names.to_vec(),
         false,
         false,
       )));
@@ -67,8 +94,8 @@ pub struct ImportDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   pub range: DependencyRange,
-  #[cacheable(with=AsOption<AsVec<AsVec<AsPreset>>>)]
-  referenced_exports: Option<Vec<Vec<Atom>>>,
+  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
+  referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   attributes: Option<ImportAttributes>,
   phase: ImportPhase,
   pub comments: Vec<(bool, String)>,
@@ -81,7 +108,7 @@ impl ImportDependency {
   pub fn new(
     request: Atom,
     range: DependencyRange,
-    referenced_exports: Option<Vec<Vec<Atom>>>,
+    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
     attributes: Option<ImportAttributes>,
     phase: ImportPhase,
     optional: bool,
@@ -93,7 +120,7 @@ impl ImportDependency {
       request,
       range,
       id: DependencyId::new(),
-      referenced_exports,
+      referenced_specifiers,
       attributes,
       phase,
       resource_identifier,
@@ -103,8 +130,8 @@ impl ImportDependency {
     }
   }
 
-  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<Atom>>) {
-    self.referenced_exports = Some(referenced_exports);
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.referenced_specifiers = Some(referenced_specifiers);
   }
 }
 
@@ -147,7 +174,7 @@ impl Dependency for ImportDependency {
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     create_import_dependency_referenced_exports(
       &self.id,
-      &self.referenced_exports,
+      &self.referenced_specifiers,
       module_graph,
       module_graph_cache,
       exports_info_artifact,

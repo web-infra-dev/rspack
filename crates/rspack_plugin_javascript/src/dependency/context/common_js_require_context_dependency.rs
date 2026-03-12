@@ -3,8 +3,9 @@ use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier,
+  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced,
 };
 use rspack_error::Diagnostic;
 
@@ -48,8 +49,8 @@ impl CommonJsRequireContextDependency {
     }
   }
 
-  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<swc_core::atoms::Atom>>) {
-    self.options.referenced_exports = Some(referenced_exports);
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.options.referenced_specifiers = Some(referenced_specifiers);
     self.resource_identifier =
       create_resource_identifier_for_context_dependency(None, &self.options);
   }
@@ -96,12 +97,12 @@ impl Dependency for CommonJsRequireContextDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_exports) = &self.options.referenced_exports {
-      return referenced_exports
+    if let Some(referenced_specifiers) = &self.options.referenced_specifiers {
+      return referenced_specifiers
         .iter()
-        .map(|referenced_export| {
+        .map(|referenced_specifier| {
           ExtendedReferencedExport::Export(ReferencedExport::new(
-            referenced_export.clone(),
+            referenced_specifier.names.clone(),
             false,
             false,
           ))
