@@ -288,40 +288,11 @@ export class RspackOptionsApply {
       options.output.enabledLibraryTypes &&
       options.output.enabledLibraryTypes.length > 0
     ) {
-      let modernModuleCount = 0;
       for (const type of options.output.enabledLibraryTypes) {
         if (type === 'modern-module') {
-          modernModuleCount++;
+          enableLibSplitChunks = true;
         }
-      }
-
-      if (options.output.library?.preserveModules && modernModuleCount === 0) {
-        throw new Error(
-          'preserveModules only works for `modern-module` library type',
-        );
-      }
-
-      if (modernModuleCount > 0) {
-        // ESM format has impact on chunkLoading and chunkFormat, which is not compatible with
-        // other library types
-        if (modernModuleCount !== options.output.enabledLibraryTypes.length) {
-          throw new Error(
-            '`modern-module` cannot used together with other library types',
-          );
-        }
-        enableLibSplitChunks = true;
-      }
-
-      for (const type of options.output.enabledLibraryTypes) {
-        new EnableLibraryPlugin(
-          type,
-          type === 'modern-module'
-            ? {
-                preserveModules: options.output.library?.preserveModules,
-                splitChunks: options.optimization.splitChunks,
-              }
-            : undefined,
-        ).apply(compiler);
+        new EnableLibraryPlugin(type).apply(compiler);
       }
     }
 
