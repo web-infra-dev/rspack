@@ -113,6 +113,8 @@ jobs:
       - name: Run rspack-ecosystem-benchmark
         timeout-minutes: 40
         id: run-benchmark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RSPACK_DIR=$(pwd)
           git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
