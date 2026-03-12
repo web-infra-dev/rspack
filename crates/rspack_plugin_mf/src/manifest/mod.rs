@@ -52,7 +52,7 @@ impl ModuleFederationManifestPlugin {
   }
 }
 
-fn rsc_module_type_to_string(module_type: &RscModuleType) -> String {
+fn rsc_module_type_to_string(module_type: RscModuleType) -> String {
   match module_type {
     RscModuleType::Client => "client".to_string(),
     RscModuleType::ServerEntry => "server-entry".to_string(),
@@ -60,12 +60,11 @@ fn rsc_module_type_to_string(module_type: &RscModuleType) -> String {
   }
 }
 
-fn rsc_module_type_priority(module_type: &str) -> u8 {
+fn rsc_module_type_priority(module_type: RscModuleType) -> u8 {
   match module_type {
-    "client" => 3,
-    "server-entry" => 2,
-    "server" => 1,
-    _ => 0,
+    RscModuleType::Client => 3,
+    RscModuleType::ServerEntry => 2,
+    RscModuleType::Server => 1,
   }
 }
 
@@ -100,103 +99,76 @@ fn resolve_manifest_shared_option<'a>(
   (concrete_share_key.to_string(), None)
 }
 
-fn collect_rsc_candidates_for_module(
+fn build_rsc_reference_meta_from_modules(
   compilation: &Compilation,
-  module_identifier: &ModuleIdentifier,
-  candidates: &mut Vec<RscReferenceMeta>,
-) {
+  lookup: String,
+  module_identifiers: impl IntoIterator<Item = ModuleIdentifier>,
+) -> Option<RscReferenceMeta> {
   let module_graph = compilation.get_module_graph();
-  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-    return;
-  };
+  let mut module_type = None::<RscModuleType>;
+  let mut resource = None::<String>;
+  let mut fallback_resource = None::<String>;
+  let mut best_priority = 0;
+  let mut client_references: HashSet<String> = HashSet::default();
+  let mut server_actions: HashMap<String, String> = HashMap::default();
+  let mut found_rsc = false;
 
-  let mut push_module = |current_identifier: &ModuleIdentifier| {
+  let mut visit_module = |current_identifier: &ModuleIdentifier| {
     let Some(current_module) = module_graph.module_by_identifier(current_identifier) else {
       return;
     };
     let Some(rsc) = current_module.build_info().rsc.as_ref() else {
       return;
     };
-    let mut client_references = rsc
-      .client_refs
-      .iter()
-      .filter_map(|item| item.as_str())
-      .map(ToString::to_string)
-      .collect::<Vec<_>>();
-    client_references.sort();
-    client_references.dedup();
 
-    let mut server_actions = rsc
-      .action_ids
-      .iter()
-      .map(|(id, name)| RscActionRef {
-        id: id.to_string(),
-        name: name.to_string(),
-      })
-      .collect::<Vec<_>>();
-    server_actions.sort_by(|a, b| a.id.cmp(&b.id));
-    server_actions.dedup_by(|a, b| a.id == b.id && a.name == b.name);
-
-    candidates.push(RscReferenceMeta {
-      lookup: String::new(),
-      moduleType: Some(rsc_module_type_to_string(&rsc.module_type)),
-      resource: module_source_path(current_module, compilation),
-      clientReferences: client_references,
-      serverActions: server_actions,
-    });
-  };
-
-  push_module(module_identifier);
-  if let Some(concatenated_module) = module.as_concatenated_module() {
-    for inner in concatenated_module.get_modules() {
-      push_module(&inner.id);
+    found_rsc = true;
+    let current_resource = module_source_path(current_module, compilation);
+    if fallback_resource.is_none() {
+      fallback_resource = current_resource.clone();
     }
-  }
-}
 
-fn build_rsc_reference_meta_from_modules(
-  compilation: &Compilation,
-  lookup: String,
-  module_identifiers: impl IntoIterator<Item = ModuleIdentifier>,
-) -> Option<RscReferenceMeta> {
-  let mut candidates: Vec<RscReferenceMeta> = Vec::new();
-  for module_identifier in module_identifiers {
-    collect_rsc_candidates_for_module(compilation, &module_identifier, &mut candidates);
-  }
-  if candidates.is_empty() {
-    return None;
-  }
-
-  let mut module_type = None;
-  let mut resource = None;
-  let mut best_priority = 0;
-  let mut resources: Vec<String> = Vec::new();
-  let mut client_references: HashSet<String> = HashSet::default();
-  let mut server_actions: HashMap<String, String> = HashMap::default();
-
-  for candidate in candidates {
-    if let Some(current_module_type) = candidate.moduleType {
-      let current_priority = rsc_module_type_priority(&current_module_type);
-      if current_priority > best_priority {
-        best_priority = current_priority;
-        module_type = Some(current_module_type);
+    let current_priority = rsc_module_type_priority(rsc.module_type);
+    if current_priority > best_priority {
+      best_priority = current_priority;
+      module_type = Some(rsc.module_type);
+      resource = current_resource.clone();
+    } else if current_priority == best_priority
+      && let Some(current_resource) = current_resource.as_ref()
+    {
+      match resource.as_ref() {
+        Some(existing_resource) if existing_resource <= current_resource => {}
+        _ => resource = Some(current_resource.clone()),
       }
     }
-    if let Some(current_resource) = candidate.resource {
-      resources.push(current_resource);
+
+    for client_reference in rsc.client_refs.iter().filter_map(|item| item.as_str()) {
+      client_references.insert(client_reference.to_string());
     }
-    for client_reference in candidate.clientReferences {
-      client_references.insert(client_reference);
+    for (id, name) in &rsc.action_ids {
+      server_actions
+        .entry(id.to_string())
+        .or_insert(name.to_string());
     }
-    for action in candidate.serverActions {
-      server_actions.entry(action.id).or_insert(action.name);
+  };
+
+  for module_identifier in module_identifiers {
+    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      continue;
+    };
+
+    visit_module(&module_identifier);
+    if let Some(concatenated_module) = module.as_concatenated_module() {
+      for inner in concatenated_module.get_modules() {
+        visit_module(&inner.id);
+      }
     }
   }
 
-  if !resources.is_empty() {
-    resources.sort();
-    resources.dedup();
-    resource = resources.first().cloned();
+  if !found_rsc {
+    return None;
+  }
+  if resource.is_none() {
+    resource = fallback_resource;
   }
 
   let mut sorted_client_references = client_references.into_iter().collect::<Vec<_>>();
@@ -209,7 +181,7 @@ fn build_rsc_reference_meta_from_modules(
 
   Some(RscReferenceMeta {
     lookup,
-    moduleType: module_type,
+    moduleType: module_type.map(rsc_module_type_to_string),
     resource,
     clientReferences: sorted_client_references,
     serverActions: sorted_server_actions,
@@ -775,7 +747,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           trimmed.to_string()
         }
       };
-      let (entry, federation_container_name, lookup_remote_name) =
+      let (entry, federation_container_name) =
         if let Some(target) = provided_remote_alias_map.get(&alias) {
           let remote_container_name = if target.name.is_empty() {
             alias.clone()
@@ -785,10 +757,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           (
             target.entry.clone().filter(|entry| !entry.is_empty()),
             remote_container_name,
-            alias.clone(),
           )
         } else {
-          (None, alias.clone(), alias.clone())
+          (None, alias.clone())
         };
       let used_in =
         collect_usage_files_for_module(compilation, module_graph, &module_id, &entry_point_names)
@@ -813,7 +784,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       let rsc = build_rsc_reference_meta_from_modules(
         compilation,
-        compose_remote_lookup(&lookup_remote_name, &module_name),
+        compose_remote_lookup(&federation_container_name, &module_name),
         remote_usage_module_ids.into_iter(),
       );
       remote_list.push(StatsRemote {
