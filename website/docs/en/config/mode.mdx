@@ -5,12 +5,14 @@ import PropertyType from '@components/PropertyType';
 
 # Mode
 
-<PropertyType
-  type="'production' | 'development' | 'none'"
-  defaultValueList={[{ defaultValue: "'production'" }]}
-/>
+<PropertyType type="'production' | 'development' | 'none'" />
 
 The `mode` configuration is used to set the build mode of Rspack to enable the default optimization strategy.
+
+If `mode` is not specified:
+
+- When using `@rspack/cli`, `rspack dev` and `rspack serve` defaults to `'development'`, and `rspack build` defaults to `'production'`.
+- When using JavaScript API, the `mode` option defaults to `'production'`.
 
 ## Usage
 
