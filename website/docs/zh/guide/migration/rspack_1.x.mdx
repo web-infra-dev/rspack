@@ -652,3 +652,17 @@ class MyPlugin {
 
 - `builtModules: number`：已构建的模块数量
 - `moduleIdentifier?: string`：当前构建的模块标识符（仅在 `build modules` 更新阶段提供）
+
+### 修改 `resolve.roots` 的默认值
+
+resolve 的 [roots](/zh/config/resolve#resolveroots) 配置默认值已从 `[ context ]` 变更为 `[]`。
+
+如果你依赖服务器相对 URL 解析，且期望路径相对于 `roots` 目录进行解析，可显式恢复原有行为：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    roots: [context], // rspack 配置文件的 context 路径
+  },
+};
+```

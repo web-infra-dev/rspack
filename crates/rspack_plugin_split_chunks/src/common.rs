@@ -6,7 +6,7 @@ use std::{
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, UkeySet};
+use rspack_collections::IdentifierMap;
 use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
@@ -232,4 +232,4 @@ pub struct FallbackCacheGroup {
 }
 
 pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
-pub(crate) type ModuleChunks = IdentifierMap<UkeySet<ChunkUkey>>;
+pub(crate) type ModuleChunks = IdentifierMap<FxHashSet<ChunkUkey>>;

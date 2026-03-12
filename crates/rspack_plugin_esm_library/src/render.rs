@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
+use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
   Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
@@ -18,7 +18,7 @@ use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
-  fx_hash::{FxHashMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 
 use crate::{
@@ -53,7 +53,7 @@ impl EsmLibraryPlugin {
       .chunk_group_by_ukey
       .expect_get(group);
     let mut stack = vec![group];
-    let mut visited = UkeySet::default();
+    let mut visited = FxHashSet::default();
 
     while let Some(group) = stack.pop() {
       if !visited.insert(group.ukey) {
@@ -187,7 +187,7 @@ impl EsmLibraryPlugin {
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
-    let mut imported_chunks = UkeyIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
+    let mut imported_chunks = FxIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
     let mut runtime_requirements =
       *ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 

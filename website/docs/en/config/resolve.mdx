@@ -573,7 +573,22 @@ A list of resolve restrictions to restrict the paths that a request can be resol
 - **Type:** `string[]`
 - **Default:** `[]`
 
-A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
+A list of directories where server-relative URLs (beginning with '/') are resolved. On systems other than Windows, these requests are initially resolved as an absolute path.
+
+For example, importing `'/static/app.js'` and expecting it to resolve relative to the project root:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  resolve: {
+    roots: [__dirname],
+  },
+};
+```
 
 ## resolve.symlinks
 

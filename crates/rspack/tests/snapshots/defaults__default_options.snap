@@ -160,9 +160,7 @@ CompilerOptions {
             [],
         ),
         roots: Some(
-            [
-                "<cwd>",
-            ],
+            [],
         ),
         restrictions: None,
         imports_fields: Some(
