@@ -1,0 +1,17 @@
+```mjs title=main.mjs
+// ./index.js
+it('should handle dynamic import of side-effect-only module', async () => {
+	globalThis.__sideEffectExecuted = false;
+	await import("./side-effect.mjs");
+	expect(globalThis.__sideEffectExecuted).toBe(true);
+});
+
+
+```
+
+```mjs title=side-effect.mjs
+// ./side-effect.js
+globalThis.__sideEffectExecuted = true;
+
+
+```

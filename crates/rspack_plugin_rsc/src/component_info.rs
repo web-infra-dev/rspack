@@ -1,8 +1,8 @@
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, DependencyId, Module, ModuleIdentifier, ModuleType, PrefetchExportsInfoMode,
-  RscMeta, RscModuleType, RuntimeSpec,
+  Compilation, DependencyId, Module, ModuleType, PrefetchExportsInfoMode, RscMeta, RscModuleType,
+  RuntimeSpec,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -34,7 +34,7 @@ pub struct ComponentInfo {
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
-pub fn collect_component_info_from_entry_denendency(
+pub fn collect_component_info_from_entry_dependency(
   compilation: &Compilation,
   runtime: &RuntimeSpec,
   dependency_id: &DependencyId,
@@ -76,7 +76,7 @@ pub fn collect_component_info_from_server_entry_modules(
   runtime: &RuntimeSpec,
 ) -> ComponentInfo {
   let mut component_info: ComponentInfo = Default::default();
-  let mut visited: FxHashSet<ModuleIdentifier> = FxHashSet::default();
+  let mut visited: IdentifierSet = IdentifierSet::default();
   let mut server_entries: Vec<String> = Default::default();
   let module_graph = compilation.get_module_graph();
 

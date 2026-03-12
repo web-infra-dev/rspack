@@ -1,21 +1,17 @@
-use std::{
-  cmp::Ordering,
-  fmt::Debug,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{cmp::Ordering, fmt::Debug, hash::Hash};
 
-use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierSet, UkeyIndexMap, UkeyIndexSet, UkeySet};
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey,
   Compilation, EntryOptions, Filename, RenderManifestEntry, RuntimeSpec, SourceType,
-  chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index,
+  chunk_graph_chunk::{ChunkId, IndexChunkIdMap},
+  compare_chunk_group, sort_group_by_index,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -892,8 +888,7 @@ impl Chunk {
     include_direct_children: bool,
     compilation: &Compilation,
     filter_fn: &F,
-  ) -> HashMap<ChunkGroupOrderKey, IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>>
-  {
+  ) -> HashMap<ChunkGroupOrderKey, IndexChunkIdMap<Vec<ChunkId>>> {
     fn add_child_ids_by_orders_to_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
       chunk_ukey: &ChunkUkey,
       order: &ChunkGroupOrderKey,
@@ -948,10 +943,7 @@ impl Chunk {
       })
       .collect::<Vec<_>>();
 
-    let mut result: HashMap<
-      ChunkGroupOrderKey,
-      IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
-    > = HashMap::default();
+    let mut result: HashMap<ChunkGroupOrderKey, IndexChunkIdMap<Vec<ChunkId>>> = HashMap::default();
     for (order, chunk_ukey, child_chunk_ids) in add_child_ids_results {
       result
         .entry(order)
