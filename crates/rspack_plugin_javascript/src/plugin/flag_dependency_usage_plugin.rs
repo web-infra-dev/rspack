@@ -68,43 +68,41 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         mgm.module_identifier,
       );
     }
+    let mut q = Queue::new();
+    let mg = &mut *module_graph;
+
+    let mut global_runtime: Option<RuntimeSpec> = if self.global {
+      None
+    } else {
+      let mut global_runtime = RuntimeSpec::default();
+      for block in module_graph.blocks().values() {
+        if let Some(GroupOptions::Entrypoint(options)) = block.get_group_options()
+          && let Some(runtime) = RuntimeSpec::from_entry_options(options)
+        {
+          global_runtime.extend(&runtime);
+        }
+      }
+      Some(global_runtime)
+    };
     // SAFETY: we can make sure that entries will not be used other place at the same time,
     // this take is aiming to avoid use self ref and mut ref at the same time;
     let entries = &self.compilation.entries;
-    let mut q = Queue::new();
-    let mut global_runtime_parts = if self.global {
-      None
-    } else {
-      let mut runtimes = Vec::with_capacity(module_graph.blocks().len() + entries.len());
-      for block in module_graph.blocks().values() {
-        let Some(GroupOptions::Entrypoint(options)) = block.get_group_options() else {
-          continue;
-        };
-        if let Some(runtime) = RuntimeSpec::from_entry_options(options) {
-          runtimes.push(runtime);
-        }
-      }
-      Some(runtimes)
-    };
     for (entry_name, entry) in entries.iter() {
       let runtime = if self.global {
         None
       } else {
         Some(get_entry_runtime(entry_name, &entry.options, entries))
       };
+      if let Some(runtime) = runtime.as_ref() {
+        global_runtime.get_or_insert_default().extend(runtime);
+      }
       for &dep in entry.dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }
       for &dep in entry.include_dependencies.iter() {
         self.process_entry_dependency(dep, runtime.clone(), &mut q);
       }
-      if let Some(global_runtime_parts) = global_runtime_parts.as_mut()
-        && let Some(runtime) = runtime
-      {
-        global_runtime_parts.push(runtime);
-      }
     }
-    let global_runtime = global_runtime_parts.map(RuntimeSpec::from_owned_runtimes);
     for dep in self.compilation.global_entry.dependencies.clone() {
       self.process_entry_dependency(dep, global_runtime.clone(), &mut q);
     }
