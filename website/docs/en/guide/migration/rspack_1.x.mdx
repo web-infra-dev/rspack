@@ -433,6 +433,18 @@ export default {
 
 The `output.charset` configuration has been removed. This option was used to add a `charset` attribute to generated `<script>` tags, but modern browsers default to UTF-8 encoding, so this configuration is no longer needed.
 
+### Removed optimization.removeAvailableModules
+
+The `optimization.removeAvailableModules` configuration has been removed. This option had no actual effect in Rspack and can be safely removed from your configuration:
+
+```diff title="rspack.config.mjs"
+export default {
+  optimization: {
+-   removeAvailableModules: true,
+  },
+};
+```
+
 ## Stats changes
 
 ### Changed default parameters of stats.toJson()
