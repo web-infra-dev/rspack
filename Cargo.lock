@@ -4649,6 +4649,8 @@ dependencies = [
  "rspack_hook",
  "rspack_plugin_esm_library",
  "rspack_plugin_javascript",
+ "rspack_plugin_remove_duplicate_modules",
+ "rspack_plugin_split_chunks",
  "rspack_util",
  "rustc-hash",
  "serde_json",
