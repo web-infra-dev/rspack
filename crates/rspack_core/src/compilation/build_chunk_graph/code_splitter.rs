@@ -896,13 +896,14 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         self.process_outdated_chunk_group_info(compilation);
       }
 
-      if self.queue.is_empty() && !self.queue_delayed.is_empty() {
-        if !self.try_parallel_process_delayed_queue(compilation) {
-          // Fallback: serial processing for ProcessEntryBlock or single-item queue
-          let queue_delay = std::mem::take(&mut self.queue_delayed);
-          self.queue = queue_delay;
-          self.queue.reverse();
-        }
+      if self.queue.is_empty()
+        && !self.queue_delayed.is_empty()
+        && !self.try_parallel_process_delayed_queue(compilation)
+      {
+        // Fallback: serial processing for ProcessEntryBlock or single-item queue
+        let queue_delay = std::mem::take(&mut self.queue_delayed);
+        self.queue = queue_delay;
+        self.queue.reverse();
       }
     }
     logger.time_end(start);
@@ -2367,15 +2368,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
                 .get(&Some(runtime))
                 .expect("should have pre-filled block modules");
 
+              let ctx = TraversalContext {
+                ordinal_by_module,
+                block_modules_map,
+                prepared_blocks_map,
+                block_to_chunk_group,
+              };
               parallel_traverse_chunk_group(
                 &pb,
                 &min_available_modules,
                 chunk_loading,
                 async_chunks,
-                ordinal_by_module,
-                block_modules_map,
-                prepared_blocks_map,
-                block_to_chunk_group,
+                &ctx,
                 &existing_modules,
               )
             },
@@ -2609,15 +2613,21 @@ enum LocalAction {
   LeaveModule(ModuleIdentifier),
 }
 
+/// Shared immutable context for parallel chunk group traversal.
+struct TraversalContext<'a> {
+  ordinal_by_module: &'a IdentifierMap<u64>,
+  block_modules_map: &'a BlockConnectionMap,
+  prepared_blocks_map:
+    &'a HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
+  block_to_chunk_group: &'a HashMap<DependenciesBlockIdentifier, CgiUkey>,
+}
+
 fn parallel_traverse_chunk_group(
   initial_block: &ProcessBlock,
   min_available_modules: &BigUint,
   chunk_loading: bool,
   async_chunks: bool,
-  ordinal_by_module: &IdentifierMap<u64>,
-  block_modules_map: &BlockConnectionMap,
-  prepared_blocks_map: &HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
-  block_to_chunk_group: &HashMap<DependenciesBlockIdentifier, CgiUkey>,
+  ctx: &TraversalContext,
   existing_chunk_modules: &IdentifierSet,
 ) -> ChunkTraversalResult {
   let mut result = ChunkTraversalResult {
@@ -2639,7 +2649,7 @@ fn parallel_traverse_chunk_group(
       LocalAction::ProcessBlock { block, module } => {
         result.stat_processed_blocks += 1;
 
-        if let Some(block_modules) = block_modules_map.get(&block) {
+        if let Some(block_modules) = ctx.block_modules_map.get(&block) {
           for (dep_module, active_state, connections) in block_modules.iter().rev() {
             if local_modules_in_chunk.contains(dep_module) {
               continue;
@@ -2654,7 +2664,7 @@ fn parallel_traverse_chunk_group(
               }
             }
 
-            let ordinal = ordinal_by_module.get(dep_module).unwrap_or_else(|| {
+            let ordinal = ctx.ordinal_by_module.get(dep_module).unwrap_or_else(|| {
               panic!("expected a module ordinal for identifier '{dep_module}', but none was found.")
             });
 
@@ -2674,11 +2684,11 @@ fn parallel_traverse_chunk_group(
           }
         }
 
-        if let Some(blocks) = prepared_blocks_map.get(&block) {
+        if let Some(blocks) = ctx.prepared_blocks_map.get(&block) {
           for &async_block in blocks {
             let block_dep_id = DependenciesBlockIdentifier::AsyncDependenciesBlock(async_block);
 
-            if block_to_chunk_group.contains_key(&block_dep_id) {
+            if ctx.block_to_chunk_group.contains_key(&block_dep_id) {
               // Block already has a chunk group from a previous iteration
               result.discovered_async_blocks.push((async_block, module));
             } else if !async_chunks || !chunk_loading {
@@ -2706,7 +2716,7 @@ fn parallel_traverse_chunk_group(
           continue;
         }
 
-        let ordinal = ordinal_by_module.get(&module).unwrap_or_else(|| {
+        let ordinal = ctx.ordinal_by_module.get(&module).unwrap_or_else(|| {
           panic!("expected a module ordinal for identifier '{module}', but none was found.")
         });
 
