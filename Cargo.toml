@@ -43,6 +43,7 @@ dyn-clone           = { version = "1.0.20", default-features = false }
 either              = { version = "1.15.0", default-features = false }
 enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.0.1", default-features = false }
+fixedbitset         = { version = "0.5.7", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
 futures             = { version = "0.3.32", default-features = false, features = ["std"] }
 glob                = { version = "0.3.3", default-features = false }

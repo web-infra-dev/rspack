@@ -3862,6 +3862,7 @@ dependencies = [
  "derive_more",
  "dyn-clone",
  "either",
+ "fixedbitset",
  "futures",
  "hashlink",
  "heck",
