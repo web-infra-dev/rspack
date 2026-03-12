@@ -1,5 +1,6 @@
 use std::io::ErrorKind;
 
+use cow_utils::CowUtils;
 use rspack_fs::Error as FSError;
 
 /// Rspack storage errors.
@@ -16,9 +17,9 @@ pub enum Error {
 impl std::fmt::Display for Error {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
-      Error::FS(e) => write!(f, "{}", e),
-      Error::InvalidFormat(s) => write!(f, "{}", s),
-      Error::CorruptedData(s) => write!(f, "{}", s),
+      Error::FS(e) => write!(f, "{e}"),
+      Error::InvalidFormat(s) => write!(f, "{s}"),
+      Error::CorruptedData(s) => write!(f, "{s}"),
     }
   }
 }
@@ -45,7 +46,8 @@ impl Error {
         if matches!(e.kind(), ErrorKind::NotFound) {
           return true;
         }
-        let error_content = e.to_string().to_ascii_lowercase();
+        let error_string = e.to_string();
+        let error_content = error_string.cow_to_ascii_lowercase();
         error_content.contains("no such file") || error_content.contains("file not exists")
       }
       _ => false,

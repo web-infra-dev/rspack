@@ -53,8 +53,7 @@ impl CommitLock {
           Some("remove") => removed_files.push(line.to_string()),
           None => {
             return Err(Error::InvalidFormat(format!(
-              "Unexpected line in '{}' before section header: '{}'",
-              COMMIT_LOCK_FILE, line
+              "Unexpected line in '{COMMIT_LOCK_FILE}' before section header: '{line}'"
             )));
           }
           _ => unreachable!(),

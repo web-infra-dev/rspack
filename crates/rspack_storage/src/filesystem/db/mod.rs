@@ -15,6 +15,9 @@ use self::{bucket::Bucket, task_queue::TaskQueue, transaction::Transaction};
 use super::ScopeFileSystem;
 use crate::{Error, Result};
 
+/// Type alias for bucket changes: bucket_name -> Vec<(key, optional_value)>
+type BucketChanges = HashMap<String, Vec<(Vec<u8>, Option<Vec<u8>>)>>;
+
 /// Database providing key-value storage with hot/cold pack separation.
 ///
 /// The DB organizes data into buckets, where each bucket contains multiple pack files
@@ -49,10 +52,10 @@ impl DB {
     // Filter to keep only directories (buckets)
     let mut bucket_names = Vec::new();
     for entry in entries {
-      if let Ok(metadata) = self.fs.stat(&entry).await {
-        if metadata.is_directory {
-          bucket_names.push(entry);
-        }
+      if let Ok(metadata) = self.fs.stat(&entry).await
+        && metadata.is_directory
+      {
+        bucket_names.push(entry);
       }
     }
 
@@ -86,10 +89,7 @@ impl DB {
   /// - `None`: Remove the key
   ///
   /// Returns a channel receiver that will report the save result asynchronously.
-  pub fn save(
-    &self,
-    changes: HashMap<String, Vec<(Vec<u8>, Option<Vec<u8>>)>>,
-  ) -> Result<Receiver<Result<()>>> {
+  pub fn save(&self, changes: BucketChanges) -> Result<Receiver<Result<()>>> {
     let (tx, rx) = channel();
 
     let fs = self.fs.clone();
@@ -149,7 +149,7 @@ impl DB {
           .await
       };
 
-      let _ = tx.send(task_fn().await.map_err(Error::from));
+      let _ = tx.send(task_fn().await);
     });
 
     Ok(rx)
@@ -183,8 +183,7 @@ mod test {
     assert!(db.bucket_names().await?.is_empty());
     assert!(db.load(name_1).await?.is_empty());
 
-    let data: Vec<_> = (0..9)
-      .into_iter()
+    let bucket_data: Vec<_> = (0..9)
       .map(|num| {
         (
           format!("key{num}").as_bytes().to_vec(),
@@ -193,11 +192,11 @@ mod test {
       })
       .collect();
 
-    let mut datas = HashMap::default();
-    datas.insert(String::from(name_1), data.clone());
-    datas.insert(String::from(name_2), data);
+    let mut data = HashMap::default();
+    data.insert(String::from(name_1), bucket_data.clone());
+    data.insert(String::from(name_2), bucket_data);
     // save data and wait finish
-    let _ = db.save(datas);
+    let _ = db.save(data);
     db.flush().await;
 
     let mut data1 = db.load(name_1).await?;

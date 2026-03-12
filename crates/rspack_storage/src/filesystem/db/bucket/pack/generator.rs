@@ -72,7 +72,6 @@ mod test {
     let mut generator = PackGenerator::new(25);
     generator.extend(
       (0..9)
-        .into_iter()
         .map(|num| {
           (
             format!("key{num}").as_bytes().to_vec(),

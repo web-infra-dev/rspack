@@ -18,7 +18,7 @@ impl std::str::FromStr for PackId {
   fn from_str(s: &str) -> Result<Self> {
     let inner = s
       .parse()
-      .map_err(|_| Error::InvalidFormat(format!("Failed to parse PackId from '{}'", s)))?;
+      .map_err(|_| Error::InvalidFormat(format!("Failed to parse PackId from '{s}'")))?;
     Ok(Self(inner))
   }
 }

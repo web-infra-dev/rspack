@@ -151,8 +151,8 @@ impl ScopeFileSystem {
 
   /// Lists all direct children in the workspace directory
   pub async fn list_child(&self) -> Result<Vec<String>> {
-    let childs = self.fs.read_dir(&self.workspace).await?;
-    Ok(childs)
+    let children = self.fs.read_dir(&self.workspace).await?;
+    Ok(children)
   }
 }
 

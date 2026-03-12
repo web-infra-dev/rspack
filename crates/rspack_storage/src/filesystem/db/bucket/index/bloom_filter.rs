@@ -17,7 +17,7 @@ impl std::fmt::Display for BloomFilter {
       .map(|b| b.to_string())
       .collect::<Vec<_>>()
       .join(" ");
-    write!(f, "{}", s)
+    write!(f, "{s}")
   }
 }
 
@@ -40,8 +40,7 @@ impl std::str::FromStr for BloomFilter {
     for (i, part) in parts.iter().enumerate() {
       let num = part.parse::<u64>().map_err(|e| {
         Error::InvalidFormat(format!(
-          "Failed to parse bloom filter segment[{}] '{}': {}",
-          i, part, e
+          "Failed to parse bloom filter segment[{i}] '{part}': {e}"
         ))
       })?;
       bits[i] = num;

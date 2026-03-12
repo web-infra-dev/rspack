@@ -45,15 +45,14 @@ impl Pack {
       let parts: Vec<_> = header.split(' ').collect();
       if parts.len() != 2 {
         return Err(Error::InvalidFormat(format!(
-          "Invalid pack item header in '{}': expected 'key_len value_len', got '{}'",
-          pack_name, header
+          "Invalid pack item header in '{pack_name}': expected 'key_len value_len', got '{header}'"
         )));
       }
 
       let key_len = parts[0].parse::<usize>().map_err(|e| {
         Error::InvalidFormat(format!(
-          "Failed to parse key length in '{}': invalid value '{}' ({})",
-          pack_name, parts[0], e
+          "Failed to parse key length in '{pack_name}': invalid value '{}' ({e})",
+          parts[0]
         ))
       })?;
       let key = reader.read(key_len).await?;
@@ -61,8 +60,8 @@ impl Pack {
 
       let value_len = parts[1].parse::<usize>().map_err(|e| {
         Error::InvalidFormat(format!(
-          "Failed to parse value length in '{}': invalid value '{}' ({})",
-          pack_name, parts[1], e
+          "Failed to parse value length in '{pack_name}': invalid value '{}' ({e})",
+          parts[1]
         ))
       })?;
       let value = reader.read(value_len).await?;

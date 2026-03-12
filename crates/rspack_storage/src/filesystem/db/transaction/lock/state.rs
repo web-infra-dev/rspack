@@ -36,10 +36,7 @@ impl StateLock {
 
     // Read PID (4 bytes, big-endian)
     let pid_bytes = reader.read(4).await.map_err(|e| {
-      Error::InvalidFormat(format!(
-        "Failed to read PID from '{}': {}",
-        STATE_LOCK_FILE, e
-      ))
+      Error::InvalidFormat(format!("Failed to read PID from '{STATE_LOCK_FILE}': {e}"))
     })?;
 
     if pid_bytes.len() != 4 {
@@ -55,15 +52,13 @@ impl StateLock {
     // Read process name (remaining bytes as UTF-8 string)
     let name_bytes = reader.read_to_end().await.map_err(|e| {
       Error::InvalidFormat(format!(
-        "Failed to read process name from '{}': {}",
-        STATE_LOCK_FILE, e
+        "Failed to read process name from '{STATE_LOCK_FILE}': {e}"
       ))
     })?;
 
     let process_name = String::from_utf8(name_bytes).map_err(|e| {
       Error::InvalidFormat(format!(
-        "Invalid UTF-8 in process name in '{}': {}",
-        STATE_LOCK_FILE, e
+        "Invalid UTF-8 in process name in '{STATE_LOCK_FILE}': {e}"
       ))
     })?;
 

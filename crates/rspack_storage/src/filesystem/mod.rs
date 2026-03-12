@@ -9,7 +9,10 @@ use tokio::sync::oneshot::Receiver;
 
 pub use self::options::FileSystemOptions;
 use self::{db::DB, scope_fs::ScopeFileSystem};
-use crate::{Key, Result, Storage, Value};
+use crate::{Result, Storage};
+
+/// Type alias for in-memory update changes: key -> optional_value
+type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 
 /// File system-based persistent storage implementation
 ///
@@ -21,7 +24,7 @@ pub struct FileSystemStorage {
   db: DB,
   /// In-memory staged update operations, grouped by scope
   /// Value of Some(value) indicates write, None indicates deletion
-  updates: Mutex<HashMap<String, HashMap<Vec<u8>, Option<Vec<u8>>>>>,
+  updates: Mutex<HashMap<String, BucketChangesMap>>,
 }
 
 impl FileSystemStorage {
@@ -37,7 +40,7 @@ impl FileSystemStorage {
 
 #[async_trait::async_trait]
 impl Storage for FileSystemStorage {
-  async fn load(&self, scope: &'static str) -> Result<Vec<(Key, Value)>> {
+  async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
     let data = self.db.load(scope).await?;
     Ok(data)
   }

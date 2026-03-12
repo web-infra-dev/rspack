@@ -18,23 +18,16 @@ pub use self::{
   memory::MemoryStorage,
 };
 
-/// Storage key type
-pub type Key = Vec<u8>;
-/// Storage value type
-pub type Value = Vec<u8>;
-/// Key-value pair collection
-pub type KVPairs<V = Value> = Vec<(Key, V)>;
-
 /// Persistent storage abstraction interface
 ///
 /// Provides scope-grouped key-value storage with batch operations and async persistence
 #[async_trait::async_trait]
 pub trait Storage: std::fmt::Debug + Sync + Send {
   /// Loads all key-value pairs from the specified scope
-  async fn load(&self, scope: &'static str) -> Result<KVPairs>;
+  async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>>;
 
   /// Sets a key-value pair in the specified scope (staged in memory)
-  fn set(&self, scope: &'static str, key: Key, value: Value);
+  fn set(&self, scope: &'static str, key: Vec<u8>, value: Vec<u8>);
 
   /// Removes a key from the specified scope (staged in memory)
   fn remove(&self, scope: &'static str, key: &[u8]);

@@ -32,7 +32,7 @@ impl std::fmt::Display for PackIdAlloc {
       .chain(std::iter::once(&self.next))
       .map(|item| item.to_string())
       .join(" ");
-    write!(f, "{}", ids)
+    write!(f, "{ids}")
   }
 }
 

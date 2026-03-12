@@ -191,10 +191,8 @@ impl Bucket {
 
     for key in keys {
       // Check hot pack first (most common case)
-      if self.meta.hot_pack_index().contains_key(key) {
-        if self.hot_pack.remove(key) {
-          continue; // Key removed from hot pack, no cold pack needed
-        }
+      if self.meta.hot_pack_index().contains_key(key) && self.hot_pack.remove(key) {
+        continue; // Key removed from hot pack, no cold pack needed
       }
 
       // Search cold packs using bloom filters
@@ -249,7 +247,6 @@ mod test {
     assert!(bucket.load_all().await?.is_empty());
 
     let data = (0..9)
-      .into_iter()
       .map(|num| {
         (
           format!("key{num}").as_bytes().to_vec(),

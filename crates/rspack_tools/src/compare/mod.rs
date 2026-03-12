@@ -61,7 +61,7 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, Arc<dyn St
     // Create storage for this version
     let storage = create_storage(
       StorageOptions::FileSystem {
-        directory: path.clone().into(),
+        directory: path.clone(),
       },
       v.clone(),
       fs.clone(),
