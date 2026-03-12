@@ -56,11 +56,20 @@ export default function () {
     const consumesLoadinginstalledModules = {};
     const initializeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
+    const initializeSharingExternalInitPromises = {};
     const containerShareScope = toRuntimeScope(
       __webpack_require__.initializeExposesData?.shareScope,
     );
-    const initExternalStagesForSharing = (shareScopeName, initScope) => {
-      const shareScopeKeys = toScopeArray(shareScopeName);
+    const initExternalStagesForScope = (
+      shareScopeKey,
+      initScope,
+      shareScopeName,
+    ) => {
+      const existing = initializeSharingExternalInitPromises[shareScopeKey];
+      if (existing) {
+        return existing;
+      }
+
       const promises = [];
       const warn = (msg) => {
         if (typeof console !== 'undefined' && console.warn) {
@@ -101,20 +110,31 @@ export default function () {
         }
       };
 
-      for (const shareScopeKey of shareScopeKeys) {
-        const stages =
-          initializeSharingScopeToInitDataMapping[shareScopeKey] ?? [];
-        for (const stage of stages) {
-          if (typeof stage !== 'object' && stage !== null) {
-            initExternal(stage, shareScopeKey);
-          }
+      const stages =
+        initializeSharingScopeToInitDataMapping[shareScopeKey] ?? [];
+      for (const stage of stages) {
+        if (typeof stage !== 'object' && stage !== null) {
+          initExternal(stage, shareScopeKey);
         }
       }
 
       if (!promises.length) {
-        return true;
+        return (initializeSharingExternalInitPromises[shareScopeKey] = true);
       }
-      return Promise.all(promises).then(() => true);
+
+      const promise = Promise.all(promises).then(
+        () => (initializeSharingExternalInitPromises[shareScopeKey] = true),
+      );
+      initializeSharingExternalInitPromises[shareScopeKey] = promise;
+      return promise;
+    };
+    const initExternalStagesForSharing = (shareScopeName, initScope) => {
+      const shareScopeKeys = toScopeArray(shareScopeName);
+      return Promise.all(
+        shareScopeKeys.map((shareScopeKey) =>
+          initExternalStagesForScope(shareScopeKey, initScope, shareScopeName),
+        ),
+      ).then(() => true);
     };
 
     for (const key in __module_federation_bundler_runtime__) {
