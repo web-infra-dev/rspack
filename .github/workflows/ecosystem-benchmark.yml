@@ -119,7 +119,7 @@ jobs:
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
-          result=$(node bin/cli.js compare --base latest --current current)
+          result=$(node bin/cli.js compare --base main --current current)
           echo "$result"
           echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
 
