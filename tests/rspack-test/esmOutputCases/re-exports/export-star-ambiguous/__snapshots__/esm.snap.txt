@@ -1,0 +1,26 @@
+```mjs title=main.mjs
+// ./b.js
+const shared = 'from-b';
+const onlyB = 'only-b';
+
+// ./index.js
+// Both a.js and b.js export 'shared'. Rspack resolves the ambiguity by
+// picking the first source (a.js) rather than excluding it per strict ES spec.
+// Non-overlapping names should still be re-exported normally.
+
+
+
+it('should handle ambiguous export star without crashing', async () => {
+	const mod = await import(/* webpackIgnore: true */ './main.mjs');
+	expect(mod.onlyA).toBe('only-a');
+	expect(mod.onlyB).toBe('only-b');
+	// Rspack picks the first export * source for ambiguous names
+	expect(mod.shared).toBe('from-a');
+});
+
+var index_onlyA = (/* inlined export .onlyA */"only-a");
+var index_onlyB = (/* inlined export .onlyB */"only-b");
+var index_shared = (/* inlined export .shared */"from-a");
+export { index_onlyA as onlyA, index_onlyB as onlyB, index_shared as shared };
+
+```
