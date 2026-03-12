@@ -17,42 +17,46 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ModuleDependencies {
-  dependency: BoxDependency,
+  dependencies: Vec<BoxDependency>,
   dependency_ids: Vec<DependencyId>,
 }
 
 impl ModuleDependencies {
-  pub fn new(dependency: BoxDependency, dependency_ids: Vec<DependencyId>) -> Self {
-    debug_assert!(dependency_ids.contains(dependency.id()));
+  pub fn new(dependencies: Vec<BoxDependency>) -> Self {
     Self {
-      dependency,
-      dependency_ids,
+      dependency_ids: dependencies
+        .iter()
+        .map(|dependency| *dependency.id())
+        .collect(),
+      dependencies,
     }
   }
 
   pub fn from_dependency(dependency: BoxDependency) -> Self {
-    let dependency_id = *dependency.id();
-    Self::new(dependency, vec![dependency_id])
+    Self::new(vec![dependency])
   }
 
   pub fn primary_dependency(&self) -> &BoxDependency {
-    &self.dependency
+    self
+      .dependencies
+      .first()
+      .expect("should have at least one dependency")
   }
 
   pub fn primary_id(&self) -> DependencyId {
-    *self.dependency.id()
+    *self.primary_dependency().id()
   }
 
   pub fn dependency_ids(&self) -> &[DependencyId] {
     &self.dependency_ids
   }
 
-  pub fn push_dependency_id(&mut self, dependency_id: DependencyId) {
-    self.dependency_ids.push(dependency_id);
+  pub fn dependencies(&self) -> &[BoxDependency] {
+    &self.dependencies
   }
 
-  pub fn into_parts(self) -> (BoxDependency, Vec<DependencyId>) {
-    (self.dependency, self.dependency_ids)
+  pub fn into_parts(self) -> (Vec<BoxDependency>, Vec<DependencyId>) {
+    (self.dependencies, self.dependency_ids)
   }
 }
 
@@ -120,7 +124,7 @@ impl Task<TaskContext> for FactorizeTask {
           .map(|d| d.request().to_string())
       })
       .unwrap_or_default();
-    let (dependency, dependency_ids) = dependencies.into_parts();
+    let (dependencies, _) = dependencies.into_parts();
     // Error and result are not mutually exclusive in webpack module factorization.
     // Rspack puts results that need to be shared in both error and ok in [ModuleFactoryCreateData].
     let mut create_data = ModuleFactoryCreateData {
@@ -130,7 +134,7 @@ impl Task<TaskContext> for FactorizeTask {
       options: options.clone(),
       context,
       request,
-      dependencies: vec![dependency],
+      dependencies,
       issuer,
       issuer_identifier: original_module_identifier,
       issuer_layer,
@@ -165,7 +169,11 @@ impl Task<TaskContext> for FactorizeTask {
 
     let factorize_info = FactorizeInfo::new(
       create_data.diagnostics,
-      dependency_ids.clone(),
+      create_data
+        .dependencies
+        .iter()
+        .map(|dependency| *dependency.id())
+        .collect(),
       create_data.file_dependencies,
       create_data.context_dependencies,
       create_data.missing_dependencies,
@@ -173,14 +181,7 @@ impl Task<TaskContext> for FactorizeTask {
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier,
       factory_result,
-      dependencies: ModuleDependencies::new(
-        create_data
-          .dependencies
-          .into_iter()
-          .next()
-          .expect("should keep the primary dependency"),
-        dependency_ids,
-      ),
+      dependencies: ModuleDependencies::new(create_data.dependencies),
       factorize_info,
       from_unlazy,
     })])
@@ -235,24 +236,8 @@ impl Task<TaskContext> for FactorizeResultTask {
       artifact.affected_dependencies.mark_as_add(dependency_id);
     }
 
-    let module_graph = artifact.get_module_graph_mut();
-    let (mut dependency, dependency_ids) = dependencies.into_parts();
-
-    let dep_factorize_info = if let Some(d) = dependency.as_context_dependency_mut() {
-      d.factorize_info_mut()
-    } else if let Some(d) = dependency.as_module_dependency_mut() {
-      d.factorize_info_mut()
-    } else {
-      unreachable!("only module dependency and context dependency can factorize")
-    };
-    *dep_factorize_info = std::mem::take(&mut factorize_info);
-
-    for dependency_id in dependency_ids.iter().copied() {
-      if dependency_id == *dependency.id() {
-        continue;
-      }
-
-      let dep = module_graph.dependency_by_id_mut(&dependency_id);
+    let (mut dependencies, _) = dependencies.into_parts();
+    for dep in &mut dependencies {
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
         d.factorize_info_mut()
       } else if let Some(d) = dep.as_module_dependency_mut() {
@@ -260,21 +245,28 @@ impl Task<TaskContext> for FactorizeResultTask {
       } else {
         unreachable!("only module dependency and context dependency can factorize")
       };
-      // Only the primary dependency carries the shared factorize result.
-      *dep_factorize_info = FactorizeInfo::default();
+      // write factorize_info to dependencies[0] and set success factorize_info to others
+      *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 
+    let module_graph = artifact.get_module_graph_mut();
     let Some(factory_result) = factory_result else {
-      let dep = &dependency;
+      let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");
-      module_graph.add_dependency(dependency);
+      // sync dependencies to mg
+      for dep in dependencies {
+        module_graph.add_dependency(dep)
+      }
       return Ok(vec![]);
     };
 
     let Some(module) = factory_result.module else {
-      let dep = &dependency;
+      let dep = &dependencies[0];
       tracing::trace!("Module ignored: {dep:?}");
-      module_graph.add_dependency(dependency);
+      // sync dependencies to mg
+      for dep in dependencies {
+        module_graph.add_dependency(dep)
+      }
       return Ok(vec![]);
     };
     let module_identifier = module.identifier();
@@ -287,7 +279,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       original_module_identifier,
       module,
       module_graph_module: Box::new(mgm),
-      dependencies: ModuleDependencies::new(dependency, dependency_ids),
+      dependencies: ModuleDependencies::new(dependencies),
       from_unlazy,
     })])
   }

@@ -30,7 +30,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       dependencies,
       from_unlazy,
     } = *self;
-    let mut sorted_dependencies: HashMap<Cow<'_, str>, ModuleDependencies> = HashMap::default();
+    let mut sorted_dependencies: HashMap<Cow<'_, str>, Vec<DependencyId>> = HashMap::default();
 
     // First mark all dependencies as added
     for dependency_id in &dependencies {
@@ -68,13 +68,10 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       if let Some(resource_identifier) = resource_identifier {
         match sorted_dependencies.entry(resource_identifier) {
           Entry::Occupied(mut entry) => {
-            entry.get_mut().push_dependency_id(dependency_id);
+            entry.get_mut().push(dependency_id);
           }
           Entry::Vacant(entry) => {
-            entry.insert(ModuleDependencies::new(
-              dependency.clone(),
-              vec![dependency_id],
-            ));
+            entry.insert(vec![dependency_id]);
           }
         }
       }
@@ -85,7 +82,13 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       .expect("Module expected");
 
     let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
-    for dependencies in sorted_dependencies.into_values() {
+    for dependency_ids in sorted_dependencies.into_values() {
+      let dependencies = ModuleDependencies::new(
+        dependency_ids
+          .iter()
+          .map(|dependency_id| module_graph.dependency_by_id(dependency_id).clone())
+          .collect(),
+      );
       let original_module_source = module_graph
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
