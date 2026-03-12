@@ -52,6 +52,13 @@ enum TemplateId {
   Loading,
 }
 
+fn required_version_json(required_version: Option<&ConsumeVersion>) -> String {
+  match required_version {
+    Some(ConsumeVersion::False) | None => "false".to_string(),
+    Some(version) => json_stringify_str(&version.to_string()),
+  }
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
@@ -119,12 +126,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
             share_scope_json,
             json_stringify(&data.share_key),
             json_stringify(&data.import),
-            json_stringify_str(
-              &data
-                .required_version
-                .as_ref()
-                .map_or_else(|| "*".to_string(), |v| v.to_string())
-            ),
+            required_version_json(data.required_version.as_ref()),
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
@@ -138,12 +140,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
             share_scope_json,
             json_stringify(&data.share_key),
             json_stringify(&data.import),
-            json_stringify_str(
-              &data
-                .required_version
-                .as_ref()
-                .map_or_else(|| "*".to_string(), |v| v.to_string())
-            ),
+            required_version_json(data.required_version.as_ref()),
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),

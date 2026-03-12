@@ -26,13 +26,6 @@ export default function () {
       const scopes = toScopeArray(scope);
       return scopes.length === 1 ? scopes[0] : scopes;
     };
-    const expandRemoteScopes = (remote) =>
-      toScopeArray(remote.shareScope).map((scope) => {
-        const normalized = Object.assign({}, remote);
-        normalized.shareScope = scope;
-        return normalized;
-      });
-
     const override = (obj, key, value) => {
       if (!obj) return;
       if (obj[key]) obj[key] = value;
@@ -66,6 +59,63 @@ export default function () {
     const containerShareScope = toRuntimeScope(
       __webpack_require__.initializeExposesData?.shareScope,
     );
+    const initExternalStagesForSharing = (shareScopeName, initScope) => {
+      const shareScopeKeys = toScopeArray(shareScopeName);
+      const promises = [];
+      const warn = (msg) => {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn(msg);
+        }
+      };
+      const shareScopeMap = __webpack_require__.S || {};
+      const initExternal = (externalModuleId, shareScopeKey) => {
+        const handleError = (err) => {
+          warn(`Initialization of sharing external failed: ${err}`);
+        };
+        try {
+          const module = __webpack_require__(externalModuleId);
+          if (!module) {
+            return;
+          }
+          const initFn = (target) =>
+            target &&
+            target.init &&
+            target.init(shareScopeMap[shareScopeKey], initScope, {
+              shareScopeMap,
+              shareScopeKeys: shareScopeName,
+            });
+          if (module.then) {
+            promises.push(module.then(initFn, handleError));
+            return;
+          }
+          const initResult = initFn(module);
+          if (
+            initResult &&
+            typeof initResult !== 'boolean' &&
+            initResult.then
+          ) {
+            promises.push(initResult.catch(handleError));
+          }
+        } catch (err) {
+          handleError(err);
+        }
+      };
+
+      for (const shareScopeKey of shareScopeKeys) {
+        const stages =
+          initializeSharingScopeToInitDataMapping[shareScopeKey] ?? [];
+        for (const stage of stages) {
+          if (typeof stage !== 'object' && stage !== null) {
+            initExternal(stage, shareScopeKey);
+          }
+        }
+      }
+
+      if (!promises.length) {
+        return true;
+      }
+      return Promise.all(promises).then(() => true);
+    };
 
     for (const key in __module_federation_bundler_runtime__) {
       __webpack_require__.federation[key] =
@@ -160,8 +210,7 @@ export default function () {
     merge(__webpack_require__.federation.initOptions, 'remotes', () =>
       Object.values(__module_federation_remote_infos__)
         .flat()
-        .filter((remote) => remote.externalType === 'script')
-        .flatMap(expandRemoteScopes),
+        .filter((remote) => remote.externalType === 'script'),
     );
     merge(
       __webpack_require__.federation.initOptions,
@@ -259,13 +308,15 @@ export default function () {
       }),
     );
     override(__webpack_require__, 'I', (name, initScope) =>
-      __webpack_require__.federation.bundlerRuntime.I({
-        shareScopeName: name,
-        initScope,
-        initPromises: initializeSharingInitPromises,
-        initTokens: initializeSharingInitTokens,
-        webpackRequire: __webpack_require__,
-      }),
+      Promise.resolve(
+        __webpack_require__.federation.bundlerRuntime.I({
+          shareScopeName: name,
+          initScope,
+          initPromises: initializeSharingInitPromises,
+          initTokens: initializeSharingInitTokens,
+          webpackRequire: __webpack_require__,
+        }),
+      ).then(() => initExternalStagesForSharing(name, initScope)),
     );
     override(
       __webpack_require__,
