@@ -131,7 +131,7 @@ fn build_rsc_reference_meta_from_modules(
     if current_priority > best_priority {
       best_priority = current_priority;
       module_type = Some(rsc.module_type);
-      resource = current_resource.clone();
+      resource = current_resource;
     } else if current_priority == best_priority
       && let Some(current_resource) = current_resource.as_ref()
     {

@@ -2350,9 +2350,9 @@ dependencies = [
 
 [[package]]
 name = "lightningcss"
-version = "1.0.0-alpha.70"
+version = "1.0.0-alpha.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9efb6a77b2389e62735b0b8157be9cc10a159eb4d1c3b864e99db9f297ada1b0"
+checksum = "cb6314c2f0590ac93c86099b98bb7ba8abcf759bfd89604ffca906472bb54937"
 dependencies = [
  "ahash 0.8.12",
  "bitflags 2.11.0",
@@ -5123,9 +5123,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.6.7"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "197d5ba46acaff0cb0bf3abaa6594a36cb050440ab0c6edf3876a23b85879f49"
+checksum = "472a7a3a310ce3cbf999480e7dd801d3e1139fdbecb7881aec1a4f41fc5bd19b"
 dependencies = [
  "async-trait",
  "cfg-if",

@@ -5,8 +5,6 @@
 
 const asyncValue = 'async'
 
-var async_asyncValue = /* unused export */ undefined;
-export { async_asyncValue as asyncValue };
 export { readFile } from "fs";
 
 ```
