@@ -23,10 +23,14 @@ use super::{
 use crate::{container::container_entry_module::ContainerEntryModule, manifest::StatsRoot};
 
 fn parse_share_key_from_consume_identifier(identifier: &str) -> Option<String> {
-  let pos = identifier.rfind(") ")?;
-  let rest = &identifier[pos + 2..];
-  let suffix_start = rest.find(" (").unwrap_or(rest.len());
-  let head = &rest[..suffix_start];
+  let mut rest = identifier.strip_prefix("consume shared module ")?;
+  let scope_end = rest.find(") ")?;
+  rest = &rest[scope_end + 2..];
+  if rest.starts_with('(') {
+    let layer_end = rest.find(") ")?;
+    rest = &rest[layer_end + 2..];
+  }
+  let head = rest.split(" (").next().unwrap_or(rest);
   let at = head.rfind('@').unwrap_or(head.len());
   Some(head[..at].to_string())
 }
@@ -168,7 +172,7 @@ async fn optimize_dependencies(
             let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
             let identifier =
               consume_shared_module.readable_identifier(&rspack_core::Context::default());
-            let sk = parse_share_key_from_consume_identifier(&identifier)?.to_string();
+            let sk = parse_share_key_from_consume_identifier(&identifier)?;
             collect_processed_modules(
               module_graph,
               consume_shared_module.get_blocks(),

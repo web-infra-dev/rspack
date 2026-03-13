@@ -44,10 +44,14 @@ impl CollectSharedEntryPlugin {
   }
 
   fn parse_share_key(identifier: &str) -> Option<String> {
-    let pos = identifier.rfind(") ")?;
-    let rest = &identifier[pos + 2..];
-    let suffix_start = rest.find(" (").unwrap_or(rest.len());
-    let head = &rest[..suffix_start];
+    let mut rest = identifier.strip_prefix("consume shared module ")?;
+    let scope_end = rest.find(") ")?;
+    rest = &rest[scope_end + 2..];
+    if rest.starts_with('(') {
+      let layer_end = rest.find(") ")?;
+      rest = &rest[layer_end + 2..];
+    }
+    let head = rest.split(" (").next().unwrap_or(rest);
     let at = head.rfind('@').unwrap_or(head.len());
     Some(head[..at].to_string())
   }
@@ -164,9 +168,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       }
       reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-      ordered_requests.insert(key.to_string(), reqs);
+      ordered_requests.insert(key.clone(), reqs);
       if !scope.is_empty() {
-        share_scopes.insert(key.to_string(), scope);
+        share_scopes.insert(key.clone(), scope);
       }
     }
   }
