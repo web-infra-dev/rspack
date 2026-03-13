@@ -10,15 +10,15 @@ use rspack_cacheable::cacheable;
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {
-  pub line: usize,
-  pub column: usize,
+  pub line: u32,
+  pub column: u32,
 }
 
 impl From<(u32, u32)> for SourcePosition {
   fn from(range: (u32, u32)) -> Self {
     Self {
-      line: range.0 as usize,
-      column: range.1 as usize,
+      line: range.0,
+      column: range.1,
     }
   }
 }
@@ -85,8 +85,8 @@ impl RealDependencyLocation {
     let start_utf16_col = start_line_slice.encode_utf16().count() + 1; // 1-based
 
     let start = SourcePosition {
-      line,
-      column: start_utf16_col,
+      line: u32::try_from(line).ok()?,
+      column: u32::try_from(start_utf16_col).ok()?,
     };
 
     // 4. Calculate end position (if length is present).
@@ -103,7 +103,7 @@ impl RealDependencyLocation {
       };
       let newlines_in_span = memchr::memchr_iter(b'\n', span_slice.as_bytes()).count();
 
-      let end_line = line + newlines_in_span;
+      let end_line = line.checked_add(newlines_in_span)?;
 
       let end_column = if newlines_in_span == 0 {
         start_utf16_col + span_slice.encode_utf16().count()
@@ -115,8 +115,8 @@ impl RealDependencyLocation {
       };
 
       Some(SourcePosition {
-        line: end_line,
-        column: end_column,
+        line: u32::try_from(end_line).ok()?,
+        column: u32::try_from(end_column).ok()?,
       })
     } else {
       None

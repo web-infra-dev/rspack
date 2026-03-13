@@ -38,15 +38,15 @@ pub struct ChunkGroup {
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
   pub parents: FxHashSet<ChunkGroupUkey>,
-  pub(crate) module_pre_order_indices: IdentifierMap<usize>,
-  pub(crate) module_post_order_indices: IdentifierMap<usize>,
+  pub(crate) module_pre_order_indices: IdentifierMap<u32>,
+  pub(crate) module_post_order_indices: IdentifierMap<u32>,
 
   // keep order for children
   pub children: IndexSet<ChunkGroupUkey>,
   async_entrypoints: FxHashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
-  pub(crate) next_pre_order_index: usize,
-  pub(crate) next_post_order_index: usize,
+  pub(crate) next_pre_order_index: u32,
+  pub(crate) next_post_order_index: u32,
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entrypoint_chunk: Option<ChunkUkey>,
@@ -87,7 +87,7 @@ impl ChunkGroup {
     self.parents.iter()
   }
 
-  pub fn module_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+  pub fn module_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<u32> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
       .module_pre_order_indices
@@ -99,7 +99,7 @@ impl ChunkGroup {
     self.children.iter()
   }
 
-  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<u32> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
       .module_post_order_indices

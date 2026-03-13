@@ -29,24 +29,24 @@ use crate::{
   },
 };
 
-type ChunksKey = u64;
+type ChunksKey = u32;
 
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
   module: &'a dyn Module,
-  cache_group_index: usize,
+  cache_group_index: u32,
   cache_group: &'a CacheGroup,
   selected_chunks: Vec<ChunkUkey>,
 }
 
 fn get_key<I: Iterator<Item = ChunkUkey>>(
   chunks: I,
-  chunk_index_map: &FxHashMap<ChunkUkey, u64>,
+  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
 ) -> ChunksKey {
   let mut sorted_chunk_ukeys = chunks
     .map(|chunk| {
-      // Increment each usize by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
+      // Increment each chunk index by 1 to avoid hashing the value 0 with FxHasher, which would always return a hash of 0
       *chunk_index_map
         .get(&chunk)
         .expect("should already have index for chunk ukey")
@@ -57,7 +57,8 @@ fn get_key<I: Iterator<Item = ChunkUkey>>(
   for chunk_ukey in sorted_chunk_ukeys {
     chunk_ukey.hash(&mut hasher);
   }
-  hasher.finish()
+  let hash = hasher.finish();
+  (hash as u32) ^ ((hash >> 32) as u32)
 }
 
 #[derive(Default)]
@@ -100,7 +101,7 @@ impl Combinator {
     module: ModuleIdentifier,
     used_exports: bool,
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u64>,
+    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<FxHashSet<ChunkUkey>> {
     if used_exports {
       let mut result = vec![];
@@ -161,7 +162,7 @@ impl Combinator {
     &mut self,
     all_modules: &[ModuleIdentifier],
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u64>,
+    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) {
     let chunk_sets_in_graph = all_modules
       .par_iter()
@@ -198,7 +199,7 @@ impl Combinator {
     exports_info_artifact: &ExportsInfoArtifact,
     chunk_by_ukey: &ChunkByUkey,
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u64>,
+    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) {
     let (module_grouped_chunks, used_exports_chunks): (Vec<_>, Vec<_>) = all_modules
       .par_iter()
@@ -297,7 +298,7 @@ impl SplitChunksPlugin {
     removed_module_chunks: &IdentifierMap<FxHashSet<ChunkUkey>>,
     compilation: &Compilation,
     module_chunks: &ModuleChunks,
-    chunk_index_map: &FxHashMap<ChunkUkey, u64>,
+    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
@@ -548,7 +549,7 @@ async fn merge_matched_item_into_module_group_map(
   matched_item: MatchedItem<'_>,
   module_group_map: &DashMap<String, ModuleGroup>,
   compilation: &Compilation,
-  chunk_index_map: &FxHashMap<ChunkUkey, u64>,
+  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
 ) -> Result<()> {
   let MatchedItem {
     module,

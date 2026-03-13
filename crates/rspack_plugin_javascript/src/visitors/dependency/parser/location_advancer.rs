@@ -37,15 +37,17 @@ impl DependencyLocationAdvancer {
       .map_or((0, None), |(count, idx)| (count + 1, Some(idx)));
 
     if let Some(last_idx) = last_newline_idx {
-      let line = from_pos.line + newline_count;
+      let line = from_pos
+        .line
+        .checked_add(u32::try_from(newline_count).ok()?)?;
       let after_newline = &segment[last_idx + 1..];
-      let column = after_newline.encode_utf16().count() + 1; // 1-based column
+      let column = u32::try_from(after_newline.encode_utf16().count() + 1).ok()?; // 1-based column
       Some(SourcePosition { line, column })
     } else {
-      let column_advance = segment.encode_utf16().count();
+      let column_advance = u32::try_from(segment.encode_utf16().count()).ok()?;
       Some(SourcePosition {
         line: from_pos.line,
-        column: from_pos.column + column_advance,
+        column: from_pos.column.checked_add(column_advance)?,
       })
     }
   }
