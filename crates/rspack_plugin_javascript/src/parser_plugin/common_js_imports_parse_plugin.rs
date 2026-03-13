@@ -872,13 +872,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     member_expr: &MemberExpr,
-    _callee_members: &[Atom],
+    callee_members: &[Atom],
     call_expr: &CallExpr,
     members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
-    if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
+    if callee_members.is_empty()
+      && (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && let Some(dep) = self.chain_handler(parser, member_expr, call_expr, members, false)
     {
       parser.add_dependency(Box::new(dep));
@@ -891,13 +892,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
-    _callee_members: &[Atom],
+    callee_members: &[Atom],
     inner_call_expr: &CallExpr,
     members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
-    if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
+    if callee_members.is_empty()
+      && (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && let Some(callee) = call_expr.callee.as_expr()
       && let Some(member) = callee.as_member()
       && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)
