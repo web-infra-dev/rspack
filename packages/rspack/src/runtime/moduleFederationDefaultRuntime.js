@@ -27,12 +27,32 @@ export default function () {
       }
       return typeof scope === 'string' && scope ? scope : 'default';
     };
+    const normalizeBundlerRemoteInfo = (remote) => {
+      // Keep runtime remotes with concrete entry/name info intact.
+      // For build-time remotes (no name/entry), align with enhanced output so
+      // sharing init still initializes externals before consume handlers run.
+      if (remote && (remote.name || remote.entry)) {
+        return remote;
+      }
+      return Object.assign({}, remote, {
+        name: '',
+        entry: '',
+        externalType: 'unknown',
+      });
+    };
+    const bundlerRuntimeRemoteInfos = Object.fromEntries(
+      Object.entries(__module_federation_remote_infos__).map(([key, infos]) => [
+        key,
+        infos.map(normalizeBundlerRemoteInfo),
+      ]),
+    );
     const expandRemoteScopes = (remote) =>
-      toShareScopeKeys(remote.shareScope).map((shareScope) => {
+      toShareScopeKeys(remote.shareScope).map((scope) => {
         const normalized = Object.assign({}, remote);
-        normalized.shareScope = shareScope;
+        normalized.shareScope = scope;
         return normalized;
       });
+
     const override = (obj, key, value) => {
       if (!obj) return;
       if (obj[key]) obj[key] = value;
@@ -60,89 +80,15 @@ export default function () {
       {};
     const consumesLoadingChunkMapping =
       __webpack_require__.consumesLoadingData?.chunkMapping ?? {};
+    const consumesLoadingModuleToConsumeDataMapping =
+      __webpack_require__.consumesLoadingData?.moduleIdToConsumeDataMapping ??
+      {};
     const consumesLoadinginstalledModules = {};
     const initializeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
-    const initializeSharingExternalInitPromises = {};
     const containerShareScope = preserveRuntimeShareScope(
       __webpack_require__.initializeExposesData?.shareScope,
     );
-    const initExternalStagesForScope = (
-      shareScopeKey,
-      initScope,
-      shareScopeName,
-    ) => {
-      const existing = initializeSharingExternalInitPromises[shareScopeKey];
-      if (existing) {
-        return existing;
-      }
-
-      const promises = [];
-      const warn = (msg) => {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn(msg);
-        }
-      };
-      const shareScopeMap = __webpack_require__.S || {};
-      const initExternal = (externalModuleId, shareScopeKey) => {
-        const handleError = (err) => {
-          warn(`Initialization of sharing external failed: ${err}`);
-        };
-        try {
-          const module = __webpack_require__(externalModuleId);
-          if (!module) {
-            return;
-          }
-          const initFn = (target) =>
-            target &&
-            target.init &&
-            target.init(shareScopeMap[shareScopeKey], initScope, {
-              shareScopeMap,
-              shareScopeKeys: shareScopeName,
-            });
-          if (module.then) {
-            promises.push(module.then(initFn, handleError));
-            return;
-          }
-          const initResult = initFn(module);
-          if (
-            initResult &&
-            typeof initResult !== 'boolean' &&
-            initResult.then
-          ) {
-            promises.push(initResult.catch(handleError));
-          }
-        } catch (err) {
-          handleError(err);
-        }
-      };
-
-      const stages =
-        initializeSharingScopeToInitDataMapping[shareScopeKey] ?? [];
-      for (const stage of stages) {
-        if (typeof stage !== 'object' && stage !== null) {
-          initExternal(stage, shareScopeKey);
-        }
-      }
-
-      if (!promises.length) {
-        return (initializeSharingExternalInitPromises[shareScopeKey] = true);
-      }
-
-      const promise = Promise.all(promises).then(
-        () => (initializeSharingExternalInitPromises[shareScopeKey] = true),
-      );
-      initializeSharingExternalInitPromises[shareScopeKey] = promise;
-      return promise;
-    };
-    const initExternalStagesForSharing = (shareScopeName, initScope) => {
-      const shareScopeKeys = toShareScopeKeys(shareScopeName);
-      return Promise.all(
-        shareScopeKeys.map((shareScopeKey) =>
-          initExternalStagesForScope(shareScopeKey, initScope, shareScopeName),
-        ),
-      ).then(() => true);
-    };
 
     for (const key in __module_federation_bundler_runtime__) {
       __webpack_require__.federation[key] =
@@ -159,10 +105,51 @@ export default function () {
       'sharedFallback',
       () => __module_federation_share_fallbacks__,
     );
+    const sharedFallback = __webpack_require__.federation.sharedFallback;
     early(
       __webpack_require__.federation,
       'consumesLoadingModuleToHandlerMapping',
-      () => ({}),
+      () => {
+        const consumesLoadingModuleToHandlerMapping = {};
+        for (let [moduleId, data] of Object.entries(
+          consumesLoadingModuleToConsumeDataMapping,
+        )) {
+          consumesLoadingModuleToHandlerMapping[moduleId] = {
+            getter: sharedFallback
+              ? __webpack_require__.federation.bundlerRuntime?.getSharedFallbackGetter(
+                  {
+                    shareKey: data.shareKey,
+                    factory: data.fallback,
+                    webpackRequire: __webpack_require__,
+                    libraryType: __webpack_require__.federation.libraryType,
+                  },
+                )
+              : data.fallback,
+            treeShakingGetter: sharedFallback ? data.fallback : undefined,
+            shareInfo: {
+              shareConfig: {
+                fixedDependencies: false,
+                requiredVersion: data.requiredVersion,
+                strictVersion: data.strictVersion,
+                singleton: data.singleton,
+                eager: data.eager,
+                layer: data.layer,
+              },
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
+            },
+            shareKey: data.shareKey,
+            treeShaking: __webpack_require__.federation.sharedFallback
+              ? {
+                  get: data.fallback,
+                  mode: data.treeShakingMode,
+                }
+              : undefined,
+          };
+        }
+        return consumesLoadingModuleToHandlerMapping;
+      },
     );
 
     early(__webpack_require__.federation, 'initOptions', () => ({}));
@@ -260,7 +247,7 @@ export default function () {
     early(
       __webpack_require__.federation.bundlerRuntimeOptions.remotes,
       'remoteInfos',
-      () => __module_federation_remote_infos__,
+      () => bundlerRuntimeRemoteInfos,
     );
     early(
       __webpack_require__.federation.bundlerRuntimeOptions.remotes,
@@ -293,8 +280,7 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const info =
-            __module_federation_remote_infos__[remoteData.remoteName];
+          const info = bundlerRuntimeRemoteInfos[remoteData.remoteName];
           if (info) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;
@@ -324,27 +310,59 @@ export default function () {
         webpackRequire: __webpack_require__,
       }),
     );
-    override(__webpack_require__.f, 'consumes', (chunkId, promises) =>
-      __webpack_require__.federation.bundlerRuntime.consumes({
-        chunkId,
-        promises,
-        chunkMapping: consumesLoadingChunkMapping,
-        moduleToHandlerMapping:
-          __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
-        installedModules: consumesLoadinginstalledModules,
+    override(__webpack_require__.f, 'consumes', (chunkId, promises) => {
+      const consumeModuleIds = consumesLoadingChunkMapping[chunkId];
+      const consumeWithBundlerRuntime = (targetPromises) =>
+        __webpack_require__.federation.bundlerRuntime.consumes({
+          chunkId,
+          promises: targetPromises,
+          chunkMapping: consumesLoadingChunkMapping,
+          moduleToHandlerMapping:
+            __webpack_require__.federation
+              .consumesLoadingModuleToHandlerMapping,
+          installedModules: consumesLoadinginstalledModules,
+          webpackRequire: __webpack_require__,
+        });
+      if (Array.isArray(consumeModuleIds) && consumeModuleIds.length > 0) {
+        const initPromises = [];
+        const initScopeSet = new Set();
+        for (const moduleId of consumeModuleIds) {
+          const consumeData =
+            consumesLoadingModuleToConsumeDataMapping[moduleId];
+          if (!consumeData) continue;
+          if (consumeData.import == null || consumeData.layer == null) {
+            for (const scope of toShareScopeKeys(consumeData.shareScope)) {
+              initScopeSet.add(scope);
+            }
+          }
+        }
+        for (const scope of initScopeSet) {
+          const init = __webpack_require__.I(scope);
+          if (init && init.then) {
+            initPromises.push(init);
+          }
+        }
+        if (initPromises.length > 0) {
+          promises.push(
+            Promise.all(initPromises).then(() => {
+              const consumePromises = [];
+              consumeWithBundlerRuntime(consumePromises);
+              return Promise.all(consumePromises);
+            }),
+          );
+          return;
+        }
+      }
+      return consumeWithBundlerRuntime(promises);
+    });
+    override(__webpack_require__, 'I', (name, initScope) =>
+      __webpack_require__.federation.bundlerRuntime.I({
+        shareScopeName: name,
+        initScope,
+        initPromises: initializeSharingInitPromises,
+        initTokens: initializeSharingInitTokens,
         webpackRequire: __webpack_require__,
       }),
-    );
-    override(__webpack_require__, 'I', (name, initScope) =>
-      Promise.resolve(
-        __webpack_require__.federation.bundlerRuntime.I({
-          shareScopeName: name,
-          initScope,
-          initPromises: initializeSharingInitPromises,
-          initTokens: initializeSharingInitTokens,
-          webpackRequire: __webpack_require__,
-        }),
-      ).then(() => initExternalStagesForSharing(name, initScope)),
     );
     override(
       __webpack_require__,
