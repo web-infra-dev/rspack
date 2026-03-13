@@ -81,7 +81,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_assets_over_size_limit_warning(
-    detail: &[(String, f64)],
+    detail: &[(Arc<str>, f64)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -138,12 +138,12 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
   let max_asset_size = self.options.max_asset_size.unwrap_or(250_000.0);
   let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250_000.0);
-  let mut checked_assets: HashMap<String, bool> = HashMap::default();
+  let mut checked_assets: HashMap<Arc<str>, bool> = HashMap::default();
   let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 
   let mut assets_over_size_limit = vec![];
 
-  let asset_sizes = rspack_futures::scope::<_, _>(|token| {
+  let asset_sizes: Vec<Option<(Arc<str>, f64, bool)>> = rspack_futures::scope::<_, _>(|token| {
     compilation.assets().iter().for_each(|(name, asset)| {
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((&self, asset, name, max_asset_size)) };
@@ -157,7 +157,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         let size = source.size() as f64;
         let is_over_size_limit = size > max_asset_size;
-        Some((name.as_ref().to_string(), size, is_over_size_limit))
+        Some((name.clone(), size, is_over_size_limit))
       })
     })
   })

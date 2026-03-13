@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
@@ -8,21 +6,19 @@ use rustc_hash::FxHashSet;
 use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
 
 fn put_split_chunk_reason(
-  chunk_reason: &mut Option<Arc<str>>,
+  chunk_reason: &mut Option<String>,
   is_reuse_existing_chunk_with_all_modules: bool,
 ) {
   let reason = if is_reuse_existing_chunk_with_all_modules {
-    "reused as split chunk".to_string()
+    "reused as split chunk"
   } else {
-    "split chunk".to_string()
+    "split chunk"
   };
-  if let Some(existing) = chunk_reason.take() {
-    let mut s = existing.to_string();
-    s.push(',');
-    s.push_str(&reason);
-    *chunk_reason = Some(Arc::from(s));
+  if let Some(chunk_reason) = chunk_reason {
+    chunk_reason.push(',');
+    chunk_reason.push_str(&reason);
   } else {
-    *chunk_reason = Some(Arc::from(reason));
+    *chunk_reason = Some(reason.to_string());
   }
 }
 

@@ -66,7 +66,7 @@ pub struct Chunk {
   runtime: RuntimeSpec,
   files: HashSet<Arc<str>>,
   auxiliary_files: HashSet<Arc<str>>,
-  chunk_reason: Option<Arc<str>>,
+  chunk_reason: Option<String>,
   rendered: bool,
 }
 
@@ -195,7 +195,7 @@ impl Chunk {
     self.chunk_reason.as_deref()
   }
 
-  pub fn chunk_reason_mut(&mut self) -> &mut Option<Arc<str>> {
+  pub fn chunk_reason_mut(&mut self) -> &mut Option<String> {
     &mut self.chunk_reason
   }
 

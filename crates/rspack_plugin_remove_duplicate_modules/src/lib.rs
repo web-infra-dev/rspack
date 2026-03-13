@@ -110,7 +110,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get_mut(&new_chunk_ukey);
-      *new_chunk.chunk_reason_mut() = Some(Arc::from("modules are shared across multiple chunks"));
+      *new_chunk.chunk_reason_mut() = Some("modules are shared across multiple chunks".to_string());
       compilation
         .build_chunk_graph_artifact
         .chunk_graph

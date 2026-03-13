@@ -7,11 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::{
-  borrow::Cow,
-  hash::Hash,
-  sync::{Arc, LazyLock},
-};
+use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
@@ -690,7 +686,7 @@ impl SplitChunksPlugin {
             new_part,
             &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
           );
-          *new_part.chunk_reason_mut() = chunk.chunk_reason().map(Arc::from);
+          *new_part.chunk_reason_mut() = chunk.chunk_reason().map(ToString::to_string);
           if chunk.filename_template().is_some() {
             new_part.set_filename_template(chunk.filename_template().cloned());
           }

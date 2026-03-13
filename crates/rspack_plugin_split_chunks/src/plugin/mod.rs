@@ -4,7 +4,7 @@ pub mod max_size;
 pub mod min_size;
 mod module_group;
 
-use std::{borrow::Cow, cmp::Ordering, fmt::Debug, sync::Arc};
+use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -201,13 +201,11 @@ impl SplitChunksPlugin {
           new_chunk_mut.chunk_reason()
         );
 
-        if let Some(reason) = new_chunk_mut.chunk_reason_mut() {
-          let mut s = reason.to_string();
-          s.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
+        if let Some(chunk_reason) = new_chunk_mut.chunk_reason_mut() {
+          chunk_reason.push_str(&format!(" (cache group: {})", cache_group.key.as_str()));
           if let Some(chunk_name) = &module_group.chunk_name {
-            s.push_str(&format!(" (name: {chunk_name})"));
+            chunk_reason.push_str(&format!(" (name: {chunk_name})"));
           }
-          *reason = Arc::from(s);
         }
 
         if let Some(filename) = &cache_group.filename {
