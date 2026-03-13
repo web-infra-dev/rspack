@@ -609,10 +609,22 @@ export default {
 
 ## 其他变更
 
-### 修改 devtool 的默认值
+### `devtool` 默认值变化
+
+[devtool](/config/devtool) 选项的默认值发生了变化：
 
 - 在 `mode` 为 `development` 时，将 `devtool` 的默认值从 `eval` 调整为 `cheap-module-source-map`
-- 在 `mode` 为 `production` 时，将 `@rspack/cli` 中 `devtool` 的默认值从 `source-map` 调整为 `false`
+- 在 `mode` 为 `production` 并使用 `@rspack/cli` 时，`devtool` 的默认值从 `source-map` 调整为 `false`
+
+如果你需要在生产环境开启 source map，推荐设置为 `source-map` 或 `hidden-source-map`：
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  devtool: isProd ? 'source-map' : 'cheap-module-source-map',
+};
+```
 
 ### 移除 Runtime module 废弃属性
 
@@ -652,3 +664,42 @@ class MyPlugin {
 
 - `builtModules: number`：已构建的模块数量
 - `moduleIdentifier?: string`：当前构建的模块标识符（仅在 `build modules` 更新阶段提供）
+
+### 修改 `resolve.roots` 的默认值
+
+resolve 的 [roots](/zh/config/resolve#resolveroots) 配置默认值已从 `[ context ]` 变更为 `[]`。
+
+如果你依赖服务器相对 URL 解析，且期望路径相对于 `roots` 目录进行解析，可显式恢复原有行为：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    roots: [context], // rspack 配置文件的 context 路径
+  },
+};
+```
+
+### JavaScript `resolve.extensions` 默认不再包含 `.wasm`
+
+Rspack 2.0 默认用于 JavaScript 请求的 `resolve.extensions` 不再包含 `.wasm`。
+
+直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
+
+像 `import './module.wasm'` 这样的显式导入不受影响。
+
+如果你需要保留旧行为，可以在对应的 `resolve.byDependency` 配置中显式把 `.wasm` 加回去：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```

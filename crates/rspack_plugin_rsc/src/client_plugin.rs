@@ -548,8 +548,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       let dependency = Box::new(RscEntryDependency::new(
-        entry_name.to_string(),
+        entry_name.clone(),
         client_modules.clone(),
+        false,
       ));
       self
         .client_entries_per_entry

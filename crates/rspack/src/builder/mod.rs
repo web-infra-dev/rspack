@@ -791,7 +791,7 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  /// Set options for optimization.  
+  /// Set options for optimization.
   ///
   /// Both are accepted:
   /// - [`OptimizationOptionsBuilder`]
@@ -1167,7 +1167,7 @@ impl CompilerOptionsBuilder {
 
     // apply resolve defaults
     let resolve = {
-      let resolve_defaults = get_resolve_defaults(&context, mode, &target_properties, css);
+      let resolve_defaults = get_resolve_defaults(mode, &target_properties, css);
       if let Some(resolve) = self.resolve.take() {
         resolve_defaults.merge(resolve)
       } else {
@@ -1281,12 +1281,7 @@ impl CompilerOptionsBuilder {
   }
 }
 
-fn get_resolve_defaults(
-  context: &Context,
-  mode: Mode,
-  target_properties: &TargetProperties,
-  css: bool,
-) -> Resolve {
+fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: bool) -> Resolve {
   let mut conditions = vec!["webpack".to_string()];
 
   // Add mode condition
@@ -1312,7 +1307,7 @@ fn get_resolve_defaults(
     conditions.push("nwjs".to_string());
   }
 
-  let js_extensions = vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()];
+  let js_extensions = vec![".js".to_string(), ".json".to_string()];
 
   let browser_field = target_properties.web()
     && (!target_properties.node()
@@ -1414,7 +1409,7 @@ fn get_resolve_defaults(
     extensions: Some(vec![]),
     alias_fields: Some(vec![]),
     exports_fields: Some(vec![vec!["exports".to_string()]]),
-    roots: Some(vec![context.to_string()]),
+    roots: Some(vec![]),
     main_fields: Some(vec!["main".to_string()]),
     imports_fields: Some(vec![vec!["imports".to_string()]]),
     by_dependency: Some(ByDependency::from_iter(by_dependency)),

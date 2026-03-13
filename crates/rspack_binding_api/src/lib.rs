@@ -108,7 +108,6 @@ use std::{
 
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
-use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
   PluginExt,
@@ -149,7 +148,7 @@ use crate::{
 pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_version!();
 
 thread_local! {
-  static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+  static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
 #[js_function(1)]
@@ -206,7 +205,6 @@ impl JsCompiler {
         rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
       ));
       plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
-      plugins.push(Box::new(rspack_plugin_rsc::ClientEntryLoaderPlugin::new()));
       plugins.push(Box::new(rspack_plugin_rsc::ActionEntryLoaderPlugin::new()));
       plugins.push(Box::new(
         rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),

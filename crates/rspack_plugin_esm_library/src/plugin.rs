@@ -7,7 +7,7 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{
-  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
@@ -65,9 +65,9 @@ pub struct EsmLibraryPlugin {
   pub(crate) concatenated_modules_map_for_codegen:
     AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
   pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
-  pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
+  pub(crate) links: AtomicRefCell<FxHashMap<ChunkUkey, ChunkLinkContext>>,
   pub(crate) chunk_ids_to_ukey: AtomicRefCell<FxHashMap<String, ChunkUkey>>,
-  pub(crate) strict_export_chunks: AtomicRefCell<UkeySet<ChunkUkey>>,
+  pub(crate) strict_export_chunks: AtomicRefCell<FxHashSet<ChunkUkey>>,
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
   pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
   /// module_id → namespace export name in the chunk, for modules whose exports

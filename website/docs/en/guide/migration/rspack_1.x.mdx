@@ -609,10 +609,22 @@ export default {
 
 ## Other changes
 
-### Changed default value of devtool
+### Changed `devtool` default value
+
+The default value of the [devtool](/config/devtool) option has changed:
 
 - When `mode` is `development`, the default value of `devtool` has been changed from `eval` to `cheap-module-source-map`
-- When `mode` is `production`, the default value of `devtool` in `@rspack/cli` has been changed from `source-map` to `false`
+- When `mode` is `production` and you are using `@rspack/cli`, the default value of `devtool` has been changed from `source-map` to `false`
+
+If you need source maps in production, we recommend setting `devtool` to `source-map` or `hidden-source-map`:
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  devtool: isProd ? 'source-map' : 'cheap-module-source-map',
+};
+```
 
 ### Removed runtime module deprecated properties
 
@@ -652,3 +664,42 @@ The `ProgressPlugin` custom handler's third argument has changed from `items: st
 
 - `builtModules: number`: Number of modules built so far
 - `moduleIdentifier?: string`: Identifier of the module being built (only provided during `build modules` updates)
+
+### Changed default value of `resolve.roots`
+
+The resolve's [roots](/config/resolve#resolveroots) configuration default value has been changed from `[ context ]` to `[]`.
+
+If you rely on server-relative URL resolution that expects paths to resolve relative to the `roots` directories, explicitly configure the `roots` option:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    roots: [context], // the context path of the rspack config
+  },
+};
+```
+
+### JavaScript `resolve.extensions` no longer includes `.wasm` by default
+
+Rspack 2.0 no longer includes `.wasm` in the default `resolve.extensions` used for JavaScript requests.
+
+In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
+
+Explicit imports like `import './module.wasm'` are not affected.
+
+If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
