@@ -208,7 +208,7 @@ impl ModuleExecutor {
         .module_assets
         .entry(origin_module_identifier)
         .or_default()
-        .extend(assets);
+        .extend(assets.into_iter().map(|(k, v)| (k.to_string(), v)));
     }
 
     for id in code_generated_modules {

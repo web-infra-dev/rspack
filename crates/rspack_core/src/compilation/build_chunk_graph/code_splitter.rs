@@ -246,7 +246,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, HashSet<CgiUkey>>,
 
   pub(crate) named_chunk_groups: HashMap<Arc<str>, CgiUkey>,
-  pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
+  pub(crate) named_async_entrypoints: HashMap<Arc<str>, CgiUkey>,
   pub(crate) block_modules_runtime_map: BlockModulesRuntimeMap,
   pub(crate) ordinal_by_module: IdentifierMap<u64>,
   pub(crate) mask_by_chunk: HashMap<ChunkUkey, BigUint>,
@@ -672,7 +672,7 @@ Remove the 'runtime' option from the entrypoint."
       let chunk = match compilation
         .build_chunk_graph_artifact
         .named_chunks
-        .get(runtime)
+        .get(runtime.as_str())
       {
         Some(ukey) => {
           if !self.runtime_chunks.contains(ukey) {
@@ -1615,15 +1615,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             entrypoint.index = Some(self.next_chunk_group_index);
 
             if let Some(name) = entrypoint.kind.name() {
-              self.named_async_entrypoints.insert(name.to_string(), ukey);
+              let name_key: Arc<str> = Arc::from(name);
+              self.named_async_entrypoints.insert(name_key.clone(), ukey);
               compilation
                 .build_chunk_graph_artifact
                 .named_chunk_groups
-                .insert(Arc::from(name), entrypoint.ukey);
+                .insert(name_key.clone(), entrypoint.ukey);
               compilation
                 .build_chunk_graph_artifact
                 .named_chunks
-                .insert(name.to_string(), chunk.ukey());
+                .insert(name_key, chunk.ukey());
             }
 
             entrypoint.connect_chunk(chunk);

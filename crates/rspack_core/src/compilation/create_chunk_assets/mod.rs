@@ -163,7 +163,7 @@ pub async fn create_chunk_assets(
     compilation.extend_diagnostics(diagnostics);
 
     for file_manifest in manifests {
-      let filename = file_manifest.filename;
+      let filename = &file_manifest.filename;
       let current_chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -181,7 +181,7 @@ pub async fn create_chunk_assets(
         CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
       );
 
-      _ = chunk_asset(compilation, chunk_ukey, &filename, plugin_driver.clone()).await;
+      _ = chunk_asset(compilation, chunk_ukey, filename, plugin_driver.clone()).await;
     }
   }
 

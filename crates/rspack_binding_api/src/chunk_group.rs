@@ -148,7 +148,7 @@ impl ChunkGroup {
   }
 
   #[napi]
-  pub fn get_files(&self) -> napi::Result<Vec<&String>> {
+  pub fn get_files(&self) -> napi::Result<Vec<&str>> {
     let (compilation, chunk_group) = self.as_ref()?;
     Ok(
       chunk_group
@@ -159,7 +159,7 @@ impl ChunkGroup {
             .build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
-            .map(|chunk| chunk.files().iter())
+            .map(|chunk| chunk.files().iter().map(|s| s.as_ref()))
         })
         .flatten()
         .collect::<Vec<_>>(),

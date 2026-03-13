@@ -489,7 +489,7 @@ async fn render_manifest(
   diagnostics.extend(more_diagnostics);
   manifest.push(RenderManifestEntry {
     source: source.boxed(),
-    filename: output_path,
+    filename: Arc::from(output_path),
     has_filename: false,
     info: asset_info,
     auxiliary: false,

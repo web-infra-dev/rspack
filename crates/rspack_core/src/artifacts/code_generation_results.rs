@@ -2,7 +2,7 @@ use std::{
   collections::hash_map::Entry,
   hash::Hash,
   ops::{Deref, DerefMut},
-  sync::atomic::AtomicU32,
+  sync::{Arc, atomic::AtomicU32},
 };
 
 use anymap::CloneAny;
@@ -42,19 +42,19 @@ pub struct URLStaticMode;
 
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
-  filename: String,
+  filename: Arc<str>,
   public_path: String,
 }
 
 impl CodeGenerationDataFilename {
-  pub fn new(filename: String, public_path: String) -> Self {
+  pub fn new(filename: impl Into<Arc<str>>, public_path: String) -> Self {
     Self {
-      filename,
+      filename: filename.into(),
       public_path,
     }
   }
 
-  pub fn filename(&self) -> &str {
+  pub fn filename(&self) -> &Arc<str> {
     &self.filename
   }
 

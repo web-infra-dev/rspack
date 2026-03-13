@@ -109,8 +109,8 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
               );
               ContextElementDependency {
                 id: DependencyId::new(),
-                request,
-                user_request: key.clone(),
+                request: Arc::from(request.as_str()),
+                user_request: Arc::from(key.as_str()),
                 category: options.context_options.category,
                 context: options.resource.clone().into(),
                 layer: options.layer.clone(),

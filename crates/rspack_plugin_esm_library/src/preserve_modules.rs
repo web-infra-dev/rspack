@@ -1,4 +1,8 @@
-use std::{borrow::Cow, path::Path, sync::LazyLock};
+use std::{
+  borrow::Cow,
+  path::Path,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -214,16 +218,17 @@ pub async fn preserve_modules(
           .chunk_by_ukey
           .expect_get_mut(&chunk);
         if let Some(name) = old_chunk.name().map(|s| s.to_string()) {
-          old_chunk.set_name(None);
+          old_chunk.set_name(None::<&str>);
           let new_chunk = compilation
             .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get_mut(&new_chunk_ukey);
-          new_chunk.set_name(Some(name.clone()));
+          let name_key: Arc<str> = Arc::from(name);
+          new_chunk.set_name(Some(name_key.as_ref()));
           compilation
             .build_chunk_graph_artifact
             .named_chunks
-            .insert(name, new_chunk_ukey);
+            .insert(name_key, new_chunk_ukey);
         }
       }
     }

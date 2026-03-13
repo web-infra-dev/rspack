@@ -3,6 +3,7 @@ use std::{
   env,
   hash::Hasher,
   path::{Path, PathBuf},
+  sync::Arc,
 };
 
 use anyhow::{Context, anyhow};
@@ -49,7 +50,7 @@ impl HtmlPluginAssets {
     let mut asset_map = FxHashMap::default();
     assets.public_path = public_path.to_string();
 
-    let sorted_entry_names: Vec<String> =
+    let sorted_entry_names: Vec<Arc<str>> =
       if matches!(config.chunks_sort_mode, HtmlChunkSortMode::Manual)
         && let Some(chunks) = &config.chunks
       {
@@ -61,7 +62,7 @@ impl HtmlPluginAssets {
               .entrypoints
               .contains_key(name.as_str())
           })
-          .cloned()
+          .map(|name| Arc::from(name.as_str()))
           .collect()
       } else {
         compilation
@@ -83,16 +84,19 @@ impl HtmlPluginAssets {
             }
             included
           })
-          .map(|s| s.to_string())
+          .cloned()
           .collect()
       };
 
     let included_assets = sorted_entry_names
       .iter()
-      .map(|entry_name| compilation.entrypoint_by_name(entry_name.as_str()))
+      .map(|entry_name| compilation.entrypoint_by_name(entry_name.as_ref()))
       .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
-        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        let asset = compilation
+          .assets()
+          .get(asset_name.as_ref())
+          .expect("TODO:");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {

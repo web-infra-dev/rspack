@@ -77,11 +77,11 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
       .map(|(chunk_id, file)| {
         if let Some((source, asset_type)) = compilation
           .assets()
-          .get(file)
+          .get(file.as_ref())
           .and_then(|a| a.get_source().map(|s| (s, a.get_info().asset_type)))
         {
           process_chunk_source(
-            file,
+            file.as_ref(),
             source.clone(),
             asset_type,
             chunk_id,
@@ -91,7 +91,7 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
           )
         } else {
           ProcessChunkResult {
-            file: file.clone(),
+            file: file.to_string(),
             source: None,
             warnings: vec![format!("No asset found for source path '{}'", file)],
             placeholder: None,
@@ -254,7 +254,7 @@ async fn add_minssing_integrities(
     assets
       .par_iter()
       .filter_map(|(src, asset)| {
-        if integrities.contains_key(src) {
+        if integrities.contains_key(src.as_ref()) {
           return None;
         }
         asset.source.as_ref().map(|s| {
@@ -266,7 +266,10 @@ async fn add_minssing_integrities(
       .collect::<HashMap<_, _>>()
   };
 
-  integrities.write().await.extend(new_integrities);
+  integrities
+    .write()
+    .await
+    .extend(new_integrities.into_iter().map(|(k, v)| (k.to_string(), v)));
 }
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
@@ -315,13 +318,13 @@ pub async fn detect_unresolved_integrity(
     .values()
   {
     for file in chunk.files() {
-      if let Some(source) = compilation.assets().get(file).and_then(|a| a.get_source())
+      if let Some(source) = compilation.assets().get(file.as_ref()).and_then(|a| a.get_source())
         && source
           .source()
           .into_string_lossy()
           .contains(PLACEHOLDER_PREFIX)
       {
-        contain_unresolved_files.push(file.clone());
+        contain_unresolved_files.push(file.to_string());
       }
     }
   }

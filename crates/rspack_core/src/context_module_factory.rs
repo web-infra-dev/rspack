@@ -307,8 +307,8 @@ impl ContextModuleFactory {
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
           resource: resource.path,
-          resource_query: resource.query,
-          resource_fragment: resource.fragment,
+          resource_query: resource.query.to_string(),
+          resource_fragment: resource.fragment.to_string(),
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency_options,
@@ -509,8 +509,8 @@ async fn visit_dirs(
 
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
-          request,
-          user_request: r.request.clone(),
+          request: Arc::from(request.as_str()),
+          user_request: Arc::from(r.request.as_str()),
           category: options.context_options.category,
           context: options.resource.clone().into(),
           layer: options.layer.clone(),

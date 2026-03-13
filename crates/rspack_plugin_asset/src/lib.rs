@@ -870,7 +870,7 @@ async fn render_manifest(
           .with_asset_type(ManifestAssetType::Asset);
         RenderManifestEntry {
           source: source.clone(),
-          filename: asset_filename.to_owned(),
+          filename: asset_filename.clone(),
           has_filename: true,
           info: asset_info,
           auxiliary: true,

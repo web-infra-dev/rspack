@@ -1,4 +1,6 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use std::sync::Arc;
+
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 
 use super::{AffectType, FactorizeInfo};
 use crate::{
@@ -10,7 +12,8 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct EntryDependency {
   id: DependencyId,
-  request: String,
+  #[cacheable(with = AsRefStr)]
+  request: Arc<str>,
   context: Context,
   layer: Option<ModuleLayer>,
   is_global: bool,
@@ -21,7 +24,7 @@ impl PartialEq for EntryDependency {
   fn eq(&self, other: &Self) -> bool {
     self.id == other.id
       && self.context == other.context
-      && self.request == other.request
+      && self.request.as_ref() == other.request.as_ref()
       && self.layer == other.layer
       && self.is_global == other.is_global
   }
@@ -33,7 +36,7 @@ impl std::hash::Hash for EntryDependency {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.id.hash(state);
     self.context.hash(state);
-    self.request.hash(state);
+    self.request.as_ref().hash(state);
     self.layer.hash(state);
     self.is_global.hash(state);
   }
@@ -41,13 +44,13 @@ impl std::hash::Hash for EntryDependency {
 
 impl EntryDependency {
   pub fn new(
-    request: String,
+    request: impl Into<Arc<str>>,
     context: Context,
     layer: Option<ModuleLayer>,
     is_global: bool,
   ) -> Self {
     Self {
-      request,
+      request: request.into(),
       context,
       layer,
       id: DependencyId::new(),

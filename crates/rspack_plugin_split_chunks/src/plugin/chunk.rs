@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rayon::prelude::*;
 use rspack_collections::{DatabaseItem, IdentifierMap};
 use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
@@ -6,7 +8,7 @@ use rustc_hash::FxHashSet;
 use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
 
 fn put_split_chunk_reason(
-  chunk_reason: &mut Option<String>,
+  chunk_reason: &mut Option<Arc<str>>,
   is_reuse_existing_chunk_with_all_modules: bool,
 ) {
   let reason = if is_reuse_existing_chunk_with_all_modules {
@@ -14,11 +16,13 @@ fn put_split_chunk_reason(
   } else {
     "split chunk".to_string()
   };
-  if let Some(chunk_reason) = chunk_reason {
-    chunk_reason.push(',');
-    chunk_reason.push_str(&reason);
+  if let Some(existing) = chunk_reason.take() {
+    let mut s = existing.to_string();
+    s.push(',');
+    s.push_str(&reason);
+    *chunk_reason = Some(Arc::from(s));
   } else {
-    *chunk_reason = Some(reason);
+    *chunk_reason = Some(Arc::from(reason));
   }
 }
 
@@ -126,7 +130,7 @@ impl SplitChunksPlugin {
       if let Some(chunk) = compilation
         .build_chunk_graph_artifact
         .named_chunks
-        .get(chunk_name)
+        .get(chunk_name.as_str())
       {
         *is_reuse_existing_chunk = true;
         *chunk

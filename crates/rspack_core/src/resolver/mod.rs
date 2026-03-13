@@ -59,8 +59,8 @@ pub enum ResolveResult {
 #[derive(Clone)]
 pub struct Resource {
   pub path: Utf8PathBuf,
-  pub query: String,
-  pub fragment: String,
+  pub query: Arc<str>,
+  pub fragment: Arc<str>,
   pub description_data: Option<DescriptionData>,
 }
 
@@ -81,8 +81,8 @@ impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> String {
     let mut buf = insert_zero_width_space_for_fragment(self.path.as_str()).into_owned();
-    buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
-    buf.push_str(&self.fragment);
+    buf.push_str(&insert_zero_width_space_for_fragment(self.query.as_ref()));
+    buf.push_str(self.fragment.as_ref());
     buf
   }
 }
@@ -92,8 +92,8 @@ impl From<Resource> for ResourceData {
     let mut resource_data = Self::new_with_path(
       resource.full_path(),
       resource.path,
-      Some(resource.query),
-      Some(resource.fragment),
+      Some(resource.query.to_string()),
+      Some(resource.fragment.to_string()),
     );
     resource_data.set_description_optional(resource.description_data);
     resource_data

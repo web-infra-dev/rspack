@@ -287,7 +287,7 @@ impl PluginCssExtract {
                         .chunk_group_by_ukey
                         .expect_get(cg);
 
-                      chunk_group.name().map(|s| s.to_string())
+                      chunk_group.name().map(|s| s.as_ref())
                     })
                     .collect::<Vec<_>>()
                     .join(",")
@@ -302,7 +302,7 @@ impl PluginCssExtract {
                         .chunk_group_by_ukey
                         .expect_get(cg)
                         .name()
-                        .map(|s| s.to_string())
+                        .map(|s| s.as_ref())
                     })
                     .collect::<Vec<_>>()
                     .join(", ")
@@ -707,7 +707,7 @@ async fn render_manifest(
   diagnostics.extend(more_diagnostics);
   manifest.push(RenderManifestEntry {
     source,
-    filename,
+    filename: Arc::from(filename.as_ref()),
     has_filename: false,
     info: asset_info,
     auxiliary: false,

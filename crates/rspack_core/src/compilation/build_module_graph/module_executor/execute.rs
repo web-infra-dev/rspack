@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
+use std::{collections::VecDeque, iter::once, sync::{atomic::AtomicU32, Arc}};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet};
@@ -162,7 +162,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         execute_result.cacheable = false;
       }
       for (name, asset) in build_info.assets.as_ref() {
-        assets.insert(name.clone(), asset.clone());
+        assets.insert(Arc::from(name.as_str()), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {
         let diagnostics = module.diagnostics();
@@ -231,7 +231,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     let mut chunk_graph = ChunkGraph::default();
 
-    let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
+    let mut chunk = Chunk::new(Some("build time chunk"), ChunkKind::Normal);
 
     if let Some(name) = chunk.name() {
       let name = name.to_string();

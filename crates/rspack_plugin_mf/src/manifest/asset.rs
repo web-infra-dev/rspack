@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_core::{BoxModule, Compilation, ModuleGraph, ModuleIdentifier, NormalModule};
 use rspack_util::fx_hash::FxHashSet as HashSet;
@@ -13,10 +13,10 @@ pub fn collect_assets_from_chunk(
   chunk_key: &rspack_core::ChunkUkey,
   entry_point_names: &HashSet<String>,
 ) -> StatsAssetsGroup {
-  let mut js_sync = HashSet::<String>::default();
-  let mut js_async = HashSet::<String>::default();
-  let mut css_sync = HashSet::<String>::default();
-  let mut css_async = HashSet::<String>::default();
+  let mut js_sync = HashSet::<Arc<str>>::default();
+  let mut js_async = HashSet::<Arc<str>>::default();
+  let mut css_sync = HashSet::<Arc<str>>::default();
+  let mut css_async = HashSet::<Arc<str>>::default();
   let Some(chunk) = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -176,8 +176,8 @@ pub fn collect_usage_files_for_module(
       continue;
     }
     if let Some(assets) = collect_assets_for_module(compilation, &origin, entry_point_names) {
-      files.extend(assets.js.sync);
-      files.extend(assets.js.r#async);
+      files.extend(assets.js.sync.iter().map(|s| s.as_ref().to_string()));
+      files.extend(assets.js.r#async.iter().map(|s| s.as_ref().to_string()));
     } else if let Some(origin_module) = module_graph.module_by_identifier(&origin) {
       files.insert(origin_module.identifier().to_string());
     }

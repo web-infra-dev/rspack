@@ -48,7 +48,7 @@ impl SizeLimitsPlugin {
     let mut size = 0.0;
 
     for filename in entrypoint.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
-      let asset = compilation.assets().get(&filename);
+      let asset = compilation.assets().get(filename.as_ref());
 
       if let Some(asset) = asset {
         if !self.asset_filter(&filename, asset).await {
@@ -100,8 +100,9 @@ impl SizeLimitsPlugin {
     Self::add_diagnostic(hints, title, message, diagnostics);
   }
 
+  #[allow(clippy::type_complexity)]
   fn add_entrypoints_over_size_limit_warning(
-    detail: &[(&Arc<str>, f64, Vec<String>)],
+    detail: &[(&Arc<str>, f64, Vec<Arc<str>>)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -148,7 +149,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       let s = unsafe { token.used((&self, asset, name, max_asset_size)) };
 
       s.spawn(|(plugin, asset, name, max_asset_size)| async move {
-        if !plugin.asset_filter(name, asset).await {
+        if !plugin.asset_filter(name.as_ref(), asset).await {
           return None;
         }
 
@@ -156,7 +157,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
         let size = source.size() as f64;
         let is_over_size_limit = size > max_asset_size;
-        Some((name.clone(), size, is_over_size_limit))
+        Some((name.as_ref().to_string(), size, is_over_size_limit))
       })
     })
   })
@@ -187,7 +188,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       let mut files = vec![];
 
       for filename in entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
-        let asset = compilation.assets().get(&filename);
+        let asset = compilation.assets().get(filename.as_ref());
 
         if let Some(asset) = asset
           && self.asset_filter(&filename, asset).await
@@ -244,7 +245,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (name, asset) in compilation.assets_mut() {
-    if let Some(checked) = checked_assets.get(name) {
+    if let Some(checked) = checked_assets.get(name.as_ref()) {
       asset.info.set_is_over_size_limit(*checked)
     }
   }

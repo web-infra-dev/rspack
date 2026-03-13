@@ -510,7 +510,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   // Collect all existing named chunks
   let mut used_names: FxHashMap<String, usize> = FxHashMap::default();
   for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
-    used_names.insert(name.clone(), 1);
+    used_names.insert(name.to_string(), 1);
   }
 
   // Collect candidates: (chunk_ukey, root_module_identifier) for unnamed non-initial chunks
@@ -601,14 +601,15 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
 
   // Apply assignments
   for (chunk_ukey, name) in assignments {
+    let name_key: Arc<str> = Arc::from(name.into_boxed_str());
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get_mut(&chunk_ukey);
-    chunk.set_name(Some(name.clone()));
+    chunk.set_name(Some(name_key.as_ref()));
     compilation
       .build_chunk_graph_artifact
       .named_chunks
-      .insert(name, chunk_ukey);
+      .insert(name_key, chunk_ukey);
   }
 }

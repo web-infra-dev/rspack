@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
+  Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAssets,
   ModuleGraph,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -137,14 +137,14 @@ pub fn collect_entrypoints(
 }
 
 pub fn collect_assets(
-  assets: &HashMap<String, CompilationAsset>,
+  assets: &CompilationAssets,
   chunk_by_ukey: &ChunkByUkey,
 ) -> HashMap<String, RsdoctorAsset> {
   let asset_ukey_counter: Arc<AtomicI32> = Arc::new(AtomicI32::new(0));
-  let mut compilation_file_to_chunks: HashMap<&String, Vec<&ChunkUkey>> = HashMap::default();
+  let mut compilation_file_to_chunks: HashMap<Arc<str>, Vec<&ChunkUkey>> = HashMap::default();
   for (chunk_ukey, chunk) in chunk_by_ukey.iter() {
     for file in chunk.files() {
-      let chunks = compilation_file_to_chunks.entry(file).or_default();
+      let chunks = compilation_file_to_chunks.entry(file.clone()).or_default();
       chunks.push(chunk_ukey);
     }
   }
@@ -152,7 +152,7 @@ pub fn collect_assets(
     .par_iter()
     .map(|(path, asset)| {
       let chunks = compilation_file_to_chunks
-        .get(path)
+        .get(path.as_ref())
         .map(|chunks| {
           chunks
             .iter()
@@ -161,10 +161,10 @@ pub fn collect_assets(
         })
         .unwrap_or_default();
       (
-        path.clone(),
+        path.to_string(),
         RsdoctorAsset {
           ukey: asset_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-          path: path.clone(),
+          path: path.to_string(),
           chunks,
           size: asset
             .get_source()
@@ -228,7 +228,7 @@ pub fn collect_chunk_assets(
       assets: chunk
         .files()
         .iter()
-        .filter_map(|file| rsd_assets.get(file).map(|asset| asset.ukey))
+        .filter_map(|file| rsd_assets.get(file.as_ref()).map(|asset| asset.ukey))
         .collect::<HashSet<_>>(),
     })
     .collect::<Vec<_>>()
@@ -255,7 +255,7 @@ pub fn collect_entrypoint_assets(
             chunk_by_ukey.get(c).map(|c| {
               c.files()
                 .iter()
-                .filter_map(|path| rsd_assets.get(path).map(|asset| asset.ukey))
+                .filter_map(|path| rsd_assets.get(path.as_ref()).map(|asset| asset.ukey))
             })
           })
           .flatten()

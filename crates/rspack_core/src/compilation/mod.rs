@@ -213,7 +213,7 @@ pub struct Compilation {
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
   assets: CompilationAssets,
-  assets_related_in: HashMap<String, HashSet<String>>,
+  assets_related_in: HashMap<Arc<str>, HashSet<Arc<str>>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
@@ -732,21 +732,22 @@ impl Compilation {
 
   fn set_asset_info(
     &mut self,
-    name: &str,
+    name: impl Into<Arc<str>>,
     new_info: Option<&AssetInfo>,
     old_info: Option<&AssetInfo>,
   ) {
+    let name = name.into();
     if let Some(old_info) = old_info
       && let Some(source_map) = &old_info.related.source_map
       && let Some(entry) = self.assets_related_in.get_mut(source_map)
     {
-      entry.remove(name);
+      entry.remove(name.as_ref());
     }
     if let Some(new_info) = new_info
       && let Some(source_map) = new_info.related.source_map.clone()
     {
       let entry = self.assets_related_in.entry(source_map).or_default();
-      entry.insert(name.to_string());
+      entry.insert(name);
     }
   }
 
@@ -777,7 +778,7 @@ impl Compilation {
     };
     self.set_asset_info(filename, Some(&new_info), Some(&old_info));
     self.assets.insert(
-      filename.to_owned(),
+      filename.into(),
       CompilationAsset {
         source: Some(new_source),
         info: new_info,
@@ -785,8 +786,10 @@ impl Compilation {
     );
     Ok(())
   }
-  #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
-  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+
+  #[instrument("Compilation:emit_asset", skip_all)]
+  pub fn emit_asset(&mut self, filename: impl Into<Arc<str>>, asset: CompilationAsset) {
+    let filename = filename.into();
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
@@ -807,15 +810,19 @@ impl Compilation {
           )
           .into(),
         );
-        self.set_asset_info(&filename, Some(asset.get_info()), None);
+        self.set_asset_info(filename.clone(), Some(asset.get_info()), None);
         self.assets.insert(filename, asset);
         return;
       }
-      self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
+      self.set_asset_info(
+        filename.clone(),
+        Some(asset.get_info()),
+        Some(original.get_info()),
+      );
       original.info = asset.info;
       self.assets.insert(filename, original);
     } else {
-      self.set_asset_info(&filename, Some(asset.get_info()), None);
+      self.set_asset_info(filename.clone(), Some(asset.get_info()), None);
       self.assets.insert(filename, asset);
     }
   }
@@ -838,18 +845,19 @@ impl Compilation {
     }
   }
 
-  pub fn rename_asset(&mut self, filename: &str, new_name: String) {
+  pub fn rename_asset(&mut self, filename: &str, new_name: impl Into<Arc<str>>) {
+    let new_name = new_name.into();
     if let Some(asset) = self.assets.remove(filename) {
       // Update related in all other assets
       if let Some(related_in_info) = self.assets_related_in.get(filename) {
         for name in related_in_info {
-          if let Some(asset) = self.assets.get_mut(name) {
+          if let Some(asset) = self.assets.get_mut(name.as_ref()) {
             asset.get_info_mut().related.source_map = Some(new_name.clone());
           }
         }
       }
-      self.set_asset_info(filename, None, Some(asset.get_info()));
-      self.set_asset_info(&new_name, Some(asset.get_info()), None);
+      self.set_asset_info(new_name.clone(), None, Some(asset.get_info()));
+      self.set_asset_info(new_name.clone(), Some(asset.get_info()), None);
 
       self.assets.insert(new_name.clone(), asset);
 
@@ -858,11 +866,11 @@ impl Compilation {
         .chunk_by_ukey
         .iter_mut()
         .for_each(|(_, chunk)| {
-          if chunk.remove_file(filename) {
+          if chunk.remove_file(filename.as_ref()) {
             chunk.add_file(new_name.clone());
           }
 
-          if chunk.remove_auxiliary_file(filename) {
+          if chunk.remove_auxiliary_file(filename.as_ref()) {
             chunk.add_auxiliary_file(new_name.clone());
           }
         });
@@ -873,7 +881,7 @@ impl Compilation {
   // Multiple calls to rename_asset would cause performance degradation due to
   // repeated full traversals of chunk_by_ukey. This method uses parallel iteration
   // over chunk_by_ukey to reduce traversal frequency and improve performance.
-  pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
+  pub fn par_rename_assets(&mut self, renames: Vec<(Arc<str>, Arc<str>)>) {
     self
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -881,30 +889,30 @@ impl Compilation {
       .par_bridge()
       .for_each(|chunk| {
         for (old_name, new_name) in renames.iter() {
-          if chunk.remove_file(old_name) {
+          if chunk.remove_file(old_name.as_ref()) {
             chunk.add_file(new_name.clone());
           }
 
-          if chunk.remove_auxiliary_file(old_name) {
+          if chunk.remove_auxiliary_file(old_name.as_ref()) {
             chunk.add_auxiliary_file(new_name.clone());
           }
         }
       });
 
     for (old_name, new_name) in renames {
-      if let Some(asset) = self.assets.remove(&old_name) {
+      if let Some(asset) = self.assets.remove(old_name.as_ref()) {
         // Update related in all other assets
-        if let Some(related_in_info) = self.assets_related_in.get(&old_name) {
+        if let Some(related_in_info) = self.assets_related_in.get(old_name.as_ref()) {
           for related_in_name in related_in_info {
-            if let Some(asset) = self.assets.get_mut(related_in_name) {
+            if let Some(asset) = self.assets.get_mut(related_in_name.as_ref()) {
               asset.get_info_mut().related.source_map = Some(new_name.clone());
             }
           }
         }
-        self.set_asset_info(&old_name, None, Some(asset.get_info()));
-        self.set_asset_info(&new_name, Some(asset.get_info()), None);
+        self.set_asset_info(old_name.clone(), None, Some(asset.get_info()));
+        self.set_asset_info(new_name.clone(), Some(asset.get_info()), None);
 
-        self.assets.insert(new_name, asset);
+        self.assets.insert(new_name.clone(), asset);
       }
     }
   }
@@ -998,25 +1006,26 @@ impl Compilation {
   }
 
   pub fn add_named_chunk(
-    name: String,
+    name: impl Into<Arc<str>>,
     chunk_by_ukey: &mut ChunkByUkey,
-    named_chunks: &mut HashMap<String, ChunkUkey>,
+    named_chunks: &mut HashMap<Arc<str>, ChunkUkey>,
   ) -> (ChunkUkey, bool) {
-    let existed_chunk_ukey = named_chunks.get(&name);
+    let name_key = name.into();
+    let existed_chunk_ukey = named_chunks.get(name_key.as_ref());
     if let Some(chunk_ukey) = existed_chunk_ukey {
       assert!(chunk_by_ukey.contains(chunk_ukey));
       (*chunk_ukey, false)
     } else {
-      let chunk = Chunk::new(Some(name.clone()), ChunkKind::Normal);
+      let chunk = Chunk::new(Some(name_key.clone()), ChunkKind::Normal);
       let ukey = chunk.ukey();
-      named_chunks.insert(name, ukey);
+      named_chunks.insert(name_key, ukey);
       chunk_by_ukey.entry(ukey).or_insert_with(|| chunk);
       (ukey, true)
     }
   }
 
   pub fn add_chunk(chunk_by_ukey: &mut ChunkByUkey) -> ChunkUkey {
-    let chunk = Chunk::new(None, ChunkKind::Normal);
+    let chunk = Chunk::new(None::<&str>, ChunkKind::Normal);
     let ukey = chunk.ukey();
     chunk_by_ukey.add(chunk);
     ukey
@@ -1244,7 +1253,7 @@ impl Compilation {
   }
 }
 
-pub type CompilationAssets = HashMap<String, CompilationAsset>;
+pub type CompilationAssets = HashMap<Arc<str>, CompilationAsset>;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -1430,7 +1439,7 @@ impl AssetInfo {
 #[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct AssetInfoRelated {
-  pub source_map: Option<String>,
+  pub source_map: Option<Arc<str>>,
 }
 
 impl AssetInfoRelated {
@@ -1487,7 +1496,7 @@ pub fn set_depth_if_lower(
 #[derive(Debug, Clone)]
 pub struct RenderManifestEntry {
   pub source: BoxSource,
-  pub filename: String,
+  pub filename: Arc<str>,
   pub has_filename: bool, /* webpack only asset has filename, js/css/wasm has filename template */
   pub info: AssetInfo,
   pub auxiliary: bool,

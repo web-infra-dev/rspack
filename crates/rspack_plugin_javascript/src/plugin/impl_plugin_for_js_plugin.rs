@@ -609,7 +609,7 @@ async fn render_manifest(
 
   manifest.push(RenderManifestEntry {
     source,
-    filename: output_path,
+    filename: Arc::from(output_path),
     has_filename: false,
     info: asset_info,
     auxiliary: false,

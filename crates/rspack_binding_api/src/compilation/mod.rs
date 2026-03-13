@@ -4,7 +4,7 @@ mod dependencies;
 mod diagnostics;
 pub mod entries;
 
-use std::{cell::RefCell, path::Path, ptr::NonNull};
+use std::{cell::RefCell, path::Path, ptr::NonNull, sync::Arc};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
@@ -163,7 +163,7 @@ impl JsCompilation {
     for (filename, asset) in compilation.assets() {
       let info = asset.info.reflector();
       assets.push(JsAsset {
-        name: filename.clone(),
+        name: filename.to_string(),
         info,
       });
     }
@@ -175,7 +175,7 @@ impl JsCompilation {
   pub fn get_asset(&self, name: String) -> Result<Option<JsAsset>> {
     let compilation = self.as_ref()?;
 
-    match compilation.assets().get(&name) {
+    match compilation.assets().get(name.as_str()) {
       Some(asset) => {
         let info = asset.info.reflector();
         Ok(Some(JsAsset { name, info }))
@@ -190,7 +190,7 @@ impl JsCompilation {
 
     compilation
       .assets()
-      .get(&name)
+      .get(name.as_str())
       .and_then(|v| {
         v.source
           .as_ref()
@@ -266,7 +266,7 @@ impl JsCompilation {
         .build_chunk_graph_artifact
         .named_chunks
         .keys()
-        .cloned()
+        .map(|s| s.to_string())
         .collect::<Vec<_>>(),
     )
   }
@@ -279,7 +279,7 @@ impl JsCompilation {
       compilation
         .build_chunk_graph_artifact
         .named_chunks
-        .get(&name)
+        .get(name.as_str())
         .and_then(|c| {
           compilation
             .build_chunk_graph_artifact
@@ -321,7 +321,8 @@ impl JsCompilation {
     let compilation = self.as_mut()?;
 
     let source: BoxSource = source.try_into()?;
-    match compilation.assets_mut().entry(name) {
+    let name_key = Arc::from(name);
+    match compilation.assets_mut().entry(name_key) {
       std::collections::hash_map::Entry::Occupied(mut e) => e.get_mut().set_source(Some(source)),
       std::collections::hash_map::Entry::Vacant(e) => {
         e.insert(rspack_core::CompilationAsset::from(source));
@@ -334,10 +335,9 @@ impl JsCompilation {
   pub fn delete_asset_source(&mut self, name: String) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    compilation
-      .assets_mut()
-      .entry(name)
-      .and_modify(|a| a.set_source(None));
+    if let Some(asset) = compilation.assets_mut().get_mut(name.as_str()) {
+      asset.set_source(None);
+    }
     Ok(())
   }
 
@@ -350,8 +350,7 @@ impl JsCompilation {
         .assets()
         .iter()
         .filter(|(_, asset)| asset.get_source().is_some())
-        .map(|(filename, _)| filename)
-        .cloned()
+        .map(|(filename, _)| filename.to_string())
         .collect(),
     )
   }
@@ -360,7 +359,7 @@ impl JsCompilation {
   pub fn has_asset(&self, name: String) -> Result<bool> {
     let compilation = self.as_ref()?;
 
-    Ok(compilation.assets().contains_key(&name))
+    Ok(compilation.assets().contains_key(name.as_str()))
   }
 
   #[napi(

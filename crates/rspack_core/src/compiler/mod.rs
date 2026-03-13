@@ -96,7 +96,7 @@ pub struct Compiler {
   pub cache: Box<dyn Cache>,
   /// emitted asset versions
   /// the key of HashMap is filename, the value of HashMap is version
-  pub emitted_asset_versions: HashMap<String, String>,
+  pub emitted_asset_versions: HashMap<Arc<str>, String>,
   pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
 }
@@ -352,7 +352,7 @@ impl Compiler {
       .call(&mut self.compilation)
       .await?;
 
-    let mut new_emitted_asset_versions = HashMap::default();
+    let mut new_emitted_asset_versions: HashMap<Arc<str>, String> = HashMap::default();
     let emit_assets_incremental = self
       .compilation
       .incremental
@@ -370,7 +370,7 @@ impl Compiler {
           }
 
           if emit_assets_incremental
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
+            && let Some(old_version) = self.emitted_asset_versions.get(filename.as_ref())
             && old_version.as_str() == asset.info.version
             && !old_version.is_empty()
           {
@@ -381,7 +381,7 @@ impl Compiler {
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
           s.spawn(|(this, filename, asset, output_path)| {
-            this.emit_asset(output_path, filename, asset)
+            this.emit_asset(output_path, filename.as_ref(), asset)
           });
         })
     })
@@ -517,11 +517,10 @@ impl Compiler {
         .emitted_asset_versions
         .iter()
         .filter_map(|(filename, _version)| {
-          if !assets.contains_key(filename) {
-            let filename = filename.to_owned();
+          if !assets.contains_key(filename.as_ref()) {
             Some(async {
-              if !clean_options.keep(&filename).await {
-                let filename = output_path.join(filename);
+              if !clean_options.keep(filename.as_ref()).await {
+                let filename = output_path.join(filename.as_ref());
                 let _ = self.output_filesystem.remove_file(&filename).await;
               }
             })

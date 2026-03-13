@@ -96,7 +96,7 @@ pub fn get_chunk_group_oreded_child_assets<'a>(
             .expect_get(c)
             .files()
             .iter()
-            .map(|file| file.as_str())
+            .map(|file| file.as_ref())
         })
         .collect::<Vec<_>>()
     })

@@ -42,7 +42,7 @@ pub struct Info {
 
 #[derive(Debug, Clone)]
 pub struct Related {
-  pub source_map: Option<String>,
+  pub source_map: Option<Arc<str>>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -637,7 +637,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let source_path = result.absolute_filename.clone();
     let dest_path = compilation.options.output.path.join(&result.filename);
 
-    if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
+    if let Some(exist_asset) = compilation.assets_mut().get_mut(result.filename.as_str()) {
       if !result.force {
         return;
       }

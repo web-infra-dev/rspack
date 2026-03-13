@@ -145,8 +145,8 @@ impl Resolver {
     match self.resolver.resolve(path, request).await {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
-        query: r.query().unwrap_or_default().to_string(),
-        fragment: r.fragment().unwrap_or_default().to_string(),
+        query: Arc::from(r.query().unwrap_or_default()),
+        fragment: Arc::from(r.fragment().unwrap_or_default()),
         description_data: r
           .package_json()
           .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),
@@ -177,8 +177,8 @@ impl Resolver {
     match result {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
-        query: r.query().unwrap_or_default().to_string(),
-        fragment: r.fragment().unwrap_or_default().to_string(),
+        query: Arc::from(r.query().unwrap_or_default()),
+        fragment: Arc::from(r.fragment().unwrap_or_default()),
         description_data: r
           .package_json()
           .map(|d| DescriptionData::new(d.directory().to_path_buf(), Arc::clone(d.raw_json()))),

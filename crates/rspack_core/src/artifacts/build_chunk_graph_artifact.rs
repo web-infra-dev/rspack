@@ -23,7 +23,7 @@ pub struct BuildChunkGraphArtifact {
   pub entrypoints: IndexMap<Arc<str>, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   pub named_chunk_groups: HashMap<Arc<str>, ChunkGroupUkey>,
-  pub named_chunks: HashMap<String, ChunkUkey>,
+  pub named_chunks: HashMap<Arc<str>, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
 }

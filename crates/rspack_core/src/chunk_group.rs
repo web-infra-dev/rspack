@@ -108,7 +108,7 @@ impl ChunkGroup {
       .copied()
   }
 
-  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> Vec<String> {
+  pub fn get_files(&self, chunk_by_ukey: &ChunkByUkey) -> Vec<Arc<str>> {
     self
       .chunks
       .iter()
