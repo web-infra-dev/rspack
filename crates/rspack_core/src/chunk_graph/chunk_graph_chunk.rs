@@ -10,9 +10,7 @@ use hashlink::LinkedHashMap;
 use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{
-  DatabaseItem, IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet,
-};
+use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};

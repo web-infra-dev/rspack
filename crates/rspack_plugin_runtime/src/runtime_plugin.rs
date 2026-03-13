@@ -4,7 +4,6 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkLoading, ChunkUkey, Compilation, CompilationId, CompilationParams,
   CompilationRuntimeRequirementInModule, CompilationRuntimeRequirementInTree, CompilerCompilation,

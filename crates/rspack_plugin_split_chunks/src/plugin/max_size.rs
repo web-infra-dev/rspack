@@ -10,7 +10,6 @@
 use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier,
   SourceType, incremental::Mutation,

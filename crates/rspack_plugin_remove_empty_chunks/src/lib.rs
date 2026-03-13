@@ -1,6 +1,5 @@
 // Port of https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/optimize/RemoveEmptyChunksPlugin.js
 
-use rspack_collections::DatabaseItem;
 use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin, incremental::Mutation};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};

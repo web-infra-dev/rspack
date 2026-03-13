@@ -1,6 +1,5 @@
 use std::sync::LazyLock;
 
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,

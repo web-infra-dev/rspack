@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin,
   incremental::IncrementalPasses,

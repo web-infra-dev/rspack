@@ -3,7 +3,6 @@ use std::{cmp::Ordering, fmt};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, get_filename_without_hash_length,

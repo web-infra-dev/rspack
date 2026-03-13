@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,

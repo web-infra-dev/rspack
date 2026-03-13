@@ -1,4 +1,3 @@
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkGraph, Compilation, CompilerEmit, Context, EntryDependency, Filename, LibIdentOptions,
   PathData, Plugin, PrefetchExportsInfoMode, ProvidedExports, SourceType,

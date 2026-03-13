@@ -1,8 +1,7 @@
 // Port of https://github.com/webpack/webpack/blob/main/lib/util/findGraphRoots.js
 
-use std::{hash::Hash, sync::atomic::AtomicU32};
+use std::{fmt::Debug, hash::Hash, sync::atomic::AtomicU32};
 
-use rspack_collections::{Database, DatabaseItem, ItemUkey, Ukey};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 #[allow(clippy::enum_variant_names)]
@@ -17,32 +16,24 @@ enum Marker {
 static NEXT_CYCLE_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct CycleUkey<T: ItemUkey + Hash + Eq + Copy>(Ukey, std::marker::PhantomData<Cycle<T>>);
+struct CycleUkey<T: Hash + Eq + Copy>(u32, std::marker::PhantomData<Cycle<T>>);
 
-impl<T: ItemUkey + Hash + Eq + Copy> ItemUkey for CycleUkey<T> {
-  fn ukey(&self) -> Ukey {
-    self.0
-  }
-}
-
-impl<T: ItemUkey + Hash + Eq + Copy> CycleUkey<T> {
+impl<T: Hash + Eq + Copy> CycleUkey<T> {
   pub fn new() -> Self {
     Self(
-      NEXT_CYCLE_UKEY
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        .into(),
+      NEXT_CYCLE_UKEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
       std::marker::PhantomData,
     )
   }
 }
 
-struct Cycle<T: ItemUkey + Hash + Eq + Copy> {
+struct Cycle<T: Hash + Eq + Copy> {
   pub ukey: CycleUkey<T>,
   pub nodes: FxHashSet<T>,
   pub is_root: bool,
 }
 
-impl<T: ItemUkey + Hash + Eq + Copy> Default for Cycle<T> {
+impl<T: Hash + Eq + Copy> Default for Cycle<T> {
   fn default() -> Self {
     Self {
       ukey: CycleUkey::<T>::new(),
@@ -52,7 +43,11 @@ impl<T: ItemUkey + Hash + Eq + Copy> Default for Cycle<T> {
   }
 }
 
-impl<T: ItemUkey + Hash + Eq + Copy> Cycle<T> {
+impl<T: Hash + Eq + Copy> Cycle<T> {
+  fn ukey(&self) -> CycleUkey<T> {
+    self.ukey
+  }
+
   fn with_capacity(capacity: usize) -> Self {
     Self {
       ukey: CycleUkey::<T>::new(),
@@ -62,30 +57,15 @@ impl<T: ItemUkey + Hash + Eq + Copy> Cycle<T> {
   }
 }
 
-impl<T: ItemUkey + Hash + Eq + Copy> DatabaseItem for Cycle<T> {
-  type ItemUkey = CycleUkey<T>;
-  fn ukey(&self) -> Self::ItemUkey {
-    self.ukey
-  }
-}
-
 static NEXT_NODE_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct NodeUkey<T: Hash + Eq + Copy>(Ukey, std::marker::PhantomData<Node<T>>);
-
-impl<T: Hash + Eq + Copy> ItemUkey for NodeUkey<T> {
-  fn ukey(&self) -> Ukey {
-    self.0
-  }
-}
+struct NodeUkey<T: Hash + Eq + Copy>(u32, std::marker::PhantomData<Node<T>>);
 
 impl<T: Hash + Eq + Copy> NodeUkey<T> {
   pub fn new() -> Self {
     Self(
-      NEXT_NODE_UKEY
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        .into(),
+      NEXT_NODE_UKEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
       std::marker::PhantomData,
     )
   }
@@ -100,15 +80,11 @@ struct Node<T: Hash + Eq + Copy> {
   pub incoming: usize,
 }
 
-impl<T: Hash + Eq + Copy> DatabaseItem for Node<T> {
-  type ItemUkey = NodeUkey<T>;
-
-  fn ukey(&self) -> Self::ItemUkey {
+impl<T: Hash + Eq + Copy> Node<T> {
+  fn ukey(&self) -> NodeUkey<T> {
     self.ukey
   }
-}
 
-impl<T: Hash + Eq + Copy> Node<T> {
   fn new(item: T) -> Self {
     Self {
       ukey: NodeUkey::new(),
@@ -126,6 +102,22 @@ struct StackEntry<T> {
   open_edges: Vec<T>,
 }
 
+fn expect_get<'a, K, V>(db: &'a FxHashMap<K, V>, key: &K, db_name: &str) -> &'a V
+where
+  K: Eq + Hash + Debug,
+{
+  db.get(key)
+    .unwrap_or_else(|| panic!("{db_name}({key:?}) not found"))
+}
+
+fn expect_get_mut<'a, K, V>(db: &'a mut FxHashMap<K, V>, key: &K, db_name: &str) -> &'a mut V
+where
+  K: Eq + Hash + Debug,
+{
+  db.get_mut(key)
+    .unwrap_or_else(|| panic!("{db_name}({key:?}) not found"))
+}
+
 pub fn find_graph_roots<
   Item: Clone + Copy + std::fmt::Debug + PartialEq + Eq + Hash + Send + Sync + Ord + 'static,
 >(
@@ -138,23 +130,23 @@ pub fn find_graph_roots<
     return items;
   }
 
-  let mut db = Database::<Node<Item>>::new();
-  let mut cycle_db = Database::<Cycle<NodeUkey<Item>>>::new();
+  let mut db = FxHashMap::<NodeUkey<Item>, Node<Item>>::default();
+  let mut cycle_db = FxHashMap::<CycleUkey<NodeUkey<Item>>, Cycle<NodeUkey<Item>>>::default();
 
   items
     .into_iter()
     .map(|item| Node::new(item))
     .for_each(|node| {
-      db.add(node);
+      db.insert(node.ukey(), node);
     });
 
   let item_to_node_ukey = db
     .values()
-    .map(|node| (node.item, node.ukey))
+    .map(|node| (node.item, node.ukey()))
     .collect::<FxHashMap<_, _>>();
 
   // grab all the dependencies
-  db.par_values_mut().for_each(|node| {
+  db.values_mut().par_bridge().for_each(|node| {
     node.dependencies = get_dependencies(node.item)
       .into_iter()
       .filter_map(|item| item_to_node_ukey.get(&item))
@@ -167,23 +159,34 @@ pub fn find_graph_roots<
   let mut roots = FxHashSet::with_capacity_and_hasher(db.len(), Default::default());
 
   let mut keys = db.keys().copied().collect::<Vec<_>>();
-  keys.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
+  keys.sort_by(|a, b| {
+    expect_get(&db, a, "Node")
+      .item
+      .cmp(&expect_get(&db, b, "Node").item)
+  });
 
   // For all non-marked nodes
   for select_node in keys {
-    if matches!(db.expect_get(&select_node).marker, Marker::NoMarker) {
+    if matches!(
+      expect_get(&db, &select_node, "Node").marker,
+      Marker::NoMarker
+    ) {
       // deep-walk all referenced modules
       // in a non-recursive way
 
       // start by entering the selected node
-      db.expect_get_mut(&select_node).marker = Marker::InProgressMarker;
+      expect_get_mut(&mut db, &select_node, "Node").marker = Marker::InProgressMarker;
 
       // keep a stack to avoid recursive walk
       let mut stack = vec![StackEntry {
         node: select_node,
         open_edges: {
-          let mut v: Vec<_> = db.expect_get(&select_node).dependencies.clone();
-          v.sort_by(|a, b| db.expect_get(a).item.cmp(&db.expect_get(b).item));
+          let mut v: Vec<_> = expect_get(&db, &select_node, "Node").dependencies.clone();
+          v.sort_by(|a, b| {
+            expect_get(&db, a, "Node")
+              .item
+              .cmp(&expect_get(&db, b, "Node").item)
+          });
           v
         },
       }];
@@ -197,7 +200,7 @@ pub fn find_graph_roots<
           let mut edges = stack[top_of_stack_idx]
             .open_edges
             .iter()
-            .map(|edge| db.expect_get(edge))
+            .map(|edge| expect_get(&db, edge, "Node"))
             .collect::<Vec<_>>();
 
           edges.sort_by(|a, b| a.item.cmp(&b.item));
@@ -207,52 +210,62 @@ pub fn find_graph_roots<
             .open_edges
             .pop()
             .expect("Should exist");
-          match db.expect_get(&dependency).marker {
+          match expect_get(&db, &dependency, "Node").marker {
             Marker::NoMarker => {
               // dependency has not be visited yet
               // mark it as in-progress and recurse
               stack.push(StackEntry {
                 node: dependency,
                 open_edges: {
-                  let mut v: Vec<_> = db.expect_get(&dependency).dependencies.clone();
+                  let mut v: Vec<_> = expect_get(&db, &dependency, "Node").dependencies.clone();
                   v.sort_unstable();
                   v
                 },
               });
-              db.expect_get_mut(&dependency).marker = Marker::InProgressMarker;
+              expect_get_mut(&mut db, &dependency, "Node").marker = Marker::InProgressMarker;
             }
             Marker::InProgressMarker => {
               // It's a in-progress cycle
-              let cycle = &db.expect_get(&dependency).cycle;
+              let cycle = &expect_get(&db, &dependency, "Node").cycle;
               if cycle.is_none() {
-                let cycle = {
+                let cycle_ukey = {
                   let item = Cycle::<NodeUkey<Item>>::with_capacity(stack.len());
                   let ukey = item.ukey();
-                  cycle_db.add(item);
-                  cycle_db.get_mut(&ukey).expect("should have item")
+                  cycle_db.insert(ukey, item);
+                  ukey
                 };
-                cycle.nodes.insert(dependency);
-                db.expect_get_mut(&dependency).cycle = Some(cycle.ukey);
+                expect_get_mut(&mut cycle_db, &cycle_ukey, "Cycle")
+                  .nodes
+                  .insert(dependency);
+                expect_get_mut(&mut db, &dependency, "Node").cycle = Some(cycle_ukey);
               }
-              let cycle = db.expect_get(&dependency).cycle.expect("Should exist");
+              let cycle = expect_get(&db, &dependency, "Node")
+                .cycle
+                .expect("Should exist");
 
               // set cycle property for each node in the cycle
               // if nodes are already part of a cycle
               // we merge the cycles to a shared cycle
               {
                 let mut i = stack.len() - 1;
-                while db.expect_get(&stack[i].node).item != db.expect_get(&dependency).item {
+                while expect_get(&db, &stack[i].node, "Node").item
+                  != expect_get(&db, &dependency, "Node").item
+                {
                   let node = stack[i].node;
-                  if let Some(node_cycle) = db.expect_get(&node).cycle {
+                  if let Some(node_cycle) = expect_get(&db, &node, "Node").cycle {
                     if node_cycle != cycle {
-                      for cycle_node in cycle_db.expect_get(&node_cycle).nodes.clone() {
-                        db.expect_get_mut(&cycle_node).cycle = Some(cycle);
-                        cycle_db.expect_get_mut(&cycle).nodes.insert(cycle_node);
+                      for cycle_node in expect_get(&cycle_db, &node_cycle, "Cycle").nodes.clone() {
+                        expect_get_mut(&mut db, &cycle_node, "Node").cycle = Some(cycle);
+                        expect_get_mut(&mut cycle_db, &cycle, "Cycle")
+                          .nodes
+                          .insert(cycle_node);
                       }
                     }
                   } else {
-                    db.expect_get_mut(&node).cycle = Some(cycle);
-                    cycle_db.expect_get_mut(&cycle).nodes.insert(node);
+                    expect_get_mut(&mut db, &node, "Node").cycle = Some(cycle);
+                    expect_get_mut(&mut cycle_db, &cycle, "Cycle")
+                      .nodes
+                      .insert(node);
                   }
 
                   if i == 0 {
@@ -266,29 +279,29 @@ pub fn find_graph_roots<
               // these are already on the stack
             }
             Marker::DoneAndRootMarker => {
-              db.expect_get_mut(&dependency).marker = Marker::DoneMarker;
+              expect_get_mut(&mut db, &dependency, "Node").marker = Marker::DoneMarker;
               roots.remove(&dependency);
             }
             Marker::DoneMaybeRootCycleMarker => {
-              if let Some(cycle) = db.expect_get(&dependency).cycle {
-                cycle_db.expect_get_mut(&cycle).is_root = false;
+              if let Some(cycle) = expect_get(&db, &dependency, "Node").cycle {
+                expect_get_mut(&mut cycle_db, &cycle, "Cycle").is_root = false;
               };
-              db.expect_get_mut(&dependency).marker = Marker::DoneMarker;
+              expect_get_mut(&mut db, &dependency, "Node").marker = Marker::DoneMarker;
             }
             _ => {}
           }
         } else if let Some(top_of_stack) = stack.pop() {
-          db.expect_get_mut(&top_of_stack.node).marker = Marker::DoneMarker;
+          expect_get_mut(&mut db, &top_of_stack.node, "Node").marker = Marker::DoneMarker;
         }
       }
-      let cycle = db.expect_get(&select_node).cycle;
+      let cycle = expect_get(&db, &select_node, "Node").cycle;
       if let Some(cycle) = cycle {
-        for node in cycle_db.expect_get_mut(&cycle).nodes.iter() {
-          db.expect_get_mut(node).marker = Marker::DoneMaybeRootCycleMarker;
+        for node in expect_get_mut(&mut cycle_db, &cycle, "Cycle").nodes.iter() {
+          expect_get_mut(&mut db, node, "Node").marker = Marker::DoneMaybeRootCycleMarker;
         }
-        cycle_db.expect_get_mut(&cycle).is_root = true;
+        expect_get_mut(&mut cycle_db, &cycle, "Cycle").is_root = true;
       } else {
-        db.expect_get_mut(&select_node).marker = Marker::DoneAndRootMarker;
+        expect_get_mut(&mut db, &select_node, "Node").marker = Marker::DoneAndRootMarker;
         roots.insert(select_node);
       }
     }
@@ -307,18 +320,18 @@ pub fn find_graph_roots<
   for cycle in root_cycles {
     let mut max = 0;
 
-    let nodes = &cycle_db.expect_get(&cycle).nodes;
+    let nodes = &expect_get(&cycle_db, &cycle, "Cycle").nodes;
     let mut cycle_roots = FxHashSet::with_capacity_and_hasher(nodes.len(), Default::default());
     for node in nodes.iter() {
-      for dep in db.expect_get(node).dependencies.clone() {
+      for dep in expect_get(&db, node, "Node").dependencies.clone() {
         if nodes.contains(&dep) {
-          db.expect_get_mut(&dep).incoming += 1;
-          if db.expect_get(&dep).incoming < max {
+          expect_get_mut(&mut db, &dep, "Node").incoming += 1;
+          if expect_get(&db, &dep, "Node").incoming < max {
             continue;
           }
-          if db.expect_get(&dep).incoming > max {
+          if expect_get(&db, &dep, "Node").incoming > max {
             cycle_roots.clear();
-            max = db.expect_get(&dep).incoming;
+            max = expect_get(&db, &dep, "Node").incoming;
           }
           cycle_roots.insert(dep);
         }
