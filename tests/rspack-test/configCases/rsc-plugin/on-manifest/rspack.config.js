@@ -82,9 +82,7 @@ module.exports = [
 					expect(entryNames).toContain('main');
 
 					const mainEntry = manifest.main;
-					expect(mainEntry).toHaveProperty('moduleLoading');
-					expect(mainEntry.moduleLoading).toHaveProperty('prefix');
-					expect(typeof mainEntry.moduleLoading.prefix).toBe('string');
+					expect(mainEntry.moduleLoading.prefix).toBe('/');
 					expect(mainEntry).toHaveProperty('serverManifest');
 					expect(mainEntry).toHaveProperty('clientManifest');
 					expect(mainEntry).toHaveProperty('serverConsumerModuleMap');

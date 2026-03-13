@@ -72,7 +72,7 @@ importers:
         specifier: 1.0.7
         version: 1.0.7
       emnapi:
-        specifier: ^1.8.1
+        specifier: 1.8.1
         version: 1.8.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.3
@@ -118,7 +118,7 @@ importers:
         specifier: 1.0.7
         version: 1.0.7
       emnapi:
-        specifier: ^1.8.1
+        specifier: 1.8.1
         version: 1.8.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.3

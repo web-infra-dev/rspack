@@ -17,7 +17,7 @@ export function validateShareScope(
 ): void {
   if (Array.isArray(shareScope) && shareScope.length > 1 && !enhanced) {
     throw new Error(
-      `[${pluginName}] Multiple share scopes are only supported in enhanced mode. Got: ${JSON.stringify(shareScope)}`,
+      `[${pluginName}] shareScope as an array with multiple entries requires enhanced=true, got: ${JSON.stringify(shareScope)}`,
     );
   }
 }

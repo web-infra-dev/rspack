@@ -5,7 +5,7 @@ use std::{
 };
 
 use rayon::{iter::Either, prelude::*};
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, UkeyMap, UkeySet};
+use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
@@ -80,7 +80,7 @@ impl EsmLibraryPlugin {
     chunk: ChunkUkey,
     local: Atom,
     exported: Atom,
-    chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+    chunk_exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
     strict_exports: bool,
   ) -> Option<Atom> {
     let ctx = chunk_exports.get_mut_unwrap(&chunk);
@@ -138,7 +138,7 @@ impl EsmLibraryPlugin {
     ref_chunk: ChunkUkey,
     local_name: Atom,
     export_name: Atom,
-    chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+    chunk_exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
     strict_exports: bool,
   ) -> Option<&Atom> {
     let exports_context = chunk_exports.get_mut_unwrap(&orig_chunk);
@@ -176,7 +176,7 @@ impl EsmLibraryPlugin {
     request: String,
     imported_name: Atom,
     export_name: Atom,
-    chunk_exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+    chunk_exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
   ) {
     let ctx = chunk_exports.get_mut_unwrap(&chunk);
     ctx.exported_symbols.insert(export_name.clone());
@@ -207,7 +207,7 @@ impl EsmLibraryPlugin {
       .await?;
 
     // initialize data for link chunks
-    let mut link: UkeyMap<ChunkUkey, ChunkLinkContext> = compilation
+    let mut link: FxHashMap<ChunkUkey, ChunkLinkContext> = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .keys()
@@ -355,7 +355,7 @@ impl EsmLibraryPlugin {
     }
 
     // link imported specifier with exported symbol
-    let mut needed_namespace_objects_by_ukey = UkeyMap::default();
+    let mut needed_namespace_objects_by_ukey = FxHashMap::default();
     diagnostics.extend(self.link_imports_and_exports(
       compilation,
       &mut link,
@@ -820,7 +820,7 @@ var {} = {{}};
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
   ) -> Result<()> {
     let runtime_template = compilation.runtime_template.create_runtime_code_template();
-    let mut outputs = UkeyMap::<ChunkUkey, String>::default();
+    let mut outputs = FxHashMap::<ChunkUkey, String>::default();
     let module_keys: Vec<ModuleIdentifier> = orig_concate_modules_map.keys().copied().collect();
     for m in &module_keys {
       if compilation
@@ -1198,8 +1198,8 @@ var {} = {{}};
     entry_module: ModuleIdentifier,
     current_chunk: ChunkUkey,
     entry_chunk: ChunkUkey,
-    link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
-    exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+    link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
+    exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     strict_current_chunk: bool,
     allow_rename: bool,
@@ -1268,10 +1268,10 @@ var {} = {{}};
     compilation: &Compilation,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
-    link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
+    link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
-    exports: &mut UkeyMap<ChunkUkey, ExportsContext>,
+    exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
     filter_unused: bool,
@@ -1532,9 +1532,9 @@ var {} = {{}};
   fn link_imports_and_exports(
     &self,
     compilation: &Compilation,
-    link: &mut UkeyMap<ChunkUkey, ChunkLinkContext>,
+    link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
-    needed_namespace_objects_by_ukey: &mut UkeyMap<ChunkUkey, IdentifierIndexSet>,
+    needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
@@ -1550,16 +1550,16 @@ var {} = {{}};
       .chunk_by_ukey
       .keys()
       .map(|chunk| (*chunk, Default::default()))
-      .collect::<UkeyMap<ChunkUkey, ExportsContext>>();
+      .collect::<FxHashMap<ChunkUkey, ExportsContext>>();
     let mut imports = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .keys()
       .map(|chunk| (*chunk, Default::default()))
-      .collect::<UkeyMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
+      .collect::<FxHashMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
 
     // const symbol = __webpack_require__(module);
-    let mut required = UkeyMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
+    let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // link entry direct exports
     for (entry_name, entrypoint_ukey) in compilation.build_chunk_graph_artifact.entrypoints.iter() {
@@ -1603,34 +1603,12 @@ var {} = {{}};
 
         if let Some(hashbang) = &hashbang {
           let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
-          entry_chunk_link.init_fragments.insert(
-            0,
-            Box::new(rspack_core::NormalInitFragment::new(
-              format!("{hashbang}\n"),
-              rspack_core::InitFragmentStage::StageConstants,
-              i32::MIN,
-              rspack_core::InitFragmentKey::unique(),
-              None,
-            )),
-          );
+          entry_chunk_link.hashbang = Some(format!("{hashbang}\n"));
         }
 
         if let Some(directives) = directives {
-          let entry_module_chunk_link = link.get_mut_unwrap(&entry_module_chunk);
-
-          for (idx, directive) in directives.iter().enumerate() {
-            let insert_pos = if hashbang.is_some() { 1 + idx } else { idx };
-            entry_module_chunk_link.init_fragments.insert(
-              insert_pos,
-              Box::new(rspack_core::NormalInitFragment::new(
-                format!("{directive}\n"),
-                rspack_core::InitFragmentStage::StageConstants,
-                i32::MIN + 1 + idx as i32,
-                rspack_core::InitFragmentKey::unique(),
-                None,
-              )),
-            );
-          }
+          let entry_chunk_link = link.get_mut_unwrap(&entry_chunk_ukey);
+          entry_chunk_link.directives = directives;
         }
 
         /*
@@ -1663,7 +1641,7 @@ var {} = {{}};
     // object and record it in dyn_import_ns_map so that the dyn import template
     // can render `.then(m => m.<ns_name>)`.
     {
-      let entry_chunk_ukey_set: UkeySet<ChunkUkey> = compilation
+      let entry_chunk_ukey_set: FxHashSet<ChunkUkey> = compilation
         .build_chunk_graph_artifact
         .entrypoints
         .values()

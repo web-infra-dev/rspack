@@ -4,8 +4,9 @@ mod module_graph;
 use std::sync::Arc;
 
 pub use module_graph::SCOPE;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
 use super::super::{Storage, codec::CacheCodec};
 use crate::{
@@ -94,7 +95,7 @@ impl MakeOccasion {
     }
 
     // recovery make_failed_dependencies
-    let mut make_failed_dependencies = UkeySet::default();
+    let mut make_failed_dependencies = FxHashSet::default();
     for (dep_id, dep) in mg.dependencies() {
       if let Some(info) = FactorizeInfo::get_from(dep) {
         if !info.is_success() {
