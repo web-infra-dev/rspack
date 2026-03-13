@@ -1164,13 +1164,26 @@ var {} = {{}};
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     collect_own_exports: bool,
+    cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> FxIndexSet<Either<Atom, ModuleIdentifier>> {
+    // Memoize recursive calls to avoid redundant traversals of the same
+    // module's export * chains (hot path: conn.is_active + dep.get_mode).
+    if collect_own_exports {
+      if let Some(cached) = cache.get(&module_id) {
+        return cached.clone();
+      }
+    }
+
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
 
     if module.as_external_module().is_some() {
-      return std::iter::once(Either::Right(module_id)).collect();
+      let result: FxIndexSet<_> = std::iter::once(Either::Right(module_id)).collect();
+      if collect_own_exports {
+        cache.insert(module_id, result.clone());
+      }
+      return result;
     }
 
     let mut exports = if collect_own_exports {
@@ -1212,16 +1225,20 @@ var {} = {{}};
 
         if matches!(mode, ExportMode::DynamicReexport(_)) {
           let ref_module = conn.module_identifier();
-          // collect all exports from ref module
           exports.extend(Self::resolve_re_export_star_from_unknown(
             *ref_module,
             module_graph,
             module_graph_cache,
             exports_info_artifact,
             true,
+            cache,
           ));
         }
       }
+    }
+
+    if collect_own_exports {
+      cache.insert(module_id, exports.clone());
     }
 
     exports
@@ -1310,6 +1327,7 @@ var {} = {{}};
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
     filter_unused: bool,
+    re_export_star_cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1343,6 +1361,7 @@ var {} = {{}};
       // by usage above — only collect `export *` targets here.
       // When filter_unused is false (entry modules), also collect own exports.
       !filter_unused,
+      re_export_star_cache,
     )
     .iter()
     .for_each(|either| {
@@ -1576,6 +1595,11 @@ var {} = {{}};
     let context = &compilation.options.context;
     let module_graph = compilation.get_module_graph();
 
+    // Cache for resolve_re_export_star_from_unknown to avoid redundant
+    // traversals of the same module's export * chains across entry modules.
+    let mut re_export_star_cache: IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>> =
+      IdentifierMap::default();
+
     // we don't modify exports and imports in chunk_link directly unless,
     // we re-borrow data from the chunk_link many times to avoid borrow
     // checker issue, so put chunk_link.exports, chunk_link.imports and
@@ -1666,6 +1690,7 @@ var {} = {{}};
           escaped_identifiers,
           false,
           false,
+          &mut re_export_star_cache,
         ));
       }
     }
@@ -1760,6 +1785,7 @@ var {} = {{}};
             escaped_identifiers,
             allow_rename,
             true,
+            &mut re_export_star_cache,
           ));
         }
       }

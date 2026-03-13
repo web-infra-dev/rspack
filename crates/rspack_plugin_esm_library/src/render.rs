@@ -516,30 +516,33 @@ var {} = {{}};
         .chunk_by_ukey
         .expect_get(chunk);
 
-      import_source.add(RawStringSource::from(format!(
-        "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
-        if imported.is_empty() {
-          String::new()
-        } else {
-          format!(
-            "{{ {} }} from ",
-            imported
-              .iter()
-              .map(|(imported, local)| {
-                let imported_name = export_name(imported).expect("should have export_name");
-                if imported == local {
-                  imported_name.into_owned()
-                } else {
-                  let local_name = export_name(local).expect("should have export_name");
-                  format!("{imported_name} as {local_name}")
-                }
-              })
-              .collect::<Vec<_>>()
-              .join(", ")
-          )
-        },
-        chunk.expect_id().as_str()
-      )));
+      if imported.is_empty() {
+        import_source.add(RawStringSource::from(format!(
+          "import \"__RSPACK_ESM_CHUNK_{}\";\n",
+          chunk.expect_id().as_str()
+        )));
+      } else {
+        let mut stmt = String::with_capacity(imported.len() * 30 + 40);
+        stmt.push_str("import { ");
+        for (i, (imported_sym, local)) in imported.iter().enumerate() {
+          if i > 0 {
+            stmt.push_str(", ");
+          }
+          let imported_name = export_name(imported_sym).expect("should have export_name");
+          if imported_sym == local {
+            stmt.push_str(&imported_name);
+          } else {
+            let local_name = export_name(local).expect("should have export_name");
+            stmt.push_str(&imported_name);
+            stmt.push_str(" as ");
+            stmt.push_str(&local_name);
+          }
+        }
+        stmt.push_str(" } from \"__RSPACK_ESM_CHUNK_");
+        stmt.push_str(chunk.expect_id().as_str());
+        stmt.push_str("\";\n");
+        import_source.add(RawStringSource::from(stmt));
+      }
     }
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
@@ -606,14 +609,16 @@ var {} = {{}};
     }
 
     if !export_specifiers.is_empty() {
-      final_source.add(RawStringSource::from(format!(
-        "export {{ {} }};\n",
-        export_specifiers
-          .into_iter()
-          .map(|s| s.to_string())
-          .collect::<Vec<_>>()
-          .join(", ")
-      )));
+      let mut export_str = String::with_capacity(export_specifiers.len() * 20);
+      export_str.push_str("export { ");
+      for (i, s) in export_specifiers.iter().enumerate() {
+        if i > 0 {
+          export_str.push_str(", ");
+        }
+        export_str.push_str(s);
+      }
+      export_str.push_str(" };\n");
+      final_source.add(RawStringSource::from(export_str));
     }
 
     // render star exports
@@ -639,41 +644,40 @@ var {} = {{}};
       let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
       export_symbols.sort_by(|a, b| a.0.cmp(b.0));
 
-      final_source.add(RawStringSource::from(format!(
-        "export {{ {} }} from \"{}\";\n",
-        export_symbols
-          .iter()
-          .flat_map(|(imported, exports)| {
-            let mut vec = exports.iter().collect::<Vec<_>>();
-            vec.sort_unstable();
-            let imported_name = export_name(imported)
-              .expect("should have export_name")
-              .into_owned();
-            vec.into_iter().map(move |exported_name| {
-              if *imported == exported_name {
-                imported_name.clone()
-              } else {
-                let exported_name_str =
-                  export_name(exported_name).expect("should have export_name");
-                format!("{imported_name} as {exported_name_str}")
-              }
-            })
-          })
-          .collect::<Vec<_>>()
-          .join(", "),
-        match re_export_from {
-          crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-            let chunk = compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get(chunk_ukey);
-            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
+      let from_str = match re_export_from {
+        crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(chunk_ukey);
+          Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
+        }
+        crate::chunk_link::ReExportFrom::Request(request) => Cow::Borrowed(request.as_str()),
+      };
+      let mut stmt = String::with_capacity(export_symbols.len() * 30 + from_str.len() + 30);
+      stmt.push_str("export { ");
+      let mut first = true;
+      for (imported, exports) in &export_symbols {
+        let mut sorted_exports = exports.iter().collect::<Vec<_>>();
+        sorted_exports.sort_unstable();
+        let imported_name = export_name(imported).expect("should have export_name");
+        for exported_name in sorted_exports {
+          if !first {
+            stmt.push_str(", ");
           }
-          crate::chunk_link::ReExportFrom::Request(request) => {
-            Cow::Borrowed(request)
+          first = false;
+          stmt.push_str(&imported_name);
+          if *imported != exported_name {
+            let exported_name_str = export_name(exported_name).expect("should have export_name");
+            stmt.push_str(" as ");
+            stmt.push_str(&exported_name_str);
           }
         }
-      )));
+      }
+      stmt.push_str(" } from \"");
+      stmt.push_str(&from_str);
+      stmt.push_str("\";\n");
+      final_source.add(RawStringSource::from(stmt));
     }
 
     if let Some(default_export) = export_default {
