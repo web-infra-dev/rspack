@@ -7,7 +7,11 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::{borrow::Cow, hash::Hash, sync::{Arc, LazyLock}};
+use std::{
+  borrow::Cow,
+  hash::Hash,
+  sync::{Arc, LazyLock},
+};
 
 use regex::Regex;
 use rspack_collections::DatabaseItem;

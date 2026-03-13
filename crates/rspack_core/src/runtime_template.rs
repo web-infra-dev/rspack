@@ -721,7 +721,10 @@ impl ModuleCodeTemplate {
     let block = mg.block_by_id_expect(block);
     let comment = self.comment(CommentOptions {
       request: None,
-      chunk_name: block.get_group_options().and_then(|o| o.name()).map(|v| v.as_ref()),
+      chunk_name: block
+        .get_group_options()
+        .and_then(|o| o.name())
+        .map(|v| v.as_ref()),
       message: Some(message),
     });
     let chunks = chunk_group

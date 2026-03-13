@@ -105,9 +105,8 @@ pub fn filter_assets(
   shared_asset_files: &HashSet<Arc<str>>,
   remove_shared: bool,
 ) {
-  let filter_fn = |asset: &Arc<str>| {
-    !entry_files.contains(asset.as_ref()) || shared_asset_files.contains(asset)
-  };
+  let filter_fn =
+    |asset: &Arc<str>| !entry_files.contains(asset.as_ref()) || shared_asset_files.contains(asset);
 
   assets.js.sync.retain(filter_fn);
   assets.js.r#async.retain(filter_fn);

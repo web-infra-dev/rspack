@@ -1,7 +1,6 @@
 mod hot_module_replacement;
 
-use std::collections::hash_map;
-use std::sync::Arc;
+use std::{collections::hash_map, sync::Arc};
 
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{DatabaseItem, IdentifierSet};
@@ -319,7 +318,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                   ),
               )
               .await?
-              .as_ref()
+              .as_ref(),
           )
         };
         let asset = CompilationAsset::new(

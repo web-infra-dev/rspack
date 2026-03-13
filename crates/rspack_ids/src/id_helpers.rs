@@ -243,8 +243,11 @@ pub fn get_short_chunk_name(
     })
     .collect::<Vec<_>>();
 
-  let mut id_name_hints: Vec<String> =
-    chunk.id_name_hints().iter().map(|s| s.to_string()).collect();
+  let mut id_name_hints: Vec<String> = chunk
+    .id_name_hints()
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
   id_name_hints.sort_unstable();
 
   id_name_hints.extend(short_module_names);
@@ -308,8 +311,11 @@ pub fn get_long_chunk_name(
     .iter()
     .map(|m| request_to_id(&get_long_module_name("", m, context)))
     .collect::<Vec<_>>();
-  let mut id_name_hints: Vec<String> =
-    chunk.id_name_hints().iter().map(|s| s.to_string()).collect();
+  let mut id_name_hints: Vec<String> = chunk
+    .id_name_hints()
+    .iter()
+    .map(|s| s.to_string())
+    .collect();
   id_name_hints.sort_unstable();
 
   let chunk_name = {

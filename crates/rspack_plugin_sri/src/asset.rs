@@ -318,7 +318,10 @@ pub async fn detect_unresolved_integrity(
     .values()
   {
     for file in chunk.files() {
-      if let Some(source) = compilation.assets().get(file.as_ref()).and_then(|a| a.get_source())
+      if let Some(source) = compilation
+        .assets()
+        .get(file.as_ref())
+        .and_then(|a| a.get_source())
         && source
           .source()
           .into_string_lossy()
