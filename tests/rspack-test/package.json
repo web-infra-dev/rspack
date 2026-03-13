@@ -15,7 +15,8 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
-    "@module-federation/runtime-tools": "2.1.0",
+    "@module-federation/node": "https://pkg.pr.new/@module-federation/node@881b30d",
+    "@module-federation/runtime-tools": "https://pkg.pr.new/@module-federation/runtime-tools@881b30d",
     "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
@@ -46,6 +47,7 @@
     "file-loader": "^6.2.0",
     "html-loader": "^5.1.0",
     "html-webpack-plugin": "^5.6.6",
+    "is-ci": "4.1.0",
     "json-loader": "^0.5.7",
     "json5": "^2.2.3",
     "less": "4.4.2",

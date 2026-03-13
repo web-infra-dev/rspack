@@ -193,20 +193,26 @@ impl Module for RscEntryModule {
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
       let mut blocks = vec![];
-      let dependencies: Vec<BoxDependency> = vec![];
+      let mut dependencies: Vec<BoxDependency> = vec![];
+      let client_modules = self.client_modules.clone();
 
-      for client_module in &self.client_modules {
+      for client_module in client_modules {
         let dep = ClientReferenceDependency::new(
           client_module.request.clone(),
           client_module.ids.clone(),
           self.is_server_side_rendering,
         );
+        if client_module.is_remote {
+          self.add_dependency_id(*dep.id());
+          dependencies.push(Box::new(dep));
+          continue;
+        }
         let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
           None,
           vec![Box::new(dep) as Box<dyn Dependency>],
-          Some(client_module.request.clone()),
+          Some(client_module.request),
         );
         blocks.push(Box::new(block));
       }
@@ -252,6 +258,21 @@ impl Module for RscEntryModule {
         code_generation_result.with_javascript(RawStringSource::from(source).boxed());
     } else {
       let mut comments = Vec::new();
+      for dependency_id in self.get_dependencies() {
+        let dependency = module_graph.dependency_by_id(dependency_id);
+        let request = dependency
+          .downcast_ref::<ClientReferenceDependency>()
+          .unwrap_or_else(|| {
+            panic!(
+              "Expected direct dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
+              dependency.dependency_type()
+            )
+          })
+          .user_request();
+
+        let comment = to_comment(&contextify(compilation.options.context.as_path(), request));
+        comments.push(comment);
+      }
       for block_id in self.get_blocks() {
         let block = module_graph
           .block_by_id(block_id)

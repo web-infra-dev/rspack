@@ -6,10 +6,33 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_util::fx_hash::FxIndexSet;
+use rustc_hash::FxHashMap;
+use serde::Serialize;
 
 use crate::{
-  plugin_state::PLUGIN_STATES, reference_manifest::RscEntryManifest, utils::to_json_string_literal,
+  plugin_state::PLUGIN_STATES,
+  reference_manifest::{
+    ActionReferenceManifest, ClientReferenceManifest, ManifestExport, ManifestNode, ModuleLoading,
+  },
+  utils::to_json_string_literal,
 };
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RuntimeRscManifest<'a> {
+  pub version: u8,
+  pub server_manifest: &'a FxHashMap<String, ManifestExport>,
+  pub client_manifest: &'a FxHashMap<String, ManifestExport>,
+  #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+  pub client_references: &'a ClientReferenceManifest,
+  #[serde(default, skip_serializing_if = "FxHashMap::is_empty")]
+  pub actions: &'a ActionReferenceManifest,
+  pub server_consumer_module_map: &'a FxHashMap<String, ManifestNode>,
+  pub module_loading: &'a ModuleLoading,
+  pub entry_css_files: &'a FxHashMap<String, FxIndexSet<String>>,
+  pub entry_js_files: &'a FxIndexSet<String>,
+}
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -66,19 +89,23 @@ impl RuntimeModule for RscManifestRuntimeModule {
         server_compiler_id.as_u32()
       )
     })?;
-    let server_manifest = &entry_state.server_actions;
-    let client_manifest = &entry_state.client_modules;
-    let server_consumer_module_map = entry_state.server_consumer_module_map.as_ref();
     let module_loading = plugin_state.module_loading.as_ref().ok_or_else(|| {
       rspack_error::error!(
         "Missing RSC moduleLoading config in plugin state. Ensure ClientPlugin is applied."
       )
     })?;
+    let empty_consumer_map: FxHashMap<String, ManifestNode> = FxHashMap::default();
 
-    let rsc_manifest = RscEntryManifest {
-      server_manifest,
-      client_manifest,
-      server_consumer_module_map,
+    let rsc_manifest = RuntimeRscManifest {
+      version: 1,
+      server_manifest: &entry_state.server_actions,
+      client_manifest: &entry_state.client_modules,
+      client_references: &entry_state.client_references,
+      actions: &entry_state.action_references,
+      server_consumer_module_map: entry_state
+        .server_consumer_module_map
+        .as_ref()
+        .unwrap_or(&empty_consumer_map),
       module_loading,
       entry_css_files: &entry_state.entry_css_files,
       entry_js_files: &entry_state.entry_js_files,

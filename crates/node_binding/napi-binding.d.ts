@@ -2567,6 +2567,7 @@ export interface RawModuleFederationManifestPluginOptions {
 
 export interface RawModuleFederationRuntimeExperimentsOptions {
   asyncStartup?: boolean
+  rsc?: boolean
 }
 
 export interface RawModuleFederationRuntimePluginOptions {

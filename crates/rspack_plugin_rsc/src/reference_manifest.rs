@@ -11,7 +11,7 @@ use crate::{
   constants::LAYERS_NAMES,
   loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
   plugin_state::PluginState,
-  utils::{ChunkModules, get_module_resource},
+  utils::get_module_resource,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -28,6 +28,48 @@ pub struct ManifestExport {
 }
 
 pub type ManifestNode = FxHashMap<String, ManifestExport>;
+
+#[allow(dead_code)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum ClientReferenceResolution {
+  Local,
+  Shared {
+    share_key: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    share_scope: Vec<String>,
+  },
+  Remote {
+    request: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    share_scope: Vec<String>,
+  },
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ClientReferenceManifestEntry {
+  pub export_name: String,
+  pub module_id: String,
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub chunks: Vec<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub r#async: Option<bool>,
+  pub resolution: ClientReferenceResolution,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionReferenceManifestEntry {
+  pub local_action_id: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub export_name: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub module_resource: Option<String>,
+}
+
+pub type ClientReferenceManifest = FxHashMap<String, ClientReferenceManifestEntry>;
+pub type ActionReferenceManifest = FxHashMap<String, ActionReferenceManifestEntry>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -81,60 +123,87 @@ fn build_server_manifest_per_entry(
   compilation: &Compilation,
   entry_name: &Arc<str>,
   server_actions: &mut ServerReferenceManifest,
+  action_references: &mut ActionReferenceManifest,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  let mut record_module =
-    |module_identifier: &ModuleIdentifier, module_id: &ModuleId| -> Result<()> {
-      let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-        return Ok(());
-      };
-      let Some(normal_module) = module.as_normal_module() else {
-        return Ok(());
-      };
-
-      let request = normal_module.request();
-      if !request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
-        return Ok(());
-      }
-
-      let loader_query = request
-        .split_once('?')
-        .map(|x| x.1)
-        .unwrap_or_default()
-        .rsplit_once('!')
-        .map(|x| x.0)
-        .unwrap_or_default();
-
-      let loader_options = form_urlencoded::parse(loader_query.as_bytes());
-      for (k, v) in loader_options {
-        if k != "actions" {
-          continue;
-        }
-
-        if let Some(actions) = parse_action_entries(v.into_owned())? {
-          for action in actions {
-            server_actions.insert(
-              action.id.clone(),
-              ManifestExport {
-                id: module_id.to_string(),
-                name: action.id.clone(),
-                // Server Action modules serve as endpoints rather than code splitting points,
-                // so ensuring chunk loading at runtime is unnecessary.
-                chunks: vec![],
-                r#async: Some(ModuleGraph::is_async(
-                  &compilation.async_modules_artifact,
-                  &module.identifier(),
-                )),
-              },
-            );
-          }
-        }
-        break;
-      }
-
-      Ok(())
+  let mut record_module = |module_identifier: &ModuleIdentifier,
+                           module_id: &ModuleId|
+   -> Result<()> {
+    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+      return Ok(());
     };
+    let Some(normal_module) = module.as_normal_module() else {
+      return Ok(());
+    };
+
+    let request = normal_module.request();
+    if !request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
+      return Ok(());
+    }
+
+    let loader_query = request
+      .split_once('?')
+      .map(|x| x.1)
+      .unwrap_or_default()
+      .rsplit_once('!')
+      .map(|x| x.0)
+      .unwrap_or_default();
+
+    let loader_options = form_urlencoded::parse(loader_query.as_bytes());
+    for (k, v) in loader_options {
+      if k != "actions" {
+        continue;
+      }
+
+      if let Some(actions) = parse_action_entries(v.into_owned())? {
+        for action in actions {
+          let manifest_export = ManifestExport {
+            id: module_id.to_string(),
+            name: action.id.clone(),
+            // Server Action modules serve as endpoints rather than code splitting points,
+            // so ensuring chunk loading at runtime is unnecessary.
+            chunks: vec![],
+            r#async: Some(ModuleGraph::is_async(
+              &compilation.async_modules_artifact,
+              &module.identifier(),
+            )),
+          };
+          if let Some(existing) = server_actions.get(&action.id)
+            && (existing.id != manifest_export.id
+              || existing.name != manifest_export.name
+              || existing.r#async != manifest_export.r#async)
+          {
+            return Err(rspack_error::error!(
+              "Conflicting server action id \"{}\" resolved to multiple modules (\"{}\" and \"{}\").",
+              action.id,
+              existing.id,
+              manifest_export.id
+            ));
+          }
+          server_actions.insert(action.id.clone(), manifest_export);
+
+          let action_reference = ActionReferenceManifestEntry {
+            local_action_id: action.id.clone(),
+            export_name: Some(action.exported_name.clone()),
+            module_resource: Some(action.path.to_string()),
+          };
+          if let Some(existing) = action_references.get(&action.id)
+            && existing != &action_reference
+          {
+            return Err(rspack_error::error!(
+              "Conflicting RSC action metadata for action id \"{}\".",
+              action.id
+            ));
+          }
+          action_references.insert(action.id.clone(), action_reference);
+        }
+      }
+      break;
+    }
+
+    Ok(())
+  };
 
   let Some(entry_data) = compilation.entries.get(entry_name.as_ref()) else {
     return Ok(());
@@ -175,7 +244,12 @@ pub fn build_server_manifest(
   plugin_state: &mut PluginState,
 ) -> Result<()> {
   for (entry_name, entry_state) in plugin_state.entries.iter_mut() {
-    build_server_manifest_per_entry(compilation, entry_name, &mut entry_state.server_actions)?;
+    build_server_manifest_per_entry(
+      compilation,
+      entry_name,
+      &mut entry_state.server_actions,
+      &mut entry_state.action_references,
+    )?;
   }
   Ok(())
 }
@@ -186,7 +260,6 @@ pub fn build_server_consumer_module_map(
 ) -> FxHashMap<String, ManifestNode> {
   let mut server_consumer_module_map: FxHashMap<String, ManifestNode> = Default::default();
   let module_graph = compilation.get_module_graph();
-  let chunk_modules = ChunkModules::new(compilation, module_graph);
 
   let mut record_module = |module_identifier: &ModuleIdentifier, module_id: &ModuleId| {
     let Some(module) = module_graph.module_by_identifier(module_identifier) else {
@@ -226,8 +299,10 @@ pub fn build_server_consumer_module_map(
     }
   };
 
-  for (module_identifier, module_id) in chunk_modules {
-    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+  for (_, module) in module_graph.modules() {
+    let Some(module_id) =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+    else {
       continue;
     };
 
@@ -236,7 +311,7 @@ pub fn build_server_consumer_module_map(
         record_module(&inner_module.id, &module_id);
       }
     } else {
-      record_module(&module_identifier, &module_id);
+      record_module(&module.identifier(), &module_id);
     }
   }
   server_consumer_module_map

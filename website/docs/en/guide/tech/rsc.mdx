@@ -15,6 +15,34 @@ Rspack provides two solutions to support React Server Components:
 
 The [rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) repository contains full examples of building React Server Component applications using Rspack.
 
+## Module Federation with RSC
+
+Rspack supports first-class Module Federation + RSC integration behind `ModuleFederationPlugin.experiments.rsc`.
+
+Server-side requirements:
+
+- `target` must include `async-node`
+- `ModuleFederationPlugin.experiments.asyncStartup` must be `true`
+- `ModuleFederationPlugin.runtimePlugins` must include `@module-federation/node/runtimePlugin`
+
+Minimal server-side setup:
+
+```js title="rspack.config.mjs"
+new rspack.container.ModuleFederationPlugin({
+  // ...
+  runtimePlugins: [require.resolve('@module-federation/node/runtimePlugin')],
+  experiments: {
+    asyncStartup: true,
+    rsc: true,
+  },
+});
+```
+
+Host/remote demo examples are available in the Rspack repo:
+
+- [examples/rsc-mf-host](https://github.com/web-infra-dev/rspack/tree/main/examples/rsc-mf-host)
+- [examples/rsc-mf-remote](https://github.com/web-infra-dev/rspack/tree/main/examples/rsc-mf-remote)
+
 ## Install dependencies
 
 <PackageManagerTabs command="install react react-dom react-server-dom-rspack" />

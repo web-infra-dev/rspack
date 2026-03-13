@@ -4,6 +4,7 @@ import { create } from '../builtin-plugin/base';
 
 export interface ModuleFederationRuntimeExperimentsOptions {
   asyncStartup?: boolean;
+  rsc?: boolean;
 }
 
 export interface ModuleFederationRuntimeOptions {

@@ -9,7 +9,8 @@ use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
-  ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest,
+  ActionReferenceManifest, ClientReferenceManifest, ManifestExport, ManifestNode, ModuleLoading,
+  ServerReferenceManifest,
 };
 
 pub type ActionIdNamePair = (Atom, Atom);
@@ -21,6 +22,7 @@ pub struct ClientModuleImport {
   pub request: String,
   #[cacheable(with=AsVec<AsPreset>)]
   pub ids: FxIndexSet<Atom>,
+  pub is_remote: bool,
 }
 
 /// State for one compilation entry.
@@ -28,9 +30,13 @@ pub struct ClientModuleImport {
 pub struct EntryState {
   pub injected_client_entries: Vec<ClientModuleImport>,
   pub client_modules: FxHashMap<String, ManifestExport>,
+  pub client_module_priorities: FxHashMap<String, u8>,
+  pub client_references: ClientReferenceManifest,
+  pub client_reference_priorities: FxHashMap<String, u8>,
   /// Dependency path -> action id/name pairs.
   pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
+  pub action_references: ActionReferenceManifest,
   /// Server entry resource -> CSS import paths.
   pub entry_css_imports: FxHashMap<String, FxIndexSet<String>>,
   /// Server entry resource -> CSS chunk file paths.
