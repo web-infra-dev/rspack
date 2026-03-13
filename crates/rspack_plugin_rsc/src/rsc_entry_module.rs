@@ -8,8 +8,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
   Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeSpec, SourceType, contextify,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  ModuleIdentifier, ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType,
+  contextify, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -164,20 +164,20 @@ impl Module for RscEntryModule {
         .map(|m| (m.request.clone(), m.ids.clone()))
         .collect();
       for (request, ids) in &modules {
-        let referenced_exports = if ids.is_empty() || ids.iter().any(|id| id == "*") {
+        let referenced_specifiers = if ids.is_empty() || ids.iter().any(|id| id == "*") {
           None
         } else {
           Some(
             ids
               .iter()
-              .map(|id| vec![Atom::from(id.as_str())])
+              .map(|id| ReferencedSpecifier::new(vec![Atom::from(id.as_str())]))
               .collect::<Vec<_>>(),
           )
         };
         let dep = ImportEagerDependency::new(
           Atom::from(request.as_str()),
           DependencyRange { start: 0, end: 0 },
-          referenced_exports,
+          referenced_specifiers,
           None,
           ImportPhase::Evaluation,
         );
