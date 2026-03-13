@@ -53,14 +53,12 @@ jobs:
 
       - name: Lint js
         if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-        run: pnpm run lint-ci:js
+        run: |
+          pnpm run lint-ci:js
+          pnpm run lint:type
 
       - name: Prettier
         run: pnpm run format-ci:js
-
-      - name: Lint type
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-        run: pnpm run lint:type
 
       - name: Check Dependency Version
         run: pnpm run check-dependency-version
