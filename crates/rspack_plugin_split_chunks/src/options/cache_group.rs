@@ -42,4 +42,5 @@ pub struct CacheGroup {
   pub filename: Option<Filename>,
   pub automatic_name_delimiter: String,
   pub used_exports: bool,
+  pub has_custom_layer_filter: bool,
 }

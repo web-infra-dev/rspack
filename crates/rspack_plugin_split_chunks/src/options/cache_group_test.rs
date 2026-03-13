@@ -19,3 +19,9 @@ pub enum CacheGroupTest {
   RegExp(rspack_regex::RspackRegex),
   Enabled,
 }
+
+impl CacheGroupTest {
+  pub fn is_fn(&self) -> bool {
+    matches!(self, Self::Fn(_))
+  }
+}
