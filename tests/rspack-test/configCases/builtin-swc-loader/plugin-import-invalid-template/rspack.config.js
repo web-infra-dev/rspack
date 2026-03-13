@@ -6,14 +6,12 @@ module.exports = {
 				test: /\.js$/,
 				loader: "builtin:swc-loader",
 				options: {
-					rspackExperiments: {
-						import: [
-							{
-								libraryName: "./lib",
-								customName: "./lib/{{ }}"
-							}
-						]
-					}
+					transformImport: [
+						{
+							libraryName: "./lib",
+							customName: "./lib/{{ }}"
+						}
+					]
 				}
 			}
 		]

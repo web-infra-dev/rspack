@@ -70,7 +70,12 @@ export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
       );
     }
 
-    // resolve `rspackExperiments.import` options
+    // resolve `transformImport` options (top-level, stable API)
+    if (options.transformImport) {
+      options.transformImport = resolvePluginImport(options.transformImport);
+    }
+
+    // resolve `rspackExperiments.import` options (deprecated, backward compat)
     const { rspackExperiments } = options;
     if (rspackExperiments) {
       if (rspackExperiments.import || rspackExperiments.pluginImport) {
