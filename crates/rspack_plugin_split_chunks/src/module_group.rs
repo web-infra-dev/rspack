@@ -125,7 +125,12 @@ impl ModuleGroup {
       .modules
       .iter()
       .copied()
-      .sorted_unstable_by(|a, b| a.precomputed_hash().cmp(&b.precomputed_hash()))
+      .sorted_unstable_by(
+        |a, b| match a.precomputed_hash().cmp(&b.precomputed_hash()) {
+          Ordering::Equal => a.cmp(b),
+          other => other,
+        },
+      )
       .collect()
   }
 
