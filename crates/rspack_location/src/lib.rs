@@ -10,15 +10,15 @@ use rspack_cacheable::cacheable;
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub struct SourcePosition {
-  pub line: usize,
-  pub column: usize,
+  pub line: u32,
+  pub column: u32,
 }
 
 impl From<(u32, u32)> for SourcePosition {
   fn from(range: (u32, u32)) -> Self {
     Self {
-      line: range.0 as usize,
-      column: range.1 as usize,
+      line: range.0,
+      column: range.1,
     }
   }
 }
@@ -43,16 +43,16 @@ impl RealDependencyLocation {
   /// - length in bytes
   pub fn from_byte_location(
     source: &str,
-    line: usize,
-    column: usize,
-    length: Option<usize>,
+    line: u32,
+    column: u32,
+    length: Option<u32>,
   ) -> Option<Self> {
     if line == 0 {
       return None;
     }
 
     let bytes = source.as_bytes();
-    let target_line_idx = line - 1;
+    let target_line_idx = (line - 1) as usize;
 
     // 1. Quickly locate the byte index of the line start.
     // If it's the first line, the offset is 0; otherwise, search for the (line-1)th newline.
@@ -67,7 +67,7 @@ impl RealDependencyLocation {
     };
 
     // 2. Validate start position.
-    let start_byte = line_start_offset + column;
+    let start_byte = line_start_offset + column as usize;
     if start_byte > bytes.len() {
       return None;
     }
@@ -86,12 +86,12 @@ impl RealDependencyLocation {
 
     let start = SourcePosition {
       line,
-      column: start_utf16_col,
+      column: start_utf16_col as u32,
     };
 
     // 4. Calculate end position (if length is present).
     let end = if let Some(len) = length {
-      let end_byte = start_byte + len;
+      let end_byte = start_byte + len as usize;
 
       if end_byte > bytes.len() {
         // If it exceeds the file range, keep start and discard end (matching original logic).
@@ -103,7 +103,7 @@ impl RealDependencyLocation {
       };
       let newlines_in_span = memchr::memchr_iter(b'\n', span_slice.as_bytes()).count();
 
-      let end_line = line + newlines_in_span;
+      let end_line = line.checked_add(newlines_in_span as u32)?;
 
       let end_column = if newlines_in_span == 0 {
         start_utf16_col + span_slice.encode_utf16().count()
@@ -116,7 +116,7 @@ impl RealDependencyLocation {
 
       Some(SourcePosition {
         line: end_line,
-        column: end_column,
+        column: end_column as u32,
       })
     } else {
       None
@@ -187,9 +187,9 @@ pub enum DependencyLocation {
 impl DependencyLocation {
   pub fn from_byte_location(
     source: &str,
-    line: usize,
-    column: usize,
-    length: Option<usize>,
+    line: u32,
+    column: u32,
+    length: Option<u32>,
   ) -> Option<Self> {
     RealDependencyLocation::from_byte_location(source, line, column, length)
       .map(DependencyLocation::Real)

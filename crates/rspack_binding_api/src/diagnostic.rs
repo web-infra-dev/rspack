@@ -52,9 +52,9 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
   {
     real_dependency_location = DependencyLocation::from_byte_location(
       source_code,
-      location.line as usize,
-      location.column as usize,
-      Some(location.length as usize),
+      location.line,
+      location.column,
+      Some(location.length),
     );
     let offset = byte_line_column_to_offset(
         source_code,
