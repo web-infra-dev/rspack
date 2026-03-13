@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType,
+  DependencyCategory, DependencyRange, DependencyType, ReferencedSpecifier,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
@@ -23,9 +23,8 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    AtomMembers, JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
-    context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_part,
+    JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind, context_reg_exp,
+    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
 
@@ -51,18 +50,14 @@ impl RequireReferencesState {
 
   fn take_all_require_references(
     &mut self,
-  ) -> impl Iterator<Item = (RequireDependencyLocator, Atom, Vec<Vec<Atom>>)> + use<> {
+  ) -> impl Iterator<Item = (RequireDependencyLocator, Atom, Vec<ReferencedSpecifier>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
     inner.into_values().filter_map(|value| {
       value.dep_locator.map(|dep_locator| {
         (
           dep_locator,
           value.variable_name.expect("should have variable_name"),
-          value
-            .references
-            .into_iter()
-            .map(AtomMembers::into_vec)
-            .collect(),
+          value.references,
         )
       })
     })
@@ -73,12 +68,19 @@ impl RequireReferencesState {
 struct RequireReferences {
   dep_locator: Option<RequireDependencyLocator>,
   variable_name: Option<Atom>,
-  references: Vec<AtomMembers>,
+  references: Vec<ReferencedSpecifier>,
 }
 
 impl RequireReferences {
-  pub fn add_reference(&mut self, reference: AtomMembers) {
-    self.references.push(reference);
+  pub fn add_reference(&mut self, reference: Vec<Atom>) {
+    self.references.push(ReferencedSpecifier::new(reference));
+  }
+
+  pub fn add_call_reference(&mut self, reference: Vec<Atom>, namespace_object_as_context: bool) {
+    self.references.push(ReferencedSpecifier::new_call(
+      reference,
+      namespace_object_as_context,
+    ));
   }
 }
 
@@ -119,7 +121,7 @@ fn create_commonjs_require_context_dependency(
   param: &BasicEvaluatedExpression,
   call_expr: &CallExpr,
   arg_expr: &Expr,
-  referenced_exports: Option<Vec<Vec<Atom>>>,
+  referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
 
@@ -138,7 +140,7 @@ fn create_commonjs_require_context_dependency(
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
-    referenced_exports,
+    referenced_specifiers,
     attributes: None,
     phase: None,
   };
@@ -186,7 +188,7 @@ fn create_require_resolve_context_dependency(
     replaces: result.replaces,
     start,
     end,
-    referenced_exports: None,
+    referenced_specifiers: None,
     attributes: None,
     phase: None,
   };
@@ -392,23 +394,25 @@ impl CommonJsImportsParserPlugin {
       let (start, end) = param.range();
       let range_expr = DependencyRange::new(start, end);
       let loc = parser.to_dependency_location(range_expr);
-      let referenced_exports = parser
-        .destructuring_assignment_properties
-        .get(&span)
-        .map(|keys| {
-          let mut refs = Vec::new();
-          keys.traverse_on_leaf(&mut |stack| {
-            refs.push(stack.iter().map(|p| p.id.clone()).collect());
+      let referenced_specifiers =
+        parser
+          .destructuring_assignment_properties
+          .get(&span)
+          .map(|keys| {
+            let mut refs = Vec::new();
+            keys.traverse_on_leaf(&mut |stack| {
+              let names = stack.iter().map(|p| p.id.clone()).collect();
+              refs.push(ReferencedSpecifier::new(names));
+            });
+            refs
           });
-          refs
-        });
       let dep = CommonJsRequireDependency::new(
         param.string().clone(),
         range_expr,
         Some(span.into()),
         parser.in_try,
         loc,
-        referenced_exports,
+        referenced_specifiers,
       );
       let dep_idx = parser.next_dependency_idx();
       if let Some(require_references) = parser.common_js_require_references.get_require_mut(&span) {
@@ -432,13 +436,14 @@ impl CommonJsImportsParserPlugin {
     let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
       unreachable!("ensure require includes arguments")
     };
-    let referenced_exports = parser
+    let referenced_specifiers = parser
       .destructuring_assignment_properties
       .get(&call_expr.span)
       .map(|keys| {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
-          refs.push(stack.iter().map(|p| p.id.clone()).collect());
+          let names = stack.iter().map(|p| p.id.clone()).collect();
+          refs.push(ReferencedSpecifier::new(names));
         });
         refs
       });
@@ -447,7 +452,7 @@ impl CommonJsImportsParserPlugin {
       param,
       call_expr,
       argument_expr,
-      referenced_exports,
+      referenced_specifiers,
     );
     let dep_idx = parser.next_dependency_idx();
     if let Some(require_references) = parser
@@ -563,7 +568,7 @@ impl CommonJsImportsParserPlugin {
         replaces: Vec::new(),
         start,
         end,
-        referenced_exports: None,
+        referenced_specifiers: None,
         attributes: None,
         phase: None,
       },
@@ -645,7 +650,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
-          refs.push(stack.iter().map(|p| p.id.clone()).collect::<AtomMembers>());
+          refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
         });
         for ids in refs {
           parser
@@ -657,7 +662,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         parser
           .common_js_require_references
           .get_require_mut_expect(&data.require_span)
-          .add_reference(AtomMembers::new());
+          .add_reference(vec![]);
       }
       return Some(true);
     }
@@ -689,7 +694,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     parser
       .common_js_require_references
       .get_require_mut_expect(&data.require_span)
-      .add_reference(ids.iter().cloned().collect());
+      .add_reference(ids.to_vec());
     Some(true)
   }
 
@@ -709,19 +714,19 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
-    let mut ids = get_non_optional_part(members, members_optionals);
-    if parser
-      .javascript_options
-      .strict_this_context_on_imports
-      .unwrap_or(false)
-      && !members.is_empty()
-    {
-      ids = &ids[..ids.len().saturating_sub(1)];
-    }
+    let ids = get_non_optional_part(members, members_optionals);
+    let direct_import = members.is_empty();
     parser
       .common_js_require_references
       .get_require_mut_expect(&data.require_span)
-      .add_reference(ids.iter().cloned().collect());
+      .add_call_reference(
+        ids.to_vec(),
+        parser
+          .javascript_options
+          .strict_this_context_on_imports
+          .unwrap_or(false)
+          && !direct_import,
+      );
     parser.walk_expr_or_spread(&expr.args);
     Some(true)
   }
@@ -935,7 +940,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       // named export, importers may access arbitrary properties on it. In that
       // case the entire module must be considered referenced.
       if parser.build_info.esm_named_exports.contains(&variable_name) {
-        references.push(vec![]);
+        references.push(ReferencedSpecifier::new(vec![]));
       }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)
@@ -952,13 +957,13 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
           let dep = dep
             .downcast_mut::<CommonJsRequireDependency>()
             .expect("Failed to downcast to CommonJsRequireDependency");
-          dep.set_referenced_exports(references);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::CommonJSRequireContext => {
           let dep = dep
             .downcast_mut::<CommonJsRequireContextDependency>()
             .expect("Failed to downcast to CommonJsRequireContextDependency");
-          dep.set_referenced_exports(references);
+          dep.set_referenced_specifiers(references);
         }
         _ => unreachable!(),
       }

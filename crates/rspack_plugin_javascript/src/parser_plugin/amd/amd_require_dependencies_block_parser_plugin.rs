@@ -188,7 +188,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
       phase: None,
     };
