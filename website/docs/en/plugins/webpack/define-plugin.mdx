@@ -119,3 +119,46 @@ new rspack.DefinePlugin({
   SERVICE_URL: JSON.stringify('https://dev.example.com'),
 });
 ```
+
+## Use `JSON.stringify`
+
+Use `JSON.stringify` when you want to inject a literal value rather than a code fragment.
+
+Common cases include:
+
+- Injecting string constants such as environment names, versions, or API endpoints.
+- Injecting objects or arrays that should be read directly in application code.
+- Injecting string values from environment variables such as `process.env.*`.
+
+This is because string values passed to `DefinePlugin` are inserted directly as code and do not get quotes added automatically.
+
+```js
+new rspack.DefinePlugin({
+  MODE: 'production',
+  MODE_STRINGIFIED: JSON.stringify('production'),
+});
+```
+
+```js
+const mode = MODE;
+const modeStringified = MODE_STRINGIFIED;
+
+// Turns into
+const mode = production;
+const modeStringified = 'production';
+```
+
+In the example above, `MODE` is treated as the identifier `production` instead of the string `'production'`, which will usually cause a runtime error. `MODE_STRINGIFIED` is replaced with a valid string literal, making it the safer option.
+
+If you need to inject an object or array, `JSON.stringify` is also recommended:
+
+```js
+new rspack.DefinePlugin({
+  APP_INFO: JSON.stringify({
+    name: 'demo',
+    features: ['a', 'b'],
+  }),
+});
+```
+
+This makes `APP_INFO` a usable object literal in the generated code. By contrast, `APP_INFO: { ... }` would be treated by `DefinePlugin` as a nested definition config and processed recursively, rather than being injected as an object literal into application code.

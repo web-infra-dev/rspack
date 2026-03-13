@@ -110,17 +110,15 @@ impl ModernModuleLibraryPlugin {
       .collect::<HashSet<_>>();
 
     for module_id in unconcatenated_module_ids {
-      let chunk_runtime = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_runtimes_iter(
-          *module_id,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        )
-        .fold(RuntimeSpec::default(), |mut acc, r| {
-          acc.extend(r);
-          acc
-        });
+      let chunk_runtime = RuntimeSpec::from_runtimes(
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_runtimes_iter(
+            *module_id,
+            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+          ),
+      );
 
       let current_configuration: ConcatConfiguration =
         ConcatConfiguration::new(*module_id, Some(chunk_runtime.clone()));
