@@ -12,7 +12,7 @@ use dependencies::JsDependencies;
 use diagnostics::Diagnostics;
 use entries::JsEntries;
 use napi_derive::napi;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
   FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,

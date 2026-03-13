@@ -14,7 +14,7 @@ use rayon::iter::{
   IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge,
   ParallelIterator,
 };
-use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Display, Result, StringDisplayer};
 use rspack_hash::RspackHashDigest;
 use rustc_hash::{FxHashMap as HashMap, FxHasher};

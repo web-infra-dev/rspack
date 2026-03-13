@@ -8,7 +8,7 @@ use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use rspack_collections::{DatabaseItem, Identifier};
+use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
   Compilation, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,

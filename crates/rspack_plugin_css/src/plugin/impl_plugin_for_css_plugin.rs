@@ -7,7 +7,6 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use rspack_collections::{DatabaseItem, ItemUkey};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
@@ -234,7 +233,7 @@ impl CssPlugin {
                 }
               };
 
-              let chunk_ukey = chunk.ukey().as_u32().into();
+              let chunk_ukey = chunk.as_u32().into();
               hooks
                 .render_module_package
                 .call(

@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rspack_collections::{DatabaseItem, Identifier, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Error;
 use rspack_paths::ArcPathSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};

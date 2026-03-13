@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp::Ordering};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{DatabaseItem, Identifier, IdentifierMap};
+use rspack_collections::{Identifier, IdentifierMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{

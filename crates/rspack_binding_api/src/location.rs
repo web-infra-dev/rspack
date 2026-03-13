@@ -12,8 +12,8 @@ pub struct SourcePosition {
 impl From<&rspack_core::SourcePosition> for SourcePosition {
   fn from(value: &rspack_core::SourcePosition) -> Self {
     Self {
-      line: value.line as u32,
-      column: Some(value.column as u32),
+      line: value.line,
+      column: Some(value.column),
     }
   }
 }
@@ -21,8 +21,8 @@ impl From<&rspack_core::SourcePosition> for SourcePosition {
 impl From<rspack_core::SourcePosition> for SourcePosition {
   fn from(value: rspack_core::SourcePosition) -> Self {
     Self {
-      line: value.line as u32,
-      column: Some(value.column as u32),
+      line: value.line,
+      column: Some(value.column),
     }
   }
 }
@@ -30,8 +30,8 @@ impl From<rspack_core::SourcePosition> for SourcePosition {
 impl From<&SourcePosition> for rspack_core::SourcePosition {
   fn from(value: &SourcePosition) -> Self {
     Self {
-      line: value.line as usize,
-      column: value.column.map_or(value.line as usize, |c| c as usize),
+      line: value.line,
+      column: value.column.map_or(value.line, |c| c),
     }
   }
 }

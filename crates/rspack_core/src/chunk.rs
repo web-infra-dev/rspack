@@ -2,7 +2,7 @@ use std::{cmp::Ordering, fmt::Debug, hash::Hash, sync::Arc};
 
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
@@ -70,15 +70,11 @@ pub struct Chunk {
   rendered: bool,
 }
 
-impl DatabaseItem for Chunk {
-  type ItemUkey = ChunkUkey;
-
-  fn ukey(&self) -> Self::ItemUkey {
+impl Chunk {
+  pub fn ukey(&self) -> ChunkUkey {
     self.ukey
   }
-}
 
-impl Chunk {
   pub fn kind(&self) -> ChunkKind {
     self.kind
   }

@@ -457,7 +457,7 @@ impl CodeSplitter {
     // update cache available modules
     self.outdated_chunk_group_info.insert(cgi_ukey);
 
-    let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
+    let cgi = self.chunk_group_info_mut(&cgi_ukey);
     let group_ukey = cgi.chunk_group;
     cgi.skipped_items.clone_from(&cache_result.skipped_modules);
 
@@ -856,8 +856,8 @@ impl CodeSplitter {
 #[derive(Debug, Clone)]
 struct CacheResult {
   pub modules: Vec<ModuleIdentifier>,
-  pub pre_order_indices: IdentifierMap<usize>,
-  pub post_order_indices: IdentifierMap<usize>,
+  pub pre_order_indices: IdentifierMap<u32>,
+  pub post_order_indices: IdentifierMap<u32>,
   pub skipped_modules: IdentifierIndexSet,
   pub outgoings: std::collections::HashSet<
     AsyncDependenciesBlockIdentifier,

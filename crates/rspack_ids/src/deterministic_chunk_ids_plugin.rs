@@ -1,5 +1,4 @@
 use rayon::prelude::*;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
 };

@@ -3,7 +3,7 @@ mod hot_module_replacement;
 use std::{collections::hash_map, sync::Arc};
 
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
@@ -84,7 +84,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let mut updated_runtime_modules: IdentifierSet = Default::default();
-  let mut updated_chunks: HashMap<ChunkUkey, HashSet<String>> = Default::default();
+  let mut updated_chunks: HashMap<ChunkUkey, HashSet<Arc<str>>> = Default::default();
   for (identifier, old_runtime_module_hash) in &old_runtime_modules {
     if let Some(new_runtime_module_hash) = compilation.runtime_modules_hash.get(identifier) {
       // updated
@@ -304,22 +304,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let filename: Arc<str> = if entry.has_filename {
           entry.filename.clone()
         } else {
-          Arc::from(
-            compilation
-              .get_path(
-                &compilation.options.output.hot_update_chunk_filename,
-                PathData::default()
-                  .chunk_id_optional(hot_update_chunk.id().map(|id| id.as_str()))
-                  .chunk_name_optional(hot_update_chunk.name_for_filename_template())
-                  .hash_optional(
-                    old_hash
-                      .as_ref()
-                      .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
-                  ),
-              )
-              .await?
-              .as_ref(),
-          )
+          compilation
+            .get_path(
+              &compilation.options.output.hot_update_chunk_filename,
+              PathData::default()
+                .chunk_id_optional(hot_update_chunk.id().map(|id| id.as_str()))
+                .chunk_name_optional(hot_update_chunk.name_for_filename_template())
+                .hash_optional(
+                  old_hash
+                    .as_ref()
+                    .map(|hash| hash.rendered(compilation.options.output.hash_digest_length)),
+                ),
+            )
+            .await?
+            .into()
         };
         let asset = CompilationAsset::new(
           Some(entry.source),
@@ -333,9 +331,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           updated_chunks
             .entry(current_chunk_ukey)
             .or_default()
-            .insert(filename.to_string());
+            .insert(filename.clone());
         }
-        compilation.emit_asset(filename, asset);
+        compilation.emit_asset(filename.clone(), asset);
       }
 
       new_runtime.iter().for_each(|runtime| {

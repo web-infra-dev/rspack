@@ -1,5 +1,4 @@
 use rayon::iter::{IntoParallelIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey, CompilationChunkIds,
   ExportsInfoArtifact, Logger, ModuleGraph, ModuleGraphCacheArtifact, Plugin,
