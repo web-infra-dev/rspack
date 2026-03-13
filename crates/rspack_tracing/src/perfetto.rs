@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::Write};
+use std::io::Write;
 
 use rspack_tracing_perfetto::{
   BytesMut, PerfettoLayer, idl,
@@ -9,6 +9,7 @@ use rspack_tracing_perfetto::{
   },
   prost::Message,
 };
+use rustc_hash::FxHashMap as HashMap;
 static JAVASCRIPT_ANALYSIS_TRACK: &str = "JavaScript Analysis";
 use crate::{Tracer, tracer::Layered};
 #[derive(Default)]

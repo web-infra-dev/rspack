@@ -45,9 +45,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
-use rspack_collections::{
-  DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
-};
+use rspack_collections::{DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -77,7 +75,7 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, StealCell, ValueCacheVersions,
+  SideEffectsOptimizeArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -87,7 +85,7 @@ use crate::{
   is_source_equal, to_identifier,
 };
 
-define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
+define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
@@ -613,14 +611,16 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
+    let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
       .get_module_graph_mut()
       .add_dependency(entry);
-    if let Some(name) = &entry_name {
+    let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
         data.options.merge(options)?;
+        &mut data.options
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],
@@ -628,17 +628,21 @@ impl Compilation {
           options,
         };
         self.entries.insert(name.to_owned(), data);
+        &mut self
+          .entries
+          .get_mut(name)
+          .expect("entry should exist")
+          .options
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
-    }
+      &mut self.global_entry.options
+    };
 
-    self
-      .plugin_driver
-      .clone()
+    plugin_driver
       .compilation_hooks
       .add_entry
-      .call(self, entry_name.as_deref())
+      .call(entry_name.as_deref(), entry_options)
       .await?;
 
     Ok(())
@@ -989,15 +993,8 @@ impl Compilation {
     &self.logging
   }
 
-  pub fn get_stats(&self) -> Stats<'_> {
-    self.get_stats_with_exports_info_artifact(&self.exports_info_artifact)
-  }
-
-  pub fn get_stats_with_exports_info_artifact<'a>(
-    &'a self,
-    exports_info_artifact: &'a ExportsInfoArtifact,
-  ) -> Stats<'a> {
-    Stats::new(self, exports_info_artifact)
+  pub fn get_stats<'a>(&'a self) -> Stats<'a> {
+    Stats::new(StatsContext::new(self))
   }
 
   pub fn add_named_chunk(

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Debug, path::PathBuf, sync::Arc};
+use std::{fmt::Debug, path::PathBuf, sync::Arc};
 
 use anyhow::Result;
 use async_trait::async_trait;
@@ -435,7 +435,7 @@ pub async fn fetch_content(url: &str, options: &HttpUriPluginOptions) -> Result<
 
 fn parse_cache_control(cache_control: &Option<String>, request_time: u64) -> (bool, bool, u64) {
   cache_control.as_ref().map_or((true, true, 0), |header| {
-    let pairs: HashMap<_, _> = header
+    let pairs: FxHashMap<_, _> = header
       .split(',')
       .filter_map(|part| {
         let mut parts = part.splitn(2, '=');

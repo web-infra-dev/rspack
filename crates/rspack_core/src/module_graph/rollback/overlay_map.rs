@@ -1,6 +1,10 @@
-use std::{collections::hash_map::Iter as HashMapIter, fmt::Debug, hash::Hash};
+use std::{
+  collections::{HashMap, hash_map::Iter as HashMapIter},
+  fmt::Debug,
+  hash::{BuildHasher, Hash},
+};
 
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::FxBuildHasher;
 
 #[derive(Debug, Clone)]
 pub enum OverlayValue<V> {
@@ -9,14 +13,15 @@ pub enum OverlayValue<V> {
 }
 
 #[derive(Debug, Clone)]
-pub struct OverlayMap<K, V> {
-  base: HashMap<K, V>,
-  overlay: Option<HashMap<K, OverlayValue<V>>>,
+pub struct OverlayMap<K, V, S = FxBuildHasher> {
+  base: HashMap<K, V, S>,
+  overlay: Option<HashMap<K, OverlayValue<V>, S>>,
 }
 
-impl<K, V> Default for OverlayMap<K, V>
+impl<K, V, S> Default for OverlayMap<K, V, S>
 where
   K: Eq + Hash,
+  S: BuildHasher + Default,
 {
   fn default() -> Self {
     Self {
@@ -27,18 +32,19 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub enum OverlayIter<'a, K, V> {
+pub enum OverlayIter<'a, K, V, S = FxBuildHasher> {
   Base(HashMapIter<'a, K, V>),
   Combined {
-    overlay_keys: &'a HashMap<K, OverlayValue<V>>,
+    overlay_keys: &'a HashMap<K, OverlayValue<V>, S>,
     overlay_iter: HashMapIter<'a, K, OverlayValue<V>>,
     base_iter: HashMapIter<'a, K, V>,
   },
 }
 
-impl<'a, K, V> Iterator for OverlayIter<'a, K, V>
+impl<'a, K, V, S> Iterator for OverlayIter<'a, K, V, S>
 where
   K: Eq + Hash,
+  S: BuildHasher,
 {
   type Item = (&'a K, &'a V);
 
@@ -70,11 +76,12 @@ where
   }
 }
 
-impl<K, V> OverlayMap<K, V>
+impl<K, V, S> OverlayMap<K, V, S>
 where
   K: Eq + Hash + Clone,
+  S: BuildHasher + Default + Clone,
 {
-  pub fn new(base: HashMap<K, V>) -> Self {
+  pub fn new(base: HashMap<K, V, S>) -> Self {
     Self {
       base,
       overlay: None,
@@ -143,7 +150,7 @@ where
     }
   }
 
-  pub fn iter(&self) -> OverlayIter<'_, K, V> {
+  pub fn iter(&self) -> OverlayIter<'_, K, V, S> {
     match &self.overlay {
       Some(overlay) => OverlayIter::Combined {
         overlay_keys: overlay,
@@ -179,7 +186,7 @@ where
     }
   }
 
-  fn overlay(&mut self) -> &mut HashMap<K, OverlayValue<V>> {
+  fn overlay(&mut self) -> &mut HashMap<K, OverlayValue<V>, S> {
     self.overlay.get_or_insert_with(HashMap::default)
   }
 }

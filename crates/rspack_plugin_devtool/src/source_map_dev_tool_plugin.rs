@@ -719,7 +719,7 @@ impl SourceMapDevToolPlugin {
       source_map.set_debug_id(Some(debug_id.clone()));
       debug_id
     });
-    let source_map_json = source_map.to_json().map_err(|e| error!(e.to_string()))?;
+    let source_map_json = source_map.to_json();
 
     let mut asset = compilation
       .assets()

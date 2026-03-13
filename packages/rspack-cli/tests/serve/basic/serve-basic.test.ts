@@ -1,11 +1,13 @@
-import { normalizeStderr, runWatch } from '../../utils/test-utils';
+import { normalizeStdout, runWatch } from '../../utils/test-utils';
 
 describe('basic serve usage', () => {
   it('should work', async () => {
-    const { stderr } = await runWatch(__dirname, ['serve'], {
+    const { stdout } = await runWatch(__dirname, ['serve'], {
       killString: /localhost/,
     });
 
-    expect(normalizeStderr(stderr)).toContain('Project is running at');
+    expect(normalizeStdout(stdout)).toMatch(
+      /Local:\s+http:\/\/localhost:\d+\//,
+    );
   });
 });

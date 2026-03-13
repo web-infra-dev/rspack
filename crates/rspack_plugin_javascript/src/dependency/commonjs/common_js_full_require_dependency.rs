@@ -8,7 +8,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName, property_access, to_normal_comment,
+  UsedName, create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -21,6 +21,7 @@ pub struct CommonJsFullRequireDependency {
   names: Vec<Atom>,
   range: DependencyRange,
   is_call: bool,
+  namespace_object_as_context: bool,
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
@@ -28,12 +29,15 @@ pub struct CommonJsFullRequireDependency {
 }
 
 impl CommonJsFullRequireDependency {
+  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::fn_params_excessive_bools)]
   pub fn new(
     request: String,
     names: Vec<Atom>,
     range: DependencyRange,
     loc: Option<DependencyLocation>,
     is_call: bool,
+    namespace_object_as_context: bool,
     optional: bool,
     asi_safe: bool,
   ) -> Self {
@@ -43,6 +47,7 @@ impl CommonJsFullRequireDependency {
       names,
       range,
       is_call,
+      namespace_object_as_context,
       optional,
       asi_safe,
       loc,
@@ -80,27 +85,34 @@ impl Dependency for CommonJsFullRequireDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if self.is_call
-      && module_graph
-        .module_graph_module_by_dependency_id(&self.id)
-        .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| {
-          m.get_exports_type(
-            module_graph,
-            module_graph_cache,
-            exports_info_artifact,
-            false,
-          )
-        })
-        .is_some_and(|t| !matches!(t, ExportsType::Namespace))
-    {
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+    let parent_module = module_graph
+      .get_parent_module(&self.id)
+      .expect("should have parent module");
+    let exports_type = get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &self.id,
+      parent_module,
+    );
+
+    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+    // because it's more common in cjs and json
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) {
+      namespace_object_as_context = true;
+    }
+
+    if namespace_object_as_context && self.is_call {
       if self.names.is_empty() {
-        return vec![ExtendedReferencedExport::Array(vec![])];
-      } else {
-        return vec![ExtendedReferencedExport::Array(
-          self.names[0..self.names.len() - 1].to_vec(),
-        )];
+        return create_exports_object_referenced();
       }
+      return vec![ExtendedReferencedExport::Array(
+        self.names[0..self.names.len().saturating_sub(1)].to_vec(),
+      )];
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
   }
@@ -227,6 +239,6 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       )
     };
 
-    source.replace(dep.range.start, dep.range.end, &require_expr, None);
+    source.replace(dep.range.start, dep.range.end, require_expr, None);
   }
 }

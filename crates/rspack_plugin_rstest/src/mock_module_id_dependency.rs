@@ -146,7 +146,7 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &format!("{}{}", module_id, dep.suffix.as_deref().unwrap_or("")),
+      format!("{}{}", module_id, dep.suffix.as_deref().unwrap_or("")),
       None,
     );
   }

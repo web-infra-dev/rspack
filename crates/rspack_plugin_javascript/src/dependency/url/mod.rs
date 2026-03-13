@@ -147,8 +147,7 @@ impl DependencyTemplate for URLDependencyTemplate {
             runtime_template.render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
             runtime_template.module_id(compilation, &dep.id, &dep.request, false),
-          )
-          .as_str(),
+          ),
           None,
         );
       }
@@ -166,8 +165,7 @@ impl DependencyTemplate for URLDependencyTemplate {
               "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
               &dep.id.as_u32()
             )),
-          )
-          .as_str(),
+          ),
           None,
         );
       }
@@ -180,8 +178,7 @@ impl DependencyTemplate for URLDependencyTemplate {
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
             runtime_template.module_id(compilation, &dep.id, &dep.request, false),
             runtime_template.render_runtime_globals(&RuntimeGlobals::BASE_URI)
-          )
-          .as_str(),
+          ),
           None,
         );
       }

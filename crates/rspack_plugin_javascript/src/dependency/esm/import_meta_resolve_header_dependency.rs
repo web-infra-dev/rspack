@@ -70,7 +70,7 @@ impl DependencyTemplate for ImportMetaResolveHeaderDependencyTemplate {
       .downcast_ref::<ImportMetaResolveHeaderDependency>()
       .expect("ImportMetaResolveHeaderDependencyTemplate should only be used for ImportMetaResolveHeaderDependency");
 
-    source.replace(
+    source.replace_static(
       dep.range.start,
       dep.range.end,
       "/*import.meta.resolve*/",

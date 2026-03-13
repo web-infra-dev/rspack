@@ -84,7 +84,7 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
       .expect(
         "ESMExportHeaderDependencyTemplate should only be used for ESMExportHeaderDependency",
       );
-    source.replace(
+    source.replace_static(
       dep.range.start,
       if let Some(range) = &dep.range_decl {
         range.start

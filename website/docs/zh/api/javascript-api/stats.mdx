@@ -27,6 +27,22 @@ Compilation ===============> Stats JSON =================> Stats Output
 
 通过 [`compilation.getStats()`](/api/javascript-api/compilation#getstats) 或 `new Stats(compilation)` 以创建一个 Compilation 关联的 Stats 对象。
 
+:::warning 注意时机
+
+`stats.toJson()` 和 `stats.toString()` 依赖在 `compiler.hooks.done` 阶段才最终稳定的编译产物。如果在其他时机调用（例如复用更早阶段拿到的旧 `Stats` 对象），部分 Stats 字段可能不完整。
+
+为了拿到完整且稳定的 Stats 输出，建议在 `compiler.hooks.done` 中调用这些方法：
+
+```js
+compiler.hooks.done.tap('MyPlugin', (stats) => {
+  const json = stats.toJson({ all: false, errors: true, warnings: true });
+  const text = stats.toString({ preset: 'errors-warnings' });
+  // 使用 json/text
+});
+```
+
+:::
+
 ## Stats 方法
 
 ### hasErrors
@@ -65,7 +81,7 @@ stats.toJson({
 以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
 
 ```ts
-toJson(opts?: StatsValue): string;
+toString(opts?: StatsValue): string;
 ```
 
 配置对象与 `stats.toJson(options)` 一致，除了额外增加的一个选项：

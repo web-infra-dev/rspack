@@ -150,6 +150,7 @@ impl ExternalInterop {
   pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
       let local_name = find_new_name(atom, used_names, &[]);
+      used_names.insert(local_name.clone());
       self.property_access.insert(atom.clone(), local_name);
       self
         .property_access
@@ -242,6 +243,12 @@ pub enum ReExportFrom {
   Request(String),
 }
 
+#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+pub enum RawImportSource {
+  Chunk(ChunkUkey),
+  Source((String, Option<String>)),
+}
+
 #[derive(Debug, Clone)]
 pub struct ChunkLinkContext {
   pub chunk: ChunkUkey,
@@ -278,7 +285,7 @@ pub struct ChunkLinkContext {
   /**
   raw import statements
    */
-  pub raw_import_stmts: FxIndexMap<(String, Option<String>), ImportSpec>,
+  pub raw_import_stmts: FxIndexMap<RawImportSource, ImportSpec>,
 
   /**
   `const symbol = __webpack_require__(module_id)`
@@ -293,6 +300,10 @@ pub struct ChunkLinkContext {
   pub namespace_object_sources: IdentifierMap<String>,
 
   pub init_fragments: Vec<BoxChunkInitFragment>,
+
+  pub hashbang: Option<String>,
+
+  pub directives: Vec<String>,
 
   /**
   modules that can be scope hoisted
@@ -333,6 +344,8 @@ impl ChunkLinkContext {
       needed_namespace_objects: Default::default(),
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
+      hashbang: None,
+      directives: Default::default(),
       refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),

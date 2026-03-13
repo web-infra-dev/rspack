@@ -1061,6 +1061,7 @@ export interface JsRscClientPluginOptions {
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
   onServerComponentChanges?: (() => void) | undefined | null
+  onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
 }
 
 export interface JsRsdoctorAsset {
@@ -1110,6 +1111,18 @@ export interface JsRsdoctorConnection {
   userRequest: string
   loc?: string
   active: boolean
+}
+
+export interface JsRsdoctorConnectionsOnlyImport {
+  moduleUkey: number
+  modulePath: string
+  connections: Array<JsRsdoctorConnectionsOnlyImportConnection>
+}
+
+export interface JsRsdoctorConnectionsOnlyImportConnection {
+  originModule?: number
+  dependencyType: string
+  userRequest: string
 }
 
 export interface JsRsdoctorDependency {
@@ -1165,6 +1178,7 @@ export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
+  connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1931,7 +1945,7 @@ export interface RawConsumeOptions {
   import?: string
   importResolved?: string
   shareKey: string
-  shareScope: string
+  shareScope: string | Array<string>
   requiredVersion?: string | false | undefined
   packageName?: string
   strictVersion: boolean
@@ -1947,7 +1961,7 @@ export interface RawConsumeSharedPluginOptions {
 
 export interface RawContainerPluginOptions {
   name: string
-  shareScope: string
+  shareScope: string | Array<string>
   library: JsLibraryOptions
   runtime?: false | string
   filename?: string
@@ -1958,7 +1972,7 @@ export interface RawContainerPluginOptions {
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
-  shareScope?: string
+  shareScope?: string | Array<string>
   enhanced: boolean
 }
 
@@ -2257,6 +2271,7 @@ export interface RawExternalsPresets {
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
+  conditionFlags?: string
 }
 
 export interface RawFallbackCacheGroupOptions {
@@ -2781,7 +2796,7 @@ export interface RawProgressPluginOptions {
 export interface RawProvideOptions {
   key: string
   shareKey: string
-  shareScope: string
+  shareScope: string | Array<string>
   version?: string | false | undefined
   eager: boolean
   singleton?: boolean
@@ -2802,7 +2817,7 @@ export interface RawRemoteAliasTarget {
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
-  shareScope: string
+  shareScope: string | Array<string>
 }
 
 export interface RawResolveOptions {

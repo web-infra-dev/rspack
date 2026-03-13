@@ -175,18 +175,15 @@ pub fn impl_runtime_module(
         &[::rspack_core::SourceType::JavaScript]
       }
 
-      fn size(&self, _source_type: Option<&::rspack_core::SourceType>, compilation: Option<&::rspack_core::Compilation>) -> f64 {
-        match compilation {
-          Some(compilation) => {
-            let mut cached_generated_code = self.cached_generated_code.get();
-            if let Some(cached_generated_code) = cached_generated_code {
-              cached_generated_code.size() as f64
-            } else {
-              panic!("get size of runtime module before code generation")
-            }
-          },
-          None => 0f64
-        }
+      fn size(
+        &self,
+        _source_type: Option<&::rspack_core::SourceType>,
+        _compilation: Option<&::rspack_core::Compilation>,
+      ) -> f64 {
+        self
+          .cached_generated_code
+          .get()
+          .map_or(0f64, |cached_generated_code| cached_generated_code.size() as f64)
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {

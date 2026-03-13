@@ -29,6 +29,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::{BytePos, Mark, Span, Spanned, comments::Comments},
@@ -48,7 +49,7 @@ use crate::{
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin,
+    JavascriptParserPlugin, RequireReferencesState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -81,12 +82,17 @@ where
   }
 }
 
+// Most parsed member chains are one or two segments long, so keep them inline.
+pub type AtomMembers = SmallVec<[Atom; 2]>;
+pub type OptionalMembers = SmallVec<[bool; 2]>;
+pub type MemberRanges = SmallVec<[Span; 2]>;
+
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData<'ast> {
   pub object: ExprRef<'ast>,
-  pub members: Vec<Atom>,
-  pub members_optionals: Vec<bool>,
-  pub member_ranges: Vec<Span>,
+  pub members: AtomMembers,
+  pub members_optionals: OptionalMembers,
+  pub member_ranges: MemberRanges,
 }
 
 bitflags! {
@@ -107,19 +113,19 @@ pub enum MemberExpressionInfo<'ast> {
 pub struct CallExpressionInfo<'ast> {
   pub call: &'ast CallExpr,
   pub root_info: ExportedVariableInfo,
-  pub callee_members: Vec<Atom>,
-  pub members: Vec<Atom>,
-  pub members_optionals: Vec<bool>,
-  pub member_ranges: Vec<Span>,
+  pub callee_members: AtomMembers,
+  pub members: AtomMembers,
+  pub members_optionals: OptionalMembers,
+  pub member_ranges: MemberRanges,
 }
 
 #[derive(Debug)]
 pub struct ExpressionExpressionInfo {
   pub name: String,
   pub root_info: ExportedVariableInfo,
-  pub members: Vec<Atom>,
-  pub members_optionals: Vec<bool>,
-  pub member_ranges: Vec<Span>,
+  pub members: AtomMembers,
+  pub members_optionals: OptionalMembers,
+  pub member_ranges: MemberRanges,
 }
 
 #[derive(Debug, Clone)]
@@ -363,6 +369,7 @@ pub struct JavascriptParser<'parser> {
   pub is_esm: bool,
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
+  pub(crate) common_js_require_references: RequireReferencesState,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -372,6 +379,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
   pub(crate) location_advancer: DependencyLocationAdvancer,
+  pub(crate) collecting_dependencies_for_block: Option<usize>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -541,6 +549,7 @@ impl<'parser> JavascriptParser<'parser> {
       member_expr_in_optional_chain: false,
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
+      common_js_require_references: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
@@ -553,6 +562,7 @@ impl<'parser> JavascriptParser<'parser> {
       parser_runtime_requirements,
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
+      collecting_dependencies_for_block: None,
     }
   }
 
@@ -596,10 +606,14 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn collect_dependencies_for_block(
     &mut self,
+    block_idx: usize,
+    deps: Vec<BoxDependency>,
     f: impl FnOnce(&mut JavascriptParser),
   ) -> Vec<BoxDependency> {
-    let old_deps = std::mem::take(&mut self.dependencies);
+    let old_deps = std::mem::replace(&mut self.dependencies, deps);
+    let old_block_idx = self.collecting_dependencies_for_block.replace(block_idx);
     f(self);
+    self.collecting_dependencies_for_block = old_block_idx;
     std::mem::replace(&mut self.dependencies, old_deps)
   }
 
@@ -894,9 +908,9 @@ impl<'parser> JavascriptParser<'parser> {
   fn _get_member_expression_info<'ast>(
     &mut self,
     object: ExprRef<'ast>,
-    mut members: Vec<Atom>,
-    mut members_optionals: Vec<bool>,
-    mut member_ranges: Vec<Span>,
+    mut members: AtomMembers,
+    mut members_optionals: OptionalMembers,
+    mut member_ranges: MemberRanges,
     allowed_types: AllowedMemberTypes,
   ) -> Option<MemberExpressionInfo<'ast>> {
     match object {
@@ -910,7 +924,7 @@ impl<'parser> JavascriptParser<'parser> {
           let root_name = extracted.object.get_root_name()?;
           (root_name, extracted.members)
         } else {
-          (callee.get_root_name()?, vec![])
+          (callee.get_root_name()?, AtomMembers::new())
         };
         let NameInfo {
           info: root_info, ..
@@ -973,7 +987,13 @@ impl<'parser> JavascriptParser<'parser> {
       Expr::Member(_) | Expr::OptChain(_) => {
         self.get_member_expression_info(expr.into(), allowed_types)
       }
-      _ => self._get_member_expression_info(expr.into(), vec![], vec![], vec![], allowed_types),
+      _ => self._get_member_expression_info(
+        expr.into(),
+        AtomMembers::new(),
+        OptionalMembers::new(),
+        MemberRanges::new(),
+        allowed_types,
+      ),
     }
   }
 
@@ -1002,9 +1022,9 @@ impl<'parser> JavascriptParser<'parser> {
     expr: ExprRef<'ast>,
   ) -> ExtractedMemberExpressionChainData<'ast> {
     let mut object = expr;
-    let mut members = Vec::new();
-    let mut members_optionals = Vec::new();
-    let mut member_ranges = Vec::new();
+    let mut members = AtomMembers::new();
+    let mut members_optionals = OptionalMembers::new();
+    let mut member_ranges = MemberRanges::new();
     let mut in_optional_chain = self.member_expr_in_optional_chain;
     loop {
       match object {
@@ -1059,10 +1079,11 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, &Ident),
   {
+    let drive = self.plugin_drive.clone();
     if !ident
       .sym
       .call_hooks_name(self, |parser, for_name| {
-        parser.plugin_drive.clone().pattern(parser, ident, for_name)
+        drive.pattern(parser, ident, for_name)
       })
       .unwrap_or_default()
     {
@@ -1219,6 +1240,7 @@ impl<'parser> JavascriptParser<'parser> {
     pattern: &ObjectPat,
     expr: &'a Expr,
   ) -> Option<&'a Expr> {
+    let drive = self.plugin_drive.clone();
     let expr = if let Some(await_expr) = expr.as_await_expr() {
       &await_expr.arg
     } else {
@@ -1230,9 +1252,7 @@ impl<'parser> JavascriptParser<'parser> {
     {
       self.enter_destructuring_assignment(obj_pat, &assign.right)
     } else {
-      let can_collect = self
-        .plugin_drive
-        .clone()
+      let can_collect = drive
         .can_collect_destructuring_assignment_properties(self, expr)
         .unwrap_or_default();
       can_collect.then_some(expr)
@@ -1249,7 +1269,8 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn walk_program(&mut self, ast: &Program) {
-    if self.plugin_drive.clone().program(self, ast).is_none() {
+    let drive = self.plugin_drive.clone();
+    if drive.program(self, ast).is_none() {
       match ast {
         Program::Module(m) => {
           self.set_strict(true);
@@ -1271,9 +1292,9 @@ impl<'parser> JavascriptParser<'parser> {
           self.prev_statement = None;
           self.walk_statements(&s.body);
         }
-      };
+      }
     }
-    self.plugin_drive.clone().finish(self);
+    drive.finish(self);
   }
 
   fn set_strict(&mut self, value: bool) {

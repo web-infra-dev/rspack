@@ -1,21 +1,20 @@
 use std::{fs, path::Path};
 
 use anyhow::Context;
+use cargo_toml::{Dependency, DepsSet, Inheritable, LintGroups, Manifest};
 use clap::Args;
 /// check every workspace dependencies has default-features=false
-fn check_setting_default_features_false(
-  workspace_deps: &toml::map::Map<String, toml::Value>,
-) -> Vec<String> {
+fn check_setting_default_features_false(workspace_deps: &DepsSet) -> Vec<String> {
   let mut errors = Vec::new();
   // Check each dependency for default-features=false
   for (dep_name, dep_value) in workspace_deps {
-    if let Some(table) = dep_value.as_table()
-      && (!table.contains_key("default-features")
-        || table.get("default-features") != Some(&toml::Value::Boolean(false)))
-    {
-      errors.push(format!(
-        "Dependency '{dep_name}' does not have default-features=false",
-      ));
+    match dep_value {
+      Dependency::Detailed(detail) if !detail.default_features => {}
+      _ => {
+        errors.push(format!(
+          "Dependency '{dep_name}' does not have default-features=false",
+        ));
+      }
     }
   }
   errors
@@ -27,33 +26,24 @@ fn enforce_workspace_version() -> anyhow::Result<()> {
 
   // Read and parse the workspace Cargo.toml
   let workspace_content = fs::read_to_string(&workspace_manifest_path)?;
-  let workspace_toml: toml::Value = toml::from_str(&workspace_content)?;
+  let workspace_toml = Manifest::from_str(&workspace_content)?;
   let mut errors = Vec::new();
-  // Get workspace dependencies
-  let workspace_deps = workspace_toml
-    .get("workspace")
-    .and_then(|w| w.get("dependencies"))
-    .and_then(|d| d.as_table())
-    .with_context(|| "No workspace dependencies found")?;
+  let workspace = workspace_toml
+    .workspace
+    .with_context(|| "No workspace section found")?;
+  let workspace_deps = &workspace.dependencies;
   let default_features_errors = check_setting_default_features_false(workspace_deps);
   errors.extend(default_features_errors);
-  // Get workspace members
-  let workspace_members = workspace_toml
-    .get("workspace")
-    .and_then(|w| w.get("members"))
-    .and_then(|m| m.as_array())
-    .with_context(|| "No workspace members found")?;
+  let workspace_members = &workspace.members;
 
   let mut checked_crates = 0;
   let mut total_dependencies = 0;
 
   // Check each workspace member
   for member in workspace_members {
-    let member_path = member.as_str().with_context(|| "Invalid member path")?;
-
     // Skip if it's a glob pattern, we need to resolve it
-    if member_path.contains('*') {
-      let pattern_parts: Vec<&str> = member_path.split('/').collect();
+    if member.contains('*') {
+      let pattern_parts: Vec<&str> = member.split('/').collect();
       if pattern_parts.len() == 2 && pattern_parts[1] == "*" {
         // Handle patterns like "crates/*"
         let base_dir = workspace_root.join(pattern_parts[0]);
@@ -75,7 +65,7 @@ fn enforce_workspace_version() -> anyhow::Result<()> {
       }
     } else {
       // Direct member path
-      let manifest_path = workspace_root.join(member_path).join("Cargo.toml");
+      let manifest_path = workspace_root.join(member).join("Cargo.toml");
       if manifest_path.exists() {
         let deps_count = check_crate_dependencies(&manifest_path, workspace_deps, &mut errors)?;
         checked_crates += 1;
@@ -102,11 +92,11 @@ fn enforce_workspace_version() -> anyhow::Result<()> {
 
 fn check_crate_dependencies(
   manifest_path: &Path,
-  workspace_deps: &toml::map::Map<String, toml::Value>,
+  workspace_deps: &DepsSet,
   errors: &mut Vec<String>,
 ) -> anyhow::Result<usize> {
   let content = fs::read_to_string(manifest_path)?;
-  let toml_value: toml::Value = toml::from_str(&content)?;
+  let manifest = Manifest::from_str(&content)?;
 
   let crate_name = manifest_path
     .parent()
@@ -116,80 +106,61 @@ fn check_crate_dependencies(
 
   let mut deps_count = 0;
 
-  check_crate_workspace_lints(&toml_value, crate_name, errors);
+  check_crate_workspace_lints(&manifest.lints, crate_name, errors);
 
   // Check regular dependencies
-  if let Some(deps) = toml_value.get("dependencies").and_then(|d| d.as_table()) {
-    deps_count +=
-      check_dependency_section(deps, workspace_deps, crate_name, "dependencies", errors);
-  }
+  deps_count += check_dependency_section(
+    &manifest.dependencies,
+    workspace_deps,
+    crate_name,
+    "dependencies",
+    errors,
+  );
 
   // Check dev-dependencies
-  if let Some(dev_deps) = toml_value
-    .get("dev-dependencies")
-    .and_then(|d| d.as_table())
-  {
-    deps_count += check_dependency_section(
-      dev_deps,
-      workspace_deps,
-      crate_name,
-      "dev-dependencies",
-      errors,
-    );
-  }
+  deps_count += check_dependency_section(
+    &manifest.dev_dependencies,
+    workspace_deps,
+    crate_name,
+    "dev-dependencies",
+    errors,
+  );
 
   // Check build-dependencies
-  if let Some(build_deps) = toml_value
-    .get("build-dependencies")
-    .and_then(|d| d.as_table())
-  {
-    deps_count += check_dependency_section(
-      build_deps,
-      workspace_deps,
-      crate_name,
-      "build-dependencies",
-      errors,
-    );
-  }
+  deps_count += check_dependency_section(
+    &manifest.build_dependencies,
+    workspace_deps,
+    crate_name,
+    "build-dependencies",
+    errors,
+  );
 
   Ok(deps_count)
 }
 
 fn check_crate_workspace_lints(
-  toml_value: &toml::Value,
+  lints: &Inheritable<LintGroups>,
   crate_name: &str,
   errors: &mut Vec<String>,
 ) {
-  let Some(lints) = toml_value.get("lints").and_then(|l| l.as_table()) else {
-    errors.push(format!(
-      "{crate_name}: missing [lints] section, expected [lints] workspace = true to enable clippy workspace lints"
-    ));
-    return;
-  };
-
-  match lints.get("workspace") {
-    Some(toml::Value::Boolean(true)) => {}
-    Some(toml::Value::Boolean(false)) => {
+  match lints {
+    Inheritable::Inherited => {}
+    Inheritable::Set(groups) if groups.is_empty() => {
       errors.push(format!(
-        "{crate_name}: [lints].workspace is false, expected true to enable clippy workspace lints"
+        "{crate_name}: missing [lints] section, expected [lints] workspace = true to enable clippy workspace lints"
       ));
     }
-    Some(_) => {
+    Inheritable::Set(_) => {
       errors.push(format!(
-        "{crate_name}: [lints].workspace has invalid value, expected true"
-      ));
-    }
-    None => {
-      errors.push(format!(
-        "{crate_name}: missing [lints].workspace = true to enable clippy workspace lints"
+        "{crate_name}: [lints] does not use workspace = true, expected workspace lints inheritance"
       ));
     }
   }
 }
 
 fn check_dependency_section(
-  deps: &toml::map::Map<String, toml::Value>,
-  workspace_deps: &toml::map::Map<String, toml::Value>,
+  deps: &DepsSet,
+  workspace_deps: &DepsSet,
   crate_name: &str,
   section_name: &str,
   errors: &mut Vec<String>,
@@ -205,27 +176,14 @@ fn check_dependency_section(
     count += 1;
 
     match dep_value {
-      toml::Value::String(_) => {
+      Dependency::Simple(_) => {
         // Simple version string - should use workspace=true
         errors.push(format!(
           "{crate_name} [{section_name}]: dependency '{dep_name}' uses version string instead of workspace=true"
         ));
       }
-      toml::Value::Table(table) => {
-        // Check if it uses workspace=true
-        if let Some(workspace_val) = table.get("workspace") {
-          if let Some(workspace_bool) = workspace_val.as_bool() {
-            if !workspace_bool {
-              errors.push(format!(
-                "{crate_name} [{section_name}]: dependency '{dep_name}' has workspace=false, should be workspace=true"
-              ));
-            }
-          } else {
-            errors.push(format!(
-              "{crate_name} [{section_name}]: dependency '{dep_name}' has invalid workspace value, should be workspace=true"
-            ));
-          }
-        } else if table.contains_key("version") {
+      Dependency::Detailed(detail) => {
+        if detail.version.is_some() {
           // Has version but no workspace=true
           errors.push(format!(
             "{crate_name} [{section_name}]: dependency '{dep_name}' specifies version instead of workspace=true"
@@ -233,11 +191,7 @@ fn check_dependency_section(
         }
         // If it has path but no version, it might be a local path dependency, which is OK
       }
-      _ => {
-        errors.push(format!(
-          "{crate_name} [{section_name}]: dependency '{dep_name}' has invalid format"
-        ));
-      }
+      Dependency::Inherited(_) => {}
     }
   }
 
@@ -250,10 +204,10 @@ fn find_workspace_root() -> anyhow::Result<std::path::PathBuf> {
     let manifest_path = current_dir.join("Cargo.toml");
     if manifest_path.exists() {
       let content = fs::read_to_string(&manifest_path)?;
-      let toml_value: toml::Value = toml::from_str(&content)?;
+      let manifest = Manifest::from_str(&content)?;
 
       // Check if this is a workspace root
-      if toml_value.get("workspace").is_some() {
+      if manifest.workspace.is_some() {
         return Ok(current_dir);
       }
     }

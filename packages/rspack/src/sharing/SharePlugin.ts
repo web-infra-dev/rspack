@@ -4,8 +4,22 @@ import { ConsumeSharedPlugin } from './ConsumeSharedPlugin';
 import { ProvideSharedPlugin } from './ProvideSharedPlugin';
 import { isRequiredVersion } from './utils';
 
+export type ShareScope = string | string[];
+
+export function validateShareScope(
+  shareScope: ShareScope,
+  enhanced: boolean,
+  pluginName: string,
+): void {
+  if (Array.isArray(shareScope) && shareScope.length > 1 && !enhanced) {
+    throw new Error(
+      `[${pluginName}] shareScope as an array with multiple entries requires enhanced=true, got: ${JSON.stringify(shareScope)}`,
+    );
+  }
+}
+
 export type SharePluginOptions = {
-  shareScope?: string;
+  shareScope?: ShareScope;
   shared: Shared;
   enhanced: boolean;
 };
@@ -26,7 +40,7 @@ export type SharedConfig = {
   packageName?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string;
+  shareScope?: ShareScope;
   singleton?: boolean;
   strictVersion?: boolean;
   version?: false | string;

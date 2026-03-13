@@ -54,12 +54,12 @@ impl RspackRegex {
 
   #[inline]
   pub fn global(&self) -> bool {
-    self.algo.global()
+    self.flags.contains('g')
   }
 
   #[inline]
   pub fn sticky(&self) -> bool {
-    self.algo.sticky()
+    self.flags.contains('y')
   }
 
   #[inline]

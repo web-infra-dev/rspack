@@ -373,7 +373,9 @@ async fn batch_write_packs(
 
 #[cfg(test)]
 mod tests {
-  use std::{collections::HashMap, sync::Arc};
+  use std::sync::Arc;
+
+  use rustc_hash::FxHashMap;
 
   use crate::{
     error::Result,
@@ -402,7 +404,7 @@ mod tests {
       .get_contents()
       .into_iter()
       .map(|(k, v)| (k.as_ref().to_owned(), v.as_ref().to_owned()))
-      .collect::<HashMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     assert_eq!(contents.len(), end);
     assert_eq!(
@@ -434,7 +436,7 @@ mod tests {
       .get_contents()
       .into_iter()
       .map(|(k, v)| (k.as_ref().to_owned(), v.as_ref().to_owned()))
-      .collect::<HashMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     assert_eq!(contents.len(), pre_item_count + end - start);
     assert_eq!(
@@ -460,7 +462,7 @@ mod tests {
       .get_contents()
       .into_iter()
       .map(|(k, v)| (k.as_ref().to_owned(), v.as_ref().to_owned()))
-      .collect::<HashMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     assert_eq!(contents.len(), pre_item_count);
     assert_eq!(
@@ -481,7 +483,7 @@ mod tests {
       .get_contents()
       .into_iter()
       .map(|(k, v)| (k.as_ref().to_owned(), v.as_ref().to_owned()))
-      .collect::<HashMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     assert_eq!(contents.len(), pre_item_count - 1);
     assert!(!contents.contains_key(format!("{:0>4}_key", 1).as_bytes()));

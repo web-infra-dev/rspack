@@ -199,7 +199,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &match used {
+      match used {
         UsedName::Normal(used) => format!(
           "{}{}",
           base,

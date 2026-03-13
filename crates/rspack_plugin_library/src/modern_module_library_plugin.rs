@@ -1,6 +1,6 @@
 use std::{hash::Hash, sync::Arc};
 
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
@@ -110,22 +110,20 @@ impl ModernModuleLibraryPlugin {
       .collect::<HashSet<_>>();
 
     for module_id in unconcatenated_module_ids {
-      let chunk_runtime = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_runtimes_iter(
-          *module_id,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-        )
-        .fold(RuntimeSpec::default(), |mut acc, r| {
-          acc.extend(r);
-          acc
-        });
+      let chunk_runtime = RuntimeSpec::from_runtimes(
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_runtimes_iter(
+            *module_id,
+            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+          ),
+      );
 
       let current_configuration: ConcatConfiguration =
         ConcatConfiguration::new(*module_id, Some(chunk_runtime.clone()));
 
-      let mut used_modules = HashSet::default();
+      let mut used_modules = IdentifierSet::default();
 
       ModuleConcatenationPlugin::process_concatenated_configuration(
         compilation,

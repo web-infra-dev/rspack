@@ -1,4 +1,7 @@
+use std::sync::LazyLock;
+
 use browserslist::Opts;
+use regex::Regex;
 
 /// Configuration parsed from input string and context directory
 #[derive(Debug, Default)]
@@ -38,10 +41,12 @@ pub fn parse<'a>(input: Option<&str>, context: &'a str) -> BrowserslistHandlerCo
   // group 1: absolute path (optionally Windows drive letter)
   // group 2: optional env suffix after colon
   // same as JS: /^(?:((?:[A-Z]:)?[/\\].*?))?(?::(.+?))?$/i
-  let re = regex::Regex::new(r"^(?:((?:[A-Z]:)?[/\\].*?))?(?::(.+?))?$")
-    .expect("Should initialize browserlist regex");
+  static BROWSERSLIST_INPUT_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^(?:((?:[A-Z]:)?[/\\].*?))?(?::(.+?))?$")
+      .expect("Should initialize browserslist input regex")
+  });
 
-  if let Some(caps) = re.captures(input) {
+  if let Some(caps) = BROWSERSLIST_INPUT_RE.captures(input) {
     let config_path = caps.get(1).map(|m| m.as_str().to_string());
     let env = caps.get(2).map(|m| m.as_str().to_string());
 

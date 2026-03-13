@@ -13,7 +13,7 @@ test('should error with invalid syntax', async ({
   fileAction.updateFile('src/App.jsx', (content) =>
     content.replace('</div>', '{/* </div> */}'),
   );
-  await expect(page.locator('#webpack-dev-server-client-overlay')).toHaveCount(
+  await expect(page.locator('#rspack-dev-server-client-overlay')).toHaveCount(
     1,
   );
   const brokenCode = rspack.compiler.outputFileSystem.readFileSync(

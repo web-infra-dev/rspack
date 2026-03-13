@@ -146,7 +146,7 @@ pub async fn render_module(
           compilation.options.output.path.to_string(),
           true,
         );
-        replace.replace(start as u32, end as u32, &relative, None);
+        replace.replace(start as u32, end as u32, relative, None);
       }
       RenderSource {
         source: replace.boxed(),

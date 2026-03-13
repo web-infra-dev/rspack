@@ -1,13 +1,17 @@
-use std::{collections::HashMap, path::Path, sync::Arc};
+use std::{path::Path, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet, UkeyDashSet, UkeyMap, UkeySet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ModuleIdentifier,
-  find_new_name, get_cached_readable_identifier, incremental::Mutation, split_readable_identifier,
+  ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
+  ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
+  incremental::Mutation, split_readable_identifier,
 };
-use rspack_util::{atom::Atom, fx_hash::FxHashSet};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxDashSet, FxHashMap, FxHashSet},
+};
 
 use crate::EsmLibraryPlugin;
 
@@ -20,8 +24,8 @@ use crate::EsmLibraryPlugin;
 /// c depends on a, so entry chunk needs to re-export symbols from a
 pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
   let module_graph = compilation.get_module_graph();
-  let mut entrypoint_chunks = UkeyMap::<ChunkUkey, ChunkGroupUkey>::default();
-  let mut entry_module_belongs: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
+  let mut entrypoint_chunks = FxHashMap::<ChunkUkey, ChunkGroupUkey>::default();
+  let mut entry_module_belongs: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
 
   for entrypoint_ukey in compilation.entrypoints().values() {
     let entrypoint = compilation
@@ -48,7 +52,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
     }
   }
 
-  let dirty_chunks = UkeyDashSet::default();
+  let dirty_chunks = FxDashSet::default();
 
   compilation
     .build_chunk_graph_artifact
@@ -266,7 +270,7 @@ pub(crate) fn analyze_dyn_import_targets(
   compilation: &Compilation,
   concatenated_modules: &IdentifierSet,
   dyn_import_ns_map: &Arc<AtomicRefCell<IdentifierMap<Atom>>>,
-) -> (UkeySet<ChunkUkey>, IdentifierSet, IdentifierSet) {
+) -> (FxHashSet<ChunkUkey>, IdentifierSet, IdentifierSet) {
   let module_graph = compilation.get_module_graph();
   let mut all_dyn_targets = IdentifierSet::default();
   let mut namespace_targets = IdentifierSet::default();
@@ -316,9 +320,9 @@ pub(crate) fn analyze_dyn_import_targets(
   }
 
   // Classify chunks: single-module or entry chunks get strict exports
-  let mut strict_chunks = UkeySet::default();
+  let mut strict_chunks = FxHashSet::default();
 
-  let entrypoint_chunks: UkeySet<ChunkUkey> = compilation
+  let entrypoint_chunks: FxHashSet<ChunkUkey> = compilation
     .build_chunk_graph_artifact
     .entrypoints
     .values()
@@ -372,8 +376,69 @@ pub(crate) fn analyze_dyn_import_targets(
     let mut sorted_targets: Vec<_> = all_dyn_targets.iter().copied().collect();
     sorted_targets.sort();
 
+    // Step 1: Collect export names per module per chunk (for non-strict, non-external,
+    // concatenated modules) to detect export name conflicts between modules sharing a chunk.
+    let exports_info_artifact = &compilation.exports_info_artifact;
+    let mut chunk_module_exports: FxHashMap<ChunkUkey, Vec<(_, FxHashSet<Atom>)>> =
+      FxHashMap::default();
+    for module_id in &sorted_targets {
+      if !concatenated_modules.contains(module_id) {
+        continue;
+      }
+      let Some(module) = module_graph.module_by_identifier(module_id) else {
+        continue;
+      };
+      if module.as_external_module().is_some() {
+        continue;
+      }
+      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      if strict_chunks.contains(&chunk_ukey) {
+        continue;
+      }
+      let exports_info = exports_info_artifact
+        .get_exports_info(module_id)
+        .as_data(exports_info_artifact);
+      let export_names: FxHashSet<Atom> = exports_info
+        .exports()
+        .iter()
+        .filter(|(_, ei)| {
+          !matches!(ei.provided(), Some(ExportProvided::NotProvided))
+            && !matches!(ei.get_used(None), UsageState::Unused)
+        })
+        .map(|(name, _)| name.clone())
+        .collect();
+      chunk_module_exports
+        .entry(chunk_ukey)
+        .or_default()
+        .push((*module_id, export_names));
+    }
+
+    // Step 2: Find modules with conflicting export names (same name in multiple modules)
+    let mut modules_with_conflicts = IdentifierSet::default();
+    for modules in chunk_module_exports.values() {
+      let mut name_count: FxHashMap<&Atom, usize> = FxHashMap::default();
+      for (_, exports) in modules {
+        for name in exports {
+          *name_count.entry(name).or_default() += 1;
+        }
+      }
+      let conflicting_names: FxHashSet<&Atom> = name_count
+        .iter()
+        .filter(|(_, count)| **count > 1)
+        .map(|(name, _)| *name)
+        .collect();
+      if !conflicting_names.is_empty() {
+        for (module_id, exports) in modules {
+          if exports.iter().any(|n| conflicting_names.contains(n)) {
+            modules_with_conflicts.insert(*module_id);
+          }
+        }
+      }
+    }
+
+    // Step 3: Only assign namespace names when needed (namespace used as a whole or has conflicts)
     // Track used names per chunk to avoid collisions between multiple dyn targets
-    let mut chunk_used_names: UkeyMap<ChunkUkey, FxHashSet<Atom>> = UkeyMap::default();
+    let mut chunk_used_names: FxHashMap<ChunkUkey, FxHashSet<Atom>> = FxHashMap::default();
 
     for module_id in &sorted_targets {
       if !concatenated_modules.contains(module_id) {
@@ -387,6 +452,11 @@ pub(crate) fn analyze_dyn_import_targets(
       }
       let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
       if strict_chunks.contains(&chunk_ukey) {
+        continue;
+      }
+      // Skip namespace object for modules that don't need it:
+      // only needed if namespace is used as a whole or has export name conflicts
+      if !namespace_targets.contains(module_id) && !modules_with_conflicts.contains(module_id) {
         continue;
       }
       // Compute namespace_object_name using the same logic as deconflict_symbols
@@ -438,7 +508,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   let module_graph = compilation.get_module_graph();
 
   // Collect all existing named chunks
-  let mut used_names: HashMap<String, usize> = HashMap::default();
+  let mut used_names: FxHashMap<String, usize> = FxHashMap::default();
   for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
     used_names.insert(name.clone(), 1);
   }
@@ -476,7 +546,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   // Compute short names and track duplicates
   // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order
   let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> = Vec::new();
-  let mut name_index_map: HashMap<String, usize> = HashMap::default();
+  let mut name_index_map: FxHashMap<String, usize> = FxHashMap::default();
 
   for (chunk_ukey, module_id) in &candidates {
     let Some(module_path) = module_graph

@@ -1,9 +1,10 @@
-use std::{collections::HashMap, fmt::Debug, hash::Hash};
+use std::{fmt::Debug, hash::Hash};
 
 use rayon::iter::{
   IntoParallelRefIterator as RayonIntoParallelRefIterator,
   IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator,
 };
+use rustc_hash::FxHashMap;
 #[derive(Debug, Clone)]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
@@ -12,7 +13,7 @@ pub enum Action<K, V> {
 
 #[derive(Debug, Clone)]
 pub struct RollbackMap<K, V> {
-  map: HashMap<K, V>,
+  map: FxHashMap<K, V>,
   undo_stack: Vec<Action<K, V>>,
   checkpoint: Option<usize>,
 }

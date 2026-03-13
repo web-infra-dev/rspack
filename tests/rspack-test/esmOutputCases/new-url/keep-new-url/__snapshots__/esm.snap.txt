@@ -4,6 +4,7 @@
 
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./asset.js"
 /*!******************!*\

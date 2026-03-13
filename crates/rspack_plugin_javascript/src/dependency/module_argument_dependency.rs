@@ -93,6 +93,6 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
       module_argument
     };
 
-    source.replace(dep.range.start, dep.range.end, content.as_str(), None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

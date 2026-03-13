@@ -115,6 +115,11 @@ impl DependencyTemplate for CssLocalIdentDependencyTemplate {
       .downcast_ref::<CssLocalIdentDependency>()
       .expect("CssLocalIdentDependencyTemplate should be used for CssLocalIdentDependency");
 
-    source.replace(dep.start, dep.end, &escape_css(&dep.local_ident), None);
+    source.replace(
+      dep.start,
+      dep.end,
+      escape_css(&dep.local_ident).into_owned(),
+      None,
+    );
   }
 }

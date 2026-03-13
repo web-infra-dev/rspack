@@ -131,10 +131,10 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     if dep.has_callback {
       source.insert(
         dep.range.start,
-        format!("function(__rspack_hmr_outdated) {{\n{content}(").as_str(),
+        format!("function(__rspack_hmr_outdated) {{\n{content}("),
         None,
       );
-      source.insert(
+      source.insert_static(
         dep.range.end,
         ")(__rspack_hmr_outdated); }.bind(this)",
         None,
@@ -142,7 +142,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     } else {
       source.insert(
         dep.range.start,
-        format!(", function(){{\n{content}\n}}").as_str(),
+        format!(", function(){{\n{content}\n}}"),
         None,
       );
     }

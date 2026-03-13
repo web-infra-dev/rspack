@@ -1,5 +1,4 @@
 use std::{
-  collections::HashMap,
   ffi::c_void,
   hash::Hash,
   ptr::NonNull,
@@ -74,6 +73,7 @@ use rspack_plugin_runtime::{
   RuntimePluginLinkPreloadHook,
 };
 use rspack_tasks::within_compiler_context;
+use rustc_hash::FxHashMap;
 
 use crate::{
   asset::JsAssetEmittedArgs,
@@ -130,7 +130,8 @@ impl JsBeforeModuleIdsArg {
 
 #[napi(object)]
 pub struct JsBeforeModuleIdsResult {
-  pub assignments: HashMap<String, String>,
+  #[napi(ts_type = "Record<string, string>")]
+  pub assignments: FxHashMap<String, String>,
 }
 
 #[napi(object)]

@@ -7,7 +7,7 @@ use std::{
 };
 
 use rayon::prelude::*;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
@@ -45,7 +45,6 @@ use rspack_javascript_compiler::ast::Ast;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rustc_hash::FxHashMap;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
@@ -420,27 +419,24 @@ var {} = {{}};
             let module_graph_cache = &compilation.module_graph_cache_artifact;
             module_graph
               .get_incoming_connections_by_origin_module(module)
+              .modules()
               .iter()
               .any(|(origin_module, connections)| {
-                if let Some(origin_module) = origin_module {
-                  connections.iter().any(|c| {
-                    c.is_target_active(
-                      module_graph,
-                      Some(chunk.runtime()),
-                      module_graph_cache,
-                      &compilation.exports_info_artifact,
-                    )
-                  }) && compilation
-                    .build_chunk_graph_artifact
-                    .chunk_graph
-                    .get_module_runtimes_iter(
-                      *origin_module,
-                      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-                    )
-                    .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
-                } else {
-                  false
-                }
+                connections.iter().any(|c| {
+                  c.is_target_active(
+                    module_graph,
+                    Some(chunk.runtime()),
+                    module_graph_cache,
+                    &compilation.exports_info_artifact,
+                  )
+                }) && compilation
+                  .build_chunk_graph_artifact
+                  .chunk_graph
+                  .get_module_runtimes_iter(
+                    *origin_module,
+                    &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                  )
+                  .any(|runtime| runtime.intersection(chunk.runtime()).count() > 0)
               })
           } {
             buf2.push(
@@ -1345,11 +1341,11 @@ var {} = {{}};
             let high = span.real_hi();
 
             if identifier.shorthand {
-              replace_source.insert(high, &format!(": {new_name}"), None);
+              replace_source.insert(high, format!(": {new_name}"), None);
               continue;
             }
 
-            replace_source.replace(low, high, &new_name, None);
+            replace_source.replace(low, high, new_name.to_string(), None);
           }
 
           all_used_names.insert(new_name);

@@ -31,6 +31,10 @@ pub use entry::*;
 pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
@@ -40,8 +44,9 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExtendedReferencedExport,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone)]
@@ -54,7 +59,7 @@ pub enum ProcessModuleReferencedExports {
 pub struct ExportSpec {
   pub name: Atom,
   pub export: Option<Nullable<Vec<Atom>>>,
-  pub exports: Option<ExportSpecExports>,
+  pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
   pub priority: Option<u8>,
@@ -62,47 +67,6 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
-}
-
-#[derive(Debug, Default)]
-pub struct ExportSpecExports {
-  pub exports: Vec<ExportNameOrSpec>,
-  /// This is used to tell FlagDependencyExportsPlugin that the nested exports that is not
-  /// fully statical, there are maybe some export that dynamically defined by prototype or
-  /// other way, e.g. json exports or enum exports, it's possible to write:
-  ///
-  /// ```js
-  /// import { obj } from "./data.json";
-  /// obj.toString(); // existed but will have an ESModulesLinkingError for toString not exist
-  /// ```
-  ///
-  /// or
-  ///
-  /// ```ts
-  /// export enum Kind { A, B };
-  /// export namespace Kind {
-  ///   export const isA = (value: Kind) => value === Kind.A
-  /// }
-  /// Kind.isB = (value: Kind) => value === Kind.B
-  /// ```
-  ///
-  /// But for now we only use it for enum exports, if there are issues about json exports then
-  /// we can also apply this to json exports
-  pub unknown_provided: bool,
-}
-
-impl ExportSpecExports {
-  pub fn new(exports: Vec<ExportNameOrSpec>) -> Self {
-    Self {
-      exports,
-      unknown_provided: false,
-    }
-  }
-
-  pub fn with_unknown_provided(mut self, unknown_provided: bool) -> Self {
-    self.unknown_provided = unknown_provided;
-    self
-  }
 }
 
 #[derive(Debug)]
@@ -260,4 +224,87 @@ impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
       swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ReferencedSpecifier {
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub names: Vec<Atom>,
+  pub is_call: bool,
+  pub namespace_object_as_context: bool,
+}
+
+impl ReferencedSpecifier {
+  pub fn new(names: Vec<Atom>) -> Self {
+    Self {
+      names,
+      is_call: false,
+      namespace_object_as_context: false,
+    }
+  }
+
+  pub fn new_call(names: Vec<Atom>, namespace_object_as_context: bool) -> Self {
+    Self {
+      names,
+      is_call: true,
+      namespace_object_as_context,
+    }
+  }
+}
+
+pub fn create_referenced_exports_by_referenced_specifiers(
+  referenced_specifiers: &[ReferencedSpecifier],
+  exports_type: ExportsType,
+) -> Vec<ExtendedReferencedExport> {
+  let mut refs = vec![];
+  for ReferencedSpecifier {
+    names,
+    is_call,
+    namespace_object_as_context,
+  } in referenced_specifiers
+  {
+    let mut names = names.as_slice();
+    let mut namespace_object_as_context = *namespace_object_as_context;
+
+    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+    // because it's more common in cjs and json
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) {
+      namespace_object_as_context = true;
+    }
+
+    if let Some(id) = names.first()
+      && id == "default"
+    {
+      match exports_type {
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+          if names.len() == 1 {
+            return create_exports_object_referenced();
+          }
+          names = &names[1..];
+        }
+        ExportsType::Dynamic => {
+          return create_exports_object_referenced();
+        }
+        _ => {}
+      }
+    }
+
+    if namespace_object_as_context && *is_call {
+      if names.len() == 1 {
+        return create_exports_object_referenced();
+      }
+      // remove last one
+      names = &names[..names.len().saturating_sub(1)];
+    }
+    refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
+      names.to_vec(),
+      false,
+      false,
+    )));
+  }
+  refs
 }

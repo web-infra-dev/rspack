@@ -160,9 +160,7 @@ CompilerOptions {
             [],
         ),
         roots: Some(
-            [
-                "<cwd>",
-            ],
+            [],
         ),
         restrictions: None,
         imports_fields: Some(
@@ -180,7 +178,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -230,7 +227,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -280,7 +276,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -358,7 +353,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -410,7 +404,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -460,7 +453,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -510,7 +502,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -560,7 +551,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,

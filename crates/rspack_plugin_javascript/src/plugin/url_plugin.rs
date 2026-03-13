@@ -97,7 +97,12 @@ async fn render_module_content(
         unreachable!()
       };
 
-      replace_source.replace(start as u32, end as u32, filename.filename(), None);
+      replace_source.replace(
+        start as u32,
+        end as u32,
+        filename.filename().to_string(),
+        None,
+      );
     }
 
     render_source.source = Arc::new(replace_source);

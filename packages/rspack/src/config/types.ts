@@ -821,7 +821,6 @@ export type ResolveOptions = {
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
-   * It defaults to the context configuration option.
    * On systems other than Windows, these requests are initially resolved as an absolute path.
    * @default []
    */
@@ -2933,11 +2932,24 @@ export type WatchOptions = {
 
 //#region DevServer
 /**
- * Options for devServer, it based on `webpack-dev-server@5`
+ * Options for dev server
  * */
 export type DevServer = DevServerOptions;
 
-export type { Middleware as DevServerMiddleware } from './devServer';
+export type {
+  DevServerClient,
+  DevServerHeaders,
+  DevServerHost,
+  DevServerMiddleware,
+  DevServerMiddlewareHandler,
+  DevServerMiddlewareObject,
+  DevServerOpenOptions,
+  DevServerProxyConfigArray,
+  DevServerProxyConfigArrayItem,
+  DevServerStatic,
+  DevServerStaticItem,
+  DevServerWebSocketURL,
+} from './devServer';
 //#endregion
 
 //#region IgnoreWarnings

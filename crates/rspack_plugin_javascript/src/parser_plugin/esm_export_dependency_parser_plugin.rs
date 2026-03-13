@@ -108,7 +108,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       let mut dep = ESMExportImportedSpecifierDependency::new(
         settings.source,
         settings.source_order,
-        settings.ids,
+        settings.ids.into_vec(),
         Some(export_name.clone()),
         None,
         statement.span().into(),

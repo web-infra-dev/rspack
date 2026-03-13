@@ -106,10 +106,10 @@ impl Tracer for StdoutTracer {
 
   fn sync_trace(&mut self, events: Vec<TraceEvent>) {
     if let Some(writer) = &self.writer {
-      use std::collections::HashMap;
+      use rustc_hash::FxHashMap as HashMap;
 
       // Track begin events by uuid to match with end events
-      let mut pending_events: HashMap<u32, TraceEvent> = HashMap::new();
+      let mut pending_events: HashMap<u32, TraceEvent> = HashMap::default();
 
       for event in events {
         match event.ph.as_str() {

@@ -1,11 +1,11 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{Identifiable, Identifier, IdentifierMap};
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
-  Module, ModuleGraph, ModuleIdsArtifact, ModuleType, OptimizationBailoutItem,
-  PrefetchExportsInfoMode, UsageState,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType,
+  OptimizationBailoutItem, PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -14,8 +14,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use thread_local::ThreadLocal;
 
 use crate::{
-  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorDependency, RsdoctorJsonModuleSizes, RsdoctorModule,
-  RsdoctorModuleId, RsdoctorModuleOriginalSource, RsdoctorSideEffectLocation,
+  ChunkUkey, ModuleKind, ModuleUkey, RsdoctorConnectionsOnlyImport,
+  RsdoctorConnectionsOnlyImportConnection, RsdoctorDependency, RsdoctorJsonModuleSizes,
+  RsdoctorModule, RsdoctorModuleId, RsdoctorModuleOriginalSource, RsdoctorSideEffectLocation,
 };
 
 pub fn collect_json_module_sizes(
@@ -72,7 +73,7 @@ pub fn collect_modules(
   module_graph: &ModuleGraph,
   chunk_graph: &ChunkGraph,
   context: &Context,
-) -> HashMap<Identifier, RsdoctorModule> {
+) -> IdentifierMap<RsdoctorModule> {
   let module_ukey_counter: Arc<AtomicI32> = Arc::new(AtomicI32::new(0));
 
   modules
@@ -131,15 +132,12 @@ pub fn collect_modules(
         },
       )
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<IdentifierMap<_>>()
 }
 
 pub fn collect_concatenated_modules(
   modules: &IdentifierMap<&BoxModule>,
-) -> (
-  HashMap<Identifier, HashSet<Identifier>>,
-  HashMap<Identifier, HashSet<Identifier>>,
-) {
+) -> (IdentifierMap<IdentifierSet>, IdentifierMap<IdentifierSet>) {
   let children_map = modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -150,10 +148,10 @@ pub fn collect_concatenated_modules(
           .get_modules()
           .iter()
           .map(|m| m.id)
-          .collect::<HashSet<_>>(),
+          .collect::<IdentifierSet>(),
       ))
     })
-    .collect::<HashMap<_, _>>();
+    .collect::<IdentifierMap<_>>();
 
   let parent_map = children_map
     .iter()
@@ -164,8 +162,8 @@ pub fn collect_concatenated_modules(
         .collect::<HashSet<_>>()
     })
     .fold(
-      HashMap::default(),
-      |mut acc: HashMap<Identifier, HashSet<Identifier>>, (child, parent)| {
+      IdentifierMap::default(),
+      |mut acc: IdentifierMap<IdentifierSet>, (child, parent)| {
         acc.entry(child).or_default().insert(parent);
         acc
       },
@@ -176,7 +174,7 @@ pub fn collect_concatenated_modules(
 
 pub fn collect_module_original_sources(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
   compilation: &Compilation,
 ) -> Vec<RsdoctorModuleOriginalSource> {
@@ -243,9 +241,9 @@ pub fn collect_module_original_sources(
 
 pub fn collect_module_dependencies(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
-) -> HashMap<Identifier, HashMap<Identifier, (DependencyId, RsdoctorDependency)>> {
+) -> IdentifierMap<IdentifierMap<(DependencyId, RsdoctorDependency)>> {
   let dependency_ukey_counter = Arc::new(AtomicI32::new(0));
 
   modules
@@ -287,16 +285,16 @@ pub fn collect_module_dependencies(
             ),
           ))
         })
-        .collect::<HashMap<_, _>>();
+        .collect::<IdentifierMap<(DependencyId, RsdoctorDependency)>>();
 
       Some((module_id.to_owned(), dependencies))
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<IdentifierMap<IdentifierMap<(DependencyId, RsdoctorDependency)>>>()
 }
 
 pub fn collect_module_ids(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_ids: &ModuleIdsArtifact,
 ) -> Vec<RsdoctorModuleId> {
   modules
@@ -315,9 +313,9 @@ pub fn collect_module_ids(
 
 pub fn collect_module_side_effects_locations(
   modules: &IdentifierMap<&BoxModule>,
-  module_ukeys: &HashMap<Identifier, ModuleUkey>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
   module_graph: &ModuleGraph,
-) -> HashMap<Identifier, Vec<RsdoctorSideEffectLocation>> {
+) -> IdentifierMap<Vec<RsdoctorSideEffectLocation>> {
   modules
     .par_iter()
     .filter_map(|(module_id, module)| {
@@ -349,5 +347,89 @@ pub fn collect_module_side_effects_locations(
         Some((*module_id, side_effect_locations))
       }
     })
-    .collect::<HashMap<_, _>>()
+    .collect::<IdentifierMap<Vec<RsdoctorSideEffectLocation>>>()
+}
+
+pub fn collect_connections_only_imports(
+  modules: &IdentifierMap<&BoxModule>,
+  module_ukeys: &IdentifierMap<ModuleUkey>,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_ukey_to_info: &HashMap<ModuleUkey, (String, bool)>,
+) -> Vec<RsdoctorConnectionsOnlyImport> {
+  let connections = modules
+    .par_iter()
+    .flat_map(|(module_id, _)| {
+      if module_ukeys.get(module_id).is_none() {
+        return vec![];
+      }
+
+      module_graph
+        .get_outgoing_connections(module_id)
+        .filter_map(|conn| {
+          let dep = module_graph.dependency_by_id(&conn.dependency_id);
+          let dependency_type = dep.dependency_type().to_string();
+          let user_request = dep
+            .as_module_dependency()
+            .map(|d| d.user_request().to_string())
+            .unwrap_or_default();
+
+          let origin_module = conn
+            .original_module_identifier
+            .as_ref()
+            .and_then(|id| module_ukeys.get(id).copied());
+          let resolved_module = module_ukeys.get(&conn.resolved_module).copied()?;
+
+          let active = conn.is_active(
+            module_graph,
+            None,
+            module_graph_cache,
+            exports_info_artifact,
+          );
+
+          Some((
+            resolved_module,
+            RsdoctorConnectionsOnlyImportConnection {
+              origin_module,
+              dependency_type,
+              user_request,
+              active,
+            },
+          ))
+        })
+        .collect::<Vec<_>>()
+    })
+    .collect::<Vec<_>>();
+
+  let mut grouped: HashMap<ModuleUkey, Vec<RsdoctorConnectionsOnlyImportConnection>> =
+    HashMap::default();
+
+  for (resolved_module, connection) in connections {
+    grouped.entry(resolved_module).or_default().push(connection);
+  }
+
+  grouped
+    .into_iter()
+    .filter_map(|(module_ukey, connections)| {
+      let (path, is_entry) = module_ukey_to_info.get(&module_ukey)?;
+
+      // Entry modules are expected to be referenced directly — skip them.
+      if *is_entry {
+        return None;
+      }
+
+      // Check if there is exactly one active connection
+      let active_connections: Vec<_> = connections.into_iter().filter(|c| c.active).collect();
+      if active_connections.len() != 1 {
+        return None;
+      }
+
+      Some(RsdoctorConnectionsOnlyImport {
+        module_ukey,
+        module_path: path.clone(),
+        connections: active_connections,
+      })
+    })
+    .collect::<Vec<_>>()
 }

@@ -206,6 +206,6 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
       None,
     )));
-    source.replace(dep.range.start, dep.range.end, &dep.identifier, None);
+    source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
   }
 }

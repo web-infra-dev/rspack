@@ -1,7 +1,10 @@
 it('should support dyn import with no conflicting exports', async () => {
-	const a = await import(/* webpackChunkName: "shared" */'./a.js')
-	const b = await import(/* webpackChunkName: "shared" */'./b.js')
+	const { foo, fooFn } = await import(/* webpackChunkName: "shared" */'./a.js')
+	const { bar, barFn } = await import(/* webpackChunkName: "shared" */'./b.js')
 
-	expect(a).toHaveProperty('foo', 1)
-	expect(b).toHaveProperty('bar', 2)
+	expect(foo).toBe(1)
+	expect(bar).toBe(2)
+
+	expect(fooFn()).toBe(1)
+	expect(barFn()).toBe(2)
 })

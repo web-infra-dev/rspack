@@ -31,6 +31,7 @@ mod property_name;
 mod remove_bom;
 mod runtime;
 mod source;
+mod source_size_cache;
 pub mod task_loop;
 mod template;
 mod to_path;
@@ -56,6 +57,7 @@ pub use self::{
   remove_bom::*,
   runtime::*,
   source::*,
+  source_size_cache::*,
   template::*,
   to_path::to_path,
 };

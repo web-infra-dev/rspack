@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{Compilation, Module, ModuleGraph, RscModuleType};
@@ -9,24 +12,27 @@ use crate::constants::LAYERS_NAMES;
 pub fn track_server_component_changes(
   compilation: &Compilation,
   prev_server_component_hashes: &mut IdentifierMap<u64>,
-) -> FxHashMap<String, IdentifierSet> {
+) -> FxHashMap<Arc<str>, IdentifierSet> {
   let module_graph = compilation.get_module_graph();
 
   let mut visited_modules: IdentifierSet = Default::default();
-  let mut changed_server_components_per_entry: FxHashMap<String, IdentifierSet> =
+  let mut changed_server_components_per_entry: FxHashMap<Arc<str>, IdentifierSet> =
     Default::default();
   let mut cur_server_component_hashes = Default::default();
 
   for (entry_name, entry_data) in &compilation.entries {
+    let entry_name: Arc<str> = Arc::from(entry_name.clone());
     visited_modules.clear();
 
     let changed_server_components = changed_server_components_per_entry
       .entry(entry_name.clone())
       .or_default();
 
-    let entry_dependency_id = entry_data.dependencies[0];
+    let Some(entry_dependency_id) = entry_data.dependencies.first() else {
+      continue;
+    };
     let Some(resolved_module) = module_graph
-      .get_resolved_module(&entry_dependency_id)
+      .get_resolved_module(entry_dependency_id)
       .and_then(|identifier| compilation.module_by_identifier(identifier))
     else {
       continue;

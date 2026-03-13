@@ -12,11 +12,12 @@ import { normalizeConsumeShareOptions } from './ConsumeSharedPlugin';
 import {
   createConsumeShareOptions,
   type NormalizedSharedOptions,
+  type ShareScope,
 } from './SharePlugin';
 
 export type CollectSharedEntryPluginOptions = {
   sharedOptions: NormalizedSharedOptions;
-  shareScope?: string;
+  shareScope?: ShareScope;
 };
 
 export type ShareRequestsMap = Record<

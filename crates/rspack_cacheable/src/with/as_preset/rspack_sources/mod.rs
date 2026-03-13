@@ -40,14 +40,9 @@ where
   S: Fallible<Error = Error> + Allocator + Writer,
 {
   fn serialize_with(field: &BoxSource, serializer: &mut S) -> Result<Self::Resolver> {
-    let map = match field.map(&ObjectPool::default(), &Default::default()) {
-      Some(map) => Some(
-        map
-          .to_json()
-          .map_err(|_| Error::MessageError("source map to json failed"))?,
-      ),
-      None => None,
-    };
+    let map = field
+      .map(&ObjectPool::default(), &Default::default())
+      .map(|m| m.to_json());
     let source = CacheableSource {
       buffer: field.buffer().to_vec(),
       map,

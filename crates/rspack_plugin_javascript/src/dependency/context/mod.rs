@@ -51,9 +51,21 @@ fn create_resource_identifier_for_context_dependency(
     .unwrap_or_default();
   let mode = options.mode.as_str();
   let referenced_exports = options
-    .referenced_exports
+    .referenced_specifiers
     .as_ref()
-    .map(|ids| ids.iter().map(|ids| ids.iter().join(".")).join(", "))
+    .map(|specifiers| {
+      specifiers
+        .iter()
+        .map(|specifier| {
+          let s = specifier.names.iter().join(".");
+          if specifier.namespace_object_as_context && specifier.is_call {
+            format!("*.{s}()")
+          } else {
+            s
+          }
+        })
+        .join(", ")
+    })
     .unwrap_or_default();
   let mut group_options = String::new();
 
@@ -103,14 +115,14 @@ fn context_dependency_template_as_require_call(
     && let Some(value_range) = value_range
   {
     for (content, start, end) in &dep.options().replaces {
-      source.replace(*start, *end, content, None);
+      source.replace(*start, *end, content.clone(), None);
     }
-    source.replace(value_range.end, range.end, ")", None);
+    source.replace_static(value_range.end, range.end, ")", None);
     expr.push('(');
-    source.replace(range.start, value_range.start, &expr, None);
+    source.replace(range.start, value_range.start, expr, None);
     return;
   }
-  source.replace(range.start, range.end, &expr, None);
+  source.replace(range.start, range.end, expr, None);
 }
 
 fn context_dependency_template_as_id(
@@ -138,19 +150,19 @@ fn context_dependency_template_as_id(
     .module_graph_module_by_dependency_id(id)
     .is_none()
   {
-    source.replace(range.start, range.end, &expr, None);
+    source.replace(range.start, range.end, expr, None);
     return;
   }
 
   for (content, start, end) in &dep.options().replaces {
-    source.replace(*start, *end, content, None);
+    source.replace(*start, *end, content.clone(), None);
   }
 
   source.replace(
     range.start,
     range.start,
-    &format!("{}.resolve(", &expr),
+    format!("{}.resolve(", &expr),
     None,
   );
-  source.replace(range.end, range.end, ")", None);
+  source.replace_static(range.end, range.end, ")", None);
 }
