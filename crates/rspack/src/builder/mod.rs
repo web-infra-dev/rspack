@@ -1307,7 +1307,7 @@ fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: b
     conditions.push("nwjs".to_string());
   }
 
-  let js_extensions = vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()];
+  let js_extensions = vec![".js".to_string(), ".json".to_string()];
 
   let browser_field = target_properties.web()
     && (!target_properties.node()
