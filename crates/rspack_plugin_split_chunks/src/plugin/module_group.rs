@@ -29,7 +29,7 @@ use crate::{
   },
 };
 
-type ChunksKey = u32;
+type ChunksKey = u64;
 
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
@@ -57,8 +57,7 @@ fn get_key<I: Iterator<Item = ChunkUkey>>(
   for chunk_ukey in sorted_chunk_ukeys {
     chunk_ukey.hash(&mut hasher);
   }
-  let hash = hasher.finish();
-  (hash as u32) ^ ((hash >> 32) as u32)
+  hasher.finish()
 }
 
 #[derive(Default)]
