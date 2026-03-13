@@ -1652,96 +1652,93 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             chunk: chunk_ukey,
           }));
         cgi
-      } else {
-        let cgi = if let Some(chunk_name) = chunk_name
-          && let Some(existing_cgi) = self.named_chunk_groups.get(chunk_name).copied()
+      } else if let Some(chunk_name) = chunk_name
+        && let Some(existing_cgi) = self.named_chunk_groups.get(chunk_name).copied()
+      {
+        let mut cgi = existing_cgi;
+        let mut chunk_group = self.chunk_group_info(&cgi).chunk_group;
+        let block = module_graph
+          .block_by_id(&block_id)
+          .expect("should have block");
+        let request = block.request().clone();
+        let loc = block.loc();
+
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(&chunk_group)
+          .is_initial()
         {
-          let mut cgi = existing_cgi;
-          let mut chunk_group = self.chunk_group_info(&cgi).chunk_group;
-          let block = module_graph
-            .block_by_id(&block_id)
-            .expect("should have block");
-          let request = block.request().clone();
-          let loc = block.loc();
+          let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc.clone());
+          compilation.push_diagnostic(Error::from(error).into());
+          cgi = item_chunk_group_info_ukey;
+          chunk_group = item_chunk_group;
+        }
 
-          if compilation
-            .build_chunk_graph_artifact
-            .chunk_group_by_ukey
-            .expect_get(&chunk_group)
-            .is_initial()
-          {
-            let error = AsyncDependenciesToInitialChunkError(chunk_name.to_string(), loc.clone());
-            compilation.push_diagnostic(Error::from(error).into());
-            cgi = item_chunk_group_info_ukey;
-            chunk_group = item_chunk_group;
-          }
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get_mut(&chunk_group)
+          .add_origin(Some(module_id), loc, request);
 
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_group_by_ukey
-            .expect_get_mut(&chunk_group)
-            .add_origin(Some(module_id), loc, request);
-
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .connect_block_and_chunk_group(block_id, chunk_group);
-          c = Some(chunk_group);
-          cgi
-        } else {
-          let mut chunk_group = add_chunk_in_group(
-            block.get_group_options(),
-            module_id,
-            block.loc(),
-            block.request().clone(),
-          );
-          let chunk_group_ukey = chunk_group.ukey;
-          let chunk = compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get_mut(&chunk_ukey);
-
-          self.stat_chunk_group_created += 1;
-          let info = ChunkGroupInfo::new(
-            chunk_group_ukey,
-            item_runtime.clone(),
-            item_chunk_loading,
-            item_async_chunks,
-          );
-
-          let info_ukey = info.ukey;
-          self.chunk_group_infos.entry(info_ukey).or_insert(info);
-
-          self.next_chunk_group_index += 1;
-          chunk_group.index = Some(self.next_chunk_group_index);
-
-          if let Some(name) = chunk_group.kind.name() {
-            self.named_chunk_groups.insert(name.to_owned(), info_ukey);
-            compilation
-              .build_chunk_graph_artifact
-              .named_chunk_groups
-              .insert(name.to_owned(), chunk_group_ukey);
-          }
-
-          chunk_group.connect_chunk(chunk);
-
-          self
-            .chunk_group_info_map
-            .insert(chunk_group_ukey, info_ukey);
-
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .connect_block_and_chunk_group(block_id, chunk_group_ukey);
-
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_group_by_ukey
-            .add(chunk_group);
-          c = Some(chunk_group_ukey);
-          info_ukey
-        };
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .connect_block_and_chunk_group(block_id, chunk_group);
+        c = Some(chunk_group);
         cgi
+      } else {
+        let mut chunk_group = add_chunk_in_group(
+          block.get_group_options(),
+          module_id,
+          block.loc(),
+          block.request().clone(),
+        );
+        let chunk_group_ukey = chunk_group.ukey;
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(&chunk_ukey);
+
+        self.stat_chunk_group_created += 1;
+        let info = ChunkGroupInfo::new(
+          chunk_group_ukey,
+          item_runtime,
+          item_chunk_loading,
+          item_async_chunks,
+        );
+
+        let info_ukey = info.ukey;
+        self.chunk_group_infos.entry(info_ukey).or_insert(info);
+
+        self.next_chunk_group_index += 1;
+        chunk_group.index = Some(self.next_chunk_group_index);
+
+        if let Some(name) = chunk_group.kind.name() {
+          self.named_chunk_groups.insert(name.to_owned(), info_ukey);
+          compilation
+            .build_chunk_graph_artifact
+            .named_chunk_groups
+            .insert(name.to_owned(), chunk_group_ukey);
+        }
+
+        chunk_group.connect_chunk(chunk);
+
+        self
+          .chunk_group_info_map
+          .insert(chunk_group_ukey, info_ukey);
+
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .connect_block_and_chunk_group(block_id, chunk_group_ukey);
+
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .add(chunk_group);
+        c = Some(chunk_group_ukey);
+        info_ukey
       };
       self.block_to_chunk_group.insert(
         DependenciesBlockIdentifier::AsyncDependenciesBlock(block_id),
