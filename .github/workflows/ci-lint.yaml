@@ -48,8 +48,6 @@ jobs:
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          frozen-lockfile: true
 
       - name: Lint js
         if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
