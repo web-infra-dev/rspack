@@ -12,20 +12,27 @@ export default function () {
       __webpack_require__.initializeExposesData) &&
     __webpack_require__.federation
   ) {
-    const toScopeArray = (scope) => {
+    const toShareScopeKeys = (scope) => {
       if (Array.isArray(scope)) {
-        const normalized = scope.filter(Boolean);
-        return normalized.length > 0 ? normalized : ['default'];
+        return scope.length > 0 ? scope : ['default'];
       }
       if (typeof scope === 'string' && scope) {
         return [scope];
       }
       return ['default'];
     };
-    const toRuntimeScope = (scope) => {
-      const scopes = toScopeArray(scope);
-      return scopes.length === 1 ? scopes[0] : scopes;
+    const preserveRuntimeShareScope = (scope) => {
+      if (Array.isArray(scope)) {
+        return scope.length > 0 ? scope : ['default'];
+      }
+      return typeof scope === 'string' && scope ? scope : 'default';
     };
+    const expandRemoteScopes = (remote) =>
+      toShareScopeKeys(remote.shareScope).map((shareScope) => {
+        const normalized = Object.assign({}, remote);
+        normalized.shareScope = shareScope;
+        return normalized;
+      });
     const override = (obj, key, value) => {
       if (!obj) return;
       if (obj[key]) obj[key] = value;
@@ -57,7 +64,7 @@ export default function () {
     const initializeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
     const initializeSharingExternalInitPromises = {};
-    const containerShareScope = toRuntimeScope(
+    const containerShareScope = preserveRuntimeShareScope(
       __webpack_require__.initializeExposesData?.shareScope,
     );
     const initExternalStagesForScope = (
@@ -129,7 +136,7 @@ export default function () {
       return promise;
     };
     const initExternalStagesForSharing = (shareScopeName, initScope) => {
-      const shareScopeKeys = toScopeArray(shareScopeName);
+      const shareScopeKeys = toShareScopeKeys(shareScopeName);
       return Promise.all(
         shareScopeKeys.map((shareScopeKey) =>
           initExternalStagesForScope(shareScopeKey, initScope, shareScopeName),
@@ -230,7 +237,8 @@ export default function () {
     merge(__webpack_require__.federation.initOptions, 'remotes', () =>
       Object.values(__module_federation_remote_infos__)
         .flat()
-        .filter((remote) => remote.externalType === 'script'),
+        .filter((remote) => remote.externalType === 'script')
+        .flatMap(expandRemoteScopes),
     );
     merge(
       __webpack_require__.federation.initOptions,
@@ -263,7 +271,7 @@ export default function () {
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
           remotesLoadingIdToExternalAndNameMappingMapping[moduleId] = [
-            toRuntimeScope(data.shareScope),
+            preserveRuntimeShareScope(data.shareScope),
             data.name,
             data.externalModuleId,
             data.remoteName,

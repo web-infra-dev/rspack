@@ -211,21 +211,12 @@ impl Module for RemoteModule {
       )
     });
     codegen.add(SourceType::Remote, RawStringSource::from_static("").boxed());
-    let scopes: Vec<String> = if self.share_scope.is_empty() {
-      vec!["default".to_string()]
-    } else {
-      self.share_scope.scopes().to_vec()
-    };
-    let share_init_items = scopes
-      .iter()
-      .map(|scope| ShareInitData {
-        share_scope: ShareScope::Single(scope.clone()),
+    codegen.data.insert(CodeGenerationDataShareInit {
+      items: vec![ShareInitData {
+        share_scope: self.share_scope.clone(),
         init_stage: 20,
         init: DataInitInfo::ExternalModuleId(id.cloned()),
-      })
-      .collect();
-    codegen.data.insert(CodeGenerationDataShareInit {
-      items: share_init_items,
+      }],
     });
     Ok(codegen)
   }
