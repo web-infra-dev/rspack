@@ -1,0 +1,12 @@
+```mjs title=main.mjs
+// ./style.css
+// extracted by css-extract-rspack-plugin
+// ./index.js
+
+
+it("should load css side effect with esModule false", () => {
+  expect(true).toBe(true);
+});
+
+
+```
