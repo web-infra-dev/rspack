@@ -12,22 +12,6 @@ export default function () {
       __webpack_require__.initializeExposesData) &&
     __webpack_require__.federation
   ) {
-    const toShareScopeKeys = (scope) => {
-      if (Array.isArray(scope)) {
-        return scope.length > 0 ? scope : ['default'];
-      }
-      if (typeof scope === 'string' && scope) {
-        return [scope];
-      }
-      return ['default'];
-    };
-    const expandRemoteScopes = (remote) =>
-      toShareScopeKeys(remote.shareScope).map((scope) => {
-        const normalized = Object.assign({}, remote);
-        normalized.shareScope = scope;
-        return normalized;
-      });
-
     const override = (obj, key, value) => {
       if (!obj) return;
       if (obj[key]) obj[key] = value;
@@ -198,8 +182,7 @@ export default function () {
     merge(__webpack_require__.federation.initOptions, 'remotes', () =>
       Object.values(__module_federation_remote_infos__)
         .flat()
-        .filter((remote) => remote.externalType === 'script')
-        .flatMap(expandRemoteScopes),
+        .filter((remote) => remote.externalType === 'script'),
     );
     merge(
       __webpack_require__.federation.initOptions,
@@ -306,7 +289,10 @@ export default function () {
             consumesLoadingModuleToConsumeDataMapping[moduleId];
           if (!consumeData) continue;
           if (consumeData.import == null || consumeData.layer == null) {
-            for (const scope of toShareScopeKeys(consumeData.shareScope)) {
+            const scopes = Array.isArray(consumeData.shareScope)
+              ? consumeData.shareScope
+              : [consumeData.shareScope || 'default'];
+            for (const scope of scopes) {
               initScopeSet.add(scope);
             }
           }
