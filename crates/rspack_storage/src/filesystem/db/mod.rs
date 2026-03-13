@@ -24,7 +24,6 @@ type BucketChanges = HashMap<String, Vec<(Vec<u8>, Option<Vec<u8>>)>>;
 /// with automatic hot/cold separation for optimal performance.
 #[derive(Debug)]
 pub struct DB {
-  max_pack_size: usize,
   fs: ScopeFileSystem,
   /// Cached buckets, lazily loaded on first access
   buckets: Arc<Mutex<HashMap<String, Bucket>>>,
@@ -34,9 +33,8 @@ pub struct DB {
 
 impl DB {
   /// Creates a new database instance at the specified root directory.
-  pub fn new(fs: ScopeFileSystem, max_pack_size: usize) -> Self {
+  pub fn new(fs: ScopeFileSystem) -> Self {
     Self {
-      max_pack_size,
       fs,
       buckets: Default::default(),
       task_queue: TaskQueue::default(),
@@ -49,7 +47,7 @@ impl DB {
 
     let entries = self.fs.list_child().await?;
 
-    // Filter to keep only directories (buckets)
+    // Filter to keep only directories (buckets), excluding internal directories
     let mut bucket_names = Vec::new();
     for entry in entries {
       if let Ok(metadata) = self.fs.stat(&entry).await
@@ -66,6 +64,7 @@ impl DB {
   /// Loads all key-value pairs from the specified bucket.
   ///
   /// If the bucket doesn't exist yet, it will be created empty.
+  /// Updates the database metadata with current access time.
   pub async fn load(&self, bucket_name: &str) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
     self.fs.ensure_exist().await?;
 
@@ -74,7 +73,7 @@ impl DB {
       Entry::Occupied(entry) => entry.into_mut(),
       Entry::Vacant(entry) => {
         let fs = self.fs.child_fs(bucket_name);
-        let bucket = Bucket::new(fs, self.max_pack_size).await?;
+        let bucket = Bucket::new(fs).await?;
         entry.insert(bucket)
       }
     };
@@ -88,13 +87,13 @@ impl DB {
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
+  /// Updates the database metadata with current save time.
   /// Returns a channel receiver that will report the save result asynchronously.
-  pub fn save(&self, changes: BucketChanges) -> Result<Receiver<Result<()>>> {
+  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) -> Result<Receiver<Result<()>>> {
     let (tx, rx) = channel();
 
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
-    let max_pack_size = self.max_pack_size;
 
     self.task_queue.add_task(async move {
       let task_fn = async move || -> Result<()> {
@@ -109,7 +108,7 @@ impl DB {
             bucket
           } else {
             let fs = transaction.readable_fs().child_fs(&bucket_name);
-            Bucket::new(fs, max_pack_size).await?
+            Bucket::new(fs).await?
           };
           pending_buckets.push((bucket_name, bucket, bucket_changes));
         }
@@ -119,7 +118,9 @@ impl DB {
             // Apply changes and collect file operations
             let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
             async move {
-              let affacted_files = bucket.save(Some(writable_fs), changes).await?;
+              let affacted_files = bucket
+                .save(Some(writable_fs), changes, max_pack_size)
+                .await?;
               Ok::<_, Error>((bucket_name, bucket, affacted_files))
             }
           },
@@ -177,7 +178,7 @@ mod test {
   #[cfg_attr(miri, ignore)]
   async fn test_db() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/".into());
-    let db = DB::new(fs, 25);
+    let db = DB::new(fs);
     let name_1 = "name1";
     let name_2 = "name2";
     assert!(db.bucket_names().await?.is_empty());
@@ -196,7 +197,7 @@ mod test {
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
     // save data and wait finish
-    let _ = db.save(data);
+    let _ = db.save(data, 25);
     db.flush().await;
 
     let mut data1 = db.load(name_1).await?;

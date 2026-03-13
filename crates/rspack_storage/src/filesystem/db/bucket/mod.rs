@@ -15,19 +15,16 @@ use crate::{Error, Result};
 /// Data is organized into:
 /// - Hot pack (ID 0): Frequently modified data, always loaded in memory
 /// - Cold packs (ID 1+): Immutable data, loaded on-demand
-///
-/// Pack splitting occurs when hot pack exceeds max_pack_size.
 #[derive(Debug)]
 pub struct Bucket {
   meta: Meta,
   hot_pack: Pack,
   fs: ScopeFileSystem,
-  max_pack_size: usize,
 }
 
 impl Bucket {
   /// Creates a new bucket, loading existing data or initializing empty.
-  pub async fn new(fs: ScopeFileSystem, max_pack_size: usize) -> Result<Self> {
+  pub async fn new(fs: ScopeFileSystem) -> Result<Self> {
     fs.ensure_exist().await?;
     // Load or initialize metadata
     let meta = match Meta::load(&fs).await {
@@ -53,12 +50,7 @@ impl Bucket {
       Err(e) => return Err(e),
     };
 
-    Ok(Self {
-      meta,
-      hot_pack,
-      fs,
-      max_pack_size,
-    })
+    Ok(Self { meta, hot_pack, fs })
   }
 
   /// Loads all key-value pairs from all packs (hot + cold).
@@ -111,6 +103,7 @@ impl Bucket {
     &mut self,
     writable_fs: Option<ScopeFileSystem>,
     data: Vec<(Vec<u8>, Option<Vec<u8>>)>,
+    max_pack_size: usize,
   ) -> Result<(Vec<String>, Vec<String>)> {
     let writable_fs = writable_fs.unwrap_or(self.fs.clone());
 
@@ -118,7 +111,7 @@ impl Bucket {
     let need_update_packs = self.need_update_packs(data.iter().map(|(k, _)| k)).await?;
 
     // Initialize pack generator for splitting
-    let mut pack_generator = PackGenerator::new(self.max_pack_size);
+    let mut pack_generator = PackGenerator::new(max_pack_size);
     let mut removed_pack_ids: HashSet<_> = HashSet::default();
     for (pack_id, pack) in need_update_packs {
       removed_pack_ids.insert(pack_id);
@@ -241,7 +234,7 @@ mod test {
   async fn test_bucket() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
 
-    let mut bucket = Bucket::new(fs, 25).await?;
+    let mut bucket = Bucket::new(fs).await?;
     assert_eq!(bucket.meta, Default::default());
     assert_eq!(bucket.hot_pack, Default::default());
     assert!(bucket.load_all().await?.is_empty());
@@ -254,7 +247,7 @@ mod test {
         )
       })
       .collect();
-    bucket.save(None, data).await?;
+    bucket.save(None, data, 25).await?;
 
     let data = bucket.load_all().await?;
     assert_eq!(data.len(), 9);

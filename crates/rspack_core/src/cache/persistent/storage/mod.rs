@@ -26,7 +26,8 @@ pub fn create_storage(
   match options {
     StorageOptions::FileSystem { directory } => {
       let option = FileSystemOptions {
-        directory: directory.join(version),
+        directory,
+        version,
         max_pack_size: 500 * 1024,
         expire: 7 * 24 * 60 * 60 * 1000,
         fs,

@@ -146,6 +146,11 @@ fn get_process_name(pid: u32) -> Option<String> {
   None
 }
 
+#[cfg(target_family = "wasm")]
+fn get_process_name(pid: u32) -> Option<String> {
+  None
+}
+
 #[cfg(test)]
 mod tests {
   use super::{Result, ScopeFileSystem, StateLock};
