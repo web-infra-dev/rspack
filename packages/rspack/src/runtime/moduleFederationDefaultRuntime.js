@@ -21,31 +21,6 @@ export default function () {
       }
       return ['default'];
     };
-    const preserveRuntimeShareScope = (scope) => {
-      if (Array.isArray(scope)) {
-        return scope.length > 0 ? scope : ['default'];
-      }
-      return typeof scope === 'string' && scope ? scope : 'default';
-    };
-    const normalizeBundlerRemoteInfo = (remote) => {
-      // Keep runtime remotes with concrete entry/name info intact.
-      // For build-time remotes (no name/entry), align with enhanced output so
-      // sharing init still initializes externals before consume handlers run.
-      if (remote && (remote.name || remote.entry)) {
-        return remote;
-      }
-      return Object.assign({}, remote, {
-        name: '',
-        entry: '',
-        externalType: 'unknown',
-      });
-    };
-    const bundlerRuntimeRemoteInfos = Object.fromEntries(
-      Object.entries(__module_federation_remote_infos__).map(([key, infos]) => [
-        key,
-        infos.map(normalizeBundlerRemoteInfo),
-      ]),
-    );
     const expandRemoteScopes = (remote) =>
       toShareScopeKeys(remote.shareScope).map((scope) => {
         const normalized = Object.assign({}, remote);
@@ -86,9 +61,8 @@ export default function () {
     const consumesLoadinginstalledModules = {};
     const initializeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
-    const containerShareScope = preserveRuntimeShareScope(
-      __webpack_require__.initializeExposesData?.shareScope,
-    );
+    const containerShareScope =
+      __webpack_require__.initializeExposesData?.shareScope;
 
     for (const key in __module_federation_bundler_runtime__) {
       __webpack_require__.federation[key] =
@@ -135,9 +109,7 @@ export default function () {
                 eager: data.eager,
                 layer: data.layer,
               },
-              scope: Array.isArray(data.shareScope)
-                ? data.shareScope
-                : [data.shareScope || 'default'],
+              scope: [data.shareScope],
             },
             shareKey: data.shareKey,
             treeShaking: __webpack_require__.federation.sharedFallback
@@ -247,7 +219,7 @@ export default function () {
     early(
       __webpack_require__.federation.bundlerRuntimeOptions.remotes,
       'remoteInfos',
-      () => bundlerRuntimeRemoteInfos,
+      () => __module_federation_remote_infos__,
     );
     early(
       __webpack_require__.federation.bundlerRuntimeOptions.remotes,
@@ -258,7 +230,7 @@ export default function () {
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
           remotesLoadingIdToExternalAndNameMappingMapping[moduleId] = [
-            preserveRuntimeShareScope(data.shareScope),
+            data.shareScope,
             data.name,
             data.externalModuleId,
             data.remoteName,
@@ -280,7 +252,8 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const info = bundlerRuntimeRemoteInfos[remoteData.remoteName];
+          const info =
+            __module_federation_remote_infos__[remoteData.remoteName];
           if (info) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;

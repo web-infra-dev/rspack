@@ -43,19 +43,6 @@ impl CollectSharedEntryPlugin {
     Self::new_inner(options)
   }
 
-  fn parse_share_key(identifier: &str) -> Option<String> {
-    let mut rest = identifier.strip_prefix("consume shared module ")?;
-    let scope_end = rest.find(") ")?;
-    rest = &rest[scope_end + 2..];
-    if rest.starts_with('(') {
-      let layer_end = rest.find(") ")?;
-      rest = &rest[layer_end + 2..];
-    }
-    let head = rest.split(" (").next().unwrap_or(rest);
-    let at = head.rfind('@').unwrap_or(head.len());
-    Some(head[..at].to_string())
-  }
-
   /// Infer package version from a module request path
   /// Example: ../../../.eden-mono/temp/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/index.js
   /// It locates react-dom's package.json and reads the version field
@@ -128,7 +115,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
       let ident = consume.readable_identifier(&Context::default()).to_string();
-      let key = Self::parse_share_key(&ident).unwrap_or_default();
+      let key = {
+        let Some(mut rest) = ident.strip_prefix("consume shared module ") else {
+          continue;
+        };
+        let Some(scope_end) = rest.find(") ") else {
+          continue;
+        };
+        rest = &rest[scope_end + 2..];
+        if rest.starts_with('(') {
+          let Some(layer_end) = rest.find(") ") else {
+            continue;
+          };
+          rest = &rest[layer_end + 2..];
+        }
+        let head = rest.split(" (").next().unwrap_or(rest);
+        let at = head.rfind('@').unwrap_or(head.len());
+        head[..at].to_string()
+      };
       if key.is_empty() {
         continue;
       }
