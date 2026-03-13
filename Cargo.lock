@@ -3841,10 +3841,8 @@ dependencies = [
  "dashmap 6.1.0",
  "hashlink",
  "indexmap",
- "rayon",
  "rspack-allocative",
  "rspack_cacheable",
- "rustc-hash",
  "serde",
  "ustr-fxhash",
 ]
@@ -4676,7 +4674,6 @@ dependencies = [
 name = "rspack_plugin_limit_chunk_count"
 version = "0.100.0-beta.6"
 dependencies = [
- "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4815,7 +4812,6 @@ dependencies = [
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.100.0-beta.6"
 dependencies = [
- "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",

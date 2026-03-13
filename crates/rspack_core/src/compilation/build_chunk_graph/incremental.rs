@@ -457,7 +457,7 @@ impl CodeSplitter {
     // update cache available modules
     self.outdated_chunk_group_info.insert(cgi_ukey);
 
-    let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
+    let cgi = self.chunk_group_info_mut(&cgi_ukey);
     let group_ukey = cgi.chunk_group;
     cgi.skipped_items.clone_from(&cache_result.skipped_modules);
 

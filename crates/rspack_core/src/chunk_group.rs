@@ -6,7 +6,7 @@ use std::{
 use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
@@ -21,14 +21,6 @@ pub struct OriginRecord {
   pub module: Option<ModuleIdentifier>,
   pub loc: Option<DependencyLocation>,
   pub request: Option<String>,
-}
-
-impl DatabaseItem for ChunkGroup {
-  type ItemUkey = ChunkGroupUkey;
-
-  fn ukey(&self) -> Self::ItemUkey {
-    self.ukey
-  }
 }
 
 #[derive(Debug, Clone)]
@@ -63,6 +55,10 @@ impl Default for ChunkGroup {
 }
 
 impl ChunkGroup {
+  pub fn ukey(&self) -> ChunkGroupUkey {
+    self.ukey
+  }
+
   pub fn new(kind: ChunkGroupKind) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),

@@ -2,7 +2,6 @@ use std::{hash::Hash, sync::LazyLock};
 
 use futures::future::join_all;
 use regex::Regex;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation,

@@ -3,7 +3,7 @@ mod hot_module_replacement;
 use std::collections::hash_map;
 
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
