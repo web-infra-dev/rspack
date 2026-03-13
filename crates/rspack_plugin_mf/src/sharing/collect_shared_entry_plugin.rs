@@ -5,7 +5,8 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Module,
+  Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -146,7 +147,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       // Add real module resource paths to the map and infer version
-      let mut reqs = ordered_requests.remove(key).unwrap_or_default();
+      let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
       for target_id in target_modules {
         if let Some(target) = module_graph.module_by_identifier(&target_id)
           && let Some(name) = target.name_for_condition()
