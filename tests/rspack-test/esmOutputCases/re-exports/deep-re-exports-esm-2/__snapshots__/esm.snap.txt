@@ -1,8 +1,8 @@
 ```mjs title=main.mjs
-import * as __rspack_external_fs from "fs";
-import * as __rspack_external_path from "path";
 import { __webpack_require__ } from "./runtime.mjs";
 
+import * as __rspack_external_fs from "fs";
+import * as __rspack_external_path from "path";
 __webpack_require__.add({
 "./lib.js"
 /*!****************!*\
