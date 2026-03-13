@@ -678,3 +678,28 @@ export default {
   },
 };
 ```
+
+### JavaScript `resolve.extensions` 默认不再包含 `.wasm`
+
+Rspack 2.0 默认用于 JavaScript 请求的 `resolve.extensions` 不再包含 `.wasm`。
+
+直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
+
+像 `import './module.wasm'` 这样的显式导入不受影响。
+
+如果你需要保留旧行为，可以在对应的 `resolve.byDependency` 配置中显式把 `.wasm` 加回去：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
