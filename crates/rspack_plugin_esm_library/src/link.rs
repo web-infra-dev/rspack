@@ -569,7 +569,7 @@ var {} = {{}};
           .as_concatenated()
           .global_scope_ident
           .iter()
-          .map(|ident| ident.id.sym.clone())
+          .map(|ident| ident.sym.clone())
       }))
       .collect();
 
@@ -1063,7 +1063,7 @@ var {} = {{}};
                 concate_info.global_scope_ident = idents
                   .iter()
                   .filter(|ident| ident.id.ctxt == global_ctxt)
-                  .cloned()
+                  .map(|ident| ident.id.clone())
                   .collect();
                 concate_info.global_ctxt = global_ctxt;
                 concate_info.module_ctxt = module_ctxt;
