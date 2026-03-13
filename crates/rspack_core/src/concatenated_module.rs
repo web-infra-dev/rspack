@@ -3469,7 +3469,7 @@ impl NewConcatenatedModuleIdent {
 /// which depends on `free_node` during parsing.
 /// However, a better mutability story on swc_experimental is designing and `free_node` is removed temporarily.
 /// Once it's finished, this function will be reverted back.
-fn collect_ident(
+pub fn collect_ident(
   ast: &Ast,
   root: swc_experimental_ecma_ast::Module,
 ) -> Vec<NewConcatenatedModuleIdent> {
