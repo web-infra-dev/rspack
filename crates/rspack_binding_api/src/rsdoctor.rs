@@ -4,12 +4,14 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
-  RsdoctorChunkModules, RsdoctorDependency, RsdoctorEntrypoint, RsdoctorEntrypointAssets,
-  RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule,
-  RsdoctorModuleId, RsdoctorModuleIdsPatch, RsdoctorModuleOriginalSource,
-  RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature,
-  RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature, RsdoctorSideEffect,
-  RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
+  RsdoctorChunkModules, RsdoctorConnection, RsdoctorConnectionsOnlyImport,
+  RsdoctorConnectionsOnlyImportConnection, RsdoctorDependency, RsdoctorEntrypoint,
+  RsdoctorEntrypointAssets, RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph,
+  RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
+  RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
+  RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
+  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSourcePosition, RsdoctorSourceRange,
+  RsdoctorStatement, RsdoctorVariable,
 };
 
 #[napi(object)]
@@ -28,6 +30,7 @@ pub struct JsRsdoctorModule {
   pub chunks: Vec<i32>,
   pub issuer_path: Vec<i32>,
   pub bailout_reason: Vec<String>,
+  pub side_effects_locations: Vec<JsRsdoctorSideEffectLocation>,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -51,6 +54,11 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .filter_map(|i| i.ukey)
         .collect::<Vec<_>>(),
       bailout_reason: value.bailout_reason.into_iter().collect::<Vec<_>>(),
+      side_effects_locations: value
+        .side_effects_locations
+        .into_iter()
+        .map(|loc| loc.into())
+        .collect::<Vec<_>>(),
     }
   }
 }
@@ -72,6 +80,69 @@ impl From<RsdoctorDependency> for JsRsdoctorDependency {
       request: value.request,
       module: value.module,
       dependency: value.dependency,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorConnection {
+  pub ukey: i32,
+  pub dependency_id: String,
+  pub module: i32,
+  pub origin_module: Option<i32>,
+  pub resolved_module: i32,
+  pub dependency_type: String,
+  pub user_request: String,
+  pub loc: Option<String>,
+  pub active: bool,
+}
+
+impl From<RsdoctorConnection> for JsRsdoctorConnection {
+  fn from(value: RsdoctorConnection) -> Self {
+    JsRsdoctorConnection {
+      ukey: value.ukey,
+      dependency_id: value.dependency_id,
+      module: value.module,
+      origin_module: value.origin_module,
+      resolved_module: value.resolved_module,
+      dependency_type: value.dependency_type,
+      user_request: value.user_request,
+      loc: value.loc,
+      active: value.active,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorConnectionsOnlyImportConnection {
+  pub origin_module: Option<i32>,
+  pub dependency_type: String,
+  pub user_request: String,
+}
+
+impl From<RsdoctorConnectionsOnlyImportConnection> for JsRsdoctorConnectionsOnlyImportConnection {
+  fn from(value: RsdoctorConnectionsOnlyImportConnection) -> Self {
+    JsRsdoctorConnectionsOnlyImportConnection {
+      origin_module: value.origin_module,
+      dependency_type: value.dependency_type,
+      user_request: value.user_request,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorConnectionsOnlyImport {
+  pub module_ukey: i32,
+  pub module_path: String,
+  pub connections: Vec<JsRsdoctorConnectionsOnlyImportConnection>,
+}
+
+impl From<RsdoctorConnectionsOnlyImport> for JsRsdoctorConnectionsOnlyImport {
+  fn from(value: RsdoctorConnectionsOnlyImport) -> Self {
+    JsRsdoctorConnectionsOnlyImport {
+      module_ukey: value.module_ukey,
+      module_path: value.module_path,
+      connections: value.connections.into_iter().map(|c| c.into()).collect(),
     }
   }
 }
@@ -159,6 +230,25 @@ impl From<RsdoctorModuleGraphModule> for JsRsdoctorModuleGraphModule {
 }
 
 #[napi(object)]
+pub struct JsRsdoctorSideEffectLocation {
+  pub location: String,
+  pub node_type: String,
+  pub module: i32,
+  pub request: String,
+}
+
+impl From<RsdoctorSideEffectLocation> for JsRsdoctorSideEffectLocation {
+  fn from(value: RsdoctorSideEffectLocation) -> Self {
+    JsRsdoctorSideEffectLocation {
+      location: value.location,
+      node_type: value.node_type,
+      module: value.module,
+      request: value.request,
+    }
+  }
+}
+
+#[napi(object)]
 pub struct JsRsdoctorSideEffect {
   pub ukey: i32,
   pub name: String,
@@ -217,7 +307,6 @@ pub struct JsRsdoctorExportInfo {
   pub from: Option<i32>,
   pub variable: Option<i32>,
   pub identifier: Option<JsRsdoctorStatement>,
-  pub side_effects: Vec<i32>,
 }
 
 impl From<RsdoctorExportInfo> for JsRsdoctorExportInfo {
@@ -228,7 +317,6 @@ impl From<RsdoctorExportInfo> for JsRsdoctorExportInfo {
       from: value.from,
       variable: value.variable,
       identifier: value.identifier.map(|i| i.into()),
-      side_effects: value.side_effects.into_iter().collect::<Vec<_>>(),
     }
   }
 }
@@ -302,6 +390,7 @@ pub struct JsRsdoctorModuleGraph {
   pub modules: Vec<JsRsdoctorModule>,
   pub dependencies: Vec<JsRsdoctorDependency>,
   pub chunk_modules: Vec<JsRsdoctorChunkModules>,
+  pub connections_only_imports: Vec<JsRsdoctorConnectionsOnlyImport>,
 }
 
 impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
@@ -310,6 +399,11 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
       modules: value.modules.into_iter().map(|m| m.into()).collect(),
       dependencies: value.dependencies.into_iter().map(|d| d.into()).collect(),
       chunk_modules: value.chunk_modules.into_iter().map(|c| c.into()).collect(),
+      connections_only_imports: value
+        .connections_only_imports
+        .into_iter()
+        .map(|s| s.into())
+        .collect(),
     }
   }
 }

@@ -6,7 +6,7 @@ module.exports = {
 	plugins: [
 		function (compiler) {
 			const PLUGIN_NAME = "TEST_PLUGIN";
-			const { EntryPlugin } = compiler.webpack;
+			const { EntryPlugin } = compiler.rspack;
 			compiler.hooks.finishMake.tapPromise(PLUGIN_NAME, compilation => {
 				return new Promise((resolve, reject) => {
 					const dependency = EntryPlugin.createDependency("./foo.js");

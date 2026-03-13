@@ -15,7 +15,7 @@ use rspack_core::{
   create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 use swc_core::ecma::atoms::Atom;
 
 use super::{
@@ -240,26 +240,35 @@ impl Dependency for ESMImportSpecifierDependency {
     }
 
     let mut namespace_object_as_context = self.namespace_object_as_context;
+    let parent_module = module_graph
+      .get_parent_module(&self.id)
+      .expect("should have parent module");
+    let exports_type = get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &self.id,
+      parent_module,
+    );
+
+    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+    // because it's more common in cjs and json
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) {
+      namespace_object_as_context = true;
+    }
+
     if let Some(id) = ids.first()
       && id == "default"
     {
-      let parent_module = module_graph
-        .get_parent_module(&self.id)
-        .expect("should have parent module");
-      let exports_type = get_exports_type(
-        module_graph,
-        module_graph_cache,
-        exports_info_artifact,
-        &self.id,
-        parent_module,
-      );
       match exports_type {
         ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
           if ids.len() == 1 {
             return self.get_referenced_exports_in_destructuring(None);
           }
           ids = &ids[1..];
-          namespace_object_as_context = true;
         }
         ExportsType::Dynamic => {
           return create_exports_object_referenced();
@@ -268,12 +277,12 @@ impl Dependency for ESMImportSpecifierDependency {
       }
     }
 
-    if self.call && !self.direct_import && (namespace_object_as_context || ids.len() > 1) {
+    if namespace_object_as_context && self.call {
       if ids.len() == 1 {
         return create_exports_object_referenced();
       }
       // remove last one
-      ids = &ids[..ids.len() - 1];
+      ids = &ids[..ids.len().saturating_sub(1)];
     }
     self.get_referenced_exports_in_destructuring(Some(ids))
   }
@@ -342,7 +351,9 @@ impl ESMImportSpecifierDependencyTemplate {
     code_generatable_context: &mut TemplateContext,
   ) -> String {
     let TemplateContext {
+      compilation,
       concatenation_scope,
+      runtime,
       ..
     } = code_generatable_context;
     if let Some(scope) = concatenation_scope
@@ -358,16 +369,40 @@ impl ESMImportSpecifierDependencyTemplate {
             ..Default::default()
           },
         )
-      } else if dep.namespace_object_as_context && ids.len() == 1 {
-        // ConcatenationScope::create_module_reference(&dep, module, options)
-        scope.create_module_reference(
-          con.module_identifier(),
-          &ModuleReferenceOptions {
-            asi_safe: Some(dep.asi_safe),
-            deferred_import: dep.phase.is_defer(),
-            ..Default::default()
-          },
-        ) + property_access(ids, 0).as_str()
+      } else if dep.namespace_object_as_context {
+        match ExportsInfoGetter::get_used_name(
+          GetUsedNameParam::WithNames(
+            &compilation
+              .exports_info_artifact
+              .get_prefetched_exports_info(
+                con.module_identifier(),
+                PrefetchExportsInfoMode::Nested(ids),
+              ),
+          ),
+          *runtime,
+          ids,
+        ) {
+          Some(UsedName::Normal(used_name)) => {
+            scope.create_module_reference(
+              con.module_identifier(),
+              &ModuleReferenceOptions {
+                asi_safe: Some(dep.asi_safe),
+                deferred_import: dep.phase.is_defer(),
+                ..Default::default()
+              },
+            ) + property_access(used_name, 0).as_str()
+          }
+          Some(UsedName::Inlined(inlined)) => inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(ids, 0)
+          ))),
+          None => {
+            let mut result =
+              to_normal_comment(&format!("unused export {}", property_access(ids, 0)));
+            result.push_str(" undefined");
+            result
+          }
+        }
       } else {
         scope.create_module_reference(
           con.module_identifier(),
@@ -392,28 +427,29 @@ impl ESMImportSpecifierDependencyTemplate {
         code_generatable_context.runtime,
       );
       esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
-      let mut new_init_fragment = vec![];
-      let res = code_generatable_context
-        .runtime_template
-        .export_from_import(
-          code_generatable_context.compilation,
-          &mut new_init_fragment,
-          code_generatable_context.module.identifier(),
-          code_generatable_context.runtime,
-          true,
-          &dep.request,
-          &import_var,
-          ids,
-          &dep.id,
-          dep.call,
-          !dep.direct_import,
-          Some(dep.shorthand || dep.asi_safe),
-          dep.phase,
-        );
-      code_generatable_context
-        .init_fragments
-        .extend(new_init_fragment);
-      res
+      let TemplateContext {
+        compilation,
+        module,
+        runtime,
+        init_fragments,
+        runtime_template,
+        ..
+      } = code_generatable_context;
+      runtime_template.export_from_import(
+        compilation,
+        init_fragments,
+        module.identifier(),
+        *runtime,
+        true,
+        &dep.request,
+        &import_var,
+        ids,
+        &dep.id,
+        dep.call,
+        !dep.direct_import,
+        Some(dep.shorthand || dep.asi_safe),
+        dep.phase,
+      )
     }
   }
 
@@ -487,10 +523,10 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     match value {
       Some(ExportProvided::Provided) => {
-        source.replace(dep.range.start, dep.range.end, " true", None);
+        source.replace_static(dep.range.start, dep.range.end, " true", None);
       }
       Some(ExportProvided::NotProvided) => {
-        source.replace(dep.range.start, dep.range.end, " false", None)
+        source.replace_static(dep.range.start, dep.range.end, " false", None)
       }
       _ => {
         let Some(used_name) = ExportsInfoGetter::get_used_name(
@@ -513,7 +549,7 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{} in {code}", json_stringify(&used_name)),
+          format!("{} in {code}", json_stringify_str(used_name.as_str())),
           None,
         )
       }
@@ -570,9 +606,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
     if dep.shorthand {
-      source.insert(dep.range.end, format!(": {export_expr}").as_str(), None);
+      source.insert(dep.range.end, format!(": {export_expr}"), None);
     } else {
-      source.replace(dep.range.start, dep.range.end, export_expr.as_str(), None);
+      source.replace(dep.range.start, dep.range.end, export_expr, None);
     }
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
@@ -642,7 +678,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         } else {
           key
         };
-        source.replace(prop.range.start, prop.range.end, &content, None);
+        source.replace(prop.range.start, prop.range.end, content, None);
       });
     }
   }

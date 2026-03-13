@@ -12,6 +12,14 @@ runs:
   using: composite
   steps:
     - name: Install Node.js
+      if: ${{ startsWith(runner.name, 'rspack-darwin-') }}
+      uses: rstackjs/setup-node@cc72f1c242ef8813f650223fbae3c29d450ae29e # v0.0.1
+      with:
+        registry-url: https://registry.npmmirror.com
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install Node.js
+      if: ${{ !startsWith(runner.name, 'rspack-darwin-') }}
       uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6
       with:
         node-version: ${{ inputs.node-version }}

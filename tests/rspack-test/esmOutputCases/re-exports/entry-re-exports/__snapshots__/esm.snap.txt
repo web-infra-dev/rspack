@@ -6,7 +6,7 @@ __webpack_require__.add({
   !*** ./bar.js ***!
   \****************/
 (__unused_rspack_module, exports) {
-exports.bar = 2
+exports.M = 2
 
 
 },
@@ -25,9 +25,9 @@ it('should have correct output for entry re-exports', async () => {
 })
 
 const bar_0 = __webpack_require__("./bar.js");
-var bar_1 = bar_0.bar;
+var M = bar_0.M;
 
-export { bar_1 as bar, foo_foo as foo };
+export { M as bar, foo_foo as foo };
 
 ```
 

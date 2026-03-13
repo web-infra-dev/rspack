@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use super::remote_module::RemoteModule;
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
 static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -71,10 +71,9 @@ impl RuntimeModule for RemoteRuntimeModule {
         let name = m.internal_request.as_str();
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
           .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
-        let share_scope = if self.enhanced {
-          ShareScopeData::Multiple(m.share_scope.as_slice())
-        } else {
-          ShareScopeData::Single(m.share_scope.first().map_or("default", String::as_str))
+        let share_scope = match &m.share_scope {
+          ShareScope::Single(s) => ShareScopeField::Single(s.as_str()),
+          ShareScope::Multiple(v) => ShareScopeField::Multiple(v.as_slice()),
         };
         let dep = m.get_dependencies()[0];
         let external_module = module_graph
@@ -140,7 +139,7 @@ impl RuntimeModule for RemoteRuntimeModule {
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RemoteData<'a> {
-  share_scope: ShareScopeData<'a>,
+  share_scope: ShareScopeField<'a>,
   name: &'a str,
   external_module_id: &'a ModuleId,
   remote_name: &'a str,
@@ -148,7 +147,7 @@ struct RemoteData<'a> {
 
 #[derive(Debug, Serialize)]
 #[serde(untagged)]
-enum ShareScopeData<'a> {
+enum ShareScopeField<'a> {
   Single(&'a str),
   Multiple(&'a [String]),
 }

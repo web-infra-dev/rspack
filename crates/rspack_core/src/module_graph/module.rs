@@ -1,16 +1,47 @@
+use std::fmt;
+
 use rspack_cacheable::{cacheable, with::Skip};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
 use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub enum OptimizationBailoutItem {
+  Message(String),
+  SideEffects {
+    node_type: String,
+    loc: String,
+    short_id: String,
+  },
+}
+
+impl fmt::Display for OptimizationBailoutItem {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Message(msg) => write!(f, "{msg}"),
+      Self::SideEffects {
+        node_type,
+        loc,
+        short_id,
+      } => {
+        write!(
+          f,
+          "{node_type} with side_effects in source code at {short_id}:{loc}"
+        )
+      }
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: HashSet<DependencyId>,
+  outgoing_connections: FxHashSet<DependencyId>,
   // incoming connections will regenerate by persistent cache recovery.
   #[cacheable(with=Skip)]
-  incoming_connections: HashSet<DependencyId>,
+  incoming_connections: FxHashSet<DependencyId>,
 
   issuer: ModuleIssuer,
 
@@ -22,7 +53,7 @@ pub struct ModuleGraphModule {
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub depth: Option<usize>,
-  pub optimization_bailout: Vec<String>,
+  pub optimization_bailout: Vec<OptimizationBailoutItem>,
 }
 
 impl ModuleGraphModule {
@@ -57,11 +88,11 @@ impl ModuleGraphModule {
     self.outgoing_connections.remove(dependency_id);
   }
 
-  pub fn incoming_connections(&self) -> &HashSet<DependencyId> {
+  pub fn incoming_connections(&self) -> &FxHashSet<DependencyId> {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &HashSet<DependencyId> {
+  pub fn outgoing_connections(&self) -> &FxHashSet<DependencyId> {
     &self.outgoing_connections
   }
 
@@ -79,7 +110,7 @@ impl ModuleGraphModule {
     &self.issuer
   }
 
-  pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<String> {
+  pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<OptimizationBailoutItem> {
     &mut self.optimization_bailout
   }
 }

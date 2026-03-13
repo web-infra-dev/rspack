@@ -282,6 +282,24 @@ impl From<&str> for OverrideStrict {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub enum ImportMeta {
+  PreserveUnknown,
+  Enabled,
+  Disabled,
+}
+
+impl From<&str> for ImportMeta {
+  fn from(value: &str) -> Self {
+    match value {
+      "preserve-unknown" => Self::PreserveUnknown,
+      "false" => Self::Disabled,
+      _ => Self::Enabled,
+    }
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, MergeFrom, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: Option<DynamicImportMode>,
@@ -292,6 +310,7 @@ pub struct JavascriptParserOptions {
   pub unknown_context_critical: Option<bool>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  pub strict_this_context_on_imports: Option<bool>,
   pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
@@ -299,7 +318,7 @@ pub struct JavascriptParserOptions {
   pub type_reexports_presence: Option<TypeReexportPresenceMode>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
-  pub import_meta: Option<bool>,
+  pub import_meta: Option<ImportMeta>,
   pub require_alias: Option<bool>,
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,

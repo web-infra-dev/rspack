@@ -16,7 +16,7 @@ module.exports = {
 					compilation.hooks.processAssets.tapPromise(
 						{
 							name: "processAssets1",
-							stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
+							stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_SUMMARIZE
 						},
 						async assets => {
 							const dup = "dup.txt";

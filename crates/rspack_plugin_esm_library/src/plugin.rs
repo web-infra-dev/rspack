@@ -7,21 +7,20 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use regex::Regex;
 use rspack_collections::{
-  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
+  Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
   Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
-  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunks,
-  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilationRenderManifest, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation,
   ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
-  ExternalModuleInfo, GetTargetResult, Logger, ManifestAssetType, ModuleFactoryCreateData,
-  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
-  PrefetchExportsInfoMode, RenderManifestEntry, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, SourceType, get_js_chunk_filename_template, get_target,
+  ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target,
   is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
@@ -32,7 +31,10 @@ use rspack_plugin_javascript::{
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_split_chunks::CacheGroup;
-use rspack_util::fx_hash::FxHashMap;
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxHashMap, FxHashSet},
+};
 use sugar_path::SugarPath;
 use tokio::sync::RwLock;
 
@@ -41,7 +43,8 @@ use crate::{
   dependency::dyn_import::DynamicImportDependencyTemplate,
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
-    ensure_dyn_import_namespace_facades, ensure_entry_exports, optimize_runtime_chunks,
+    analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
+    optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
@@ -62,12 +65,14 @@ pub struct EsmLibraryPlugin {
   pub(crate) concatenated_modules_map_for_codegen:
     AtomicRefCell<Arc<IdentifierIndexMap<ModuleInfo>>>,
   pub(crate) concatenated_modules_map: RwLock<IdentifierIndexMap<ModuleInfo>>,
-  pub(crate) links: AtomicRefCell<UkeyMap<ChunkUkey, ChunkLinkContext>>,
+  pub(crate) links: AtomicRefCell<FxHashMap<ChunkUkey, ChunkLinkContext>>,
   pub(crate) chunk_ids_to_ukey: AtomicRefCell<FxHashMap<String, ChunkUkey>>,
-  pub(crate) strict_export_chunks: AtomicRefCell<UkeySet<ChunkUkey>>,
+  pub(crate) strict_export_chunks: AtomicRefCell<FxHashSet<ChunkUkey>>,
   pub(crate) all_dyn_targets: AtomicRefCell<IdentifierSet>,
-  pub(crate) dyn_import_facade_chunks: Arc<AtomicRefCell<IdentifierMap<ChunkUkey>>>,
-  pub(crate) dyn_import_facade_chunks_set: Arc<AtomicRefCell<UkeySet<ChunkUkey>>>,
+  pub(crate) namespace_targets: AtomicRefCell<IdentifierSet>,
+  /// module_id → namespace export name in the chunk, for modules whose exports
+  /// were renamed in a multi-module chunk. Written during link, read during code generation.
+  pub(crate) dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
 }
 
 impl EsmLibraryPlugin {
@@ -266,78 +271,9 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportDependencyTemplate::template_type(),
     Arc::new(DynamicImportDependencyTemplate {
-      facade_chunks: self.dyn_import_facade_chunks.clone(),
+      dyn_import_ns_map: self.dyn_import_ns_map.clone(),
     }),
   );
-  Ok(())
-}
-
-#[plugin_hook(CompilationRenderManifest for EsmLibraryPlugin)]
-async fn render_manifest(
-  &self,
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-  manifest: &mut Vec<RenderManifestEntry>,
-  _diagnostics: &mut Vec<Diagnostic>,
-) -> Result<()> {
-  let is_facade = {
-    let all_facades = self.dyn_import_facade_chunks_set.borrow();
-    all_facades.contains(chunk_ukey)
-  };
-  if !is_facade {
-    return Ok(());
-  }
-
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .get(chunk_ukey)
-    .expect("should have chunk");
-
-  // let chunk = compilation.get;
-  let filename_template = get_js_chunk_filename_template(
-    chunk,
-    &compilation.options.output,
-    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-  );
-  let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
-  asset_info.set_javascript_module(compilation.options.output.module);
-  let output_path = compilation
-    .get_path_with_info(
-      &filename_template,
-      PathData::default()
-        .chunk_hash_optional(chunk.rendered_hash(
-          &compilation.chunk_hashes_artifact,
-          compilation.options.output.hash_digest_length,
-        ))
-        .chunk_id_optional(chunk.id().map(|id| id.as_str()))
-        .chunk_name_optional(chunk.name_for_filename_template())
-        .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-          &compilation.chunk_hashes_artifact,
-          &SourceType::JavaScript,
-          compilation.options.output.hash_digest_length,
-        ))
-        .runtime(chunk.runtime().as_str()),
-      &mut asset_info,
-    )
-    .await?;
-
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
-  let Some(source) = self
-    .render_chunk(compilation, chunk_ukey, &mut asset_info, &runtime_template)
-    .await?
-  else {
-    return Ok(());
-  };
-
-  manifest.push(RenderManifestEntry {
-    source: source.source,
-    filename: output_path,
-    has_filename: true,
-    info: asset_info,
-    auxiliary: false,
-  });
-
   Ok(())
 }
 
@@ -716,7 +652,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         } else {
           std::borrow::Cow::Owned(format!("./{relative}"))
         };
-        replace_source.replace(start, end, &import_str, None);
+        replace_source.replace(start, end, import_str.into_owned(), None);
       }
       drop(chunk_ids_to_ukey);
 
@@ -758,12 +694,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .collect::<IdentifierSet>();
   drop(concate_modules_map);
 
-  let (strict_chunks, all_dyn_targets, facade_mapping) =
-    ensure_dyn_import_namespace_facades(compilation, &concatenated_modules);
+  let (strict_chunks, all_dyn_targets, namespace_targets) =
+    analyze_dyn_import_targets(compilation, &concatenated_modules, &self.dyn_import_ns_map);
   *self.strict_export_chunks.borrow_mut() = strict_chunks;
   *self.all_dyn_targets.borrow_mut() = all_dyn_targets;
-  *self.dyn_import_facade_chunks_set.borrow_mut() = facade_mapping.values().copied().collect();
-  *self.dyn_import_facade_chunks.borrow_mut() = facade_mapping;
+  *self.namespace_targets.borrow_mut() = namespace_targets;
+
+  assign_dyn_import_chunk_short_names(compilation);
 
   Ok(None)
 }
@@ -807,6 +744,101 @@ async fn after_factorize(
     }
   }
   Ok(())
+}
+
+#[plugin_hook(CompilationOptimizeChunkModules for EsmLibraryPlugin, stage = 100)]
+async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  // Group duplicate external modules by (base_id, chunk) so we only merge
+  // duplicates within the same chunk. Merging across chunks would cause a
+  // module to appear in multiple chunks, which violates get_module_chunk's
+  // single-chunk assumption.
+  let mut groups: FxHashMap<(String, ChunkUkey), Vec<ModuleIdentifier>> = FxHashMap::default();
+  let mg = compilation.get_module_graph();
+  let cg = &compilation.build_chunk_graph_artifact.chunk_graph;
+
+  let modules_map = self.concatenated_modules_map.read().await;
+
+  for (id, module) in mg.modules() {
+    if module.as_external_module().is_some() {
+      let id_str = id.as_str();
+      if modules_map[id].is_external()
+        && let Some(pipe_pos) = id_str.rfind('|')
+        && let Some(chunks) = cg.try_get_module_chunks(id)
+        && !chunks.is_empty()
+      {
+        let base = id_str[..pipe_pos].to_string();
+        for &chunk in chunks {
+          groups.entry((base.clone(), chunk)).or_default().push(*id);
+        }
+      }
+    }
+  }
+
+  // Phase 2: Merge duplicates within the same chunk
+  for mut module_ids in groups.into_values() {
+    module_ids.sort_unstable();
+    module_ids.dedup();
+    if module_ids.len() <= 1 {
+      continue;
+    }
+
+    let canonical_id = module_ids[0];
+
+    let mut used_exports = FxHashSet::default();
+    let mut used_in_unknown = false;
+
+    for dup_id in &module_ids[1..] {
+      let dup_id_used = compilation
+        .exports_info_artifact
+        .get_exports_info_data(dup_id);
+      if !matches!(
+        dup_id_used.other_exports_info().get_used(None),
+        rspack_core::UsageState::Unused
+      ) {
+        used_in_unknown = true;
+        break;
+      } else {
+        let used = dup_id_used.exports().iter().filter_map(|(name, export)| {
+          if matches!(export.get_used(None), rspack_core::UsageState::Used) {
+            Some(name.clone())
+          } else {
+            None
+          }
+        });
+
+        used_exports.extend(used);
+      }
+    }
+
+    if used_in_unknown {
+      // used in unknown way, we should make canonical_id the same used in unknown way
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data_mut(&canonical_id);
+      exports_info.set_used_in_unknown_way(None);
+    } else {
+      for name in used_exports {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data_mut(&canonical_id);
+
+        let info = exports_info.ensure_export_info(&name);
+        let info = info.as_data_mut(&mut compilation.exports_info_artifact);
+        info.set_used(rspack_core::UsageState::Used, None);
+      }
+    }
+
+    for &dup_id in &module_ids[1..] {
+      let cg = &mut compilation.build_chunk_graph_artifact.chunk_graph;
+      cg.replace_module(&dup_id, &canonical_id);
+
+      // 1. Move incoming connections from duplicate to canonical
+      let mg = compilation.get_module_graph_mut();
+      mg.move_module_connections(&dup_id, &canonical_id, |_, _| true);
+    }
+  }
+
+  Ok(None)
 }
 
 #[plugin_hook(CompilationOptimizeDependencies for EsmLibraryPlugin)]
@@ -855,11 +887,6 @@ impl Plugin for EsmLibraryPlugin {
 
     ctx
       .compilation_hooks
-      .render_manifest
-      .tap(render_manifest::new(self));
-
-    ctx
-      .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
 
@@ -892,6 +919,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .optimize_dependencies
       .tap(optimize_dependencies::new(self));
+
+    ctx
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(optimize_chunk_modules::new(self));
 
     ctx.normal_module_factory_hooks.parser.tap(parse::new(self));
     ctx

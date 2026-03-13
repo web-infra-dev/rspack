@@ -11,7 +11,7 @@ sidebar: false
 
 The latest Rspack 0.5.0 introduces the highly anticipated Module Federation along with the new "v1.5" federation APIs. It marks the most substantial revamp of federation since its inception. The v1.5 offers extra capabilities for end users and framework authors, a feat unattainable with the original design.
 
-<div align="center">
+<div>
   <img
     src="https://assets.rspack.rs/rspack/assets/rspack-federation-with-rspack.png"
     width="50%"
@@ -63,7 +63,8 @@ v1.5 introduces runtimePlugins. These can be added to compile time via `runtimeP
 In Rspack:
 
 ```js
-const { rspack } = require('@rspack/core');
+import { rspack } from '@rspack/core';
+import { fileURLToPath } from 'node:url';
 
 new rspack.container.ModuleFederationPlugin({
   name: 'app1',
@@ -71,7 +72,9 @@ new rspack.container.ModuleFederationPlugin({
   exposes: {
     './Button': './src/components/button.js',
   },
-  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  runtimePlugins: [
+    fileURLToPath(new URL('./my-custom-plugin.js', import.meta.url)),
+  ],
   remotes: {
     app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
   },
@@ -79,13 +82,14 @@ new rspack.container.ModuleFederationPlugin({
     react: { singleton: true },
     'react-dom': { singleton: true },
   },
-})
+});
 ```
 
-And For Webpack:
+And For webpack:
 
 ```js
-const { ModuleFederationPlugin } = require('@module-federation/enhanced');
+import { ModuleFederationPlugin } from '@module-federation/enhanced';
+import { fileURLToPath } from 'node:url';
 
 new ModuleFederationPlugin({
   name: 'app1',
@@ -93,7 +97,9 @@ new ModuleFederationPlugin({
   exposes: {
     './Button': './src/components/button.js',
   },
-  runtimePlugins: [require.resolve('./my-custom-plugin')]
+  runtimePlugins: [
+    fileURLToPath(new URL('./my-custom-plugin.js', import.meta.url)),
+  ],
   remotes: {
     app2: 'app2@http://localhost:3002/static/js/remoteEntry.js',
   },
@@ -101,7 +107,7 @@ new ModuleFederationPlugin({
     react: { singleton: true },
     'react-dom': { singleton: true },
   },
-})
+});
 ```
 
 Federation can also be used in a dynamic manner, without a compile-time plugin. You can read more about v1.5 runtime [here](https://github.com/module-federation/universe/tree/feat/async-boundary-option/packages/runtime)

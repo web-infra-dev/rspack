@@ -1060,6 +1060,7 @@ export interface JsRscClientPluginOptions {
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
   onServerComponentChanges?: (() => void) | undefined | null
+  onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
 }
 
 export interface JsRsdoctorAsset {
@@ -1099,6 +1100,30 @@ export interface JsRsdoctorChunkModules {
   modules: Array<number>
 }
 
+export interface JsRsdoctorConnection {
+  ukey: number
+  dependencyId: string
+  module: number
+  originModule?: number
+  resolvedModule: number
+  dependencyType: string
+  userRequest: string
+  loc?: string
+  active: boolean
+}
+
+export interface JsRsdoctorConnectionsOnlyImport {
+  moduleUkey: number
+  modulePath: string
+  connections: Array<JsRsdoctorConnectionsOnlyImportConnection>
+}
+
+export interface JsRsdoctorConnectionsOnlyImportConnection {
+  originModule?: number
+  dependencyType: string
+  userRequest: string
+}
+
 export interface JsRsdoctorDependency {
   ukey: number
   kind: string
@@ -1124,7 +1149,6 @@ export interface JsRsdoctorExportInfo {
   from?: number
   variable?: number
   identifier?: JsRsdoctorStatement
-  sideEffects: Array<number>
 }
 
 export interface JsRsdoctorJsonModuleSize {
@@ -1146,12 +1170,14 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
+  sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
 }
 
 export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
+  connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1193,6 +1219,13 @@ export interface JsRsdoctorSideEffect {
   fromDependency?: number
   exports: Array<number>
   variable?: number
+}
+
+export interface JsRsdoctorSideEffectLocation {
+  location: string
+  nodeType: string
+  module: number
+  request: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {
@@ -2241,6 +2274,7 @@ export interface RawExternalsPresets {
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
+  conditionFlags?: string
 }
 
 export interface RawFallbackCacheGroupOptions {
@@ -2386,13 +2420,14 @@ export interface RawJavascriptParserOptions {
   exprContextCritical?: boolean
   unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
+  strictThisContextOnImports?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
   worker?: Array<string>
   overrideStrict?: string
-  importMeta?: boolean
+  importMeta?: string
   /**
    * This option is experimental in Rspack only and subject to change or be removed anytime.
    * @experimental

@@ -160,9 +160,7 @@ CompilerOptions {
             [],
         ),
         roots: Some(
-            [
-                "<cwd>",
-            ],
+            [],
         ),
         restrictions: None,
         imports_fields: Some(
@@ -180,7 +178,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -230,7 +227,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -280,7 +276,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -358,7 +353,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -410,7 +404,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -460,7 +453,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -510,7 +502,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -560,7 +551,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -1637,6 +1627,9 @@ CompilerOptions {
                             wrapped_context_critical: Some(
                                 false,
                             ),
+                            strict_this_context_on_imports: Some(
+                                false,
+                            ),
                             wrapped_context_reg_exp: Some(
                                 RspackRegex {
                                     flags: "",
@@ -1654,7 +1647,7 @@ CompilerOptions {
                             ),
                             override_strict: None,
                             import_meta: Some(
-                                true,
+                                Enabled,
                             ),
                             require_alias: Some(
                                 false,
@@ -1704,7 +1697,7 @@ CompilerOptions {
         no_parse: None,
     },
     stats: StatsOptions {
-        colors: true,
+        colors: <env-dependent>,
     },
     cache: Disabled,
     experiments: Experiments {

@@ -1,7 +1,6 @@
 use std::ptr::NonNull;
 
 use itertools::Itertools;
-use rspack_collections::UkeySet;
 use rspack_core::{
   BooleanMatcher, ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
@@ -12,7 +11,7 @@ use rspack_plugin_runtime::{
   CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   get_chunk_runtime_requirements,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::plugin::{InsertType, SOURCE_TYPE};
 
@@ -40,8 +39,8 @@ impl CssLoadingRuntimeModule {
     )
   }
 
-  fn get_css_chunks(&self, compilation: &Compilation) -> UkeySet<ChunkUkey> {
-    let mut set: UkeySet<ChunkUkey> = Default::default();
+  fn get_css_chunks(&self, compilation: &Compilation) -> FxHashSet<ChunkUkey> {
+    let mut set: FxHashSet<ChunkUkey> = Default::default();
     let module_graph = compilation.get_module_graph();
 
     let chunk = compilation
@@ -227,8 +226,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           Some(serde_json::json!({
             "_installed_chunks": format!(
               "{}: 0,\n",
-              serde_json::to_string(chunk.expect_id())
-                .expect("json stringify failed")
+              rspack_util::json_stringify_str(chunk.expect_id().as_str())
             ),
             "_css_chunks": format!(
               "{{\n{}\n}}",
@@ -240,7 +238,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                   chunk.id().map(|id| {
                     format!(
                       "{}: 1,\n",
-                      serde_json::to_string(id).expect("json stringify failed")
+                      rspack_util::json_stringify_str(id.as_str())
                     )
                   })
                 })

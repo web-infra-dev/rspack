@@ -71,3 +71,9 @@ it("should not break Babel arrow function transform", () => {
 	expect(callThis).toBe(undefined);
 	expect(applyThis).toBe(undefined);
 });
+
+import * as reexport from "./reexport";
+
+it("should work with reexported modules", () => {
+	expect(reexport.reexported.that().value).toBe("reexported");
+});

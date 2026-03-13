@@ -6,7 +6,7 @@ __webpack_require__.add({
   !*** ./foo.js ***!
   \****************/
 (__unused_rspack_module, exports) {
-exports.foo = 123
+exports.p = 123
 
 
 },
@@ -16,8 +16,8 @@ const foo = __webpack_require__("./foo.js");
 
 
 it('should import namespace', () => {
-	expect(foo.foo).toBe(123);
-	expect(foo.foo).toBe(123);
+	expect(foo.p).toBe(123);
+	expect(foo.p).toBe(123);
 })
 
 

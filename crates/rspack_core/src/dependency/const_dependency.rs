@@ -60,6 +60,11 @@ impl DependencyTemplate for ConstDependencyTemplate {
       .downcast_ref::<ConstDependency>()
       .expect("ConstDependencyTemplate should be used for ConstDependency");
 
-    source.replace(dep.range.start, dep.range.end, dep.content.as_ref(), None);
+    source.replace(
+      dep.range.start,
+      dep.range.end,
+      dep.content.to_string(),
+      None,
+    );
   }
 }

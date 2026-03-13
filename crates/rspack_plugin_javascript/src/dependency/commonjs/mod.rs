@@ -37,3 +37,18 @@ pub use require_resolve_dependency::{RequireResolveDependency, RequireResolveDep
 pub use require_resolve_header_dependency::{
   RequireResolveHeaderDependency, RequireResolveHeaderDependencyTemplate,
 };
+
+static OBJECT_PROTOTYPE_METHODS: &[&str] = &[
+  "constructor",
+  "__defineGetter__",
+  "__defineSetter__",
+  "hasOwnProperty",
+  "__lookupGetter__",
+  "__lookupSetter__",
+  "isPrototypeOf",
+  "propertyIsEnumerable",
+  "toString",
+  "valueOf",
+  "__proto__",
+  "toLocaleString",
+];

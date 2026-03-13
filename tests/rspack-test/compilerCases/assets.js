@@ -186,7 +186,7 @@ module.exports = [{
 							{
 								name: "Plugin",
 								stage:
-									compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE - 1
+									compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE - 1
 							},
 							() => {
 								compilation.getAssets().forEach(a => {

@@ -15,9 +15,10 @@ use swc_core::common::{BytePos, Mark, comments::Comments};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
-    AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperties,
-    DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    RootName, TagInfoData, TopLevelScope, ast::*, estree::*,
+    AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooksName,
+    DestructuringAssignmentProperties, DestructuringAssignmentProperty, ExportedVariableInfo,
+    JavascriptParser, MemberExpressionInfo, MemberRanges, OptionalMembers, RootName,
+    ScopeTerminated, TagInfoData, TopLevelScope, ast::*, estree::*,
   },
   util::*,
 };

@@ -3,7 +3,7 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
-		const { ContextModule } = compiler.webpack;
+		const { ContextModule } = compiler.rspack;
 
 		compiler.hooks.afterEmit.tap("PLUGIN", compilation => {
 			const contextModule = Array.from(compilation.modules).find(

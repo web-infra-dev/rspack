@@ -12,7 +12,7 @@ use napi::{
 use once_cell::unsync::OnceCell;
 use rspack_core::{Compiler, CompilerId};
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_plugin_rsc::{Coordinator, RscClientPluginOptions, RscServerPluginOptions};
+use rspack_plugin_rsc::{Coordinator, OnManifest, RscClientPluginOptions, RscServerPluginOptions};
 
 use crate::JsCompiler;
 
@@ -78,6 +78,7 @@ impl From<&JsRscClientPluginOptions<'_>> for RscClientPluginOptions {
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
   pub on_server_component_changes: Option<Either3<Function<'static, (), ()>, Undefined, Null>>,
+  pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
 }
 
 impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
@@ -106,9 +107,35 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
       _ => None,
     };
 
+    let on_manifest: Option<OnManifest> = match &value.on_manifest {
+      Some(Either3::A(js_fn)) => {
+        let ts_fn = Arc::new(
+          js_fn
+            .build_threadsafe_function::<(String)>()
+            .callee_handled::<false>()
+            .max_queue_size::<0>()
+            .weak::<true>()
+            .build()?,
+        );
+        Some(Box::new(move |json: String| {
+          let ts_fn = ts_fn.clone();
+          Box::pin(async move {
+            ts_fn
+              .call_async(json)
+              .await
+              .to_rspack_result()?
+              .await
+              .to_rspack_result()
+          })
+        }))
+      }
+      _ => None,
+    };
+
     Ok(Self {
       coordinator: value.coordinator.i.clone(),
       on_server_component_changes,
+      on_manifest,
     })
   }
 }

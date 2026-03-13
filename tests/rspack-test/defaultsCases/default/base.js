@@ -86,7 +86,7 @@ module.exports = {
 			        type: javascript/auto,
 			      },
 			      Object {
-			        test: /\\\\\\.json\\$/i,
+			        test: /\\\\\\.json\\$/,
 			        type: json,
 			      },
 			      Object {
@@ -101,7 +101,7 @@ module.exports = {
 			            },
 			          },
 			        },
-			        test: /\\\\\\.mjs\\$/i,
+			        test: /\\\\\\.mjs\\$/,
 			        type: javascript/esm,
 			      },
 			      Object {
@@ -115,18 +115,18 @@ module.exports = {
 			            },
 			          },
 			        },
-			        test: /\\\\\\.js\\$/i,
+			        test: /\\\\\\.js\\$/,
 			        type: javascript/esm,
 			      },
 			      Object {
-			        test: /\\\\\\.cjs\\$/i,
+			        test: /\\\\\\.cjs\\$/,
 			        type: javascript/dynamic,
 			      },
 			      Object {
 			        descriptionData: Object {
 			          type: commonjs,
 			        },
-			        test: /\\\\\\.js\\$/i,
+			        test: /\\\\\\.js\\$/,
 			        type: javascript/dynamic,
 			      },
 			      Object {
@@ -156,7 +156,7 @@ module.exports = {
 			            },
 			          },
 			        ],
-			        test: /\\\\\\.wasm\\$/i,
+			        test: /\\\\\\.wasm\\$/,
 			        type: webassembly/async,
 			      },
 			      Object {
@@ -259,6 +259,7 @@ module.exports = {
 			        requireAsExpression: true,
 			        requireDynamic: true,
 			        requireResolve: true,
+			        strictThisContextOnImports: false,
 			        typeReexportsPresence: no-tolerant,
 			        unknownContextCritical: true,
 			        url: true,
@@ -323,7 +324,7 @@ module.exports = {
 			          idHint: vendors,
 			          priority: -10,
 			          reuseExistingChunk: true,
-			          test: /\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]/i,
+			          test: /\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]/,
 			        },
 			      },
 			      chunks: async,
@@ -433,7 +434,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -453,7 +453,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -489,7 +488,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -509,7 +507,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -529,7 +526,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -549,7 +545,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -572,7 +567,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -592,7 +586,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -624,9 +617,7 @@ module.exports = {
 			      node_modules,
 			    ],
 			    pnp: false,
-			    roots: Array [
-			      <TEST_ROOT>,
-			    ],
+			    roots: Array [],
 			  },
 			  resolveLoader: Object {
 			    conditionNames: Array [

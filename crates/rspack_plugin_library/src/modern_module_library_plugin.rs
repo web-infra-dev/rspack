@@ -1,12 +1,12 @@
 use std::{hash::Hash, sync::Arc};
 
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxDependency, ChunkUkey, CodeGenerationExportsFinalNames, Compilation,
   CompilationOptimizeChunkModules, CompilationParams, CompilerCompilation, CompilerFinishMake,
   ConcatenatedModule, ConcatenatedModuleExportsDefinitions, DependencyId, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
+  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeSpec, RuntimeVariable, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -102,9 +102,10 @@ impl ModernModuleLibraryPlugin {
         };
         let reasons = &mgm.optimization_bailout;
 
-        reasons
-          .iter()
-          .any(|r| r.contains("Module is an entry point"))
+        reasons.iter().any(|r| match r {
+          OptimizationBailoutItem::Message(msg) => msg.contains("Module is an entry point"),
+          _ => false,
+        })
       })
       .collect::<HashSet<_>>();
 
@@ -124,7 +125,7 @@ impl ModernModuleLibraryPlugin {
       let current_configuration: ConcatConfiguration =
         ConcatConfiguration::new(*module_id, Some(chunk_runtime.clone()));
 
-      let mut used_modules = HashSet::default();
+      let mut used_modules = IdentifierSet::default();
 
       ModuleConcatenationPlugin::process_concatenated_configuration(
         compilation,

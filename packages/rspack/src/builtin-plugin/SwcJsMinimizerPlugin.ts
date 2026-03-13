@@ -230,29 +230,34 @@ function isObject(value: any): value is Object {
 function getRawExtractCommentsOptions(
   extractComments?: ExtractCommentsOptions,
 ): RawExtractComments | undefined {
-  const conditionStr = (condition?: ExtractCommentsCondition): string => {
+  const conditionStr = (
+    condition?: ExtractCommentsCondition,
+  ): { source: string; flags: string } => {
     if (typeof condition === 'undefined' || condition === true) {
       // copied from terser-webpack-plugin
-      return '@preserve|@lic|@cc_on|^\\**!';
+      return { source: '@preserve|@lic|@cc_on|^\\**!', flags: '' };
     }
     if (condition === false) {
       throw Error('unreachable');
     }
-    // FIXME: flags
-    return condition.source;
+    return { source: condition.source, flags: condition.flags };
   };
   if (typeof extractComments === 'boolean') {
     if (!extractComments) {
       return undefined;
     }
+    const { source, flags } = conditionStr(extractComments);
     const res = {
-      condition: conditionStr(extractComments),
+      condition: source,
+      conditionFlags: flags,
     };
     return res;
   }
   if (extractComments instanceof RegExp) {
+    const { source, flags } = conditionStr(extractComments);
     const res = {
-      condition: extractComments.source,
+      condition: source,
+      conditionFlags: flags,
     };
     return res;
   }
@@ -260,8 +265,10 @@ function getRawExtractCommentsOptions(
     if (extractComments.condition === false) {
       return undefined;
     }
+    const { source, flags } = conditionStr(extractComments.condition);
     const res = {
-      condition: conditionStr(extractComments.condition),
+      condition: source,
+      conditionFlags: flags,
       banner: extractComments.banner,
     };
     return res;

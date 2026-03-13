@@ -229,8 +229,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
           dep.dependency_type().as_str(),
           false,
           dep.get_phase(),
-        )
-        .as_str(),
+        ),
       None,
     );
   }

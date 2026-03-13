@@ -284,7 +284,7 @@ Rspack will try to resolve `'./foo.ts'` and `'./foo.js'` sequentially when resol
 ## resolve.extensions
 
 - **Type:** `string[]`
-- **Default:** `[".js", ".json", ".wasm"]`
+- **Default:** `[".js", ".json"]`
 
 Automatically resolve file extensions when importing modules. This means you can import files without explicitly writing their extensions.
 
@@ -292,7 +292,6 @@ For example, if importing `./index`, Rspack will try to resolve using the follow
 
 - `./index.js`
 - `./index.json`
-- `./index.wasm`
 
 ### Example
 
@@ -319,7 +318,7 @@ To include the default extensions alongside your custom ones, you can use the sp
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    // equivalent to ['.ts', '.js', '.json', '.wasm']
+    // equivalent to ['.ts', '.js', '.json']
     extensions: ['.ts', '...'],
   },
 };
@@ -573,7 +572,22 @@ A list of resolve restrictions to restrict the paths that a request can be resol
 - **Type:** `string[]`
 - **Default:** `[]`
 
-A list of directories where server-relative URLs (beginning with '/') are resolved. It defaults to the `context` configuration option. On systems other than Windows, these requests are initially resolved as an absolute path.
+A list of directories where server-relative URLs (beginning with '/') are resolved. On systems other than Windows, these requests are initially resolved as an absolute path.
+
+For example, importing `'/static/app.js'` and expecting it to resolve relative to the project root:
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default {
+  resolve: {
+    roots: [__dirname],
+  },
+};
+```
 
 ## resolve.symlinks
 

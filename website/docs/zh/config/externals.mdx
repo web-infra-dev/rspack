@@ -584,7 +584,7 @@ export default {
 将会转换为类似下面的代码：
 
 ```js
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const jq = createRequire(import.meta.url)('jquery');
 jq('.my-element').animate(/* ... */);

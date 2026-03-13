@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use itertools::Itertools;
 use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, Severity};
-use rspack_util::{json_stringify, quote_meta};
+use rspack_util::{json_stringify_str, quote_meta};
 
 use super::create_traceable_error;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
@@ -84,9 +84,9 @@ pub fn create_context_dependency(
           replaces.push((value, part.range().0, param.range().1));
         } else {
           let value = match param.template_string_kind() {
-            TemplateStringKind::Cooked => {
-              json_stringify(part.string()).trim_matches('"').to_owned()
-            }
+            TemplateStringKind::Cooked => json_stringify_str(part.string())
+              .trim_matches('"')
+              .to_owned(),
             TemplateStringKind::Raw => part.string().to_owned(),
           };
           let range = part.range();
@@ -159,10 +159,14 @@ pub fn create_context_dependency(
 
     let mut replaces = Vec::new();
     if let Some(prefix_range) = prefix_range {
-      replaces.push((json_stringify(&prefix), prefix_range.0, prefix_range.1))
+      replaces.push((json_stringify_str(&prefix), prefix_range.0, prefix_range.1))
     }
     if let Some(postfix_range) = postfix_range {
-      replaces.push((json_stringify(&postfix), postfix_range.0, postfix_range.1))
+      replaces.push((
+        json_stringify_str(&postfix),
+        postfix_range.0,
+        postfix_range.1,
+      ))
     }
 
     if let Some(true) = parser.javascript_options.wrapped_context_critical {

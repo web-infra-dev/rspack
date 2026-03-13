@@ -2,6 +2,37 @@ mod container;
 mod manifest;
 mod sharing;
 
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(untagged)]
+pub enum ShareScope {
+  Single(String),
+  Multiple(Vec<String>),
+}
+
+impl ShareScope {
+  pub fn key(&self) -> String {
+    match self {
+      ShareScope::Single(s) => s.clone(),
+      ShareScope::Multiple(v) => v.join("|"),
+    }
+  }
+
+  pub fn scopes(&self) -> &[String] {
+    match self {
+      ShareScope::Single(s) => std::slice::from_ref(s),
+      ShareScope::Multiple(v) => v.as_slice(),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    match self {
+      ShareScope::Single(_) => false,
+      ShareScope::Multiple(v) => v.is_empty(),
+    }
+  }
+}
+
 pub use container::{
   container_plugin::{ContainerPlugin, ContainerPluginOptions, ExposeOptions},
   container_reference_plugin::{

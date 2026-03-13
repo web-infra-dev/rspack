@@ -18,6 +18,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationOptimizeChunks, CompilerCompilation, Dependency, DependencyId,
   ModuleIdentifier, Plugin, incremental::Mutation,
@@ -142,9 +143,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     compilation: &Compilation,
     module_id: ModuleIdentifier,
     ty: &str,
-  ) -> FxHashSet<ModuleIdentifier> {
-    let mut collected = FxHashSet::default();
-    let mut visited = FxHashSet::default();
+  ) -> IdentifierSet {
+    let mut collected = IdentifierSet::default();
+    let mut visited = IdentifierSet::default();
     let mut stack = VecDeque::new();
 
     collected.insert(module_id);
@@ -190,7 +191,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     .iter()
     .filter_map(|dep| mg.module_identifier_by_dependency_id(dep))
     .flat_map(|module| get_all_referenced_modules(compilation, *module, "initial"))
-    .collect::<FxHashSet<_>>();
+    .collect::<IdentifierSet>();
 
   // Hoist referenced modules to their runtime chunk
   let runtime_chunk_by_runtime = compilation

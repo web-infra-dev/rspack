@@ -20,7 +20,7 @@ use swc_core::{
 
 use super::{
   AllowedMemberTypes, CallHooksName, JavascriptParser, MemberExpressionInfo, RootName,
-  TopLevelScope,
+  ScopeTerminated, TopLevelScope,
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
@@ -33,21 +33,31 @@ fn warp_ident_to_pat(ident: Ident) -> Pat {
 }
 
 impl JavascriptParser<'_> {
-  fn in_block_scope<F>(&mut self, f: F)
+  fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
   where
     F: FnOnce(&mut Self),
   {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_in_try = self.in_try;
+    let old_terminated = self.terminated;
 
     self.in_tagged_template_tag = false;
     self.definitions = self.definitions_db.create_child(old_definitions);
     f(self);
 
+    let terminated = self.terminated;
+
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.in_try = old_in_try;
+    self.terminated = old_terminated;
+
+    if in_executed_path && let Some(t) = terminated {
+      self.terminated = Some(t);
+    }
   }
 
   pub fn in_class_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -59,9 +69,11 @@ impl JavascriptParser<'_> {
     let old_in_try = self.in_try;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_terminated = self.terminated;
 
     self.in_try = false;
     self.in_tagged_template_tag = false;
+    self.terminated = None;
     self.definitions = self.definitions_db.create_child(old_definitions);
 
     if has_this {
@@ -78,6 +90,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.terminated = old_terminated;
   }
 
   pub(crate) fn in_function_scope<'a, I, F>(&mut self, has_this: bool, params: I, f: F)
@@ -88,9 +101,11 @@ impl JavascriptParser<'_> {
     let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
+    let old_terminated = self.terminated;
 
     self.definitions = self.definitions_db.create_child(old_definitions);
     self.in_tagged_template_tag = false;
+    self.terminated = None;
     if has_this {
       self.undefined_variable(&"this".into());
     }
@@ -102,6 +117,7 @@ impl JavascriptParser<'_> {
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
+    self.terminated = old_terminated;
   }
 
   pub fn walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
@@ -113,15 +129,10 @@ impl JavascriptParser<'_> {
   fn walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
       ModuleItem::ModuleDecl(m) => {
+        let drive = self.plugin_drive.clone();
         self.enter_statement(
           m,
-          |parser, m| {
-            parser
-              .plugin_drive
-              .clone()
-              .module_declaration(parser, m)
-              .unwrap_or_default()
-          },
+          |parser, m| drive.module_declaration(parser, m).unwrap_or_default(),
           |parser, m| match m {
             ModuleDecl::ExportDefaultDecl(decl) => {
               parser.walk_export_default_declaration(decl);
@@ -148,21 +159,31 @@ impl JavascriptParser<'_> {
   }
 
   pub fn walk_statements(&mut self, statements: &Vec<Stmt>) {
+    let mut only_function_declaration = false;
     for statement in statements {
-      self.walk_statement(statement.into());
+      let stmt: Statement = statement.into();
+      if only_function_declaration
+        && !matches!(stmt, Statement::Fn(_))
+        && self
+          .plugin_drive
+          .clone()
+          .unused_statement(self, stmt)
+          .unwrap_or(false)
+      {
+        continue;
+      }
+      self.walk_statement(stmt);
+      if self.terminated.is_some() {
+        only_function_declaration = true;
+      }
     }
   }
 
   pub(crate) fn walk_statement(&mut self, statement: Statement) {
+    let drive = self.plugin_drive.clone();
     self.enter_statement(
       &statement,
-      |parser, _| {
-        parser
-          .plugin_drive
-          .clone()
-          .statement(parser, statement)
-          .unwrap_or_default()
-      },
+      |parser, _| drive.statement(parser, statement).unwrap_or_default(),
       |parser, _| match statement {
         Statement::Block(stmt) => parser.walk_block_statement(stmt),
         Statement::Class(decl) => parser.walk_class_declaration(decl),
@@ -195,16 +216,21 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_with_statement(&mut self, stmt: &WithStmt) {
-    self.walk_expression(&stmt.obj);
-    self.walk_nested_statement(&stmt.body);
+    self.in_block_scope(true, |this| {
+      this.walk_expression(&stmt.obj);
+      this.walk_nested_statement(&stmt.body);
+    });
   }
 
   fn walk_while_statement(&mut self, stmt: &WhileStmt) {
-    self.walk_expression(&stmt.test);
-    self.walk_nested_statement(&stmt.body);
+    self.in_block_scope(false, |this| {
+      this.walk_expression(&stmt.test);
+      this.walk_nested_statement(&stmt.body);
+    });
   }
 
   fn walk_try_statement(&mut self, stmt: &TryStmt) {
+    let was_in_try = self.in_try;
     if self.in_try {
       self.walk_statement(Statement::Block(&stmt.block));
     } else {
@@ -213,17 +239,36 @@ impl JavascriptParser<'_> {
       self.in_try = false;
     }
 
+    let try_terminated = self.terminated;
+    self.terminated = None;
+
+    let mut handler_terminated = None;
     if let Some(handler) = &stmt.handler {
       self.walk_catch_clause(handler);
+      handler_terminated = self.terminated;
+      self.terminated = None;
     }
 
+    let mut finalizer_terminated = None;
     if let Some(finalizer) = &stmt.finalizer {
       self.walk_statement(Statement::Block(finalizer));
+      finalizer_terminated = self.terminated;
+      self.terminated = None;
     }
+
+    if let Some(t) = finalizer_terminated {
+      self.terminated = Some(t);
+    } else if let Some(t) = try_terminated
+      && (stmt.handler.is_none() || handler_terminated.is_some())
+    {
+      self.terminated = handler_terminated.or(Some(t));
+    }
+
+    self.in_try = was_in_try;
   }
 
   fn walk_catch_clause(&mut self, catch_clause: &CatchClause) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(true, |this| {
       if let Some(param) = &catch_clause.param {
         this.enter_pattern(Cow::Borrowed(param), |this, ident| {
           this.define_variable(ident.sym.clone());
@@ -243,7 +288,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_switch_cases(&mut self, cases: &Vec<SwitchCase>) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       for case in cases {
         if !case.cons.is_empty() {
           let prev = this.prev_statement;
@@ -256,6 +301,7 @@ impl JavascriptParser<'_> {
           this.walk_expression(test);
         }
         this.walk_statements(&case.cons);
+        this.terminated = None;
       }
     })
   }
@@ -264,10 +310,22 @@ impl JavascriptParser<'_> {
     if let Some(arg) = &stmt.arg {
       self.walk_expression(arg);
     }
+    if self.is_top_level_scope() {
+      return;
+    }
+    // Mark current scope as terminated by return. This mirrors webpack's
+    // `scope.terminated` behavior driven by `hooks.terminate`, which is
+    // always tapped to `true` by its ConstPlugin for return statements.
+    self.terminated = Some(ScopeTerminated::Return);
   }
 
   fn walk_throw_stmt(&mut self, stmt: &ThrowStmt) {
     self.walk_expression(&stmt.arg);
+    if self.is_top_level_scope() {
+      return;
+    }
+    // Same as above but for throw statements.
+    self.terminated = Some(ScopeTerminated::Throw);
   }
 
   fn walk_labeled_statement(&mut self, stmt: &LabeledStmt) {
@@ -283,16 +341,26 @@ impl JavascriptParser<'_> {
         self.walk_nested_statement(alt);
       }
     } else {
+      // Unknown or non-constant condition – walk the test for side effects and
+      // both branches, only keeping termination when *both* are terminated.
       self.walk_expression(&stmt.test);
       self.walk_nested_statement(&stmt.cons);
+      let consequent_terminated = self.terminated;
+      self.terminated = None;
       if let Some(alt) = &stmt.alt {
         self.walk_nested_statement(alt);
       }
+      let alternate_terminated = self.terminated;
+      self.terminated = if consequent_terminated.is_some() && alternate_terminated.is_some() {
+        alternate_terminated
+      } else {
+        None
+      };
     }
   }
 
   fn walk_for_statement(&mut self, stmt: &ForStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       if let Some(init) = &stmt.init {
         match init {
           VarDeclOrExpr::VarDecl(decl) => {
@@ -322,7 +390,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
@@ -337,7 +405,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_for_in_statement(&mut self, stmt: &ForInStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
       if let Some(body) = stmt.body.as_block() {
@@ -368,34 +436,27 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    let drive = self.plugin_drive.clone();
     for declarator in decl.declarators() {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
-      {
-        let drive = self.plugin_drive.clone();
-        if drive
+        && drive
           .can_rename(self, &renamed_identifier)
           .unwrap_or_default()
-        {
-          if !drive
-            .rename(self, init, &renamed_identifier)
-            .unwrap_or_default()
-          {
-            self.set_variable(
-              ident.sym.clone(),
-              ExportedVariableInfo::Name(renamed_identifier.clone()),
-            );
-          }
-          continue;
-        }
-      }
-      if !self
-        .plugin_drive
-        .clone()
-        .declarator(self, declarator, decl)
-        .unwrap_or_default()
       {
+        if !drive
+          .rename(self, init, &renamed_identifier)
+          .unwrap_or_default()
+        {
+          self.set_variable(
+            ident.sym.clone(),
+            ExportedVariableInfo::Name(renamed_identifier.clone()),
+          );
+        }
+        continue;
+      }
+      if !drive.declarator(self, declarator, decl).unwrap_or_default() {
         self.walk_pattern(&declarator.name);
         if let Some(init) = &declarator.init {
           self.walk_expression(init);
@@ -465,6 +526,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
+    let drive = self.plugin_drive.clone();
     if expr.op == UnaryOp::TypeOf
       && let Some(expr_info) =
         self.get_member_expression_info_from_expr(&expr.arg, AllowedMemberTypes::Expression)
@@ -475,9 +537,7 @@ impl JavascriptParser<'_> {
       };
       if expr_info
         .name
-        .call_hooks_name(self, |this, for_name| {
-          this.plugin_drive.clone().r#typeof(this, expr, for_name)
-        })
+        .call_hooks_name(self, |this, for_name| drive.r#typeof(this, expr, for_name))
         .unwrap_or_default()
       {
         return;
@@ -488,9 +548,8 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_this_expression(&mut self, expr: &ThisExpr) {
-    "this".call_hooks_name(self, |this, for_name| {
-      this.plugin_drive.clone().this(this, expr, for_name)
-    });
+    let drive = self.plugin_drive.clone();
+    "this".call_hooks_name(self, |this, for_name| drive.this(this, expr, for_name));
   }
 
   pub(crate) fn walk_template_expression(&mut self, expr: &Tpl) {
@@ -801,13 +860,13 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
+    let drive = self.plugin_drive.clone();
     // println!("{:#?}", expr);
     if let Some(expr_info) =
       self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
     {
       match expr_info {
         MemberExpressionInfo::Expression(expr_info) => {
-          let drive = self.plugin_drive.clone();
           if expr_info
             .name
             .call_hooks_name(self, |this, for_name| drive.member(this, expr, for_name))
@@ -844,7 +903,7 @@ impl JavascriptParser<'_> {
           if expr_info
             .root_info
             .call_hooks_name(self, |this, for_name| {
-              this.plugin_drive.clone().member_chain_of_call_member_chain(
+              drive.member_chain_of_call_member_chain(
                 this,
                 expr,
                 &expr_info.callee_members,
@@ -878,15 +937,14 @@ impl JavascriptParser<'_> {
   ) where
     F: FnOnce(&mut Self) -> Option<bool>,
   {
+    let drive = self.plugin_drive.clone();
     if let Some(member) = expr.obj.as_member()
       && let Some(len) = member_prop_len(&expr.prop)
     {
       let origin = name.len();
       let name = &name[0..origin - 1 - len];
       if name
-        .call_hooks_name(self, |this, for_name| {
-          this.plugin_drive.clone().member(this, member, for_name)
-        })
+        .call_hooks_name(self, |this, for_name| drive.member(this, member, for_name))
         .unwrap_or_default()
       {
         return;
@@ -954,9 +1012,12 @@ impl JavascriptParser<'_> {
       .map(|param| get_var_name(self, param))
       .collect::<Vec<_>>();
 
-    let mut params = vec![];
-    let mut scope_params = vec![];
+    let mut params = Vec::new();
+    let mut scope_params = Vec::new();
     if let Some(fn_expr) = expr.as_fn_expr() {
+      let param_len = fn_expr.function.params.len();
+      params.reserve(param_len);
+      scope_params.reserve(param_len);
       for (i, pat) in fn_expr.function.params.iter().map(|p| &p.pat).enumerate() {
         // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
         let ident = pat.as_ident().expect("should be a `BindingIdent`");
@@ -970,6 +1031,9 @@ impl JavascriptParser<'_> {
         }
       }
     } else if let Some(arrow_expr) = expr.as_arrow() {
+      let param_len = arrow_expr.params.len();
+      params.reserve(param_len);
+      scope_params.reserve(param_len);
       for (i, pat) in arrow_expr.params.iter().enumerate() {
         // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
         let ident = pat.as_ident().expect("should be a `BindingIdent`");
@@ -1240,11 +1304,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_identifier(&mut self, identifier: &Ident) {
+    let drive = self.plugin_drive.clone();
     identifier.sym.call_hooks_name(self, |this, for_name| {
-      this
-        .plugin_drive
-        .clone()
-        .identifier(this, identifier, for_name)
+      drive.identifier(this, identifier, for_name)
     });
   }
 
@@ -1254,9 +1316,9 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
+    let drive = self.plugin_drive.clone();
     if let Some(ident) = expr.left.as_ident() {
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
-        && let drive = self.plugin_drive.clone()
         && rename_identifier
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
@@ -1281,9 +1343,7 @@ impl JavascriptParser<'_> {
         |this, ident| {
           if !ident
             .sym
-            .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, for_name)
-            })
+            .call_hooks_name(this, |this, for_name| drive.assign(this, expr, for_name))
             .unwrap_or_default()
           {
             // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
@@ -1298,9 +1358,7 @@ impl JavascriptParser<'_> {
         |this: &mut JavascriptParser<'_>, ident| {
           if !ident
             .sym
-            .call_hooks_name(this, |this, for_name| {
-              this.plugin_drive.clone().assign(this, expr, for_name)
-            })
+            .call_hooks_name(this, |this, for_name| drive.assign(this, expr, for_name))
             .unwrap_or_default()
           {
             this.define_variable(ident.sym.clone());
@@ -1314,12 +1372,7 @@ impl JavascriptParser<'_> {
         && expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {
-            parser.plugin_drive.clone().assign_member_chain(
-              parser,
-              expr,
-              &expr_name.members,
-              for_name,
-            )
+            drive.assign_member_chain(parser, expr, &expr_name.members, for_name)
           })
           .unwrap_or_default()
       {
@@ -1393,7 +1446,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_block_statement(&mut self, stmt: &BlockStmt) {
-    self.in_block_scope(|this| {
+    self.in_block_scope(true, |this| {
       let prev = this.prev_statement;
       this.block_pre_walk_statements(&stmt.stmts);
       this.prev_statement = prev;

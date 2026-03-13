@@ -21,6 +21,7 @@ pub fn rsc_pass(
   resource_path: &str,
   comments: Rc<SingleThreadedComments>,
   rsc_meta: &RefCell<Option<RscMeta>>,
+  disable_client_api_checks: bool,
 ) -> impl Pass {
   let module = &loader_context.context.module;
   let is_react_server_layer = module
@@ -38,6 +39,7 @@ pub fn rsc_pass(
       Config::WithOptions(Options {
         is_react_server_layer,
         enable_server_entry: !server_entry_proxy,
+        disable_client_api_checks,
       }),
       rsc_meta,
     ),

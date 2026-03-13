@@ -9,7 +9,7 @@ module.exports = /** @type {import('@rspack/cli').Configuration} */ {
   plugins: [
     {
       apply(compiler) {
-        new compiler.webpack.DefinePlugin({
+        new compiler.rspack.DefinePlugin({
           DEFINE_ME: JSON.stringify(
             `WEBPACK_SERVE=${process.env.WEBPACK_SERVE ?? '<EMPTY>'}`,
           ),

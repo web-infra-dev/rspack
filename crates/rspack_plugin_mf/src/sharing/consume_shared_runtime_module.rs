@@ -6,10 +6,11 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
@@ -49,6 +50,13 @@ enum TemplateId {
   Common,
   Initial,
   Loading,
+}
+
+fn required_version_json(required_version: Option<&ConsumeVersion>) -> String {
+  match required_version {
+    Some(ConsumeVersion::False) | None => "false".to_string(),
+    Some(version) => json_stringify_str(&version.to_string()),
+  }
 }
 
 #[async_trait::async_trait]
@@ -91,6 +99,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let mut chunk_to_module_mapping = FxHashMap::default();
     let mut module_id_to_consume_data_mapping = FxHashMap::default();
     let mut initial_consumes = Vec::new();
+    let enhanced = self.enhanced;
     let mut add_module = |module: ModuleIdentifier, chunk: &Chunk, ids: &mut Vec<String>| {
       let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module)
         .map(|s| s.to_string())
@@ -100,23 +109,24 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
-        let share_scope = if self.enhanced {
+        let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
-          json_stringify(data.share_scope.first().map_or("default", String::as_str))
+          json_stringify_str(
+            data
+              .share_scope
+              .scopes()
+              .first()
+              .map_or("default", |s| s.as_str()),
+          )
         };
-        let consume_data = if self.enhanced {
+        let consume_data = if enhanced {
           format!(
             "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, layer: {}, fallback: {}, treeShakingMode: {} }}",
-            share_scope,
+            share_scope_json,
             json_stringify(&data.share_key),
             json_stringify(&data.import),
-            json_stringify(
-              &data
-                .required_version
-                .as_ref()
-                .map_or_else(|| "*".to_string(), |v| v.to_string())
-            ),
+            required_version_json(data.required_version.as_ref()),
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
@@ -127,15 +137,10 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         } else {
           format!(
             "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
-            share_scope,
+            share_scope_json,
             json_stringify(&data.share_key),
             json_stringify(&data.import),
-            json_stringify(
-              &data
-                .required_version
-                .as_ref()
-                .map_or_else(|| "*".to_string(), |v| v.to_string())
-            ),
+            required_version_json(data.required_version.as_ref()),
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
@@ -203,7 +208,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         "{{{}}}",
         module_id_to_consume_data_mapping
           .into_iter()
-          .map(|(k, v)| format!("{}: {}", json_stringify(&k), v))
+          .map(|(k, v)| format!("{}: {}", json_stringify_str(&k), v))
           .collect::<Vec<_>>()
           .join(", ")
       )
@@ -257,7 +262,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub share_key: String,
   pub import: Option<String>,
   pub required_version: Option<ConsumeVersion>,

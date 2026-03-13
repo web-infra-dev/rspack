@@ -6,14 +6,14 @@ use rspack_core::{
   RuntimeModule, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::Result;
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JsPlugin, RenderSource,
   runtime::{render_chunk_runtime_modules, render_runtime_modules},
 };
-use rspack_util::json_stringify;
+use rspack_util::json_stringify_str;
 
 use super::{generate_entry_startup, update_hash_for_entry_startup};
 
@@ -127,8 +127,8 @@ async fn render_chunk(
     source.add(RawStringSource::from(format!(
       "{}[{}]({}, ",
       global_object,
-      serde_json::to_string(hot_update_global).to_rspack_result()?,
-      json_stringify(chunk.expect_id())
+      rspack_util::json_stringify_str(hot_update_global),
+      json_stringify_str(chunk.expect_id().as_str())
     )));
     source.add(render_source.source.clone());
     if has_runtime_modules {
@@ -145,7 +145,7 @@ async fn render_chunk(
       chunk_loading_global,
       global_object,
       chunk_loading_global,
-      serde_json::to_string(chunk.expect_id()).expect("json stringify failed"),
+      rspack_util::json_stringify_str(chunk.expect_id().as_str()),
     )));
     source.add(render_source.source.clone());
     let has_entry = chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);

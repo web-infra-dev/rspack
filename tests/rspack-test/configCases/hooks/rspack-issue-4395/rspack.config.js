@@ -25,7 +25,7 @@ const config = {
 					compilation.hooks.processAssets.tap("mock-plugin", () => {
 						sub();
 						if (count === 0) {
-							const { RawSource } = compiler.webpack.sources;
+							const { RawSource } = compiler.rspack.sources;
 							compilation.emitAsset("./temp", new RawSource(""), {});
 						}
 					});

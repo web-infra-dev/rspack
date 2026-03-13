@@ -241,7 +241,6 @@ async fn render_module_content(
         )));
       }
 
-      let mut map_buffer = Vec::new();
       let module_ids = &compilation.module_ids_artifact;
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
       let module_id =
@@ -250,10 +249,8 @@ async fn render_module_content(
         } else {
           "unknown"
         };
-      map
-        .to_writer(&mut map_buffer)
-        .unwrap_or_else(|e| panic!("{}", e.to_string()));
-      let base64 = base64::encode_to_string(&map_buffer);
+      let source_map = map.to_json();
+      let base64 = base64::encode_to_string(&source_map);
       let footer = format!(
         r#"
 //# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}

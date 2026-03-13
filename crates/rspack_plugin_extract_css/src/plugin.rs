@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
+use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
@@ -27,7 +27,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
 use crate::{
@@ -38,6 +38,9 @@ use crate::{
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
 pub static MODULE_TYPE_STR: LazyLock<Ustr> = LazyLock::new(|| Ustr::from("css/mini-extract"));
+
+static MEDIA_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
 pub static MODULE_TYPE: LazyLock<ModuleType> =
   LazyLock::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
@@ -129,7 +132,7 @@ impl PluginCssExtract {
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    let mut module_deps_reasons: IdentifierMap<IdentifierMap<UkeySet<ChunkGroupUkey>>> = modules
+    let mut module_deps_reasons: IdentifierMap<IdentifierMap<FxHashSet<ChunkGroupUkey>>> = modules
       .iter()
       .map(|m| (m.identifier(), Default::default()))
       .collect();
@@ -427,8 +430,6 @@ despite it was not able to fulfill desired ordering with these modules:
           external_source.add(header);
         }
         if let Some(media) = &module.media {
-          static MEDIA_RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
           let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
           external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
         } else {

@@ -65,7 +65,19 @@ export default {
 };
 ```
 
-多个模块会按照数组定义的顺序依次执行，因此 `pre.js` 的代码会早于 `post.js` 的代码执行。
+当某个入口的值是数组时，Rspack 仍然只会为该入口生成一个 chunk。数组中的模块会按声明顺序加载，并合并到同一个依赖图中，因此 `pre.js` 会早于 `post.js` 执行。
+
+这种模式常用于在主应用入口之前注入额外代码，例如 polyfill 或仅在开发环境使用的工具脚本，而不必在业务源码中手动导入它们。
+
+**示例：注入 polyfill**
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: ['./src/polyfill.js', './src/index.js'],
+  },
+};
+```
 
 ## 多个入口
 

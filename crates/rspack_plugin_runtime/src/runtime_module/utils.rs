@@ -1,18 +1,21 @@
 use itertools::Itertools;
-use rspack_collections::{UkeyIndexMap, UkeyIndexSet};
 use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
-  chunk_graph_chunk::ChunkId, get_js_chunk_filename_template, get_undo_path,
+  chunk_graph_chunk::{ChunkId, ChunkIdSet},
+  get_js_chunk_filename_template, get_undo_path,
 };
 use rspack_error::Result;
-use rspack_util::test::is_hot_test;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  test::is_hot_test,
+};
+use rustc_hash::FxHashMap as HashMap;
 
 pub fn get_initial_chunk_ids(
   chunk: Option<ChunkUkey>,
   compilation: &Compilation,
   filter_fn: impl Fn(&ChunkUkey, &Compilation) -> bool,
-) -> HashSet<ChunkId> {
+) -> ChunkIdSet {
   match chunk {
     Some(chunk_ukey) => match compilation
       .build_chunk_graph_artifact
@@ -31,17 +34,17 @@ pub fn get_initial_chunk_ids(
               .expect_get(chunk_ukey);
             chunk.expect_id().clone()
           })
-          .collect::<HashSet<_>>();
+          .collect::<ChunkIdSet>();
         js_chunks.insert(chunk.expect_id().clone());
         js_chunks
       }
-      None => HashSet::default(),
+      None => ChunkIdSet::default(),
     },
-    None => HashSet::default(),
+    None => ChunkIdSet::default(),
   }
 }
 
-pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
+pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
   let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
 
@@ -51,7 +54,7 @@ pub fn stringify_chunks(chunks: &HashSet<ChunkId>, value: u8) -> String {
       prev
         + format!(
           r#"{}: {value},"#,
-          serde_json::to_string(cur).expect("chunk to_string failed")
+          rspack_util::json_stringify_str(cur.as_str())
         )
         .as_str()
     })
@@ -123,14 +126,14 @@ pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
   {
     return "\" + chunkId + \"".to_string();
   }
-  let result = serde_json::to_string(&str).expect("invalid json");
+  let result = rspack_util::json_stringify_str(str);
   result[1..result.len() - 1].to_string()
 }
 
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
-  chunks: &UkeyIndexSet<ChunkUkey>,
-  chunk_map: &UkeyIndexMap<ChunkUkey, &Chunk>,
+  chunks: &FxIndexSet<ChunkUkey>,
+  chunk_map: &FxIndexMap<ChunkUkey, &Chunk>,
 ) -> String
 where
   F: Fn(&Chunk) -> Option<String>,
@@ -148,10 +151,7 @@ where
       if value.as_str() == chunk_id.as_str() {
         use_id = true;
       } else {
-        result.insert(
-          chunk_id.as_str(),
-          serde_json::to_string(&value).expect("invalid json"),
-        );
+        result.insert(chunk_id.as_str(), rspack_util::json_stringify_str(&value));
         last_key = Some(chunk_id.as_str());
         entries += 1;
       }
@@ -165,7 +165,7 @@ where
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
-          serde_json::to_string(&last_key).expect("invalid json"),
+          rspack_util::json_stringify_str(last_key),
           result.get(last_key).expect("cannot find last key")
         )
       } else {
@@ -192,12 +192,7 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
     let content = chunk_ids
       .iter()
       .sorted_unstable()
-      .map(|chunk_id| {
-        format!(
-          "{}:1",
-          serde_json::to_string(chunk_id).expect("invalid json to_string")
-        )
-      })
+      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify_str(chunk_id)))
       .join(",");
     format!("{{ {content} }}[chunkId]")
   };
@@ -214,7 +209,7 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
         prev
           + format!(
             r#"{}: {},"#,
-            serde_json::to_string(cur).expect("json stringify failed"),
+            rspack_util::json_stringify_str(cur),
             map.get(cur).expect("get key from map")
           )
           .as_str()

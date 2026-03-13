@@ -12,7 +12,7 @@ module.exports = {
 				compiler.hooks.make.tap("make", compilation => {
 					const childEntry = path.resolve(__dirname, "./child-entry.js");
 					const childCompiler = compilation.createChildCompiler("name", {}, [
-						new compiler.webpack.EntryPlugin(compiler.context, childEntry)
+						new compiler.rspack.EntryPlugin(compiler.context, childEntry)
 					]);
 					childCompiler.compile(() => {});
 				});

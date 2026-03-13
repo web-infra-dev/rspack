@@ -1,5 +1,4 @@
 use std::{
-  collections::HashMap,
   io,
   path::{Path, PathBuf},
   sync::Arc,
@@ -8,6 +7,7 @@ use std::{
 use async_trait::async_trait;
 use rspack_fs::WritableFileSystem;
 use rspack_paths::Utf8Path;
+use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
@@ -23,14 +23,14 @@ pub struct LockfileEntry {
 #[derive(Debug, Clone)]
 pub struct Lockfile {
   version: u8,
-  entries: HashMap<String, LockfileEntry>,
+  entries: FxHashMap<String, LockfileEntry>,
 }
 
 impl Lockfile {
   pub fn new() -> Self {
     Lockfile {
       version: 1,
-      entries: HashMap::new(),
+      entries: FxHashMap::default(),
     }
   }
 
@@ -94,7 +94,7 @@ impl Lockfile {
     self.entries.get(resource)
   }
 
-  pub fn entries_mut(&mut self) -> &mut HashMap<String, LockfileEntry> {
+  pub fn entries_mut(&mut self) -> &mut FxHashMap<String, LockfileEntry> {
     &mut self.entries
   }
 }

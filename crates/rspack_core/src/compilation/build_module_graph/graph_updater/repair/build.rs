@@ -4,7 +4,7 @@ use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
+  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
@@ -204,11 +204,13 @@ impl Task<TaskContext> for BuildResultTask {
       {
         forwarded_ids.append(pending_forwarded_ids);
       }
-      if !forwarded_ids.is_empty() {
-        tasks.push(Box::new(ProcessUnlazyDependenciesTask {
-          forwarded_ids,
-          original_module_identifier: module_identifier,
-        }));
+      if let Some(task) = process_unlazy_dependencies(
+        &context.artifact.module_to_lazy_make,
+        module_graph,
+        forwarded_ids,
+        module_identifier,
+      ) {
+        tasks.push(Box::new(task));
       }
 
       all_dependencies

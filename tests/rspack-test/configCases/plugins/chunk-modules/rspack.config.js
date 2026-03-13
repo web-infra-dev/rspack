@@ -41,7 +41,7 @@ module.exports = {
 					}
 					compilation.emitAsset(
 						"data.json",
-						new compiler.webpack.sources.RawSource(
+						new compiler.rspack.sources.RawSource(
 							JSON.stringify(chunkModules, null, 2)
 						)
 					);

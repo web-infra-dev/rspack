@@ -15,13 +15,13 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -32,8 +32,7 @@ pub struct ContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
-  share_scope: Vec<String>,
-  share_scope_is_array: bool,
+  share_scope: ShareScope,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -48,28 +47,21 @@ impl ContainerEntryModule {
   pub fn new(
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
-    share_scope: Vec<String>,
-    share_scope_is_array: bool,
+    share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
     let lib_ident = format!("webpack/container/entry/{}", &name);
-    let share_scope_identifier = if share_scope_is_array {
-      format!("[{}]", share_scope.join("|"))
-    } else {
-      share_scope.join("|")
-    };
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
-        share_scope_identifier,
+        share_scope.key(),
         json_stringify(&exposes),
       )),
       lib_ident,
       exposes,
       share_scope,
-      share_scope_is_array,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -97,8 +89,7 @@ impl ContainerEntryModule {
       identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
       lib_ident,
       exposes: vec![],
-      share_scope: vec![],
-      share_scope_is_array: false,
+      share_scope: ShareScope::Multiple(vec![]),
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -352,17 +343,6 @@ impl Module for ContainerEntryModule {
 
     let module_map = ExposeModuleMap::new(compilation, self, runtime_template);
     let module_map_str = module_map.render(runtime_template);
-    let share_scope = if self.share_scope_is_array {
-      json_stringify(&self.share_scope)
-    } else {
-      json_stringify(
-        &self
-          .share_scope
-          .first()
-          .cloned()
-          .unwrap_or_else(|| "default".to_string()),
-      )
-    };
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -418,7 +398,13 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = share_scope,
+        share_scope = json_stringify_str(
+          self
+            .share_scope
+            .scopes()
+            .first()
+            .map_or("default", |s| s.as_str())
+        ),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
@@ -440,7 +426,6 @@ var init = function(shareScope, initScope) {{
         .insert(CodeGenerationDataExpose {
           module_map,
           share_scope: self.share_scope.clone(),
-          share_scope_is_array: self.share_scope_is_array,
         });
     }
     Ok(code_generation_result)
@@ -519,7 +504,7 @@ impl ExposeModuleMap {
       .map(|(name, factory)| {
         format!(
           "{}: {},",
-          json_stringify(name),
+          json_stringify_str(name),
           runtime_template.basic_function("", factory)
         )
       })
@@ -536,6 +521,5 @@ impl ExposeModuleMap {
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
-  pub share_scope: Vec<String>,
-  pub share_scope_is_array: bool,
+  pub share_scope: ShareScope,
 }

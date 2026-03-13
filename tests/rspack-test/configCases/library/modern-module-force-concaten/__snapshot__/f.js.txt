@@ -1,6 +1,6 @@
+import { __webpack_require__ } from "./runtime~0.js";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-import { __webpack_require__ } from "./runtime~0.js";
 __webpack_require__.add({
 928(module) {
 module.exports = __rspack_createRequire_require("path");

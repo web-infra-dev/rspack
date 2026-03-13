@@ -7,7 +7,7 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
-		const { AsyncDependenciesBlock } = compiler.webpack;
+		const { AsyncDependenciesBlock } = compiler.rspack;
 
 		compiler.hooks.make.tap(PLUGIN_NAME, compilation => {
 			compilation.hooks.processAssets.tap(

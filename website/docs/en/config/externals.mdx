@@ -585,7 +585,7 @@ export default {
 Will generate into something like
 
 ```js
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const jq = createRequire(import.meta.url)('jquery');
 jq('.my-element').animate(/* ... */);

@@ -5,7 +5,7 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
-		const { NormalModule } = compiler.webpack;
+		const { NormalModule } = compiler.rspack;
 
 		compiler.hooks.afterEmit.tap("AutoExternalPlugin", compilation => {
 			const normalModules = Array.from(compilation.modules).filter(

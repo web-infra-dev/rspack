@@ -150,6 +150,7 @@ impl ExternalInterop {
   pub fn property_access(&mut self, atom: &Atom, used_names: &mut FxHashSet<Atom>) -> Atom {
     self.property_access.get(atom).cloned().unwrap_or_else(|| {
       let local_name = find_new_name(atom, used_names, &[]);
+      used_names.insert(local_name.clone());
       self.property_access.insert(atom.clone(), local_name);
       self
         .property_access
@@ -175,12 +176,11 @@ impl ExternalInterop {
         "const {name} = {}{}({});\n",
         if is_async { "await " } else { "" },
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        serde_json::to_string(
+        rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {:?}", self.module))
             .as_str()
         )
-        .expect("module id to string should success")
       )));
 
       if let Some(namespace_object) = &self.namespace_object {
@@ -225,12 +225,11 @@ impl ExternalInterop {
       source.add(RawStringSource::from(format!(
         "{}({});\n",
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        serde_json::to_string(
+        rspack_util::json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, self.module)
             .unwrap_or_else(|| panic!("should set module id for {}", self.module))
             .as_str()
         )
-        .expect("module id to string should success")
       )));
     }
 
@@ -296,6 +295,10 @@ pub struct ChunkLinkContext {
 
   pub init_fragments: Vec<BoxChunkInitFragment>,
 
+  pub hashbang: Option<String>,
+
+  pub directives: Vec<String>,
+
   /**
   modules that can be scope hoisted
   */
@@ -335,6 +338,8 @@ impl ChunkLinkContext {
       needed_namespace_objects: Default::default(),
       namespace_object_sources: Default::default(),
       init_fragments: Default::default(),
+      hashbang: None,
+      directives: Default::default(),
       refs: Default::default(),
       used_names: Default::default(),
       exported_symbols: Default::default(),

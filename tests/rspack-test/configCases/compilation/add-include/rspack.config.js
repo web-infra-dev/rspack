@@ -8,7 +8,7 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
-		const { EntryPlugin, EntryDependency } = compiler.webpack;
+		const { EntryPlugin, EntryDependency } = compiler.rspack;
 
 		const modules = {};
 

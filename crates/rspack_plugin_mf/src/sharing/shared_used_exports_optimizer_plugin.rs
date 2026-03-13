@@ -4,7 +4,7 @@ use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationDependencyReferencedExports,
   CompilationOptimizeDependencies, CompilationProcessAssets, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, Module, ModuleGraph,
+  DependencyId, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, ModuleGraph,
   ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, RuntimeSpec,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
@@ -156,6 +156,8 @@ async fn optimize_dependencies(
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
             let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
+            // Layer-aware consume identifiers now include an extra "(layer)" segment,
+            // so use the typed accessor instead of reparsing readable_identifier().
             let sk = consume_shared_module.share_key().to_string();
             collect_processed_modules(
               module_graph,

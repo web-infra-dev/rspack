@@ -13,7 +13,7 @@ class TestPlugin {
 						1,
 						compilation.outputOptions,
 						[
-							new compiler.webpack.EntryPlugin(
+							new compiler.rspack.EntryPlugin(
 								compiler.context,
 								"./fixtures/abc",
 								{ name: "TestChild" }

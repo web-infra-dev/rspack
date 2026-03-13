@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportsArgument, ModuleArgument, ModuleCodeTemplate,
   RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::{atom::Atom, json_stringify};
+use rspack_util::{atom::Atom, json_stringify_str};
 
 use super::local_module::LocalModule;
 
@@ -120,7 +120,7 @@ impl Branch {
         format!(
           "!({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}, {var_name} = (#).call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module), {var_name}module.loaded = true, {var_name} === undefined && ({var_name} = {var_name}module.exports))",
           var_name = local_module_var,
-          module_id = json_stringify(named_module),
+          module_id = json_stringify_str(named_module),
           require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         )
       }
@@ -129,7 +129,7 @@ impl Branch {
         format!(
           "!({var_name}factory = (#), (typeof {var_name}factory === 'function' ? (({var_name}module = {{ id: {module_id}, exports: {{}}, loaded: false }}), ({var_name} = {var_name}factory.call({var_name}module.exports, {require}, {var_name}module.exports, {var_name}module)), ({var_name}module.loaded = true), {var_name} === undefined && ({var_name} = {var_name}module.exports)) : {var_name} = {var_name}factory))",
           var_name = local_module_var,
-          module_id = json_stringify(named_module),
+          module_id = json_stringify_str(named_module),
           require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         )
       }
@@ -283,12 +283,17 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
     let mut texts = text.split('#');
 
     if !definition.is_empty() {
-      source.insert(0, &definition, None);
+      source.insert(0, definition, None);
     }
 
     let mut current = dep.range.start;
     if let Some(array_range) = &dep.array_range {
-      source.replace(current, array_range.start, texts.next().unwrap_or(""), None);
+      source.replace(
+        current,
+        array_range.start,
+        texts.next().unwrap_or("").to_string(),
+        None,
+      );
       current = array_range.end;
     }
 
@@ -296,7 +301,7 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
       source.replace(
         current,
         object_range.start,
-        texts.next().unwrap_or(""),
+        texts.next().unwrap_or("").to_string(),
         None,
       );
       current = object_range.end;
@@ -304,13 +309,18 @@ impl DependencyTemplate for AMDDefineDependencyTemplate {
       source.replace(
         current,
         function_range.start,
-        texts.next().unwrap_or(""),
+        texts.next().unwrap_or("").to_string(),
         None,
       );
       current = function_range.end;
     }
 
-    source.replace(current, dep.range.end, texts.next().unwrap_or(""), None);
+    source.replace(
+      current,
+      dep.range.end,
+      texts.next().unwrap_or("").to_string(),
+      None,
+    );
 
     if texts.next().is_some() {
       panic!("Implementation error");

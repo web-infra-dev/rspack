@@ -106,7 +106,7 @@ async fn render(
         )
       }));
     let name = compilation.get_path(&filename, path_data).await?;
-    let name_str = serde_json::to_string(&name).to_rspack_result()?;
+    let name_str = rspack_util::json_stringify_str(&name);
     format!("{name_str}, ")
   } else {
     String::new()

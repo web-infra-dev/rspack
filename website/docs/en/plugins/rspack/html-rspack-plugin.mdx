@@ -802,7 +802,7 @@ export default {
 
 This hook will be called before generating the HTML asset file, and it is the final chance to modify the HTML content.
 
-- **Type**: `SyncHook<[BeforeEmitData]>`
+- **Type**: `AsyncSeriesWaterfallHook<[BeforeEmitData]>`
 - **Parameters**:
   ```ts
   type BeforeEmitData = {
@@ -847,7 +847,7 @@ export default {
 
 This hook will be called after generating the HTML asset file and is only used for notification.
 
-- **Type**: `SyncHook<[AfterEmitData]>`
+- **Type**: `AsyncSeriesWaterfallHook<[AfterEmitData]>`
 - **Parameters**:
   ```ts
   type AfterEmitData = {

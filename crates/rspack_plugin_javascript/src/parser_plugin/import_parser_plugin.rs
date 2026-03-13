@@ -22,10 +22,10 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
-    context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
-    parse_order_string,
+    AllowedMemberTypes, AtomMembers, ContextModuleScanResult, ExportedVariableInfo,
+    JavascriptParser, MemberExpressionInfo, Statement, TagInfoData, TopLevelScope,
+    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
+    create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -38,6 +38,10 @@ fn tag_dynamic_import_referenced(
 ) {
   let import_span = import_call.span();
   parser.dynamic_import_references.add_import(import_span);
+  parser
+    .dynamic_import_references
+    .get_import_mut_expect(&import_span)
+    .variable_name = Some(variable_name.clone());
   parser.tag_variable(
     variable_name,
     DYNAMIC_IMPORT_TAG,
@@ -69,22 +73,33 @@ impl ImportsReferencesState {
 
   fn take_all_import_references(
     &mut self,
-  ) -> impl Iterator<Item = (ImportDependencyLocator, Vec<Vec<Atom>>)> + use<> {
+  ) -> impl Iterator<Item = (ImportDependencyLocator, Option<Atom>, Vec<Vec<Atom>>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
-    inner
-      .into_values()
-      .filter_map(|value| value.dep_locator.map(|locator| (locator, value.references)))
+    inner.into_values().filter_map(|value| {
+      value.dep_locator.map(|locator| {
+        (
+          locator,
+          value.variable_name,
+          value
+            .references
+            .into_iter()
+            .map(AtomMembers::into_vec)
+            .collect(),
+        )
+      })
+    })
   }
 }
 
 #[derive(Debug, Default)]
 struct ImportReferences {
   dep_locator: Option<ImportDependencyLocator>,
-  references: Vec<Vec<Atom>>,
+  variable_name: Option<Atom>,
+  references: Vec<AtomMembers>,
 }
 
 impl ImportReferences {
-  pub fn add_reference(&mut self, reference: Vec<Atom>) {
+  pub fn add_reference(&mut self, reference: AtomMembers) {
     self.references.push(reference);
   }
 }
@@ -131,9 +146,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if let Some(init) = &declarator.init
+    if declaration.kind() != VariableDeclarationKind::Var
+      && let Some(init) = &declarator.init
       && let Some(expr) = init.as_await_expr()
       && let Some(call) = expr.arg.as_call()
       && call.callee.is_import()
@@ -164,7 +180,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
-        refs.push(stack.iter().map(|p| p.id.clone()).collect());
+        refs.push(stack.iter().map(|p| p.id.clone()).collect::<AtomMembers>());
       });
       for ids in refs {
         parser
@@ -176,7 +192,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser
         .dynamic_import_references
         .get_import_mut_expect(&data.import_span)
-        .add_reference(vec![]);
+        .add_reference(AtomMembers::new());
     }
     Some(true)
   }
@@ -201,7 +217,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
-      .add_reference(ids.to_vec());
+      .add_reference(ids.iter().cloned().collect());
     Some(true)
   }
 
@@ -223,14 +239,19 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     let mut ids = get_non_optional_part(members, members_optionals);
     let direct_import = members.is_empty();
-    if !direct_import && ids.len() > 1 {
+    if parser
+      .javascript_options
+      .strict_this_context_on_imports
+      .unwrap_or(false)
+      && !direct_import
+    {
       // remove last one
-      ids = &ids[..ids.len() - 1];
+      ids = &ids[..ids.len().saturating_sub(1)];
     }
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
-      .add_reference(ids.to_vec());
+      .add_reference(ids.iter().cloned().collect());
     parser.walk_expr_or_spread(&expr.args);
     Some(true)
   }
@@ -241,6 +262,13 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     node: &CallExpr,
     import_then: Option<&CallExpr>,
   ) -> Option<bool> {
+    // Skip unreachable dynamic imports that are placed after a terminating
+    // statement like `return` / `throw` (non top-level). This relies on
+    // `parser.terminated` which mirrors webpack's `scope.terminated` logic.
+    if parser.terminated.is_some() && !parser.is_top_level_scope() {
+      return Some(true);
+    }
+
     let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
@@ -464,10 +492,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   }
 
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    for (locator, references) in parser
+    for (locator, variable_name, mut references) in parser
       .dynamic_import_references
       .take_all_import_references()
     {
+      // If the import result is assigned to a variable that is also an ESM
+      // named export, importers may access arbitrary properties on it. In that
+      // case the entire module must be considered referenced.
+      if let Some(variable_name) = variable_name
+        && parser.build_info.esm_named_exports.contains(&variable_name)
+      {
+        references.push(vec![]);
+      }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)
       {
@@ -583,7 +619,7 @@ fn walk_import_then_fulfilled_callback(
             .get_import_mut_expect(&import_call.span());
           let mut refs = Vec::new();
           keys.traverse_on_leaf(&mut |stack| {
-            refs.push(stack.iter().map(|p| p.id.clone()).collect());
+            refs.push(stack.iter().map(|p| p.id.clone()).collect::<AtomMembers>());
           });
           for ids in refs {
             import_references.add_reference(ids);

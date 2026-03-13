@@ -7,7 +7,7 @@ class Plugin {
 	 * @param {import("@rspack/core").Compiler} compiler
 	 */
 	apply(compiler) {
-		const { EntryPlugin } = compiler.webpack;
+		const { EntryPlugin } = compiler.rspack;
 
 		const fooDependency = EntryPlugin.createDependency(
 			path.resolve(__dirname, "foo.js")

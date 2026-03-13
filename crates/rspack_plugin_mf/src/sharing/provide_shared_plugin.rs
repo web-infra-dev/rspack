@@ -16,10 +16,10 @@ use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
 use super::{
-  provide_shared_dependency::ProvideSharedDependency,
-  provide_shared_module_factory::ProvideSharedModuleFactory,
+  create_lookup_key_for_sharing, provide_shared_dependency::ProvideSharedDependency,
+  provide_shared_module_factory::ProvideSharedModuleFactory, strip_lookup_layer_prefix,
 };
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
@@ -31,7 +31,7 @@ pub struct ProvideOptions {
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub version: Option<ProvideVersion>,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -45,7 +45,7 @@ pub struct VersionedProvideOptions {
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub version: ProvideVersion,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -69,22 +69,6 @@ impl ProvideOptions {
       tree_shaking_mode: self.tree_shaking_mode.clone(),
     }
   }
-}
-
-fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
-  if let Some(layer) = layer {
-    return format!("({layer}){request}");
-  }
-  request.to_string()
-}
-
-fn strip_lookup_layer_prefix(lookup: &str) -> &str {
-  if lookup.starts_with('(')
-    && let Some(index) = lookup.find(')')
-  {
-    return &lookup[index + 1..];
-  }
-  lookup
 }
 
 #[rspack_cacheable::cacheable]
@@ -128,7 +112,7 @@ impl ProvideSharedPlugin {
     &self,
     key: &str,
     share_key: &str,
-    share_scope: &[String],
+    share_scope: &ShareScope,
     version: Option<&ProvideVersion>,
     eager: bool,
     singleton: Option<bool>,
@@ -150,7 +134,7 @@ impl ProvideSharedPlugin {
           request: Some(resource.to_string()),
           layer: layer.clone(),
           share_key: share_key.to_string(),
-          share_scope: share_scope.to_vec(),
+          share_scope: share_scope.clone(),
           version: version.to_owned(),
           eager,
           singleton,
@@ -170,7 +154,7 @@ impl ProvideSharedPlugin {
             request: Some(resource.to_string()),
             layer: layer.clone(),
             share_key: share_key.to_string(),
-            share_scope: share_scope.to_vec(),
+            share_scope: share_scope.clone(),
             version: ProvideVersion::Version(version.to_string()),
             eager,
             singleton,

@@ -4,7 +4,7 @@ module.exports = {
 	devtool: "source-map",
 	plugins: [
 		compiler => {
-			const { Compilation } = compiler.webpack;
+			const { Compilation } = compiler.rspack;
 			compiler.hooks.thisCompilation.tap("test case", compilation => {
 				compilation.hooks.processAssets.tap(
 					{

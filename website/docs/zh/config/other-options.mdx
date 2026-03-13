@@ -171,11 +171,11 @@ export default {
 
 通过 `this.answer` 在 Loader 中获取该变量：
 
-```js title=custom-loader.js
-module.exports = function (source) {
+```js title="custom-loader.mjs"
+export default function (source) {
   console.log(this.answer); // 打印 `42`
   return source;
-};
+}
 ```
 
 :::tip

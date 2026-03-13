@@ -31,6 +31,7 @@ import type { Compiler } from '../Compiler';
 import { normalizeStatsPreset } from '../Stats';
 import { isNil } from '../util';
 import { parseResource } from '../util/identifier';
+import { isStatsColorSupported } from '../util/supportsColor';
 import {
   type ComposeJsUseOptions,
   createRawModuleRuleUses,
@@ -561,11 +562,15 @@ function getRawJavascriptParserOptions(
     dynamicImportPreload: parser.dynamicImportPreload?.toString(),
     dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
-    importMeta: parser.importMeta,
+    importMeta:
+      typeof parser.importMeta === 'boolean'
+        ? String(parser.importMeta)
+        : parser.importMeta,
     url: parser.url?.toString(),
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,
+    strictThisContextOnImports: parser.strictThisContextOnImports,
     wrappedContextRegExp: parser.wrappedContextRegExp,
     exportsPresence:
       parser.exportsPresence === false ? 'false' : parser.exportsPresence,
@@ -811,7 +816,11 @@ function getRawNode(node: Node): RawOptions['node'] {
 
 function getRawStats(stats: StatsValue): RawOptions['stats'] {
   const statsOptions = normalizeStatsPreset(stats);
+  const colors =
+    statsOptions.colors === undefined
+      ? isStatsColorSupported()
+      : Boolean(statsOptions.colors);
   return {
-    colors: Boolean(statsOptions.colors),
+    colors,
   };
 }

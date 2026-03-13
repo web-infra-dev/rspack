@@ -4,7 +4,7 @@ mod dependencies;
 mod diagnostics;
 pub mod entries;
 
-use std::{cell::RefCell, collections::HashMap, path::Path, ptr::NonNull};
+use std::{cell::RefCell, path::Path, ptr::NonNull};
 
 use chunks::Chunks;
 pub use code_generation_results::*;
@@ -15,7 +15,7 @@ use napi_derive::napi;
 use rspack_collections::{DatabaseItem, IdentifierSet};
 use rspack_core::{
   BindingCell, BoxDependency, Compilation, CompilationId, EntryOptions, ExportsInfoArtifact,
-  FactorizeInfo, ModuleIdentifier, Reflector, rspack_sources::BoxSource,
+  FactorizeInfo, ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
 use rspack_napi::napi::bindgen_prelude::*;
@@ -66,26 +66,21 @@ impl JsCompilation {
     Ok(unsafe { self.inner.as_mut() })
   }
 
-  pub(crate) fn exports_info_artifact_ref(&self) -> napi::Result<&'static ExportsInfoArtifact> {
-    let compilation = self.as_ref()?;
-    if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
-      // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      Ok(unsafe { &*(ptr as *const ExportsInfoArtifact) })
-    } else {
-      Ok(&compilation.exports_info_artifact)
-    }
-  }
-
   pub(crate) fn exports_info_artifact_mut(
     &mut self,
   ) -> napi::Result<&'static mut ExportsInfoArtifact> {
     let compilation = self.as_mut()?;
     if let Some(ptr) = compilation.compiler_context.exports_info_artifact_ptr() {
       // SAFETY: pointer is injected by binding hook phases and valid in current scope.
-      Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) })
-    } else {
-      Ok(&mut compilation.exports_info_artifact)
+      return Ok(unsafe { &mut *(ptr as *mut ExportsInfoArtifact) });
     }
+    if let Some(exports_info_artifact) = compilation.exports_info_artifact.try_write() {
+      return Ok(exports_info_artifact);
+    }
+    Err(napi::Error::new(
+      napi::Status::GenericFailure,
+      "Cannot mutate exports info artifact after it was stolen from compilation.".to_string(),
+    ))
   }
 }
 
@@ -246,7 +241,12 @@ impl JsCompilation {
         .get_module_graph()
         .module_graph_modules()
         .map(|(_, mgm)| mgm)
-        .flat_map(|item| item.optimization_bailout.clone())
+        .flat_map(|item| {
+          item.optimization_bailout.iter().map(|b| match b {
+            OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+            b => b.to_string(),
+          })
+        })
         .map(|item| JsStatsOptimizationBailout { inner: item })
         .collect::<Vec<_>>(),
     )
@@ -515,9 +515,8 @@ impl JsCompilation {
   #[napi]
   pub fn get_stats(&self, reference: Reference<JsCompilation>, env: Env) -> Result<JsStats> {
     Ok(JsStats::new(reference.share_with(env, |compilation| {
-      let exports_info_artifact = compilation.exports_info_artifact_ref()?;
       let compilation = compilation.as_ref()?;
-      let stats = compilation.get_stats_with_exports_info_artifact(exports_info_artifact);
+      let stats = compilation.get_stats();
 
       Ok(stats)
     })?))
@@ -1022,7 +1021,7 @@ thread_local! {
   // Another point to consider is that when users manually call the build method on Compilation and trigger hooks,
   // Rust no longer maintains the handle mapping, which can cause issues.
   // The solution is to avoid passing Compilation from Rust in the hooks within Compilation and handle it on the JS side instead.
-  static COMPILATION_INSTANCE_REFS: RefCell<HashMap<CompilationId, WeakReference<JsCompilation>>> = Default::default();
+  static COMPILATION_INSTANCE_REFS: RefCell<FxHashMap<CompilationId, WeakReference<JsCompilation>>> = Default::default();
 }
 
 // The difference between JsCompilationWrapper and JsCompilation is:

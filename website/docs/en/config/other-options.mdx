@@ -172,11 +172,11 @@ export default {
 
 Then use `this.answer` to get its value in the loader:
 
-```js title=custom-loader.js
-module.exports = function (source) {
+```js title="custom-loader.mjs"
+export default function (source) {
   console.log(this.answer); // will log `42` here
   return source;
-};
+}
 ```
 
 :::tip

@@ -9,12 +9,18 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
+import type { ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
-import { isRequiredVersion } from './utils';
+import {
+  isRequiredVersion,
+  resolveShareKey,
+  resolveShareRequest,
+  resolveShareScope,
+} from './utils';
 
 export type ConsumeSharedPluginOptions = {
   consumes: Consumes;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -31,7 +37,7 @@ export type ConsumesConfig = {
   request?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   singleton?: boolean;
   strictVersion?: boolean;
   treeShakingMode?: 'server-calc' | 'runtime-infer';
@@ -39,7 +45,7 @@ export type ConsumesConfig = {
 
 export function normalizeConsumeShareOptions(
   consumes: Consumes,
-  shareScope?: string | string[],
+  shareScope?: ShareScope,
   enhanced?: boolean,
 ) {
   return parseOptions(
@@ -51,7 +57,7 @@ export function normalizeConsumeShareOptions(
           ? // item is a request/key
             {
               import: key,
-              shareScope: shareScope || 'default',
+              shareScope: resolveShareScope(undefined, shareScope),
               shareKey: key,
               requiredVersion: undefined,
               packageName: undefined,
@@ -67,7 +73,7 @@ export function normalizeConsumeShareOptions(
             // item is a version
             {
               import: key,
-              shareScope: shareScope || 'default',
+              shareScope: resolveShareScope(undefined, shareScope),
               shareKey: key,
               requiredVersion: item,
               strictVersion: true,
@@ -82,11 +88,11 @@ export function normalizeConsumeShareOptions(
       return result;
     },
     (item, key) => {
-      const request = item.request || key;
+      const request = resolveShareRequest(item.request, key);
       return {
         import: item.import === false ? undefined : item.import || request,
-        shareScope: item.shareScope || shareScope || 'default',
-        shareKey: item.shareKey || request,
+        shareScope: resolveShareScope(item.shareScope, shareScope),
+        shareKey: resolveShareKey(item.shareKey, request),
         requiredVersion: item.requiredVersion,
         strictVersion:
           typeof item.strictVersion === 'boolean'

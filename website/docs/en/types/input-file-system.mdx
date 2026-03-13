@@ -1,7 +1,8 @@
 <>
 
 ```ts
-import fs from 'fs';
+import fs from 'node:fs';
+
 type InputFileSystem = {
   readFile: typeof fs.readFile;
   readFileSync: typeof fs.readFileSync;

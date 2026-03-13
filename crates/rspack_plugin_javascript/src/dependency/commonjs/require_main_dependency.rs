@@ -63,6 +63,6 @@ impl DependencyTemplate for RequireMainDependencyTemplate {
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
     );
-    source.replace(dep.range.start, dep.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

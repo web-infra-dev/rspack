@@ -31,7 +31,6 @@ futures        = { workspace = true }
 rayon          = { workspace = true }
 regex          = { workspace = true }
 serde          = { workspace = true }
-serde_json     = { workspace = true }
 sugar_path     = { workspace = true }
 swc_core       = { workspace = true, features = ["swc_ecma_transforms_base"] }
 tokio          = { workspace = true }

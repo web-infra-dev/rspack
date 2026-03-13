@@ -25,7 +25,7 @@ import { Tabs, Tab } from '@theme';
   <Tab label="ESM">
 
 ```js title="rspack.config.mjs"
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 

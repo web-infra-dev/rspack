@@ -1,0 +1,101 @@
+```mjs title=main.mjs
+// ./index.js
+it('should keep namespace when both conflicting exports are used', async () => {
+	// Both modules export `value` and both are used — real conflict.
+	// Namespace objects are required to disambiguate.
+	const { value: aValue, foo } = await import("./shared.mjs").then(m => m.a_namespaceObject)
+	const { value: bValue, bar } = await import("./shared.mjs").then(m => m.b_namespaceObject)
+
+	expect(aValue).toBe(1)
+	expect(bValue).toBe(2)
+	expect(foo).toBe('a-foo')
+	expect(bar).toBe('b-bar')
+})
+
+
+```
+
+```mjs title=runtime.mjs
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, { 
+  foo: () => (foo),
+  value: () => (value) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, { 
+  bar: () => (bar),
+  value: () => (b_value) });
+
+
+// ./a.js
+const value = 1;
+const foo = 'a-foo';
+
+// ./b.js
+const b_value = 2;
+const bar = 'b-bar';
+
+export { a_namespaceObject, b_namespaceObject };
+
+```

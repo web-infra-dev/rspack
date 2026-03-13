@@ -353,12 +353,12 @@ impl<'ast> From<&'ast FnExpr> for MaybeNamedFunctionDecl<'ast> {
   }
 }
 
-impl MaybeNamedFunctionDecl<'_> {
-  pub fn ident(&self) -> Option<&Ident> {
+impl<'ast> MaybeNamedFunctionDecl<'ast> {
+  pub fn ident(&self) -> Option<&'ast Ident> {
     self.ident
   }
 
-  pub fn function(&self) -> &Function {
+  pub fn function(&self) -> &'ast Function {
     self.function
   }
 }
@@ -546,7 +546,7 @@ impl Spanned for VariableDeclaration<'_> {
   }
 }
 
-impl VariableDeclaration<'_> {
+impl<'a> VariableDeclaration<'a> {
   pub fn kind(&self) -> VariableDeclarationKind {
     match self {
       VariableDeclaration::VarDecl(v) => match v.kind {
@@ -564,7 +564,7 @@ impl VariableDeclaration<'_> {
     }
   }
 
-  pub fn declarators(&self) -> &[VarDeclarator] {
+  pub fn declarators(&self) -> &'a [VarDeclarator] {
     match self {
       VariableDeclaration::VarDecl(v) => &v.decls,
       VariableDeclaration::UsingDecl(u) => &u.decls,

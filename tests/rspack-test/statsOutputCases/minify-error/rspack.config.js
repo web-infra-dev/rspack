@@ -8,13 +8,13 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				const { ConcatSource, RawSource } = compiler.webpack.sources;
+				const { ConcatSource, RawSource } = compiler.rspack.sources;
 				compiler.hooks.compilation.tap("compilation", compilation => {
 					compilation.hooks.processAssets.tapPromise(
 						{
 							name: "Test",
 							stage:
-								compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 						},
 						async assets => {
 							for (const [key, value] of Object.entries(assets)) {

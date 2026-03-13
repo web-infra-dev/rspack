@@ -2,7 +2,7 @@ use std::sync::{Arc, atomic::AtomicI32};
 
 use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
   ModuleGraph,
@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub fn collect_chunks(
-  chunks: &HashMap<&ChunkUkey, &Chunk>,
+  chunks: &HashMap<ChunkUkey, &Chunk>,
   chunk_graph: &ChunkGraph,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> HashMap<ChunkUkey, RsdoctorChunk> {
@@ -39,7 +39,7 @@ pub fn collect_chunks(
         names.join("")
       };
       (
-        **chunk_id,
+        *chunk_id,
         RsdoctorChunk {
           ukey: chunk_id.as_u32() as RsdoctorChunkUkey,
           name,
@@ -54,7 +54,7 @@ pub fn collect_chunks(
 }
 
 pub fn collect_chunk_dependencies(
-  chunks: &HashMap<&ChunkUkey, &Chunk>,
+  chunks: &HashMap<ChunkUkey, &Chunk>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,
@@ -90,7 +90,7 @@ pub fn collect_chunk_dependencies(
       }
 
       (
-        **chunk_id,
+        *chunk_id,
         (
           parents
             .into_iter()
@@ -178,7 +178,7 @@ pub fn collect_assets(
 
 pub fn collect_chunk_modules(
   chunk_by_ukey: &ChunkByUkey,
-  module_ukeys: &HashMap<Identifier, RsdoctorChunkUkey>,
+  module_ukeys: &IdentifierMap<RsdoctorChunkUkey>,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
 ) -> Vec<RsdoctorChunkModules> {

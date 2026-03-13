@@ -174,8 +174,7 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
           dep.dependency_type().as_str(),
           false,
           dep.get_phase(),
-        )
-        .as_str(),
+        ),
       None,
     );
   }

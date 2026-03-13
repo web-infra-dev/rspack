@@ -45,7 +45,7 @@ new rspack.NormalModuleReplacementPlugin(
 假设你希望为不同的构建目标使用不同的配置：
 
 ```js
-module.exports = function getRspackConfig(env) {
+export default function getRspackConfig(env) {
   const appTarget = env.APP_TARGET || 'VERSION_A';
   return {
     plugins: [
@@ -60,7 +60,7 @@ module.exports = function getRspackConfig(env) {
       ),
     ],
   };
-};
+}
 ```
 
 创建两个配置文件：

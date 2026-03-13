@@ -10,7 +10,7 @@
 use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
-use rspack_collections::{DatabaseItem, UkeyMap};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   BoxModule, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier,
   SourceType, incremental::Mutation,
@@ -18,10 +18,13 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::identifier::make_paths_relative;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::MaxSizeSetting;
 use crate::{SplitChunkSizes, SplitChunksPlugin};
+
+static MAX_SIZE_KEY_REGEX: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("should build regex"));
 
 #[derive(Debug)]
 struct GroupItem {
@@ -238,9 +241,7 @@ fn get_key(module: &dyn Module, delimiter: &str, compilation: &Compilation) -> S
       &name_for_condition,
     ))
   } else {
-    static RE: LazyLock<Regex> =
-      LazyLock::new(|| Regex::new(r"^.*!|\?[^?!]*$").expect("should build regex"));
-    RE.replace_all(&ident, "")
+    MAX_SIZE_KEY_REGEX.replace_all(&ident, "")
   };
 
   let full_key = format!(
@@ -469,7 +470,7 @@ impl SplitChunksPlugin {
   pub(super) async fn ensure_max_size_fit(
     &self,
     compilation: &mut Compilation,
-    max_size_setting_map: &UkeyMap<ChunkUkey, MaxSizeSetting>,
+    max_size_setting_map: &FxHashMap<ChunkUkey, MaxSizeSetting>,
   ) -> Result<()> {
     let fallback_cache_group = &self.fallback_cache_group;
     let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;

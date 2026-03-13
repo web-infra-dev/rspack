@@ -1,0 +1,42 @@
+```mjs title=ab-chunk.mjs
+// fs
+
+// ./a.js
+
+
+
+// ./shared.js
+const value = 42
+const helper = () => 1
+
+// path
+
+// ./b.js
+
+
+
+var a_value = (/* inlined export .value */42);
+export { a_value as value, helper };
+export { readFile } from "fs";
+export { join } from "path";
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+
+
+it('should dynamically import modules from multi-module chunk with mixed re-exports', async () => {
+	expect((/* inlined export .value */42)).toBe(42)
+
+	const modA = await import("./ab-chunk.mjs")
+	expect(modA.value).toBe(42)
+	expect(modA.readFile).toBeDefined()
+
+	const modB = await import("./ab-chunk.mjs")
+	expect(modB.helper()).toBe(1)
+	expect(modB.join).toBeDefined()
+})
+
+
+```

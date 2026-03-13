@@ -1,9 +1,10 @@
-use std::{collections::HashMap, path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc};
 
 use napi::bindgen_prelude::{Either, Either3};
 use napi_derive::napi;
 use regex::Regex;
 use rspack_resolver::AliasValue;
+use rustc_hash::FxHashMap;
 
 /// Module Resolution Options
 ///
@@ -25,7 +26,7 @@ pub struct NapiResolveOptions {
   /// Create aliases to import or require certain modules more easily.
   /// A trailing $ can also be added to the given object's keys to signify an exact match.
   #[napi(ts_type = "Record<string, string | false | string[]>")]
-  pub alias: Option<HashMap<String, AliasRawValueType>>,
+  pub alias: Option<FxHashMap<String, AliasRawValueType>>,
 
   /// A list of alias fields in description files.
   /// Specify a field, such as `browser`, to be parsed according to [this specification](https://github.com/defunctzombie/package-browser-field-spec).
@@ -76,7 +77,8 @@ pub struct NapiResolveOptions {
   /// An object which maps extension to extension aliases.
   ///
   /// Default `{}`
-  pub extension_alias: Option<HashMap<String, Vec<String>>>,
+  #[napi(ts_type = "Record<string, Array<string>>")]
+  pub extension_alias: Option<FxHashMap<String, Vec<String>>>,
 
   /// Attempt to resolve these extensions in order.
   /// If multiple files share the same name but have different extensions,
@@ -88,7 +90,8 @@ pub struct NapiResolveOptions {
   /// Redirect module requests when normal resolving fails.
   ///
   /// Default `[]`
-  pub fallback: Option<HashMap<String, Vec<Option<String>>>>,
+  #[napi(ts_type = "Record<string, Array<string | undefined | null>>")]
+  pub fallback: Option<FxHashMap<String, Vec<Option<String>>>>,
 
   /// Request passed to resolve is already fully specified and extensions or main files are not resolved for it (they are still resolved for internal requests).
   ///

@@ -97,7 +97,7 @@ class VirtualEntryPlugin {
         compilation.hooks.processAssets.tap(
           {
             name: 'RemoveVirtualEntryAsset',
-            stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
+            stage: compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE,
           },
           () => {
             try {
@@ -248,7 +248,7 @@ export class IndependentSharedPlugin {
 
                 compilation.updateAsset(
                   filename,
-                  new compiler.webpack.sources.RawSource(
+                  new compiler.rspack.sources.RawSource(
                     JSON.stringify(statsContent),
                   ),
                 );

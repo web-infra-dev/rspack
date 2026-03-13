@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
 use super::BuildModuleGraphArtifact;
 use crate::{
@@ -165,7 +165,7 @@ impl FixIssuers {
   pub fn analyze_force_build_dependencies(
     &mut self,
     artifact: &BuildModuleGraphArtifact,
-    ids: &HashSet<DependencyId>,
+    ids: &FxHashSet<DependencyId>,
   ) {
     let module_graph = artifact.get_module_graph();
     for dep_id in ids {

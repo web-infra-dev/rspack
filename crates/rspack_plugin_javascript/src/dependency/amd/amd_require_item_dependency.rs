@@ -116,6 +116,6 @@ impl DependencyTemplate for AMDRequireItemDependencyTemplate {
       &dep.request,
       dep.weak(),
     );
-    source.replace(range.start, range.end, &content, None);
+    source.replace(range.start, range.end, content, None);
   }
 }

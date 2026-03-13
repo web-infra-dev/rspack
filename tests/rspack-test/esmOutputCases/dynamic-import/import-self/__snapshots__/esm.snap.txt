@@ -5,7 +5,7 @@
 const conflict = 42;
 
 it('should have access to the value from the same file', async () => {
-	const { conflict: c } = await import("./value_js.mjs")
+	const { conflict: c } = await import("./value.mjs")
 
 	expect(conflict).toBe(42)
 	expect(c).toBe(24)
@@ -14,7 +14,7 @@ it('should have access to the value from the same file', async () => {
 
 ```
 
-```mjs title=value_js.mjs
+```mjs title=value.mjs
 // ./value.js
 const conflict = 24
 

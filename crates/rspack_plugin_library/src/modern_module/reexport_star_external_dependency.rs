@@ -123,7 +123,7 @@ impl DependencyTemplate for ModernModuleReexportStarExternalDependencyTemplate {
         NormalInitFragment::new(
           format!(
             "export * from {};\n",
-            serde_json::to_string(request.primary()).expect("invalid json to_string")
+            rspack_util::json_stringify_str(request.primary())
           ),
           InitFragmentStage::StageESMImports,
           0,

@@ -3,13 +3,16 @@ use std::{cmp::Ordering, fmt};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::{DatabaseItem, UkeyIndexMap, UkeyIndexSet};
+use rspack_collections::DatabaseItem;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, get_filename_without_hash_length,
   has_hash_placeholder, impl_runtime_module,
 };
-use rspack_util::itoa;
+use rspack_util::{
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa,
+};
 use rustc_hash::FxHashMap;
 
 use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
@@ -137,7 +140,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let mut max_chunk_set_size = 0;
     let mut chunk_filenames = Vec::<(Filename, ChunkUkey)>::new();
     let mut chunk_set_sizes_by_filenames = FxHashMap::<String, usize>::default();
-    let mut chunk_map = UkeyIndexMap::default();
+    let mut chunk_map = FxIndexMap::default();
 
     if let Some(chunks) = chunks {
       chunks
@@ -196,7 +199,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             None
           }
         })
-        .collect::<UkeyIndexSet<ChunkUkey>>();
+        .collect::<FxIndexSet<ChunkUkey>>();
       let (fake_filename, hash_len_map) =
         get_filename_without_hash_length(&Filename::from(dynamic_filename.clone()));
 
@@ -267,9 +270,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       Some(
         compilation
           .get_path(
-            &Filename::from(
-              serde_json::to_string(fake_filename.as_str()).expect("invalid json to_string"),
-            ),
+            &Filename::from(rspack_util::json_stringify_str(fake_filename.as_str())),
             PathData::default()
               .chunk_id(chunk_id)
               .chunk_hash(&chunk_hash)
@@ -353,11 +354,9 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         let filename = compilation
           .get_path(
             &Filename::from(if let Some(template) = fake_filename.template() {
-              #[allow(clippy::unwrap_used)]
-              serde_json::to_string(template).unwrap()
+              rspack_util::json_stringify_str(template)
             } else {
-              #[allow(clippy::unwrap_used)]
-              serde_json::to_string(
+              rspack_util::json_stringify_str(
                 fake_filename
                   .render(
                     PathData::default()
@@ -368,7 +367,6 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                   .await?
                   .as_str(),
               )
-              .unwrap()
             }),
             PathData::default()
               .chunk_id_optional(chunk_id.as_deref())

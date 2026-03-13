@@ -112,6 +112,7 @@ export const applyRspackOptionsDefaults = (
     mode: options.mode,
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
+    outputModule: options.output.module,
   });
 
   applyOutputDefaults(options, {
@@ -163,7 +164,6 @@ export const applyRspackOptionsDefaults = (
 
   options.resolve = cleverMerge(
     getResolveDefaults({
-      context: options.context!,
       targetProperties,
       mode: options.mode,
     }),
@@ -255,7 +255,13 @@ const applySnapshotDefaults = (
 
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
-  { deferImport }: { deferImport?: boolean },
+  {
+    deferImport,
+    outputModule,
+  }: {
+    deferImport?: boolean;
+    outputModule: RspackOptionsNormalized['output']['module'];
+  },
 ) => {
   D(parserOptions, 'dynamicImportMode', 'lazy');
   D(parserOptions, 'dynamicImportPrefetch', false);
@@ -264,6 +270,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'exprContextCritical', true);
   D(parserOptions, 'unknownContextCritical', true);
   D(parserOptions, 'wrappedContextCritical', false);
+  D(parserOptions, 'strictThisContextOnImports', false);
   D(parserOptions, 'wrappedContextRegExp', /.*/);
   D(parserOptions, 'exportsPresence', 'error');
   D(parserOptions, 'requireAsExpression', true);
@@ -273,7 +280,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'commonjs', true);
   D(parserOptions, 'importDynamic', true);
   D(parserOptions, 'worker', ['...']);
-  D(parserOptions, 'importMeta', true);
+  D(parserOptions, 'importMeta', outputModule ? 'preserve-unknown' : true);
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
@@ -305,12 +312,14 @@ const applyModuleDefaults = (
     mode,
     uniqueName,
     deferImport,
+    outputModule,
   }: {
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
+    outputModule: RspackOptionsNormalized['output']['module'];
   },
 ) => {
   assertNotNill(module.parser);
@@ -328,6 +337,7 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.javascript);
   applyJavascriptParserOptionsDefaults(module.parser.javascript, {
     deferImport,
+    outputModule,
   });
 
   F(module.parser, JSON_MODULE_TYPE, () => ({}));
@@ -400,13 +410,14 @@ const applyModuleDefaults = (
     const commonjs = {
       type: 'javascript/dynamic',
     };
+    // IGNORE(module.rules): Rspack not use case-insensitive regex by default
     const rules: RuleSetRules = [
       {
         mimetype: 'application/node',
         type: 'javascript/auto',
       },
       {
-        test: /\.json$/i,
+        test: /\.json$/,
         type: 'json',
       },
       {
@@ -414,22 +425,22 @@ const applyModuleDefaults = (
         type: 'json',
       },
       {
-        test: /\.mjs$/i,
+        test: /\.mjs$/,
         ...esm,
       },
       {
-        test: /\.js$/i,
+        test: /\.js$/,
         descriptionData: {
           type: 'module',
         },
         ...esm,
       },
       {
-        test: /\.cjs$/i,
+        test: /\.cjs$/,
         ...commonjs,
       },
       {
-        test: /\.js$/i,
+        test: /\.js$/,
         descriptionData: {
           type: 'commonjs',
         },
@@ -458,7 +469,7 @@ const applyModuleDefaults = (
         ],
       };
       rules.push({
-        test: /\.wasm$/i,
+        test: /\.wasm$/,
         ...wasm,
       });
       rules.push({
@@ -1071,6 +1082,7 @@ const applyOptimizationDefaults = (
       production ? 30 : Number.POSITIVE_INFINITY,
     );
     D(splitChunks, 'automaticNameDelimiter', '-');
+    // IGNORE(splitChunks.cacheGroups): Rspack not use case-insensitive regex by default
     const { cacheGroups } = splitChunks;
     if (cacheGroups) {
       F(cacheGroups, 'default', () => ({
@@ -1082,7 +1094,7 @@ const applyOptimizationDefaults = (
       F(cacheGroups, 'defaultVendors', () => ({
         idHint: 'vendors',
         reuseExistingChunk: true,
-        test: /[\\/]node_modules[\\/]/i,
+        test: /[\\/]node_modules[\\/]/,
         priority: -10,
       }));
     }
@@ -1104,11 +1116,9 @@ const getResolveLoaderDefaults = () => {
 // The values are aligned with webpack
 // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/config/defaults.js#L1431
 const getResolveDefaults = ({
-  context,
   targetProperties,
   mode,
 }: {
-  context: string;
   targetProperties: false | TargetProperties;
   mode?: Mode;
 }) => {
@@ -1123,7 +1133,7 @@ const getResolveDefaults = ({
     if (targetProperties.electron) conditions.push('electron');
     if (targetProperties.nwjs) conditions.push('nwjs');
   }
-  const jsExtensions = ['.js', '.json', '.wasm'];
+  const jsExtensions = ['.js', '.json'];
 
   const tp = targetProperties;
 
@@ -1159,7 +1169,7 @@ const getResolveDefaults = ({
     extensions: [],
     aliasFields: [],
     exportsFields: ['exports'],
-    roots: [context],
+    roots: [],
     mainFields: ['main'],
     importsFields: ['imports'],
     byDependency: {

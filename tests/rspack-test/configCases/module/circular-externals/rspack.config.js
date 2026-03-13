@@ -32,7 +32,7 @@ module.exports = {
 							{
 								name: "copy-external-files",
 								stage:
-									compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
+									compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
 							},
 							() => {
 								// Read the external module files
@@ -48,11 +48,11 @@ module.exports = {
 								// Emit them as assets
 								compilation.emitAsset(
 									"external-a.mjs",
-									new compiler.webpack.sources.RawSource(externalA)
+									new compiler.rspack.sources.RawSource(externalA)
 								);
 								compilation.emitAsset(
 									"external-b.mjs",
-									new compiler.webpack.sources.RawSource(externalB)
+									new compiler.rspack.sources.RawSource(externalB)
 								);
 							}
 						);

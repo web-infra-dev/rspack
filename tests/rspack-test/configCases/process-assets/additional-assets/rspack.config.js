@@ -30,7 +30,7 @@ module.exports = {
 						() => {
 							compilation.emitAsset(
 								newName,
-								new compiler.webpack.sources.RawSource("text"),
+								new compiler.rspack.sources.RawSource("text"),
 								{
 									new: true
 								}
@@ -53,7 +53,7 @@ module.exports = {
 						() => {
 							compilation.emitAsset(
 								"file1.txt",
-								new compiler.webpack.sources.RawSource("text"),
+								new compiler.rspack.sources.RawSource("text"),
 								{
 									new: true
 								}

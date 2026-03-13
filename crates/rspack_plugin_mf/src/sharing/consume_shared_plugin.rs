@@ -21,8 +21,10 @@ use rustc_hash::FxHashMap;
 
 use super::{
   consume_shared_module::ConsumeSharedModule,
-  consume_shared_runtime_module::ConsumeSharedRuntimeModule,
+  consume_shared_runtime_module::ConsumeSharedRuntimeModule, create_lookup_key_for_sharing,
+  strip_lookup_layer_prefix,
 };
+use crate::ShareScope;
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -33,29 +35,13 @@ pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
   pub required_version: Option<ConsumeVersion>,
   pub package_name: Option<String>,
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
   pub tree_shaking_mode: Option<String>,
-}
-
-fn create_lookup_key_for_sharing(request: &str, layer: Option<&str>) -> String {
-  if let Some(layer) = layer {
-    return format!("({layer}){request}");
-  }
-  request.to_string()
-}
-
-fn strip_lookup_layer_prefix(lookup: &str) -> &str {
-  if lookup.starts_with('(')
-    && let Some(index) = lookup.find(')')
-  {
-    return &lookup[index + 1..];
-  }
-  lookup
 }
 
 #[cacheable]

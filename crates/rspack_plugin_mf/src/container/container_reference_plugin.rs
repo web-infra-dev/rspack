@@ -13,19 +13,20 @@ use super::{
   fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
   remote_runtime_module::RemoteRuntimeModule,
 };
+use crate::ShareScope;
 
 #[derive(Debug)]
 pub struct ContainerReferencePluginOptions {
   pub remote_type: ExternalType,
   pub remotes: Vec<(String, RemoteOptions)>,
-  pub share_scope: Option<Vec<String>>,
+  pub share_scope: Option<ShareScope>,
   pub enhanced: bool,
 }
 
 #[derive(Debug)]
 pub struct RemoteOptions {
   pub external: Vec<String>,
-  pub share_scope: Vec<String>,
+  pub share_scope: ShareScope,
 }
 
 #[plugin]

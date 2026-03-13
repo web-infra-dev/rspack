@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 
 use super::target::TargetProperties;
 
 // Macro for defining HashMaps with less boilerplate
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),* $(,)?) => {{
-         let mut map = ::std::collections::HashMap::new();
+         let mut map = ::rustc_hash::FxHashMap::default();
          $( map.insert($key, $val); )*
          map
     }}

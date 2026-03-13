@@ -36,7 +36,7 @@ function config(index, { concatenateModules } = {}) {
 		},
 		plugins: [
 			function (compiler) {
-				new compiler.webpack.DefinePlugin({
+				new compiler.rspack.DefinePlugin({
 					CONCATENATED: JSON.stringify(concatenateModules)
 				}).apply(compiler);
 			}

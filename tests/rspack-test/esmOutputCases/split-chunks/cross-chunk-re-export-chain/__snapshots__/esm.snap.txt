@@ -1,0 +1,27 @@
+```mjs title=leaf-chunk.mjs
+// ./leaf.js
+const value = 42
+const helper = () => 1
+
+export { helper };
+
+```
+
+```mjs title=main.mjs
+
+// ./index.js
+
+
+
+
+it('should have correct exports through cross-chunk re-export chain', async () => {
+	const mod = await import(/*webpackIgnore: true*/ './main.mjs')
+	expect(mod.value).toBe(42)
+	expect(mod.helper()).toBe(1)
+})
+
+var index_value = (/* inlined export .value */42);
+export { index_value as value };
+export { helper } from "./leaf-chunk.mjs";
+
+```

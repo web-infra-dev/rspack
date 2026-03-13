@@ -1,6 +1,6 @@
 use rspack_core::{
-  CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
+  CachedConstDependency, ConstDependency, ImportMeta, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
@@ -461,9 +461,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&dirname)
-            .expect("should render dirname")
-            .into(),
+          rspack_util::json_stringify_str(&dirname).into(),
         )));
         return Some(true);
       }
@@ -515,9 +513,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&filename)
-            .expect("should render filename")
-            .into(),
+          rspack_util::json_stringify_str(&filename).into(),
         )));
         return Some(true);
       }
@@ -589,7 +585,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           return None;
         }
         // Skip if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip if node: false or node.filename is disabled
@@ -625,7 +624,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           return None;
         }
         // Skip if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip if node: false or node.dirname is disabled
@@ -660,7 +662,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     match for_name {
       expr_name::IMPORT_META_FILENAME => {
         // Skip processing if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip processing if node: false or node.filename is disabled
@@ -681,7 +686,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       }
       expr_name::IMPORT_META_DIRNAME => {
         // Skip processing if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip processing if node: false or node.dirname is disabled
@@ -762,7 +770,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         return None;
       }
       // Skip processing if importMeta is disabled
-      if parser.javascript_options.import_meta == Some(false) {
+      if matches!(
+        parser.javascript_options.import_meta,
+        Some(ImportMeta::Disabled)
+      ) {
         return None;
       }
       let property = if for_name == expr_name::IMPORT_META_FILENAME {
@@ -797,7 +808,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     };
 
     // Skip processing if importMeta is disabled
-    if parser.javascript_options.import_meta == Some(false) {
+    if matches!(
+      parser.javascript_options.import_meta,
+      Some(ImportMeta::Disabled)
+    ) {
       return None;
     }
 
@@ -820,7 +834,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     }
 
     // Skip processing if importMeta is disabled
-    if parser.javascript_options.import_meta == Some(false) {
+    if matches!(
+      parser.javascript_options.import_meta,
+      Some(ImportMeta::Disabled)
+    ) {
       return None;
     }
 

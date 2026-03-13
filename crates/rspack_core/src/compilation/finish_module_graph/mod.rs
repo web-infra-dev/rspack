@@ -11,31 +11,31 @@ use crate::{
 pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compiler");
   let start = logger.time("finish compilation");
-  compilation.finish_build_module_graph().await?;
+  finish_build_module_graph_pass(compilation).await?;
 
   logger.time_end(start);
 
   Ok(())
 }
 
-impl Compilation {
-  #[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
-  pub async fn finish_build_module_graph(&mut self) -> Result<()> {
-    self.in_finish_make.store(false, Ordering::Release);
-    // clean up the entry deps
-    let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) =
-      finish_build_module_graph(self, make_artifact, exports_info_artifact).await?;
-    self.build_module_graph_artifact = make_artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
-    // sync assets to module graph from module_executor
-    if let Some(module_executor) = &mut self.module_executor {
-      let mut module_executor = std::mem::take(module_executor);
-      module_executor.after_build_module_graph(self).await?;
-      self.module_executor = Some(module_executor);
-    }
-    // make finished, make artifact should be readonly thereafter.
-    Ok(())
+#[instrument("Compilation:finish",target=TRACING_BENCH_TARGET, skip_all)]
+pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
+  compilation.in_finish_make.store(false, Ordering::Release);
+  // clean up the entry deps
+  let make_artifact = compilation.build_module_graph_artifact.steal();
+  let exports_info_artifact = compilation.exports_info_artifact.steal();
+  let (make_artifact, exports_info_artifact) =
+    finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await?;
+  compilation.build_module_graph_artifact = make_artifact.into();
+  compilation.exports_info_artifact = exports_info_artifact.into();
+  // sync assets to module graph from module_executor
+  if let Some(module_executor) = &mut compilation.module_executor {
+    let mut module_executor = std::mem::take(module_executor);
+    module_executor
+      .after_build_module_graph(compilation)
+      .await?;
+    compilation.module_executor = Some(module_executor);
   }
+  // make finished, make artifact should be readonly thereafter.
+  Ok(())
 }

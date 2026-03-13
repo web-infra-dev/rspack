@@ -1,18 +1,29 @@
 use std::{
-  sync::Arc,
+  collections::HashSet,
+  sync::{Arc, LazyLock},
   time::{Duration, Instant},
 };
 
+use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationParams, CompilationProcessAssets, CompilerCompilation, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleIdentifier,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  SideEffectsOptimizeArtifact,
+  build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rustc_hash::FxHashMap as HashMap;
+
+static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
+    .expect("should initialize rstest flag regex")
+});
 
 use crate::{
   esm_import_dependency::{
@@ -54,11 +65,7 @@ impl RstestPlugin {
     Self::new_inner(options)
   }
 
-  fn update_source(
-    &self,
-    old: BoxSource,
-    replace_map: &std::collections::HashMap<String, MockFlagPos>,
-  ) -> BoxSource {
+  fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {
     let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
 
@@ -82,10 +89,10 @@ impl RstestPlugin {
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon
-          &format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
+          format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
           None,
         );
-        replace.replace(
+        replace.replace_static(
           content_with_flag_start as u32,
           content_with_flag_end as u32,
           "",
@@ -204,12 +211,8 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
     }
   }
 
-  let regex = regex::Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
-    .expect("should initialize `Regex`");
-
   for file in files {
-    let mut pos_map: std::collections::HashMap<String, MockFlagPos> =
-      std::collections::HashMap::new();
+    let mut pos_map: HashMap<String, MockFlagPos> = HashMap::default();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
       // Only handles JavaScript.
       if info.javascript_module.is_none() {
@@ -217,7 +220,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       }
 
       let content = old.source().into_string_lossy();
-      let captures: Vec<_> = regex.captures_iter(&content).collect();
+      let captures: Vec<_> = RSTEST_FLAG_RE.captures_iter(&content).collect();
 
       for c in captures {
         let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(2), c.get(3)] else {
@@ -260,6 +263,42 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
   Ok(())
 }
 
+#[plugin_hook(CompilationOptimizeDependencies for RstestPlugin, stage = -1000)]
+async fn optimize_dependencies(
+  &self,
+  _compilation: &Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
+  let mocked_module_ids: HashSet<ModuleIdentifier> = {
+    let module_graph = build_module_graph_artifact.get_module_graph();
+    module_graph
+      .dependencies()
+      .filter(|(_, dep)| dep.dependency_type() == &DependencyType::RstestMockModuleId)
+      .filter_map(|(dep_id, _)| {
+        module_graph
+          .module_identifier_by_dependency_id(dep_id)
+          .copied()
+      })
+      .collect()
+  };
+
+  let module_graph = build_module_graph_artifact.get_module_graph_mut();
+  for module_id in mocked_module_ids {
+    if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
+      && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+    {
+      module.set_factory_meta(FactoryMeta {
+        side_effect_free: Some(false),
+      });
+    }
+  }
+
+  Ok(None)
+}
+
 impl Plugin for RstestPlugin {
   fn name(&self) -> &'static str {
     "rstest"
@@ -279,6 +318,11 @@ impl Plugin for RstestPlugin {
         .parser
         .tap(nmf_parser::new(self));
     }
+
+    ctx
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
 
     if self.options.hoist_mock_module {
       ctx

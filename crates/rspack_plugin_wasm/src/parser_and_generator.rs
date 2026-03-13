@@ -10,7 +10,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::{itoa, json_stringify};
+use rspack_util::{itoa, json_stringify_str};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -227,13 +227,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   Some(true),
                   ImportPhase::Evaluation,
                 );
-                let name = json_stringify(&export_name);
+                let name = json_stringify_str(&export_name);
                 format!("{name}: {export}")
               })
               .collect::<Vec<_>>()
               .join(",\n");
 
-            format!("{}: {{\n{deps}\n}}", json_stringify(dep_module.request))
+            format!("{}: {{\n{deps}\n}}", json_stringify_str(dep_module.request))
           })
           .collect::<Vec<_>>();
 

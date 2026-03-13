@@ -10,6 +10,7 @@ import {
 import type { Compiler } from '../Compiler';
 import type { EntryRuntime, FilenameTemplate, LibraryOptions } from '../config';
 import { parseOptions } from '../container/options';
+import { type ShareScope, validateShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 
 export type ContainerPluginOptions = {
@@ -18,7 +19,7 @@ export type ContainerPluginOptions = {
   library?: LibraryOptions;
   name: string;
   runtime?: EntryRuntime;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
@@ -33,25 +34,18 @@ export type ExposesConfig = {
   layer?: string;
 };
 
-function hasMultipleShareScopes(shareScope?: string | string[]) {
-  return Array.isArray(shareScope) && shareScope.filter(Boolean).length > 1;
-}
-
 export class ContainerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
   _options;
 
   constructor(options: ContainerPluginOptions) {
     super();
+    const shareScope = options.shareScope || 'default';
     const enhanced = options.enhanced ?? false;
-    if (!enhanced && hasMultipleShareScopes(options.shareScope)) {
-      throw new Error(
-        '[ContainerPlugin] Multiple share scopes are only supported in enhanced mode. Set `enhanced: true` or provide a single `shareScope`.',
-      );
-    }
+    validateShareScope(shareScope, enhanced, 'ContainerPlugin');
     this._options = {
       name: options.name,
-      shareScope: options.shareScope || 'default',
+      shareScope,
       library: options.library || {
         type: 'global',
         name: options.name,

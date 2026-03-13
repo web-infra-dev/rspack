@@ -4,7 +4,7 @@ pub mod repair;
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rspack_paths::ArcPathSet;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
 use self::{cutout::Cutout, repair::repair};
 use super::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
@@ -15,9 +15,9 @@ use crate::{Compilation, DependencyId, ExportsInfoArtifact};
 pub enum UpdateParam {
   /// Build some entries, this param will only ensure that those entries are built,
   /// but will not remove entries that are not in this lists.
-  BuildEntry(HashSet<DependencyId>),
+  BuildEntry(FxHashSet<DependencyId>),
   /// Build some entries and clean up the entries that not in this list.
-  BuildEntryAndClean(HashSet<DependencyId>),
+  BuildEntryAndClean(FxHashSet<DependencyId>),
   /// Build the module which module.need_build is true, i.e. modules where loader.cacheable is false
   CheckNeedBuild,
   /// Build the module and dependency which depend on these modified file.

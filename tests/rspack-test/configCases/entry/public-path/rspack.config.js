@@ -33,7 +33,7 @@ module.exports = {
 	plugins: [
 		{
 			apply(compiler) {
-				const { EntryPlugin } = compiler.webpack;
+				const { EntryPlugin } = compiler.rspack;
 				for (const c of cases) {
 					new EntryPlugin(compiler.context, c.import, {
 						name: `bundle${bundleId++}`,

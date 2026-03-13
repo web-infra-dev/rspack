@@ -120,15 +120,12 @@ impl DependencyTemplate for ImportMetaResolveDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      code_generatable_context
-        .runtime_template
-        .module_id(
-          code_generatable_context.compilation,
-          &dep.id,
-          &dep.request,
-          false,
-        )
-        .as_str(),
+      code_generatable_context.runtime_template.module_id(
+        code_generatable_context.compilation,
+        &dep.id,
+        &dep.request,
+        false,
+      ),
       None,
     );
   }

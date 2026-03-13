@@ -117,11 +117,6 @@ impl DependencyTemplate for IsIncludedDependencyTemplate {
           > 0
       });
 
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      included.to_string().as_str(),
-      None,
-    );
+    source.replace(dep.range.start, dep.range.end, included.to_string(), None);
   }
 }

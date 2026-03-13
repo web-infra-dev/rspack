@@ -12,7 +12,7 @@ const HOT_UPDATE_SUFFIX: &str = ".hot-update";
 
 pub fn ensure_configured_remotes(
   remote_list: &mut Vec<StatsRemote>,
-  remote_alias_map: &std::collections::HashMap<String, RemoteAliasTarget>,
+  remote_alias_map: &HashMap<String, RemoteAliasTarget>,
   container_name: &str,
 ) {
   for (alias, target) in remote_alias_map {

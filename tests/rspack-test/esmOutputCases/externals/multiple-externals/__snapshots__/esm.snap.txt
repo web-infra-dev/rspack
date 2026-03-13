@@ -1,4 +1,4 @@
-```mjs title=async_js.mjs
+```mjs title=async.mjs
 import * as __rspack_external_fs from "fs";
 
 // fs?3cf4
@@ -37,7 +37,7 @@ import fs, { readFile } from "fs";
 
 
 it('should render external correctly', async () => {
-  const {ns} = await import("./async_js.mjs")
+  const {ns} = await import("./async.mjs")
 
   expect(fs).toBe(other).toBe(fs).toBe(ns.default)
   expect(readFile).toBe(readFile).toBe(readFile).toBe(ns.readFile)

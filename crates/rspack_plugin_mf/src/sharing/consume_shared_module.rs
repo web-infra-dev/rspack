@@ -12,13 +12,13 @@ use rspack_core::{
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ConsumeVersion, utils::json_stringify};
+use crate::{ConsumeOptions, ConsumeVersion, ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -38,10 +38,15 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
+  pub fn share_scope(&self) -> &ShareScope {
+    &self.options.share_scope
+  }
+
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
+    let scopes_key = options.share_scope.key();
     let identifier = format!(
       "consume shared module ({}){} {}@{}{}{}{}{}",
-      options.share_scope.join("|"),
+      &scopes_key,
       options
         .layer
         .as_ref()
@@ -84,7 +89,7 @@ impl ConsumeSharedModule {
           .as_ref()
           .map(|layer| format!("({layer})/"))
           .unwrap_or_default(),
-        options.share_scope.join("|"),
+        &scopes_key,
         &options.share_key,
         options
           .import
@@ -104,10 +109,6 @@ impl ConsumeSharedModule {
 
   pub fn share_key(&self) -> &str {
     &self.options.share_key
-  }
-
-  pub fn share_scope(&self) -> &[String] {
-    &self.options.share_scope
   }
 
   pub fn required_version(&self) -> Option<&ConsumeVersion> {
@@ -244,16 +245,16 @@ impl Module for ConsumeSharedModule {
     let mut function = String::from("loaders.load");
     let mut args = vec![
       json_stringify(&self.options.share_scope),
-      json_stringify(&self.options.share_key),
+      json_stringify_str(&self.options.share_key),
     ];
-    if let Some(version) = &self.options.required_version {
+    if let Some(version) = self.required_version() {
       if self.options.strict_version {
         function += "Strict";
       }
       if self.options.singleton {
         function += "Singleton";
       }
-      let version = json_stringify(&version.to_string());
+      let version = json_stringify_str(&version.to_string());
       args.push(format!("loaders.parseRange({version})"));
       function += "VersionCheck";
     } else if self.options.singleton {
@@ -266,6 +267,12 @@ impl Module for ConsumeSharedModule {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
+    let fallback_factory = factory.unwrap_or_else(|| {
+      format!(
+        "()=>()=>{{throw new Error(\"Can not get '{}'\" )}}",
+        self.options.share_key
+      )
+    });
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {
@@ -277,7 +284,7 @@ impl Module for ConsumeSharedModule {
         singleton: self.options.singleton,
         eager: self.options.eager,
         layer: self.options.layer.clone(),
-        fallback: factory,
+        fallback: Some(fallback_factory),
         tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });
     Ok(code_generation_result)

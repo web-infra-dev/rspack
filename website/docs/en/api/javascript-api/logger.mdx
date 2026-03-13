@@ -61,13 +61,13 @@ export class MyRspackPlugin {
 
 You can get the logger from loader context like below:
 
-```js title=MyLoader.js
-module.exports = function (source) {
+```js title="my-loader.mjs"
+export default function (source) {
   // access Logger from loader
   const logger = this.getLogger('my-loader');
   logger.info('hello Logger');
   return source;
-};
+}
 ```
 
 ## Logger API

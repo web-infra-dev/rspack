@@ -15,12 +15,12 @@ use super::{
   container_entry_module_factory::ContainerEntryModuleFactory,
   expose_runtime_module::ExposeRuntimeModule, federation_modules_plugin::FederationModulesPlugin,
 };
+use crate::ShareScope;
 
 #[derive(Debug)]
 pub struct ContainerPluginOptions {
   pub name: String,
-  pub share_scope: Vec<String>,
-  pub share_scope_is_array: bool,
+  pub share_scope: ShareScope,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,
@@ -71,7 +71,6 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
-    self.options.share_scope_is_array,
     self.options.enhanced,
   );
 

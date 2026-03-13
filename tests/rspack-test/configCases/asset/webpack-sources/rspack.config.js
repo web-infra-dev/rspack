@@ -20,12 +20,12 @@ module.exports = {
 					{
 						name: "PLUGIN",
 						stage:
-							compiler.webpack.Compilation
+							compiler.rspack.Compilation
 								.PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
 						additionalAssets: true
 					},
 					assets => {
-						const { RawSource, SourceMapSource } = compiler.webpack.sources;
+						const { RawSource, SourceMapSource } = compiler.rspack.sources;
 
 						expect(assets["img.png"]).toBeInstanceOf(RawSource);
 						expect(assets["bundle0.js"]).toBeInstanceOf(SourceMapSource);

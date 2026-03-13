@@ -14,16 +14,16 @@ use rspack_core::{
   ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
-  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportSpecExports,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
-  LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, StarReexportsInfo,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, get_terminal_binding, property_access, property_name,
+  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
+  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
+  get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -809,7 +809,7 @@ impl ESMExportImportedSpecifierDependency {
         } else if let Some(item) = ignored.iter().next() {
           content += &format!(
             "if(__rspack_import_key !== {}) ",
-            serde_json::to_string(item).expect("should serialize to string")
+            rspack_util::json_stringify_str(item)
           );
         }
         content += "__rspack_reexport[__rspack_import_key] =";
@@ -973,7 +973,7 @@ impl ESMExportImportedSpecifierDependency {
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       name,
-      serde_json::to_string(&first_value_key.to_string()).expect("should serialize to string"),
+      rspack_util::json_stringify_str(&first_value_key),
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
       runtime_template.render_exports_argument(exports_name),
       property_name(&key).expect("should have property_name"),
@@ -1248,15 +1248,13 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Null),
-            exports: Some(ExportSpecExports::new(vec![ExportNameOrSpec::ExportSpec(
-              ExportSpec {
-                name: "default".into(),
-                can_mangle: Some(false),
-                from: from.cloned(),
-                export: Some(rspack_core::Nullable::Null),
-                ..Default::default()
-              },
-            )])),
+            exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+              name: "default".into(),
+              can_mangle: Some(false),
+              from: from.cloned(),
+              export: Some(rspack_core::Nullable::Null),
+              ..Default::default()
+            })]),
             from: from.cloned(),
             ..Default::default()
           })]),
