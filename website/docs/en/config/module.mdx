@@ -1595,27 +1595,28 @@ In the example above, enabling this option prints `42`. When it is disabled, `va
 - When set to `true`, Rspack follows the spec more strictly and prioritizes correct runtime `this` semantics, but tree shaking can become less effective.
 - When set to `false`, Rspack can generate more optimized output, but runtime `this` semantics may no longer be preserved in these patterns.
 
-This pattern is uncommon in real-world ESM code, and enabling the option can reduce tree-shaking effectiveness, so the default is `false`.
+This pattern is uncommon in real-world ESM code, and enabling the option can reduce tree shaking effectiveness, so the default is `false`.
 
 :::tip
-If you run into this pattern in practice, it is usually better to avoid relying on it. If that is not possible, prefer enabling it only for specific modules with Module rules.
+If you run into this pattern in practice, it is usually better to avoid relying on it. If that is not possible, prefer enabling it only for specific modules with [module rule condition](/config/module-rules#condition).
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /mod\.js$/,
+        test: /index\.js$/, // Only enable strictThisContextOnImports for import statements in the index.js module
         parser: {
           javascript: {
             strictThisContextOnImports: true,
           },
         },
-      }
-    ]
+      },
+    ],
   },
 };
 ```
+
 :::
 
 ### module.parser.javascript.jsx
