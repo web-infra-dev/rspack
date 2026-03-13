@@ -1553,6 +1553,68 @@ export default {
 };
 ```
 
+### module.parser.javascript.strictThisContextOnImports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+控制导入模块以对象调用方法的方式调用导出的函数时，Rspack 是否严格保留 `this` 绑定。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        strictThisContextOnImports: false,
+      },
+    },
+  },
+};
+```
+
+这主要影响模块导出的函数中使用 `this` 来表示当前模块的场景，例如：
+
+```js title="index.js"
+import * as mod from './mod';
+
+console.log(mod.fn());
+```
+
+```js title="mod.js"
+export function fn() {
+  return this.value;
+}
+
+export const value = 42;
+```
+
+上面的例子中，开启后会输出 `42`；关闭时为了获得更好的 Tree Shaking 优化，`value` 被视为未使用而被移除，结果变成 `undefined`。
+
+- 设置为 `true` 时，Rspack 会更严格地遵循规范，优先保证运行时 `this` 语义正确，但会导致 Tree Shaking 优化效果下降。
+- 设置为 `false` 时，Rspack 会生成更好的优化结果，但可能会导致运行时 `this` 语义不正确。
+
+由于该用法在实际开发 ES 模块中非常少见，且开启会影响 Tree Shaking 优化效果，因此默认值为 `false`。
+
+:::tip
+如在实际开发时遇到该场景，建议优先避免使用该用法，如无法避免则建议使用 Module rules 为指定模块单独配置。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /mod\.js$/, // 仅为 mod.js 模块的导入语句开启 strictThisContextOnImports
+        parser: {
+          javascript: {
+            strictThisContextOnImports: true,
+          },
+        },
+      }
+    ]
+  },
+};
+```
+:::
+
 ### module.parser.javascript.jsx
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
