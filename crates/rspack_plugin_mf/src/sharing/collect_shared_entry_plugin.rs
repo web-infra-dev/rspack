@@ -5,7 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, DependenciesBlock, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -40,6 +40,15 @@ pub struct CollectSharedEntryPlugin {
 impl CollectSharedEntryPlugin {
   pub fn new(options: CollectSharedEntryPluginOptions) -> Self {
     Self::new_inner(options)
+  }
+
+  fn parse_share_key(identifier: &str) -> Option<String> {
+    let pos = identifier.rfind(") ")?;
+    let rest = &identifier[pos + 2..];
+    let suffix_start = rest.find(" (").unwrap_or(rest.len());
+    let head = &rest[..suffix_start];
+    let at = head.rfind('@').unwrap_or(head.len());
+    Some(head[..at].to_string())
   }
 
   /// Infer package version from a module request path
@@ -113,9 +122,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
-      // Layer-aware consume identifiers now include an extra "(layer)" segment,
-      // so use the typed accessor instead of reparsing readable_identifier().
-      let key = consume.share_key();
+      let ident = consume.readable_identifier(&Context::default()).to_string();
+      let key = Self::parse_share_key(&ident).unwrap_or_default();
       if key.is_empty() {
         continue;
       }

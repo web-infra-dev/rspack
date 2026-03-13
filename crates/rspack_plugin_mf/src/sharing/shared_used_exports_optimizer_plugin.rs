@@ -21,6 +21,16 @@ use super::{
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
 use crate::{container::container_entry_module::ContainerEntryModule, manifest::StatsRoot};
+
+fn parse_share_key_from_consume_identifier(identifier: &str) -> Option<String> {
+  let pos = identifier.rfind(") ")?;
+  let rest = &identifier[pos + 2..];
+  let suffix_start = rest.find(" (").unwrap_or(rest.len());
+  let head = &rest[..suffix_start];
+  let at = head.rfind('@').unwrap_or(head.len());
+  Some(head[..at].to_string())
+}
+
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
   pub share_key: String,
@@ -156,9 +166,9 @@ async fn optimize_dependencies(
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
             let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
-            // Layer-aware consume identifiers now include an extra "(layer)" segment,
-            // so use the typed accessor instead of reparsing readable_identifier().
-            let sk = consume_shared_module.share_key().to_string();
+            let identifier =
+              consume_shared_module.readable_identifier(&rspack_core::Context::default());
+            let sk = parse_share_key_from_consume_identifier(&identifier)?.to_string();
             collect_processed_modules(
               module_graph,
               consume_shared_module.get_blocks(),

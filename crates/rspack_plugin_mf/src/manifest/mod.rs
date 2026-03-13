@@ -168,7 +168,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           file: String::new(),
           id: compose_id_with_separator(&container_name, &expose_name),
           name: expose_name,
-              layer: None,
+          layer: None,
           requires: Vec::new(),
           assets: StatsAssetsGroup::default(),
         }

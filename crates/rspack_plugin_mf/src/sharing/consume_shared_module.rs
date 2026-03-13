@@ -18,7 +18,7 @@ use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ConsumeVersion, ShareScope, utils::json_stringify};
+use crate::{ConsumeOptions, ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -105,21 +105,6 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
-  }
-
-  pub fn share_key(&self) -> &str {
-    &self.options.share_key
-  }
-
-  pub fn required_version(&self) -> Option<&ConsumeVersion> {
-    self
-      .options
-      .required_version
-      .as_ref()
-      .and_then(|version| match version {
-        ConsumeVersion::Version(_) => Some(version),
-        ConsumeVersion::False => None,
-      })
   }
 }
 
@@ -247,7 +232,7 @@ impl Module for ConsumeSharedModule {
       json_stringify(&self.options.share_scope),
       json_stringify_str(&self.options.share_key),
     ];
-    if let Some(version) = self.required_version() {
+    if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
         function += "Strict";
       }
