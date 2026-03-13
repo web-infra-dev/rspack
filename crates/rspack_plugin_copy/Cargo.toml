@@ -16,8 +16,8 @@ rspack_core  = { workspace = true }
 rspack_error = { workspace = true }
 rspack_hash  = { workspace = true }
 rspack_hook  = { workspace = true }
-rspack_util  = { workspace = true }
 rspack_paths = { workspace = true }
+rspack_util  = { workspace = true }
 rustc-hash   = { workspace = true }
 sugar_path   = { workspace = true }
 tracing      = { workspace = true }

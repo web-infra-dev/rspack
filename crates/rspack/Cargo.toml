@@ -52,9 +52,9 @@ rspack_plugin_runtime_chunk           = { workspace = true }
 rspack_plugin_schemes                 = { workspace = true }
 rspack_plugin_swc_js_minimizer        = { workspace = true }
 rspack_plugin_wasm                    = { workspace = true }
-rspack_util= { workspace = true }
 rspack_plugin_worker                  = { workspace = true }
 rspack_tasks                          = { workspace = true }
+rspack_util                           = { workspace = true }
 # Loaders
 rspack_loader_lightningcss   = { workspace = true, optional = true }
 rspack_loader_preact_refresh = { workspace = true, optional = true }
