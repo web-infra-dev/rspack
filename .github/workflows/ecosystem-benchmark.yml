@@ -113,13 +113,15 @@ jobs:
       - name: Run rspack-ecosystem-benchmark
         timeout-minutes: 40
         id: run-benchmark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RSPACK_DIR=$(pwd)
           git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
-          result=$(node bin/cli.js compare --base latest --current current)
+          result=$(node bin/cli.js compare --base main --current current)
           echo "$result"
           echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
 
