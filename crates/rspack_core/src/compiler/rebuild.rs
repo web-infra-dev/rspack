@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPathSet;

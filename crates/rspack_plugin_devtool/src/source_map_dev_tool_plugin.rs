@@ -10,7 +10,6 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
 use regex::Regex;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin, has_content_hash_placeholder,
