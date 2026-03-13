@@ -20,6 +20,7 @@ use super::{
 pub struct ContainerPluginOptions {
   pub name: String,
   pub share_scope: Vec<String>,
+  pub share_scope_is_array: bool,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,
@@ -70,6 +71,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     self.options.name.clone(),
     self.options.exposes.clone(),
     self.options.share_scope.clone(),
+    self.options.share_scope_is_array,
     self.options.enhanced,
   );
 

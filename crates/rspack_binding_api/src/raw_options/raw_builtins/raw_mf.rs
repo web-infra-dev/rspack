@@ -45,9 +45,11 @@ pub struct RawContainerPluginOptions {
 
 impl From<RawContainerPluginOptions> for ContainerPluginOptions {
   fn from(value: RawContainerPluginOptions) -> Self {
+    let share_scope_is_array = matches!(&value.share_scope, Either::B(_));
     Self {
       name: value.name,
       share_scope: into_share_scope(value.share_scope),
+      share_scope_is_array,
       library: value.library.into(),
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
       filename: value.filename.map(|f| f.into()),

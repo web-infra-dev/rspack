@@ -33,6 +33,7 @@ pub struct ContainerEntryModule {
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: Vec<String>,
+  share_scope_is_array: bool,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -48,10 +49,15 @@ impl ContainerEntryModule {
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: Vec<String>,
+    share_scope_is_array: bool,
     enhanced: bool,
   ) -> Self {
     let lib_ident = format!("webpack/container/entry/{}", &name);
-    let share_scope_identifier = share_scope.join("|");
+    let share_scope_identifier = if share_scope_is_array {
+      format!("[{}]", share_scope.join("|"))
+    } else {
+      share_scope.join("|")
+    };
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -63,6 +69,7 @@ impl ContainerEntryModule {
       lib_ident,
       exposes,
       share_scope,
+      share_scope_is_array,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -91,6 +98,7 @@ impl ContainerEntryModule {
       lib_ident,
       exposes: vec![],
       share_scope: vec![],
+      share_scope_is_array: false,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -344,6 +352,17 @@ impl Module for ContainerEntryModule {
 
     let module_map = ExposeModuleMap::new(compilation, self, runtime_template);
     let module_map_str = module_map.render(runtime_template);
+    let share_scope = if self.share_scope_is_array {
+      json_stringify(&self.share_scope)
+    } else {
+      json_stringify(
+        &self
+          .share_scope
+          .first()
+          .cloned()
+          .unwrap_or_else(|| "default".to_string()),
+      )
+    };
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
@@ -399,13 +418,7 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify(
-          &self
-            .share_scope
-            .first()
-            .cloned()
-            .unwrap_or_else(|| "default".to_string())
-        ),
+        share_scope = share_scope,
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =
@@ -427,6 +440,7 @@ var init = function(shareScope, initScope) {{
         .insert(CodeGenerationDataExpose {
           module_map,
           share_scope: self.share_scope.clone(),
+          share_scope_is_array: self.share_scope_is_array,
         });
     }
     Ok(code_generation_result)
@@ -523,4 +537,5 @@ impl ExposeModuleMap {
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub share_scope: Vec<String>,
+  pub share_scope_is_array: bool,
 }

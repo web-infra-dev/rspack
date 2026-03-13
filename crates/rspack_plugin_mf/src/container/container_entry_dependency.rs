@@ -13,6 +13,7 @@ pub struct ContainerEntryDependency {
   pub name: String,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub share_scope: Vec<String>,
+  pub share_scope_is_array: bool,
   pub request: Option<String>,
   pub version: Option<String>,
   resource_identifier: ResourceIdentifier,
@@ -26,6 +27,7 @@ impl ContainerEntryDependency {
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: Vec<String>,
+    share_scope_is_array: bool,
     enhanced: bool,
   ) -> Self {
     let resource_identifier = format!("container-entry-{}", &name).into();
@@ -34,6 +36,7 @@ impl ContainerEntryDependency {
       name,
       exposes,
       share_scope,
+      share_scope_is_array,
       request: None,
       version: None,
       resource_identifier,
@@ -50,6 +53,7 @@ impl ContainerEntryDependency {
       name,
       exposes: vec![],
       share_scope: vec![],
+      share_scope_is_array: false,
       request: Some(request),
       version: Some(version),
       resource_identifier,

@@ -34,6 +34,7 @@ impl ModuleFactory for ContainerEntryModuleFactory {
           dep.name.clone(),
           dep.exposes.clone(),
           dep.share_scope.clone(),
+          dep.share_scope_is_array,
           dep.enhanced,
         )
         .boxed(),

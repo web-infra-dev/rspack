@@ -72,6 +72,17 @@ impl RuntimeModule for ExposeRuntimeModule {
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
     let module_map = data.module_map.render(&mut runtime_template);
     let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let share_scope = if data.share_scope_is_array {
+      json_stringify(&data.share_scope)
+    } else {
+      json_stringify(
+        &data
+          .share_scope
+          .first()
+          .cloned()
+          .unwrap_or_else(|| "default".to_string()),
+      )
+    };
     let mut source = format!(
       r#"
     {require_name}.initializeExposesData = {{
@@ -79,8 +90,7 @@ impl RuntimeModule for ExposeRuntimeModule {
   shareScope: {},
 }};
 "#,
-      module_map,
-      json_stringify(&data.share_scope)
+      module_map, share_scope
     );
     source += &format!(
       "{require_name}.getContainer = {require_name}.getContainer || function() {{ throw new Error(\"should have {require_name}.getContainer\") }};",
