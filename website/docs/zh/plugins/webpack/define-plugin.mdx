@@ -119,3 +119,46 @@ new rspack.DefinePlugin({
   SERVICE_URL: JSON.stringify('https://dev.example.com'),
 });
 ```
+
+## 使用 `JSON.stringify`
+
+当你希望注入的是字面量值，而不是代码片段时，应使用 `JSON.stringify`。
+
+常见场景包括：
+
+- 注入字符串常量，例如环境名、版本号、接口地址。
+- 注入对象或数组，并在业务代码中直接读取其内容。
+- 注入 `process.env.*` 这类来自环境变量的字符串值。
+
+这是因为 `DefinePlugin` 中的字符串会被直接当作代码插入，而不会自动补上引号。
+
+```js
+new rspack.DefinePlugin({
+  MODE: 'production',
+  MODE_STRINGIFIED: JSON.stringify('production'),
+});
+```
+
+```js
+const mode = MODE;
+const modeStringified = MODE_STRINGIFIED;
+
+// Turns into
+const mode = production;
+const modeStringified = 'production';
+```
+
+上面的 `MODE` 会被当作标识符 `production`，而不是字符串 `'production'`，通常会导致运行时错误。`MODE_STRINGIFIED` 则会被替换为合法的字符串字面量，是更安全的写法。
+
+如果需要注入对象或数组，也建议使用 `JSON.stringify`：
+
+```js
+new rspack.DefinePlugin({
+  APP_INFO: JSON.stringify({
+    name: 'demo',
+    features: ['a', 'b'],
+  }),
+});
+```
+
+这样生成的 `APP_INFO` 会是一个可直接使用的对象字面量。否则，像 `APP_INFO: { ... }` 这样的写法会被 `DefinePlugin` 当作嵌套定义配置递归处理，而不是按对象字面量注入到业务代码中。
