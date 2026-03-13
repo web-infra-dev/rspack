@@ -434,6 +434,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -453,6 +454,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -488,6 +490,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -507,6 +510,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -526,6 +530,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -545,6 +550,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -567,6 +573,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -586,6 +593,7 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
+			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -617,7 +625,9 @@ module.exports = {
 			      node_modules,
 			    ],
 			    pnp: false,
-			    roots: Array [],
+			    roots: Array [
+			      <TEST_ROOT>,
+			    ],
 			  },
 			  resolveLoader: Object {
 			    conditionNames: Array [
