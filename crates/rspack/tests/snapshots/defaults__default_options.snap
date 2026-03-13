@@ -178,7 +178,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -228,7 +227,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -278,7 +276,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -356,7 +353,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -408,7 +404,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -458,7 +453,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -508,7 +502,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -558,7 +551,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
