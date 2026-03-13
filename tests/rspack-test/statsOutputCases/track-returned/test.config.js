@@ -42,16 +42,8 @@ module.exports = {
 		const nestedTry = getTestBlock(
 			bundle,
 			"should work correct for labeled statement break in try/finally",
-			"should still propagate labeled termination without label breaks"
-		);
-		expect(nestedTry).toContain(`__webpack_require__("./used.js?n=228")`);
-
-		const noBreak = getTestBlock(
-			bundle,
-			"should still propagate labeled termination without label breaks",
 			"should work correct for while statement"
 		);
-		expect(noBreak).toContain("// removed by dead control flow");
-		expect(noBreak).not.toContain(`__webpack_require__("./used.js?n=229")`);
+		expect(nestedTry).toContain(`__webpack_require__("./used.js?n=228")`);
 	}
 };

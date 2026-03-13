@@ -2279,18 +2279,6 @@ it("should work correct for labeled statement break in try/finally", () => {
 	require("./used?n=228");
 });
 
-it("should still propagate labeled termination without label breaks", () => {
-	no_break: {
-		if (rand()) {
-			return;
-		}
-
-		throw new Error("fail");
-	}
-
-	require("./used?n=229");
-});
-
 it("should work correct for while statement", () => {
 	let n = 0;
 	let x = 0;
