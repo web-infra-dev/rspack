@@ -2,7 +2,7 @@ use std::{borrow::Cow, cmp::Ordering};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{DatabaseItem, Identifier, IdentifierMap};
+use rspack_collections::{DatabaseItem, Identifier, IdentifierMap, IdentifierSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
@@ -286,7 +286,7 @@ pub fn get_module_trace<'a>(
   context: &Context,
 ) -> Vec<StatsModuleTrace<'a>> {
   let mut module_trace = vec![];
-  let mut visited_modules = HashSet::<Identifier>::default();
+  let mut visited_modules = IdentifierSet::default();
   let mut current_module_identifier = module_identifier;
   while let Some(module_identifier) = current_module_identifier {
     if visited_modules.contains(&module_identifier) {

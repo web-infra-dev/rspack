@@ -1,19 +1,12 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::{
-  collections::VecDeque,
-  fmt,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{collections::VecDeque, fmt, hash::Hash};
 
 use hashlink::LinkedHashMap;
-use indexmap::{IndexMap, IndexSet};
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{
-  DatabaseItem, IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet,
-};
-use rspack_util::fx_hash::FxIndexSet;
+use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 use ustr::Ustr;
@@ -32,10 +25,9 @@ pub struct ChunkSizeOptions {
   pub entry_chunk_multiplicator: Option<f64>,
 }
 
-pub type ChunkIdMap<V> =
-  std::collections::HashMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
-pub type IndexChunkIdMap<V> = IndexMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
-pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<IdentifierHasher>>;
+pub type ChunkIdMap<V> = FxHashMap<ChunkId, V>;
+pub type IndexChunkIdMap<V> = FxIndexMap<ChunkId, V>;
+pub type ChunkIdSet = FxHashSet<ChunkId>;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -818,8 +810,8 @@ impl ChunkGraph {
     chunk_by_ukey: &ChunkByUkey,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
-    let mut set = IndexSet::new();
-    let mut entrypoints = IndexSet::new();
+    let mut set = FxIndexSet::default();
+    let mut entrypoints = FxIndexSet::default();
 
     let chunk = chunk_by_ukey.expect_get(chunk_ukey);
 
@@ -880,7 +872,7 @@ impl ChunkGraph {
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
     let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-    let mut set = IndexSet::new();
+    let mut set = FxIndexSet::default();
     for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
       let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
       if chunk_group.kind.is_entrypoint() {

@@ -1,11 +1,13 @@
 use std::{
-  collections::{HashMap, HashSet},
   io::{BufRead, Cursor, Read, Seek},
   sync::{Arc, Mutex},
 };
 
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use rspack_util::current_time;
+use rspack_util::{
+  current_time,
+  fx_hash::{FxHashMap, FxHashSet},
+};
 
 use crate::{
   Error, FileMetadata, IntermediateFileSystem, IntermediateFileSystemExtras, IoResultToFsResultExt,
@@ -66,7 +68,7 @@ impl FileType {
 
 #[derive(Debug, Default, Clone)]
 pub struct MemoryFileSystem {
-  files: Arc<Mutex<HashMap<Utf8PathBuf, FileType>>>,
+  files: Arc<Mutex<FxHashMap<Utf8PathBuf, FileType>>>,
 }
 
 impl MemoryFileSystem {
@@ -121,7 +123,7 @@ impl MemoryFileSystem {
     }
 
     let files = self.files.lock().expect("should get lock");
-    let mut res: HashSet<String> = HashSet::default();
+    let mut res: FxHashSet<String> = FxHashSet::default();
     for path in files.keys() {
       if let Ok(relative) = path.strip_prefix(dir)
         && let Some(s) = relative.iter().next()

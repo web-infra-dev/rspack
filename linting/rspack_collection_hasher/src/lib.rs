@@ -170,12 +170,22 @@ struct Violation {
 
 impl<'tcx> LateLintPass<'tcx> for RspackCollectionHasher {
   fn check_ty(&mut self, cx: &LateContext<'tcx>, hir_ty: &'tcx HirTy<'tcx, AmbigArg>) {
+    // `check_ty` sees every type-position HIR node, not only explicit annotations like
+    // `let x: HashMap<..>`.
+    //
+    // For example, in `IdentifierMap::with_capacity_and_hasher(..)`, the left-hand side
+    // `IdentifierMap` also shows up as a type node with HIR roughly shaped like:
+    // `TyKind::Path(QPath::TypeRelative(<lhs-ty>, <assoc-item-segment>))`.
+    //
+    // The guard sequence below is intentionally conservative: we avoid lowering HIR nodes that
+    // are not real collection type declarations, because dylint/rustc can hit delayed bugs or
+    // ICEs when omitted lifetimes or placeholder generics are involved.
     if hir_ty.span.from_expansion() {
       return;
     }
 
     let hir_ty = hir_ty.as_unambig_ty();
-    if hir_ty_has_elided_ref_lifetime(cx, hir_ty) {
+    if hir_ty_has_elided_ref_lifetime(cx, hir_ty) || hir_ty_has_implicit_object_lifetime(hir_ty) {
       return;
     }
 
@@ -387,6 +397,12 @@ fn matches_default_hasher_impl(cx: &LateContext<'_>, hasher_ty: Ty<'_>) -> bool 
 }
 
 fn direct_collection_ctor_kind(cx: &LateContext<'_>, expr: &Expr<'_>) -> Option<CollectionKind> {
+  // Only match constructor-style calls such as `Foo::new(..)` and `Foo::default(..)`,
+  // whose HIR is roughly `ExprKind::Call(<callee>, <args>)` with `<callee>` being a path.
+  //
+  // We intentionally do not call `expr_ty(expr)` here. Whole-expression type inference can
+  // walk into unrelated omitted-lifetime nodes elsewhere in the function body and trigger
+  // delayed bugs in the dylint/rustc driver.
   let ExprKind::Call(callee, _) = expr.kind else {
     return None;
   };
@@ -416,6 +432,8 @@ fn callee_uses_approved_alias(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
 
   match qpath {
     QPath::Resolved(_, path) => {
+      // Paths such as `FxHashMap::default()` usually lower to
+      // `ExprKind::Path(QPath::Resolved(..))`.
       path
         .segments
         .iter()
@@ -424,6 +442,14 @@ fn callee_uses_approved_alias(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
           .is_some_and(|path| is_approved_collection_alias_path(path.as_str()))
     }
     QPath::TypeRelative(ty, segment) => {
+      // Associated calls like `IdentifierMap::with_capacity_and_hasher(..)` or
+      // `HashMap::with_capacity_and_hasher(..)` usually lower to:
+      // `ExprKind::Path(QPath::TypeRelative(<lhs-ty>, <method-segment>))`.
+      //
+      // We have to inspect both the left-hand type node `ty` and the resolved def path to tell
+      // apart:
+      // - the real `std::collections::HashMap`
+      // - a local rename such as `use rustc_hash::FxHashMap as HashMap`
       hir_ty_maybe_collection_alias(cx, ty)
         || is_collection_alias_name(segment.ident.as_str())
         || qpath_def_path(cx, expr.hir_id, qpath)
@@ -468,6 +494,11 @@ fn direct_collection_kind(
   cx: &LateContext<'_>,
   hir_ty: &rustc_hir::Ty<'_>,
 ) -> Option<CollectionKind> {
+  // Direct type references like `HashMap<K, V>`, `IndexMap<K, V>`, or `DashMap<K, V>` usually
+  // lower to `TyKind::Path(QPath::Resolved(..))`.
+  //
+  // We prefer resolving the `def_id` directly from HIR here so we can recognize the collection
+  // without eagerly lowering the full type.
   let rustc_hir::TyKind::Path(qpath) = hir_ty.kind else {
     return None;
   };
@@ -521,6 +552,12 @@ fn hir_ty_maybe_collection_alias(cx: &LateContext<'_>, hir_ty: &rustc_hir::Ty<'_
     QPath::TypeRelative(_, segment) => Some(segment.ident.as_str()),
   };
 
+  // Check both the final source-level segment name and the resolved def path.
+  //
+  // The def path lookup is what makes renamed imports work:
+  // `use rustc_hash::FxHashMap as HashMap;`
+  // still appears as `HashMap` in HIR surface syntax, but resolves back to
+  // `rustc_hash::FxHashMap`.
   ident.is_some_and(is_collection_alias_name)
     || qpath_def_path(cx, hir_ty.hir_id, qpath)
       .is_some_and(|path| is_approved_collection_alias_path(path.as_str()))
@@ -576,12 +613,22 @@ fn qpath_def_path(
   hir_id: rustc_hir::HirId,
   qpath: QPath<'_>,
 ) -> Option<String> {
+  // `QPath` describes how the path looks in HIR syntax, while `qpath_res` answers what it
+  // actually resolved to after name resolution.
+  //
+  // Normalize both into a def-path string so alias checks can reuse the same representation.
   cx.qpath_res(&qpath, hir_id)
     .opt_def_id()
     .map(|def_id| cx.tcx.def_path_str(def_id))
 }
 
 fn hir_ty_has_elided_ref_lifetime(cx: &LateContext<'_>, hir_ty: &rustc_hir::Ty<'_>) -> bool {
+  // We intentionally inspect the source snippet instead of chasing the full lifetime HIR.
+  //
+  // The only question we need to answer is conservative: does this type contain an elided
+  // reference lifetime like `&T` or `&mut T`? If yes, further lowering has been prone to
+  // delayed bugs in the dylint/rustc driver, so skipping that node is safer than crashing the
+  // whole lint run.
   let Ok(snippet) = cx.tcx.sess.source_map().span_to_snippet(hir_ty.span) else {
     return false;
   };
@@ -604,11 +651,48 @@ fn hir_ty_has_elided_ref_lifetime(cx: &LateContext<'_>, hir_ty: &rustc_hir::Ty<'
   false
 }
 
+fn hir_ty_has_implicit_object_lifetime<'tcx, A>(hir_ty: &rustc_hir::Ty<'tcx, A>) -> bool {
+  match hir_ty.kind {
+    // `dyn Trait` lowers to `TyKind::TraitObject(.., TaggedRef<Lifetime, TraitObjectSyntax>)`.
+    // When the object lifetime is omitted, the tagged lifetime carries
+    // `LifetimeKind::ImplicitObjectLifetimeDefault`.
+    rustc_hir::TyKind::TraitObject(_, lifetime) => {
+      matches!(
+        lifetime.pointer().kind,
+        rustc_hir::LifetimeKind::ImplicitObjectLifetimeDefault
+      )
+    }
+    rustc_hir::TyKind::Slice(inner)
+    | rustc_hir::TyKind::Array(inner, _)
+    | rustc_hir::TyKind::Pat(inner, _)
+    | rustc_hir::TyKind::Ptr(rustc_hir::MutTy { ty: inner, .. })
+    | rustc_hir::TyKind::Ref(_, rustc_hir::MutTy { ty: inner, .. }) => {
+      hir_ty_has_implicit_object_lifetime(inner)
+    }
+    rustc_hir::TyKind::UnsafeBinder(binder) => hir_ty_has_implicit_object_lifetime(binder.inner_ty),
+    rustc_hir::TyKind::Tup(tys) => tys.iter().any(hir_ty_has_implicit_object_lifetime),
+    rustc_hir::TyKind::Path(qpath) => qpath_has_implicit_object_lifetime(qpath),
+    _ => false,
+  }
+}
+
 fn qpath_has_placeholder(qpath: QPath<'_>) -> bool {
   match qpath {
     QPath::Resolved(_, path) => path.segments.iter().any(path_segment_has_placeholder),
     QPath::TypeRelative(ty, segment) => {
       hir_ty_has_placeholder(ty) || path_segment_has_placeholder(segment)
+    }
+  }
+}
+
+fn qpath_has_implicit_object_lifetime(qpath: QPath<'_>) -> bool {
+  match qpath {
+    QPath::Resolved(_, path) => path
+      .segments
+      .iter()
+      .any(path_segment_has_implicit_object_lifetime),
+    QPath::TypeRelative(ty, segment) => {
+      hir_ty_has_implicit_object_lifetime(ty) || path_segment_has_implicit_object_lifetime(segment)
     }
   }
 }
@@ -619,11 +703,29 @@ fn path_segment_has_placeholder(segment: &rustc_hir::PathSegment<'_>) -> bool {
     .is_some_and(|args| args.args.iter().any(generic_arg_has_placeholder))
 }
 
+fn path_segment_has_implicit_object_lifetime(segment: &rustc_hir::PathSegment<'_>) -> bool {
+  segment.args.is_some_and(|args| {
+    args
+      .args
+      .iter()
+      .any(generic_arg_has_implicit_object_lifetime)
+  })
+}
+
 fn generic_arg_has_placeholder(arg: &rustc_hir::GenericArg<'_>) -> bool {
   match arg {
     rustc_hir::GenericArg::Type(ty) => hir_ty_has_placeholder(ty),
     rustc_hir::GenericArg::Infer(_) => true,
     rustc_hir::GenericArg::Lifetime(_) | rustc_hir::GenericArg::Const(_) => false,
+  }
+}
+
+fn generic_arg_has_implicit_object_lifetime(arg: &rustc_hir::GenericArg<'_>) -> bool {
+  match arg {
+    rustc_hir::GenericArg::Type(ty) => hir_ty_has_implicit_object_lifetime(ty),
+    rustc_hir::GenericArg::Infer(_)
+    | rustc_hir::GenericArg::Lifetime(_)
+    | rustc_hir::GenericArg::Const(_) => false,
   }
 }
 
