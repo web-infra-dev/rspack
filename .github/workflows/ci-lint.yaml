@@ -48,6 +48,8 @@ jobs:
 
       - name: Pnpm Install
         uses: ./.github/actions/pnpm/install-dependencies
+        with:
+          frozen-lockfile: true
 
       - name: Lint js
         if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
@@ -76,19 +78,6 @@ jobs:
         with:
           files: .
 
-  pnpm_lockfile_check:
-    name: Pnpm Lockfile Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          frozen-lockfile: true
   lint_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
     # When code changed, it will check if any of the test jobs failed.
