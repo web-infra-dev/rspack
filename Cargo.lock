@@ -5242,6 +5242,7 @@ dependencies = [
  "micromegas-perfetto",
  "prost",
  "rspack-allocative",
+ "rustc-hash",
  "tracing",
  "tracing-subscriber",
 ]
@@ -5256,6 +5257,7 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "dashmap 6.1.0",
+ "hashlink",
  "indexmap",
  "itoa",
  "json-escape-simd",
