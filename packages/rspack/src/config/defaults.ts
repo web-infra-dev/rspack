@@ -1133,7 +1133,7 @@ const getResolveDefaults = ({
     if (targetProperties.electron) conditions.push('electron');
     if (targetProperties.nwjs) conditions.push('nwjs');
   }
-  const jsExtensions = ['.js', '.json', '.wasm'];
+  const jsExtensions = ['.js', '.json'];
 
   const tp = targetProperties;
 
