@@ -109,7 +109,7 @@ impl RuntimeSpec {
       Some(EntryRuntime::String(s)) => Some(s.as_str().into()),
       _ => options.name.clone(),
     };
-    r.map(|r| Self::from_iter([r.to_string().into()]))
+    r.map(|r| Self::from_iter([r.into()]))
   }
 
   pub fn subtract(&self, b: &RuntimeSpec) -> Self {

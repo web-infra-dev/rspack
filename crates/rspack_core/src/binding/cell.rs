@@ -123,8 +123,8 @@ mod napi_binding {
           }
           HeapVariant::Assets(assets) => {
             let binding_cell = BindingCell {
-              ptr: assets.as_ref() as *const FxHashMap<String, CompilationAsset>
-                as *mut FxHashMap<String, CompilationAsset>,
+              ptr: assets.as_ref() as *const FxHashMap<Arc<str>, CompilationAsset>
+                as *mut FxHashMap<Arc<str>, CompilationAsset>,
               heap: heap.clone(),
             };
             let napi_val = allocator.allocate_assets(raw_env, &binding_cell)?;
@@ -165,7 +165,7 @@ mod napi_binding {
     CodeGenerationResults(Box<CodeGenerationResults>),
     CodeGenerationResult(Box<CodeGenerationResult>),
     Sources(Box<FxHashMap<SourceType, BoxSource>>),
-    Assets(Box<FxHashMap<String, CompilationAsset>>),
+    Assets(Box<FxHashMap<Arc<str>, CompilationAsset>>),
   }
 
   #[derive(Debug)]
@@ -276,11 +276,11 @@ mod napi_binding {
     }
   }
 
-  impl BindingCell<FxHashMap<String, CompilationAsset>> {
-    pub fn new(assets: FxHashMap<String, CompilationAsset>) -> Self {
+  impl BindingCell<FxHashMap<Arc<str>, CompilationAsset>> {
+    pub fn new(assets: FxHashMap<Arc<str>, CompilationAsset>) -> Self {
       let boxed = Box::new(assets);
-      let ptr = boxed.as_ref() as *const FxHashMap<String, CompilationAsset>
-        as *mut FxHashMap<String, CompilationAsset>;
+      let ptr = boxed.as_ref() as *const FxHashMap<Arc<str>, CompilationAsset>
+        as *mut FxHashMap<Arc<str>, CompilationAsset>;
       let heap = Arc::new(Heap {
         variant: HeapVariant::Assets(boxed),
         jsobject: Default::default(),
@@ -289,10 +289,10 @@ mod napi_binding {
     }
   }
 
-  impl From<FxHashMap<String, CompilationAsset>>
-    for BindingCell<FxHashMap<String, CompilationAsset>>
+  impl From<FxHashMap<Arc<str>, CompilationAsset>>
+    for BindingCell<FxHashMap<Arc<str>, CompilationAsset>>
   {
-    fn from(assets: FxHashMap<String, CompilationAsset>) -> Self {
+    fn from(assets: FxHashMap<Arc<str>, CompilationAsset>) -> Self {
       Self::new(assets)
     }
   }
@@ -422,7 +422,12 @@ mod napi_binding {
         CodeGenerationResult
       );
       deserialize_variant!(type_id, boxed, HeapVariant::Sources, FxHashMap<SourceType, BoxSource>);
-      deserialize_variant!(type_id, boxed, HeapVariant::Assets, FxHashMap<String, CompilationAsset>);
+      deserialize_variant!(
+        type_id,
+        boxed,
+        HeapVariant::Assets,
+        FxHashMap<Arc<str>, CompilationAsset>
+      );
 
       unreachable!()
     }

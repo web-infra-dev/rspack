@@ -1325,7 +1325,7 @@ impl Stats<'_> {
           .build_info()
           .assets
           .keys()
-          .map(|s| s.as_str())
+          .map(|s| s.as_ref())
           .collect_vec();
         assets.sort_unstable();
         Some(assets)

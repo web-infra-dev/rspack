@@ -458,7 +458,7 @@ impl Module {
     };
 
     module.build_info_mut().assets.insert(
-      filename,
+      filename.into(),
       rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
         info: asset_info,

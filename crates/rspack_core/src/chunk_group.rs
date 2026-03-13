@@ -409,10 +409,10 @@ impl ChunkGroupKind {
     }
   }
 
-  pub fn name(&self) -> Option<&str> {
+  pub fn name(&self) -> Option<&Arc<str>> {
     match self {
-      ChunkGroupKind::Entrypoint { options, .. } => options.name.as_deref(),
-      ChunkGroupKind::Normal { options } => options.name.as_deref(),
+      ChunkGroupKind::Entrypoint { options, .. } => options.name.as_ref(),
+      ChunkGroupKind::Normal { options } => options.name.as_ref(),
     }
   }
 }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::sys::{napi_env, napi_value};
 use once_cell::sync::OnceCell;
 use rspack_sources::BoxSource;
@@ -34,7 +36,7 @@ pub trait NapiAllocator {
   fn allocate_assets(
     &self,
     env: napi_env,
-    val: &BindingCell<FxHashMap<String, CompilationAsset>>,
+    val: &BindingCell<FxHashMap<Arc<str>, CompilationAsset>>,
   ) -> napi::Result<napi_value>;
 }
 

@@ -1555,92 +1555,92 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let loc = block.loc();
 
       let cgi = if let Some(entry_options) = entry_options {
-        let cgi =
-          if let Some(cgi) = chunk_name.and_then(|name| self.named_async_entrypoints.get(name.as_ref())) {
-            let cgi = self.chunk_group_infos.expect_get(cgi);
+        let cgi = if let Some(cgi) =
+          chunk_name.and_then(|name| self.named_async_entrypoints.get(name.as_ref()))
+        {
+          let cgi = self.chunk_group_infos.expect_get(cgi);
 
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .expect_get_mut(&cgi.chunk_group)
+            .add_origin(Some(module_id), loc, request);
+
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .connect_block_and_chunk_group(block_id, cgi.chunk_group);
+          cgi.ukey
+        } else {
+          let entry_options = entry_options.clone();
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get_mut(&chunk_ukey);
+          if let Some(filename) = &entry_options.filename {
+            chunk.set_filename_template(Some(filename.clone()));
+          }
+          let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
+            false,
+            Box::new(entry_options.clone()),
+          ));
+
+          self.stat_chunk_group_created += 1;
+          let cgi = ChunkGroupInfo::new(
+            entrypoint.ukey,
+            Arc::new(
+              RuntimeSpec::from_entry_options(&entry_options)
+                .expect("should have runtime for AsyncEntrypoint"),
+            ),
+            entry_options
+              .chunk_loading
+              .as_ref()
+              .map_or(item_chunk_group_info.chunk_loading, |x| {
+                !matches!(x, ChunkLoading::Disable)
+              }),
+            entry_options
+              .async_chunks
+              .unwrap_or(item_chunk_group_info.async_chunks),
+          );
+          let ukey = cgi.ukey;
+
+          self.chunk_group_infos.entry(ukey).or_insert(cgi);
+
+          entrypoint.set_runtime_chunk(chunk.ukey());
+          entrypoint.set_entrypoint_chunk(chunk.ukey());
+          compilation
+            .build_chunk_graph_artifact
+            .async_entrypoints
+            .push(entrypoint.ukey);
+          self.next_chunk_group_index += 1;
+          entrypoint.index = Some(self.next_chunk_group_index);
+
+          if let Some(name) = entrypoint.kind.name() {
+            self.named_async_entrypoints.insert(name.clone(), ukey);
             compilation
               .build_chunk_graph_artifact
-              .chunk_group_by_ukey
-              .expect_get_mut(&cgi.chunk_group)
-              .add_origin(Some(module_id), loc, request);
-
+              .named_chunk_groups
+              .insert(name.clone(), entrypoint.ukey);
             compilation
               .build_chunk_graph_artifact
-              .chunk_graph
-              .connect_block_and_chunk_group(block_id, cgi.chunk_group);
-            cgi.ukey
-          } else {
-            let entry_options = entry_options.clone();
-            let chunk = compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get_mut(&chunk_ukey);
-            if let Some(filename) = &entry_options.filename {
-              chunk.set_filename_template(Some(filename.clone()));
-            }
-            let mut entrypoint = ChunkGroup::new(ChunkGroupKind::new_entrypoint(
-              false,
-              Box::new(entry_options.clone()),
-            ));
+              .named_chunks
+              .insert(name.clone(), chunk.ukey());
+          }
 
-            self.stat_chunk_group_created += 1;
-            let cgi = ChunkGroupInfo::new(
-              entrypoint.ukey,
-              Arc::new(
-                RuntimeSpec::from_entry_options(&entry_options)
-                  .expect("should have runtime for AsyncEntrypoint"),
-              ),
-              entry_options
-                .chunk_loading
-                .as_ref()
-                .map_or(item_chunk_group_info.chunk_loading, |x| {
-                  !matches!(x, ChunkLoading::Disable)
-                }),
-              entry_options
-                .async_chunks
-                .unwrap_or(item_chunk_group_info.async_chunks),
-            );
-            let ukey = cgi.ukey;
+          entrypoint.connect_chunk(chunk);
 
-            self.chunk_group_infos.entry(ukey).or_insert(cgi);
+          self.chunk_group_info_map.insert(entrypoint.ukey, ukey);
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .connect_block_and_chunk_group(block_id, entrypoint.ukey);
 
-            entrypoint.set_runtime_chunk(chunk.ukey());
-            entrypoint.set_entrypoint_chunk(chunk.ukey());
-            compilation
-              .build_chunk_graph_artifact
-              .async_entrypoints
-              .push(entrypoint.ukey);
-            self.next_chunk_group_index += 1;
-            entrypoint.index = Some(self.next_chunk_group_index);
-
-            if let Some(name) = entrypoint.kind.name() {
-              let name_key: Arc<str> = Arc::from(name);
-              self.named_async_entrypoints.insert(name_key.clone(), ukey);
-              compilation
-                .build_chunk_graph_artifact
-                .named_chunk_groups
-                .insert(name_key.clone(), entrypoint.ukey);
-              compilation
-                .build_chunk_graph_artifact
-                .named_chunks
-                .insert(name_key, chunk.ukey());
-            }
-
-            entrypoint.connect_chunk(chunk);
-
-            self.chunk_group_info_map.insert(entrypoint.ukey, ukey);
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .connect_block_and_chunk_group(block_id, entrypoint.ukey);
-
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_group_by_ukey
-              .add(entrypoint);
-            ukey
-          };
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_group_by_ukey
+            .add(entrypoint);
+          ukey
+        };
 
         let cgi = self.chunk_group_infos.expect_get(&cgi);
         entrypoint = Some(cgi.chunk_group);
@@ -1714,11 +1714,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           chunk_group.index = Some(self.next_chunk_group_index);
 
           if let Some(name) = chunk_group.kind.name() {
-            self.named_chunk_groups.insert(Arc::from(name), info_ukey);
+            self.named_chunk_groups.insert(name.clone(), info_ukey);
             compilation
               .build_chunk_graph_artifact
               .named_chunk_groups
-              .insert(Arc::from(name), chunk_group.ukey);
+              .insert(name.clone(), chunk_group.ukey);
           }
 
           chunk_group.connect_chunk(chunk);

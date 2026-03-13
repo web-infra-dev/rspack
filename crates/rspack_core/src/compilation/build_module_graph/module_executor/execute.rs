@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter::once, sync::{atomic::AtomicU32, Arc}};
+use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{DatabaseItem, Identifier, IdentifierSet};
@@ -162,7 +162,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         execute_result.cacheable = false;
       }
       for (name, asset) in build_info.assets.as_ref() {
-        assets.insert(Arc::from(name.as_str()), asset.clone());
+        assets.insert(name.clone(), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {
         let diagnostics = module.diagnostics();
