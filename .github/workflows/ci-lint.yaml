@@ -83,7 +83,7 @@ jobs:
     # When code changed, it will check if any of the test jobs failed.
     # When *only* doc changed, it will run as success directly
     name: Lint Required Check
-    needs: [lint, check-changed, spell, pnpm_lockfile_check]
+    needs: [lint, check-changed, spell]
     if: ${{ always() && !cancelled() }}
     runs-on: ubuntu-latest
     steps:
