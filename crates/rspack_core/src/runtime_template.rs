@@ -1518,9 +1518,9 @@ impl<'a> RuntimeCodeTemplate<'a> {
           &self.dojang.templates,
           &self.dojang.functions,
           file_content,
-          #[expect(
-            rspack_collection_hasher,
-            reason = "third-party API requires this exact type"
+          #[cfg_attr(
+            dylint_lib = "rspack_collection_hasher",
+            allow(rspack_collection_hasher)
           )]
           &mut Mutex::new(HashMap::new()),
         )

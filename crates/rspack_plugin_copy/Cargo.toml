@@ -5,8 +5,8 @@ license           = "MIT"
 name              = "rspack_plugin_copy"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
 [dependencies]
-dashmap      = { workspace = true }
 derive_more  = { workspace = true, features = ["debug"] }
 futures      = { workspace = true }
 glob         = { workspace = true }

@@ -3529,7 +3529,6 @@ dependencies = [
  "bitflags 2.11.0",
  "derive_more",
  "enum-tag",
- "indexmap",
  "insta",
  "regex",
  "rspack_browserslist",
@@ -4285,7 +4284,6 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.100.0-beta.6"
 dependencies = [
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "glob",
@@ -4311,7 +4309,6 @@ dependencies = [
  "cow-utils",
  "css-module-lexer",
  "heck",
- "indexmap",
  "once_cell",
  "regex",
  "rspack_cacheable",
@@ -4351,7 +4348,6 @@ name = "rspack_plugin_devtool"
 version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "itertools 0.14.0",
@@ -4701,7 +4697,6 @@ version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "camino",
- "hashlink",
  "itertools 0.14.0",
  "regex",
  "rspack_cacheable",
@@ -4801,7 +4796,6 @@ dependencies = [
 name = "rspack_plugin_remove_duplicate_modules"
 version = "0.100.0-beta.6"
 dependencies = [
- "dashmap 6.1.0",
  "rayon",
  "rspack_collections",
  "rspack_core",
@@ -4860,7 +4854,6 @@ version = "0.100.0-beta.6"
 dependencies = [
  "atomic_refcell",
  "futures",
- "indexmap",
  "json",
  "rayon",
  "rspack_collections",
@@ -4924,7 +4917,6 @@ dependencies = [
  "atomic_refcell",
  "derive_more",
  "futures",
- "indexmap",
  "itertools 0.14.0",
  "regex",
  "rspack_cacheable",
@@ -4996,7 +4988,6 @@ dependencies = [
 name = "rspack_plugin_split_chunks"
 version = "0.100.0-beta.6"
 dependencies = [
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "itertools 0.14.0",
@@ -5022,7 +5013,6 @@ dependencies = [
  "cow-utils",
  "derive_more",
  "futures",
- "indexmap",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -5077,7 +5067,6 @@ version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
- "indexmap",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",

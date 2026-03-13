@@ -1,12 +1,17 @@
 //!  There are methods whose verb is `ChunkGraphChunk`
 
-use std::{collections::VecDeque, fmt, hash::Hash};
+use std::{
+  collections::VecDeque,
+  fmt,
+  hash::{BuildHasherDefault, Hash},
+};
 
 use hashlink::LinkedHashMap;
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
 use ustr::Ustr;
@@ -25,9 +30,10 @@ pub struct ChunkSizeOptions {
   pub entry_chunk_multiplicator: Option<f64>,
 }
 
-pub type ChunkIdMap<V> = FxHashMap<ChunkId, V>;
-pub type IndexChunkIdMap<V> = FxIndexMap<ChunkId, V>;
-pub type ChunkIdSet = FxHashSet<ChunkId>;
+pub type ChunkIdMap<V> =
+  std::collections::HashMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
+pub type IndexChunkIdMap<V> = IndexMap<ChunkId, V, BuildHasherDefault<IdentifierHasher>>;
+pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<IdentifierHasher>>;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -19,7 +19,6 @@ loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader
 bitflags            = { workspace = true }
 derive_more         = { workspace = true }
 enum-tag            = { workspace = true }
-indexmap            = { workspace = true, features = ["rayon"] }
 regex               = { workspace = true }
 rspack_browserslist = { workspace = true }
 rspack_core         = { workspace = true }
