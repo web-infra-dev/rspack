@@ -7,8 +7,9 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory,
+  NormalModuleDedupeTracker, ResolverFactory, RuntimeTemplate, SharedPluginDriver,
+  incremental::Incremental, module_graph::ModuleGraph,
 };
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ pub struct TaskContext {
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
+  pub normal_module_dedupe_tracker: Arc<NormalModuleDedupeTracker>,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -54,6 +56,7 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       runtime_template: RuntimeTemplate::new(compilation.options.clone()),
+      normal_module_dedupe_tracker: Default::default(),
       artifact,
       exports_info_artifact,
     }

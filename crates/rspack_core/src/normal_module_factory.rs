@@ -584,6 +584,23 @@ module.exports = "data:,";
     {
       module
     } else {
+      let module_identifier = ModuleIdentifier::from(
+        NormalModule::create_id(
+          &resolved_module_type,
+          resolved_module_layer.as_ref(),
+          &create_data.request,
+        )
+        .as_ref(),
+      );
+      if let Some(module_identifier) = data.normal_module_dedupe_tracker.claim(module_identifier) {
+        data.add_file_dependencies(file_dependencies);
+        data.add_missing_dependencies(missing_dependencies);
+        return Ok(Some(ModuleFactoryResult::new_with_normal_module_dedup(
+          module_identifier,
+        )));
+      }
+      data.claimed_normal_module_identifier = Some(module_identifier);
+
       NormalModule::new(
         create_data.request.clone(),
         create_data.user_request.clone(),
@@ -603,12 +620,15 @@ module.exports = "data:,";
       .boxed()
     };
 
-    self
+    let module_hook_result = self
       .plugin_driver
       .normal_module_factory_hooks
       .module
       .call(data, &mut create_data, &mut module)
-      .await?;
+      .await;
+    if let Err(err) = module_hook_result {
+      return Err(err);
+    }
 
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);

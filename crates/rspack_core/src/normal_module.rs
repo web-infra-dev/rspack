@@ -156,7 +156,7 @@ pub struct NormalModule {
 static DEBUG_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl NormalModule {
-  fn create_id<'request>(
+  pub(crate) fn create_id<'request>(
     module_type: &ModuleType,
     layer: Option<&ModuleLayer>,
     request: &'request str,

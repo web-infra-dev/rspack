@@ -1,12 +1,98 @@
 use std::{fmt::Debug, sync::Arc};
 
+use dashmap::mapref::entry::Entry;
+use rspack_collections::IdentifierDashMap;
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
-  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory,
+  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo,
+  ModuleIdentifier, ModuleLayer, Resolve, ResolverFactory,
 };
+
+#[derive(Debug)]
+pub struct NormalModuleDedupeWaiter {
+  pub original_module_identifier: Option<ModuleIdentifier>,
+  pub dependencies: Vec<BoxDependency>,
+  pub factorize_info: FactorizeInfo,
+  pub from_unlazy: bool,
+}
+
+#[derive(Debug, Default)]
+struct NormalModuleDedupeEntry {
+  ready: bool,
+  waiters: Vec<NormalModuleDedupeWaiter>,
+}
+
+#[derive(Debug, Default)]
+pub struct NormalModuleDedupeTracker {
+  entries: IdentifierDashMap<NormalModuleDedupeEntry>,
+}
+
+impl NormalModuleDedupeTracker {
+  pub fn claim(&self, module_identifier: ModuleIdentifier) -> Option<ModuleIdentifier> {
+    match self.entries.entry(module_identifier) {
+      Entry::Occupied(entry) => Some(*entry.key()),
+      Entry::Vacant(entry) => {
+        entry.insert(Default::default());
+        None
+      }
+    }
+  }
+
+  pub fn register_waiter_or_get_ready(
+    &self,
+    module_identifier: ModuleIdentifier,
+    waiter: NormalModuleDedupeWaiter,
+  ) -> Option<NormalModuleDedupeWaiter> {
+    match self.entries.entry(module_identifier) {
+      Entry::Occupied(mut entry) => {
+        let entry = entry.get_mut();
+        if entry.ready {
+          Some(waiter)
+        } else {
+          entry.waiters.push(waiter);
+          None
+        }
+      }
+      Entry::Vacant(entry) => {
+        entry.insert(NormalModuleDedupeEntry {
+          ready: true,
+          waiters: vec![],
+        });
+        Some(waiter)
+      }
+    }
+  }
+
+  pub fn mark_ready(&self, module_identifier: ModuleIdentifier) -> Vec<NormalModuleDedupeWaiter> {
+    match self.entries.entry(module_identifier) {
+      Entry::Occupied(mut entry) => {
+        let entry = entry.get_mut();
+        entry.ready = true;
+        std::mem::take(&mut entry.waiters)
+      }
+      Entry::Vacant(entry) => {
+        entry.insert(NormalModuleDedupeEntry {
+          ready: true,
+          waiters: vec![],
+        });
+        vec![]
+      }
+    }
+  }
+
+  pub fn take_waiters_and_clear(
+    &self,
+    module_identifier: ModuleIdentifier,
+  ) -> Vec<NormalModuleDedupeWaiter> {
+    self
+      .entries
+      .remove(&module_identifier)
+      .map(|(_, entry)| entry.waiters)
+      .unwrap_or_default()
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct ModuleFactoryCreateData {
@@ -20,7 +106,9 @@ pub struct ModuleFactoryCreateData {
   pub issuer: Option<Box<str>>,
   pub issuer_identifier: Option<ModuleIdentifier>,
   pub issuer_layer: Option<ModuleLayer>,
+  pub claimed_normal_module_identifier: Option<ModuleIdentifier>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub normal_module_dedupe_tracker: Arc<NormalModuleDedupeTracker>,
 
   pub file_dependencies: ArcPathSet,
   pub context_dependencies: ArcPathSet,
@@ -69,12 +157,21 @@ impl ModuleFactoryCreateData {
 #[derive(Debug, Default)]
 pub struct ModuleFactoryResult {
   pub module: Option<BoxModule>,
+  pub normal_module_dedup: Option<ModuleIdentifier>,
 }
 
 impl ModuleFactoryResult {
   pub fn new_with_module(module: BoxModule) -> Self {
     Self {
       module: Some(module),
+      normal_module_dedup: None,
+    }
+  }
+
+  pub fn new_with_normal_module_dedup(module_identifier: ModuleIdentifier) -> Self {
+    Self {
+      module: None,
+      normal_module_dedup: Some(module_identifier),
     }
   }
 

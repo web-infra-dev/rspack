@@ -109,6 +109,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         resolve_options: module.get_resolve_options(),
         options: context.compiler_options.clone(),
         resolver_factory: context.resolver_factory.clone(),
+        normal_module_dedupe_tracker: context.normal_module_dedupe_tracker.clone(),
         from_unlazy,
       }));
     }

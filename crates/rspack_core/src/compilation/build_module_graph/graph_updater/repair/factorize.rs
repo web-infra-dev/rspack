@@ -3,16 +3,16 @@ use std::sync::Arc;
 use rspack_error::Diagnostic;
 use rspack_sources::BoxSource;
 
-use super::{TaskContext, add::AddTask};
+use super::{
+  TaskContext,
+  add::{AddTask, ReuseNormalModuleTask, apply_factorize_info},
+};
 use crate::{
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
-  ResolverFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  NormalModuleDedupeTracker, NormalModuleDedupeWaiter, Resolve, ResolverFactory,
   module_graph::ModuleGraphModule,
-  utils::{
-    ResourceId,
-    task_loop::{Task, TaskResult, TaskType},
-  },
+  utils::task_loop::{Task, TaskResult, TaskType},
 };
 
 #[derive(Debug)]
@@ -29,6 +29,7 @@ pub struct FactorizeTask {
   pub resolve_options: Option<Arc<Resolve>>,
   pub options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
+  pub normal_module_dedupe_tracker: Arc<NormalModuleDedupeTracker>,
   pub from_unlazy: bool,
 }
 
@@ -80,7 +81,9 @@ impl Task<TaskContext> for FactorizeTask {
       issuer: self.issuer,
       issuer_identifier: self.original_module_identifier,
       issuer_layer,
+      claimed_normal_module_identifier: None,
       resolver_factory: self.resolver_factory,
+      normal_module_dedupe_tracker: self.normal_module_dedupe_tracker,
 
       file_dependencies: Default::default(),
       missing_dependencies: Default::default(),
@@ -109,6 +112,10 @@ impl Task<TaskContext> for FactorizeTask {
       }
     };
 
+    let normal_module_dedup = factory_result
+      .as_ref()
+      .and_then(|result| result.normal_module_dedup);
+
     let factorize_info = FactorizeInfo::new(
       create_data.diagnostics,
       create_data
@@ -120,13 +127,41 @@ impl Task<TaskContext> for FactorizeTask {
       create_data.context_dependencies,
       create_data.missing_dependencies,
     );
-    Ok(vec![Box::new(FactorizeResultTask {
+
+    let factorize_failed = factory_result.is_none();
+    let waiter_failure_info = factorize_failed.then_some(factorize_info.clone());
+    let claimed_normal_module_identifier = create_data.claimed_normal_module_identifier;
+
+    let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
+      normal_module_dedup,
       dependencies: create_data.dependencies,
       factorize_info,
       from_unlazy: self.from_unlazy,
-    })])
+    })];
+
+    if factorize_failed
+      && let Some(module_identifier) = claimed_normal_module_identifier
+      && let Some(waiter_failure_info) = waiter_failure_info.as_ref()
+    {
+      for waiter in create_data
+        .normal_module_dedupe_tracker
+        .take_waiters_and_clear(module_identifier)
+      {
+        let factorize_info = clone_factorize_failure_info(waiter_failure_info, &waiter);
+        tasks.push(Box::new(FactorizeResultTask {
+          original_module_identifier: waiter.original_module_identifier,
+          factory_result: None,
+          normal_module_dedup: None,
+          dependencies: waiter.dependencies,
+          factorize_info,
+          from_unlazy: waiter.from_unlazy,
+        }));
+      }
+    }
+
+    Ok(tasks)
   }
 }
 
@@ -136,9 +171,42 @@ pub struct FactorizeResultTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
+  pub normal_module_dedup: Option<ModuleIdentifier>,
   pub dependencies: Vec<BoxDependency>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
+}
+
+#[derive(Debug)]
+pub struct PendingNormalModuleDedupeTask;
+
+#[async_trait::async_trait]
+impl Task<TaskContext> for PendingNormalModuleDedupeTask {
+  fn get_task_type(&self) -> TaskType {
+    TaskType::Main
+  }
+
+  async fn main_run(self: Box<Self>, _context: &mut TaskContext) -> TaskResult<TaskContext> {
+    Ok(vec![])
+  }
+}
+
+fn clone_factorize_failure_info(
+  factorize_info: &FactorizeInfo,
+  waiter: &NormalModuleDedupeWaiter,
+) -> FactorizeInfo {
+  let mut diagnostics = factorize_info.diagnostics().to_vec();
+  if let Some(diagnostic) = diagnostics.first_mut() {
+    diagnostic.loc = waiter.dependencies[0].loc();
+  }
+
+  FactorizeInfo::new(
+    diagnostics,
+    waiter.dependencies.iter().map(|dep| *dep.id()).collect(),
+    waiter.factorize_info.file_dependencies().clone(),
+    waiter.factorize_info.context_dependencies().clone(),
+    waiter.factorize_info.missing_dependencies().clone(),
+  )
 }
 
 #[async_trait::async_trait]
@@ -150,45 +218,38 @@ impl Task<TaskContext> for FactorizeResultTask {
     let FactorizeResultTask {
       original_module_identifier,
       factory_result,
+      normal_module_dedup,
       mut dependencies,
       mut factorize_info,
       from_unlazy,
     } = *self;
 
-    let artifact = &mut context.artifact;
-    if !factorize_info.is_success() {
-      artifact
-        .make_failed_dependencies
-        .insert(*dependencies[0].id());
-    }
-    let resource_id = ResourceId::from(*dependencies[0].id());
-    artifact
-      .file_dependencies
-      .add_files(&resource_id, factorize_info.file_dependencies());
-    artifact
-      .context_dependencies
-      .add_files(&resource_id, factorize_info.context_dependencies());
-    artifact
-      .missing_dependencies
-      .add_files(&resource_id, factorize_info.missing_dependencies());
-
-    for dep in &mut dependencies {
-      // Some dependencies do not come from the process_dependencies task,
-      // so add all dependencies here.
-      artifact.affected_dependencies.mark_as_add(dep.id());
-
-      let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
-        d.factorize_info_mut()
-      } else if let Some(d) = dep.as_module_dependency_mut() {
-        d.factorize_info_mut()
-      } else {
-        unreachable!("only module dependency and context dependency can factorize")
+    if let Some(module_identifier) = normal_module_dedup {
+      let waiter = NormalModuleDedupeWaiter {
+        original_module_identifier,
+        dependencies,
+        factorize_info,
+        from_unlazy,
       };
-      // write factorize_info to dependencies[0] and set success factorize_info to others
-      *dep_factorize_info = std::mem::take(&mut factorize_info);
+      if let Some(waiter) = context
+        .normal_module_dedupe_tracker
+        .register_waiter_or_get_ready(module_identifier, waiter)
+      {
+        return Ok(vec![Box::new(ReuseNormalModuleTask::from_waiter(
+          module_identifier,
+          waiter,
+        ))]);
+      }
+      return Ok(vec![Box::new(PendingNormalModuleDedupeTask)]);
     }
 
-    let module_graph = artifact.get_module_graph_mut();
+    apply_factorize_info(
+      &mut context.artifact,
+      &mut dependencies,
+      &mut factorize_info,
+    );
+
+    let module_graph = context.artifact.get_module_graph_mut();
     let Some(factory_result) = factory_result else {
       let dep = &dependencies[0];
       tracing::trace!("Module created with failure, but without bailout: {dep:?}");

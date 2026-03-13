@@ -351,6 +351,7 @@ impl ContextModuleFactory {
 
     let module_factory_result = ModuleFactoryResult {
       module: Some(module),
+      normal_module_dedup: None,
     };
     Ok((module_factory_result, context_module_options))
   }
