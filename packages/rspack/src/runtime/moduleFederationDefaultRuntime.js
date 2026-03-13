@@ -109,7 +109,9 @@ export default function () {
                 eager: data.eager,
                 layer: data.layer,
               },
-              scope: [data.shareScope],
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
             },
             shareKey: data.shareKey,
             treeShaking: __webpack_require__.federation.sharedFallback
