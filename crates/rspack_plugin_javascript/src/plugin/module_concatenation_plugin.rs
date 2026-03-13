@@ -394,10 +394,9 @@ impl ModuleConcatenationPlugin {
           if let Some(origin_runtime) = module_cache.get(origin_module).map(|m| &m.runtime) {
             !runtime.is_disjoint(origin_runtime)
           } else {
-            let mut origin_runtime = RuntimeSpec::default();
-            for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
-              origin_runtime.extend(r);
-            }
+            let origin_runtime = RuntimeSpec::from_runtimes(
+              chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
+            );
             !runtime.is_disjoint(&origin_runtime)
           }
         } else {
@@ -1083,17 +1082,15 @@ impl ModuleConcatenationPlugin {
         let module = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
-        let mut runtime = RuntimeSpec::default();
-        for r in compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_module_runtimes_iter(
-            module_id,
-            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          )
-        {
-          runtime.extend(r);
-        }
+        let runtime = RuntimeSpec::from_runtimes(
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_runtimes_iter(
+              module_id,
+              &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+            ),
+        );
 
         let _ = get_cached_readable_identifier(
           &module_id,
