@@ -1,6 +1,6 @@
 import type { Compiler } from '../Compiler';
 import type { ExternalsType } from '../config';
-import type { SharedConfig } from '../sharing/SharePlugin';
+import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
 import { isRequiredVersion } from '../sharing/utils';
 import {
   type ManifestExposeOption,
@@ -132,7 +132,7 @@ interface RemoteInfo {
   name?: string;
   entry?: string;
   externalType: ExternalsType;
-  shareScope: string;
+  shareScope: ShareScope;
 }
 
 type RemoteInfos = Record<string, RemoteInfo[]>;
