@@ -330,7 +330,7 @@ fn key_flavor(cx: &LateContext<'_>, key_ty: Ty<'_>) -> KeyFlavor {
   };
 
   let path = cx.tcx.def_path_str(def.did());
-  if path.ends_with("::Ustr") {
+  if path.ends_with("::Ustr") || path.ends_with("::ChunkId") {
     KeyFlavor::Ustr
   } else if path.contains("rspack_collections") && path.ends_with("::Identifier") {
     KeyFlavor::Identifier
