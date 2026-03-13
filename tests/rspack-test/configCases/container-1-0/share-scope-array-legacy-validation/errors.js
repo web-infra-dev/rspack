@@ -1,3 +1,3 @@
 module.exports = [
-  /\[ContainerPlugin\] Multiple share scopes are only supported in enhanced mode\./,
+  /\[ContainerPlugin\] shareScope as an array with multiple entries requires enhanced=true/,
 ];

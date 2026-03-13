@@ -38,6 +38,10 @@ fn tag_dynamic_import_referenced(
 ) {
   let import_span = import_call.span();
   parser.dynamic_import_references.add_import(import_span);
+  parser
+    .dynamic_import_references
+    .get_import_mut_expect(&import_span)
+    .variable_name = Some(variable_name.clone());
   parser.tag_variable(
     variable_name,
     DYNAMIC_IMPORT_TAG,
@@ -69,12 +73,13 @@ impl ImportsReferencesState {
 
   fn take_all_import_references(
     &mut self,
-  ) -> impl Iterator<Item = (ImportDependencyLocator, Vec<Vec<Atom>>)> + use<> {
+  ) -> impl Iterator<Item = (ImportDependencyLocator, Option<Atom>, Vec<Vec<Atom>>)> + use<> {
     let inner = std::mem::take(&mut self.inner);
     inner.into_values().filter_map(|value| {
       value.dep_locator.map(|locator| {
         (
           locator,
+          value.variable_name,
           value
             .references
             .into_iter()
@@ -89,6 +94,7 @@ impl ImportsReferencesState {
 #[derive(Debug, Default)]
 struct ImportReferences {
   dep_locator: Option<ImportDependencyLocator>,
+  variable_name: Option<Atom>,
   references: Vec<AtomMembers>,
 }
 
@@ -486,10 +492,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   }
 
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    for (locator, references) in parser
+    for (locator, variable_name, mut references) in parser
       .dynamic_import_references
       .take_all_import_references()
     {
+      // If the import result is assigned to a variable that is also an ESM
+      // named export, importers may access arbitrary properties on it. In that
+      // case the entire module must be considered referenced.
+      if let Some(variable_name) = variable_name
+        && parser.build_info.esm_named_exports.contains(&variable_name)
+      {
+        references.push(vec![]);
+      }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)
       {

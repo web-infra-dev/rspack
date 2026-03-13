@@ -1,9 +1,9 @@
 ```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-import { __webpack_require__ } from "./runtime.mjs";
 // node:fs
 const external_node_fs_namespaceObject = __rspack_createRequire_require("node:fs");
 

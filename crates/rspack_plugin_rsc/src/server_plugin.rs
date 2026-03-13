@@ -8,31 +8,30 @@ use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
   BoxDependency, ChunkByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilationChunkIds,
-  CompilationParams, CompilationRuntimeRequirementInTree, CompilerDone, CompilerFailed,
-  CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId, EntryDependency,
-  EntryOptions, Logger, Plugin, RuntimeGlobals, RuntimeModule, RuntimeSpec, get_entry_runtime,
+  CompilationParams, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerDone,
+  CompilerFailed, CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId,
+  DependencyType, EntryDependency, EntryOptions, Logger, Plugin, RuntimeGlobals, RuntimeModule,
+  RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
-use serde_json::json;
 
 use crate::{
   component_info::{
     ClientComponentImports, CssImports, collect_component_info_from_entry_dependency,
   },
-  constants::LAYERS_NAMES,
+  constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
   hot_reloader::track_server_component_changes,
-  loaders::{
-    action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
-    client_entry_loader::CLIENT_ENTRY_LOADER_IDENTIFIER,
-  },
+  loaders::action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
   manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{ActionIdNamePair, ClientModuleImport, PLUGIN_STATES, PluginState},
   reference_manifest::{
     RscEntryManifest, RscManifest, build_server_consumer_module_map, build_server_manifest,
   },
+  rsc_entry_dependency::RscEntryDependency,
+  rsc_entry_module_factory::RscEntryModuleFactory,
 };
 
 #[derive(Debug)]
@@ -118,6 +117,16 @@ async fn this_compilation(
   Ok(())
 }
 
+#[plugin_hook(CompilerCompilation for RscServerPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(DependencyType::RscEntry, Arc::new(RscEntryModuleFactory));
+  Ok(())
+}
+
 #[plugin_hook(CompilerFinishMake for RscServerPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.RscServerPlugin");
@@ -195,6 +204,7 @@ impl Plugin for RscServerPlugin {
       .this_compilation
       .tap(this_compilation::new(self));
 
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx.compiler_hooks.done.tap(done::new(self));
     ctx.compiler_hooks.failed.tap(failed::new(self));
 
@@ -432,7 +442,7 @@ impl RscServerPlugin {
 
   async fn inject_client_entry_and_ssr_modules(
     &self,
-    compilation: &Compilation,
+    _compilation: &Compilation,
     client_entry: ClientEntry,
     should_inject_ssr_modules: bool,
     plugin_state: &mut PluginState,
@@ -450,7 +460,7 @@ impl RscServerPlugin {
       for request in merged_css_imports {
         modules.push(ClientModuleImport {
           request: request.clone(),
-          ids: vec![],
+          ids: Default::default(),
         });
       }
 
@@ -468,43 +478,29 @@ impl RscServerPlugin {
       modules
     };
 
-    let client_server_loader = {
-      let mut serializer = form_urlencoded::Serializer::new(String::new());
-      for (request, ids) in &client_imports {
-        #[allow(clippy::unwrap_used)]
-        let module_json = serde_json::to_string(&json!({
-            "request": request,
-            "ids": ids
-        }))
-        .unwrap();
-        serializer.append_pair("modules", &module_json);
-      }
-      serializer.append_pair("server", "true");
-      format!(
-        "{}?{}!",
-        CLIENT_ENTRY_LOADER_IDENTIFIER,
-        serializer.finish()
-      )
-    };
-
     // Add for the client compilation
     // Inject the entry to the client compiler.
     plugin_state
       .entries
       .entry(entry_name.clone())
       .or_default()
-      .injected_client_entries = client_entries;
+      .injected_client_entries = client_entries.clone();
 
     if !should_inject_ssr_modules {
       return None;
     }
 
-    let ssr_entry_dependency = EntryDependency::new(
-      client_server_loader,
-      compilation.options.context.clone(),
-      Some(LAYERS_NAMES.server_side_rendering.to_string()),
-      false,
-    );
+    // For SSR, filter out CSS (server does not need CSS in the eager entry).
+    let client_entries_for_ssr: Vec<ClientModuleImport> = client_entries
+      .iter()
+      .filter(|m| !CSS_REGEX.is_match(&m.request))
+      .map(|m| ClientModuleImport {
+        request: m.request.clone(),
+        ids: m.ids.clone(),
+      })
+      .collect();
+    let ssr_entry_dependency =
+      RscEntryDependency::new(entry_name.clone(), client_entries_for_ssr, true);
     let dependency_id = *(ssr_entry_dependency.id());
     Some(InjectedSsrEntry {
       runtime,
@@ -512,6 +508,7 @@ impl RscServerPlugin {
         Box::new(ssr_entry_dependency),
         EntryOptions {
           name: Some(entry_name.to_string()),
+          layer: Some(LAYERS_NAMES.server_side_rendering.to_string()),
           ..Default::default()
         },
       ),

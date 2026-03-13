@@ -7,6 +7,7 @@ use rspack_core::{
   DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier, RuntimeSpec,
 };
+use rspack_util::fx_hash::FxIndexSet;
 use swc_core::atoms::Atom;
 
 #[cacheable]
@@ -15,13 +16,18 @@ pub struct ClientReferenceDependency {
   id: DependencyId,
   request: String,
   #[cacheable(with=AsVec<AsPreset>)]
-  referenced_exports: Vec<Atom>,
+  referenced_exports: FxIndexSet<Atom>,
+  is_server_side_rendering: bool,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
 impl ClientReferenceDependency {
-  pub fn new(request: String, referenced_exports: Vec<Atom>) -> Self {
+  pub fn new(
+    request: String,
+    referenced_exports: FxIndexSet<Atom>,
+    is_server_side_rendering: bool,
+  ) -> Self {
     let resource_identifier = format!("rsc-client-reference={request}").into();
     Self {
       id: DependencyId::new(),
@@ -29,6 +35,7 @@ impl ClientReferenceDependency {
       referenced_exports,
       resource_identifier,
       factorize_info: Default::default(),
+      is_server_side_rendering,
     }
   }
 }
@@ -63,7 +70,7 @@ impl Dependency for ClientReferenceDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![ExtendedReferencedExport::Export(ReferencedExport::new(
-      self.referenced_exports.clone(),
+      self.referenced_exports.iter().cloned().collect(),
       false,
       false,
     ))]
