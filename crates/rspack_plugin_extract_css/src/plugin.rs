@@ -199,7 +199,7 @@ impl PluginCssExtract {
 
         sorted_module
       })
-      .collect::<Vec<Vec<(ModuleIdentifier, usize)>>>();
+      .collect::<Vec<Vec<(ModuleIdentifier, u32)>>>();
 
     let mut used_modules: IdentifierSet = Default::default();
     let mut result: Vec<&dyn Module> = Default::default();

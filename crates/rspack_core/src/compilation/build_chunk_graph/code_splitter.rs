@@ -1082,7 +1082,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module_identifier: ModuleIdentifier,
     runtime: Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
-    ctx: &mut (usize, usize, IndexMap<ModuleIdentifier, (usize, usize)>),
+    ctx: &mut (u32, u32, IndexMap<ModuleIdentifier, (u32, u32)>),
     compilation: &Compilation,
   ) {
     if !visited.insert(module_identifier) {

@@ -856,8 +856,8 @@ impl CodeSplitter {
 #[derive(Debug, Clone)]
 struct CacheResult {
   pub modules: Vec<ModuleIdentifier>,
-  pub pre_order_indices: IdentifierMap<usize>,
-  pub post_order_indices: IdentifierMap<usize>,
+  pub pre_order_indices: IdentifierMap<u32>,
+  pub post_order_indices: IdentifierMap<u32>,
   pub skipped_modules: IdentifierIndexSet,
   pub outgoings: std::collections::HashSet<
     AsyncDependenciesBlockIdentifier,
