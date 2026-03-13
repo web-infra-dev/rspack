@@ -168,6 +168,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           file: String::new(),
           id: compose_id_with_separator(&container_name, &expose_name),
           name: expose_name,
+              layer: None,
           requires: Vec::new(),
           assets: StatsAssetsGroup::default(),
         }
@@ -279,6 +280,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               file: String::new(),
               id: id_comp,
               name: expose_name,
+              layer: options.layer.as_ref().map(ToString::to_string),
               requires: Vec::new(),
               assets: StatsAssetsGroup::default(),
             });
@@ -648,6 +650,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         id: e.id,
         name: e.name,
         path: e.path,
+        layer: e.layer,
         assets: e.assets,
       })
       .collect(),

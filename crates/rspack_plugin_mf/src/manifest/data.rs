@@ -35,6 +35,8 @@ pub struct StatsExpose {
   pub file: String,
   pub id: String,
   pub name: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   #[serde(default)]
   pub requires: Vec<String>,
   #[serde(default)]
@@ -112,6 +114,8 @@ pub struct ManifestExpose {
   pub id: String,
   pub name: String,
   pub path: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   pub assets: StatsAssetsGroup,
 }
 
