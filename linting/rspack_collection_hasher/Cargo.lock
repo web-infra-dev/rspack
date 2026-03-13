@@ -2048,9 +2048,7 @@ dependencies = [
  "dashmap",
  "hashlink",
  "indexmap",
- "rayon",
  "rspack_cacheable",
- "rustc-hash",
  "serde",
  "ustr-fxhash",
 ]

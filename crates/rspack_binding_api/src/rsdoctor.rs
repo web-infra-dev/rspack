@@ -13,6 +13,7 @@ use rspack_plugin_rsdoctor::{
   RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSourcePosition, RsdoctorSourceRange,
   RsdoctorStatement, RsdoctorVariable,
 };
+use rustc_hash::FxHashSet;
 
 #[napi(object)]
 pub struct JsRsdoctorModule {
@@ -582,27 +583,27 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
 
     Self {
       module_graph_features: match value.module_graph_features {
-        Either::A(true) => HashSet::from([
+        Either::A(true) => FxHashSet::from_iter([
           RsdoctorPluginModuleGraphFeature::ModuleGraph,
           RsdoctorPluginModuleGraphFeature::ModuleIds,
           RsdoctorPluginModuleGraphFeature::ModuleSources,
         ]),
-        Either::A(false) => HashSet::new(),
+        Either::A(false) => FxHashSet::default(),
         Either::B(features) => features
           .into_iter()
           .map(RsdoctorPluginModuleGraphFeature::from)
-          .collect::<HashSet<_>>(),
+          .collect::<FxHashSet<_>>(),
       },
       chunk_graph_features: match value.chunk_graph_features {
-        Either::A(true) => HashSet::from([
+        Either::A(true) => FxHashSet::from_iter([
           RsdoctorPluginChunkGraphFeature::ChunkGraph,
           RsdoctorPluginChunkGraphFeature::Assets,
         ]),
-        Either::A(false) => HashSet::new(),
+        Either::A(false) => FxHashSet::default(),
         Either::B(features) => features
           .into_iter()
           .map(RsdoctorPluginChunkGraphFeature::from)
-          .collect::<HashSet<_>>(),
+          .collect::<FxHashSet<_>>(),
       },
       source_map_features,
     }

@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rspack_cacheable::with::{AsPreset, AsVec};
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
-use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxDashMap, FxIndexSet},
+};
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
@@ -54,4 +56,4 @@ impl PluginState {
   }
 }
 
-pub static PLUGIN_STATES: Lazy<DashMap<CompilerId, PluginState>> = Lazy::new(Default::default);
+pub static PLUGIN_STATES: Lazy<FxDashMap<CompilerId, PluginState>> = Lazy::new(Default::default);

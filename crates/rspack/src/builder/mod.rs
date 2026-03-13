@@ -9,6 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
+use rspack_util::fx_hash::FxIndexMap;
 pub use target::Targets;
 
 macro_rules! d {
@@ -39,7 +40,6 @@ use builder_context::BuiltinPluginOptions;
 use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
-use indexmap::IndexMap;
 use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
@@ -569,7 +569,7 @@ pub struct CompilerOptionsBuilder {
   /// The environment in which the code should run.
   target: Option<Targets>,
   /// The entry point of the application.
-  entry: IndexMap<String, EntryDescription>,
+  entry: FxIndexMap<String, EntryDescription>,
   /// External libraries that should not be bundled.
   externals: Option<Vec<ExternalItem>>,
   /// The type of externals.
@@ -2657,7 +2657,7 @@ impl OutputOptionsBuilder {
     target_properties: Option<&TargetProperties>,
     is_affected_by_browserslist: bool,
     development: bool,
-    entry: &IndexMap<String, EntryDescription>,
+    entry: &FxIndexMap<String, EntryDescription>,
     _future_defaults: bool,
   ) -> Result<OutputOptions> {
     let tp = target_properties;

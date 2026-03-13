@@ -5,7 +5,7 @@ use std::{collections::VecDeque, fmt, hash::Hash};
 use hashlink::LinkedHashMap;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{DatabaseItem, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};

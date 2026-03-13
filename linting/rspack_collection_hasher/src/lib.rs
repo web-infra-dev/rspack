@@ -185,7 +185,7 @@ impl<'tcx> LateLintPass<'tcx> for RspackCollectionHasher {
     }
 
     let hir_ty = hir_ty.as_unambig_ty();
-    if hir_ty_has_elided_ref_lifetime(cx, hir_ty) || hir_ty_has_implicit_object_lifetime(hir_ty) {
+    if hir_ty_uses_turbofish(cx, hir_ty) || hir_ty_has_problematic_implicit_lifetime(hir_ty) {
       return;
     }
 
@@ -407,6 +407,10 @@ fn direct_collection_ctor_kind(cx: &LateContext<'_>, expr: &Expr<'_>) -> Option<
     return None;
   };
 
+  if !callee_syntax_mentions_collection(cx, callee) {
+    return None;
+  }
+
   if callee_uses_approved_alias(cx, callee) {
     return None;
   }
@@ -423,6 +427,26 @@ fn direct_collection_ctor_kind(cx: &LateContext<'_>, expr: &Expr<'_>) -> Option<
   }
 
   collection_kind_from_ctor_path(path.as_str())
+}
+
+fn callee_syntax_mentions_collection(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
+  let ExprKind::Path(qpath) = expr.kind else {
+    return false;
+  };
+
+  match qpath {
+    QPath::Resolved(_, path) => {
+      path
+        .segments
+        .iter()
+        .any(|segment| is_collection_type_name(segment.ident.as_str()))
+        || qpath_def_path(cx, expr.hir_id, qpath).is_some_and(|path| {
+          collection_kind_from_ctor_path(path.as_str()).is_some()
+            || is_approved_collection_alias_path(path.as_str())
+        })
+    }
+    QPath::TypeRelative(ty, _) => ty_snippet_mentions_collection(cx, ty.span),
+  }
 }
 
 fn callee_uses_approved_alias(cx: &LateContext<'_>, expr: &Expr<'_>) -> bool {
@@ -587,6 +611,20 @@ fn is_collection_alias_name(name: &str) -> bool {
   )
 }
 
+fn is_collection_type_name(name: &str) -> bool {
+  matches!(
+    name,
+    "HashMap"
+      | "HashSet"
+      | "IndexMap"
+      | "IndexSet"
+      | "DashMap"
+      | "DashSet"
+      | "LinkedHashMap"
+      | "LinkedHashSet"
+  ) || is_collection_alias_name(name)
+}
+
 fn is_approved_collection_alias_path(path: &str) -> bool {
   path.ends_with("::FxHashMap")
     || path.ends_with("::FxHashSet")
@@ -622,58 +660,49 @@ fn qpath_def_path(
     .map(|def_id| cx.tcx.def_path_str(def_id))
 }
 
-fn hir_ty_has_elided_ref_lifetime(cx: &LateContext<'_>, hir_ty: &rustc_hir::Ty<'_>) -> bool {
-  // We intentionally inspect the source snippet instead of chasing the full lifetime HIR.
-  //
-  // The only question we need to answer is conservative: does this type contain an elided
-  // reference lifetime like `&T` or `&mut T`? If yes, further lowering has been prone to
-  // delayed bugs in the dylint/rustc driver, so skipping that node is safer than crashing the
-  // whole lint run.
-  let Ok(snippet) = cx.tcx.sess.source_map().span_to_snippet(hir_ty.span) else {
-    return false;
-  };
-
-  let bytes = snippet.as_bytes();
-  let mut idx = 0;
-  while idx < bytes.len() {
-    if bytes[idx] == b'&' {
-      idx += 1;
-      while idx < bytes.len() && bytes[idx].is_ascii_whitespace() {
-        idx += 1;
-      }
-      if idx < bytes.len() && bytes[idx] != b'\'' {
-        return true;
-      }
-    } else {
-      idx += 1;
-    }
-  }
-  false
+fn hir_ty_uses_turbofish(cx: &LateContext<'_>, hir_ty: &rustc_hir::Ty<'_>) -> bool {
+  cx.tcx
+    .sess
+    .source_map()
+    .span_to_snippet(hir_ty.span)
+    .ok()
+    .is_some_and(|snippet| snippet.contains("::<"))
 }
 
-fn hir_ty_has_implicit_object_lifetime<'tcx, A>(hir_ty: &rustc_hir::Ty<'tcx, A>) -> bool {
+fn hir_ty_has_problematic_implicit_lifetime<'tcx, A>(hir_ty: &rustc_hir::Ty<'tcx, A>) -> bool {
   match hir_ty.kind {
-    // `dyn Trait` lowers to `TyKind::TraitObject(.., TaggedRef<Lifetime, TraitObjectSyntax>)`.
-    // When the object lifetime is omitted, the tagged lifetime carries
-    // `LifetimeKind::ImplicitObjectLifetimeDefault`.
-    rustc_hir::TyKind::TraitObject(_, lifetime) => {
-      matches!(
-        lifetime.pointer().kind,
-        rustc_hir::LifetimeKind::ImplicitObjectLifetimeDefault
-      )
+    // `&T` lowers to `TyKind::Ref(<lifetime>, <mut-ty>)`, where omitted lifetimes appear as
+    // `LifetimeSource::Reference` plus `LifetimeSyntax::Implicit`.
+    rustc_hir::TyKind::Ref(lifetime, rustc_hir::MutTy { ty: inner, .. }) => {
+      lifetime_requires_skip(lifetime) || hir_ty_has_problematic_implicit_lifetime(inner)
     }
+    // `dyn Trait` lowers to `TyKind::TraitObject(.., TaggedRef<Lifetime, TraitObjectSyntax>)`.
+    // Omitted object lifetimes use `LifetimeKind::ImplicitObjectLifetimeDefault`.
+    rustc_hir::TyKind::TraitObject(_, lifetime) => lifetime_requires_skip(lifetime.pointer()),
     rustc_hir::TyKind::Slice(inner)
     | rustc_hir::TyKind::Array(inner, _)
     | rustc_hir::TyKind::Pat(inner, _)
-    | rustc_hir::TyKind::Ptr(rustc_hir::MutTy { ty: inner, .. })
-    | rustc_hir::TyKind::Ref(_, rustc_hir::MutTy { ty: inner, .. }) => {
-      hir_ty_has_implicit_object_lifetime(inner)
+    | rustc_hir::TyKind::Ptr(rustc_hir::MutTy { ty: inner, .. }) => {
+      hir_ty_has_problematic_implicit_lifetime(inner)
     }
-    rustc_hir::TyKind::UnsafeBinder(binder) => hir_ty_has_implicit_object_lifetime(binder.inner_ty),
-    rustc_hir::TyKind::Tup(tys) => tys.iter().any(hir_ty_has_implicit_object_lifetime),
-    rustc_hir::TyKind::Path(qpath) => qpath_has_implicit_object_lifetime(qpath),
+    rustc_hir::TyKind::UnsafeBinder(binder) => {
+      hir_ty_has_problematic_implicit_lifetime(binder.inner_ty)
+    }
+    rustc_hir::TyKind::Tup(tys) => tys.iter().any(hir_ty_has_problematic_implicit_lifetime),
+    rustc_hir::TyKind::Path(qpath) => qpath_has_problematic_implicit_lifetime(qpath),
     _ => false,
   }
+}
+
+fn lifetime_requires_skip(lifetime: &rustc_hir::Lifetime) -> bool {
+  matches!(
+    lifetime.kind,
+    rustc_hir::LifetimeKind::ImplicitObjectLifetimeDefault
+  ) || matches!(lifetime.syntax, rustc_hir::LifetimeSyntax::Implicit)
+    && matches!(
+      lifetime.source,
+      rustc_hir::LifetimeSource::Reference | rustc_hir::LifetimeSource::Path { .. }
+    )
 }
 
 fn qpath_has_placeholder(qpath: QPath<'_>) -> bool {
@@ -685,14 +714,15 @@ fn qpath_has_placeholder(qpath: QPath<'_>) -> bool {
   }
 }
 
-fn qpath_has_implicit_object_lifetime(qpath: QPath<'_>) -> bool {
+fn qpath_has_problematic_implicit_lifetime(qpath: QPath<'_>) -> bool {
   match qpath {
     QPath::Resolved(_, path) => path
       .segments
       .iter()
-      .any(path_segment_has_implicit_object_lifetime),
+      .any(path_segment_has_problematic_implicit_lifetime),
     QPath::TypeRelative(ty, segment) => {
-      hir_ty_has_implicit_object_lifetime(ty) || path_segment_has_implicit_object_lifetime(segment)
+      hir_ty_has_problematic_implicit_lifetime(ty)
+        || path_segment_has_problematic_implicit_lifetime(segment)
     }
   }
 }
@@ -703,12 +733,12 @@ fn path_segment_has_placeholder(segment: &rustc_hir::PathSegment<'_>) -> bool {
     .is_some_and(|args| args.args.iter().any(generic_arg_has_placeholder))
 }
 
-fn path_segment_has_implicit_object_lifetime(segment: &rustc_hir::PathSegment<'_>) -> bool {
+fn path_segment_has_problematic_implicit_lifetime(segment: &rustc_hir::PathSegment<'_>) -> bool {
   segment.args.is_some_and(|args| {
     args
       .args
       .iter()
-      .any(generic_arg_has_implicit_object_lifetime)
+      .any(generic_arg_has_problematic_implicit_lifetime)
   })
 }
 
@@ -720,12 +750,11 @@ fn generic_arg_has_placeholder(arg: &rustc_hir::GenericArg<'_>) -> bool {
   }
 }
 
-fn generic_arg_has_implicit_object_lifetime(arg: &rustc_hir::GenericArg<'_>) -> bool {
+fn generic_arg_has_problematic_implicit_lifetime(arg: &rustc_hir::GenericArg<'_>) -> bool {
   match arg {
-    rustc_hir::GenericArg::Type(ty) => hir_ty_has_implicit_object_lifetime(ty),
-    rustc_hir::GenericArg::Infer(_)
-    | rustc_hir::GenericArg::Lifetime(_)
-    | rustc_hir::GenericArg::Const(_) => false,
+    rustc_hir::GenericArg::Type(ty) => hir_ty_has_problematic_implicit_lifetime(ty),
+    rustc_hir::GenericArg::Lifetime(lifetime) => lifetime_requires_skip(lifetime),
+    rustc_hir::GenericArg::Infer(_) | rustc_hir::GenericArg::Const(_) => false,
   }
 }
 
@@ -746,6 +775,46 @@ fn explicit_hasher_arg_count(hir_ty: &rustc_hir::Ty<'_>) -> usize {
         .count()
     })
     .unwrap_or(0)
+}
+
+fn ty_snippet_mentions_collection(cx: &LateContext<'_>, span: Span) -> bool {
+  cx.tcx
+    .sess
+    .source_map()
+    .span_to_snippet(span)
+    .ok()
+    .is_some_and(|snippet| {
+      [
+        "HashMap",
+        "HashSet",
+        "IndexMap",
+        "IndexSet",
+        "DashMap",
+        "DashSet",
+        "LinkedHashMap",
+        "LinkedHashSet",
+        "FxHashMap",
+        "FxHashSet",
+        "FxIndexMap",
+        "FxIndexSet",
+        "FxDashMap",
+        "FxDashSet",
+        "FxLinkedHashMap",
+        "FxLinkedHashSet",
+        "UstrMap",
+        "UstrSet",
+        "IdentifierMap",
+        "IdentifierSet",
+        "IdentifierIndexMap",
+        "IdentifierIndexSet",
+        "IdentifierDashMap",
+        "IdentifierDashSet",
+        "IdentifierLinkedMap",
+        "IdentifierLinkedSet",
+      ]
+      .iter()
+      .any(|name| snippet.contains(name))
+    })
 }
 
 #[test]
