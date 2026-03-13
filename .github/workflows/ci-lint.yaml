@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
-      code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
@@ -29,10 +28,6 @@ jobs:
         with:
           predicate-quantifier: 'every'
           filters: |
-            code_changed:
-              - "!**/*.md"
-              - "!**/*.mdx"
-              - "!website/**"
             document_changed:
               - "website/**"
 
@@ -50,7 +45,6 @@ jobs:
         uses: ./.github/actions/pnpm/install-dependencies
 
       - name: Lint js
-        if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
         run: |
           pnpm run lint-ci:js
           pnpm run lint:type
