@@ -344,7 +344,7 @@ export default {
 - `import`、`require()` 等常见 JavaScript 模块请求默认使用 `[".js", ".json"]`
 - CSS 的 `@import` 默认使用 `[".css"]`
 
-如果你还在 [resolve.byDependency](#resolvebydependency) 下配置了 `resolve.byDependency.esm.extensions` 或其他按依赖类型区分的 `extensions` 选项，那么匹配到的 `byDependency` 配置会在之后继续应用。不带 `'...'` 时会替换当前顶层 `resolve.extensions` 的值，带 `'...'` 时则会在该位置插入当前顶层 `resolve.extensions` 的值。
+如果你还配置了 `resolve.byDependency[type].extensions` ，那么匹配到的 `byDependency` 配置会在之后继续应用。不带 `'...'` 时会替换顶层的 `resolve.extensions` 的值，带 `'...'` 时则会在该位置插入顶层 `resolve.extensions` 的值。
 
 如果你希望在添加自定义扩展名的同时保留 Rspack 针对当前 dependency type 的默认扩展名，可以使用展开语法 `'...'`：
 

@@ -344,7 +344,7 @@ If you are not familiar with [resolve.byDependency](#resolvebydependency), you c
 - `import`, `require()` use `[".js", ".json"]` by default
 - CSS `@import` uses `[".css"]` by default
 
-If you also set `resolve.byDependency.esm.extensions` or another dependency-specific `extensions` option under [resolve.byDependency](#resolvebydependency), the matching `byDependency` value is applied afterward. Without `'...'`, it replaces the current top-level `resolve.extensions` value. With `'...'`, it inserts the current top-level `resolve.extensions` value at that position.
+If you also set `resolve.byDependency[type].extensions`, the matching `byDependency` value is applied afterward. Without `'...'`, it replaces the top-level `resolve.extensions` value. With `'...'`, it inserts the top-level `resolve.extensions` value at that position.
 
 To add custom extensions while keeping Rspack's defaults for the current dependency type, use the spread syntax `'...'`:
 
