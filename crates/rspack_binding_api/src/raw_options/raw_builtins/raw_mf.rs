@@ -226,6 +226,7 @@ pub struct RawOptimizeSharedConfig {
   pub share_key: String,
   pub tree_shaking: bool,
   pub used_exports: Option<Vec<String>>,
+  pub layer: Option<String>,
 }
 
 impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
@@ -234,6 +235,7 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
       share_key: value.share_key,
       tree_shaking: value.tree_shaking,
       used_exports: value.used_exports.unwrap_or_default(),
+      layer: value.layer,
     }
   }
 }
@@ -385,6 +387,7 @@ pub struct RawManifestSharedOption {
   pub name: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 
@@ -453,6 +456,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
           name: shared.name,
           version: shared.version,
           required_version: shared.required_version,
+          layer: shared.layer,
           singleton: shared.singleton,
         })
         .collect(),

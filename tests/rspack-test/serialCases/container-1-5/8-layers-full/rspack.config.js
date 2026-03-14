@@ -86,6 +86,7 @@ module.exports = [
         remotes: {
           containerA: {
             external: '../../7-layers-full/module/container.mjs',
+            shareScope: ['react-layer', 'default'],
           },
         },
       }),

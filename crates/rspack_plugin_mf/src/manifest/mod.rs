@@ -31,8 +31,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
   collect_entry_files, collect_expose_requirements, compose_id_with_separator,
-  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
-  parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
+  compose_shared_map_key, ensure_configured_remotes, ensure_shared_entry, filter_assets,
+  is_hot_file, parse_consume_shared_identifier, parse_provide_shared_identifier,
+  record_shared_usage, strip_ext,
 };
 
 use crate::container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule};
@@ -183,6 +184,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         name: shared.name.clone(),
         version: shared.version.clone().unwrap_or_default(),
         requiredVersion: shared.required_version.clone(),
+        layer: shared.layer.clone(),
         // default singleton to true when not provided by user
         singleton: shared.singleton.or(Some(true)),
         assets: StatsAssetsGroup::default(),
@@ -232,6 +234,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
+    let find_shared_option = |name: &str, layer: Option<&str>| {
+      self
+        .options
+        .shared
+        .iter()
+        .find(|s| s.name == name && s.layer.as_deref() == layer)
+        .or_else(|| {
+          self
+            .options
+            .shared
+            .iter()
+            .find(|s| s.name == name && s.layer.is_none())
+        })
+    };
     for (_, module) in module_graph.modules() {
       let module_identifier = module.identifier();
       if let Some(path) = module_source_path(module, compilation) {
@@ -322,12 +338,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if matches!(module_type, ModuleType::ProvideShared) {
         if let Some((pkg, ver)) = parse_provide_shared_identifier(&identifier) {
-          let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+          let layer = module.get_layer().map(ToString::to_string);
+          let shared_key = compose_shared_map_key(&pkg, layer.as_deref());
+          let entry = ensure_shared_entry(
+            &mut shared_map,
+            &shared_key,
+            &container_name,
+            &pkg,
+            layer.clone(),
+          );
           if entry.version.is_empty() {
             entry.version = ver;
           }
           // overlay user-configured shared options (singleton/requiredVersion/version)
-          if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+          if let Some(opt) = find_shared_option(&pkg, layer.as_deref()) {
             if let Some(singleton) = opt.singleton {
               entry.singleton = Some(singleton);
             }
@@ -338,7 +362,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               entry.version = cfg_ver;
             }
           }
-          let targets = shared_module_targets.entry(pkg.clone()).or_default();
+          let targets = shared_module_targets.entry(shared_key.clone()).or_default();
           for connection in module_graph.get_outgoing_connections(&module_identifier) {
             let referenced = *connection.module_identifier();
             if should_collect_module(&referenced) {
@@ -351,7 +375,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
           record_shared_usage(
             &mut shared_usage_links,
-            &pkg,
+            &shared_key,
             &module_identifier,
             module_graph,
             compilation,
@@ -363,6 +387,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if matches!(module_type, ModuleType::ConsumeShared)
         && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
       {
+        let layer = module.get_layer().map(ToString::to_string);
+        let shared_key = compose_shared_map_key(&pkg, layer.as_deref());
         let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();
@@ -375,15 +401,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
         }
         shared_module_targets
-          .entry(pkg.clone())
+          .entry(shared_key.clone())
           .or_default()
           .extend(target_ids.into_iter());
-        let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
+        let entry = ensure_shared_entry(
+          &mut shared_map,
+          &shared_key,
+          &container_name,
+          &pkg,
+          layer.clone(),
+        );
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
         }
         // overlay user-configured shared options
-        if let Some(opt) = self.options.shared.iter().find(|s| s.name == pkg) {
+        if let Some(opt) = find_shared_option(&pkg, layer.as_deref()) {
           if let Some(singleton) = opt.singleton {
             entry.singleton = Some(singleton);
           }
@@ -397,7 +429,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         record_shared_usage(
           &mut shared_usage_links,
-          &pkg,
+          &shared_key,
           &module_identifier,
           module_graph,
           compilation,
@@ -662,6 +694,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         name: s.name,
         version: s.version,
         requiredVersion: s.requiredVersion,
+        layer: s.layer,
         singleton: s.singleton,
         assets: s.assets,
       })

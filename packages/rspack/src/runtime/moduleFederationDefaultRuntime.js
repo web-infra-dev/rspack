@@ -236,10 +236,20 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const info = remoteData.remoteInfo
-            ? [remoteData.remoteInfo]
-            : __module_federation_remote_infos__[remoteData.remoteName];
-          if (info) idToRemoteMap[id] = info;
+          const existingInfos =
+            __module_federation_remote_infos__[remoteData.remoteName] || [];
+          let info = existingInfos;
+          if (remoteData.remoteInfo) {
+            const hasRemoteInfo = existingInfos.some(
+              (item) =>
+                item.externalType === remoteData.remoteInfo.externalType &&
+                item.name === remoteData.remoteInfo.name,
+            );
+            info = hasRemoteInfo
+              ? existingInfos
+              : [remoteData.remoteInfo, ...existingInfos];
+          }
+          if (info.length > 0) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;
       },

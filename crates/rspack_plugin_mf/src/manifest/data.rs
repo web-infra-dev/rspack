@@ -50,6 +50,8 @@ pub struct StatsShared {
   pub version: String,
   #[serde(default)]
   pub requiredVersion: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   #[serde(default)]
   pub singleton: Option<bool>,
   #[serde(default)]
@@ -126,6 +128,8 @@ pub struct ManifestShared {
   pub version: String,
   #[serde(default)]
   pub requiredVersion: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   #[serde(default)]
   pub singleton: Option<bool>,
   #[serde(default)]

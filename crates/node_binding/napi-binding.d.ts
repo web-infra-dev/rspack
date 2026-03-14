@@ -2548,6 +2548,7 @@ export interface RawManifestSharedOption {
   name: string
   version?: string
   requiredVersion?: string
+  layer?: string
   singleton?: boolean
 }
 
@@ -2690,6 +2691,7 @@ export interface RawOptimizeSharedConfig {
   shareKey: string
   treeShaking: boolean
   usedExports?: Array<string>
+  layer?: string
 }
 
 export interface RawOptions {
