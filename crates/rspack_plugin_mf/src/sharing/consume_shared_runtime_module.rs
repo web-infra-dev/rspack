@@ -113,45 +113,29 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
               .map_or("default", |s| s.as_str()),
           )
         };
-        let consume_data = if enhanced {
-          format!(
-            "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, layer: {}, fallback: {}, treeShakingMode: {} }}",
-            share_scope_json,
-            json_stringify(&data.share_key),
-            json_stringify(&data.import),
-            json_stringify_str(
-              &data
-                .required_version
-                .as_ref()
-                .map_or_else(|| "*".to_string(), |v| v.to_string())
-            ),
-            json_stringify(&data.strict_version),
-            json_stringify(&data.singleton),
-            json_stringify(&data.eager),
-            json_stringify(&data.layer),
-            data.fallback.as_deref().unwrap_or("undefined"),
-            json_stringify(&data.tree_shaking_mode),
-          )
+        let layer_data = if enhanced {
+          format!(", layer: {}", json_stringify(&data.layer))
         } else {
-          format!(
-            "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
-            share_scope_json,
-            json_stringify(&data.share_key),
-            json_stringify(&data.import),
-            json_stringify_str(
-              &data
-                .required_version
-                .as_ref()
-                .map_or_else(|| "*".to_string(), |v| v.to_string())
-            ),
-            json_stringify(&data.strict_version),
-            json_stringify(&data.singleton),
-            json_stringify(&data.eager),
-            data.fallback.as_deref().unwrap_or("undefined"),
-            json_stringify(&data.tree_shaking_mode),
-          )
+          String::new()
         };
-        module_id_to_consume_data_mapping.insert(id, consume_data);
+        module_id_to_consume_data_mapping.insert(id, format!(
+          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}{}, fallback: {}, treeShakingMode: {} }}",
+          share_scope_json,
+          json_stringify(&data.share_key),
+          json_stringify(&data.import),
+          json_stringify_str(
+            &data
+              .required_version
+              .as_ref()
+              .map_or_else(|| "*".to_string(), |v| v.to_string())
+          ),
+          json_stringify(&data.strict_version),
+          json_stringify(&data.singleton),
+          json_stringify(&data.eager),
+          layer_data,
+          data.fallback.as_deref().unwrap_or("undefined"),
+          json_stringify(&data.tree_shaking_mode),
+        ));
       }
     };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too
