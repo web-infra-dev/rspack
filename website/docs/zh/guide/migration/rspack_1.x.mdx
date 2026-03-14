@@ -611,7 +611,7 @@ export default {
 
 ### 默认 extensions 变更
 
-Rspack 2.0 默认用于 JavaScript 请求的 `resolve.extensions` 不再包含 `.wasm`。
+Rspack 2.0 默认用于 JavaScript 请求的 [resolve.extensions](/config/resolve#resolveextensions) 不再包含 `.wasm`。
 
 直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
 

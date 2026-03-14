@@ -611,7 +611,7 @@ export default {
 
 ### Default extensions change
 
-Rspack 2.0 no longer includes `.wasm` in the default `resolve.extensions` used for JavaScript requests.
+Rspack 2.0 no longer includes `.wasm` in the default [resolve.extensions](/config/resolve#resolveextensions) used for JavaScript requests.
 
 In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
 
