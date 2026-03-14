@@ -335,7 +335,7 @@ export default {
 
 例如，如果同一目录下同时存在 `index.js` 和 `index.ts`，而你的配置是 `['.ts', '.js']`，那么 `import './index'` 将会解析为 `index.ts`。
 
-## 默认值
+### 默认值
 
 从实现上看，顶层 `resolve.extensions` 的默认值其实是 `[]`。之所以大多数场景仍然会自动尝试 `.js`、`.json` 或 `.css`，是因为 Rspack 会根据请求类型，从 [resolve.byDependency](#resolvebydependency) 应用对应的默认配置。
 
