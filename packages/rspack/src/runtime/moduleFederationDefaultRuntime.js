@@ -67,7 +67,47 @@ export default function () {
     early(
       __webpack_require__.federation,
       'consumesLoadingModuleToHandlerMapping',
-      () => ({}),
+      () => {
+        const consumesLoadingModuleToHandlerMapping = {};
+        for (let [moduleId, data] of Object.entries(
+          consumesLoadingModuleToConsumeDataMapping,
+        )) {
+          consumesLoadingModuleToHandlerMapping[moduleId] = {
+            getter: sharedFallback
+              ? __webpack_require__.federation.bundlerRuntime?.getSharedFallbackGetter(
+                  {
+                    shareKey: data.shareKey,
+                    factory: data.fallback,
+                    webpackRequire: __webpack_require__,
+                    libraryType: __webpack_require__.federation.libraryType,
+                  },
+                )
+              : data.fallback,
+            treeShakingGetter: sharedFallback ? data.fallback : undefined,
+            shareInfo: {
+              shareConfig: {
+                fixedDependencies: false,
+                requiredVersion: data.requiredVersion,
+                strictVersion: data.strictVersion,
+                singleton: data.singleton,
+                eager: data.eager,
+                layer: data.layer,
+              },
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
+            },
+            shareKey: data.shareKey,
+            treeShaking: __webpack_require__.federation.sharedFallback
+              ? {
+                  get: data.fallback,
+                  mode: data.treeShakingMode,
+                }
+              : undefined,
+          };
+        }
+        return consumesLoadingModuleToHandlerMapping;
+      },
     );
     early(__webpack_require__.federation, 'initOptions', () => ({}));
     early(
@@ -196,8 +236,9 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const info =
-            __module_federation_remote_infos__[remoteData.remoteName];
+          const info = remoteData.remoteInfo
+            ? [remoteData.remoteInfo]
+            : __module_federation_remote_infos__[remoteData.remoteName];
           if (info) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;

@@ -138,6 +138,14 @@ export class SharePlugin {
   constructor(options: SharePluginOptions) {
     const enhanced = options.enhanced ?? false;
     const sharedOptions = normalizeSharedOptions(options.shared);
+    if (options.shareScope) {
+      validateShareScope(options.shareScope, enhanced, 'SharePlugin');
+    }
+    for (const [, config] of sharedOptions) {
+      if (config.shareScope) {
+        validateShareScope(config.shareScope, enhanced, 'SharePlugin');
+      }
+    }
     const consumes = createConsumeShareOptions(sharedOptions, enhanced);
     const provides = createProvideShareOptions(sharedOptions, enhanced);
     this._shareScope = options.shareScope;
