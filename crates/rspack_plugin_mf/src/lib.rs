@@ -75,27 +75,3 @@ mod utils {
     serde_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
   }
 }
-
-pub fn debug_log(hypothesis_id: &str, location: &str, message: &str, data: serde_json::Value) {
-  let timestamp = std::time::SystemTime::now()
-    .duration_since(std::time::UNIX_EPOCH)
-    .map(|duration| duration.as_millis())
-    .unwrap_or_default();
-  let payload = serde_json::json!({
-    "sessionId": "c5c28d",
-    "runId": "rust-stack-1",
-    "hypothesisId": hypothesis_id,
-    "location": location,
-    "message": message,
-    "data": data,
-    "timestamp": timestamp,
-  });
-  if let Ok(mut file) = std::fs::OpenOptions::new()
-    .create(true)
-    .append(true)
-    .open("/Users/zackjackson/rspack/.cursor/debug-c5c28d.log")
-  {
-    let _ = std::io::Write::write_all(&mut file, payload.to_string().as_bytes());
-    let _ = std::io::Write::write_all(&mut file, b"\n");
-  }
-}

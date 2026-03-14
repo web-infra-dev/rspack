@@ -9,7 +9,7 @@ use rspack_plugin_mf::{
   ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePluginOptions,
   OptimizeSharedConfig, ProvideOptions, ProvideVersion, RemoteAliasTarget, RemoteOptions,
   ShareScope, SharedContainerPluginOptions, SharedUsedExportsOptimizerPluginOptions,
-  StatsBuildInfo, debug_log,
+  StatsBuildInfo,
 };
 use rspack_util::fx_hash::FxHashMap as HashMap;
 
@@ -136,35 +136,6 @@ pub struct RawProvideOptions {
 
 impl From<RawProvideOptions> for (String, ProvideOptions) {
   fn from(value: RawProvideOptions) -> Self {
-    // #region agent log
-    if value.share_key == "react" || value.layer.is_some() || value.request.is_some() {
-      debug_log(
-        "H1",
-        "raw_mf.rs:137",
-        "raw provide options converted",
-        serde_json::json!({
-          "key": value.key,
-          "request": value.request,
-          "layer": value.layer,
-          "shareKey": value.share_key,
-          "shareScope": match &value.share_scope {
-            Either::A(scope) => serde_json::json!(scope),
-            Either::B(scopes) => serde_json::json!(scopes),
-          },
-          "version": value.version.as_ref().map(|v| match v {
-            Either::A(version) => version.clone(),
-            Either::B(flag) => flag.to_string(),
-          }),
-          "requiredVersion": value.required_version.as_ref().map(|v| match v {
-            Either::A(version) => version.clone(),
-            Either::B(flag) => flag.to_string(),
-          }),
-          "singleton": value.singleton,
-          "strictVersion": value.strict_version,
-        }),
-      );
-    }
-    // #endregion
     (
       value.key,
       ProvideOptions {
@@ -317,35 +288,6 @@ pub struct RawConsumeOptions {
 
 impl From<RawConsumeOptions> for (String, ConsumeOptions) {
   fn from(value: RawConsumeOptions) -> Self {
-    // #region agent log
-    if value.share_key == "react" || value.layer.is_some() || value.issuer_layer.is_some() {
-      debug_log(
-        "H1",
-        "raw_mf.rs:289",
-        "raw consume options converted",
-        serde_json::json!({
-          "key": value.key,
-          "request": value.request,
-          "issuerLayer": value.issuer_layer,
-          "layer": value.layer,
-          "import": value.import,
-          "importResolved": value.import_resolved,
-          "shareKey": value.share_key,
-          "shareScope": match &value.share_scope {
-            Either::A(scope) => serde_json::json!(scope),
-            Either::B(scopes) => serde_json::json!(scopes),
-          },
-          "requiredVersion": value.required_version.as_ref().map(|v| match v {
-            Either::A(version) => version.clone(),
-            Either::B(flag) => flag.to_string(),
-          }),
-          "strictVersion": value.strict_version,
-          "singleton": value.singleton,
-          "eager": value.eager,
-        }),
-      );
-    }
-    // #endregion
     (
       value.key,
       ConsumeOptions {

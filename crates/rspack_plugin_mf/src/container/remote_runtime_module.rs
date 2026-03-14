@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use super::remote_module::RemoteModule;
-use crate::{ShareScope, debug_log, utils::json_stringify};
+use crate::{ShareScope, utils::json_stringify};
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
 static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -100,29 +100,6 @@ impl RuntimeModule for RemoteRuntimeModule {
           external_module.identifier(),
         )
         .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
-        // #region agent log
-        if m.remote_key == "containerA" || matches!(share_scope, ShareScopeField::Multiple(_)) {
-          debug_log(
-            "H7",
-            "remote_runtime_module.rs:98",
-            "remote runtime mapping emitted",
-            serde_json::json!({
-              "moduleId": id.to_string(),
-              "remoteName": m.remote_key,
-              "request": name,
-              "shareScope": match &m.share_scope {
-                ShareScope::Single(scope) => serde_json::json!(scope),
-                ShareScope::Multiple(scopes) => serde_json::json!(scopes),
-              },
-              "externalModuleId": external_module_id,
-              "remoteInfo": remote_info.as_ref().map(|info| serde_json::json!({
-                "externalType": info.external_type,
-                "name": info.name,
-              })),
-            }),
-          );
-        }
-        // #endregion
         remotes.push(id.to_string());
         id_to_remote_data_mapping.insert(
           id,

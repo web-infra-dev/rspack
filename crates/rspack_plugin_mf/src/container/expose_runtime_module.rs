@@ -4,7 +4,7 @@ use rspack_core::{
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
-use crate::{debug_log, utils::json_stringify};
+use crate::utils::json_stringify;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -69,16 +69,6 @@ impl RuntimeModule for ExposeRuntimeModule {
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
       return Ok(String::new());
     };
-    // #region agent log
-    debug_log(
-      "S2",
-      "expose_runtime_module.rs:69",
-      "rspack expose runtime data",
-      serde_json::json!({
-        "shareScope": data.share_scope,
-      }),
-    );
-    // #endregion
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
     let module_map = data.module_map.render(&mut runtime_template);
     let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);

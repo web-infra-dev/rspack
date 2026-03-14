@@ -67,45 +67,7 @@ export default function () {
     early(
       __webpack_require__.federation,
       'consumesLoadingModuleToHandlerMapping',
-      () => {
-        const consumesLoadingModuleToHandlerMapping = {};
-        for (let [moduleId, data] of Object.entries(
-          consumesLoadingModuleToConsumeDataMapping,
-        )) {
-          consumesLoadingModuleToHandlerMapping[moduleId] = {
-            getter: sharedFallback
-              ? __webpack_require__.federation.bundlerRuntime?.getSharedFallbackGetter(
-                  {
-                    shareKey: data.shareKey,
-                    factory: data.fallback,
-                    webpackRequire: __webpack_require__,
-                    libraryType: __webpack_require__.federation.libraryType,
-                  },
-                )
-              : data.fallback,
-            treeShakingGetter: sharedFallback ? data.fallback : undefined,
-            shareInfo: {
-              shareConfig: {
-                fixedDependencies: false,
-                requiredVersion: data.requiredVersion,
-                strictVersion: data.strictVersion,
-                singleton: data.singleton,
-                eager: data.eager,
-                layer: data.layer,
-              },
-              scope: [data.shareScope],
-            },
-            shareKey: data.shareKey,
-            treeShaking: __webpack_require__.federation.sharedFallback
-              ? {
-                  get: data.fallback,
-                  mode: data.treeShakingMode,
-                }
-              : undefined,
-          };
-        }
-        return consumesLoadingModuleToHandlerMapping;
-      },
+      () => ({}),
     );
     early(__webpack_require__.federation, 'initOptions', () => ({}));
     early(
@@ -265,17 +227,62 @@ export default function () {
         webpackRequire: __webpack_require__,
       }),
     );
-    override(__webpack_require__.f, 'consumes', (chunkId, promises) =>
-      __webpack_require__.federation.bundlerRuntime.consumes({
-        chunkId,
-        promises,
-        chunkMapping: consumesLoadingChunkMapping,
-        moduleToHandlerMapping:
-          __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
-        installedModules: consumesLoadinginstalledModules,
-        webpackRequire: __webpack_require__,
-      }),
-    );
+    override(__webpack_require__.f, 'consumes', (chunkId, promises) => {
+      const runtimeConsumes = () =>
+        __webpack_require__.federation.bundlerRuntime.consumes({
+          chunkId,
+          promises,
+          chunkMapping: consumesLoadingChunkMapping,
+          moduleToHandlerMapping:
+            __webpack_require__.federation
+              .consumesLoadingModuleToHandlerMapping,
+          installedModules: consumesLoadinginstalledModules,
+          webpackRequire: __webpack_require__,
+        });
+      const chunkConsumes = consumesLoadingChunkMapping[chunkId];
+      if (!Array.isArray(chunkConsumes) || chunkConsumes.length === 0) {
+        return runtimeConsumes();
+      }
+      const initPromises = [];
+      const initializedScopes = new Set();
+      for (const moduleId of chunkConsumes) {
+        const rawShareScope =
+          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope;
+        const initShareScope = Array.isArray(rawShareScope)
+          ? rawShareScope
+          : [rawShareScope || 'default'];
+        const shareScopeKey = JSON.stringify(initShareScope);
+        if (initializedScopes.has(shareScopeKey)) {
+          continue;
+        }
+        initializedScopes.add(shareScopeKey);
+        const initialized = __webpack_require__.I(initShareScope, []);
+        if (initialized && initialized.then) {
+          initPromises.push(initialized);
+        }
+      }
+      if (initPromises.length === 0) {
+        return runtimeConsumes();
+      }
+      promises.push(
+        Promise.all(initPromises).then(() => {
+          const nestedPromises = [];
+          __webpack_require__.federation.bundlerRuntime.consumes({
+            chunkId,
+            promises: nestedPromises,
+            chunkMapping: consumesLoadingChunkMapping,
+            moduleToHandlerMapping:
+              __webpack_require__.federation
+                .consumesLoadingModuleToHandlerMapping,
+            installedModules: consumesLoadinginstalledModules,
+            webpackRequire: __webpack_require__,
+          });
+          return nestedPromises.length > 0
+            ? Promise.all(nestedPromises)
+            : undefined;
+        }),
+      );
+    });
     override(__webpack_require__, 'I', (name, initScope) =>
       __webpack_require__.federation.bundlerRuntime.I({
         shareScopeName: name,

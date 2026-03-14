@@ -12,8 +12,6 @@ use rspack_core::{
 use rspack_error::Result;
 
 use super::module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions;
-use crate::debug_log;
-
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
@@ -93,7 +91,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate module execution code for each federation runtime dependency
     let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 64);
-    let federation_runtime_modules_count = federation_runtime_modules.len();
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
 
     for dep_id in federation_runtime_modules {
@@ -102,24 +99,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push_str(&module_str);
       module_executions.push('\n');
     }
-    // #region agent log
-    debug_log(
-      "S3",
-      "embed_federation_runtime_module.rs:103",
-      "rspack embed federation runtime generate",
-      serde_json::json!({
-        "asyncStartup": self.options.experiments.async_startup,
-        "federationRuntimeModulesCount": federation_runtime_modules_count,
-        "entryChunk": compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(&chunk_ukey)
-          .id()
-          .map(ToString::to_string),
-      }),
-    );
-    // #endregion
-
     if self.options.experiments.async_startup {
       let entry_chunk_ids = compilation
         .build_chunk_graph_artifact

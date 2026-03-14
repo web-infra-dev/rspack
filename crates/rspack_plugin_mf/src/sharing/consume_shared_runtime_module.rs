@@ -10,7 +10,7 @@ use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::{ShareScope, debug_log, utils::json_stringify};
+use crate::{ShareScope, utils::json_stringify};
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
@@ -105,28 +105,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         let fallback_source = code_gen
           .get(&SourceType::ConsumeShared)
           .map(|source| source.source().into_string_lossy().into_owned());
-        // #region agent log
-        if data.share_key == "react" || data.layer.is_some() {
-          debug_log(
-            "H6",
-            "consume_shared_runtime_module.rs:104",
-            "consume runtime mapping source",
-            serde_json::json!({
-              "moduleId": id,
-              "shareKey": data.share_key,
-              "shareScope": data.share_scope,
-              "requiredVersion": data.required_version.as_ref().map(ToString::to_string),
-              "strictVersion": data.strict_version,
-              "singleton": data.singleton,
-              "eager": data.eager,
-              "layer": data.layer,
-              "import": data.import,
-              "hasFallbackFactory": data.fallback.is_some(),
-              "hasFallbackSource": fallback_source.is_some(),
-            }),
-          );
-        }
-        // #endregion
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
