@@ -136,14 +136,16 @@ impl RuntimeModule for ShareRuntimeModule {
     } else {
       runtime_template.render(self.id.as_str(), None)?
     };
+    let initialize_sharing_status = if self.enhanced { "_updated: 1, " } else { "" };
     Ok(format!(
       r#"
 {share_scope_map} = {{}};
-{require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
+{require_name}.initializeSharingData = {{ {initialize_sharing_status}scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
 {initialize_sharing_impl}
 "#,
       require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
+      initialize_sharing_status = initialize_sharing_status,
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify_str(&compilation.options.output.unique_name),
       initialize_sharing_impl = initialize_sharing_impl,
