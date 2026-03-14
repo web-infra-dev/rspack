@@ -607,6 +607,51 @@ export default {
 };
 ```
 
+## Resolve 行为变化
+
+### 默认 extensions 变更
+
+Rspack 2.0 默认用于 JavaScript 请求的 [resolve.extensions](/config/resolve#resolveextensions) 不再包含 `.wasm`。
+
+直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
+
+像 `import './module.wasm'` 这样的显式导入不受影响。
+
+如果你需要保留旧行为，可以在对应的 `resolve.byDependency` 配置中显式把 `.wasm` 加回去：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
+
+### CSS 解析 conditions
+
+Rspack 2.0 默认的 CSS `@import` 解析 conditions 不再包含 `webpack`。
+
+如果你需要保留旧行为，可以显式把 `webpack` 加回去：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      'css-import': {
+        conditionNames: ['webpack', '...'],
+      },
+    },
+  },
+};
+```
+
 ## 其他变更
 
 ### `devtool` 默认值变化
@@ -675,31 +720,6 @@ resolve 的 [roots](/zh/config/resolve#resolveroots) 配置默认值已从 `[ co
 export default {
   resolve: {
     roots: [context], // rspack 配置文件的 context 路径
-  },
-};
-```
-
-### JavaScript `resolve.extensions` 默认不再包含 `.wasm`
-
-Rspack 2.0 默认用于 JavaScript 请求的 `resolve.extensions` 不再包含 `.wasm`。
-
-直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
-
-像 `import './module.wasm'` 这样的显式导入不受影响。
-
-如果你需要保留旧行为，可以在对应的 `resolve.byDependency` 配置中显式把 `.wasm` 加回去：
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    byDependency: {
-      esm: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-      commonjs: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-    },
   },
 };
 ```
