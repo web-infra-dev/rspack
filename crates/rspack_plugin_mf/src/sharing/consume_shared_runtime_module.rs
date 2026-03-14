@@ -52,22 +52,6 @@ enum TemplateId {
   Loading,
 }
 
-fn required_version_json(required_version: Option<&ConsumeVersion>) -> String {
-  match required_version {
-    Some(ConsumeVersion::False) | None => "false".to_string(),
-    Some(version) => json_stringify_str(&version.to_string()),
-  }
-}
-
-fn serialize_share_scope(share_scope: &ShareScope) -> Vec<String> {
-  let scopes = share_scope.scopes().to_vec();
-  if scopes.is_empty() {
-    vec!["default".to_string()]
-  } else {
-    scopes
-  }
-}
-
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
@@ -119,7 +103,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         let share_scope_json = if enhanced {
-          json_stringify(&serialize_share_scope(&data.share_scope))
+          json_stringify(&data.share_scope)
         } else {
           json_stringify_str(
             data
@@ -129,31 +113,23 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
               .map_or("default", |s| s.as_str()),
           )
         };
-        let fallback = if enhanced {
-          data.fallback.clone().unwrap_or_else(|| {
-            format!(
-              "()=>()=>{{throw new Error({})}}",
-              json_stringify_str(&format!("Can not get '{}'", data.share_key))
-            )
-          })
-        } else {
-          data
-            .fallback
-            .clone()
-            .unwrap_or_else(|| "undefined".to_string())
-        };
         let consume_data = if enhanced {
           format!(
             "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, layer: {}, fallback: {}, treeShakingMode: {} }}",
             share_scope_json,
             json_stringify(&data.share_key),
             json_stringify(&data.import),
-            required_version_json(data.required_version.as_ref()),
+            json_stringify_str(
+              &data
+                .required_version
+                .as_ref()
+                .map_or_else(|| "*".to_string(), |v| v.to_string())
+            ),
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
             json_stringify(&data.layer),
-            fallback,
+            data.fallback.as_deref().unwrap_or("undefined"),
             json_stringify(&data.tree_shaking_mode),
           )
         } else {
@@ -162,11 +138,16 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
             share_scope_json,
             json_stringify(&data.share_key),
             json_stringify(&data.import),
-            required_version_json(data.required_version.as_ref()),
+            json_stringify_str(
+              &data
+                .required_version
+                .as_ref()
+                .map_or_else(|| "*".to_string(), |v| v.to_string())
+            ),
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
-            fallback,
+            data.fallback.as_deref().unwrap_or("undefined"),
             json_stringify(&data.tree_shaking_mode),
           )
         };
