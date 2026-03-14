@@ -19,7 +19,7 @@ use super::{
   create_lookup_key_for_sharing, provide_shared_dependency::ProvideSharedDependency,
   provide_shared_module_factory::ProvideSharedModuleFactory, strip_lookup_layer_prefix,
 };
-use crate::{ConsumeVersion, ShareScope};
+use crate::{ConsumeVersion, ShareScope, debug_log};
 
 static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
@@ -128,6 +128,27 @@ impl ProvideSharedPlugin {
     let error_header = "No version specified and unable to automatically determine one.";
     let lookup_key = create_lookup_key_for_sharing(resource, layer.as_deref());
     if let Some(version) = version {
+      // #region agent log
+      if share_key == "react" || layer.is_some() {
+        debug_log(
+          "H3",
+          "provide_shared_plugin.rs:130",
+          "resolved provide shared module",
+          serde_json::json!({
+            "key": key,
+            "resource": resource,
+            "lookupKey": lookup_key,
+            "shareKey": share_key,
+            "shareScope": share_scope,
+            "version": version.to_string(),
+            "layer": layer.clone(),
+            "singleton": singleton,
+            "requiredVersion": required_version.as_ref().map(ToString::to_string),
+            "strictVersion": strict_version,
+          }),
+        );
+      }
+      // #endregion
       self.resolved_provide_map.write().await.insert(
         lookup_key.clone(),
         VersionedProvideOptions {
@@ -148,6 +169,27 @@ impl ProvideSharedPlugin {
         && let Some(version) = description.get("version")
         && let Some(version) = version.as_str()
       {
+        // #region agent log
+        if share_key == "react" || layer.is_some() {
+          debug_log(
+            "H3",
+            "provide_shared_plugin.rs:151",
+            "auto-versioned provide shared module",
+            serde_json::json!({
+              "key": key,
+              "resource": resource,
+              "lookupKey": lookup_key,
+              "shareKey": share_key,
+              "shareScope": share_scope,
+              "version": version,
+              "layer": layer.clone(),
+              "singleton": singleton,
+              "requiredVersion": required_version.as_ref().map(ToString::to_string),
+              "strictVersion": strict_version,
+            }),
+          );
+        }
+        // #endregion
         self.resolved_provide_map.write().await.insert(
           lookup_key.clone(),
           VersionedProvideOptions {

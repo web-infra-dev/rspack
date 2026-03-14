@@ -24,7 +24,7 @@ use super::{
   consume_shared_runtime_module::ConsumeSharedRuntimeModule, create_lookup_key_for_sharing,
   strip_lookup_layer_prefix,
 };
-use crate::ShareScope;
+use crate::{ShareScope, debug_log};
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -359,6 +359,29 @@ impl ConsumeSharedPlugin {
     let required_version = self
       .get_required_version(context, request, config.clone(), add_diagnostic)
       .await;
+    // #region agent log
+    if config.share_key == "react" || config.layer.is_some() || config.issuer_layer.is_some() {
+      debug_log(
+        "H2",
+        "consume_shared_plugin.rs:359",
+        "create consume shared module",
+        serde_json::json!({
+          "request": request,
+          "context": context.as_str(),
+          "configRequest": config.request,
+          "issuerLayer": config.issuer_layer,
+          "layer": config.layer,
+          "import": config.import,
+          "importResolved": import_resolved.clone(),
+          "shareKey": config.share_key,
+          "shareScope": config.share_scope,
+          "requiredVersion": required_version.as_ref().map(ToString::to_string),
+          "singleton": config.singleton,
+          "eager": config.eager,
+        }),
+      );
+    }
+    // #endregion
     ConsumeSharedModule::new(
       if direct_fallback {
         self.get_context()

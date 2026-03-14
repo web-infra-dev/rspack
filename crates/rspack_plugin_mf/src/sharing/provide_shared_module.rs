@@ -21,7 +21,7 @@ use super::{
     CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
   },
 };
-use crate::{ConsumeVersion, ShareScope};
+use crate::{ConsumeVersion, ShareScope, debug_log};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -216,6 +216,26 @@ impl Module for ProvideSharedModule {
     } else {
       runtime_template.async_module_factory(&self.get_blocks()[0], &self.request, compilation)
     };
+    // #region agent log
+    if self.name == "react" || self.layer.is_some() {
+      debug_log(
+        "H4",
+        "provide_shared_module.rs:214",
+        "provide shared module codegen",
+        serde_json::json!({
+          "request": self.request,
+          "shareKey": self.name,
+          "shareScope": self.share_scope,
+          "version": self.version.to_string(),
+          "eager": self.eager,
+          "singleton": self.singleton,
+          "requiredVersion": self.required_version.as_ref().map(ToString::to_string),
+          "strictVersion": self.strict_version,
+          "layer": self.layer,
+        }),
+      );
+    }
+    // #endregion
     code_generation_result
       .data
       .insert(CodeGenerationDataShareInit {

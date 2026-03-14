@@ -21,7 +21,7 @@ use rustc_hash::FxHashSet;
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::{ShareScope, utils::json_stringify};
+use crate::{ShareScope, debug_log, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -344,6 +344,18 @@ impl Module for ContainerEntryModule {
     let module_map = ExposeModuleMap::new(compilation, self, runtime_template);
     let module_map_str = module_map.render(runtime_template);
     let source = if self.enhanced {
+      // #region agent log
+      debug_log(
+        "S1",
+        "container_entry_module.rs:346",
+        "rspack enhanced container entry codegen",
+        serde_json::json!({
+          "name": self.name,
+          "shareScope": self.share_scope,
+          "moduleMapKeys": self.exposes.iter().map(|(name, _)| name.clone()).collect::<Vec<_>>(),
+        }),
+      );
+      // #endregion
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let get_container = format!(

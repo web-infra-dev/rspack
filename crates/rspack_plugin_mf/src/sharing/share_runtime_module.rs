@@ -11,7 +11,7 @@ use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::{ConsumeVersion, ShareScope, utils::json_stringify};
+use crate::{ConsumeVersion, ShareScope, debug_log, utils::json_stringify};
 
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
 static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -94,6 +94,26 @@ impl RuntimeModule for ShareRuntimeModule {
           .map(|info| match info {
             DataInitInfo::ExternalModuleId(Some(id)) => json_stringify(&id),
             DataInitInfo::ProvideSharedInfo(info) => {
+              // #region agent log
+              if info.name == "react" || info.layer.is_some() {
+                debug_log(
+                  "H5",
+                  "share_runtime_module.rs:96",
+                  "share runtime provide stage",
+                  serde_json::json!({
+                    "scope": scope,
+                    "name": info.name,
+                    "version": info.version.to_string(),
+                    "eager": info.eager,
+                    "singleton": info.singleton,
+                    "requiredVersion": info.required_version.as_ref().map(ToString::to_string),
+                    "strictVersion": info.strict_version,
+                    "layer": info.layer,
+                    "treeShakingMode": info.tree_shaking_mode,
+                  }),
+                );
+              }
+              // #endregion
               let mut stage = format!(
                 "{{ name: {}, version: {}, factory: {}, eager: {}, layer: {}, treeShakingMode: {}",
                 json_stringify_str(&info.name),
