@@ -43,7 +43,6 @@ export default function () {
       __webpack_require__.consumesLoadingData?.moduleIdToConsumeDataMapping ??
       {};
     const consumesLoadinginstalledModules = {};
-    const consumesLoadingModuleToHandlerMapping = {};
     const initializeSharingInitPromises = [];
     const initializeSharingInitTokens = {};
     const containerShareScope =
@@ -65,6 +64,49 @@ export default function () {
       () => __module_federation_share_fallbacks__,
     );
     const sharedFallback = __webpack_require__.federation.sharedFallback;
+    early(
+      __webpack_require__.federation,
+      'consumesLoadingModuleToHandlerMapping',
+      () => {
+        const consumesLoadingModuleToHandlerMapping = {};
+        for (let [moduleId, data] of Object.entries(
+          consumesLoadingModuleToConsumeDataMapping,
+        )) {
+          consumesLoadingModuleToHandlerMapping[moduleId] = {
+            getter: sharedFallback
+              ? __webpack_require__.federation.bundlerRuntime?.getSharedFallbackGetter(
+                  {
+                    shareKey: data.shareKey,
+                    factory: data.fallback,
+                    webpackRequire: __webpack_require__,
+                    libraryType: __webpack_require__.federation.libraryType,
+                  },
+                )
+              : data.fallback,
+            treeShakingGetter: sharedFallback ? data.fallback : undefined,
+            shareInfo: {
+              shareConfig: {
+                fixedDependencies: false,
+                requiredVersion: data.requiredVersion,
+                strictVersion: data.strictVersion,
+                singleton: data.singleton,
+                eager: data.eager,
+                layer: data.layer,
+              },
+              scope: [data.shareScope],
+            },
+            shareKey: data.shareKey,
+            treeShaking: __webpack_require__.federation.sharedFallback
+              ? {
+                  get: data.fallback,
+                  mode: data.treeShakingMode,
+                }
+              : undefined,
+          };
+        }
+        return consumesLoadingModuleToHandlerMapping;
+      },
+    );
     early(__webpack_require__.federation, 'initOptions', () => ({}));
     early(
       __webpack_require__.federation.initOptions,
@@ -192,9 +234,8 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const info = remoteData.remoteInfo
-            ? [remoteData.remoteInfo]
-            : __module_federation_remote_infos__[remoteData.remoteName];
+          const info =
+            __module_federation_remote_infos__[remoteData.remoteName];
           if (info) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;
@@ -229,7 +270,8 @@ export default function () {
         chunkId,
         promises,
         chunkMapping: consumesLoadingChunkMapping,
-        moduleToHandlerMapping: consumesLoadingModuleToHandlerMapping,
+        moduleToHandlerMapping:
+          __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
         installedModules: consumesLoadinginstalledModules,
         webpackRequire: __webpack_require__,
       }),
@@ -280,7 +322,8 @@ export default function () {
         installedModules: consumesLoadinginstalledModules,
         initialConsumes:
           __webpack_require__.consumesLoadingData.initialConsumes,
-        moduleToHandlerMapping: consumesLoadingModuleToHandlerMapping,
+        moduleToHandlerMapping:
+          __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
       });
     }
   }
