@@ -509,8 +509,8 @@ async fn visit_dirs(
 
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
-          request: Arc::from(request.as_str()),
-          user_request: Arc::from(r.request.as_str()),
+          request: Arc::from(request),
+          user_request: Arc::from(r.request),
           category: options.context_options.category,
           context: options.resource.clone().into(),
           layer: options.layer.clone(),
