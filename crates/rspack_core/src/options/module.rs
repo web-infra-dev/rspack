@@ -12,8 +12,9 @@ use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
-use rspack_util::{MergeFrom, try_all, try_any};
+use rspack_util::{MergeFrom, try_any};
 use rustc_hash::FxHashMap as HashMap;
+use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
@@ -923,35 +924,478 @@ impl DataRef<'_> {
   }
 }
 
-impl RuleSetCondition {
-  #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
-    match self {
-      Self::String(s) => Ok(
-        data
-          .as_str()
-          .map(|data| data.starts_with(s))
-          .unwrap_or_default(),
-      ),
-      Self::Regexp(r) => Ok(data.as_str().map(|data| r.test(data)).unwrap_or_default()),
-      Self::Logical(g) => g.try_match(data).await,
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
-      Self::Func(f) => f(data).await,
+enum ConditionMatchRoot<'a> {
+  Condition(&'a RuleSetCondition),
+  Logical(&'a RuleSetLogicalConditions),
+}
+
+enum ConditionMatchState<'a> {
+  Condition(&'a RuleSetCondition),
+  Array {
+    conditions: &'a [RuleSetCondition],
+    index: usize,
+    matched_any: bool,
+  },
+  Logical {
+    logical: &'a RuleSetLogicalConditions,
+    stage: LogicalMatchStage,
+  },
+}
+
+enum LogicalMatchStage {
+  Start,
+  And { index: usize },
+  OrStart,
+  Or { index: usize, matched_any: bool },
+  NotStart,
+  NotDone,
+}
+
+async fn try_match_condition_impl<'a, 'data>(
+  root: ConditionMatchRoot<'a>,
+  data: DataRef<'data>,
+) -> Result<bool> {
+  let mut stack = SmallVec::<[ConditionMatchState<'a>; 8]>::with_capacity(8);
+  let mut last_result = None;
+
+  match root {
+    ConditionMatchRoot::Condition(condition) => {
+      stack.push(ConditionMatchState::Condition(condition))
+    }
+    ConditionMatchRoot::Logical(logical) => stack.push(ConditionMatchState::Logical {
+      logical,
+      stage: LogicalMatchStage::Start,
+    }),
+  }
+
+  while let Some(state) = stack.pop() {
+    match state {
+      ConditionMatchState::Condition(condition) => match condition {
+        RuleSetCondition::String(s) => {
+          last_result = Some(
+            data
+              .as_str()
+              .map(|data| data.starts_with(s))
+              .unwrap_or_default(),
+          );
+        }
+        RuleSetCondition::Regexp(r) => {
+          last_result = Some(data.as_str().map(|data| r.test(data)).unwrap_or_default());
+        }
+        RuleSetCondition::Logical(logical) => stack.push(ConditionMatchState::Logical {
+          logical,
+          stage: LogicalMatchStage::Start,
+        }),
+        RuleSetCondition::Array(conditions) => {
+          if conditions.is_empty() {
+            last_result = Some(false);
+          } else {
+            stack.push(ConditionMatchState::Array {
+              conditions,
+              index: 0,
+              matched_any: false,
+            });
+          }
+        }
+        RuleSetCondition::Func(func) => {
+          last_result = Some(func(data).await?);
+        }
+      },
+      ConditionMatchState::Array {
+        conditions,
+        index,
+        matched_any,
+      } => {
+        let matched_any = if index == 0 {
+          matched_any
+        } else {
+          matched_any
+            || last_result
+              .take()
+              .expect("condition array evaluation should produce a result")
+        };
+
+        if matched_any {
+          last_result = Some(true);
+          continue;
+        }
+
+        if let Some(condition) = conditions.get(index) {
+          stack.push(ConditionMatchState::Array {
+            conditions,
+            index: index + 1,
+            matched_any,
+          });
+          stack.push(ConditionMatchState::Condition(condition));
+        } else {
+          last_result = Some(false);
+        }
+      }
+      ConditionMatchState::Logical { logical, stage } => match stage {
+        LogicalMatchStage::Start => {
+          if let Some(and) = logical.and.as_deref()
+            && let Some(condition) = and.first()
+          {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::And { index: 1 },
+            });
+            stack.push(ConditionMatchState::Condition(condition));
+          } else {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::OrStart,
+            });
+          }
+        }
+        LogicalMatchStage::And { index } => {
+          if !last_result
+            .take()
+            .expect("logical and evaluation should produce a result")
+          {
+            last_result = Some(false);
+            continue;
+          }
+
+          if let Some(condition) = logical.and.as_deref().and_then(|and| and.get(index)) {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::And { index: index + 1 },
+            });
+            stack.push(ConditionMatchState::Condition(condition));
+          } else {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::OrStart,
+            });
+          }
+        }
+        LogicalMatchStage::OrStart => {
+          if let Some(or) = logical.or.as_deref() {
+            if let Some(condition) = or.first() {
+              stack.push(ConditionMatchState::Logical {
+                logical,
+                stage: LogicalMatchStage::Or {
+                  index: 1,
+                  matched_any: false,
+                },
+              });
+              stack.push(ConditionMatchState::Condition(condition));
+            } else {
+              last_result = Some(false);
+            }
+          } else {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::NotStart,
+            });
+          }
+        }
+        LogicalMatchStage::Or { index, matched_any } => {
+          let matched_any = matched_any
+            || last_result
+              .take()
+              .expect("logical or evaluation should produce a result");
+
+          if matched_any {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::NotStart,
+            });
+            continue;
+          }
+
+          if let Some(condition) = logical.or.as_deref().and_then(|or| or.get(index)) {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::Or {
+                index: index + 1,
+                matched_any,
+              },
+            });
+            stack.push(ConditionMatchState::Condition(condition));
+          } else {
+            last_result = Some(false);
+          }
+        }
+        LogicalMatchStage::NotStart => {
+          if let Some(not) = logical.not.as_ref() {
+            stack.push(ConditionMatchState::Logical {
+              logical,
+              stage: LogicalMatchStage::NotDone,
+            });
+            stack.push(ConditionMatchState::Condition(not));
+          } else {
+            last_result = Some(true);
+          }
+        }
+        LogicalMatchStage::NotDone => {
+          last_result = Some(
+            !last_result
+              .take()
+              .expect("logical not evaluation should produce a result"),
+          );
+        }
+      },
     }
   }
 
-  #[async_recursion]
+  Ok(last_result.expect("condition evaluation should always finish with a result"))
+}
+
+enum ConditionEmptyRoot<'a> {
+  Condition(&'a RuleSetCondition),
+  Logical(&'a RuleSetLogicalConditions),
+}
+
+enum ConditionEmptyState<'a> {
+  Condition(&'a RuleSetCondition),
+  Logical {
+    logical: &'a RuleSetLogicalConditions,
+    stage: LogicalEmptyStage,
+  },
+}
+
+enum LogicalEmptyStage {
+  Start,
+  And {
+    index: usize,
+    has_condition: bool,
+    matched: bool,
+  },
+  OrStart {
+    has_condition: bool,
+    matched: bool,
+  },
+  Or {
+    index: usize,
+    has_condition: bool,
+    matched: bool,
+    matched_any: bool,
+  },
+  NotStart {
+    has_condition: bool,
+    matched: bool,
+  },
+  NotDone {
+    has_condition: bool,
+    matched: bool,
+  },
+}
+
+async fn match_when_empty_condition_impl(root: ConditionEmptyRoot<'_>) -> Result<bool> {
+  let mut stack = SmallVec::<[ConditionEmptyState<'_>; 8]>::with_capacity(8);
+  let mut last_result = None;
+
+  match root {
+    ConditionEmptyRoot::Condition(condition) => {
+      stack.push(ConditionEmptyState::Condition(condition))
+    }
+    ConditionEmptyRoot::Logical(logical) => stack.push(ConditionEmptyState::Logical {
+      logical,
+      stage: LogicalEmptyStage::Start,
+    }),
+  }
+
+  while let Some(state) = stack.pop() {
+    match state {
+      ConditionEmptyState::Condition(condition) => match condition {
+        RuleSetCondition::String(s) => last_result = Some(s.is_empty()),
+        RuleSetCondition::Regexp(regex) => last_result = Some(regex.test("")),
+        RuleSetCondition::Logical(logical) => stack.push(ConditionEmptyState::Logical {
+          logical,
+          stage: LogicalEmptyStage::Start,
+        }),
+        RuleSetCondition::Array(_) => last_result = Some(false),
+        RuleSetCondition::Func(func) => last_result = Some(func("".into()).await?),
+      },
+      ConditionEmptyState::Logical { logical, stage } => match stage {
+        LogicalEmptyStage::Start => {
+          let has_condition = logical.and.is_some();
+          if let Some(and) = logical.and.as_deref()
+            && let Some(condition) = and.first()
+          {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::And {
+                index: 1,
+                has_condition,
+                matched: true,
+              },
+            });
+            stack.push(ConditionEmptyState::Condition(condition));
+          } else {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::OrStart {
+                has_condition,
+                matched: true,
+              },
+            });
+          }
+        }
+        LogicalEmptyStage::And {
+          index,
+          has_condition,
+          matched,
+        } => {
+          let matched = matched
+            && last_result
+              .take()
+              .expect("logical empty and evaluation should produce a result");
+
+          if matched {
+            if let Some(condition) = logical.and.as_deref().and_then(|and| and.get(index)) {
+              stack.push(ConditionEmptyState::Logical {
+                logical,
+                stage: LogicalEmptyStage::And {
+                  index: index + 1,
+                  has_condition,
+                  matched,
+                },
+              });
+              stack.push(ConditionEmptyState::Condition(condition));
+            } else {
+              stack.push(ConditionEmptyState::Logical {
+                logical,
+                stage: LogicalEmptyStage::OrStart {
+                  has_condition,
+                  matched,
+                },
+              });
+            }
+          } else {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::OrStart {
+                has_condition,
+                matched,
+              },
+            });
+          }
+        }
+        LogicalEmptyStage::OrStart {
+          has_condition,
+          matched,
+        } => {
+          if let Some(or) = logical.or.as_deref() {
+            let has_condition = true;
+            if let Some(condition) = or.first() {
+              stack.push(ConditionEmptyState::Logical {
+                logical,
+                stage: LogicalEmptyStage::Or {
+                  index: 1,
+                  has_condition,
+                  matched,
+                  matched_any: false,
+                },
+              });
+              stack.push(ConditionEmptyState::Condition(condition));
+            } else {
+              stack.push(ConditionEmptyState::Logical {
+                logical,
+                stage: LogicalEmptyStage::NotStart {
+                  has_condition,
+                  matched: false,
+                },
+              });
+            }
+          } else {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::NotStart {
+                has_condition,
+                matched,
+              },
+            });
+          }
+        }
+        LogicalEmptyStage::Or {
+          index,
+          has_condition,
+          matched,
+          matched_any,
+        } => {
+          let matched_any = matched_any
+            || last_result
+              .take()
+              .expect("logical empty or evaluation should produce a result");
+
+          if matched_any {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::NotStart {
+                has_condition,
+                matched,
+              },
+            });
+            continue;
+          }
+
+          if let Some(condition) = logical.or.as_deref().and_then(|or| or.get(index)) {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::Or {
+                index: index + 1,
+                has_condition,
+                matched,
+                matched_any,
+              },
+            });
+            stack.push(ConditionEmptyState::Condition(condition));
+          } else {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::NotStart {
+                has_condition,
+                matched: false,
+              },
+            });
+          }
+        }
+        LogicalEmptyStage::NotStart {
+          has_condition,
+          matched,
+        } => {
+          if let Some(not) = logical.not.as_ref() {
+            stack.push(ConditionEmptyState::Logical {
+              logical,
+              stage: LogicalEmptyStage::NotDone {
+                has_condition: true,
+                matched,
+              },
+            });
+            stack.push(ConditionEmptyState::Condition(not));
+          } else {
+            last_result = Some(has_condition && matched);
+          }
+        }
+        LogicalEmptyStage::NotDone {
+          has_condition,
+          matched,
+        } => {
+          last_result = Some(
+            has_condition
+              && matched
+              && !last_result
+                .take()
+                .expect("logical empty not evaluation should produce a result"),
+          );
+        }
+      },
+    }
+  }
+
+  Ok(last_result.expect("empty condition evaluation should always finish with a result"))
+}
+
+impl RuleSetCondition {
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    try_match_condition_impl(ConditionMatchRoot::Condition(self), data).await
+  }
+
   async fn match_when_empty(&self) -> Result<bool> {
-    let res = match self {
-      RuleSetCondition::String(s) => s.is_empty(),
-      RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
-      RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
-      RuleSetCondition::Array(arr) => {
-        arr.is_empty() && try_any(arr, |c| async move { c.match_when_empty().await }).await?
-      }
-      RuleSetCondition::Func(func) => func("".into()).await?,
-    };
-    Ok(res)
+    match_when_empty_condition_impl(ConditionEmptyRoot::Condition(self)).await
   }
 }
 
@@ -996,42 +1440,12 @@ pub struct RuleSetLogicalConditions {
 }
 
 impl RuleSetLogicalConditions {
-  #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
-    if let Some(and) = &self.and
-      && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
-    {
-      return Ok(false);
-    }
-    if let Some(or) = &self.or
-      && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
-    {
-      return Ok(false);
-    }
-    if let Some(not) = &self.not
-      && not.try_match(data).await?
-    {
-      return Ok(false);
-    }
-    Ok(true)
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    try_match_condition_impl(ConditionMatchRoot::Logical(self), data).await
   }
 
   pub async fn match_when_empty(&self) -> Result<bool> {
-    let mut has_condition = false;
-    let mut match_when_empty = true;
-    if let Some(and) = &self.and {
-      has_condition = true;
-      match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
-    }
-    if let Some(or) = &self.or {
-      has_condition = true;
-      match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
-    }
-    if let Some(not) = &self.not {
-      has_condition = true;
-      match_when_empty &= !not.match_when_empty().await?;
-    }
-    Ok(has_condition && match_when_empty)
+    match_when_empty_condition_impl(ConditionEmptyRoot::Logical(self)).await
   }
 }
 
@@ -1189,4 +1603,123 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{DataRef, RuleSetCondition, RuleSetLogicalConditions};
+
+  #[tokio::test]
+  async fn should_match_nested_rule_set_conditions_without_recursion() {
+    let condition = RuleSetCondition::Array(vec![
+      RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions {
+        and: Some(vec![
+          RuleSetCondition::String("/src".to_string()),
+          RuleSetCondition::Array(vec![
+            RuleSetCondition::String("/nope".to_string()),
+            RuleSetCondition::String("/src/app".to_string()),
+          ]),
+        ]),
+        or: Some(vec![
+          RuleSetCondition::String("/miss".to_string()),
+          RuleSetCondition::String("/src/app".to_string()),
+        ]),
+        not: Some(RuleSetCondition::String("/src/app/blocked".to_string())),
+      })),
+      RuleSetCondition::String("/fallback".to_string()),
+    ]);
+
+    assert!(
+      condition
+        .try_match(DataRef::from("/src/app/index.js"))
+        .await
+        .expect("nested condition should match")
+    );
+
+    assert!(
+      !condition
+        .try_match(DataRef::from("/src/app/blocked.js"))
+        .await
+        .expect("blocked path should not match")
+    );
+  }
+
+  #[tokio::test]
+  async fn should_preserve_rule_set_logical_short_circuit_semantics() {
+    let logical = RuleSetLogicalConditions {
+      and: Some(vec![
+        RuleSetCondition::String("/src".to_string()),
+        RuleSetCondition::String("/src/feature".to_string()),
+      ]),
+      or: Some(vec![
+        RuleSetCondition::String("/miss".to_string()),
+        RuleSetCondition::String("/src/feature".to_string()),
+      ]),
+      not: Some(RuleSetCondition::String(
+        "/src/feature/internal".to_string(),
+      )),
+    };
+
+    assert!(
+      logical
+        .try_match(DataRef::from("/src/feature/index.js"))
+        .await
+        .expect("expected logical condition to match")
+    );
+
+    assert!(
+      !logical
+        .try_match(DataRef::from("/src/feature/internal.js"))
+        .await
+        .expect("expected not condition to reject")
+    );
+
+    assert!(
+      !logical
+        .try_match(DataRef::from("/src/other/index.js"))
+        .await
+        .expect("expected and condition to reject")
+    );
+  }
+
+  #[tokio::test]
+  async fn should_preserve_match_when_empty_semantics() {
+    let array = RuleSetCondition::Array(vec![RuleSetCondition::String(String::new())]);
+    assert!(
+      !array
+        .match_when_empty()
+        .await
+        .expect("array should not match empty input")
+    );
+
+    let logical = RuleSetLogicalConditions {
+      and: Some(vec![RuleSetCondition::String(String::new())]),
+      or: Some(vec![RuleSetCondition::String(String::new())]),
+      not: Some(RuleSetCondition::String("/blocked".to_string())),
+    };
+
+    assert!(
+      logical
+        .match_when_empty()
+        .await
+        .expect("logical condition should match empty input")
+    );
+
+    assert!(
+      !RuleSetLogicalConditions::default()
+        .match_when_empty()
+        .await
+        .expect("empty logical condition should not match empty input")
+    );
+
+    assert!(
+      !RuleSetLogicalConditions {
+        or: Some(vec![]),
+        ..Default::default()
+      }
+      .match_when_empty()
+      .await
+      .expect("empty or list should remain false")
+    );
+  }
 }

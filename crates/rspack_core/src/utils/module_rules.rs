@@ -1,7 +1,7 @@
-use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
+use smallvec::SmallVec;
 
 use crate::{DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect};
 
@@ -14,8 +14,9 @@ pub async fn module_rules_matcher<'a>(
   attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Result<()> {
+  let mut stack = SmallVec::<[ModuleRuleMatcherState<'a>; 8]>::with_capacity(8);
   for rule in rules {
-    module_rule_matcher(
+    module_rule_matcher_with_stack(
       rule,
       resource_data,
       issuer,
@@ -23,22 +24,20 @@ pub async fn module_rules_matcher<'a>(
       dependency,
       attributes,
       matched_rules,
+      &mut stack,
     )
     .await?;
   }
   Ok(())
 }
 
-/// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-#[async_recursion]
-pub async fn module_rule_matcher<'a>(
+async fn module_rule_matcher_inner<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
   issuer: Option<&'a str>,
   issuer_layer: Option<&'a str>,
   dependency: &DependencyCategory,
   attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(resource_data.resource().into()).await?
@@ -199,43 +198,243 @@ pub async fn module_rule_matcher<'a>(
     }
   }
 
-  matched_rules.push(&module_rule.effect);
+  Ok(true)
+}
 
-  if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(
-      rules,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    )
-    .await?;
-  }
+enum ModuleRuleMatcherState<'a> {
+  Enter(&'a ModuleRule),
+  Rules {
+    rules: &'a [ModuleRule],
+    index: usize,
+  },
+  AfterRules {
+    one_of: Option<&'a [ModuleRule]>,
+  },
+  OneOf {
+    rules: &'a [ModuleRule],
+    index: usize,
+    matched_once: bool,
+  },
+}
 
-  if let Some(one_of) = &module_rule.one_of {
-    let mut matched_once = false;
-    for rule in one_of {
-      if module_rule_matcher(
-        rule,
-        resource_data,
-        issuer,
-        issuer_layer,
-        dependency,
-        attributes,
-        matched_rules,
-      )
-      .await?
-      {
-        matched_once = true;
-        break;
+/// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
+async fn module_rule_matcher_with_stack<'a>(
+  module_rule: &'a ModuleRule,
+  resource_data: &ResourceData,
+  issuer: Option<&'a str>,
+  issuer_layer: Option<&'a str>,
+  dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
+  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+  stack: &mut SmallVec<[ModuleRuleMatcherState<'a>; 8]>,
+) -> Result<bool> {
+  stack.clear();
+  let mut last_rule_result = None;
+
+  stack.push(ModuleRuleMatcherState::Enter(module_rule));
+
+  while let Some(state) = stack.pop() {
+    match state {
+      ModuleRuleMatcherState::Enter(module_rule) => {
+        if !module_rule_matcher_inner(
+          module_rule,
+          resource_data,
+          issuer,
+          issuer_layer,
+          dependency,
+          attributes,
+        )
+        .await?
+        {
+          last_rule_result = Some(false);
+          continue;
+        }
+
+        matched_rules.push(&module_rule.effect);
+        stack.push(ModuleRuleMatcherState::AfterRules {
+          one_of: module_rule.one_of.as_deref(),
+        });
+
+        if let Some(rules) = module_rule.rules.as_deref() {
+          stack.push(ModuleRuleMatcherState::Rules { rules, index: 0 });
+        }
+      }
+      ModuleRuleMatcherState::Rules { rules, index } => {
+        if index > 0 {
+          last_rule_result
+            .take()
+            .expect("nested rule evaluation should produce a result");
+        }
+
+        if let Some(rule) = rules.get(index) {
+          stack.push(ModuleRuleMatcherState::Rules {
+            rules,
+            index: index + 1,
+          });
+          stack.push(ModuleRuleMatcherState::Enter(rule));
+        }
+      }
+      ModuleRuleMatcherState::AfterRules { one_of } => {
+        if let Some(rules) = one_of {
+          stack.push(ModuleRuleMatcherState::OneOf {
+            rules,
+            index: 0,
+            matched_once: false,
+          });
+        } else {
+          last_rule_result = Some(true);
+        }
+      }
+      ModuleRuleMatcherState::OneOf {
+        rules,
+        index,
+        matched_once,
+      } => {
+        let matched_once = if index == 0 {
+          matched_once
+        } else {
+          matched_once
+            || last_rule_result
+              .take()
+              .expect("oneOf branch evaluation should produce a result")
+        };
+
+        if matched_once {
+          last_rule_result = Some(true);
+          continue;
+        }
+
+        if let Some(rule) = rules.get(index) {
+          stack.push(ModuleRuleMatcherState::OneOf {
+            rules,
+            index: index + 1,
+            matched_once,
+          });
+          stack.push(ModuleRuleMatcherState::Enter(rule));
+        } else {
+          last_rule_result = Some(false);
+        }
       }
     }
-    if !matched_once {
-      return Ok(false);
+  }
+
+  Ok(last_rule_result.expect("module rule evaluation should always finish with a result"))
+}
+
+/// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
+pub async fn module_rule_matcher<'a>(
+  module_rule: &'a ModuleRule,
+  resource_data: &ResourceData,
+  issuer: Option<&'a str>,
+  issuer_layer: Option<&'a str>,
+  dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
+  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+) -> Result<bool> {
+  let mut stack = SmallVec::<[ModuleRuleMatcherState<'a>; 8]>::with_capacity(8);
+  module_rule_matcher_with_stack(
+    module_rule,
+    resource_data,
+    issuer,
+    issuer_layer,
+    dependency,
+    attributes,
+    matched_rules,
+    &mut stack,
+  )
+  .await
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_loader_runner::ResourceData;
+
+  use super::module_rule_matcher;
+  use crate::{DependencyCategory, ModuleRule, RuleSetCondition};
+
+  fn rule(layer: &str) -> ModuleRule {
+    ModuleRule {
+      effect: crate::ModuleRuleEffect {
+        layer: Some(layer.to_string()),
+        ..Default::default()
+      },
+      ..Default::default()
     }
   }
 
-  Ok(true)
+  #[tokio::test]
+  async fn should_match_rules_before_one_of() {
+    let mut root = rule("root");
+    root.rules = Some(vec![rule("rules-a"), rule("rules-b")]);
+
+    let mut missed = rule("one-of-missed");
+    missed.test = Some(RuleSetCondition::String("/other".to_string()));
+
+    let mut matched = rule("one-of-hit");
+    matched.test = Some(RuleSetCondition::String("/root/src".to_string()));
+    root.one_of = Some(vec![missed, matched]);
+
+    let resource_data = ResourceData::new_with_resource("/root/src/index.js".to_string());
+    let mut matched_rules = Vec::new();
+
+    let result = module_rule_matcher(
+      &root,
+      &resource_data,
+      None,
+      None,
+      &DependencyCategory::Unknown,
+      None,
+      &mut matched_rules,
+    )
+    .await
+    .expect("module rule matching should succeed");
+
+    assert!(result);
+    assert_eq!(
+      matched_rules
+        .iter()
+        .map(|effect| effect.layer.as_deref())
+        .collect::<Vec<_>>(),
+      vec![
+        Some("root"),
+        Some("rules-a"),
+        Some("rules-b"),
+        Some("one-of-hit")
+      ]
+    );
+  }
+
+  #[tokio::test]
+  async fn should_preserve_parent_effect_when_one_of_misses() {
+    let mut root = rule("root");
+    root.rules = Some(vec![rule("rules-a")]);
+    root.one_of = Some(vec![ModuleRule {
+      test: Some(RuleSetCondition::String("/other".to_string())),
+      ..rule("one-of-missed")
+    }]);
+
+    let resource_data = ResourceData::new_with_resource("/root/src/index.js".to_string());
+    let mut matched_rules = Vec::new();
+
+    let result = module_rule_matcher(
+      &root,
+      &resource_data,
+      None,
+      None,
+      &DependencyCategory::Unknown,
+      None,
+      &mut matched_rules,
+    )
+    .await
+    .expect("module rule matching should succeed");
+
+    assert!(!result);
+    assert_eq!(
+      matched_rules
+        .iter()
+        .map(|effect| effect.layer.as_deref())
+        .collect::<Vec<_>>(),
+      vec![Some("root"), Some("rules-a")]
+    );
+  }
 }

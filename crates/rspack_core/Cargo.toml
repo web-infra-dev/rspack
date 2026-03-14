@@ -57,6 +57,7 @@ rustc-hash = { workspace = true }
 scopeguard = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+smallvec = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__ecma",
