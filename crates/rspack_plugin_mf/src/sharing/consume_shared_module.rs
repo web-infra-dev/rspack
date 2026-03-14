@@ -8,7 +8,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -252,6 +253,16 @@ impl Module for ConsumeSharedModule {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
+    code_generation_result.add(
+      SourceType::ConsumeShared,
+      RawStringSource::from(factory.clone().unwrap_or_else(|| {
+        format!(
+          "()=>()=>{{throw new Error(\"Can not get '{}' \")}}",
+          self.options.share_key
+        )
+      }))
+      .boxed(),
+    );
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {

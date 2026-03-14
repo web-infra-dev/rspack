@@ -102,6 +102,9 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+        let fallback_source = code_gen
+          .get(&SourceType::ConsumeShared)
+          .map(|source| source.source().into_string_lossy().into_owned());
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
@@ -133,7 +136,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
           layer_data,
-          data.fallback.as_deref().unwrap_or("undefined"),
+          data
+            .fallback
+            .as_deref()
+            .or(fallback_source.as_deref())
+            .unwrap_or("undefined"),
           json_stringify(&data.tree_shaking_mode),
         ));
       }
