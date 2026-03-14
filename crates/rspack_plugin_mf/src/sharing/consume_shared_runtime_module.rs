@@ -59,6 +59,15 @@ fn required_version_json(required_version: Option<&ConsumeVersion>) -> String {
   }
 }
 
+fn serialize_share_scope(share_scope: &ShareScope) -> Vec<String> {
+  let scopes = share_scope.scopes().to_vec();
+  if scopes.is_empty() {
+    vec!["default".to_string()]
+  } else {
+    scopes
+  }
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
@@ -110,7 +119,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
         let share_scope_json = if enhanced {
-          json_stringify(&data.share_scope)
+          json_stringify(&serialize_share_scope(&data.share_scope))
         } else {
           json_stringify_str(
             data
@@ -119,6 +128,19 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
               .first()
               .map_or("default", |s| s.as_str()),
           )
+        };
+        let fallback = if enhanced {
+          data.fallback.clone().unwrap_or_else(|| {
+            format!(
+              "()=>()=>{{throw new Error({})}}",
+              json_stringify_str(&format!("Can not get '{}'", data.share_key))
+            )
+          })
+        } else {
+          data
+            .fallback
+            .clone()
+            .unwrap_or_else(|| "undefined".to_string())
         };
         let consume_data = if enhanced {
           format!(
@@ -131,7 +153,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
             json_stringify(&data.layer),
-            data.fallback.as_deref().unwrap_or("undefined"),
+            fallback,
             json_stringify(&data.tree_shaking_mode),
           )
         } else {
@@ -144,7 +166,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
             json_stringify(&data.strict_version),
             json_stringify(&data.singleton),
             json_stringify(&data.eager),
-            data.fallback.as_deref().unwrap_or("undefined"),
+            fallback,
             json_stringify(&data.tree_shaking_mode),
           )
         };
