@@ -607,6 +607,53 @@ export default {
 };
 ```
 
+## Resolve behavior changes
+
+### `resolve.extensions`
+
+Rspack 2.0 no longer includes `.wasm` in the default `resolve.extensions` used for JavaScript requests.
+
+In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
+
+Explicit imports like `import './module.wasm'` are not affected.
+
+If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
+
+### CSS resolve conditions
+
+Rspack 2.0 no longer includes `webpack` in the default CSS `@import` resolve conditions.
+
+This only affects packages that expose different `exports` entries for `webpack` and `style`.
+
+If you need to preserve the previous behavior, add `webpack` back explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      'css-import': {
+        conditionNames: ['webpack', '...'],
+      },
+    },
+  },
+};
+```
+
 ## Other changes
 
 ### Changed `devtool` default value
@@ -675,31 +722,6 @@ If you rely on server-relative URL resolution that expects paths to resolve rela
 export default {
   resolve: {
     roots: [context], // the context path of the rspack config
-  },
-};
-```
-
-### JavaScript `resolve.extensions` no longer includes `.wasm` by default
-
-Rspack 2.0 no longer includes `.wasm` in the default `resolve.extensions` used for JavaScript requests.
-
-In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
-
-Explicit imports like `import './module.wasm'` are not affected.
-
-If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    byDependency: {
-      esm: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-      commonjs: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-    },
   },
 };
 ```

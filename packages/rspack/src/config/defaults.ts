@@ -1165,19 +1165,16 @@ const getResolveDefaults = ({
     },
   };
 
-  const styleConditions = [];
-
-  styleConditions.push('webpack');
-  styleConditions.push(mode === 'development' ? 'development' : 'production');
-  styleConditions.push('style');
-
   resolveOptions.byDependency!['css-import'] = {
     // We avoid using any main files because we have to be consistent with CSS `@import`
     // and CSS `@import` does not handle `main` files in directories,
     // you should always specify the full URL for styles
     mainFiles: [],
     mainFields: ['style', '...'],
-    conditionNames: styleConditions,
+    conditionNames: [
+      mode === 'development' ? 'development' : 'production',
+      'style',
+    ],
     extensions: ['.css'],
     preferRelative: true,
   };

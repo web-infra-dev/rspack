@@ -1382,11 +1382,10 @@ fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: b
 
   // Add CSS dependencies if enabled
   if css {
-    let mut style_conditions = vec!["webpack".to_string()];
-    style_conditions.push(match mode {
+    let mut style_conditions = vec![match mode {
       Mode::Development => "development".to_string(),
       _ => "production".to_string(),
-    });
+    }];
     style_conditions.push("style".to_string());
 
     by_dependency.push((
