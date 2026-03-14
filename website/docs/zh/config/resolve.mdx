@@ -335,7 +335,7 @@ export default {
 
 例如，如果同一目录下同时存在 `index.js` 和 `index.ts`，而你的配置是 `['.ts', '.js']`，那么 `import './index'` 将会解析为 `index.ts`。
 
-### 扩展默认值
+## 默认值
 
 从实现上看，顶层 `resolve.extensions` 的默认值其实是 `[]`。之所以大多数场景仍然会自动尝试 `.js`、`.json` 或 `.css`，是因为 Rspack 会根据请求类型，从 [resolve.byDependency](#resolvebydependency) 应用对应的默认配置。
 
@@ -345,6 +345,8 @@ export default {
 - CSS 的 `@import` 默认使用 `[".css"]`
 
 如果你还配置了 `resolve.byDependency[type].extensions` ，那么匹配到的 `byDependency` 配置会在之后继续应用。不带 `'...'` 时会替换顶层的 `resolve.extensions` 的值，带 `'...'` 时则会在该位置插入顶层 `resolve.extensions` 的值。
+
+### 扩展默认值
 
 如果你希望在添加自定义扩展名的同时保留 Rspack 针对当前 dependency type 的默认扩展名，可以使用展开语法 `'...'`：
 
