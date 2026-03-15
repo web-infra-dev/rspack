@@ -16,7 +16,7 @@
     "sort-projects-words": "node ./sortProjectWords.js"
   },
   "dependencies": {
-    "@rstack-dev/doc-ui": "1.12.3",
+    "@rstack-dev/doc-ui": "1.12.5",
     "axios": "^1.13.2",
     "markdown-to-jsx": "^9.5.7",
     "mermaid": "^11.12.2",
