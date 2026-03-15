@@ -265,17 +265,17 @@ pub fn collect_expose_requirements(
 ) {
   #[cfg(debug_assertions)]
   for (shared_key, expose_key) in links {
-    if let Some(expose) = exposes_map.get_mut(&expose_key) {
-      if let Some(shared) = shared_map.get_mut(&shared_key) {
-        if !expose.requires.contains(&shared.name) {
-          expose.requires.push(shared.name.clone());
-        }
-        let target = expose_module_paths
-          .get(&expose_key)
-          .cloned()
-          .unwrap_or_else(|| expose.path.clone());
-        shared.usedIn.push(target);
+    if let Some(expose) = exposes_map.get_mut(&expose_key)
+      && let Some(shared) = shared_map.get_mut(&shared_key)
+    {
+      if !expose.requires.contains(&shared.name) {
+        expose.requires.push(shared.name.clone());
       }
+      let target = expose_module_paths
+        .get(&expose_key)
+        .cloned()
+        .unwrap_or_else(|| expose.path.clone());
+      shared.usedIn.push(target);
     }
   }
 }

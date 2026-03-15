@@ -278,27 +278,15 @@ export default function () {
         webpackRequire: __webpack_require__,
       }),
     );
-    override(__webpack_require__.f, 'consumes', (chunkId, promises) => {
-      const runtimeConsumes = () =>
-        __webpack_require__.federation.bundlerRuntime.consumes({
-          chunkId,
-          promises,
-          chunkMapping: consumesLoadingChunkMapping,
-          moduleToHandlerMapping:
-            __webpack_require__.federation
-              .consumesLoadingModuleToHandlerMapping,
-          installedModules: consumesLoadinginstalledModules,
-          webpackRequire: __webpack_require__,
-        });
-      const chunkConsumes = consumesLoadingChunkMapping[chunkId];
-      if (!Array.isArray(chunkConsumes) || chunkConsumes.length === 0) {
-        return runtimeConsumes();
+    const initConsumeShareScopes = (moduleIds) => {
+      if (!Array.isArray(moduleIds) || moduleIds.length === 0) {
+        return [];
       }
       const initPromises = [];
       const initializedScopes = new Set();
-      for (const moduleId of chunkConsumes) {
-        const rawShareScope =
-          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope;
+      for (const moduleId of moduleIds) {
+        const consumeData = consumesLoadingModuleToConsumeDataMapping[moduleId];
+        const rawShareScope = consumeData?.shareScope;
         const initShareScope = Array.isArray(rawShareScope)
           ? rawShareScope
           : [rawShareScope || 'default'];
@@ -312,6 +300,22 @@ export default function () {
           initPromises.push(initialized);
         }
       }
+      return initPromises;
+    };
+    override(__webpack_require__.f, 'consumes', (chunkId, promises) => {
+      const runtimeConsumes = () =>
+        __webpack_require__.federation.bundlerRuntime.consumes({
+          chunkId,
+          promises,
+          chunkMapping: consumesLoadingChunkMapping,
+          moduleToHandlerMapping:
+            __webpack_require__.federation
+              .consumesLoadingModuleToHandlerMapping,
+          installedModules: consumesLoadinginstalledModules,
+          webpackRequire: __webpack_require__,
+        });
+      const chunkConsumes = consumesLoadingChunkMapping[chunkId];
+      const initPromises = initConsumeShareScopes(chunkConsumes);
       if (initPromises.length === 0) {
         return runtimeConsumes();
       }
@@ -375,6 +379,9 @@ export default function () {
       });
 
     if (__webpack_require__.consumesLoadingData?.initialConsumes) {
+      initConsumeShareScopes(
+        __webpack_require__.consumesLoadingData.initialConsumes,
+      );
       __webpack_require__.federation.bundlerRuntime.installInitialConsumes({
         webpackRequire: __webpack_require__,
         installedModules: consumesLoadinginstalledModules,

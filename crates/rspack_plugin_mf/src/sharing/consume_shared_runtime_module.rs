@@ -102,9 +102,13 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
-        let fallback_source = code_gen
-          .get(&SourceType::ConsumeShared)
-          .map(|source| source.source().into_string_lossy().into_owned());
+        let fallback_source = if enhanced {
+          code_gen
+            .get(&SourceType::ConsumeShared)
+            .map(|source| source.source().into_string_lossy().into_owned())
+        } else {
+          None
+        };
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
