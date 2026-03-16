@@ -340,6 +340,39 @@ export default {
 };
 ```
 
+### Moved builtin:swc-loader's rspackExperiments.import to top-level transformImport
+
+The `rspackExperiments.import` option (also known as `rspackExperiments.pluginImport`) of `builtin:swc-loader` has been moved to a top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. The old `rspackExperiments.import` is deprecated but still works for backward compatibility.
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+-         rspackExperiments: {
+-           import: [
+-             {
+-               libraryName: 'antd',
+-               style: true,
+-             },
+-           ],
+-         },
++         transformImport: [
++           {
++             libraryName: 'antd',
++             style: true,
++           },
++         ],
+        },
+      },
+    ],
+  },
+};
+```
+
 ### Derive loader and plugin targets from target
 
 In Rspack 2.0, the `targets` configuration for `builtin:swc-loader`, `builtin:lightningcss-loader`, and `rspack.LightningCssMinimizerRspackPlugin` now defaults to being derived from the [target](/config/target) configuration.

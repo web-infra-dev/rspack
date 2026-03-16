@@ -340,6 +340,39 @@ export default {
 };
 ```
 
+### 移动 builtin:swc-loader 的 rspackExperiments.import 至顶层 transformImport
+
+`builtin:swc-loader` 的 `rspackExperiments.import`（也称为 `rspackExperiments.pluginImport`）已移动到顶层的 [transformImport](/guide/features/builtin-swc-loader#transformimport) 选项。旧的 `rspackExperiments.import` 已废弃，但仍可正常使用以保持向后兼容。
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+-         rspackExperiments: {
+-           import: [
+-             {
+-               libraryName: 'antd',
+-               style: true,
+-             },
+-           ],
+-         },
++         transformImport: [
++           {
++             libraryName: 'antd',
++             style: true,
++           },
++         ],
+        },
+      },
+    ],
+  },
+};
+```
+
 ### 从 target 派生 loader 和 plugin 的 targets 配置
 
 在 Rspack 2.0 中，`builtin:swc-loader`、`builtin:lightningcss-loader` 和 `rspack.LightningCssMinimizerRspackPlugin` 的 `targets` 配置现在默认从 [target](/config/target) 配置派生。
