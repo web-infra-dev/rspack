@@ -235,10 +235,34 @@ var {} = {{}};
           runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
         )));
       }
+      let is_entry_chunk = !compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules(chunk_ukey)
+        .is_empty();
+
+      // When the entry chunk IS the runtime chunk (runtimeChunk: false without split)
+      // and no runtime modules actually use the __webpack_require__ scope, strip
+      // REQUIRE_SCOPE so we don't emit a useless `var __webpack_require__ = {};`.
+      let has_runtime_modules = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+        .next()
+        .is_some();
+      let effective_tree_requirements = if is_entry_chunk
+        && !has_runtime_modules
+        && !tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+      {
+        tree_runtime_requirements.difference(RuntimeGlobals::REQUIRE_SCOPE)
+      } else {
+        *tree_runtime_requirements
+      };
+
       let runtimes = Self::render_runtime(
         chunk_ukey,
         compilation,
-        *tree_runtime_requirements,
+        effective_tree_requirements,
         runtime_template,
       )
       .await?;
@@ -248,23 +272,16 @@ var {} = {{}};
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already
-      // Only export __webpack_require__ when this is a pure runtime chunk (no entry modules).
-      // When the entry chunk IS the runtime chunk (runtimeChunk: false without split),
-      // __webpack_require__ is used internally but should not be exported since no other
-      // chunk imports it.
-      let is_entry_chunk = !compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_entry_modules(chunk_ukey)
-        .is_empty();
+      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already.
+      // Only export __webpack_require__ from pure runtime chunks (no entry modules).
+      // Entry-with-runtime chunks use it internally but nothing imports from them.
       if !is_entry_chunk
         && !compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_runtime_modules_iterable(chunk_ukey)
           .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
-        && tree_runtime_requirements
+        && effective_tree_requirements
           .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
         export_specifiers.insert(Cow::Owned(
@@ -745,6 +762,7 @@ var {} = {{}};
     let intercept_module_execution =
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
+    let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
     let use_require = require_function || intercept_module_execution || module_used;
     let mut source = ConcatSource::default();
 
@@ -772,11 +790,14 @@ function {}(moduleId) {{
 }
 "#,
       ));
+    } else if require_scope_used {
+      source.add(RawStringSource::from(format!(
+        r#"// The require scope
+var {} = {{}};
+"#,
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      )));
     }
-    // In ESM library, REQUIRE_SCOPE without REQUIRE is typically triggered only by
-    // STARTUP_NO_DEFAULT (which is always added by this plugin). Generating an empty
-    // `var __webpack_require__ = {};` scope object is useless in this context because
-    // no runtime module actually needs it. Skip the empty scope generation.
 
     if module_factories {
       source.add(RawStringSource::from(format!(
