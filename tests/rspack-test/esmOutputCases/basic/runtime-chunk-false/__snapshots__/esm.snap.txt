@@ -1,0 +1,12 @@
+```mjs title=main.mjs
+// ./lib.js
+const value = 42
+
+// ./index.js
+
+
+it('should have correct value', () => {
+  expect(value).toBe(42)
+})
+
+```

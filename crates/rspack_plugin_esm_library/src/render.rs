@@ -249,11 +249,21 @@ var {} = {{}};
       runtime_source.add(RawStringSource::from_static("\n"));
 
       // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already
-      if !compilation
+      // Only export __webpack_require__ when this is a pure runtime chunk (no entry modules).
+      // When the entry chunk IS the runtime chunk (runtimeChunk: false without split),
+      // __webpack_require__ is used internally but should not be exported since no other
+      // chunk imports it.
+      let is_entry_chunk = !compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .get_chunk_runtime_modules_iterable(chunk_ukey)
-        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
+        .get_chunk_entry_modules(chunk_ukey)
+        .is_empty();
+      if !is_entry_chunk
+        && !compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_runtime_modules_iterable(chunk_ukey)
+          .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
         && tree_runtime_requirements
           .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
@@ -735,7 +745,6 @@ var {} = {{}};
     let intercept_module_execution =
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
-    let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE);
     let use_require = require_function || intercept_module_execution || module_used;
     let mut source = ConcatSource::default();
 
@@ -763,14 +772,11 @@ function {}(moduleId) {{
 }
 "#,
       ));
-    } else if require_scope_used {
-      source.add(RawStringSource::from(format!(
-        r#"// The require scope
-var {} = {{}};
-"#,
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      )));
     }
+    // In ESM library, REQUIRE_SCOPE without REQUIRE is typically triggered only by
+    // STARTUP_NO_DEFAULT (which is always added by this plugin). Generating an empty
+    // `var __webpack_require__ = {};` scope object is useless in this context because
+    // no runtime module actually needs it. Skip the empty scope generation.
 
     if module_factories {
       source.add(RawStringSource::from(format!(

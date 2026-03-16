@@ -503,6 +503,11 @@ async fn additional_chunk_runtime_requirements(
 ) -> Result<()> {
   let info_map = self.concatenated_modules_map.read().await;
 
+  // Track whether any ESM library-specific feature actually needs __webpack_require__.
+  // We should only add REQUIRE when external (non-scope-hoisted) modules or interop
+  // helpers need it, not just because module codegen added unrelated requirements.
+  let mut needs_require = false;
+
   for m in compilation
     .build_chunk_graph_artifact
     .chunk_graph
@@ -510,18 +515,24 @@ async fn additional_chunk_runtime_requirements(
   {
     let info = info_map.get(m).expect("should have this info map");
 
-    runtime_requirements.extend(*info.get_runtime_requirements());
+    let info_requirements = *info.get_runtime_requirements();
+    if !info_requirements.is_empty() {
+      runtime_requirements.extend(info_requirements);
+      needs_require = true;
+    }
 
     if info.get_interop_default_access_used() {
       runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+      needs_require = true;
     }
 
     if info.get_interop_namespace_object2_used() || info.get_interop_namespace_object_used() {
       runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+      needs_require = true;
     }
   }
 
-  if !runtime_requirements.is_empty() {
+  if needs_require {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
   }
 
