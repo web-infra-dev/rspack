@@ -1,5 +1,5 @@
 ---
-description: "你可以在 @rspack/core 和 @rspack/cli 的 npm 版本页面查看所有已发布的版本。"
+description: '你可以在 @rspack/core 和 @rspack/cli 的 npm 版本页面查看所有已发布的版本。'
 ---
 
 # Releasing

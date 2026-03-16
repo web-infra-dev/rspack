@@ -1,5 +1,5 @@
 ---
-description: "Rspack 贡献指南中的Building章节，涵盖安装 Node.js 依赖和构建 Rspack等核心内容，并说明本地准备要求。"
+description: 'Rspack 贡献指南中的Building章节，涵盖安装 Node.js 依赖和构建 Rspack等核心内容，并说明本地准备要求。'
 ---
 
 # Building

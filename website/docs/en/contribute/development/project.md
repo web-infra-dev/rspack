@@ -1,5 +1,5 @@
 ---
-description: "monorepo containing both Rust crates and JavaScript packages:"
+description: 'monorepo containing both Rust crates and JavaScript packages:'
 ---
 
 # Project architecture

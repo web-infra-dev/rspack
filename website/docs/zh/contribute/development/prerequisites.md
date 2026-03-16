@@ -1,5 +1,5 @@
 ---
-description: "Rspack 贡献指南中的准备工作章节，涵盖安装 Rust和安装 Node.js等核心内容，并说明本地准备要求。"
+description: 'Rspack 贡献指南中的准备工作章节，涵盖安装 Rust和安装 Node.js等核心内容，并说明本地准备要求。'
 ---
 
 # 准备工作

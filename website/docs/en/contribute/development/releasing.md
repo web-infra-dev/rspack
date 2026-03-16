@@ -1,5 +1,5 @@
 ---
-description: "Rspack releases are automated through GitHub Actions"
+description: 'Rspack releases are automated through GitHub Actions'
 ---
 
 # Releasing

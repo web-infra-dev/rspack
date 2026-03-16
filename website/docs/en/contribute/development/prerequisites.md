@@ -1,5 +1,5 @@
 ---
-description: "Rspack is built using Rust and NAPI-RS, then released as Node.js packages"
+description: 'Rspack is built using Rust and NAPI-RS, then released as Node.js packages'
 ---
 
 # Prerequisites
