@@ -49,9 +49,9 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
   Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, filter_runtime, find_target, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -1924,6 +1924,9 @@ impl Module for ConcatenatedModule {
         result.add(RawStringSource::from_static("\n}"));
       }
     }
+
+    // `module_to_info_map` can be large and expensive to tear down on the critical path.
+    fast_set(&mut module_to_info_map, IdentifierIndexMap::default());
 
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
