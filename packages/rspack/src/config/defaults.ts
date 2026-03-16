@@ -1006,7 +1006,6 @@ const applyOptimizationDefaults = (
     development: boolean;
   },
 ) => {
-  D(optimization, 'removeAvailableModules', true);
   D(optimization, 'removeEmptyChunks', true);
   D(optimization, 'mergeDuplicateChunks', true);
   F(optimization, 'moduleIds', (): 'natural' | 'named' | 'deterministic' => {

@@ -305,13 +305,7 @@ export default {
 };
 ```
 
-### rspackExperiments
-
-Rspack 内置的实验性功能。
-
-### rspackExperiments.import
-
-<ApiMeta stability={Stability.Experimental} />
+### transformImport
 
 移植自 [babel-plugin-import](https://github.com/umijs/babel-plugin-import)，配置基本保持一致。
 
@@ -332,15 +326,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          // ...
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'foo',
-                customName: 'foo/es/{{ member }}',
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'foo',
+              customName: 'foo/es/{{ member }}',
+            },
+          ],
         },
       },
     ],
@@ -367,14 +358,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'foo',
-                customName: 'foo/es/{{ kebabCase member }}',
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'foo',
+              customName: 'foo/es/{{ kebabCase member }}',
+            },
+          ],
         },
       },
     ],
@@ -403,14 +392,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'antd',
-                style: '{{member}}/style/index.css',
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'antd',
+              style: '{{member}}/style/index.css',
+            },
+          ],
         },
       },
     ],
@@ -436,14 +423,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'antd',
-                style: true,
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'antd',
+              style: true,
+            },
+          ],
         },
       },
     ],
@@ -457,6 +442,14 @@ export default {
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
+
+### rspackExperiments
+
+Rspack 内置的实验性功能。
+
+:::warning
+`rspackExperiments.import` 已迁移至顶层 [`transformImport`](#transformimport) 选项。`rspackExperiments.import` 选项已废弃，将在未来版本中移除。
+:::
 
 ### collectTypeScriptInfo
 

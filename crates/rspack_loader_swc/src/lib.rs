@@ -162,7 +162,10 @@ impl SwcLoader {
           } else {
             swc_core::common::pass::Either::Right(noop_pass())
           },
-          transformer::transform(&self.options_with_additional.rspack_experiments),
+          transformer::transform(
+            &self.options_with_additional.transform_import,
+            &self.options_with_additional.rspack_experiments,
+          ),
         )
       },
     )?;

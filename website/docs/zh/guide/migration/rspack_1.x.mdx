@@ -440,6 +440,18 @@ export default {
 
 `output.charset` 配置已被移除。该选项用于在生成的 `<script>` 标签中添加 `charset` 属性，但现代浏览器已默认使用 UTF-8 编码，不再需要此配置。
 
+### 移除 optimization.removeAvailableModules
+
+`optimization.removeAvailableModules` 配置已被移除。该选项在 Rspack 中没有实际作用，可以直接从配置中移除：
+
+```diff title="rspack.config.mjs"
+export default {
+  optimization: {
+-   removeAvailableModules: true,
+  },
+};
+```
+
 ## Stats 相关变更
 
 ### 修改 stats.toJson() 的默认参数

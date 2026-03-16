@@ -2583,9 +2583,6 @@ export type Optimization = {
    */
   runtimeChunk?: OptimizationRuntimeChunk;
 
-  /** Detect and remove modules from chunks these modules are already included in all parents. */
-  removeAvailableModules?: boolean;
-
   /**
    * Remove empty chunks generated in the compilation.
    * @default true
