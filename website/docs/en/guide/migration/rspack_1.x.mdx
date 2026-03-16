@@ -290,7 +290,7 @@ export default {
 
 ### Disabled builtin:swc-loader reading .swcrc
 
-In Rspack 2.0, `builtin:swc-loader` disables `.swcrc` file reading by default. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
+In Rspack 2.0, `builtin:swc-loader` no longer allows reading `.swcrc` files. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
 
 ```js title="rspack.config.mjs"
 export default {
