@@ -79,7 +79,7 @@ export default {
 
 ### 默认启用 experiments.asyncWebAssembly
 
-[experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) 的默认值从 `false` 调整为 `true`。异步 WebAssembly 支持默认启用，Rspack 会为常见的 `.wasm` 文件和 `application/wasm` 请求自动注入内置的 `type: 'webassembly/async'` 规则，通常不需要再手动配置 `module.rules`。
+[experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) 的默认值从 `false` 调整为 `true`。异步 WebAssembly 支持默认启用，Rspack 会为常见的 `.wasm` 文件和 `application/wasm` 请求自动注入内置的 `type: 'webassembly/async'` 规则。
 
 如果不需要此功能，可以显式禁用：
 
