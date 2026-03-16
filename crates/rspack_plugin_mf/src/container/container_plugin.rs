@@ -15,11 +15,12 @@ use super::{
   container_entry_module_factory::ContainerEntryModuleFactory,
   expose_runtime_module::ExposeRuntimeModule, federation_modules_plugin::FederationModulesPlugin,
 };
+use crate::ShareScope;
 
 #[derive(Debug)]
 pub struct ContainerPluginOptions {
   pub name: String,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,

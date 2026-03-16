@@ -20,7 +20,7 @@ use rustc_hash::FxHashSet;
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -31,7 +31,7 @@ pub struct ContainerEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
-  share_scope: String,
+  share_scope: ShareScope,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -42,7 +42,7 @@ impl ContainerEntryModule {
   pub fn new(
     name: String,
     exposes: Vec<(String, ExposeOptions)>,
-    share_scope: String,
+    share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
     let lib_ident = format!("webpack/container/entry/{}", &name);
@@ -51,7 +51,7 @@ impl ContainerEntryModule {
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(format!(
         "container entry ({}) {}",
-        share_scope,
+        share_scope.key(),
         json_stringify(&exposes),
       )),
       lib_ident,
@@ -265,7 +265,12 @@ var init = function(shareScope, initScope) {{
         share_scope_map = compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify(&self.share_scope),
+        share_scope = json_stringify(match &self.share_scope {
+          ShareScope::Single(s) => s.as_str(),
+          ShareScope::Multiple(_) => {
+            panic!("ContainerEntryModule: enhanced=false only supports string share scope")
+          }
+        }),
         initialize_sharing = compilation
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
@@ -401,5 +406,5 @@ impl ExposeModuleMap {
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
 }

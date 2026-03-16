@@ -19,7 +19,7 @@ use super::{
   provide_shared_dependency::ProvideSharedDependency,
   provide_shared_module_factory::ProvideSharedModuleFactory,
 };
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 static RELATIVE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\|\.\.?(\/|$))").expect("Invalid regex"));
@@ -29,7 +29,7 @@ static ABSOLUTE_REQUEST: LazyLock<Regex> =
 #[derive(Debug, Clone)]
 pub struct ProvideOptions {
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub version: Option<ProvideVersion>,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -40,7 +40,7 @@ pub struct ProvideOptions {
 #[derive(Debug, Clone)]
 pub struct VersionedProvideOptions {
   pub share_key: String,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub version: ProvideVersion,
   pub eager: bool,
   pub singleton: Option<bool>,
@@ -103,7 +103,7 @@ impl ProvideSharedPlugin {
     &self,
     key: &str,
     share_key: &str,
-    share_scope: &str,
+    share_scope: &ShareScope,
     version: Option<&ProvideVersion>,
     eager: bool,
     singleton: Option<bool>,
@@ -120,7 +120,7 @@ impl ProvideSharedPlugin {
         resource.to_string(),
         VersionedProvideOptions {
           share_key: share_key.to_string(),
-          share_scope: share_scope.to_string(),
+          share_scope: share_scope.clone(),
           version: version.to_owned(),
           eager,
           singleton,
@@ -137,7 +137,7 @@ impl ProvideSharedPlugin {
           resource.to_string(),
           VersionedProvideOptions {
             share_key: share_key.to_string(),
-            share_scope: share_scope.to_string(),
+            share_scope: share_scope.clone(),
             version: ProvideVersion::Version(version.to_string()),
             eager,
             singleton,
@@ -205,7 +205,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
     .map(|(resource, config)| {
       (
         Box::new(ProvideSharedDependency::new(
-          config.share_scope.to_string(),
+          config.share_scope.clone(),
           config.share_key.to_string(),
           config.version.clone(),
           resource.to_string(),

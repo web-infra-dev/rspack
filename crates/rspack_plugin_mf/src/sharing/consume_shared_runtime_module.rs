@@ -6,7 +6,7 @@ use rspack_core::{
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::utils::json_stringify;
+use crate::{ShareScope, utils::json_stringify};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -88,9 +88,20 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+        let share_scope_json = if self.enhanced {
+          json_stringify(&data.share_scope)
+        } else {
+          json_stringify(
+            data
+              .share_scope
+              .scopes()
+              .first()
+              .map_or("default", |s| s.as_str()),
+          )
+        };
         module_id_to_consume_data_mapping.insert(id, format!(
           "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {} }}",
-          json_stringify(&data.share_scope),
+          share_scope_json,
           json_stringify(&data.share_key),
           json_stringify(&data.import),
           json_stringify(&data.required_version.as_ref().map(|v| v.to_string()).unwrap_or_else(|| "*".to_string())),
@@ -211,7 +222,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub share_key: String,
   pub import: Option<String>,
   pub required_version: Option<ConsumeVersion>,
