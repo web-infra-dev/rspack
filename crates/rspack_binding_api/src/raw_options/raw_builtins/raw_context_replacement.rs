@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::bindgen_prelude::Object;
 use napi_derive::napi;
 use rspack_error::{Error, ToStringResultToRspackResultExt};
@@ -36,7 +38,7 @@ impl<'a> TryFrom<RawContextReplacementPluginOptions<'a>> for ContextReplacementP
       for key in keys {
         let value = raw.get::<String>(&key).to_rspack_result()?;
         if let Some(value) = value {
-          map.insert(key, value);
+          map.insert(Arc::from(key), value);
         }
       }
       Some(map)

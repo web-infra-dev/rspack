@@ -510,7 +510,7 @@ async fn visit_dirs(
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
           request: Arc::from(request),
-          user_request: Arc::from(r.request),
+          user_request: r.request.clone(),
           category: options.context_options.category,
           context: options.resource.clone().into(),
           layer: options.layer.clone(),
@@ -529,13 +529,16 @@ async fn visit_dirs(
 
 #[derive(Debug, Clone)]
 pub struct AlternativeRequest {
-  pub context: String,
-  pub request: String,
+  pub context: Arc<str>,
+  pub request: Arc<str>,
 }
 
 impl AlternativeRequest {
-  pub fn new(context: String, request: String) -> Self {
-    Self { context, request }
+  pub fn new(context: impl Into<Arc<str>>, request: impl Into<Arc<str>>) -> Self {
+    Self {
+      context: context.into(),
+      request: request.into(),
+    }
   }
 }
 

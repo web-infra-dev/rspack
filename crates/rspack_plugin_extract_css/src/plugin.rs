@@ -707,7 +707,7 @@ async fn render_manifest(
   diagnostics.extend(more_diagnostics);
   manifest.push(RenderManifestEntry {
     source,
-    filename: Arc::from(filename.as_ref()),
+    filename: Arc::from(filename),
     has_filename: false,
     info: asset_info,
     auxiliary: false,

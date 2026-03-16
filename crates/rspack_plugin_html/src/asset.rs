@@ -62,7 +62,7 @@ impl HtmlPluginAssets {
               .entrypoints
               .contains_key(name.as_str())
           })
-          .map(|name| Arc::from(name.as_str()))
+          .map(|name| Arc::from(name.clone()))
           .collect()
       } else {
         compilation

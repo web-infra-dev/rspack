@@ -16,7 +16,7 @@ fn put_split_chunk_reason(
   };
   if let Some(chunk_reason) = chunk_reason {
     chunk_reason.push(',');
-    chunk_reason.push_str(&reason);
+    chunk_reason.push_str(reason);
   } else {
     *chunk_reason = Some(reason.to_string());
   }

@@ -601,7 +601,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
 
   // Apply assignments
   for (chunk_ukey, name) in assignments {
-    let name_key: Arc<str> = Arc::from(name.into_boxed_str());
+    let name_key: Arc<str> = Arc::from(name);
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
