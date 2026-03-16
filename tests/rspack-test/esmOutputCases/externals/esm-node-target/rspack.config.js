@@ -1,14 +1,13 @@
+const {
+	experiments: { RslibPlugin }
+} = require("@rspack/core");
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	externals: {},
 	plugins: [
-		{
-			apply(compiler) {
-				compiler.__internal__registerBuiltinPlugin({
-					name: "EsmNodeTargetPlugin",
-					options: false
-				});
-			}
-		}
+		new RslibPlugin({
+			externalEsmNodeBuiltin: true
+		})
 	]
 };

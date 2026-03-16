@@ -27,12 +27,3 @@ it("should externalize node builtins with correct external types", async () => {
 export { readFileSync } from "fs";
 
 ```
-
-```mjs title=os.mjs
-// os
-const external_os_namespaceObject = import("os").then(function(module) { return module; });
-var platform = external_os_namespaceObject.platform;
-export { platform };
-export * from "os";
-
-```
