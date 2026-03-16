@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 
-use rspack_collections::DatabaseItem;
 use rspack_core::{ChunkUkey, Compilation};
 use rustc_hash::FxHashSet;
 

@@ -1304,7 +1304,7 @@ var {} = {{}};
         continue;
       }
 
-      let mut binding_to_ref: HashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+      let mut binding_to_ref: FxHashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
         HashMap::default();
 
       for module_scope_ident in module_scope_idents.iter() {

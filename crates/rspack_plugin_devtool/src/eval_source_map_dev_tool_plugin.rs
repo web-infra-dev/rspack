@@ -1,6 +1,5 @@
 use std::{hash::Hash, sync::Arc};
 
-use dashmap::DashMap;
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
@@ -19,6 +18,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
+  fx_hash::FxDashMap,
   identifier::make_paths_absolute,
 };
 
@@ -45,7 +45,7 @@ pub struct EvalSourceMapDevToolPlugin {
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
   // TODO: memory leak if not clear across multiple compilations
-  cache: DashMap<RspackHashDigest, BoxSource>,
+  cache: FxDashMap<RspackHashDigest, BoxSource>,
 }
 
 impl EvalSourceMapDevToolPlugin {

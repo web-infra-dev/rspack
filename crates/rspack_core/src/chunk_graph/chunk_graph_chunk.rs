@@ -7,12 +7,10 @@ use std::{
 };
 
 use hashlink::LinkedHashMap;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_collections::{
-  DatabaseItem, IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet,
-};
+use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
@@ -818,8 +816,8 @@ impl ChunkGraph {
     chunk_by_ukey: &ChunkByUkey,
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
-    let mut set = IndexSet::new();
-    let mut entrypoints = IndexSet::new();
+    let mut set = FxIndexSet::default();
+    let mut entrypoints = FxIndexSet::default();
 
     let chunk = chunk_by_ukey.expect_get(chunk_ukey);
 
@@ -880,7 +878,7 @@ impl ChunkGraph {
     chunk_group_by_ukey: &ChunkGroupByUkey,
   ) -> impl Iterator<Item = ChunkUkey> {
     let chunk = chunk_by_ukey.expect_get(chunk_ukey);
-    let mut set = IndexSet::new();
+    let mut set = FxIndexSet::default();
     for chunk_group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
       let chunk_group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
       if chunk_group.kind.is_entrypoint() {

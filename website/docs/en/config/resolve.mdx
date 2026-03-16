@@ -96,9 +96,31 @@ In this example:
 - CommonJS references read aliases from the `browser` field.
 - URL-based references prefer relative paths during resolution.
 
-:::tip
-The options defined in `resolve.byDependency` are merged with the top-level `resolve` configuration, with `resolve.byDependency` taking precedence.
-:::
+### Merge rules
+
+When a request matches an entry such as `resolve.byDependency.esm` or `resolve.byDependency.commonjs`, Rspack starts from the top-level `resolve` option and then applies that matching `byDependency` entry for the request type.
+
+- Object options follow normal object merging.
+- Array options replace the current value by default.
+- Use `'...'` in an array to insert the top-level value at that position.
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.json'],
+    byDependency: {
+      esm: {
+        extensions: ['.mjs'],
+        // final value for esm: ['.mjs']
+      },
+      commonjs: {
+        extensions: ['.cjs', '...'],
+        // final value for commonjs: ['.cjs', '.ts', '.tsx', '.js', '.json']
+      },
+    },
+  },
+};
+```
 
 ## resolve.conditionNames
 
@@ -126,7 +148,7 @@ Rspack's default `conditionNames` are determined by [mode](/config/mode), [targe
 ['require', 'module', 'webpack', mode, target];
 
 // For CSS module
-['webpack', mode, 'style'];
+[mode, 'style'];
 ```
 
 In the above example:
@@ -284,14 +306,18 @@ Rspack will try to resolve `'./foo.ts'` and `'./foo.js'` sequentially when resol
 ## resolve.extensions
 
 - **Type:** `string[]`
-- **Default:** `[".js", ".json"]`
+- **Default:** depends on the dependency type. Typical JavaScript module requests use `[".js", ".json"]` by default, while CSS `@import` uses `[".css"]`.
 
 Automatically resolve file extensions when importing modules. This means you can import files without explicitly writing their extensions.
 
-For example, if importing `./index`, Rspack will try to resolve using the following order:
+For example, for a typical JavaScript module request, if importing `./index`, Rspack will try to resolve using the following order:
 
 - `./index.js`
 - `./index.json`
+
+For a CSS request like `@import './base'`, Rspack will try:
+
+- `./base.css`
 
 ### Example
 
@@ -309,16 +335,23 @@ When multiple files with the same name but different extensions exist, Rspack wi
 
 For example, if both `index.js` and `index.ts` exist in the same directory, and your configuration is `['.ts', '.js']`, then `import './index'` will resolve to `index.ts`.
 
+### Default value
+
+At the implementation level, the top-level `resolve.extensions` default is actually `[]`. Rspack still tries `.js`, `.json`, or `.css` in common cases because it applies defaults from [resolve.byDependency](#resolvebydependency) based on the request type.
+
+If you are not familiar with [resolve.byDependency](#resolvebydependency), you can read it as "different default `resolve` settings for different ways of referencing a module". For example:
+
+- `import`, `require()` use `[".js", ".json"]` by default
+- CSS `@import` uses `[".css"]` by default
+
 ### Extend default value
 
-Note that configuring `resolve.extensions` will completely override the default array, which means Rspack will no longer attempt to resolve modules using the default extensions.
-
-To include the default extensions alongside your custom ones, you can use the spread syntax `'...'`:
+To add custom extensions while keeping Rspack's defaults for the current dependency type, use the spread syntax `'...'`:
 
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    // equivalent to ['.ts', '.js', '.json']
+    // for typical JavaScript module requests, equivalent to ['.ts', '.js', '.json']
     extensions: ['.ts', '...'],
   },
 };

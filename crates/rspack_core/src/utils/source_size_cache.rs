@@ -10,8 +10,7 @@ use rspack_cacheable::{
   Result, cacheable,
   with::{AsConverter, AsMap, AsPreset},
 };
-use rustc_hash::FxHashMap;
-use ustr::Ustr;
+use ustr::UstrMap;
 
 use crate::SourceType;
 
@@ -23,7 +22,7 @@ pub struct SourceSizeCache {
   // Fixed slots for builtin SourceType variants to avoid hashing/locking overhead.
   builtins: [AtomicU64; SOURCE_SIZE_CACHE_SLOTS],
   // Rare fallback for SourceType::Custom(...)
-  custom: RwLock<FxHashMap<Ustr, f64>>,
+  custom: RwLock<UstrMap<f64>>,
 }
 
 impl Default for SourceSizeCache {
@@ -100,7 +99,7 @@ impl SourceSizeCache {
 pub struct SourceSizeCacheSerde {
   builtins: [Option<f64>; SOURCE_SIZE_CACHE_SLOTS],
   #[cacheable(with=AsMap<AsPreset>)]
-  custom: FxHashMap<Ustr, f64>,
+  custom: UstrMap<f64>,
 }
 
 impl AsConverter<SourceSizeCache> for SourceSizeCacheSerde {

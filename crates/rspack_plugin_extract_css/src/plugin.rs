@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
@@ -199,7 +199,7 @@ impl PluginCssExtract {
 
         sorted_module
       })
-      .collect::<Vec<Vec<(ModuleIdentifier, usize)>>>();
+      .collect::<Vec<Vec<(ModuleIdentifier, u32)>>>();
 
     let mut used_modules: IdentifierSet = Default::default();
     let mut result: Vec<&dyn Module> = Default::default();

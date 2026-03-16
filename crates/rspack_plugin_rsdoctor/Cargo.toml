@@ -10,7 +10,6 @@ version.workspace = true
 [dependencies]
 atomic_refcell        = { workspace = true }
 futures               = { workspace = true }
-indexmap              = { workspace = true }
 json                  = { workspace = true }
 rayon                 = { workspace = true }
 rspack_collections    = { workspace = true }

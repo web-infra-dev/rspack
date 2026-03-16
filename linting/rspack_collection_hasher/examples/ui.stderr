@@ -1,0 +1,147 @@
+warning: std::collections::HashMap uses Rust's default hasher
+  --> $DIR/ui.rs:20:18
+   |
+LL | type BadStdMap = HashMap<String, usize>;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxHashMap<_, _> for ordinary keys
+   = note: `#[warn(rspack_collection_hasher)]` on by default
+
+warning: std::collections::HashSet uses Rust's default hasher
+  --> $DIR/ui.rs:21:18
+   |
+LL | type BadStdSet = HashSet<String>;
+   |                  ^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxHashSet<_> for ordinary keys
+
+warning: indexmap::IndexMap uses Rust's default hasher
+  --> $DIR/ui.rs:22:20
+   |
+LL | type BadIndexMap = IndexMap<String, usize>;
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxIndexMap<_, _> for ordinary keys
+
+warning: indexmap::IndexSet uses Rust's default hasher
+  --> $DIR/ui.rs:23:20
+   |
+LL | type BadIndexSet = IndexSet<String>;
+   |                    ^^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxIndexSet<_> for ordinary keys
+
+warning: dashmap::DashMap uses Rust's default hasher
+  --> $DIR/ui.rs:24:19
+   |
+LL | type BadDashMap = DashMap<String, usize>;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxDashMap<_, _> for ordinary keys
+
+warning: dashmap::DashSet uses Rust's default hasher
+  --> $DIR/ui.rs:25:19
+   |
+LL | type BadDashSet = DashSet<String>;
+   |                   ^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxDashSet<_> for ordinary keys
+
+warning: hashlink::LinkedHashMap uses Rust's default hasher
+  --> $DIR/ui.rs:26:25
+   |
+LL | type BadLinkedHashMap = LinkedHashMap<String, usize>;
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxLinkedHashMap<_, _> for ordinary keys
+
+warning: hashlink::LinkedHashSet uses Rust's default hasher
+  --> $DIR/ui.rs:27:25
+   |
+LL | type BadLinkedHashSet = LinkedHashSet<String>;
+   |                         ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: Rspack should prefer rspack_util::fx_hash::FxLinkedHashSet<_> for ordinary keys
+
+warning: std::collections::HashMap uses a non-identity hasher for `Ustr` keys
+  --> $DIR/ui.rs:28:21
+   |
+LL | type BadUstrFxMap = FxHashMap<Ustr, usize>;
+   |                     ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Ustr` already stores a precomputed hash; use ustr::UstrMap<_> instead
+
+warning: std::collections::HashSet uses a non-identity hasher for `Ustr` keys
+  --> $DIR/ui.rs:29:21
+   |
+LL | type BadUstrFxSet = FxHashSet<Ustr>;
+   |                     ^^^^^^^^^^^^^^^
+   |
+   = help: `Ustr` already stores a precomputed hash; use ustr::UstrSet instead
+
+warning: std::collections::HashMap uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:30:27
+   |
+LL | type BadIdentifierFxMap = FxHashMap<Identifier, usize>;
+   |                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierMap<_> instead
+
+warning: std::collections::HashSet uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:31:27
+   |
+LL | type BadIdentifierFxSet = FxHashSet<Identifier>;
+   |                           ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierSet instead
+
+warning: indexmap::IndexMap uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:32:32
+   |
+LL | type BadIdentifierFxIndexMap = FxIndexMap<Identifier, usize>;
+   |                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierIndexMap<_> instead
+
+warning: indexmap::IndexSet uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:33:32
+   |
+LL | type BadIdentifierFxIndexSet = FxIndexSet<Identifier>;
+   |                                ^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierIndexSet instead
+
+warning: dashmap::DashMap uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:34:31
+   |
+LL | type BadIdentifierFxDashMap = FxDashMap<Identifier, usize>;
+   |                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierDashMap<_> instead
+
+warning: dashmap::DashSet uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:35:31
+   |
+LL | type BadIdentifierFxDashSet = FxDashSet<Identifier>;
+   |                               ^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierDashSet instead
+
+warning: hashlink::LinkedHashMap uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:36:37
+   |
+LL | type BadIdentifierFxLinkedHashMap = FxLinkedHashMap<Identifier, usize>;
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierLinkedMap<_> instead
+
+warning: hashlink::LinkedHashSet uses a non-identity hasher for `Identifier` keys
+  --> $DIR/ui.rs:37:37
+   |
+LL | type BadIdentifierFxLinkedHashSet = FxLinkedHashSet<Identifier>;
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: `Identifier` stores a precomputed `Ustr` hash in Rspack; use rspack_collections::IdentifierLinkedSet instead
+
+warning: 18 warnings emitted
+

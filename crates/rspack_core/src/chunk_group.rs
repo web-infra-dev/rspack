@@ -3,11 +3,11 @@ use std::{
   fmt::{self, Display},
 };
 
-use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
@@ -23,14 +23,6 @@ pub struct OriginRecord {
   pub request: Option<String>,
 }
 
-impl DatabaseItem for ChunkGroup {
-  type ItemUkey = ChunkGroupUkey;
-
-  fn ukey(&self) -> Self::ItemUkey {
-    self.ukey
-  }
-}
-
 #[derive(Debug, Clone)]
 pub struct ChunkGroup {
   pub ukey: ChunkGroupUkey,
@@ -38,15 +30,15 @@ pub struct ChunkGroup {
   pub chunks: Vec<ChunkUkey>,
   pub index: Option<u32>,
   pub parents: FxHashSet<ChunkGroupUkey>,
-  pub(crate) module_pre_order_indices: IdentifierMap<usize>,
-  pub(crate) module_post_order_indices: IdentifierMap<usize>,
+  pub(crate) module_pre_order_indices: IdentifierMap<u32>,
+  pub(crate) module_post_order_indices: IdentifierMap<u32>,
 
   // keep order for children
-  pub children: IndexSet<ChunkGroupUkey>,
+  pub children: FxIndexSet<ChunkGroupUkey>,
   async_entrypoints: FxHashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
-  pub(crate) next_pre_order_index: usize,
-  pub(crate) next_post_order_index: usize,
+  pub(crate) next_pre_order_index: u32,
+  pub(crate) next_post_order_index: u32,
   // Entrypoint
   pub(crate) runtime_chunk: Option<ChunkUkey>,
   pub(crate) entrypoint_chunk: Option<ChunkUkey>,
@@ -63,6 +55,10 @@ impl Default for ChunkGroup {
 }
 
 impl ChunkGroup {
+  pub fn ukey(&self) -> ChunkGroupUkey {
+    self.ukey
+  }
+
   pub fn new(kind: ChunkGroupKind) -> Self {
     Self {
       ukey: ChunkGroupUkey::new(),
@@ -87,7 +83,7 @@ impl ChunkGroup {
     self.parents.iter()
   }
 
-  pub fn module_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+  pub fn module_pre_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<u32> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
       .module_pre_order_indices
@@ -99,7 +95,7 @@ impl ChunkGroup {
     self.children.iter()
   }
 
-  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<usize> {
+  pub fn module_post_order_index(&self, module_identifier: &ModuleIdentifier) -> Option<u32> {
     // A module could split into another ChunkGroup, which doesn't have the module_post_order_indices of the module
     self
       .module_post_order_indices

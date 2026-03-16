@@ -191,6 +191,8 @@ pub(super) mod module_graph_hash {
   }
 }
 pub(super) mod concatenated_module_entries {
+  use rspack_util::fx_hash::FxDashMap;
+
   use super::*;
   use crate::ModuleIdentifier;
 
@@ -198,7 +200,7 @@ pub(super) mod concatenated_module_entries {
 
   #[derive(Debug, Default)]
   pub struct ConcatenatedModuleEntriesCache {
-    cache: dashmap::DashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
+    cache: FxDashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
   }
 
   impl ConcatenatedModuleEntriesCache {

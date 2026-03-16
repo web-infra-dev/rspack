@@ -169,22 +169,14 @@ impl ChunkGroup {
   #[napi(ts_args_type = "module: Module")]
   pub fn get_module_pre_order_index(&self, module: ModuleObjectRef) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
-    Ok(
-      chunk_group
-        .module_pre_order_index(&module.identifier)
-        .map(|v| v as u32),
-    )
+    Ok(chunk_group.module_pre_order_index(&module.identifier))
   }
 
   #[napi(ts_args_type = "module: Module")]
   pub fn get_module_post_order_index(&self, module: ModuleObjectRef) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
 
-    Ok(
-      chunk_group
-        .module_post_order_index(&module.identifier)
-        .map(|v| v as u32),
-    )
+    Ok(chunk_group.module_post_order_index(&module.identifier))
   }
 }
 

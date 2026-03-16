@@ -252,14 +252,14 @@ export default {
 
 The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
 
-If you want to restore the old behavior, you can explicitly set it to `warn`:
+If you want to restore the old behavior, you can explicitly set it to `auto`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'warn',
+        exportsPresence: 'auto',
       },
     },
   },
@@ -290,7 +290,7 @@ export default {
 
 ### Disabled builtin:swc-loader reading .swcrc
 
-In Rspack 2.0, `builtin:swc-loader` disables `.swcrc` file reading by default. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
+In Rspack 2.0, `builtin:swc-loader` no longer supports reading `.swcrc` files. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -619,6 +619,53 @@ export default {
 };
 ```
 
+## Resolve behavior changes
+
+### Default extensions change
+
+Rspack 2.0 no longer includes `.wasm` in the default [resolve.extensions](/config/resolve#resolveextensions) used for JavaScript requests.
+
+In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
+
+Explicit imports like `import './module.wasm'` are not affected.
+
+If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
+
+### CSS resolve conditions
+
+Rspack 2.0 no longer includes `webpack` in the default CSS `@import` resolve conditions.
+
+This only affects packages that expose different `exports` entries for `webpack` and `style`.
+
+If you need to preserve the previous behavior, add `webpack` back explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      'css-import': {
+        conditionNames: ['webpack', '...'],
+      },
+    },
+  },
+};
+```
+
 ## Other changes
 
 ### Changed `devtool` default value
@@ -691,27 +738,10 @@ export default {
 };
 ```
 
-### JavaScript `resolve.extensions` no longer includes `.wasm` by default
+### Removed `readResourceForScheme` hook
 
-Rspack 2.0 no longer includes `.wasm` in the default `resolve.extensions` used for JavaScript requests.
+`NormalModule.getCompilationHooks(compilation).readResourceForScheme` has been removed. This hook was only a legacy alias for `readResource.for(scheme)`, so migrate to that API directly.
 
-In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
+### `@module-federation/runtime-tools` is declared as optional peerDependency
 
-Explicit imports like `import './module.wasm'` are not affected.
-
-If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    byDependency: {
-      esm: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-      commonjs: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-    },
-  },
-};
-```
+The `@module-federation/runtime-tools` package has been changed from `dependencies` to optional `peerDependencies` (declared via `peerDependencies` + `peerDependenciesMeta.optional`). If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), ensure that this package is explicitly installed in your project.

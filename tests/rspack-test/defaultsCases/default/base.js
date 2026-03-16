@@ -461,7 +461,6 @@ module.exports = {
 			      },
 			      css-import: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],

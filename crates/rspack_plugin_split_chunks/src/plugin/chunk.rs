@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
 use rustc_hash::FxHashSet;
 

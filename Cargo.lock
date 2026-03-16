@@ -3529,7 +3529,6 @@ dependencies = [
  "bitflags 2.11.0",
  "derive_more",
  "enum-tag",
- "indexmap",
  "insta",
  "regex",
  "rspack_browserslist",
@@ -3564,6 +3563,7 @@ dependencies = [
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_tasks",
+ "rspack_util",
  "rustc-hash",
  "serde_json",
  "supports-color 3.0.2",
@@ -3841,10 +3841,8 @@ dependencies = [
  "dashmap 6.1.0",
  "hashlink",
  "indexmap",
- "rayon",
  "rspack-allocative",
  "rspack_cacheable",
- "rustc-hash",
  "serde",
  "ustr-fxhash",
 ]
@@ -4286,7 +4284,6 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.100.0-beta.6"
 dependencies = [
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "glob",
@@ -4297,6 +4294,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_paths",
+ "rspack_util",
  "rustc-hash",
  "sugar_path",
  "tracing",
@@ -4311,7 +4309,6 @@ dependencies = [
  "cow-utils",
  "css-module-lexer",
  "heck",
- "indexmap",
  "once_cell",
  "regex",
  "rspack_cacheable",
@@ -4351,7 +4348,6 @@ name = "rspack_plugin_devtool"
 version = "0.100.0-beta.6"
 dependencies = [
  "cow-utils",
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "itertools 0.14.0",
@@ -4676,7 +4672,6 @@ dependencies = [
 name = "rspack_plugin_limit_chunk_count"
 version = "0.100.0-beta.6"
 dependencies = [
- "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4702,7 +4697,6 @@ version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "camino",
- "hashlink",
  "itertools 0.14.0",
  "regex",
  "rspack_cacheable",
@@ -4802,12 +4796,12 @@ dependencies = [
 name = "rspack_plugin_remove_duplicate_modules"
 version = "0.100.0-beta.6"
 dependencies = [
- "dashmap 6.1.0",
  "rayon",
  "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
+ "rspack_util",
  "tracing",
 ]
 
@@ -4815,7 +4809,6 @@ dependencies = [
 name = "rspack_plugin_remove_empty_chunks"
 version = "0.100.0-beta.6"
 dependencies = [
- "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4861,7 +4854,6 @@ version = "0.100.0-beta.6"
 dependencies = [
  "atomic_refcell",
  "futures",
- "indexmap",
  "json",
  "rayon",
  "rspack_collections",
@@ -4906,6 +4898,7 @@ dependencies = [
  "camino",
  "regex",
  "rspack_cacheable",
+ "rspack_collections",
  "rspack_core",
  "rspack_error",
  "rspack_hook",
@@ -4924,7 +4917,6 @@ dependencies = [
  "atomic_refcell",
  "derive_more",
  "futures",
- "indexmap",
  "itertools 0.14.0",
  "regex",
  "rspack_cacheable",
@@ -4996,7 +4988,6 @@ dependencies = [
 name = "rspack_plugin_split_chunks"
 version = "0.100.0-beta.6"
 dependencies = [
- "dashmap 6.1.0",
  "derive_more",
  "futures",
  "itertools 0.14.0",
@@ -5022,7 +5013,6 @@ dependencies = [
  "cow-utils",
  "derive_more",
  "futures",
- "indexmap",
  "once_cell",
  "pathdiff",
  "rayon",
@@ -5077,7 +5067,6 @@ version = "0.100.0-beta.6"
 dependencies = [
  "async-trait",
  "cow-utils",
- "indexmap",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5242,6 +5231,7 @@ dependencies = [
  "micromegas-perfetto",
  "prost",
  "rspack-allocative",
+ "rustc-hash",
  "tracing",
  "tracing-subscriber",
 ]
@@ -5256,6 +5246,7 @@ dependencies = [
  "concat-string",
  "cow-utils",
  "dashmap 6.1.0",
+ "hashlink",
  "indexmap",
  "itoa",
  "json-escape-simd",
