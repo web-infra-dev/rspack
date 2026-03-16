@@ -81,8 +81,8 @@ invariant(
 const clientStats = readJSON(clientStatsPath);
 const clientManifest = readJSON(clientManifestPath);
 const containerName = 'rsbuild_host';
-const sharedPackageName = 'rsbuild-rsc-federation-shared';
-const sharedActionsPackageName = 'rsbuild-rsc-federation-shared/server-actions';
+const sharedPackageName = 'rsc-shared-key';
+const sharedActionsPackageName = 'rsc-shared-actions-key';
 
 const sharedStats = stats.shared.find(
   (item) => item.name === sharedPackageName,

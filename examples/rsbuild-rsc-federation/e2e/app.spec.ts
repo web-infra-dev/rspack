@@ -98,17 +98,15 @@ for (const app of appUrls) {
     const sharedNames = stats.shared.map(
       (shared: { name: string }) => shared.name,
     );
-    expect(sharedNames).toContain('rsbuild-rsc-federation-shared');
-    expect(sharedNames).toContain(
-      'rsbuild-rsc-federation-shared/server-actions',
-    );
+    expect(sharedNames).toContain('rsc-shared-key');
+    expect(sharedNames).toContain('rsc-shared-actions-key');
 
     const sharedActionsEntry = stats.shared.find(
       (shared: {
         name: string;
         shareKey?: string;
         rsc?: { serverActions?: Array<{ id: string; name: string }> };
-      }) => shared.name === 'rsbuild-rsc-federation-shared/server-actions',
+      }) => shared.name === 'rsc-shared-actions-key',
     );
     expect(sharedActionsEntry?.shareKey).toBe('rsc-shared-actions-key');
     expect(sharedActionsEntry?.rsc?.serverActions?.length).toBeGreaterThan(0);
