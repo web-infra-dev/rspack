@@ -20,6 +20,7 @@ use crate::{
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
   fn evaluate_typeof<'a>(
     &self,

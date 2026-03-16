@@ -98,6 +98,7 @@ impl CheckVarDeclaratorIdent {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for CheckVarDeclaratorIdent {
   fn declarator(
     &self,

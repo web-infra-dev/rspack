@@ -4582,6 +4582,7 @@ dependencies = [
  "rspack_hook",
  "rspack_ids",
  "rspack_javascript_compiler",
+ "rspack_macros",
  "rspack_paths",
  "rspack_regex",
  "rspack_util",

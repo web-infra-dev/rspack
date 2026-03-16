@@ -7,6 +7,7 @@ use crate::visitors::JavascriptParser;
 #[derive(Default)]
 pub struct OverrideStrictPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for OverrideStrictPlugin {
   fn program(&self, parser: &mut JavascriptParser, _: &Program) -> Option<bool> {
     if let Some(strict) = parser.javascript_options.override_strict {

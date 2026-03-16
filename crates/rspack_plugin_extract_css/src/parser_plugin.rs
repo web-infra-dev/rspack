@@ -23,6 +23,7 @@ pub struct PluginCssExtractParserPlugin {
   cache: FxDashMap<String, Vec<BoxDependency>>,
 }
 
+#[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for PluginCssExtractParserPlugin {
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     let deps = if let Some(data_str) = parser.parse_meta.remove(PLUGIN_NAME)

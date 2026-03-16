@@ -51,6 +51,7 @@ impl DefineParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for DefineParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {

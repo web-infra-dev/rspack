@@ -18,6 +18,7 @@ const REQUIRE: &str = "require";
 const DEFINE_AMD: &str = "define.amd";
 const REQUIRE_AMD: &str = "require.amd";
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for AMDParserPlugin {
   fn call(
     &self,

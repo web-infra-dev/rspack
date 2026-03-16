@@ -24,6 +24,7 @@ pub struct InlinableConstData {
 #[derive(Default)]
 pub struct InlineConstPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for InlineConstPlugin {
   fn program(&self, parser: &mut JavascriptParser, program: &Program) -> Option<bool> {
     if let Some(module) = program.as_module() {

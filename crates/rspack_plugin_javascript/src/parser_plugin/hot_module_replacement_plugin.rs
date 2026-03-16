@@ -132,6 +132,7 @@ impl ModuleHotReplacementParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,

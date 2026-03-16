@@ -95,6 +95,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof<'a>(
     &self,
