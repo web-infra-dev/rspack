@@ -290,7 +290,7 @@ export default {
 
 ### 禁用 builtin:swc-loader 读取 .swcrc
 
-在 Rspack 2.0 中，`builtin:swc-loader` 不再允许读取 `.swcrc` 文件。你需要将 SWC 配置迁移到 `rspack.config.js` 的 loader 选项中：
+在 Rspack 2.0 中，`builtin:swc-loader` 不再支持读取 `.swcrc` 文件。你需要将 SWC 配置迁移到 `rspack.config.js` 的 loader 选项中：
 
 ```js title="rspack.config.mjs"
 export default {
