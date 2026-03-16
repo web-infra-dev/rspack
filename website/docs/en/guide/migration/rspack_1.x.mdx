@@ -730,6 +730,6 @@ export default {
 
 `NormalModule.getCompilationHooks(compilation).readResourceForScheme` has been removed. This hook was only a legacy alias for `readResource.for(scheme)`, so migrate to that API directly.
 
-### `@module-federation/runtime-tools` becomes an optional dependency
+### `@module-federation/runtime-tools` is declared as optional peerDependency
 
-The `@module-federation/runtime-tools` package has been moved from `dependencies` to `optionalDependencies`. If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), please ensure that this package is installed.
+The `@module-federation/runtime-tools` package has been changed from `dependencies` to optional `peerDependencies` (declared via `peerDependencies` + `peerDependenciesMeta.optional`). If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), ensure that this package is explicitly installed in your project.
