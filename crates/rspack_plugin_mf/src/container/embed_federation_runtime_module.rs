@@ -12,7 +12,6 @@ use rspack_core::{
 use rspack_error::Result;
 
 use super::module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions;
-
 #[cacheable]
 #[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
 pub struct EmbedFederationRuntimeModuleOptions {
@@ -100,7 +99,6 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       module_executions.push_str(&module_str);
       module_executions.push('\n');
     }
-
     if self.options.experiments.async_startup {
       let entry_chunk_ids = compilation
         .build_chunk_graph_artifact

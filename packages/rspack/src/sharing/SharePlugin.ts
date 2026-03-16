@@ -87,7 +87,9 @@ export function createProvideShareOptions(
     .filter(([, options]) => options.import !== false)
     .map(([key, options]) => ({
       [options.import || key]: {
-        shareKey: resolveShareKey(options.shareKey, key),
+        shareKey: enhanced
+          ? resolveShareKey(options.shareKey, key)
+          : options.shareKey || key,
         shareScope: options.shareScope,
         version: options.version,
         eager: options.eager,
@@ -95,7 +97,9 @@ export function createProvideShareOptions(
         requiredVersion: options.requiredVersion,
         strictVersion: options.strictVersion,
         layer: enhanced ? options.layer : undefined,
-        request: resolveShareRequest(options.request, options.import || key),
+        request: enhanced
+          ? resolveShareRequest(options.request, options.import || key)
+          : undefined,
         treeShakingMode: options.treeShaking?.mode,
       },
     }));
@@ -108,7 +112,9 @@ export function createConsumeShareOptions(
   return normalizedSharedOptions.map(([key, options]) => ({
     [key]: {
       import: options.import,
-      shareKey: resolveShareKey(options.shareKey, key),
+      shareKey: enhanced
+        ? resolveShareKey(options.shareKey, key)
+        : options.shareKey || key,
       shareScope: options.shareScope,
       requiredVersion: options.requiredVersion,
       strictVersion: options.strictVersion,
@@ -117,7 +123,7 @@ export function createConsumeShareOptions(
       eager: options.eager,
       issuerLayer: enhanced ? options.issuerLayer : undefined,
       layer: enhanced ? options.layer : undefined,
-      request: resolveShareRequest(options.request, key),
+      request: enhanced ? resolveShareRequest(options.request, key) : undefined,
       treeShakingMode: options.treeShaking?.mode,
     },
   }));

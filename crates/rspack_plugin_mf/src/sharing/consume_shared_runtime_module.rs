@@ -52,13 +52,6 @@ enum TemplateId {
   Loading,
 }
 
-fn required_version_json(required_version: Option<&ConsumeVersion>) -> String {
-  match required_version {
-    Some(ConsumeVersion::False) | None => "false".to_string(),
-    Some(version) => json_stringify_str(&version.to_string()),
-  }
-}
-
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
@@ -109,6 +102,13 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+        let fallback_source = if enhanced {
+          code_gen
+            .get(&SourceType::ConsumeShared)
+            .map(|source| source.source().into_string_lossy().into_owned())
+        } else {
+          None
+        };
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
@@ -120,35 +120,33 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
               .map_or("default", |s| s.as_str()),
           )
         };
-        let consume_data = if enhanced {
-          format!(
-            "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, layer: {}, fallback: {}, treeShakingMode: {} }}",
-            share_scope_json,
-            json_stringify(&data.share_key),
-            json_stringify(&data.import),
-            required_version_json(data.required_version.as_ref()),
-            json_stringify(&data.strict_version),
-            json_stringify(&data.singleton),
-            json_stringify(&data.eager),
-            json_stringify(&data.layer),
-            data.fallback.as_deref().unwrap_or("undefined"),
-            json_stringify(&data.tree_shaking_mode),
-          )
+        let layer_data = if enhanced {
+          format!(", layer: {}", json_stringify(&data.layer))
         } else {
-          format!(
-            "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
-            share_scope_json,
-            json_stringify(&data.share_key),
-            json_stringify(&data.import),
-            required_version_json(data.required_version.as_ref()),
-            json_stringify(&data.strict_version),
-            json_stringify(&data.singleton),
-            json_stringify(&data.eager),
-            data.fallback.as_deref().unwrap_or("undefined"),
-            json_stringify(&data.tree_shaking_mode),
-          )
+          String::new()
         };
-        module_id_to_consume_data_mapping.insert(id, consume_data);
+        module_id_to_consume_data_mapping.insert(id, format!(
+          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}{}, fallback: {}, treeShakingMode: {} }}",
+          share_scope_json,
+          json_stringify(&data.share_key),
+          json_stringify(&data.import),
+          json_stringify_str(
+            &data
+              .required_version
+              .as_ref()
+              .map_or_else(|| "*".to_string(), |v| v.to_string())
+          ),
+          json_stringify(&data.strict_version),
+          json_stringify(&data.singleton),
+          json_stringify(&data.eager),
+          layer_data,
+          data
+            .fallback
+            .as_deref()
+            .or(fallback_source.as_deref())
+            .unwrap_or("undefined"),
+          json_stringify(&data.tree_shaking_mode),
+        ));
       }
     };
     // Match enhanced/webpack behavior: include all referenced chunks so async ones are mapped too

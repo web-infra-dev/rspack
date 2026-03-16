@@ -517,7 +517,7 @@ async fn visit_dirs(
           options: options.context_options.clone(),
           resource_identifier,
           attributes: options.context_options.attributes.clone(),
-          referenced_exports: options.context_options.referenced_exports.clone(),
+          referenced_specifiers: options.context_options.referenced_specifiers.clone(),
           dependency_type: DependencyType::ContextElement(options.type_prefix),
           factorize_info: Default::default(),
         });

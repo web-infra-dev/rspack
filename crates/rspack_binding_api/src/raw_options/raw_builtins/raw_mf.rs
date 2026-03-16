@@ -18,9 +18,7 @@ use crate::options::{
   library::JsLibraryOptions,
 };
 
-pub type RawShareScope = Either<String, Vec<String>>;
-
-fn into_share_scope(value: RawShareScope) -> ShareScope {
+fn into_share_scope(value: Either<String, Vec<String>>) -> ShareScope {
   match value {
     Either::A(s) => ShareScope::Single(s),
     Either::B(list) => ShareScope::Multiple(list),
@@ -31,8 +29,7 @@ fn into_share_scope(value: RawShareScope) -> ShareScope {
 #[napi(object)]
 pub struct RawContainerPluginOptions {
   pub name: String,
-  #[napi(ts_type = "string | string[]")]
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
   pub library: JsLibraryOptions,
   #[napi(ts_type = "false | string")]
   pub runtime: Option<JsEntryRuntime>,
@@ -83,8 +80,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
 pub struct RawContainerReferencePluginOptions {
   pub remote_type: String,
   pub remotes: Vec<RawRemoteOptions>,
-  #[napi(ts_type = "string | string[] | undefined")]
-  pub share_scope: Option<RawShareScope>,
+  pub share_scope: Option<Either<String, Vec<String>>>,
   pub enhanced: bool,
 }
 
@@ -105,8 +101,7 @@ impl From<RawContainerReferencePluginOptions> for ContainerReferencePluginOption
 pub struct RawRemoteOptions {
   pub key: String,
   pub external: Vec<String>,
-  #[napi(ts_type = "string | string[]")]
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
 }
 
 impl From<RawRemoteOptions> for (String, RemoteOptions) {
@@ -128,8 +123,7 @@ pub struct RawProvideOptions {
   pub request: Option<String>,
   pub layer: Option<String>,
   pub share_key: String,
-  #[napi(ts_type = "string | string[]")]
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
   pub version: Option<RawVersion>,
   pub eager: bool,
@@ -232,6 +226,7 @@ pub struct RawOptimizeSharedConfig {
   pub share_key: String,
   pub tree_shaking: bool,
   pub used_exports: Option<Vec<String>>,
+  pub layer: Option<String>,
 }
 
 impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
@@ -240,6 +235,7 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
       share_key: value.share_key,
       tree_shaking: value.tree_shaking,
       used_exports: value.used_exports.unwrap_or_default(),
+      layer: value.layer,
     }
   }
 }
@@ -282,8 +278,7 @@ pub struct RawConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
-  #[napi(ts_type = "string | string[]")]
-  pub share_scope: RawShareScope,
+  pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
   pub required_version: Option<RawVersion>,
   pub package_name: Option<String>,
@@ -393,6 +388,7 @@ pub struct RawManifestSharedOption {
   pub share_key: Option<String>,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 
@@ -462,6 +458,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
           share_key: shared.share_key.unwrap_or(shared.name),
           version: shared.version,
           required_version: shared.required_version,
+          layer: shared.layer,
           singleton: shared.singleton,
         })
         .collect(),
