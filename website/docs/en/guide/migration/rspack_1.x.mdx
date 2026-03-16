@@ -21,7 +21,7 @@ After installation, let the Coding Agent guide you through the upgrade.
 
 Rspack 2.0 requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported.
 
-## Pure ESM package
+## Pure ESM packages
 
 `@rspack/core`, `@rspack/cli` and `@rspack/dev-server` are now published as **pure ESM** packages, with CommonJS builds removed.
 
@@ -43,6 +43,12 @@ In Node.js 20 and later, the runtime natively supports loading ESM modules via [
 
 - It introduces the new [@rspack/dev-middleware](https://github.com/rstackjs/rspack-dev-middleware) package to replace `webpack-dev-middleware`.
 - It uses [connect-next](https://github.com/rstackjs/connect-next) instead of Express v4 as the default middleware framework.
+
+## Bundle analysis
+
+The built-in webpack-bundler-analyzer has been removed, and the `--analyze` flag is no longer available.
+
+If you need to analyze bundle outputs, you can use [Rsdoctor](/guide/optimization/use-rsdoctor), which provides more powerful analysis capabilities.
 
 ## Experimental configuration changes
 
@@ -206,6 +212,23 @@ export default {
 -  },
 +  lazyCompilation: true,
 };
+```
+
+`experiments.lazyCompilationMiddleware` has been moved to the top-level [lazyCompilationMiddleware](/guide/features/lazy-compilation#integrating-with-custom-server):
+
+```diff title="rspack.config.mjs"
+- const middleware = rspack.experiments.lazyCompilationMiddleware(compiler);
++ const middleware = rspack.lazyCompilationMiddleware(compiler);
+
+const server = new DevServer(
+  {
+    port: 3000,
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
+  },
+  compiler,
+);
 ```
 
 ### Removed experiments.lazyBarrel
@@ -512,7 +535,7 @@ export default {
 
 ### Removed experiments.SubResourceIntegrityPlugin
 
-`experiments.SubResourceIntegrityPlugin` has been removed. You can use [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) from the exported object directly:
+`experiments.SubResourceIntegrityPlugin` has been moved to the top-level [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin):
 
 ```diff title="rspack.config.mjs"
 import rspack from '@rspack/core';
@@ -656,8 +679,6 @@ export default {
 ### CSS resolve conditions
 
 Rspack 2.0 no longer includes `webpack` in the default CSS `@import` resolve conditions.
-
-This only affects packages that expose different `exports` entries for `webpack` and `style`.
 
 If you need to preserve the previous behavior, add `webpack` back explicitly:
 
