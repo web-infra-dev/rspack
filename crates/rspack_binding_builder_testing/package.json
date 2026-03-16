@@ -24,7 +24,7 @@
   "devDependencies": {
     "@napi-rs/cli": "3.5.1",
     "@napi-rs/wasm-runtime": "1.1.1",
-    "emnapi": "1.8.1",
+    "emnapi": "1.9.0",
     "typescript": "^5.9.3"
   },
   "napi": {
