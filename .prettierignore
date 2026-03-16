@@ -16,6 +16,8 @@ gitignore
 tests/rspack-test/**/*
 packages/**/etc/**/*
 tests/e2e/cases/make/rewrite-factorize-request/file.js
+examples/rsbuild-rsc-federation/test-results/**
+examples/rsbuild-rsc-federation/playwright-report/**
 
 # Crates
 crates/**
