@@ -131,7 +131,6 @@ function defaultOptions(
           ...testConfig.optimization,
         }
       : {
-          removeAvailableModules: true,
           removeEmptyChunks: true,
           mergeDuplicateChunks: true,
           // CHANGE: rspack does not support `flagIncludedChunks` yet.

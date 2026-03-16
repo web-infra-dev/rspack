@@ -307,7 +307,6 @@ module.exports = {
 			    nodeEnv: false,
 			    providedExports: true,
 			    realContentHash: false,
-			    removeAvailableModules: true,
 			    removeEmptyChunks: true,
 			    runtimeChunk: false,
 			    sideEffects: flag,

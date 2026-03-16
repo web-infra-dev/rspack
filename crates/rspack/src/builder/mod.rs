@@ -318,11 +318,11 @@ impl CompilerBuilder {
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_empty_chunks(true));
   ///
   /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
   /// let compiler =
-  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///   Compiler::builder().optimization(Optimization::builder().remove_empty_chunks(true));
   ///
   /// // Or directly passing `Optimization`
   /// // let compiler = Compiler::builder().optimization(Optimization { ... });
@@ -805,11 +805,11 @@ impl CompilerOptionsBuilder {
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_empty_chunks(true));
   ///
   /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
   /// let compiler =
-  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///   Compiler::builder().optimization(Optimization::builder().remove_empty_chunks(true));
   ///
   /// // Or directly passing `Optimization`
   /// // let compiler = Compiler::builder().optimization(Optimization { ... });
@@ -3200,8 +3200,6 @@ impl OutputOptionsBuilder {
 /// [`OptimizationOptions`]: rspack_core::options::Optimization
 #[derive(Debug, Default)]
 pub struct OptimizationOptionsBuilder {
-  /// Detect and remove modules from chunks these modules are already included in all parents.
-  remove_available_modules: Option<bool>,
   /// Remove empty chunks generated in the compilation.
   remove_empty_chunks: Option<bool>,
   /// Merge chunks which contain the same modules.
@@ -3244,7 +3242,6 @@ pub struct OptimizationOptionsBuilder {
 impl From<Optimization> for OptimizationOptionsBuilder {
   fn from(value: Optimization) -> Self {
     OptimizationOptionsBuilder {
-      remove_available_modules: Some(value.remove_available_modules),
       side_effects: Some(value.side_effects),
       provided_exports: Some(value.provided_exports),
       used_exports: Some(value.used_exports),
@@ -3270,7 +3267,6 @@ impl From<Optimization> for OptimizationOptionsBuilder {
 impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
   fn from(value: &mut OptimizationOptionsBuilder) -> Self {
     OptimizationOptionsBuilder {
-      remove_available_modules: value.remove_available_modules.take(),
       remove_empty_chunks: value.remove_empty_chunks.take(),
       merge_duplicate_chunks: value.merge_duplicate_chunks.take(),
       module_ids: value.module_ids.take(),
@@ -3294,12 +3290,6 @@ impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
 }
 
 impl OptimizationOptionsBuilder {
-  /// Set whether to detect and remove modules from chunks these modules are already included in all parents.
-  pub fn remove_available_modules(&mut self, value: bool) -> &mut Self {
-    self.remove_available_modules = Some(value);
-    self
-  }
-
   /// Set whether to remove empty chunks generated in the compilation.
   pub fn remove_empty_chunks(&mut self, value: bool) -> &mut Self {
     self.remove_empty_chunks = Some(value);
@@ -3453,7 +3443,6 @@ impl OptimizationOptionsBuilder {
     production: bool,
     _css: bool,
   ) -> Result<Optimization> {
-    let remove_available_modules = d!(self.remove_available_modules, false);
     let remove_empty_chunks = d!(self.remove_empty_chunks, true);
     if remove_empty_chunks {
       builder_context
@@ -3676,7 +3665,6 @@ impl OptimizationOptionsBuilder {
     }
 
     Ok(Optimization {
-      remove_available_modules,
       side_effects,
       provided_exports,
       used_exports,

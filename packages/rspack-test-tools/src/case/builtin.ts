@@ -118,7 +118,6 @@ export function defaultOptions(context: ITestContext): RspackOptions {
         name: 'runtime',
       },
       minimize: false,
-      removeAvailableModules: true,
       removeEmptyChunks: true,
       moduleIds: 'named',
       chunkIds: 'named',
