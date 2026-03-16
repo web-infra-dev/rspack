@@ -26,10 +26,10 @@ runs:
         github-token: ${{ inputs.github-token }}
         result-encoding: string
         script: |
-          console.log(`test`, context.payload.before);
           if ('${{ inputs.event-name }}' === 'push') {
             // context.payload.before is the branch state before the push — correct baseline
             // even for multi-commit pushes, and requires no extra API call.
+            // ref https://docs.github.com/en/webhooks/webhook-events-and-payloads#push 
             return context.payload.before
           }
           // For workflow_dispatch (PR benchmark), use the merge base of main and the PR head
