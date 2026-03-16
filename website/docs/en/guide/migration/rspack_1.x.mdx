@@ -79,20 +79,7 @@ Available `type` options:
 
 ### experiments.asyncWebAssembly enabled by default
 
-The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has been changed from `false` to `true`. Async WebAssembly support is now enabled by default, but you still need to configure `type: 'webassembly/async'` in `module.rules` to enable it:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.wasm$/,
-        type: 'webassembly/async',
-      },
-    ],
-  },
-};
-```
+The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has been changed from `false` to `true`. Async WebAssembly support is now enabled by default, and Rspack automatically injects built-in `type: 'webassembly/async'` rules for common `.wasm` files and `application/wasm` requests, so you usually don't need to add a manual `module.rules` entry.
 
 If you don't need this feature, you can explicitly disable it:
 
