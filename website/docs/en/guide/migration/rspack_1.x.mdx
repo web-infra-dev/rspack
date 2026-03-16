@@ -1,3 +1,7 @@
+---
+description: 'If you are using a Coding Agent that supports Skills, install the rspack-v2-upgrade skill to help with the upgrade process from v1 to v2'
+---
+
 import { PackageManagerTabs } from '@theme';
 
 # Upgrading from v1 to v2
@@ -46,9 +50,9 @@ In Node.js 20 and later, the runtime natively supports loading ESM modules via [
 
 ## Bundle analysis
 
-The built-in webpack-bundler-analyzer has been removed, and the `--analyze` flag is no longer available.
+The built-in `webpack-bundler-analyzer` has been removed from `@rspack/cli`, and the `--analyze` flag is no longer available.
 
-If you need to analyze bundle outputs, you can use [Rsdoctor](/guide/optimization/use-rsdoctor), which provides more powerful analysis capabilities.
+If you need to analyze bundle outputs, it is recommended to use [Rsdoctor](/guide/optimization/use-rsdoctor), which provides more powerful analysis capabilities.
 
 ## Experimental configuration changes
 

@@ -1,3 +1,7 @@
+---
+description: 'The old architecture is a quite simple version, which only supports loaders for normal stage'
+---
+
 # Rspack loader
 
 ## Related PRs
