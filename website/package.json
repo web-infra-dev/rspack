@@ -6,12 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "rspress build",
-    "check": "pnpm run check:lint && pnpm run check:spell",
-    "check:case": "case-police docs/**/*.{md,mdx}",
-    "check:ci": "pnpm run check:lint-ci && pnpm run check:spell",
-    "check:lint": "biome check --diagnostic-level=warn --write",
-    "check:lint-ci": "biome check --diagnostic-level=warn",
     "check:spell": "cspell",
+    "check:case": "case-police docs/**/*.{md,mdx}",
     "dev": "rspress dev",
     "preview": "rspress preview",
     "sort-projects-words": "node ./sortProjectWords.js"

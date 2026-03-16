@@ -198,7 +198,7 @@ impl JavascriptParserPlugin for URLPlugin {
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
       phase: None,
     };

@@ -35,6 +35,8 @@ pub struct StatsExpose {
   pub file: String,
   pub id: String,
   pub name: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   #[serde(default)]
   pub requires: Vec<String>,
   #[serde(default)]
@@ -52,6 +54,8 @@ pub struct StatsShared {
   pub version: String,
   #[serde(default)]
   pub requiredVersion: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   #[serde(default)]
   pub singleton: Option<bool>,
   #[serde(default)]
@@ -139,6 +143,8 @@ pub struct ManifestExpose {
   pub id: String,
   pub name: String,
   pub path: String,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   pub assets: StatsAssetsGroup,
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub rsc: Option<RscReferenceMeta>,
@@ -153,6 +159,8 @@ pub struct ManifestShared {
   pub version: String,
   #[serde(default)]
   pub requiredVersion: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  pub layer: Option<String>,
   #[serde(default)]
   pub singleton: Option<bool>,
   #[serde(default)]
