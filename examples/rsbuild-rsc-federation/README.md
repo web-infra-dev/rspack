@@ -14,20 +14,39 @@ This example is based on the [`rsbuild-plugin-rsc` `examples/server`](https://gi
   - server (`target: node`)
   - client (`target: web`)
 
-## Environment plugin application
+## Host/remote topology
+
+This package is the **host** app. It consumes the remote app at:
+
+- server runtime: `remote@http://localhost:3331/mf-manifest.json`
+- client runtime: `remote@http://localhost:3331/mf-manifest.client.json`
 
 `tools.rspack` injects `ModuleFederationPlugin` for both environments with environment-specific options:
 
 - **Server build**
-  - container: `rsbuild_container`
+  - container: `rsbuild_host`
   - entry: `remoteEntry.js`
   - manifest files: `mf-stats.json` and `mf-manifest.json`
   - exposes: `./button`, `./composed`, `./consumer`, `./server-mixed`
+  - runtime plugins:
+    - `@module-federation/node/runtimePlugin`
+    - `./src/framework/mf-rsc-registration-runtime-plugin.js`
 - **Client build**
-  - container: `rsbuild_container_client`
+  - container: `rsbuild_host`
   - entry: `remoteEntry.client.js`
   - manifest files: `mf-manifest.client-stats.json` and `mf-manifest.client.json`
   - exposes: `./button`, `./composed`
+  - runtime plugins:
+    - `./src/framework/mf-rsc-registration-runtime-plugin.js`
+
+## Dynamic RSC registration runtime plugin
+
+The host includes a dedicated MF runtime plugin that dynamically registers
+remote/shared RSC metadata into `__webpack_require__.rscM` using MF runtime
+lifecycle hooks (`afterResolve`, `onLoad`) and `mf-manifest.json` data.
+
+This implementation intentionally avoids exposing `__webpack_require__` on
+global scopes.
 
 ## Shared singleton matrix
 
@@ -55,11 +74,13 @@ From repository root:
 
 ```bash
 pnpm --filter examples-rsbuild-rsc-federation... install
-pnpm --filter examples-rsbuild-rsc-federation run build
-pnpm --filter examples-rsbuild-rsc-federation run verify:manifest
+pnpm --filter examples-rsbuild-rsc-federation run build:verify
 ```
 
-The verification script fails fast on any mismatch and prints the resolved manifest file paths on success.
+The verification scripts fail fast on any mismatch and cover both:
+
+- emitted manifest/stat expectations
+- runtime-plugin registration and invalidation behavior
 
 ## E2E smoke test
 

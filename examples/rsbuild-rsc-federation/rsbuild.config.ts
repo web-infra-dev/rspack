@@ -5,6 +5,8 @@ import { rspack } from '@rspack/core';
 import { Layers, pluginRSC } from 'rsbuild-plugin-rsc';
 
 const containerName = 'rsbuild_host';
+const rscRegistrationRuntimePlugin =
+  './src/framework/mf-rsc-registration-runtime-plugin.js';
 type EnvironmentName = 'server' | 'client';
 
 const unifiedExposes = {
@@ -131,8 +133,11 @@ export default defineConfig({
           exposes: resolveExposes(environment),
           remotes,
           runtimePlugins: isServerBuild
-            ? ['@module-federation/node/runtimePlugin']
-            : [],
+            ? [
+                '@module-federation/node/runtimePlugin',
+                rscRegistrationRuntimePlugin,
+              ]
+            : [rscRegistrationRuntimePlugin],
           experiments: {
             asyncStartup: true,
           },

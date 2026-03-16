@@ -1,6 +1,13 @@
 # Rsbuild RSC + Module Federation manifest example (remote variant)
 
-This package mirrors the base `rsbuild-rsc-federation` example and runs on a separate port for dual-app testing.
+This package is the **remote provider** for the host app in
+`examples/rsbuild-rsc-federation` and runs on port `3331`.
+
+Federation outputs:
+
+- server manifest: `mf-manifest.json`
+- client manifest: `mf-manifest.client.json`
+- container name: `rsbuild_remote`
 
 ## Run
 

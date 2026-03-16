@@ -6,7 +6,8 @@
     "build": "rsbuild build",
     "dev:e2e": "rsbuild dev --port 3330",
     "verify:manifest": "node ./scripts/verify-manifest.mjs",
-    "build:verify": "pnpm run build && pnpm run verify:manifest",
+    "verify:runtime-plugin": "node --experimental-vm-modules ./scripts/verify-runtime-plugin.mjs",
+    "build:verify": "pnpm run build && pnpm run verify:manifest && pnpm run verify:runtime-plugin",
     "test:e2e": "playwright test --config ./playwright.config.ts"
   },
   "dependencies": {
