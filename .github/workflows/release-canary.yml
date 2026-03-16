@@ -35,12 +35,14 @@ permissions:
 jobs:
   get-runner-labels:
     name: Get Runner Labels
+    if: ${{ github.repository == 'web-infra-dev/rspack' }}
     uses: ./.github/workflows/get-runner-labels.yml
     with:
       force-use-github-runner: true
 
   build:
     name: Build Canary
+    if: ${{ github.repository == 'web-infra-dev/rspack' }}
     needs: [get-runner-labels]
     strategy:
       fail-fast: false
@@ -76,6 +78,7 @@ jobs:
 
   release:
     name: Release Canary
+    if: ${{ github.repository == 'web-infra-dev/rspack' }}
     runs-on: ubuntu-latest
     needs: build
     environment: npm-canary
