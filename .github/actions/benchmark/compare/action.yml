@@ -1,0 +1,54 @@
+name: Ecosystem Benchmark Compare
+
+inputs:
+  event-name:
+    required: true
+    description: 'GitHub event name (push or workflow_dispatch)'
+  commit-sha:
+    required: true
+    description: 'Current commit SHA; its parent is used as base when event is push'
+  github-token:
+    required: true
+    description: 'GitHub token for API access in the compare CLI'
+
+outputs:
+  diff-result:
+    description: 'Benchmark comparison result with newlines replaced by @@'
+    value: ${{ steps.compare.outputs.diff-result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve compare base
+      id: resolve-base
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        if [ "${{ inputs.event-name }}" = "push" ]; then
+          # Use the parent commit SHA as base so that re-runs of older workflows
+          # compare against the correct baseline rather than the latest main.
+          # git log %P (parent hash) avoids the HEAD^ notation.
+          COMPARE_BASE=$(git log --pretty=format:'%P' -n 1 ${{ inputs.commit-sha }} | awk '{print $1}')
+        else
+          # For workflow_dispatch (PR benchmark), use the merge base of main and the PR head
+          # so the comparison reflects only the PR's own changes, regardless of main drift.
+          # If the author merges main into their branch beforehand, the merge base shifts
+          # accordingly and the result reflects the merged outcome.
+          COMPARE_BASE=$(gh api \
+            "repos/${{ github.repository }}/compare/main...${{ inputs.commit-sha }}" \
+            --jq '.merge_base_commit.sha')
+        fi
+        echo "compare-base=$COMPARE_BASE" >> $GITHUB_OUTPUT
+
+    - name: Run compare
+      id: compare
+      shell: bash
+      working-directory: ${{ github.workspace }}/rspack-ecosystem-benchmark
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        result=$(node bin/cli.js compare --base ${{ steps.resolve-base.outputs.compare-base }} --current current)
+        echo "$result"
+        echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT

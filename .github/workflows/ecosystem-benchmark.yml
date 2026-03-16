@@ -110,9 +110,8 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Run rspack-ecosystem-benchmark
+      - name: Run rspack-ecosystem-benchmark bench
         timeout-minutes: 40
-        id: run-benchmark
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -121,9 +120,14 @@ jobs:
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
-          result=$(node bin/cli.js compare --base main --current current)
-          echo "$result"
-          echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
+
+      - name: Compare benchmark results
+        id: run-benchmark
+        uses: ./.github/actions/benchmark/compare
+        with:
+          event-name: ${{ github.event_name }}
+          commit-sha: ${{ github.sha }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload benchmark result
         if: github.event_name == 'push'
