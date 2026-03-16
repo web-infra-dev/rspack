@@ -1,12 +1,11 @@
 'use client';
 
-export const sharedValue = 'rsbuild-shared';
+import { MixedClientBadge, mixedValue } from './mixed-parts.js';
+import { sharedValue } from './values.js';
 
 export function SharedClientComponent() {
   return 'SharedClientComponent';
 }
 
-export async function sharedAction() {
-  'use server';
-  return sharedValue;
-}
+export { MixedClientBadge, mixedValue };
+export { sharedValue };

@@ -4,7 +4,7 @@ import { pluginReact } from '@rsbuild/plugin-react';
 import { rspack } from '@rspack/core';
 import { Layers, pluginRSC } from 'rsbuild-plugin-rsc';
 
-const containerName = 'rsbuild_host';
+const containerName = 'rsbuild_remote';
 type EnvironmentName = 'server' | 'client';
 
 const unifiedExposes = {
@@ -108,12 +108,6 @@ export default defineConfig({
     rspack: (config, { target }) => {
       const isServerBuild = target === 'node';
       const environment: EnvironmentName = isServerBuild ? 'server' : 'client';
-      const remotes = {
-        remote: isServerBuild
-          ? 'remote@http://localhost:3331/mf-manifest.json'
-          : 'remote@http://localhost:3331/mf-manifest.client.json',
-      };
-
       if (isServerBuild) {
         config.target = 'async-node';
       }
@@ -126,13 +120,8 @@ export default defineConfig({
           library: isServerBuild
             ? { type: 'commonjs-module' }
             : { type: 'var', name: containerName },
-          remoteType: 'script',
           manifest: isServerBuild ? true : { fileName: 'mf-manifest.client' },
           exposes: resolveExposes(environment),
-          remotes,
-          runtimePlugins: isServerBuild
-            ? ['@module-federation/node/runtimePlugin']
-            : [],
           experiments: {
             asyncStartup: true,
           },

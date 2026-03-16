@@ -22,12 +22,12 @@ This example is based on the [`rsbuild-plugin-rsc` `examples/server`](https://gi
   - container: `rsbuild_container`
   - entry: `remoteEntry.js`
   - manifest files: `mf-stats.json` and `mf-manifest.json`
-  - exposes: `./button`, `./consumer`
+  - exposes: `./button`, `./composed`, `./consumer`, `./server-mixed`
 - **Client build**
   - container: `rsbuild_container_client`
   - entry: `remoteEntry.client.js`
   - manifest files: `mf-manifest.client-stats.json` and `mf-manifest.client.json`
-  - exposes: `./button`
+  - exposes: `./button`, `./composed`
 
 ## Shared singleton matrix
 
@@ -41,6 +41,7 @@ Server:
 - `react-dom/server` (`singleton: true`, SSR layer)
 - `react-server-dom-rspack/server.node` (`singleton: true`, RSC layer)
 - `rsbuild-rsc-federation-shared` (workspace package, `shareKey: "rsc-shared-key"`, RSC layer)
+- `rsbuild-rsc-federation-shared/server-actions` (workspace package subpath, `shareKey: "rsc-shared-actions-key"`, RSC layer)
 
 Client:
 
@@ -62,7 +63,12 @@ The verification script fails fast on any mismatch and prints the resolved manif
 
 ## E2E smoke test
 
-This example includes a small Playwright e2e that validates:
+This example includes a Playwright e2e that starts **both** app examples first:
+
+- `http://localhost:3330` (`examples/rsbuild-rsc-federation`)
+- `http://localhost:3331` (`examples/rsbuild-rsc-federation-remote`)
+
+Then it validates for each app:
 
 - app renders (`client entry ready`)
 - client component text renders (`InteractiveClientDemo`)

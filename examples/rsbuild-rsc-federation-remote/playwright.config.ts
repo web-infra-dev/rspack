@@ -1,5 +1,4 @@
 import fs from 'node:fs';
-import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
 
 const chromePath = '/usr/bin/google-chrome';
@@ -14,26 +13,16 @@ export default defineConfig({
   fullyParallel: false,
   reporter: 'line',
   use: {
-    baseURL: 'http://localhost:3330',
+    baseURL: 'http://localhost:3331',
     trace: 'on-first-retry',
   },
-  webServer: [
-    {
-      command: 'pnpm run dev:e2e',
-      cwd: import.meta.dirname,
-      url: 'http://localhost:3330',
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-    {
-      command:
-        'pnpm --filter examples-rsbuild-rsc-federation-remote run dev:e2e',
-      cwd: path.resolve(import.meta.dirname, '../..'),
-      url: 'http://localhost:3331',
-      reuseExistingServer: false,
-      timeout: 120_000,
-    },
-  ],
+  webServer: {
+    command: 'pnpm run dev:e2e',
+    cwd: import.meta.dirname,
+    url: 'http://localhost:3331',
+    reuseExistingServer: false,
+    timeout: 120_000,
+  },
   projects: [
     {
       name: 'chromium',
