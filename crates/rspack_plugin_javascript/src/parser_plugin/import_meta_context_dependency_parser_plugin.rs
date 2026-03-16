@@ -108,6 +108,7 @@ fn create_import_meta_context_dependency(
 
 pub struct ImportMetaContextDependencyParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   fn evaluate_identifier(
     &self,

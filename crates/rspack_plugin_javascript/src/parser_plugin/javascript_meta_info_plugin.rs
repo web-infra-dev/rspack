@@ -6,6 +6,7 @@ use crate::visitors::JavascriptParser;
 
 pub struct JavascriptMetaInfoPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
   fn call(
     &self,

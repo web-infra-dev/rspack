@@ -8,6 +8,166 @@ use swc_core::{
   },
 };
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum JavascriptParserPluginHook {
+  PreStatement,
+  BlockPreStatement,
+  TopLevelAwaitExpr,
+  TopLevelForOfAwaitStmt,
+  CanRename,
+  Rename,
+  Program,
+  Statement,
+  UnusedStatement,
+  ModuleDeclaration,
+  BlockPreModuleDeclaration,
+  PreDeclarator,
+  Evaluate,
+  EvaluateTypeof,
+  EvaluateCallExpression,
+  EvaluateCallExpressionMember,
+  EvaluateIdentifier,
+  CanCollectDestructuringAssignmentProperties,
+  Pattern,
+  Call,
+  CallMemberChain,
+  Member,
+  MemberChain,
+  UnhandledExpressionMemberChain,
+  MemberChainOfCallMemberChain,
+  CallMemberChainOfCallMemberChain,
+  Typeof,
+  ExpressionLogicalOperator,
+  BinaryExpression,
+  StatementIf,
+  ClassExtendsExpression,
+  ClassBodyElement,
+  ClassBodyValue,
+  Declarator,
+  NewExpression,
+  Identifier,
+  This,
+  Assign,
+  AssignMemberChain,
+  ImportCall,
+  MetaProperty,
+  Import,
+  ImportSpecifier,
+  ExportImport,
+  Export,
+  ExportImportSpecifier,
+  ExportSpecifier,
+  ExportExpression,
+  OptionalChaining,
+  ExpressionConditionalOperation,
+  Finish,
+  IsPure,
+  ImportMetaPropertyInDestructuring,
+}
+
+impl JavascriptParserPluginHook {
+  pub const COUNT: usize = Self::ImportMetaPropertyInDestructuring as usize + 1;
+
+  pub const ALL: [Self; Self::COUNT] = [
+    Self::PreStatement,
+    Self::BlockPreStatement,
+    Self::TopLevelAwaitExpr,
+    Self::TopLevelForOfAwaitStmt,
+    Self::CanRename,
+    Self::Rename,
+    Self::Program,
+    Self::Statement,
+    Self::UnusedStatement,
+    Self::ModuleDeclaration,
+    Self::BlockPreModuleDeclaration,
+    Self::PreDeclarator,
+    Self::Evaluate,
+    Self::EvaluateTypeof,
+    Self::EvaluateCallExpression,
+    Self::EvaluateCallExpressionMember,
+    Self::EvaluateIdentifier,
+    Self::CanCollectDestructuringAssignmentProperties,
+    Self::Pattern,
+    Self::Call,
+    Self::CallMemberChain,
+    Self::Member,
+    Self::MemberChain,
+    Self::UnhandledExpressionMemberChain,
+    Self::MemberChainOfCallMemberChain,
+    Self::CallMemberChainOfCallMemberChain,
+    Self::Typeof,
+    Self::ExpressionLogicalOperator,
+    Self::BinaryExpression,
+    Self::StatementIf,
+    Self::ClassExtendsExpression,
+    Self::ClassBodyElement,
+    Self::ClassBodyValue,
+    Self::Declarator,
+    Self::NewExpression,
+    Self::Identifier,
+    Self::This,
+    Self::Assign,
+    Self::AssignMemberChain,
+    Self::ImportCall,
+    Self::MetaProperty,
+    Self::Import,
+    Self::ImportSpecifier,
+    Self::ExportImport,
+    Self::Export,
+    Self::ExportImportSpecifier,
+    Self::ExportSpecifier,
+    Self::ExportExpression,
+    Self::OptionalChaining,
+    Self::ExpressionConditionalOperation,
+    Self::Finish,
+    Self::IsPure,
+    Self::ImportMetaPropertyInDestructuring,
+  ];
+
+  pub const fn mask(self) -> u64 {
+    1u64 << (self as u8)
+  }
+}
+
+const _: () = assert!(
+  JavascriptParserPluginHook::COUNT <= 64,
+  "The number of JavascriptParserPluginHook variants exceeds 64, which cannot be safely stored in a u64 bitmask."
+);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct JavascriptParserPluginHooks(u64);
+
+impl JavascriptParserPluginHooks {
+  pub const fn empty() -> Self {
+    Self(0)
+  }
+
+  pub const fn all() -> Self {
+    Self(u64::MAX)
+  }
+
+  pub const fn contains(self, hook: JavascriptParserPluginHook) -> bool {
+    self.0 & hook.mask() != 0
+  }
+
+  pub const fn with(self, hook: JavascriptParserPluginHook) -> Self {
+    Self(self.0 | hook.mask())
+  }
+}
+
+#[macro_export]
+macro_rules! javascript_parser_plugin_hooks {
+  () => {
+    $crate::JavascriptParserPluginHooks::empty()
+  };
+  ($hook:ident $(, $rest:ident)* $(,)?) => {
+    $crate::JavascriptParserPluginHooks::empty()
+      .with($crate::JavascriptParserPluginHook::$hook)
+      $(.with($crate::JavascriptParserPluginHook::$rest))*
+  };
+}
+
 use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
@@ -20,6 +180,12 @@ use crate::{
 type KeepRight = bool;
 
 pub trait JavascriptParserPlugin {
+  /// Used by the parser drive to precompute which hook paths this plugin
+  /// actually implements.
+  fn implemented_hooks(&self) -> JavascriptParserPluginHooks {
+    JavascriptParserPluginHooks::all()
+  }
+
   /// Return:
   /// - `Some(true)` signifies the termination of the current
   ///   statement's visit during the pre-walk phase.

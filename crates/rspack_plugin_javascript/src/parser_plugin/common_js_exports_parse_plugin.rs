@@ -272,6 +272,7 @@ impl CommonJsExportsParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
   fn assign_member_chain(
     &self,

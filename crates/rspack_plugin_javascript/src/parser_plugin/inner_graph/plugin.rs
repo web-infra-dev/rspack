@@ -349,6 +349,7 @@ impl InnerGraphPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for InnerGraphPlugin {
   fn program(
     &self,

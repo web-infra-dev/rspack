@@ -34,6 +34,7 @@ impl SideEffectsParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for SideEffectsParserPlugin {
   fn module_declaration(&self, parser: &mut JavascriptParser, decl: &ModuleDecl) -> Option<bool> {
     match decl {
