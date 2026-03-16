@@ -1,0 +1,55 @@
+name: Ecosystem Benchmark Compare
+
+inputs:
+  event-name:
+    required: true
+    description: 'GitHub event name (push or workflow_dispatch)'
+  commit-sha:
+    required: true
+    description: 'Actual checked-out HEAD SHA; used to compute merge-base for workflow_dispatch'
+  github-token:
+    required: true
+    description: 'GitHub token for API access in the compare CLI'
+
+outputs:
+  diff-result:
+    description: 'Benchmark comparison result with newlines replaced by @@'
+    value: ${{ steps.compare.outputs.diff-result }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve compare base
+      id: resolve-base
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+      with:
+        github-token: ${{ inputs.github-token }}
+        result-encoding: string
+        script: |
+          if ('${{ inputs.event-name }}' === 'push') {
+            // context.payload.before is the branch state before the push — correct baseline
+            // even for multi-commit pushes, and requires no extra API call.
+            // ref https://docs.github.com/en/webhooks/webhook-events-and-payloads#push 
+            return context.payload.before
+          }
+          // For workflow_dispatch (PR benchmark), use the merge base of main and the PR head
+          // so the comparison reflects only the PR's own changes, regardless of main drift.
+          // If the author merges main into their branch beforehand, the merge base shifts
+          // accordingly and the result reflects the merged outcome.
+          const { data } = await github.rest.repos.compareCommitsWithBasehead({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            basehead: `main...${{ inputs.commit-sha }}`
+          })
+          return data.merge_base_commit.sha
+
+    - name: Run compare
+      id: compare
+      shell: bash
+      working-directory: ${{ github.workspace }}/rspack-ecosystem-benchmark
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        result=$(node bin/cli.js compare --base ${{ steps.resolve-base.outputs.result }} --current current)
+        echo "$result"
+        echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
