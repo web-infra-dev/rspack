@@ -134,8 +134,16 @@ pub enum ExportedVariableInfo {
   VariableInfo(VariableInfoId),
 }
 
-fn object_and_members_to_name(object: String, members_reversed: &[impl AsRef<str>]) -> String {
-  let mut name = object;
+fn object_and_members_to_name(object: &Atom, members_reversed: &[impl AsRef<str>]) -> String {
+  let total_len = object.len()
+    + members_reversed.len()
+    + members_reversed
+      .iter()
+      .map(|m| m.as_ref().len())
+      .sum::<usize>();
+
+  let mut name = String::with_capacity(total_len);
+  name.push_str(object);
   let iter = members_reversed.iter();
   for member in iter.rev() {
     name.push('.');
@@ -958,7 +966,7 @@ impl<'parser> JavascriptParser<'parser> {
           info: root_info,
         } = self.get_name_info_from_variable(&root_name)?;
 
-        let name = object_and_members_to_name(resolved_root.to_string(), &members);
+        let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
