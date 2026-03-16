@@ -44,6 +44,12 @@ In Node.js 20 and later, the runtime natively supports loading ESM modules via [
 - It introduces the new [@rspack/dev-middleware](https://github.com/rstackjs/rspack-dev-middleware) package to replace `webpack-dev-middleware`.
 - It uses [connect-next](https://github.com/rstackjs/connect-next) instead of Express v4 as the default middleware framework.
 
+### Remove webpack-bundler-analyzer
+
+Starting from Rspack 2.0, the built-in webpack-bundler-analyzer integration and the `--analyze` CLI flag have been removed.
+
+If you need to analyze bundle outputs, you can use [Rsdoctor](/guide/optimization/use-rsdoctor), which provides more powerful analysis capabilities.
+
 ## Experimental configuration changes
 
 ### Remove experiments.css
