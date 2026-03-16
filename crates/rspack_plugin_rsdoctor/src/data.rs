@@ -60,6 +60,7 @@ pub struct RsdoctorModule {
   pub bailout_reason: HashSet<String>,
   pub side_effects: Option<bool>,
   pub side_effects_locations: Vec<RsdoctorSideEffectLocation>,
+  pub exports_type: String,
 }
 
 #[derive(Debug, Default)]
