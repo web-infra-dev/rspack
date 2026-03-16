@@ -30,10 +30,26 @@ inputs:
     required: false
     default: true
     type: boolean
+  zig-version:
+    required: false
+    default: '0.14.1'
+    type: string
 
 runs:
   using: composite
   steps:
+    - name: Setup Zig
+      uses: mlugg/setup-zig@v2
+      if: ${{ contains(inputs.target, 'musl') }}
+      with:
+        version: ${{ inputs.zig-version }}
+
+    - name: Install cargo-zigbuild
+      uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612
+      if: ${{ contains(inputs.target, 'musl') }}
+      with:
+        tool: cargo-zigbuild
+
     - name: Docker Build ${{ inputs.target }}
       uses: ./.github/actions/docker/run
       with:
