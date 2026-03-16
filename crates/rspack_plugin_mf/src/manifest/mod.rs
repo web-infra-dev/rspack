@@ -576,7 +576,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         record_shared_usage(
           &mut shared_usage_links,
-          &shared_key,
+          &shared_map_key,
           &module_identifier,
           module_graph,
           compilation,

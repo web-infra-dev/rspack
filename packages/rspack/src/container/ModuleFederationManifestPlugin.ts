@@ -273,16 +273,6 @@ function collectManifestShared(
   return result.length > 0 ? result : undefined;
 }
 
-function normalizeManifestSharedOptions(
-  shared: ManifestSharedOption[] | undefined,
-): ManifestSharedOption[] | undefined {
-  if (!shared) return undefined;
-  return shared.map((item) => ({
-    ...item,
-    shareKey: item.shareKey ?? item.name,
-  }));
-}
-
 function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
   const manifestOptions: InternalManifestPluginOptions =
     mfConfig.manifest === true ? {} : { ...mfConfig.manifest };
@@ -315,9 +305,12 @@ function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
   if (manifestOptions.shared === undefined && manifestShared) {
     manifestOptions.shared = manifestShared;
   }
-  manifestOptions.shared = normalizeManifestSharedOptions(
-    manifestOptions.shared,
-  );
+  if (manifestOptions.shared) {
+    manifestOptions.shared = manifestOptions.shared.map((item) => ({
+      ...item,
+      shareKey: item.shareKey ?? item.name,
+    }));
+  }
 
   return {
     ...manifestOptions,
