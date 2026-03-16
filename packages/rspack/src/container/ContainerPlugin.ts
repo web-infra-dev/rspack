@@ -62,7 +62,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
         (item) => ({
           import: Array.isArray(item.import) ? item.import : [item.import],
           name: item.name || undefined,
-          layer: item.layer || undefined,
+          layer: enhanced ? item.layer || undefined : undefined,
         }),
       ),
       enhanced,

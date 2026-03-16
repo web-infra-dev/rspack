@@ -96,8 +96,8 @@ impl RuntimeModule for ShareRuntimeModule {
             DataInitInfo::ProvideSharedInfo(info) => {
               let mut stage = format!(
                 "{{ name: {}, version: {}, factory: {}, eager: {}, layer: {}, treeShakingMode: {}",
-                json_stringify(&info.name),
-                json_stringify(&info.version.to_string()),
+                json_stringify_str(&info.name),
+                json_stringify_str(&info.version.to_string()),
                 info.factory,
                 if info.eager { "1" } else { "0" },
                 json_stringify(&info.layer),

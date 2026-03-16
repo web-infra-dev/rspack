@@ -119,6 +119,7 @@ export type ManifestSharedOption = {
   shareKey?: string;
   version?: string;
   requiredVersion?: string;
+  layer?: string;
   singleton?: boolean;
 };
 
@@ -265,6 +266,7 @@ function collectManifestShared(
       shareKey,
       version,
       requiredVersion,
+      layer: config.layer,
       singleton: config.singleton,
     };
   });

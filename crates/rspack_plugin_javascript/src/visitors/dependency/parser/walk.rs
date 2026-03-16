@@ -330,7 +330,9 @@ impl JavascriptParser<'_> {
 
   fn walk_labeled_statement(&mut self, stmt: &LabeledStmt) {
     // TODO: self.hooks.label.get
-    self.walk_nested_statement(&stmt.body);
+    self.in_block_scope(false, |this| {
+      this.walk_nested_statement(&stmt.body);
+    });
   }
 
   fn walk_if_statement(&mut self, stmt: &IfStmt) {

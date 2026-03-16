@@ -20,6 +20,7 @@ pub struct ManifestSharedOption {
   pub share_key: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 

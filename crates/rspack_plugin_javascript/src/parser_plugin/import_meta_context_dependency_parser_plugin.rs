@@ -75,7 +75,7 @@ fn create_import_meta_context_dependency(
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
       phase: None,
     }
@@ -94,7 +94,7 @@ fn create_import_meta_context_dependency(
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
       phase: None,
     }

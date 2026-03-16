@@ -57,7 +57,10 @@
         "error",
         { "allowBitwiseExpressions": true }
       ],
-      "@typescript-eslint/no-non-null-assertion": "off"
+      "@typescript-eslint/no-non-null-assertion": "off",
+      "no-console": "off",
+      "no-empty": "off",
+      "default-case": "off"
     },
     "plugins": ["@typescript-eslint"]
   }

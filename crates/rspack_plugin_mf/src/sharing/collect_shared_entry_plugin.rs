@@ -5,7 +5,8 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, DependenciesBlock, Plugin,
+  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Module,
+  Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -113,9 +114,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
-      // Layer-aware consume identifiers now include an extra "(layer)" segment,
-      // so use the typed accessor instead of reparsing readable_identifier().
-      let key = consume.share_key();
+      let ident = consume.readable_identifier(&Context::default()).to_string();
+      let key = {
+        let Some(mut rest) = ident.strip_prefix("consume shared module ") else {
+          continue;
+        };
+        let Some(scope_end) = rest.find(") ") else {
+          continue;
+        };
+        rest = &rest[scope_end + 2..];
+        if rest.starts_with('(') {
+          let Some(layer_end) = rest.find(") ") else {
+            continue;
+          };
+          rest = &rest[layer_end + 2..];
+        }
+        let head = rest.split(" (").next().unwrap_or(rest);
+        let at = head.rfind('@').unwrap_or(head.len());
+        head[..at].to_string()
+      };
       if key.is_empty() {
         continue;
       }
@@ -138,7 +155,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       // Add real module resource paths to the map and infer version
-      let mut reqs = ordered_requests.remove(key).unwrap_or_default();
+      let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
       for target_id in target_modules {
         if let Some(target) = module_graph.module_by_identifier(&target_id)
           && let Some(name) = target.name_for_condition()
@@ -155,9 +172,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       }
       reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-      ordered_requests.insert(key.to_string(), reqs);
+      ordered_requests.insert(key.clone(), reqs);
       if !scope.is_empty() {
-        share_scopes.insert(key.to_string(), scope);
+        share_scopes.insert(key.clone(), scope);
       }
     }
   }

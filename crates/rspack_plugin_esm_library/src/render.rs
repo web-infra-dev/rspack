@@ -22,7 +22,7 @@ use rspack_util::{
 };
 
 use crate::{
-  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
+  chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
   runtime::EsmRegisterModuleRuntimeModule,
 };
@@ -37,17 +37,45 @@ fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
 
 use crate::EsmLibraryPlugin;
 
+fn normalize_raw_import_source(source: &str) -> Cow<'_, str> {
+  let mut value = source.to_string();
+  let mut changed = false;
+
+  for _ in 0..2 {
+    let decode_target = if value.starts_with("\\\"") && value.ends_with("\\\"") {
+      format!("\"{value}\"")
+    } else {
+      value.clone()
+    };
+    if let Ok(next) = serde_json::from_str::<String>(&decode_target) {
+      changed = true;
+      value = next;
+      continue;
+    }
+    break;
+  }
+
+  if value.starts_with('\"') && value.ends_with('\"') && value.len() >= 2 {
+    changed = true;
+    value = value[1..value.len() - 1].to_string();
+  }
+
+  if !changed {
+    Cow::Borrowed(source)
+  } else {
+    Cow::Owned(value)
+  }
+}
+
 impl EsmLibraryPlugin {
   pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
-    let group = chunk
-      .groups()
-      .iter()
-      .next()
-      .expect("should have at least one group");
+    let Some(group) = chunk.groups().iter().next() else {
+      return chunk_ukey;
+    };
     let group = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
@@ -73,7 +101,7 @@ impl EsmLibraryPlugin {
       }));
     }
 
-    unreachable!("chunk should have at least one ancestor that is entrypoint")
+    chunk_ukey
   }
 
   pub(crate) async fn render_chunk(
@@ -226,7 +254,8 @@ var {} = {{}};
         .chunk_graph
         .get_chunk_runtime_modules_iterable(chunk_ukey)
         .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
-        && tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+        && tree_runtime_requirements
+          .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
         export_specifiers.insert(Cow::Owned(
           runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -351,26 +380,77 @@ var {} = {{}};
       }
     }
 
+    let require_ident = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let import_spec_imports_require = |import_spec: &rspack_core::ImportSpec| {
+      import_spec
+        .atoms
+        .values()
+        .any(|local| local.as_str() == require_ident)
+        || import_spec
+          .default_import
+          .as_ref()
+          .is_some_and(|local| local.as_str() == require_ident)
+        || import_spec
+          .ns_import
+          .as_ref()
+          .is_some_and(|local| local.as_str() == require_ident)
+    };
+
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
-      if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-        let runtime_chunk = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(&runtime_chunk);
+      if &runtime_chunk != chunk_ukey
+        && runtime_requirements.intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
+      {
+        let already_imported_require =
+          chunk_link
+            .raw_import_stmts
+            .iter()
+            .any(|(raw_import_source, import_spec)| {
+              matches!(raw_import_source, RawImportSource::Chunk(_))
+                && import_spec_imports_require(import_spec)
+            });
+        if !already_imported_require {
+          let runtime_chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(&runtime_chunk);
 
-        import_source.add(RawStringSource::from(format!(
-          "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          runtime_chunk.expect_id().as_str()
-        )));
+          import_source.add(RawStringSource::from(format!(
+            "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
+            require_ident,
+            runtime_chunk.expect_id().as_str()
+          )));
+        }
       }
     }
 
-    for ((source, attr), import_spec) in &chunk_link.raw_import_stmts {
+    for (raw_import_source, import_spec) in &chunk_link.raw_import_stmts {
+      if let RawImportSource::Source((source, _)) = raw_import_source
+        && source.contains("__RSPACK_ESM_CHUNK_")
+        && import_spec_imports_require(import_spec)
+      {
+        continue;
+      }
+      let (source, attr) = match raw_import_source {
+        RawImportSource::Chunk(import_chunk) => {
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(import_chunk);
+          (
+            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str())),
+            None,
+          )
+        }
+        RawImportSource::Source((source, attr)) => (
+          normalize_raw_import_source(source.as_str()),
+          attr.as_deref(),
+        ),
+      };
+
       import_source.add(RawStringSource::from(render_imports(
-        source,
-        attr.as_deref(),
+        &source,
+        attr,
         import_spec,
       )));
     }

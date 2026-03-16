@@ -8,7 +8,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -18,7 +19,7 @@ use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ConsumeVersion, ShareScope, utils::json_stringify};
+use crate::{ConsumeOptions, ShareScope, utils::json_stringify};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -105,21 +106,6 @@ impl ConsumeSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
-  }
-
-  pub fn share_key(&self) -> &str {
-    &self.options.share_key
-  }
-
-  pub fn required_version(&self) -> Option<&ConsumeVersion> {
-    self
-      .options
-      .required_version
-      .as_ref()
-      .and_then(|version| match version {
-        ConsumeVersion::Version(_) => Some(version),
-        ConsumeVersion::False => None,
-      })
   }
 }
 
@@ -247,7 +233,7 @@ impl Module for ConsumeSharedModule {
       json_stringify(&self.options.share_scope),
       json_stringify_str(&self.options.share_key),
     ];
-    if let Some(version) = self.required_version() {
+    if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
         function += "Strict";
       }
@@ -267,12 +253,16 @@ impl Module for ConsumeSharedModule {
         runtime_template.async_module_factory(&self.get_blocks()[0], fallback, compilation)
       }
     });
-    let fallback_factory = factory.unwrap_or_else(|| {
-      format!(
-        "()=>()=>{{throw new Error(\"Can not get '{}'\" )}}",
-        self.options.share_key
-      )
-    });
+    code_generation_result.add(
+      SourceType::ConsumeShared,
+      RawStringSource::from(factory.clone().unwrap_or_else(|| {
+        format!(
+          "()=>()=>{{throw new Error(\"Can not get '{}' \")}}",
+          self.options.share_key
+        )
+      }))
+      .boxed(),
+    );
     code_generation_result
       .data
       .insert(CodeGenerationDataConsumeShared {
@@ -284,7 +274,7 @@ impl Module for ConsumeSharedModule {
         singleton: self.options.singleton,
         eager: self.options.eager,
         layer: self.options.layer.clone(),
-        fallback: Some(fallback_factory),
+        fallback: factory,
         tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });
     Ok(code_generation_result)
