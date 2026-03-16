@@ -17,18 +17,22 @@ it("should omit asset details from stats when disableAssetsAnalyze is true", () 
 	expect(stats.shared).toHaveLength(1);
 	expect(stats.shared[0].assets.js.sync).toEqual([]);
 	expect(stats.shared[0].assets.js.async).toEqual([]);
+	expect(stats.shared[0].rsc).toBeUndefined();
 	expect(stats.exposes).toHaveLength(1);
 	expect(stats.exposes[0].assets.js.sync).toEqual([]);
 	expect(stats.exposes[0].assets.js.async).toEqual([]);
+	expect(stats.exposes[0].rsc).toBeUndefined();
 });
 
 it("should omit asset details from manifest when disableAssetsAnalyze is true", () => {
 	expect(manifest.shared).toHaveLength(1);
 	expect(manifest.shared[0].assets.js.sync).toEqual([]);
 	expect(manifest.shared[0].assets.js.async).toEqual([]);
+	expect(manifest.shared[0].rsc).toBeUndefined();
 	expect(manifest.exposes).toHaveLength(1);
 	expect(manifest.exposes[0].assets.js.sync).toEqual([]);
 	expect(manifest.exposes[0].assets.js.async).toEqual([]);
+	expect(manifest.exposes[0].rsc).toBeUndefined();
 });
 
 it("should mark remote usage locations as UNKNOWN", () => {
@@ -39,4 +43,7 @@ it("should mark remote usage locations as UNKNOWN", () => {
 			})
 		])
 	);
+	for (const remote of stats.remotes) {
+		expect(remote.rsc).toBeUndefined();
+	}
 });

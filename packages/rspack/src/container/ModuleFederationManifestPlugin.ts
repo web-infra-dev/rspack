@@ -116,6 +116,7 @@ export type ManifestExposeOption = {
 
 export type ManifestSharedOption = {
   name: string;
+  shareKey?: string;
   version?: string;
   requiredVersion?: string;
   layer?: string;
@@ -251,7 +252,7 @@ function collectManifestShared(
     (item) => item,
   );
   const result = parsed.map(([key, config]) => {
-    const name = config.shareKey || key;
+    const shareKey = config.shareKey || key;
     const version =
       typeof config.version === 'string' ? config.version : undefined;
     const requiredVersion =
@@ -259,7 +260,10 @@ function collectManifestShared(
         ? config.requiredVersion
         : undefined;
     return {
-      name,
+      // Keep backward-compatible manifest/shared naming semantics:
+      // name is the effective runtime share key when provided.
+      name: shareKey,
+      shareKey,
       version,
       requiredVersion,
       layer: config.layer,
@@ -300,6 +304,12 @@ function normalizeManifestOptions(mfConfig: ModuleFederationPluginOptions) {
   const manifestShared = collectManifestShared(mfConfig.shared);
   if (manifestOptions.shared === undefined && manifestShared) {
     manifestOptions.shared = manifestShared;
+  }
+  if (manifestOptions.shared) {
+    manifestOptions.shared = manifestOptions.shared.map((item) => ({
+      ...item,
+      shareKey: item.shareKey ?? item.name,
+    }));
   }
 
   return {

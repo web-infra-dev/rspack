@@ -13,7 +13,8 @@ use asset::{
 };
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
-  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
+  RemoteEntryMeta, RscActionRef, RscReferenceMeta, StatsAssetsGroup, StatsExpose, StatsRemote,
+  StatsShared,
 };
 pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
@@ -23,17 +24,17 @@ pub use options::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType, Plugin,
-  PublicPath,
+  PublicPath, RscModuleType,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use utils::{
-  collect_entry_files, collect_expose_requirements, compose_id_with_separator,
-  compose_shared_map_key, ensure_configured_remotes, ensure_shared_entry, filter_assets,
-  is_hot_file, parse_consume_shared_identifier, parse_provide_shared_identifier,
-  record_shared_usage, strip_ext,
+  collect_entry_files, collect_expose_requirements, compose_expose_lookup,
+  compose_id_with_separator, compose_remote_lookup, compose_shared_map_key,
+  ensure_configured_remotes, ensure_shared_entry, filter_assets, is_hot_file,
+  parse_consume_shared_identifier, parse_provide_shared_identifier, record_shared_usage, strip_ext,
 };
 
 use crate::container::{container_entry_module::ContainerEntryModule, remote_module::RemoteModule};
@@ -48,6 +49,143 @@ impl ModuleFederationManifestPlugin {
     Self::new_inner(options)
   }
 }
+
+fn rsc_module_type_to_string(module_type: RscModuleType) -> String {
+  match module_type {
+    RscModuleType::Client => "client".to_string(),
+    RscModuleType::ServerEntry => "server-entry".to_string(),
+    RscModuleType::Server => "server".to_string(),
+  }
+}
+
+fn rsc_module_type_priority(module_type: RscModuleType) -> u8 {
+  match module_type {
+    RscModuleType::Client => 3,
+    RscModuleType::ServerEntry => 2,
+    RscModuleType::Server => 1,
+  }
+}
+
+fn resolve_manifest_shared_option<'a>(
+  shared_options: &'a [ManifestSharedOption],
+  concrete_share_key: &str,
+) -> (String, Option<&'a ManifestSharedOption>) {
+  if let Some(shared) = shared_options
+    .iter()
+    .find(|shared| shared.share_key == concrete_share_key)
+  {
+    return (shared.name.clone(), Some(shared));
+  }
+
+  let prefix_match = shared_options
+    .iter()
+    .filter(|shared| {
+      shared.share_key.ends_with('/') && concrete_share_key.starts_with(&shared.share_key)
+    })
+    .max_by_key(|shared| shared.share_key.len());
+
+  if let Some(shared) = prefix_match {
+    let remainder = &concrete_share_key[shared.share_key.len()..];
+    let manifest_name = if shared.name.ends_with('/') {
+      format!("{}{}", shared.name, remainder)
+    } else {
+      shared.name.clone()
+    };
+    return (manifest_name, Some(shared));
+  }
+
+  (concrete_share_key.to_string(), None)
+}
+
+fn build_rsc_reference_meta_from_modules(
+  compilation: &Compilation,
+  lookup: String,
+  module_identifiers: impl IntoIterator<Item = ModuleIdentifier>,
+) -> Option<RscReferenceMeta> {
+  let module_graph = compilation.get_module_graph();
+  let mut module_type = None::<RscModuleType>;
+  let mut resource = None::<String>;
+  let mut fallback_resource = None::<String>;
+  let mut best_priority = 0;
+  let mut client_references: HashSet<String> = HashSet::default();
+  let mut server_actions: HashMap<String, String> = HashMap::default();
+  let mut found_rsc = false;
+
+  let mut visit_module = |current_identifier: &ModuleIdentifier| {
+    let Some(current_module) = module_graph.module_by_identifier(current_identifier) else {
+      return;
+    };
+    let Some(rsc) = current_module.build_info().rsc.as_ref() else {
+      return;
+    };
+
+    found_rsc = true;
+    let current_resource = module_source_path(current_module, compilation);
+    if fallback_resource.is_none() {
+      fallback_resource = current_resource.clone();
+    }
+
+    let current_priority = rsc_module_type_priority(rsc.module_type);
+    if current_priority > best_priority {
+      best_priority = current_priority;
+      module_type = Some(rsc.module_type);
+      resource = current_resource;
+    } else if current_priority == best_priority
+      && let Some(current_resource) = current_resource.as_ref()
+    {
+      match resource.as_ref() {
+        Some(existing_resource) if existing_resource <= current_resource => {}
+        _ => resource = Some(current_resource.clone()),
+      }
+    }
+
+    for client_reference in rsc.client_refs.iter().filter_map(|item| item.as_str()) {
+      client_references.insert(client_reference.to_string());
+    }
+    for (id, name) in &rsc.action_ids {
+      server_actions
+        .entry(id.to_string())
+        .or_insert(name.to_string());
+    }
+  };
+
+  for module_identifier in module_identifiers {
+    let Some(module) = module_graph.module_by_identifier(&module_identifier) else {
+      continue;
+    };
+
+    visit_module(&module_identifier);
+    if let Some(concatenated_module) = module.as_concatenated_module() {
+      for inner in concatenated_module.get_modules() {
+        visit_module(&inner.id);
+      }
+    }
+  }
+
+  if !found_rsc {
+    return None;
+  }
+  if resource.is_none() {
+    resource = fallback_resource;
+  }
+
+  let mut sorted_client_references = client_references.into_iter().collect::<Vec<_>>();
+  sorted_client_references.sort();
+  let mut sorted_server_actions = server_actions
+    .into_iter()
+    .map(|(id, name)| RscActionRef { id, name })
+    .collect::<Vec<_>>();
+  sorted_server_actions.sort_by(|a, b| a.id.cmp(&b.id));
+
+  Some(RscReferenceMeta {
+    lookup,
+    moduleType: module_type.map(rsc_module_type_to_string),
+    resource,
+    clientReferences: sorted_client_references,
+    serverActions: sorted_server_actions,
+  })
+}
+
 fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Option<String> {
   let chunk_group_ukey = compilation
     .build_chunk_graph_artifact
@@ -172,6 +310,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           layer: None,
           requires: Vec::new(),
           assets: StatsAssetsGroup::default(),
+          rsc: None,
         }
       })
       .collect::<Vec<_>>();
@@ -182,6 +321,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|shared| StatsShared {
         id: compose_id_with_separator(&container_name, &shared.name),
         name: shared.name.clone(),
+        share_key: shared.share_key.clone(),
         version: shared.version.clone().unwrap_or_default(),
         requiredVersion: shared.required_version.clone(),
         layer: shared.layer.clone(),
@@ -190,6 +330,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         assets: StatsAssetsGroup::default(),
         usedIn: Vec::new(),
         usedExports: Vec::new(),
+        rsc: None,
       })
       .collect::<Vec<_>>();
     let remote_list = self
@@ -209,6 +350,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           moduleName: remote_container_name,
           entry: target.entry.clone(),
           usedIn: vec!["UNKNOWN".to_string()],
+          rsc: None,
         }
       })
       .collect::<Vec<_>>();
@@ -299,6 +441,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               layer: options.layer.as_ref().map(ToString::to_string),
               requires: Vec::new(),
               assets: StatsAssetsGroup::default(),
+              rsc: None,
             });
 
           if let Some(block_id) = blocks.get(index)
@@ -339,19 +482,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if matches!(module_type, ModuleType::ProvideShared) {
         if let Some((pkg, ver)) = parse_provide_shared_identifier(&identifier) {
           let layer = module.get_layer().map(ToString::to_string);
-          let shared_key = compose_shared_map_key(&pkg, layer.as_deref());
+          let (manifest_name, _) = resolve_manifest_shared_option(&self.options.shared, &pkg);
+          let shared_key = compose_shared_map_key(&manifest_name, layer.as_deref());
           let entry = ensure_shared_entry(
             &mut shared_map,
-            &shared_key,
             &container_name,
+            &manifest_name,
             &pkg,
+            &shared_key,
             layer.clone(),
           );
           if entry.version.is_empty() {
             entry.version = ver;
           }
           // overlay user-configured shared options (singleton/requiredVersion/version)
-          if let Some(opt) = find_shared_option(&pkg, layer.as_deref()) {
+          if let Some(opt) = find_shared_option(&manifest_name, layer.as_deref()) {
             if let Some(singleton) = opt.singleton {
               entry.singleton = Some(singleton);
             }
@@ -385,10 +530,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       if matches!(module_type, ModuleType::ConsumeShared)
-        && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
+        && let Some((share_key, required)) = parse_consume_shared_identifier(&identifier)
       {
         let layer = module.get_layer().map(ToString::to_string);
-        let shared_key = compose_shared_map_key(&pkg, layer.as_deref());
+        let (manifest_name, _) = resolve_manifest_shared_option(&self.options.shared, &share_key);
+        let shared_map_key = compose_shared_map_key(&manifest_name, layer.as_deref());
         let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();
@@ -401,21 +547,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           }
         }
         shared_module_targets
-          .entry(shared_key.clone())
+          .entry(shared_map_key.clone())
           .or_default()
           .extend(target_ids.into_iter());
         let entry = ensure_shared_entry(
           &mut shared_map,
-          &shared_key,
           &container_name,
-          &pkg,
+          &manifest_name,
+          &share_key,
+          &shared_map_key,
           layer.clone(),
         );
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
         }
         // overlay user-configured shared options
-        if let Some(opt) = find_shared_option(&pkg, layer.as_deref()) {
+        if let Some(opt) = find_shared_option(&manifest_name, layer.as_deref()) {
           if let Some(singleton) = opt.singleton {
             entry.singleton = Some(singleton);
           }
@@ -429,7 +576,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
         record_shared_usage(
           &mut shared_usage_links,
-          &shared_key,
+          &shared_map_key,
           &module_identifier,
           module_graph,
           compilation,
@@ -438,11 +585,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let mut expose_module_paths: HashMap<String, String> = HashMap::default();
+    let mut expose_module_ids: HashMap<String, ModuleIdentifier> = HashMap::default();
     for expose_key in exposes_map.keys() {
       if let Some(module_id) = module_ids_by_name.get(expose_key)
         && let Some(module) = module_graph.module_by_identifier(module_id)
         && let Some(path) = module_source_path(module, compilation)
       {
+        expose_module_ids.insert(expose_key.clone(), *module_id);
         expose_module_paths.insert(expose_key.clone(), path);
       }
     }
@@ -505,6 +654,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         shared_entry.assets = assets;
       }
     }
+    for (pkg, shared_entry) in shared_map.iter_mut() {
+      let Some(module_ids) = shared_module_targets.get(pkg) else {
+        continue;
+      };
+      let lookup = if shared_entry.share_key.is_empty() {
+        pkg.clone()
+      } else {
+        shared_entry.share_key.clone()
+      };
+      shared_entry.rsc =
+        build_rsc_reference_meta_from_modules(compilation, lookup, module_ids.iter().copied());
+    }
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
       let mut assets = None;
@@ -540,6 +701,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
         expose.file = path.clone();
+      }
+      if let Some(module_id) = expose_module_ids.get(expose_file_key) {
+        expose.rsc = build_rsc_reference_meta_from_modules(
+          compilation,
+          compose_expose_lookup(&container_name, &expose.path),
+          std::iter::once(*module_id),
+        );
       }
       // Remove main entry files from assets
       filter_assets(&mut assets, &entry_files, &shared_asset_files, true);
@@ -620,6 +788,20 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             }
           })
           .collect();
+      let mut remote_usage_module_ids: HashSet<ModuleIdentifier> = HashSet::default();
+      for connection in module_graph.get_incoming_connections(&module_id) {
+        if let Some(origin_identifier) = connection
+          .original_module_identifier
+          .or(connection.resolved_original_module_identifier)
+        {
+          remote_usage_module_ids.insert(origin_identifier);
+        }
+      }
+      let rsc = build_rsc_reference_meta_from_modules(
+        compilation,
+        compose_remote_lookup(&federation_container_name, &module_name),
+        remote_usage_module_ids.into_iter(),
+      );
       remote_list.push(StatsRemote {
         alias: alias.clone(),
         consumingFederationContainerName: container_name.clone(),
@@ -627,6 +809,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         moduleName: module_name,
         entry,
         usedIn: used_in,
+        rsc,
       });
     }
 
@@ -684,6 +867,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         path: e.path,
         layer: e.layer,
         assets: e.assets,
+        rsc: e.rsc,
       })
       .collect(),
     shared: stats_root
@@ -692,11 +876,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|s| ManifestShared {
         id: s.id,
         name: s.name,
+        share_key: s.share_key,
         version: s.version,
         requiredVersion: s.requiredVersion,
         layer: s.layer,
         singleton: s.singleton,
         assets: s.assets,
+        rsc: s.rsc,
       })
       .collect(),
     remotes: remote_list
@@ -706,6 +892,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         moduleName: r.moduleName,
         alias: r.alias,
         entry: r.entry,
+        rsc: r.rsc,
       })
       .collect(),
   };
