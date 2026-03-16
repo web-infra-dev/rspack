@@ -1,3 +1,7 @@
+---
+description: "旧的架构是一个非常简单的版本，仅支持正常阶段的 loader。不考虑 pitch 的 loader。"
+---
+
 # Rspack loader
 
 ## 相关的 PRs

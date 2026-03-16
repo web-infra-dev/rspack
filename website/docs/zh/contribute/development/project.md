@@ -1,3 +1,7 @@
+---
+description: "Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、JavaScript packages、测试目录与核心组件分布。"
+---
+
 # 项目结构
 
 这是一个包含 Rust crates 和 JavaScript 包的**单体仓库**：

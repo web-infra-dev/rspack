@@ -1,3 +1,7 @@
+---
+description: 'Builtin 插件介绍'
+---
+
 # Builtin 插件
 
 Builtin 插件使用 [rspack_macros](https://github.com/web-infra-dev/rspack/tree/7cc39cc4bb6f73791a5bcb175137ffd84b105da5/crates/rspack_macros) 来帮助你避免写重复的代码, 你可以使用 [cargo-expand](https://github.com/dtolnay/cargo-expand) 或者 [rust-analyzer expand macro](https://rust-analyzer.github.io/manual.html#expand-macro-recursively) 来检查展开后的代码，并且开发/测试这些宏， 你可以使用 [rspack_macros_test](https://github.com/web-infra-dev/rspack/tree/7cc39cc4bb6f73791a5bcb175137ffd84b105da5/crates/rspack_macros_test) 来开始.

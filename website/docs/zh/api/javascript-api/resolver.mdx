@@ -1,3 +1,7 @@
+---
+description: "Rspack 使用 Rust 编写的更高性能的 rspack-resolver 来代替 Webpack 中的 enhanced-resolve，并通过 rspack.experiments.resolver 实验性地重导出了这些 API。"
+---
+
 # Resolver API
 
 Rspack 使用 Rust 编写的更高性能的 [rspack-resolver](https://github.com/rstackjs/rspack-resolver) 来代替 Webpack 中的 [enhanced-resolve](https://github.com/webpack/enhanced-resolve)，并通过 `rspack.experiments.resolver` 实验性地重导出了这些 API。这使你能够直接调用 rspack-resolver 的 `resolver.sync` 或 `resolver.async` 等功能。

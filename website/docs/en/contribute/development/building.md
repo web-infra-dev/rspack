@@ -1,3 +1,7 @@
+---
+description: "Please see prerequisites for setting up Rust and Node.js"
+---
+
 # Building
 
 Please see [prerequisites](./prerequisites) for setting up Rust and Node.js.

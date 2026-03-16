@@ -1,3 +1,7 @@
+---
+description: "tracing is used to record the internal processes of Rspack compilation, which can be used for performance analysis as well as narrow down the location of a bug"
+---
+
 # Tracing
 
 [`tracing`](https://crates.io/crates/tracing) is used to record the internal processes of Rspack compilation, which can be used for performance analysis as well as narrow down the location of a bug.
