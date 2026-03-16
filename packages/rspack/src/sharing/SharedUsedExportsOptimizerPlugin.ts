@@ -16,6 +16,7 @@ import type { NormalizedSharedOptions } from './SharePlugin';
 
 type OptimizeSharedConfig = {
   shareKey: string;
+  layer?: string;
   treeShaking: boolean;
   usedExports?: string[];
 };
@@ -41,6 +42,7 @@ export class SharedUsedExportsOptimizerPlugin extends RspackBuiltinPlugin {
     const shared: OptimizeSharedConfig[] = this.sharedOptions.map(
       ([shareKey, config]) => ({
         shareKey,
+        layer: config.layer,
         treeShaking: !!config.treeShaking,
         usedExports: config.treeShaking?.usedExports,
       }),

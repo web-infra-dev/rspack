@@ -398,13 +398,12 @@ var init = function(shareScope, initScope) {{
         has_own_property =
           runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
-        share_scope = json_stringify_str(
-          self
-            .share_scope
-            .scopes()
-            .first()
-            .map_or("default", |s| s.as_str())
-        ),
+        share_scope = json_stringify_str(match &self.share_scope {
+          ShareScope::Single(s) => s.as_str(),
+          ShareScope::Multiple(_) => {
+            panic!("ContainerEntryModule: enhanced=false only supports string share scope")
+          }
+        }),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING),
         define_property_getters =

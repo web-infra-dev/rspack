@@ -87,6 +87,14 @@ impl RuntimeSpec {
     this
   }
 
+  pub fn from_runtimes<'a>(runtimes: impl IntoIterator<Item = &'a RuntimeSpec>) -> Self {
+    let mut inner = UstrSet::default();
+    for runtime in runtimes {
+      inner.extend(runtime.inner.iter().copied());
+    }
+    Self::new(inner)
+  }
+
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
     let r = match runtime {
       Some(EntryRuntime::String(s)) => s,

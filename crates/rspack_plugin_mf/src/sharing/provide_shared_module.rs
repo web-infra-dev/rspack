@@ -219,28 +219,21 @@ impl Module for ProvideSharedModule {
     code_generation_result
       .data
       .insert(CodeGenerationDataShareInit {
-        items: self
-          .share_scope
-          .scopes()
-          .iter()
-          .cloned()
-          .chain(self.share_scope.is_empty().then_some("default".to_string()))
-          .map(|scope| ShareInitData {
-            share_scope: ShareScope::Single(scope),
-            init_stage: 10,
-            init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
-              name: self.name.clone(),
-              version: self.version.clone(),
-              factory: factory.clone(),
-              eager: self.eager,
-              singleton: self.singleton,
-              strict_version: self.strict_version,
-              required_version: self.required_version.clone(),
-              layer: self.layer.clone(),
-              tree_shaking_mode: self.tree_shaking_mode.clone(),
-            }),
-          })
-          .collect(),
+        items: vec![ShareInitData {
+          share_scope: self.share_scope.clone(),
+          init_stage: 10,
+          init: DataInitInfo::ProvideSharedInfo(ProvideSharedInfo {
+            name: self.name.clone(),
+            version: self.version.clone(),
+            factory,
+            eager: self.eager,
+            singleton: self.singleton,
+            strict_version: self.strict_version,
+            required_version: self.required_version.clone(),
+            layer: self.layer.clone(),
+            tree_shaking_mode: self.tree_shaking_mode.clone(),
+          }),
+        }],
       });
     Ok(code_generation_result)
   }
