@@ -252,14 +252,14 @@ export default {
 
 [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) 的默认值由 `warn` 变更为 `error`。当检测到导出的内容不存在时，现在将直接抛出错误而不是仅仅警告。
 
-如果你希望恢复为旧行为，可显式设置为 `warn`：
+如果你希望恢复为旧行为，可显式设置为 `auto`：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'warn',
+        exportsPresence: 'auto',
       },
     },
   },
@@ -727,3 +727,7 @@ export default {
 ### 移除 `readResourceForScheme` hook
 
 `NormalModule.getCompilationHooks(compilation).readResourceForScheme` 已被移除。这个 hook 只是 `readResource.for(scheme)` 的旧别名，请改用后者。
+
+### `@module-federation/runtime-tools` 变为 optional dependency
+
+`@module-federation/runtime-tools` 包已从 `dependencies` 移动到 `optionalDependencies`，如果你使用了 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin)，请确保在安装依赖时安装了该包。

@@ -252,14 +252,14 @@ export default {
 
 The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
 
-If you want to restore the old behavior, you can explicitly set it to `warn`:
+If you want to restore the old behavior, you can explicitly set it to `auto`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'warn',
+        exportsPresence: 'auto',
       },
     },
   },
@@ -729,3 +729,7 @@ export default {
 ### Removed `readResourceForScheme` hook
 
 `NormalModule.getCompilationHooks(compilation).readResourceForScheme` has been removed. This hook was only a legacy alias for `readResource.for(scheme)`, so migrate to that API directly.
+
+### `@module-federation/runtime-tools` becomes an optional dependency
+
+The `@module-federation/runtime-tools` package has been moved from `dependencies` to `optionalDependencies`. If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), please ensure that this package is installed.
