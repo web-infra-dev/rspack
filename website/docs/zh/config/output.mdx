@@ -753,7 +753,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   entry: './src/index.js',
   output: {
     library: 'MyLibrary',
@@ -784,7 +783,6 @@ export function hello(name) {
 
    ```js title="rspack.config.mjs"
    export default {
-     // …
      entry: ['./src/a.js', './src/b.js'], // 只有在 b.js 中导出的内容才会被暴露
      output: {
        library: 'MyLibrary',
@@ -796,7 +794,6 @@ export function hello(name) {
 
    ```js title="rspack.config.mjs"
    export default {
-     // …
      entry: {
        a: './src/a.js',
        b: './src/b.js',
@@ -831,7 +828,6 @@ export function hello(name) {
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       amdContainer: 'window["clientContainer"]',
@@ -855,7 +851,6 @@ window['clientContainer'].define(/*define args*/); // or 'amd-require' window['c
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -882,7 +877,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -905,7 +899,6 @@ MyLibrary.doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -927,7 +920,6 @@ MyLibrary = _entry_return_;
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -963,7 +955,6 @@ MyLibrary.hello('World');
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -987,7 +978,6 @@ MyLibrary.doSomething(); // 如果 `this` 为 window 对象
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1009,7 +999,6 @@ window.MyLibrary.doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1031,7 +1020,6 @@ global.MyLibrary.doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1061,7 +1049,6 @@ require('MyLibrary').doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // 不要指定 `name`
@@ -1077,7 +1064,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // 不要指定 `name`
@@ -1093,7 +1079,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // note there's no `name` here
@@ -1121,7 +1106,6 @@ require('MyLibrary').doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // note there's no `name` here
@@ -1143,8 +1127,6 @@ export function doSomething() {}
 
 ```js
 function doSomething() {}
-
-// …
 
 exports.doSomething = __webpack_exports__.doSomething;
 ```
@@ -1355,7 +1337,6 @@ System.register(
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1432,7 +1413,6 @@ var MyLibrary = _entry_return_.default.subModule;
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   mode: 'development',
   output: {
     library: {
@@ -1466,7 +1446,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   mode: 'development',
   output: {
     library: {
