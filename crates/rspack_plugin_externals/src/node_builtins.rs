@@ -56,6 +56,6 @@ pub const NODE_BUILTINS: &[&str] = &[
 ];
 
 pub fn is_node_builtin(request: &str) -> bool {
-  let name = request.strip_prefix("node:").unwrap_or(request);
-  NODE_BUILTINS.contains(&name)
+  // All `node:` prefixed requests are treated as builtins for forward-compatibility
+  request.starts_with("node:") || NODE_BUILTINS.contains(&request)
 }
