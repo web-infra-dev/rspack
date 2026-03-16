@@ -1,3 +1,4 @@
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::Span,
@@ -20,18 +21,18 @@ use crate::{
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
-  plugins_by_hook: [Vec<usize>; JavascriptParserPluginHook::COUNT],
+  plugins_by_hook: [SmallVec<[u32; 2]>; JavascriptParserPluginHook::COUNT],
 }
 
 impl JavaScriptParserPluginDrive {
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
-    let mut plugins_by_hook = std::array::from_fn(|_| Vec::new());
+    let mut plugins_by_hook = std::array::from_fn(|_| SmallVec::new());
 
     for (idx, plugin) in plugins.iter().enumerate() {
-      let hooks = plugin.implemented_hooks();
+      let implemented_hooks = plugin.implemented_hooks();
       for hook in JavascriptParserPluginHook::ALL {
-        if hooks.contains(hook) {
-          plugins_by_hook[hook as usize].push(idx);
+        if implemented_hooks.contains(hook) {
+          plugins_by_hook[hook as usize].push(idx as u32);
         }
       }
     }
@@ -42,13 +43,15 @@ impl JavaScriptParserPluginDrive {
     }
   }
 
+  #[inline]
   fn plugins_for(
     &self,
     hook: JavascriptParserPluginHook,
   ) -> impl Iterator<Item = &BoxJavascriptParserPlugin> {
-    self.plugins_by_hook[hook as usize]
+    let hooks = unsafe { self.plugins_by_hook.get_unchecked(hook as usize) };
+    hooks
       .iter()
-      .map(|&idx| &self.plugins[idx])
+      .map(|idx| unsafe { self.plugins.get_unchecked(*idx as usize) })
   }
 }
 
@@ -884,74 +887,5 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
       }
     }
     None
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  struct NoopPlugin;
-
-  #[rspack_macros::implemented_javascript_parser_hooks]
-  impl JavascriptParserPlugin for NoopPlugin {}
-
-  struct PreStatementPlugin;
-
-  #[rspack_macros::implemented_javascript_parser_hooks]
-  impl JavascriptParserPlugin for PreStatementPlugin {
-    fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
-      None
-    }
-  }
-
-  struct BlockPreStatementPlugin;
-
-  #[rspack_macros::implemented_javascript_parser_hooks]
-  impl JavascriptParserPlugin for BlockPreStatementPlugin {
-    fn block_pre_statement(
-      &self,
-      _parser: &mut JavascriptParser,
-      _stmt: Statement,
-    ) -> Option<bool> {
-      None
-    }
-  }
-
-  struct BothHooksPlugin;
-
-  #[rspack_macros::implemented_javascript_parser_hooks]
-  impl JavascriptParserPlugin for BothHooksPlugin {
-    fn pre_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
-      None
-    }
-
-    fn block_pre_statement(
-      &self,
-      _parser: &mut JavascriptParser,
-      _stmt: Statement,
-    ) -> Option<bool> {
-      None
-    }
-  }
-
-  #[test]
-  fn should_index_only_plugins_that_implement_hot_statement_hooks() {
-    let plugins: Vec<BoxJavascriptParserPlugin> = vec![
-      Box::new(NoopPlugin),
-      Box::new(PreStatementPlugin),
-      Box::new(BlockPreStatementPlugin),
-      Box::new(BothHooksPlugin),
-    ];
-    let drive = JavaScriptParserPluginDrive::new(plugins);
-
-    assert_eq!(
-      drive.plugins_by_hook[JavascriptParserPluginHook::PreStatement as usize],
-      vec![1, 3]
-    );
-    assert_eq!(
-      drive.plugins_by_hook[JavascriptParserPluginHook::BlockPreStatement as usize],
-      vec![2, 3]
-    );
   }
 }

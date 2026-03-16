@@ -178,13 +178,6 @@ pub trait JavascriptParserPlugin {
   /// Used by the parser drive to precompute which hook paths this plugin
   /// actually implements.
   fn implemented_hooks(&self) -> JavascriptParserPluginHooks {
-    self.hooks()
-  }
-
-  /// Backwards-compatible fallback for plugins that still provide the old
-  /// hook metadata method.
-  #[doc(hidden)]
-  fn hooks(&self) -> JavascriptParserPluginHooks {
     JavascriptParserPluginHooks::all()
   }
 
