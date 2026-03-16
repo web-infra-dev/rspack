@@ -115,7 +115,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;
 
 use crate::{
@@ -381,8 +381,8 @@ impl JsCompiler {
           async move {
             compiler
               .rebuild(
-                changed_files.into_iter().collect::<HashSet<_>>(),
-                removed_files.into_iter().collect::<HashSet<_>>(),
+                changed_files.into_iter().collect::<FxHashSet<_>>(),
+                removed_files.into_iter().collect::<FxHashSet<_>>(),
               )
               .await
               .to_napi_result_with_message(|e| {

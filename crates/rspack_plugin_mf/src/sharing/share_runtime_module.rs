@@ -1,13 +1,15 @@
 use std::sync::LazyLock;
 
-use hashlink::{LinkedHashMap, LinkedHashSet};
 use itertools::Itertools;
 use rspack_core::{
   Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
-use rspack_util::json_stringify_str;
+use rspack_util::{
+  fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
+  json_stringify_str,
+};
 use rustc_hash::FxHashMap;
 
 use super::provide_shared_plugin::ProvideVersion;
@@ -51,7 +53,7 @@ impl RuntimeModule for ShareRuntimeModule {
     let module_graph = compilation.get_module_graph();
     let mut init_per_scope: FxHashMap<
       String,
-      LinkedHashMap<DataInitStage, LinkedHashSet<DataInitInfo>>,
+      FxLinkedHashMap<DataInitStage, FxLinkedHashSet<DataInitInfo>>,
     > = FxHashMap::default();
     for c in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -77,7 +79,7 @@ impl RuntimeModule for ShareRuntimeModule {
             let stages = init_per_scope.entry(scope.clone()).or_default();
             let list = stages
               .entry(item.init_stage)
-              .or_insert_with(LinkedHashSet::default);
+              .or_insert_with(FxLinkedHashSet::default);
             list.insert(item.init.clone());
           }
         }

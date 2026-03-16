@@ -1,7 +1,6 @@
 use std::{borrow::Cow, hash::Hash};
 
 use cow_utils::CowUtils;
-use dashmap::DashMap;
 use derive_more::Debug;
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
@@ -16,6 +15,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
+use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
   ModuleFilenameTemplate, SourceReference, module_filename_helpers::ModuleFilenameHelpers,
@@ -38,7 +38,7 @@ pub struct EvalDevToolModulePlugin {
   source_url_comment: String,
   #[debug(skip)]
   module_filename_template: ModuleFilenameTemplate,
-  cache: DashMap<BoxSource, BoxSource>,
+  cache: FxDashMap<BoxSource, BoxSource>,
 }
 
 impl EvalDevToolModulePlugin {

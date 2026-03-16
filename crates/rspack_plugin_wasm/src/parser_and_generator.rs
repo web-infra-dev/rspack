@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
-use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
   BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
   GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -144,7 +144,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
+        let mut dep_modules = IdentifierIndexMap::<DepModule>::default();
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.get_module_graph();

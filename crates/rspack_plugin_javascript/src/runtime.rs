@@ -2,12 +2,11 @@ use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
   Module, ModuleCodeGenerationContext, RuntimeCodeTemplate, RuntimeGlobals, SourceType,
-  chunk_graph_chunk::ChunkId,
+  chunk_graph_chunk::ChunkIdSet,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
@@ -411,7 +410,7 @@ pub async fn render_runtime_modules(
   Ok(sources.boxed())
 }
 
-pub fn stringify_chunks_to_array(chunks: &HashSet<ChunkId>) -> String {
+pub fn stringify_chunks_to_array(chunks: &ChunkIdSet) -> String {
   let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
 
