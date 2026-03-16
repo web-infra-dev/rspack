@@ -252,14 +252,14 @@ export default {
 
 [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) 的默认值由 `warn` 变更为 `error`。当检测到导出的内容不存在时，现在将直接抛出错误而不是仅仅警告。
 
-如果你希望恢复为旧行为，可显式设置为 `warn`：
+如果你希望恢复为旧行为，可显式设置为 `auto`：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'warn',
+        exportsPresence: 'auto',
       },
     },
   },
@@ -290,7 +290,7 @@ export default {
 
 ### 禁用 builtin:swc-loader 读取 .swcrc
 
-在 Rspack 2.0 中，`builtin:swc-loader` 默认禁用 `.swcrc` 文件读取。你需要将 SWC 配置迁移到 `rspack.config.js` 的 loader 选项中：
+在 Rspack 2.0 中，`builtin:swc-loader` 不再支持读取 `.swcrc` 文件。你需要将 SWC 配置迁移到 `rspack.config.js` 的 loader 选项中：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -607,6 +607,51 @@ export default {
 };
 ```
 
+## Resolve 行为变化
+
+### 默认 extensions 变更
+
+Rspack 2.0 默认用于 JavaScript 请求的 [resolve.extensions](/config/resolve#resolveextensions) 不再包含 `.wasm`。
+
+直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
+
+像 `import './module.wasm'` 这样的显式导入不受影响。
+
+如果你需要保留旧行为，可以在对应的 `resolve.byDependency` 配置中显式把 `.wasm` 加回去：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
+
+### CSS 解析 conditions
+
+Rspack 2.0 默认的 CSS `@import` 解析 conditions 不再包含 `webpack`。
+
+如果你需要保留旧行为，可以显式把 `webpack` 加回去：
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      'css-import': {
+        conditionNames: ['webpack', '...'],
+      },
+    },
+  },
+};
+```
+
 ## 其他变更
 
 ### `devtool` 默认值变化
@@ -679,27 +724,10 @@ export default {
 };
 ```
 
-### JavaScript `resolve.extensions` 默认不再包含 `.wasm`
+### 移除 `readResourceForScheme` hook
 
-Rspack 2.0 默认用于 JavaScript 请求的 `resolve.extensions` 不再包含 `.wasm`。
+`NormalModule.getCompilationHooks(compilation).readResourceForScheme` 已被移除。这个 hook 只是 `readResource.for(scheme)` 的旧别名，请改用后者。
 
-直接一点说，像 `import './module'`、`require('./module')` 这种省略扩展名的请求，默认不再尝试解析到 `./module.wasm`。
+### `@module-federation/runtime-tools` 声明为可选 peerDependency
 
-像 `import './module.wasm'` 这样的显式导入不受影响。
-
-如果你需要保留旧行为，可以在对应的 `resolve.byDependency` 配置中显式把 `.wasm` 加回去：
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    byDependency: {
-      esm: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-      commonjs: {
-        extensions: ['.js', '.json', '.wasm'],
-      },
-    },
-  },
-};
-```
+`@module-federation/runtime-tools` 包已从 `dependencies` 调整为可选 `peerDependencies`（通过 `peerDependencies` + `peerDependenciesMeta.optional` 声明）。如果你使用了 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin)，请确保在你的项目中显式安装该包。

@@ -5,6 +5,7 @@ use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPathSet;
 use rspack_tasks::within_compiler_context;
+use rustc_hash::FxHashSet;
 
 use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
@@ -17,8 +18,8 @@ use crate::{
 impl Compiler {
   pub async fn rebuild(
     &mut self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: FxHashSet<String>,
+    deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     match within_compiler_context(
       self.compiler_context.clone(),
@@ -53,8 +54,8 @@ impl Compiler {
   ))]
   async fn rebuild_inner(
     &mut self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: FxHashSet<String>,
+    deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     let records = CompilationRecords::record(&self.compilation);
 

@@ -1,4 +1,4 @@
-use hashlink::LinkedHashMap;
+use rspack_util::fx_hash::FxLinkedHashMap;
 
 use super::{
   Alias, AliasFields, ByDependency, ConditionNames, DependencyCategoryStr, DescriptionFiles,
@@ -46,7 +46,7 @@ fn is_empty(resolve: &Resolve) -> bool {
 #[derive(Default, Debug)]
 struct Entry<T: Default + std::fmt::Debug> {
   base: Option<T>,
-  by_values: Option<LinkedHashMap<DependencyCategoryStr, Option<T>>>,
+  by_values: Option<FxLinkedHashMap<DependencyCategoryStr, Option<T>>>,
 }
 
 #[derive(Debug)]
@@ -115,7 +115,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
 
   macro_rules! update_by_value {
     ($ident: ident, $should_insert_by_value_key: expr) => {
-      let mut $ident = LinkedHashMap::new();
+      let mut $ident = FxLinkedHashMap::default();
       let by_values_key: Vec<_> = by_dependency.0.keys().cloned().collect();
       for by_value_key in &by_values_key {
         let obj = by_dependency.0.get_mut(by_value_key).expect("");
@@ -183,7 +183,7 @@ where
 }
 
 fn get_from_by_values<T: Default + Clone>(
-  by_values: &LinkedHashMap<DependencyCategoryStr, T>,
+  by_values: &FxLinkedHashMap<DependencyCategoryStr, T>,
   key: &str,
 ) -> Option<T> {
   let value = if key != "default" && by_values.contains_key(key) {
@@ -227,7 +227,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
       } else if let Some(intermediate_by_values) = first.$ident.by_values {
         #[allow(clippy::redundant_closure_call)]
         let need_merge_base = $need_merge_base(&intermediate_by_values);
-        let mut intermediate_by_values: LinkedHashMap<_, _> = intermediate_by_values
+        let mut intermediate_by_values: FxLinkedHashMap<_, _> = intermediate_by_values
           .into_iter()
           .map(|(key, value)| {
             let value = overwrite(value, second.$ident.base.clone(), $deal_merge);
@@ -268,13 +268,14 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     }};
   }
 
-  let need_merge_base = |by_values: &LinkedHashMap<DependencyCategoryStr, Option<Vec<String>>>| {
-    by_values.values().all(|value| {
-      let value_type = value.get_value_type();
-      assert!(!matches!(value_type, ValueType::Other));
-      !matches!(value_type, ValueType::Extend)
-    })
-  };
+  let need_merge_base =
+    |by_values: &FxLinkedHashMap<DependencyCategoryStr, Option<Vec<String>>>| {
+      by_values.values().all(|value| {
+        let value_type = value.get_value_type();
+        assert!(!matches!(value_type, ValueType::Other));
+        !matches!(value_type, ValueType::Extend)
+      })
+    };
 
   let result_entry = ResolveWithEntry {
     pnp: merge!(pnp, second.pnp.base.get_value_type(), |_| true, |_, b| b),
@@ -373,7 +374,8 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     roots: merge!(roots, ValueType::Other, |_| false, |_, b| b),
   };
 
-  let mut by_dependency: LinkedHashMap<DependencyCategoryStr, Resolve> = LinkedHashMap::new();
+  let mut by_dependency: FxLinkedHashMap<DependencyCategoryStr, Resolve> =
+    FxLinkedHashMap::default();
 
   macro_rules! setup_by_values {
     ($ident: ident) => {

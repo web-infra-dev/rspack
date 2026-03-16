@@ -3,7 +3,6 @@ use std::{
   hash::{Hash, Hasher},
 };
 
-use dashmap::DashMap;
 use futures::future::join_all;
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
@@ -12,7 +11,10 @@ use rspack_core::{
   PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
+use rspack_util::{
+  fx_hash::{FxDashMap, FxIndexMap},
+  tracing_preset::TRACING_BENCH_TARGET,
+};
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use tracing::instrument;
 
@@ -300,7 +302,7 @@ impl SplitChunksPlugin {
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
-    let module_group_map: DashMap<String, ModuleGroup> = DashMap::default();
+    let module_group_map: FxDashMap<String, ModuleGroup> = FxDashMap::default();
     let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|mid| {
         let s = unsafe { token.used((&cache_groups, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
@@ -546,7 +548,7 @@ impl SplitChunksPlugin {
 
 async fn merge_matched_item_into_module_group_map(
   matched_item: MatchedItem<'_>,
-  module_group_map: &DashMap<String, ModuleGroup>,
+  module_group_map: &FxDashMap<String, ModuleGroup>,
   compilation: &Compilation,
   chunk_index_map: &FxHashMap<ChunkUkey, u32>,
 ) -> Result<()> {

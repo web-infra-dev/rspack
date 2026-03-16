@@ -21,66 +21,49 @@ const BENCHMARK_DATA: BenchmarkData = {
     label: 'Rspack',
     metrics: [
       {
-        time: 0.41,
+        time: 1.36,
         desc: 'dev',
       },
       {
-        time: 0.28,
+        time: 3.35,
         desc: 'build',
       },
       {
-        time: 0.08,
+        time: 0.16,
         desc: 'hmr',
       },
     ],
   },
-  viteSwc: {
-    label: 'Vite + SWC',
+  vite: {
+    label: 'Vite',
     metrics: [
       {
-        time: 1.29,
+        time: 6.5,
         desc: 'dev',
       },
       {
-        time: 1.39,
+        time: 1.98,
         desc: 'build',
       },
       {
-        time: 0.05,
+        time: 0.13,
         desc: 'hmr',
       },
     ],
   },
-  webpackSwc: {
-    label: 'webpack + SWC',
+  webpack: {
+    label: 'webpack',
     metrics: [
       {
-        time: 2.26,
+        time: 21.4,
         desc: 'dev',
       },
       {
-        time: 2.01,
+        time: 28.1,
         desc: 'build',
       },
       {
-        time: 0.2,
-        desc: 'hmr',
-      },
-    ],
-  },
-  webpackBabel: {
-    label: 'webpack + Babel',
-    metrics: [
-      {
-        time: 5.02,
-        desc: 'dev',
-      },
-      {
-        time: 6.52,
-        desc: 'build',
-      },
-      {
-        time: 0.2,
+        time: 2.78,
         desc: 'hmr',
       },
     ],

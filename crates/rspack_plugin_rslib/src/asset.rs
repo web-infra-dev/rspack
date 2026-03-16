@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet};
+use std::borrow::Cow;
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -8,6 +8,7 @@ use rspack_core::{
 use rspack_error::{Result, TWithDiagnosticArray};
 use rspack_hash::RspackHashDigest;
 use rspack_plugin_asset::AssetParserAndGenerator;
+use rustc_hash::FxHashSet;
 
 #[cacheable]
 #[derive(Debug)]
@@ -17,7 +18,7 @@ pub(crate) struct RslibAssetParserAndGenerator(pub AssetParserAndGenerator);
 #[async_trait::async_trait]
 impl ParserAndGenerator for RslibAssetParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    let mut source_types = HashSet::new();
+    let mut source_types = FxHashSet::default();
     let module_id = module.identifier();
     for connection in module_graph.get_incoming_connections(&module_id) {
       if let Some(module) = connection

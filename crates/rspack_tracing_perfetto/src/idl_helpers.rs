@@ -1,16 +1,14 @@
-use std::{
-  collections::HashMap,
-  sync::{
-    LazyLock, Mutex,
-    atomic::{AtomicU64, Ordering},
-  },
+use std::sync::{
+  LazyLock, Mutex,
+  atomic::{AtomicU64, Ordering},
 };
 
 use micromegas_perfetto::protos::{self as idl, TracePacket};
+use rustc_hash::FxHashMap;
 
 #[cfg_attr(allocative, allocative::root)]
-static CUSTOM_SCOPE_NAMES: LazyLock<Mutex<HashMap<String, u64>>> =
-  LazyLock::new(|| Mutex::new(HashMap::new()));
+static CUSTOM_SCOPE_NAMES: LazyLock<Mutex<FxHashMap<String, u64>>> =
+  LazyLock::new(|| Mutex::new(FxHashMap::default()));
 
 #[derive(Default)]
 pub struct DebugAnnotations {
