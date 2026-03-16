@@ -6,7 +6,7 @@ inputs:
     description: 'GitHub event name (push or workflow_dispatch)'
   commit-sha:
     required: true
-    description: 'Current commit SHA; its parent is used as base when event is push'
+    description: 'Actual checked-out HEAD SHA; used to compute merge-base for workflow_dispatch'
   github-token:
     required: true
     description: 'GitHub token for API access in the compare CLI'
@@ -26,15 +26,11 @@ runs:
         github-token: ${{ inputs.github-token }}
         result-encoding: string
         script: |
+          console.log(`test`, context.payload.before);
           if ('${{ inputs.event-name }}' === 'push') {
-            // Use the parent commit SHA so that re-runs of older workflows compare
-            // against the correct baseline rather than the latest main.
-            const { data } = await github.rest.repos.getCommit({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: '${{ inputs.commit-sha }}'
-            })
-            return data.parents[0].sha
+            // context.payload.before is the branch state before the push — correct baseline
+            // even for multi-commit pushes, and requires no extra API call.
+            return context.payload.before
           }
           // For workflow_dispatch (PR benchmark), use the merge base of main and the PR head
           // so the comparison reflects only the PR's own changes, regardless of main drift.

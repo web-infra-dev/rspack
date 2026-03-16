@@ -121,12 +121,17 @@ jobs:
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
 
+      - name: Get HEAD SHA
+        id: get-sha
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
       - name: Compare benchmark results
         id: run-benchmark
         uses: ./.github/actions/benchmark/compare
         with:
           event-name: ${{ github.event_name }}
-          commit-sha: ${{ github.sha }}
+          commit-sha: ${{ steps.get-sha.outputs.sha }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload benchmark result
