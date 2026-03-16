@@ -173,6 +173,23 @@ impl CodeGenerationResult {
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
+
+  pub fn set_hash_from_base(
+    &mut self,
+    base_hash: &RspackHashDigest,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+    base_hash.hash(&mut hasher);
+    for source_type in self.inner.as_ref().keys() {
+      source_type.hash(&mut hasher);
+    }
+    self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
+    self.hash = Some(hasher.digest(hash_digest));
+  }
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]

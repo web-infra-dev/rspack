@@ -1958,11 +1958,6 @@ impl Module for ConcatenatedModule {
           exports_final_names_map,
         ));
     }
-    code_generation_result.set_hash(
-      &compilation.options.output.hash_function,
-      &compilation.options.output.hash_digest,
-      &compilation.options.output.hash_salt,
-    );
     Ok(code_generation_result)
   }
 
