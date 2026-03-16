@@ -90,13 +90,14 @@ impl Meta {
     // Update active version's access time
     self.access_times.insert(active_version.into(), now);
 
+    if expire_seconds == 0 {
+      // never expire
+      return Ok((vec![], now + 60 * 60));
+    }
+
     // Calculate next check time: default to expire/4 from now
     let mut next_check_time = now + (expire_seconds >> 2);
     let mut removed_versions = vec![];
-
-    if expire_seconds == 0 {
-      return Ok((removed_versions, next_check_time));
-    }
 
     // Remove expired versions and find earliest expiry
     self.access_times.retain(|version, time| {

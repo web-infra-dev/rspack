@@ -50,7 +50,8 @@ impl DB {
     // Filter to keep only directories (buckets), excluding internal directories
     let mut bucket_names = Vec::new();
     for entry in entries {
-      if let Ok(metadata) = self.fs.stat(&entry).await
+      if !entry.starts_with('.')
+        && let Ok(metadata) = self.fs.stat(&entry).await
         && metadata.is_directory
       {
         bucket_names.push(entry);

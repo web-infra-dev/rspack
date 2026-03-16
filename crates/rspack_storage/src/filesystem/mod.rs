@@ -97,11 +97,12 @@ impl Storage for FileSystemStorage {
       }
 
       // Perform refresh: load metadata (or create default) and update if needed
-      if let Ok(mut meta) = Meta::load(&fs)
-        .await
-        .or_else(|_| Ok::<_, crate::Error>(Meta::default()))
-        && let Ok((expired_versions, next_refresh_time)) = meta.refresh(&version, expire).await
-      {
+      let mut meta = match Meta::load(&fs).await {
+        Ok(meta) => meta,
+        Err(e) if e.is_not_found() => Default::default(),
+        Err(_) => return,
+      };
+      if let Ok((expired_versions, next_refresh_time)) = meta.refresh(&version, expire).await {
         // Save updated metadata
         let _ = meta.save(&fs).await;
 
