@@ -723,3 +723,7 @@ export default {
   },
 };
 ```
+
+### 移除 `readResourceForScheme` hook
+
+`NormalModule.getCompilationHooks(compilation).readResourceForScheme` 已被移除。这个 hook 只是 `readResource.for(scheme)` 的旧别名，请改用后者。
