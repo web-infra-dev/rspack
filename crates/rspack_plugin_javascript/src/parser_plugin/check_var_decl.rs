@@ -1,6 +1,3 @@
-use std::sync::LazyLock;
-
-use rustc_hash::FxHashSet;
 use swc_core::{
   common::Spanned,
   ecma::ast::{Ident, ObjectPatProp, Pat},
@@ -11,26 +8,20 @@ use crate::visitors::{
   JavascriptParser, VariableDeclaration, VariableDeclarationKind, create_traceable_error,
 };
 
-static STRICT_MODE_RESERVED_WORDS: LazyLock<FxHashSet<&'static str>> = LazyLock::new(|| {
-  [
-    "implements",
-    "interface",
-    "let",
-    "package",
-    "private",
-    "protected",
-    "public",
-    "static",
-    "yield",
-    "await",
-  ]
-  .iter()
-  .copied()
-  .collect()
-});
-
 fn is_reserved_word_in_strict(word: &str) -> bool {
-  STRICT_MODE_RESERVED_WORDS.contains(word)
+  matches!(
+    word,
+    "implements"
+      | "interface"
+      | "let"
+      | "package"
+      | "private"
+      | "protected"
+      | "public"
+      | "static"
+      | "yield"
+      | "await"
+  )
 }
 
 pub struct CheckVarDeclaratorIdent;
