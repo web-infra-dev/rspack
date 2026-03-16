@@ -1,3 +1,7 @@
+---
+description: 'Tracing documentation'
+---
+
 # Tracing
 
 [`tracing`](https://crates.io/crates/tracing) 用于记录 Rspack 内部的编译流程，既可用于性能分析，也可用于定位 Bug。

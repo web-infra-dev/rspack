@@ -1,3 +1,7 @@
+---
+description: 'Profiling documentation'
+---
+
 # Profiling
 
 在本节中，我们将探讨如何分析 Rspack Profile 以识别性能瓶颈。

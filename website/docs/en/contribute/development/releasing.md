@@ -1,3 +1,7 @@
+---
+description: 'Releasing documentation'
+---
+
 # Releasing
 
 Rspack releases are automated through GitHub Actions.

@@ -1,3 +1,7 @@
+---
+description: 'Prerequisites documentation'
+---
+
 # Prerequisites
 
 Rspack is built using [Rust](https://rust-lang.org/) and [NAPI-RS](https://napi.rs/), then released as [Node.js](https://nodejs.org/) packages.

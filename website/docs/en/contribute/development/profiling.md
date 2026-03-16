@@ -1,3 +1,7 @@
+---
+description: 'Profiling documentation'
+---
+
 # Profiling
 
 In this section, we'll explore how to profile Rspack for identifying bottlenecks.

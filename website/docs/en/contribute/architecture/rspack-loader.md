@@ -1,3 +1,7 @@
+---
+description: 'Rspack loader documentation'
+---
+
 # Rspack loader
 
 ## Related PRs

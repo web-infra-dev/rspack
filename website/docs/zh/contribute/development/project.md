@@ -1,3 +1,7 @@
+---
+description: '项目结构 文档'
+---
+
 # 项目结构
 
 这是一个包含 Rust crates 和 JavaScript 包的**单体仓库**：

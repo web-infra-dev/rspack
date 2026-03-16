@@ -1,3 +1,7 @@
+---
+description: 'Building documentation'
+---
+
 # Building
 
 请查看 [准备工作](./prerequisites) 安装 Rust 和 Node.js 环境。

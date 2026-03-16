@@ -1,3 +1,7 @@
+---
+description: 'Releasing documentation'
+---
+
 # Releasing
 
 Rspack 的版本发布通过 GitHub Actions 自动完成。

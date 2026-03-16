@@ -1,3 +1,7 @@
+---
+description: '准备工作 文档'
+---
+
 # 准备工作
 
 Rspack 使用 [Rust](https://rust-lang.org/) 和 [NAPI-RS](https://napi.rs/) 构建，然后被发布为 [Node.js](https://nodejs.org/) 包。

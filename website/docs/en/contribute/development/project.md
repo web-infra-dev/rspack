@@ -1,3 +1,7 @@
+---
+description: 'Project architecture documentation'
+---
+
 # Project architecture
 
 This is a **monorepo** containing both Rust crates and JavaScript packages:

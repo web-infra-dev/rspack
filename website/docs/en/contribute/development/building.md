@@ -1,3 +1,7 @@
+---
+description: 'Building documentation'
+---
+
 # Building
 
 Please see [prerequisites](./prerequisites) for setting up Rust and Node.js.
