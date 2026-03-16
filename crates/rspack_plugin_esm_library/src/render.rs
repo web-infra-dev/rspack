@@ -235,7 +235,11 @@ var {} = {{}};
           runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
         )));
       }
-      let is_entry_chunk = !compilation
+      // A pure runtime chunk has no entry modules of its own; it was split off
+      // by optimize_runtime_chunks and only exists to export __webpack_require__.
+      // An entry-with-runtime chunk (runtimeChunk: false, not split) uses
+      // __webpack_require__ internally but must not export it.
+      let is_pure_runtime_chunk = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_entry_modules(chunk_ukey)
@@ -250,7 +254,7 @@ var {} = {{}};
         .get_chunk_runtime_modules_iterable(chunk_ukey)
         .next()
         .is_some();
-      let effective_tree_requirements = if is_entry_chunk
+      let effective_tree_requirements = if !is_pure_runtime_chunk
         && !has_runtime_modules
         && !tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
       {
@@ -273,9 +277,9 @@ var {} = {{}};
       runtime_source.add(RawStringSource::from_static("\n"));
 
       // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already.
-      // Only export __webpack_require__ from pure runtime chunks (no entry modules).
+      // Only export __webpack_require__ from pure runtime chunks.
       // Entry-with-runtime chunks use it internally but nothing imports from them.
-      if !is_entry_chunk
+      if is_pure_runtime_chunk
         && !compilation
           .build_chunk_graph_artifact
           .chunk_graph
