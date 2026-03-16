@@ -187,7 +187,7 @@ importers:
     devDependencies:
       '@module-federation/node':
         specifier: ^2.7.32
-        version: 2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.102.1)
+        version: 2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.104.1)
       '@module-federation/runtime-tools':
         specifier: 2.1.0
         version: 2.1.0
@@ -236,7 +236,7 @@ importers:
     devDependencies:
       '@module-federation/node':
         specifier: ^2.7.32
-        version: 2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.102.1)
+        version: 2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.104.1)
       '@module-federation/runtime-tools':
         specifier: 2.1.0
         version: 2.1.0
@@ -9734,7 +9734,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@module-federation/enhanced@2.0.1(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.102.1)':
+  '@module-federation/enhanced@2.0.1(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.104.1)':
     dependencies:
       '@module-federation/bridge-react-webpack-plugin': 2.0.1
       '@module-federation/cli': 2.0.1(typescript@5.9.3)
@@ -9752,7 +9752,7 @@ snapshots:
       upath: 2.0.1
     optionalDependencies:
       typescript: 5.9.3
-      webpack: 5.102.1
+      webpack: 5.104.1
     transitivePeerDependencies:
       - '@rspack/core'
       - bufferutil
@@ -9791,16 +9791,16 @@ snapshots:
       - utf-8-validate
       - vue-tsc
 
-  '@module-federation/node@2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.102.1)':
+  '@module-federation/node@2.7.32(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.104.1)':
     dependencies:
-      '@module-federation/enhanced': 2.0.1(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.102.1)
+      '@module-federation/enhanced': 2.0.1(@rspack/core@packages+rspack)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3)(webpack@5.104.1)
       '@module-federation/runtime': 2.0.1
       '@module-federation/sdk': 2.0.1
       btoa: 1.2.1
       encoding: 0.1.13
       node-fetch: 2.7.0(encoding@0.1.13)
     optionalDependencies:
-      webpack: 5.102.1
+      webpack: 5.104.1
     transitivePeerDependencies:
       - '@rspack/core'
       - bufferutil
