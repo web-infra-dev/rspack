@@ -7,7 +7,6 @@ use std::{
   sync::{Arc, LazyLock, Mutex},
 };
 
-use dashmap::DashSet;
 use derive_more::Debug;
 use futures::future::{BoxFuture, join_all};
 use glob::{MatchOptions, Pattern as GlobPattern};
@@ -21,6 +20,7 @@ use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
 #[derive(Debug)]
@@ -153,7 +153,7 @@ impl CopyRspackPlugin {
     context: &Utf8Path,
     output_path: &Utf8Path,
     from_type: FromType,
-    file_dependencies: &DashSet<PathBuf>,
+    file_dependencies: &FxDashSet<PathBuf>,
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
@@ -349,8 +349,8 @@ impl CopyRspackPlugin {
     compilation: &Compilation,
     pattern: &CopyPattern,
     index: usize,
-    file_dependencies: &DashSet<PathBuf>,
-    context_dependencies: &DashSet<PathBuf>,
+    file_dependencies: &FxDashSet<PathBuf>,
+    context_dependencies: &FxDashSet<PathBuf>,
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     logger: &CompilationLogger,
   ) -> Result<Option<Vec<Option<RunPatternResult>>>> {
@@ -583,8 +583,8 @@ impl CopyRspackPlugin {
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
-  let file_dependencies = DashSet::default();
-  let context_dependencies = DashSet::default();
+  let file_dependencies = FxDashSet::default();
+  let context_dependencies = FxDashSet::default();
   let diagnostics = Arc::new(Mutex::new(Vec::new()));
 
   let mut copied_result: Vec<(i32, RunPatternResult)> =

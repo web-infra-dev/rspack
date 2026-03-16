@@ -8,7 +8,6 @@ use std::{
 
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
-use indexmap::{IndexMap, IndexSet};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
@@ -19,7 +18,12 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
-use rspack_util::{atom::Atom, identifier::make_paths_relative, itoa, json_stringify_str};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxIndexMap, FxIndexSet},
+  identifier::make_paths_relative,
+  itoa, json_stringify_str,
+};
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::parser_and_generator::CssExport;
@@ -146,7 +150,7 @@ pub(crate) fn export_locals_convention(
 
 #[allow(clippy::too_many_arguments)]
 pub fn css_modules_exports_to_string<'a>(
-  exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
+  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
@@ -183,7 +187,7 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
 }
 
 pub fn stringified_exports<'a>(
-  exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
+  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
   compilation: &Compilation,
   runtime_template: &mut ModuleCodeTemplate,
   module: &dyn rspack_core::Module,
@@ -280,7 +284,7 @@ pub fn stringified_exports<'a>(
 }
 
 pub fn css_modules_exports_to_concatenate_module_string<'a>(
-  exports: IndexMap<&'a str, &'a IndexSet<CssExport>>,
+  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
   module: &dyn rspack_core::Module,
   generate_context: &mut GenerateContext,
   concate_source: &mut ConcatSource,

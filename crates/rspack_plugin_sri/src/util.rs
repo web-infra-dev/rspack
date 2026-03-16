@@ -1,11 +1,11 @@
 use std::{borrow::Cow, sync::LazyLock};
 
 use cow_utils::CowUtils;
-use indexmap::IndexSet;
 use rspack_core::{
   AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, ModuleCodeTemplate,
   RuntimeGlobals, SourceType,
 };
+use rspack_util::fx_hash::FxIndexSet;
 
 use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
@@ -32,17 +32,17 @@ pub fn get_hash_variable(runtime_template: &ModuleCodeTemplate, source_type: Sou
   }
 }
 
-pub fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> IndexSet<ChunkUkey> {
-  let mut all_chunks = IndexSet::default();
-  let mut visited_groups = IndexSet::default();
+pub fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> FxIndexSet<ChunkUkey> {
+  let mut all_chunks = FxIndexSet::default();
+  let mut visited_groups = FxIndexSet::default();
   recurse_chunk(chunk, &mut all_chunks, &mut visited_groups, compilation);
   all_chunks
 }
 
 fn recurse_chunk_group(
   group: &ChunkGroupUkey,
-  all_chunks: &mut IndexSet<ChunkUkey>,
-  visited_groups: &mut IndexSet<ChunkGroupUkey>,
+  all_chunks: &mut FxIndexSet<ChunkUkey>,
+  visited_groups: &mut FxIndexSet<ChunkGroupUkey>,
   compilation: &Compilation,
 ) {
   if visited_groups.contains(group) {
@@ -66,8 +66,8 @@ fn recurse_chunk_group(
 
 fn recurse_chunk(
   chunk: &ChunkUkey,
-  all_chunks: &mut IndexSet<ChunkUkey>,
-  visited_groups: &mut IndexSet<ChunkGroupUkey>,
+  all_chunks: &mut FxIndexSet<ChunkUkey>,
+  visited_groups: &mut FxIndexSet<ChunkGroupUkey>,
   compilation: &Compilation,
 ) {
   if all_chunks.contains(chunk) {

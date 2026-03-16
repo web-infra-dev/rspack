@@ -1,14 +1,14 @@
 use std::{
-  collections::HashSet,
   sync::{Arc, LazyLock},
   time::{Duration, Instant},
 };
 
 use regex::Regex;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleIdentifier,
-  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
@@ -272,7 +272,7 @@ async fn optimize_dependencies(
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  let mocked_module_ids: HashSet<ModuleIdentifier> = {
+  let mocked_module_ids: IdentifierSet = {
     let module_graph = build_module_graph_artifact.get_module_graph();
     module_graph
       .dependencies()

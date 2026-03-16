@@ -38,7 +38,6 @@ use std::{
 
 use dashmap::DashSet;
 use futures::future::BoxFuture;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_cacheable::{
@@ -55,7 +54,7 @@ use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
+use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 use ustr::Ustr;
@@ -925,7 +924,7 @@ impl Compilation {
     &mut self.assets
   }
 
-  pub fn entrypoints(&self) -> &IndexMap<Arc<str>, ChunkGroupUkey> {
+  pub fn entrypoints(&self) -> &FxIndexMap<Arc<str>, ChunkGroupUkey> {
     &self.build_chunk_graph_artifact.entrypoints
   }
 

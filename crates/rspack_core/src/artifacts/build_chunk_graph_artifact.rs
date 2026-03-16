@@ -1,10 +1,9 @@
 use std::{mem, sync::Arc};
 
 use futures::Future;
-use indexmap::IndexMap;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::Result;
-use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
+use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -20,7 +19,7 @@ pub struct BuildChunkGraphArtifact {
   pub chunk_by_ukey: ChunkByUkey,
   pub chunk_graph: ChunkGraph,
   pub chunk_group_by_ukey: ChunkGroupByUkey,
-  pub entrypoints: IndexMap<Arc<str>, ChunkGroupUkey>,
+  pub entrypoints: FxIndexMap<Arc<str>, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   pub named_chunk_groups: HashMap<Arc<str>, ChunkGroupUkey>,
   pub named_chunks: HashMap<Arc<str>, ChunkUkey>,

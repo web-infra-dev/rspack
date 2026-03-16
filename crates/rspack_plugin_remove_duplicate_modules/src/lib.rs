@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -9,6 +8,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxDashMap;
 
 #[derive(Debug)]
 #[plugin]
@@ -48,7 +48,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
-  let chunk_map: DashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = DashMap::default();
+  let chunk_map: FxDashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxDashMap::default();
 
   module_graph.modules_par().for_each(|(identifier, _)| {
     let chunks = chunk_graph.get_module_chunks(*identifier);

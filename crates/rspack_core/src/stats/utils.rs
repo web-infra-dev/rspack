@@ -2,7 +2,8 @@ use std::{borrow::Cow, cmp::Ordering};
 
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
+use rspack_util::fx_hash::FxHashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{
@@ -286,7 +287,7 @@ pub fn get_module_trace<'a>(
   context: &Context,
 ) -> Vec<StatsModuleTrace<'a>> {
   let mut module_trace = vec![];
-  let mut visited_modules = HashSet::<Identifier>::default();
+  let mut visited_modules = IdentifierSet::default();
   let mut current_module_identifier = module_identifier;
   while let Some(module_identifier) = current_module_identifier {
     if visited_modules.contains(&module_identifier) {
@@ -355,9 +356,9 @@ pub fn get_chunk_modules_sizes(
   runtime_modules: &IdentifierMap<BoxRuntimeModule>,
   runtime_modules_code_generation_source: &IdentifierMap<BoxSource>,
 ) -> HashMap<SourceType, f64> {
-  let mut sizes = HashMap::<SourceType, f64>::default();
+  let mut sizes = FxHashMap::<SourceType, f64>::default();
   let cgc = chunk_graph.expect_chunk_graph_chunk(chunk);
-  let mut counted_runtime_modules = HashSet::<Identifier>::default();
+  let mut counted_runtime_modules = IdentifierSet::default();
 
   for identifier in cgc.modules() {
     let module = module_graph.module_by_identifier(identifier);

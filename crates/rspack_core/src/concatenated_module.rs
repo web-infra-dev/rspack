@@ -6,7 +6,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use indexmap::IndexMap;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
@@ -282,7 +281,7 @@ pub struct ConcatenatedImportMapItem {
 }
 
 pub type ConcatenatedImportMap =
-  Option<IndexMap<(String, Option<String>), ConcatenatedImportMapItem>>;
+  Option<FxIndexMap<(String, Option<String>), ConcatenatedImportMapItem>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ConcatenatedModuleInfo {
@@ -1043,7 +1042,7 @@ impl Module for ConcatenatedModule {
     }
 
     let module_graph = compilation.get_module_graph();
-    let mut import_stmts = IndexMap::<(String, Option<String>), ImportSpec>::default();
+    let mut import_stmts = FxIndexMap::<(String, Option<String>), ImportSpec>::default();
 
     let (escaped_name_entries, escaped_identifier_entries) = module_to_info_map
       .par_values()
@@ -2393,7 +2392,7 @@ impl ConcatenatedModule {
       }
     });
 
-    let mut references_map: IndexMap<ModuleIdentifier, ConcatenatedImport> = IndexMap::default();
+    let mut references_map: IdentifierIndexMap<ConcatenatedImport> = IdentifierIndexMap::default();
     for reference in references {
       let runtime_condition = filter_runtime(runtime, |r| {
         reference

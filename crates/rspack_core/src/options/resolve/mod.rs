@@ -3,13 +3,13 @@ mod value_type;
 
 use std::borrow::Cow;
 
-use hashlink::LinkedHashMap;
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsMap, AsPreset, AsRefStr, AsTuple2, AsVec},
 };
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
+use rspack_util::fx_hash::FxLinkedHashMap;
 
 use crate::DependencyCategory;
 
@@ -249,12 +249,12 @@ type DependencyCategoryStr = Cow<'static, str>;
 #[cacheable]
 #[derive(Debug, Clone, Default, Hash, PartialEq, Eq)]
 pub struct ByDependency(
-  #[cacheable(with=AsMap<AsRefStr>)] LinkedHashMap<DependencyCategoryStr, Resolve>,
+  #[cacheable(with=AsMap<AsRefStr>)] FxLinkedHashMap<DependencyCategoryStr, Resolve>,
 );
 
 impl FromIterator<(DependencyCategoryStr, Resolve)> for ByDependency {
   fn from_iter<I: IntoIterator<Item = (DependencyCategoryStr, Resolve)>>(i: I) -> Self {
-    Self(LinkedHashMap::from_iter(i))
+    Self(FxLinkedHashMap::from_iter(i))
   }
 }
 

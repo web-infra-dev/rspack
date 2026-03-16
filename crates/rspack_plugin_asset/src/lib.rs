@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashSet, hash::Hasher, path::PathBuf};
+use std::{borrow::Cow, hash::Hasher, path::PathBuf};
 
 use asset_exports_dependency::AssetExportsDependency;
 use rayon::prelude::*;
@@ -17,7 +17,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{base64, ext::DynHash, identifier::make_paths_relative};
+use rspack_util::{base64, ext::DynHash, fx_hash::FxHashSet, identifier::make_paths_relative};
 
 mod asset_exports_dependency;
 
@@ -358,7 +358,7 @@ const DEFAULT_MAX_SIZE: f64 = 8096.0;
 #[async_trait::async_trait]
 impl ParserAndGenerator for AssetParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    let mut source_types = HashSet::new();
+    let mut source_types = FxHashSet::default();
     let module_id = module.identifier();
     for connection in module_graph.get_incoming_connections(&module_id) {
       if let Some(module) = connection

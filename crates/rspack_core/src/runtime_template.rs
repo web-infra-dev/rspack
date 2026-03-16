@@ -1,4 +1,5 @@
 use std::{
+  collections::HashMap,
   fmt::{Debug, Write},
   sync::{Arc, LazyLock, Mutex},
 };
@@ -1520,7 +1521,11 @@ impl<'a> RuntimeCodeTemplate<'a> {
           &self.dojang.templates,
           &self.dojang.functions,
           file_content,
-          &mut Mutex::new(std::collections::HashMap::new()),
+          #[cfg_attr(
+            dylint_lib = "rspack_collection_hasher",
+            allow(rspack_collection_hasher)
+          )]
+          &mut Mutex::new(HashMap::new()),
         )
         // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
         .map(|render| render.cow_replace("\r\n", "\n").to_string())

@@ -5,7 +5,9 @@ use regex::Regex;
 use rspack_collections::IdentifierLinkedMap;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, PathData,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, get_js_chunk_filename_template,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType,
+  chunk_graph_chunk::ChunkIdSet,
+  get_js_chunk_filename_template,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -208,7 +210,7 @@ pub fn generate_entry_startup(
   runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> BoxSource {
   let mut module_id_exprs = vec![];
-  let mut chunks_ids = HashSet::default();
+  let mut chunks_ids = ChunkIdSet::default();
   let module_graph = compilation.get_module_graph();
   for (module, entry) in entries {
     if let Some(module_id) = module_graph

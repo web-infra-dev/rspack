@@ -1,12 +1,12 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
-use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAssets,
   ModuleGraph,
 };
+use rspack_util::fx_hash::{FxHashMap, FxIndexMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -107,10 +107,10 @@ pub fn collect_chunk_dependencies(
 }
 
 pub fn collect_entrypoints(
-  entrypoints: &IndexMap<Arc<str>, ChunkGroupUkey>,
-  rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
+  entrypoints: &FxIndexMap<Arc<str>, ChunkGroupUkey>,
+  rsd_chunks: &FxHashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> HashMap<ChunkGroupUkey, RsdoctorEntrypoint> {
+) -> FxHashMap<ChunkGroupUkey, RsdoctorEntrypoint> {
   entrypoints
     .par_iter()
     .map(|(name, ukey)| {
@@ -235,8 +235,8 @@ pub fn collect_chunk_assets(
 }
 
 pub fn collect_entrypoint_assets(
-  entrypoints: &IndexMap<Arc<str>, ChunkGroupUkey>,
-  rsd_assets: &HashMap<String, RsdoctorAsset>,
+  entrypoints: &FxIndexMap<Arc<str>, ChunkGroupUkey>,
+  rsd_assets: &FxHashMap<String, RsdoctorAsset>,
   entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,

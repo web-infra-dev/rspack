@@ -4,11 +4,11 @@ use std::{
   sync::Arc,
 };
 
-use indexmap::IndexSet;
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
@@ -35,7 +35,7 @@ pub struct ChunkGroup {
   pub(crate) module_post_order_indices: IdentifierMap<u32>,
 
   // keep order for children
-  pub children: IndexSet<ChunkGroupUkey>,
+  pub children: FxIndexSet<ChunkGroupUkey>,
   async_entrypoints: FxHashSet<ChunkGroupUkey>,
   // ChunkGroupInfo
   pub(crate) next_pre_order_index: u32,
