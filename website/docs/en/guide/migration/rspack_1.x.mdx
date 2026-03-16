@@ -725,3 +725,7 @@ export default {
   },
 };
 ```
+
+### Removed `readResourceForScheme` hook
+
+`NormalModule.getCompilationHooks(compilation).readResourceForScheme` has been removed. This hook was only a legacy alias for `readResource.for(scheme)`, so migrate to that API directly.
