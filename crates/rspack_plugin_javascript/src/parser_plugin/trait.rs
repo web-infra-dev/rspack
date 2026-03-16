@@ -125,13 +125,18 @@ impl JavascriptParserPluginHook {
     Self::ImportMetaPropertyInDestructuring,
   ];
 
-  pub const fn mask(self) -> u128 {
-    1u128 << (self as u8)
+  pub const fn mask(self) -> u64 {
+    1u64 << (self as u8)
   }
 }
 
+const _: () = assert!(
+  JavascriptParserPluginHook::COUNT <= 64,
+  "The number of JavascriptParserPluginHook variants exceeds 64, which cannot be safely stored in a u64 bitmask."
+);
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct JavascriptParserPluginHooks(u128);
+pub struct JavascriptParserPluginHooks(u64);
 
 impl JavascriptParserPluginHooks {
   pub const fn empty() -> Self {
@@ -139,7 +144,7 @@ impl JavascriptParserPluginHooks {
   }
 
   pub const fn all() -> Self {
-    Self(u128::MAX)
+    Self(u64::MAX)
   }
 
   pub const fn contains(self, hook: JavascriptParserPluginHook) -> bool {
