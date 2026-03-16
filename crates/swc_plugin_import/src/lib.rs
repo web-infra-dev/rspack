@@ -155,9 +155,10 @@ const CUSTOM_STYLE_NAME: &str = "CUSTOM_STYLE_NAME";
 /// Panic:
 ///
 /// Panics in sometimes if [swc_core::common::errors::HANDLER] is not provided.
-pub fn plugin_import(
-  config: &Vec<ImportOptions>,
-) -> swc_core::ecma::visit::VisitMutPass<ImportPlugin<'_>> {
+pub fn plugin_import<'a>(
+  config: &'a Vec<ImportOptions>,
+  option_name: &'a str,
+) -> swc_core::ecma::visit::VisitMutPass<ImportPlugin<'a>> {
   let mut renderer = TemplateEngine::new();
 
   renderer.register_helper("kebabCase", |value| value.to_kebab_case());
@@ -185,7 +186,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].customName\".\nReason: {}",
+              "[builtin:swc-loader] Failed to parse option \"{option_name}[{}].customName\".\nReason: {}",
               index,
               &e.to_string()
             ))
@@ -202,7 +203,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].customStyleName\".\nReason: {}",
+              "[builtin:swc-loader] Failed to parse option \"{option_name}[{}].customStyleName\".\nReason: {}",
               index,
               &e.to_string()
             ))
@@ -219,7 +220,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].style\".\nReason: {}",
+              "[builtin:swc-loader] Failed to parse option \"{option_name}[{}].style\".\nReason: {}",
               index,
               &e.to_string()
             ))
@@ -229,7 +230,11 @@ pub fn plugin_import(
     }
   });
 
-  visit_mut_pass(ImportPlugin { config, renderer })
+  visit_mut_pass(ImportPlugin {
+    config,
+    renderer,
+    option_name,
+  })
 }
 
 #[derive(Debug)]
@@ -244,6 +249,7 @@ struct EsSpec {
 pub struct ImportPlugin<'a> {
   pub config: &'a Vec<ImportOptions>,
   pub renderer: TemplateEngine<'a>,
+  pub option_name: &'a str,
 }
 
 impl ImportPlugin<'_> {
@@ -293,7 +299,8 @@ impl ImportPlugin<'_> {
       HANDLER.with(|handler| {
         handler.err(&format!(
           "[builtin:swc-loader] Failed to parse option \
-       \"transformImport[i].customName\".\nReason: {err}"
+       \"{}[i].customName\".\nReason: {err}",
+          self.option_name
         ));
       });
       None
@@ -319,7 +326,8 @@ impl ImportPlugin<'_> {
               HANDLER.with(|handler| {
                 handler.err(&format!(
                   "[builtin:swc-loader] Failed to parse option \
-                  \"transformImport[i].customStyleName\".\nReason: {err}"
+                  \"{}[i].customStyleName\".\nReason: {err}",
+                  self.option_name
                 ));
               });
               None
@@ -346,7 +354,8 @@ impl ImportPlugin<'_> {
                 HANDLER.with(|handler| {
                   handler.err(&format!(
                     "[builtin:swc-loader] Failed to parse option \
-                     \"transformImport[i].style\".\nReason: {err}"
+                     \"{}[i].style\".\nReason: {err}",
+                    self.option_name
                   ));
                 });
                 None
