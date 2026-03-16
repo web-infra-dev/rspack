@@ -41,11 +41,11 @@ module.exports = {
 		const executedModuleIds = executedModules.map(i => i.identifier);
 		executedModuleIds.sort();
 		expect(executedModuleIds).toMatchInlineSnapshot(`
-		Array [
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_ROOT>/fixtures/css/style.css,
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
-		]
-	`);
+			Array [
+			  <HOME>/Library/pnpm/store/v10/links/css-loader/7.1.4/323015575a54040cbf40278ae679153ab56eb5e1420ff2b5c318a5bda78f1d0e/node_modules/css-loader/dist/cjs.js!<TEST_ROOT>/fixtures/css/style.css,
+			  <HOME>/Library/pnpm/store/v10/links/css-loader/7.1.4/323015575a54040cbf40278ae679153ab56eb5e1420ff2b5c318a5bda78f1d0e/node_modules/css-loader/dist/runtime/api.js,
+			  <HOME>/Library/pnpm/store/v10/links/css-loader/7.1.4/323015575a54040cbf40278ae679153ab56eb5e1420ff2b5c318a5bda78f1d0e/node_modules/css-loader/dist/runtime/noSourceMaps.js,
+			]
+		`);
 	}
 };

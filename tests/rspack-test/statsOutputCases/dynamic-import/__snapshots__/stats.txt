@@ -5,14 +5,14 @@ asset main.js xx KiB [emitted] (name: main)
 Entrypoint main 1.12 MiB = runtime.js xx KiB common.js 1.11 MiB main.js xx KiB
 runtime modules xx KiB 12 modules
 cacheable modules 1.12 MiB
-  modules by path ../../../../node_modules/.pnpm/ 1.1 MiB
-    modules by path ../../../../node_modules/<PNPM_INNER>/react/ xx KiB 4 modules
-    modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/ 1.04 MiB
-      modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/*.js xx KiB 2 modules
-      modules by path ../../../../node_modules/<PNPM_INNER>/react-dom/cjs/*.js 1.03 MiB 2 modules
-    modules by path ../../../../node_modules/<PNPM_INNER>/scheduler/ xx KiB
-      ../../../../node_modules/<PNPM_INNER>/scheduler/index.js xx bytes [built] [code generated]
-      ../../../../node_modules/<PNPM_INNER>/scheduler/cjs/scheduler.development.js xx KiB [built] [code generated]
+  modules by path ../../../../../../Library/pnpm/store/v10/links/ 1.1 MiB
+    modules by path ../../../../../../Library/pnpm/store/v10/links/react/19.2.4/5c6e83be0e5f1f15e83462f0b7655d9d9338d33338bad7cc29bc12f2daa11aa3/node_modules/react/ xx KiB 4 modules
+    modules by path ../../../../../../Library/pnpm/store/v10/links/react-dom/19.2.4/ef0ee5b70734ac2ef41e16b39971b9370ad356539c420017c6a136dd38fe31cf/node_modules/react-dom/ 1.04 MiB
+      modules by path ../../../../../../Library/pnpm/store/v10/links/react-dom/19.2.4/ef0ee5b70734ac2ef41e16b39971b9370ad356539c420017c6a136dd38fe31cf/node_modules/react-dom/*.js xx KiB 2 modules
+      modules by path ../../../../../../Library/pnpm/store/v10/links/react-dom/19.2.4/ef0ee5b70734ac2ef41e16b39971b9370ad356539c420017c6a136dd38fe31cf/node_modules/react-dom/cjs/*.js 1.03 MiB 2 modules
+    modules by path ../../../../../../Library/pnpm/store/v10/links/scheduler/0.27.0/d630acf1e4c3e015a0746bd40b065569bc1e5ec7822baf28bb4093fa8a3e100e/node_modules/scheduler/ xx KiB
+      ../../../../../../Library/pnpm/store/v10/links/scheduler/0.27.0/d630acf1e4c3e015a0746bd40b065569bc1e5ec7822baf28bb4093fa8a3e100e/node_modules/scheduler/index.js xx bytes [built] [code generated]
+      ../../../../../../Library/pnpm/store/v10/links/scheduler/0.27.0/d630acf1e4c3e015a0746bd40b065569bc1e5ec7822baf28bb4093fa8a3e100e/node_modules/scheduler/cjs/scheduler.development.js xx KiB [built] [code generated]
   modules by path ./src/ xx KiB
     ./src/index.js xx bytes [built] [code generated]
     ./src/pages|lazy|/^\.\/.*$/|referencedExports: default|chunkName: pages/[request]|groupOptions: {}|namespace object|importPhase: evaluation xx bytes [built] [code generated]
