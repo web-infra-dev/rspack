@@ -68,8 +68,8 @@ importers:
         specifier: 1.1.1
         version: 1.1.1
       emnapi:
-        specifier: 1.9.0
-        version: 1.9.0(node-addon-api@7.1.1)
+        specifier: 1.8.1
+        version: 1.8.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -114,8 +114,8 @@ importers:
         specifier: 1.1.1
         version: 1.1.1
       emnapi:
-        specifier: 1.9.0
-        version: 1.9.0(node-addon-api@7.1.1)
+        specifier: 1.8.1
+        version: 1.8.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -4597,8 +4597,8 @@ packages:
   elliptic@6.6.1:
     resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
 
-  emnapi@1.9.0:
-    resolution: {integrity: sha512-o/MgVYc9Xa92jNd5pk+PRtFx/IuWlILW1vqm9UU7V49Cnos+bK2y982HEtXcRgkdtxZylYBaGWEznC9Alo6xhg==}
+  emnapi@1.8.1:
+    resolution: {integrity: sha512-34i2BbgHx1LnEO4JCGQYo6h6s4e4KrdWtdTHfllBNLbXSHPmdIHplxKejfabsRK+ukNciqVdalB+fxMibqHdaQ==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -9195,7 +9195,7 @@ snapshots:
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       colorette: 2.0.20
-      emnapi: 1.9.0(node-addon-api@7.1.1)
+      emnapi: 1.8.1(node-addon-api@7.1.1)
       es-toolkit: 1.45.1
       js-yaml: 4.1.1
       obug: 2.1.1
@@ -11772,7 +11772,7 @@ snapshots:
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
 
-  emnapi@1.9.0(node-addon-api@7.1.1):
+  emnapi@1.8.1(node-addon-api@7.1.1):
     optionalDependencies:
       node-addon-api: 7.1.1
 
