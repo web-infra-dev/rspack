@@ -29,7 +29,9 @@ fn bundle_benchmark(c: &mut Criterion) {
   let projects = rt.block_on(prepare_projects(projects));
 
   for (id, get_compiler) in derive_projects(projects) {
-    group.bench_function(format!("bundle@{id}"), |b| {
+    let bench_id = format!("bundle@{id}");
+    group.bench_function(bench_id.clone(), |b| {
+      let bench_id = bench_id.clone();
       b.to_async(&rt).iter_batched(
         || {
           let compiler_context = Arc::new(CompilerContext::new());
@@ -39,9 +41,27 @@ fn bundle_benchmark(c: &mut Criterion) {
           )
         },
         |(compiler_context, mut compiler)| {
+          let bench_id = bench_id.clone();
           within_compiler_context(compiler_context, async move {
             compiler.run().await.unwrap();
-            assert!(compiler.compilation.get_errors().next().is_none());
+            let errors = compiler
+              .compilation
+              .get_errors()
+              .map(|error| {
+                error
+                  .render_report(false)
+                  .unwrap_or_else(|_| format!("{error:?}"))
+              })
+              .collect::<Vec<_>>();
+
+            if !errors.is_empty() {
+              eprintln!(
+                "[bundle benchmark] {bench_id} compilation errors:\n{}",
+                errors.join("\n\n")
+              );
+            }
+
+            assert!(errors.is_empty());
           })
         },
         criterion::BatchSize::PerIteration,

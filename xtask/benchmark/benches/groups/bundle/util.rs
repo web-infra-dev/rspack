@@ -1,4 +1,9 @@
-use std::{io, path::PathBuf, sync::Arc};
+use std::{
+  collections::HashSet,
+  io,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
@@ -8,7 +13,6 @@ use rspack_core::{
 use rspack_fs::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
 use serde_json::json;
-use walkdir::WalkDir;
 
 // Because `CompilerBuilder` is not `Clone`
 pub type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder + Send + Sync>;
@@ -138,47 +142,86 @@ fn resolve_bench_project_dir(project: &str) -> PathBuf {
 async fn preload_input_filesystem(project: &str) -> io::Result<Arc<dyn ReadableFileSystem>> {
   let project_dir = resolve_bench_project_dir(project);
   let memory_fs = Arc::new(MemoryFileSystem::default());
+  let mut materialized_paths = HashSet::new();
+  let mut active_canonical_dirs = HashSet::new();
 
-  for entry in WalkDir::new(&project_dir).follow_links(true) {
-    let entry = entry.map_err(io::Error::other)?;
-    let path = entry.path();
-    let path = path.to_str().ok_or_else(|| {
-      io::Error::new(
-        io::ErrorKind::InvalidData,
-        format!("benchmark path must be valid UTF-8: {}", path.display()),
-      )
-    })?;
-
-    if entry.file_type().is_dir() {
-      memory_fs
-        .create_dir_all(path.into())
-        .await
-        .map_err(fs_error_to_io_error)?;
-      continue;
-    }
-
-    if entry.file_type().is_file() {
-      let content = std::fs::read(entry.path())?;
-      if let Some(parent) = entry.path().parent() {
-        let parent = parent.to_str().ok_or_else(|| {
-          io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("benchmark path must be valid UTF-8: {}", parent.display()),
-          )
-        })?;
-        memory_fs
-          .create_dir_all(parent.into())
-          .await
-          .map_err(fs_error_to_io_error)?;
-      }
-      memory_fs
-        .write(path.into(), &content)
-        .await
-        .map_err(fs_error_to_io_error)?;
-    }
-  }
+  preload_directory(
+    &project_dir,
+    &memory_fs,
+    &mut materialized_paths,
+    &mut active_canonical_dirs,
+  )
+  .await?;
 
   Ok(memory_fs)
+}
+
+async fn preload_directory(
+  path: &Path,
+  memory_fs: &MemoryFileSystem,
+  materialized_paths: &mut HashSet<PathBuf>,
+  active_canonical_dirs: &mut HashSet<PathBuf>,
+) -> io::Result<()> {
+  if !materialized_paths.insert(path.to_path_buf()) {
+    return Ok(());
+  }
+
+  let metadata = std::fs::metadata(path)?;
+  let path = path_to_utf8(path)?;
+
+  if metadata.is_dir() {
+    let canonical_path = Path::new(path).canonicalize()?;
+    if !active_canonical_dirs.insert(canonical_path.clone()) {
+      return Ok(());
+    }
+
+    memory_fs
+      .create_dir_all(path.into())
+      .await
+      .map_err(fs_error_to_io_error)?;
+
+    for entry in std::fs::read_dir(path)? {
+      let entry = entry?;
+      let entry_path = entry.path();
+      Box::pin(preload_directory(
+        &entry_path,
+        memory_fs,
+        materialized_paths,
+        active_canonical_dirs,
+      ))
+      .await?;
+    }
+
+    active_canonical_dirs.remove(&canonical_path);
+    return Ok(());
+  }
+
+  if metadata.is_file() {
+    if let Some(parent) = Path::new(path).parent() {
+      let parent = path_to_utf8(parent)?;
+      memory_fs
+        .create_dir_all(parent.into())
+        .await
+        .map_err(fs_error_to_io_error)?;
+    }
+
+    let content = std::fs::read(path)?;
+    memory_fs
+      .write(path.into(), &content)
+      .await
+      .map_err(fs_error_to_io_error)?;
+  }
+
+  Ok(())
+}
+
+fn path_to_utf8(path: &Path) -> io::Result<&str> {
+  path.to_str().ok_or_else(|| {
+    io::Error::new(
+      io::ErrorKind::InvalidData,
+      format!("benchmark path must be valid UTF-8: {}", path.display()),
+    )
+  })
 }
 
 fn fs_error_to_io_error(error: rspack_fs::Error) -> io::Error {

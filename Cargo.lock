@@ -3622,7 +3622,6 @@ dependencies = [
  "rspack_tasks",
  "serde_json",
  "tokio",
- "walkdir",
 ]
 
 [[package]]
