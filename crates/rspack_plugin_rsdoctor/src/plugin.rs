@@ -32,7 +32,7 @@ use crate::{
   module_graph::{
     collect_concatenated_modules, collect_connections_only_imports, collect_json_module_sizes,
     collect_module_dependencies, collect_module_ids, collect_module_original_sources,
-    collect_module_side_effects_locations, collect_modules, collect_modules_connections_infos,
+    collect_module_side_effects_locations, collect_modules,
   },
 };
 
@@ -416,7 +416,8 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &module_ukey_to_info,
   );
 
-  collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
+  let chunk_modules =
+    collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
   tokio::spawn(async move {
     match hooks
