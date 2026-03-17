@@ -74,22 +74,16 @@ impl<'a> FlagDependencyExportsState<'a> {
       let modules = std::mem::take(&mut batch);
 
       // collect the exports specs from modules by calling `dependency.get_exports`
-      let module_exports_specs = modules
-        .into_par_iter()
-        .map(|module_id| {
-          let exports_specs = collect_module_exports_specs(
-            &module_id,
-            self.mg,
-            self.mg_cache,
-            self.exports_info_artifact,
-          )
-          .unwrap_or_default();
-          (module_id, exports_specs)
-        })
-        .collect::<Vec<_>>();
-
-      let mut changed_modules =
-        IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
+      let module_exports_specs = modules.into_par_iter().map(|module_id| {
+        let exports_specs = collect_module_exports_specs(
+          &module_id,
+          self.mg,
+          self.mg_cache,
+          self.exports_info_artifact,
+        )
+        .unwrap_or_default();
+        (module_id, exports_specs)
+      });
 
       // partition the exports specs into two parts:
       // 1. if the exports info data do not have `redirect_to` and exports specs do not have nested `exports`,
@@ -101,18 +95,20 @@ impl<'a> FlagDependencyExportsState<'a> {
       // There are two cases that the `redirect_to` or nested `exports` exist:
       // 1. exports from json dependency which has nested json object data
       // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
-      let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
-        .into_iter()
-        .partition(|(_mid, (_, has_nested_exports))| {
+      let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) =
+        module_exports_specs.partition(|(_mid, (_, has_nested_exports))| {
           if *has_nested_exports {
             return false;
           }
           true
         });
 
+      let mut changed_modules =
+        IdentifierSet::with_capacity_and_hasher(has_nested_specs.len(), Default::default());
+
       // parallelize the merging of exports specs to exports info data
       let non_nested_tasks = non_nested_specs
-        .into_iter()
+        .into_par_iter()
         .map(|(module_id, (exports_specs, _))| {
           let exports_info = self
             .exports_info_artifact
@@ -120,7 +116,6 @@ impl<'a> FlagDependencyExportsState<'a> {
             .clone();
           (module_id, exports_info, exports_specs)
         })
-        .par_bridge()
         .map(|(module_id, mut exports_info, exports_specs)| {
           let mut changed = false;
           let mut dependencies = Vec::with_capacity(exports_specs.len());
