@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsPreset, AsVec},
+  with::{AsCacheable, AsInner, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -29,7 +31,7 @@ use crate::{
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct ESMImportSpecifierDependency {
+struct ESMImportSpecifierDependencyData {
   id: DependencyId,
   #[cacheable(with=AsPreset)]
   request: Atom,
@@ -43,15 +45,22 @@ pub struct ESMImportSpecifierDependency {
   ids: Vec<Atom>,
   call: bool,
   direct_import: bool,
-  used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: ResourceIdentifier,
   export_presence_mode: ExportPresenceMode,
   phase: ImportPhase,
   attributes: Option<ImportAttributes>,
-  pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ESMImportSpecifierDependency {
+  #[cacheable(with=AsInner)]
+  data: Arc<ESMImportSpecifierDependencyData>,
+  used_by_exports: Option<UsedByExports>,
+  pub evaluated_in_operator: bool,
   pub namespace_object_as_context: bool,
   factorize_info: FactorizeInfo,
 }
@@ -77,39 +86,41 @@ impl ESMImportSpecifierDependency {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
     Self {
-      id: DependencyId::new(),
-      request,
-      name,
-      source_order,
-      shorthand,
-      asi_safe,
-      range,
-      ids,
-      call,
-      direct_import,
-      export_presence_mode,
+      data: Arc::new(ESMImportSpecifierDependencyData {
+        id: DependencyId::new(),
+        request,
+        name,
+        source_order,
+        shorthand,
+        asi_safe,
+        range,
+        ids,
+        call,
+        direct_import,
+        referenced_properties_in_destructuring,
+        resource_identifier,
+        export_presence_mode,
+        phase,
+        attributes,
+        loc,
+      }),
       used_by_exports: None,
       evaluated_in_operator: false,
       namespace_object_as_context: false,
-      referenced_properties_in_destructuring,
-      phase,
-      attributes,
-      resource_identifier,
-      loc,
       factorize_info: Default::default(),
     }
   }
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
-    mg.get_dep_meta_if_existing(&self.id)
-      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+    mg.get_dep_meta_if_existing(&self.data.id)
+      .map_or_else(|| self.data.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,
   ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
+    if let Some(referenced_properties) = &self.data.referenced_properties_in_destructuring {
       let mut refs = Vec::new();
       referenced_properties.traverse_on_leaf(&mut |stack| {
         let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
@@ -131,7 +142,7 @@ impl ESMImportSpecifierDependency {
         name: v.to_vec(),
         can_mangle: true,
         // Need access the export value to trigger side effects for deferred module
-        can_inline: !self.phase.is_defer(),
+        can_inline: !self.data.phase.is_defer(),
       })]
     } else {
       create_exports_object_referenced()
@@ -153,27 +164,27 @@ impl ESMImportSpecifierDependency {
 #[cacheable_dyn]
 impl Dependency for ESMImportSpecifierDependency {
   fn id(&self) -> &DependencyId {
-    &self.id
+    &self.data.id
   }
 
   fn loc(&self) -> Option<DependencyLocation> {
-    self.loc.clone()
+    self.data.loc.clone()
   }
 
   fn range(&self) -> Option<DependencyRange> {
-    Some(self.range)
+    Some(self.data.range)
   }
 
   fn source_order(&self) -> Option<i32> {
-    Some(self.source_order)
+    Some(self.data.source_order)
   }
 
   fn get_phase(&self) -> ImportPhase {
-    self.phase
+    self.data.phase
   }
 
   fn get_attributes(&self) -> Option<&ImportAttributes> {
-    self.attributes.as_ref()
+    self.data.attributes.as_ref()
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -195,7 +206,7 @@ impl Dependency for ESMImportSpecifierDependency {
   }
 
   fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
+    Some(&self.data.resource_identifier)
   }
 
   // #[tracing::instrument(skip_all)]
@@ -205,9 +216,10 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
-    let module = module_graph.get_parent_module(&self.id)?;
+    let module = module_graph.get_parent_module(&self.data.id)?;
     let module = module_graph.module_by_identifier(module)?;
     if let Some(should_error) = self
+      .data
       .export_presence_mode
       .get_effective_export_presence(module.as_ref())
       && let Some(diagnostic) = esm_import_dependency_get_linking_error(
@@ -216,7 +228,7 @@ impl Dependency for ESMImportSpecifierDependency {
         module_graph,
         module_graph_cache,
         exports_info_artifact,
-        &self.name,
+        &self.data.name,
         false,
         should_error,
       )
@@ -241,13 +253,13 @@ impl Dependency for ESMImportSpecifierDependency {
 
     let mut namespace_object_as_context = self.namespace_object_as_context;
     let parent_module = module_graph
-      .get_parent_module(&self.id)
+      .get_parent_module(&self.data.id)
       .expect("should have parent module");
     let exports_type = get_exports_type(
       module_graph,
       module_graph_cache,
       exports_info_artifact,
-      &self.id,
+      &self.data.id,
       parent_module,
     );
 
@@ -277,7 +289,7 @@ impl Dependency for ESMImportSpecifierDependency {
       }
     }
 
-    if namespace_object_as_context && self.call {
+    if namespace_object_as_context && self.data.call {
       if ids.len() == 1 {
         return create_exports_object_referenced();
       }
@@ -292,7 +304,7 @@ impl Dependency for ESMImportSpecifierDependency {
   }
 
   fn forward_id(&self) -> ForwardId {
-    if let Some(id) = self.ids.first() {
+    if let Some(id) = self.data.ids.first() {
       ForwardId::Id(id.clone())
     } else {
       ForwardId::All
@@ -303,11 +315,11 @@ impl Dependency for ESMImportSpecifierDependency {
 #[cacheable_dyn]
 impl ModuleDependency for ESMImportSpecifierDependency {
   fn request(&self) -> &str {
-    &self.request
+    &self.data.request
   }
 
   fn user_request(&self) -> &str {
-    &self.request
+    &self.data.request
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
@@ -364,8 +376,8 @@ impl ESMImportSpecifierDependencyTemplate {
         scope.create_module_reference(
           con.module_identifier(),
           &ModuleReferenceOptions {
-            asi_safe: Some(dep.asi_safe),
-            deferred_import: dep.phase.is_defer(),
+            asi_safe: Some(dep.data.asi_safe),
+            deferred_import: dep.data.phase.is_defer(),
             ..Default::default()
           },
         )
@@ -386,8 +398,8 @@ impl ESMImportSpecifierDependencyTemplate {
             scope.create_module_reference(
               con.module_identifier(),
               &ModuleReferenceOptions {
-                asi_safe: Some(dep.asi_safe),
-                deferred_import: dep.phase.is_defer(),
+                asi_safe: Some(dep.data.asi_safe),
+                deferred_import: dep.data.phase.is_defer(),
                 ..Default::default()
               },
             ) + property_access(used_name, 0).as_str()
@@ -407,26 +419,31 @@ impl ESMImportSpecifierDependencyTemplate {
         scope.create_module_reference(
           con.module_identifier(),
           &ModuleReferenceOptions {
-            asi_safe: Some(dep.asi_safe),
+            asi_safe: Some(dep.data.asi_safe),
             ids: ids.to_vec(),
-            call: dep.call,
-            direct_import: dep.direct_import,
-            deferred_import: dep.phase.is_defer(),
+            call: dep.data.call,
+            direct_import: dep.data.direct_import,
+            deferred_import: dep.data.phase.is_defer(),
             ..Default::default()
           },
         )
       }
     } else {
       let mg = code_generatable_context.compilation.get_module_graph();
-      let target_module = mg.get_module_by_dependency_id(&dep.id);
+      let target_module = mg.get_module_by_dependency_id(&dep.data.id);
       let import_var = code_generatable_context.compilation.get_import_var(
         code_generatable_context.module.identifier(),
         target_module,
         dep.user_request(),
-        dep.phase,
+        dep.data.phase,
         code_generatable_context.runtime,
       );
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      esm_import_dependency_apply(
+        dep,
+        dep.data.source_order,
+        dep.data.phase,
+        code_generatable_context,
+      );
       let TemplateContext {
         compilation,
         module,
@@ -441,14 +458,14 @@ impl ESMImportSpecifierDependencyTemplate {
         module.identifier(),
         *runtime,
         true,
-        &dep.request,
+        &dep.data.request,
         &import_var,
         ids,
-        &dep.id,
-        dep.call,
-        !dep.direct_import,
-        Some(dep.shorthand || dep.asi_safe),
-        dep.phase,
+        &dep.data.id,
+        dep.data.call,
+        !dep.data.direct_import,
+        Some(dep.data.shorthand || dep.data.asi_safe),
+        dep.data.phase,
       )
     }
   }
@@ -471,7 +488,7 @@ impl ESMImportSpecifierDependencyTemplate {
     } = code_generatable_context;
     let compilation = code_generatable_context.compilation;
     let mg = compilation.get_module_graph();
-    let Some(module) = mg.get_module_by_dependency_id(&dep.id) else {
+    let Some(module) = mg.get_module_by_dependency_id(&dep.data.id) else {
       return;
     };
     let exports_info = compilation
@@ -523,10 +540,10 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     match value {
       Some(ExportProvided::Provided) => {
-        source.replace_static(dep.range.start, dep.range.end, " true", None);
+        source.replace_static(dep.data.range.start, dep.data.range.end, " true", None);
       }
       Some(ExportProvided::NotProvided) => {
-        source.replace_static(dep.range.start, dep.range.end, " false", None)
+        source.replace_static(dep.data.range.start, dep.data.range.end, " false", None)
       }
       _ => {
         let Some(used_name) = ExportsInfoGetter::get_used_name(
@@ -547,8 +564,8 @@ impl ESMImportSpecifierDependencyTemplate {
           code_generatable_context,
         );
         source.replace(
-          dep.range.start,
-          dep.range.end,
+          dep.data.range.start,
+          dep.data.range.end,
           format!("{} in {code}", json_stringify_str(used_name.as_str())),
           None,
         )
@@ -574,7 +591,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     let runtime = code_generatable_context.runtime;
     let module_graph = compilation.get_module_graph();
     let ids = dep.get_ids(module_graph);
-    let connection = module_graph.connection_by_dependency_id(&dep.id);
+    let connection = module_graph.connection_by_dependency_id(&dep.data.id);
     // Early return if target is not active and export is not inlined
     if let Some(con) = connection
       && !con.is_target_active(
@@ -605,23 +622,23 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
 
-    if dep.shorthand {
-      source.insert(dep.range.end, format!(": {export_expr}"), None);
+    if dep.data.shorthand {
+      source.insert(dep.data.range.end, format!(": {export_expr}"), None);
     } else {
-      source.replace(dep.range.start, dep.range.end, export_expr, None);
+      source.replace(dep.data.range.start, dep.data.range.end, export_expr, None);
     }
 
     let module_graph = code_generatable_context.compilation.get_module_graph();
-    if let Some(referenced_properties) = &dep.referenced_properties_in_destructuring {
+    if let Some(referenced_properties) = &dep.data.referenced_properties_in_destructuring {
       let mut prefixed_ids = ids.to_vec();
 
-      let Some(module) = module_graph.get_module_by_dependency_id(&dep.id) else {
+      let Some(module) = module_graph.get_module_by_dependency_id(&dep.data.id) else {
         return;
       };
 
       if ids.first().is_some_and(|id| id == "default") {
         let self_module = module_graph
-          .get_parent_module(&dep.id)
+          .get_parent_module(&dep.data.id)
           .and_then(|id| module_graph.module_by_identifier(id))
           .expect("should have parent module");
         let exports_type = module.get_exports_type(
