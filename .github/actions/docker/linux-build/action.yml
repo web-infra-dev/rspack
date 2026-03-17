@@ -45,7 +45,7 @@ runs:
         version: ${{ inputs.zig-version }}
 
     - name: Install cargo-zigbuild
-      uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612
+      uses: taiki-e/install-action@d1434d08867e3ee9daa34448df10607b98908d29
       if: ${{ contains(inputs.target, 'musl') }}
       with:
         tool: cargo-zigbuild

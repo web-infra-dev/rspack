@@ -118,39 +118,16 @@ jobs:
         uses: ./.github/actions/docker/linux-build
         with:
           target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           profile: ${{ inputs.profile }}
-          pre: |
-            # set apk repositories to stable release branch
-            rm /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
-            apk update
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
-            # llvm19-dev is used to install llvm-config
-            # clang19-static is used to install libclang.a
-            apk add llvm19-dev clang19-static
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
         uses: ./.github/actions/docker/linux-build
         with:
           target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
-          pre: |
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-            # set apk repositories to stable release branch
-            rm /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
-            apk update
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
-            # llvm19-dev is used to install llvm-config
-            # clang19-static is used to install libclang.a
-            apk add llvm19-dev clang19-static
 
       # Windows
       - name: Build i686-pc-windows-msvc
