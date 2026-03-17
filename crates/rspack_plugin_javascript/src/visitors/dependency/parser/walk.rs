@@ -1121,6 +1121,7 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_call_expression(&mut self, expr: &CallExpr) {
+    #[inline]
     fn is_simple_function(params: &[Param]) -> bool {
       params.iter().all(|p| matches!(p.pat, Pat::Ident(_)))
     }
@@ -1136,16 +1137,6 @@ impl JavascriptParser<'_> {
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { }).call(…)
-          let mut params = expr.args.iter().map(|arg| &*arg.expr);
-          let this = params.next();
-          self._walk_iife(&member_expr.obj, params, this)
-        } else if let Expr::Member(member_expr) = &**callee
-          && let Expr::Fn(fn_expr) = &*member_expr.obj
-          && let MemberProp::Ident(ident) = &member_expr.prop
-          && (ident.sym == "call" || ident.sym == "bind")
-          && !expr.args.is_empty()
-          && is_simple_function(&fn_expr.function.params)
-        {
           // (function(…) { }.call(…))
           let mut params = expr.args.iter().map(|arg| &*arg.expr);
           let this = params.next();
@@ -1154,16 +1145,12 @@ impl JavascriptParser<'_> {
           && is_simple_function(&fn_expr.function.params)
         {
           // (function(…) { })(…)
-          self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
-        } else if let Expr::Fn(fn_expr) = &**callee
-          && is_simple_function(&fn_expr.function.params)
-        {
-          // ((…) => { }(…))
+          // (function(…) { }(…))
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else if let Expr::Arrow(arrow_expr) = &**callee
           && arrow_expr.params.iter().all(|p| p.as_ident().is_some())
         {
-          // (function(…) { }(…))
+          // ((…) => { }(…))
           self._walk_iife(callee, expr.args.iter().map(|arg| &*arg.expr), None)
         } else {
           if let Expr::Member(member) = &**callee {
@@ -1211,12 +1198,12 @@ impl JavascriptParser<'_> {
             let members = evaluated_callee
               .members()
               .map_or(&[][..], |members| members.as_slice());
-            let mut owned_members_optionals = SmallVec::<[bool; 4]>::new();
+            let owned_members_optionals: SmallVec<[bool; 4]>;
             let members_optionals =
               if let Some(members_optionals) = evaluated_callee.members_optionals() {
                 members_optionals.as_slice()
               } else {
-                owned_members_optionals.resize(members.len(), false);
+                owned_members_optionals = smallvec::smallvec![false; members.len()];
                 owned_members_optionals.as_slice()
               };
             let member_ranges = evaluated_callee
@@ -1230,9 +1217,9 @@ impl JavascriptParser<'_> {
                   parser,
                   expr,
                   for_name,
-                  &members,
-                  &members_optionals,
-                  &member_ranges,
+                  members,
+                  members_optionals,
+                  member_ranges,
                 )
               })
               .unwrap_or_default()
