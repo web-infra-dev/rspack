@@ -21,7 +21,7 @@ process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
 const program = new Command();
 
 program
-  .name('Rspack Development CLI')
+  .name('Rspack Development CLI222')
   .description('CLI for development of Rspack')
   .showHelpAfterError(true)
   .showSuggestionAfterError(true);
