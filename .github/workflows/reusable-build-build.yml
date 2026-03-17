@@ -98,18 +98,26 @@ jobs:
       - name: Build x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
       - name: Build aarch64-unknown-linux-gnu
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
         run: RUST_TARGET=aarch64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
       - name: Build x86_64-unknown-linux-musl
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
         run: RUST_TARGET=x86_64-unknown-linux-musl pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
       - name: Build aarch64-unknown-linux-musl
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
         run: RUST_TARGET=aarch64-unknown-linux-musl pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
       # Windows
       - name: Build i686-pc-windows-msvc
