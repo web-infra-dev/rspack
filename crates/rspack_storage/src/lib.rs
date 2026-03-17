@@ -1,27 +1,48 @@
+//! Rspack persistent cache storage layer
+//!
+//! Provides two storage implementations:
+//! - `FileSystemStorage`: File system-based persistent storage using pack file format
+//! - `MemoryStorage`: Memory-based temporary storage for testing or non-persistent scenarios
+
 mod error;
-mod fs;
-mod pack;
+mod filesystem;
+mod memory;
 
 use std::sync::Arc;
 
-pub use error::Result;
-pub use fs::{BridgeFileSystem, FSError, FSOperation, FSResult, FileSystem, Reader, Writer};
-pub use pack::{PackStorage, PackStorageOptions};
 use tokio::sync::oneshot::Receiver;
 
-type ItemKey = Vec<u8>;
-type ItemValue = Vec<u8>;
-type ItemPairs = Vec<(Arc<ItemKey>, Arc<ItemValue>)>;
+pub use self::{
+  error::{Error, Result},
+  filesystem::{FileSystemOptions, FileSystemStorage},
+  memory::MemoryStorage,
+};
 
+/// Persistent storage abstraction interface
+///
+/// Provides scope-grouped key-value storage with batch operations and async persistence
 #[async_trait::async_trait]
 pub trait Storage: std::fmt::Debug + Sync + Send {
-  async fn load(&self, scope: &'static str) -> Result<Vec<(Arc<Vec<u8>>, Arc<Vec<u8>>)>>;
+  /// Loads all key-value pairs from the specified scope
+  async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>>;
+
+  /// Sets a key-value pair in the specified scope (staged in memory)
   fn set(&self, scope: &'static str, key: Vec<u8>, value: Vec<u8>);
+
+  /// Removes a key from the specified scope (staged in memory)
   fn remove(&self, scope: &'static str, key: &[u8]);
+
+  /// Triggers persistence operation, saving memory changes to storage
+  ///
+  /// Returns a Receiver to asynchronously receive the save result
   fn trigger_save(&self) -> Result<Receiver<Result<()>>>;
+
+  /// Resets the storage, clearing all data
   async fn reset(&self);
-  /// Get list of all available scopes in the storage
+
+  /// Gets a list of all available scopes in the storage
   async fn scopes(&self) -> Result<Vec<String>>;
 }
 
+/// Arc-wrapped Storage trait object
 pub type ArcStorage = Arc<dyn Storage>;

@@ -5159,14 +5159,11 @@ dependencies = [
  "cow-utils",
  "futures",
  "itertools 0.14.0",
- "rayon",
  "rspack_error",
  "rspack_fs",
  "rspack_paths",
- "rspack_util",
  "rustc-hash",
  "tokio",
- "tracing",
 ]
 
 [[package]]
