@@ -195,7 +195,10 @@ pub(crate) async fn code_generation_modules(
                   .runtime_requirements
                   .extend(*runtime_template.runtime_requirements());
                 if module.as_concatenated_module().is_some() {
-                  codegen_res.set_hash_from_base(
+                  // Concatenated modules are special here: `job.hash` already
+                  // fingerprints the generated module bodies, so we only need
+                  // to fold in the remaining codegen metadata.
+                  codegen_res.set_hash_for_concatenated_module(
                     &job.hash,
                     &options.output.hash_function,
                     &options.output.hash_digest,
