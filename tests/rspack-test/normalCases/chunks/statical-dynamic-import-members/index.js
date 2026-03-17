@@ -51,3 +51,10 @@ it("should analyze args for members call", async () => {
 	expect((await import("./lib2")).a.usedExports).toEqual(["inc", "usedExports"]);
 	expect((await import("./lib2")).b.usedExports).toEqual(["aaa", "usedExports"]);
 });
+
+it("should analyze top-level await correctly", async () => {
+	const a = (await import("./lib3/tla")).a;
+	const b = (await import("./lib3/tla")).usedExports;
+	expect(a).toBe(1);
+	expect(b).toEqual(["a", "usedExports"]);
+});
