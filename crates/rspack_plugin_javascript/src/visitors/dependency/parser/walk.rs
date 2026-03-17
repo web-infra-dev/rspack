@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -983,9 +984,29 @@ impl JavascriptParser<'_> {
   fn _walk_iife<'a>(
     &mut self,
     expr: &'a Expr,
-    args: impl Iterator<Item = &'a Expr>,
+    argument_exprs: impl Iterator<Item = &'a Expr>,
     current_this: Option<&'a Expr>,
   ) {
+    fn process_iife_param<'a, I>(
+      parser: &mut JavascriptParser<'_>,
+      remaining_argument_exprs: &mut I,
+      pat: &'a Pat,
+      resolved_parameter_bindings: &mut SmallVec<[(Atom, ExportedVariableInfo); 4]>,
+      unresolved_parameter_patterns: &mut SmallVec<[Cow<'a, Pat>; 4]>,
+    ) where
+      I: Iterator<Item = &'a Expr>,
+    {
+      // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
+      let ident = pat.as_ident().expect("should be a `BindingIdent`");
+      match remaining_argument_exprs
+        .next()
+        .and_then(|argument_expr| get_var_name(parser, argument_expr))
+      {
+        Some(var_info) => resolved_parameter_bindings.push((ident.sym.clone(), var_info)),
+        None => unresolved_parameter_patterns.push(Cow::Borrowed(pat)),
+      }
+    }
+
     fn get_var_name(parser: &mut JavascriptParser, expr: &Expr) -> Option<ExportedVariableInfo> {
       if let Some(rename_identifier) = parser.get_rename_identifier(expr)
         && let drive = parser.plugin_drive.clone()
@@ -1010,51 +1031,51 @@ impl JavascriptParser<'_> {
     }
 
     let rename_this = current_this.and_then(|this| get_var_name(self, this));
-    let variable_info_for_args = args
-      .map(|param| get_var_name(self, param))
-      .collect::<Vec<_>>();
+    // Keep consuming call-site arguments while we align them with function parameters.
+    let mut remaining_argument_exprs = argument_exprs;
+    // Resolved `(parameter name -> exported variable info)` pairs applied once the function scope exists.
+    let mut resolved_parameter_bindings = SmallVec::<[(Atom, ExportedVariableInfo); 4]>::new();
+    // Parameter patterns that could not be rewritten from the call-site and must remain in scope setup.
+    let mut unresolved_parameter_patterns = SmallVec::<[Cow<'a, Pat>; 4]>::new();
 
-    let mut params = Vec::new();
-    let mut scope_params = Vec::new();
     if let Some(fn_expr) = expr.as_fn_expr() {
       let param_len = fn_expr.function.params.len();
-      params.reserve(param_len);
-      scope_params.reserve(param_len);
-      for (i, pat) in fn_expr.function.params.iter().map(|p| &p.pat).enumerate() {
-        // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
-        let ident = pat.as_ident().expect("should be a `BindingIdent`");
-        params.push(ident);
-        if variable_info_for_args
-          .get(i)
-          .and_then(|i| i.as_ref())
-          .is_none()
-        {
-          scope_params.push(Cow::Borrowed(pat));
-        }
+      unresolved_parameter_patterns.reserve(param_len);
+      resolved_parameter_bindings.reserve(param_len);
+      for pat in fn_expr.function.params.iter().map(|p| &p.pat) {
+        process_iife_param(
+          self,
+          &mut remaining_argument_exprs,
+          pat,
+          &mut resolved_parameter_bindings,
+          &mut unresolved_parameter_patterns,
+        );
       }
     } else if let Some(arrow_expr) = expr.as_arrow() {
       let param_len = arrow_expr.params.len();
-      params.reserve(param_len);
-      scope_params.reserve(param_len);
-      for (i, pat) in arrow_expr.params.iter().enumerate() {
-        // SAFETY: is_simple_function will ensure pat is always a BindingIdent.
-        let ident = pat.as_ident().expect("should be a `BindingIdent`");
-        params.push(ident);
-        if variable_info_for_args
-          .get(i)
-          .and_then(|i| i.as_ref())
-          .is_none()
-        {
-          scope_params.push(Cow::Borrowed(pat));
-        }
+      unresolved_parameter_patterns.reserve(param_len);
+      resolved_parameter_bindings.reserve(param_len);
+      for pat in &arrow_expr.params {
+        process_iife_param(
+          self,
+          &mut remaining_argument_exprs,
+          pat,
+          &mut resolved_parameter_bindings,
+          &mut unresolved_parameter_patterns,
+        );
       }
+    }
+
+    // Extra arguments still need to be walked for side effects.
+    for argument_expr in remaining_argument_exprs {
+      get_var_name(self, argument_expr);
     }
 
     // Add function name in scope for recursive calls
     if let Some(expr) = expr.as_fn_expr()
       && let Some(ident) = &expr.ident
     {
-      scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
+      unresolved_parameter_patterns.push(Cow::Owned(Pat::Ident(ident.clone().into())));
     }
 
     let was_top_level_scope = self.top_level_scope;
@@ -1065,18 +1086,14 @@ impl JavascriptParser<'_> {
         TopLevelScope::False
       };
 
-    self.in_function_scope(true, scope_params.into_iter(), |parser| {
+    self.in_function_scope(true, unresolved_parameter_patterns.into_iter(), |parser| {
       if let Some(this) = rename_this
         && !expr.is_arrow()
       {
         parser.set_variable("this".into(), this)
       }
-      for (i, var_info) in variable_info_for_args.into_iter().enumerate() {
-        if let Some(var_info) = var_info
-          && let Some(param) = params.get(i)
-        {
-          parser.set_variable(param.sym.clone(), var_info);
-        }
+      for (name, var_info) in resolved_parameter_bindings {
+        parser.set_variable(name, var_info);
       }
 
       if let Some(expr) = expr.as_fn_expr() {
@@ -1193,14 +1210,18 @@ impl JavascriptParser<'_> {
           if evaluated_callee.is_identifier() {
             let members = evaluated_callee
               .members()
-              .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
-            let members_optionals = evaluated_callee.members_optionals().map_or_else(
-              || Cow::Owned(members.iter().map(|_| false).collect::<Vec<_>>()),
-              Cow::Borrowed,
-            );
+              .map_or(&[][..], |members| members.as_slice());
+            let mut owned_members_optionals = SmallVec::<[bool; 4]>::new();
+            let members_optionals =
+              if let Some(members_optionals) = evaluated_callee.members_optionals() {
+                members_optionals.as_slice()
+              } else {
+                owned_members_optionals.resize(members.len(), false);
+                owned_members_optionals.as_slice()
+              };
             let member_ranges = evaluated_callee
               .member_ranges()
-              .map_or_else(|| Cow::Owned(Vec::new()), Cow::Borrowed);
+              .map_or(&[][..], |member_ranges| member_ranges.as_slice());
             let drive = self.plugin_drive.clone();
             if evaluated_callee
               .root_info()
