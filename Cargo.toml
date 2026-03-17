@@ -324,7 +324,6 @@ opt-level = "s"
 [profile.release.package.pnp]
 opt-level = "s"
 
-
 [profile.release.package.fancy-regex]
 opt-level = "s"
 
