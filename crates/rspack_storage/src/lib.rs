@@ -10,8 +10,6 @@ mod memory;
 
 use std::sync::Arc;
 
-use tokio::sync::oneshot::Receiver;
-
 pub use self::{
   error::{Error, Result},
   filesystem::{FileSystemOptions, FileSystemStorage},
@@ -32,10 +30,16 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   /// Removes a key from the specified scope (staged in memory)
   fn remove(&self, scope: &'static str, key: &[u8]);
 
-  /// Triggers persistence operation, saving memory changes to storage
+  /// Enqueues a persistence operation, writing all staged memory changes to storage.
   ///
-  /// Returns a Receiver to asynchronously receive the save result
-  fn trigger_save(&self) -> Result<Receiver<Result<()>>>;
+  /// The write is performed asynchronously in the background. Call [`Storage::flush`]
+  /// to wait until all enqueued writes have completed.
+  async fn save(&self) -> Result<()>;
+
+  /// Waits until all previously enqueued [`Storage::save`] operations have completed.
+  ///
+  /// Must be called before process exit to ensure no background I/O is lost.
+  async fn flush(&self);
 
   /// Resets the storage, clearing all data
   async fn reset(&self);

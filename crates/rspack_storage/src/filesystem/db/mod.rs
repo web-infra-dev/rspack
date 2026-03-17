@@ -6,10 +6,7 @@ use std::{collections::hash_map::Entry, sync::Arc};
 
 use futures::future::try_join_all;
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::{
-  Mutex,
-  oneshot::{Receiver, channel},
-};
+use tokio::sync::Mutex;
 
 use self::{bucket::Bucket, task_queue::TaskQueue, transaction::Transaction};
 use super::ScopeFileSystem;
@@ -82,17 +79,15 @@ impl DB {
     bucket.load_all().await
   }
 
-  /// Saves changes to multiple buckets atomically using a two-phase commit.
+  /// Enqueues changes to multiple buckets for atomic persistence using a two-phase commit.
   ///
   /// Changes are grouped by bucket name. For each key-value pair:
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
-  /// Updates the database metadata with current save time.
-  /// Returns a channel receiver that will report the save result asynchronously.
-  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) -> Result<Receiver<Result<()>>> {
-    let (tx, rx) = channel();
-
+  /// The write is performed asynchronously by the background [`TaskQueue`] worker.
+  /// Call [`DB::flush`] to wait until the enqueued write has completed.
+  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) {
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
 
@@ -151,10 +146,11 @@ impl DB {
           .await
       };
 
-      let _ = tx.send(task_fn().await);
+      if let Err(err) = task_fn().await {
+        // TODO use infrastructure logger instead of println
+        println!("persistent cache save failed. {err}");
+      }
     });
-
-    Ok(rx)
   }
 
   /// Waits for all pending background save tasks to complete.
@@ -198,7 +194,7 @@ mod test {
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
     // save data and wait finish
-    let _ = db.save(data, 25);
+    db.save(data, 25);
     db.flush().await;
 
     let mut data1 = db.load(name_1).await?;

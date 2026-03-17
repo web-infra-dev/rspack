@@ -6,7 +6,6 @@ mod scope_fs;
 use std::sync::{Arc, Mutex};
 
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::oneshot::Receiver;
 
 pub use self::options::FileSystemOptions;
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem};
@@ -65,18 +64,19 @@ impl Storage for FileSystemStorage {
     scope_update.insert(key.to_vec(), None);
   }
 
-  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
+  async fn save(&self) -> Result<()> {
     // Take all pending updates and clear the memory buffer
     let updates = std::mem::take(&mut *self.updates.lock().expect("should get lock"));
 
-    // Convert updates to Vec format and trigger database save
-    let res = self.db.save(
+    // Enqueue the write to the background task queue; errors are reported internally.
+    // Call flush() to wait until the write has fully completed.
+    self.db.save(
       updates
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().collect()))
         .collect(),
       self.options.max_pack_size,
-    )?;
+    );
 
     // Trigger metadata refresh in background (fire and forget)
     let fs = self.fs.clone();
@@ -117,11 +117,15 @@ impl Storage for FileSystemStorage {
       }
     });
 
-    Ok(res)
+    Ok(())
   }
 
   async fn reset(&self) {
     let _ = self.db.reset().await;
+  }
+
+  async fn flush(&self) {
+    self.db.flush().await;
   }
 
   async fn scopes(&self) -> Result<Vec<String>> {
