@@ -58,20 +58,6 @@ pub enum Restriction {
   Regex(RspackRegex),
 }
 
-#[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
-pub enum PnpManifest {
-  #[default]
-  Disabled,
-  Path(#[cacheable(with=AsPreset)] Utf8PathBuf),
-}
-
-impl value_type::GetValueType for PnpManifest {
-  fn get_value_type(&self) -> value_type::ValueType {
-    value_type::ValueType::Atom
-  }
-}
-
 pub(super) type Extensions = Vec<String>;
 pub(super) type PreferRelative = bool;
 pub(super) type PreferAbsolute = bool;

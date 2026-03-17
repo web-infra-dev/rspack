@@ -2861,7 +2861,6 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
-  pnpManifest?: string | false
 }
 
 export interface RawResolveTsconfigOptions {

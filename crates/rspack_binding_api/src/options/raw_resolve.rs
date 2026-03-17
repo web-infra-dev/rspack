@@ -237,8 +237,6 @@ pub struct RawResolveOptionsWithDependencyType {
   pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
-  #[napi(ts_type = "string | false")]
-  pub pnp_manifest: Option<Either<String, ()>>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -251,11 +249,6 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         Some(config) => Some(TsconfigOptions::try_from(config)?),
         None => None,
       };
-
-      let pnp_manifest = raw.pnp_manifest.map(|m| match m {
-        Either::A(p) => rspack_core::PnpManifest::Path(p.into()),
-        Either::B(_) => rspack_core::PnpManifest::Disabled,
-      });
 
       let exports_fields = raw
         .exports_fields
