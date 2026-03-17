@@ -49,11 +49,14 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
+  let ids = dependency.get_ids(mg);
+  if ids.is_empty() {
+    return true;
+  }
   if !inline_enabled(dependency.id(), mg) {
     return true;
   }
   let module = connection.module_identifier();
-  let ids = dependency.get_ids(mg);
   !is_export_inlined(exports_info_artifact, module, ids, runtime)
 }
 
