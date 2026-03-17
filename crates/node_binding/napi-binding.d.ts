@@ -2834,7 +2834,6 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
-  pnpManifest?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {

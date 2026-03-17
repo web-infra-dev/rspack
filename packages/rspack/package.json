@@ -9,7 +9,7 @@
     "access": "public",
     "provenance": true
   },
-  "type": "module",
+  "xtype": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
