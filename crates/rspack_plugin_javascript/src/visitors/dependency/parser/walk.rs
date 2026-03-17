@@ -35,29 +35,6 @@ fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
 }
 
-fn get_await_import_member<'a>(
-  parser: &mut JavascriptParser,
-  expr: &'a MemberExpr,
-) -> Option<(&'a CallExpr, AtomMembers)> {
-  let ExtractedMemberExpressionChainData {
-    object,
-    mut members,
-    mut members_optionals,
-    ..
-  } = parser.extract_member_expression_chain(ExprRef::Member(expr));
-  let ExprRef::Await(await_expr) = object else {
-    return None;
-  };
-  let call = await_expr.arg.as_call()?;
-  if !call.callee.is_import() {
-    return None;
-  }
-  members.reverse();
-  members_optionals.reverse();
-  let members = get_non_optional_part(&members, &members_optionals);
-  Some((call, members.into()))
-}
-
 impl JavascriptParser<'_> {
   fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
   where
@@ -951,7 +928,7 @@ impl JavascriptParser<'_> {
     }
 
     // (await import(...)).a.b
-    if let Some((call, members)) = get_await_import_member(self, expr)
+    if let Some((call, members)) = self.extract_await_import_member(expr)
       && self
         .plugin_drive
         .clone()
@@ -1224,7 +1201,7 @@ impl JavascriptParser<'_> {
               return;
             }
             // (await import(...)).a.b()
-            if let Some((call, members)) = get_await_import_member(self, member)
+            if let Some((call, members)) = self.extract_await_import_member(member)
               && self
                 .plugin_drive
                 .clone()
@@ -1308,6 +1285,36 @@ impl JavascriptParser<'_> {
         self.walk_expr_or_spread(&expr.args);
       }
     }
+  }
+
+  fn extract_await_import_member<'a>(
+    &mut self,
+    expr: &'a MemberExpr,
+  ) -> Option<(&'a CallExpr, AtomMembers)> {
+    let ExtractedMemberExpressionChainData {
+      object,
+      mut members,
+      mut members_optionals,
+      ..
+    } = self.extract_member_expression_chain(ExprRef::Member(expr));
+    let ExprRef::Await(await_expr) = object else {
+      return None;
+    };
+    let call = await_expr.arg.as_call()?;
+    if !call.callee.is_import() {
+      return None;
+    }
+    // call hook if it's top-level await
+    if self.is_top_level_scope() {
+      self
+        .plugin_drive
+        .clone()
+        .top_level_await_expr(self, await_expr);
+    }
+    members.reverse();
+    members_optionals.reverse();
+    let members = get_non_optional_part(&members, &members_optionals);
+    Some((call, members.into()))
   }
 
   pub fn walk_expr_or_spread(&mut self, args: &[ExprOrSpread]) {
