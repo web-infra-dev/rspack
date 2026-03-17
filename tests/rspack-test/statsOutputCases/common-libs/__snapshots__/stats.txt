@@ -1,5 +1,5 @@
 asset react.js xx KiB [emitted] (name: react)
 ./react.js xx bytes [built] [code generated]
-../../../../../../Library/pnpm/store/v10/links/react/19.2.4/5c6e83be0e5f1f15e83462f0b7655d9d9338d33338bad7cc29bc12f2daa11aa3/node_modules/react/index.js xx bytes [built] [code generated]
-../../../../../../Library/pnpm/store/v10/links/react/19.2.4/5c6e83be0e5f1f15e83462f0b7655d9d9338d33338bad7cc29bc12f2daa11aa3/node_modules/react/cjs/react.production.js xx KiB [built] [code generated]
+../../../../node_modules/<PNPM_INNER>/react/index.js xx bytes [built] [code generated]
+../../../../node_modules/<PNPM_INNER>/react/cjs/react.production.js xx KiB [built] [code generated]
 Rspack x.x.x compiled successfully in X s
