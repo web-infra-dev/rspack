@@ -3,6 +3,7 @@ use std::{
   collections::BTreeMap,
   fmt::Debug,
   hash::Hasher,
+  mem,
   sync::{Arc, LazyLock},
 };
 
@@ -1808,7 +1809,7 @@ impl Module for ConcatenatedModule {
       let mut name = None;
       let mut is_conditional = false;
       let info = module_to_info_map
-        .get(&module_info_id)
+        .get_mut(&module_info_id)
         .expect("should have module info");
       let module_readable_identifier = get_cached_readable_identifier(
         &module_info_id,
@@ -1824,11 +1825,8 @@ impl Module for ConcatenatedModule {
           ));
 
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
-          result.add(info.source.clone().expect("should have source"));
-
-          for f in info.chunk_init_fragments.iter() {
-            chunk_init_fragments.push(f.clone());
-          }
+          result.add(info.source.take().expect("should have source"));
+          chunk_init_fragments.extend(mem::take(&mut info.chunk_init_fragments));
 
           runtime_template
             .runtime_requirements_mut()
