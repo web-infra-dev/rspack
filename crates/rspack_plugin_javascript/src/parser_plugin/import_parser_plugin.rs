@@ -265,6 +265,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser: &mut JavascriptParser,
     node: &CallExpr,
     import_then: Option<&CallExpr>,
+    referenced_in_members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     // Skip unreachable dynamic imports that are placed after a terminating
     // statement like `return` / `throw` (non top-level). This relies on
@@ -325,7 +326,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&import_call_span);
-    let referenced_in_member = parser
+    let referenced_in_variable = parser
       .dynamic_import_references
       .get_import(&import_call_span);
     let referenced_fulfilled_ns_obj =
@@ -338,10 +339,26 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       });
       exports = Some(refs);
     }
+    if let Some((referenced_in_members, is_call)) = referenced_in_members {
+      let referenced = if is_call {
+        ReferencedSpecifier::new_call(
+          referenced_in_members.to_vec(),
+          parser
+            .javascript_options
+            .strict_this_context_on_imports
+            .unwrap_or(false)
+            && !referenced_in_members.is_empty(),
+        )
+      } else {
+        ReferencedSpecifier::new(referenced_in_members.to_vec())
+      };
+      exports = Some(vec![referenced]);
+    }
 
     let is_statical = referenced_in_destructuring.is_some()
-      || referenced_in_member.is_some()
-      || referenced_fulfilled_ns_obj.is_some();
+      || referenced_in_variable.is_some()
+      || referenced_fulfilled_ns_obj.is_some()
+      || referenced_in_members.is_some();
     if is_statical && has_exports_magic_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),

@@ -524,6 +524,7 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &CallExpr,
     _import_then: Option<&CallExpr>,
+    _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     None
   }
