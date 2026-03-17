@@ -5,6 +5,9 @@ const { values, positionals } = require("node:util").parseArgs({
 	options: {
 		profile: {
 			type: "string"
+		},
+		"use-napi-cross": {
+			type: "boolean"
 		}
 	},
 	strict: true,
