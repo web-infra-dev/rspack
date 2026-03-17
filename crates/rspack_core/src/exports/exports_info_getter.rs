@@ -1,9 +1,9 @@
 use std::{borrow::Cow, sync::Arc};
 
 use either::Either;
-use itertools::Itertools;
 use rspack_util::{atom::Atom, ext::DynHash};
 use rustc_hash::FxHashMap;
+use smallvec::SmallVec;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
@@ -19,6 +19,51 @@ pub enum PrefetchExportsInfoMode<'a> {
   Full, // prefetch with all related data, this should only be used in hash calculation
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PrefetchedExportsInfoModeKind {
+  Default,
+  Nested,
+  Full,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct PrefetchedExportsInfoEntry<'a> {
+  id: ExportsInfo,
+  data: &'a ExportsInfoData,
+}
+
+#[derive(Debug, Clone)]
+enum PrefetchedExportsInfoStorage<'a> {
+  Small(SmallVec<[PrefetchedExportsInfoEntry<'a>; 4]>),
+  Large(Arc<FxHashMap<ExportsInfo, &'a ExportsInfoData>>),
+}
+
+impl<'a> PrefetchedExportsInfoStorage<'a> {
+  fn get(&self, id: &ExportsInfo) -> Option<&'a ExportsInfoData> {
+    match self {
+      Self::Small(entries) => entries
+        .iter()
+        .find(|entry| entry.id == *id)
+        .map(|entry| entry.data),
+      Self::Large(entries) => entries.get(id).copied(),
+    }
+  }
+
+  fn ids(&self) -> Vec<ExportsInfo> {
+    match self {
+      Self::Small(entries) => entries.iter().map(|entry| entry.id).collect(),
+      Self::Large(entries) => entries.keys().copied().collect(),
+    }
+  }
+
+  fn values(&self) -> Vec<&'a ExportsInfoData> {
+    match self {
+      Self::Small(entries) => entries.iter().map(|entry| entry.data).collect(),
+      Self::Large(entries) => entries.values().copied().collect(),
+    }
+  }
+}
+
 /**
  * Used to store data pre-fetched from Module Graph
  * so that subsequent exports data reads don't need to access Module Graph
@@ -30,7 +75,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<FxHashMap<ExportsInfo, &'a ExportsInfoData>>,
+  exports: PrefetchedExportsInfoStorage<'a>,
   /**
    * The entry of the current exports info
    */
@@ -38,7 +83,8 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
   /**
    * The prefetch mode of the current exports info
    */
-  mode: PrefetchExportsInfoMode<'a>,
+  mode: PrefetchedExportsInfoModeKind,
+  nested_depth: usize,
 }
 
 impl<'a> PrefetchedExportsInfoWrapper<'a> {
@@ -51,14 +97,22 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       entry,
       mode: if nested {
         match self.mode {
-          PrefetchExportsInfoMode::Default => {
+          PrefetchedExportsInfoModeKind::Default => {
             panic!("should not redirect to nested");
           }
-          PrefetchExportsInfoMode::Nested(names) => PrefetchExportsInfoMode::Nested(&names[1..]),
-          PrefetchExportsInfoMode::Full => PrefetchExportsInfoMode::Full,
+          PrefetchedExportsInfoModeKind::Nested => PrefetchedExportsInfoModeKind::Nested,
+          PrefetchedExportsInfoModeKind::Full => PrefetchedExportsInfoModeKind::Full,
         }
       } else {
-        self.mode.clone()
+        self.mode
+      },
+      nested_depth: if nested {
+        self
+          .nested_depth
+          .checked_sub(1)
+          .expect("should have nested names to redirect")
+      } else {
+        self.nested_depth
       },
     }
   }
@@ -73,7 +127,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn meta(&self) -> (ExportsInfo, Vec<ExportsInfo>) {
-    (self.entry, self.exports.keys().copied().collect())
+    (self.entry, self.exports.ids())
   }
 
   pub fn other_exports_info(&self) -> &ExportInfoData {
@@ -171,7 +225,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
 
   pub fn get_nested_exports_info(&self, name: Option<&[Atom]>) -> Option<&ExportsInfoData> {
     let exports_info = self.get_nested_exports_info_impl(name)?;
-    self.exports.get(&exports_info).copied()
+    self.exports.get(&exports_info)
   }
 
   fn get_nested_exports_info_impl(&self, name: Option<&[Atom]>) -> Option<ExportsInfo> {
@@ -316,7 +370,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn update_hash(&self, hasher: &mut dyn std::hash::Hasher, runtime: Option<&RuntimeSpec>) {
-    if !matches!(self.mode, PrefetchExportsInfoMode::Full) {
+    if self.mode != PrefetchedExportsInfoModeKind::Full {
       panic!("should not update hash when mode is not Full");
     }
 
@@ -335,7 +389,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       export_info.terminal_binding().dyn_hash(hasher);
     }
 
-    let mut exports = self.exports.values().collect_vec();
+    let mut exports = self.exports.values();
     exports.sort_unstable_by_key(|a| a.id());
 
     for exports_info in exports {
@@ -468,16 +522,78 @@ impl ExportsInfoGetter {
    * if names is provided, it will pre-fetch the exports info data of the export info items of specific names
    * if names is not provided, it will not pre-fetch any export info item
    */
-  pub fn prefetch<'a>(
+  pub fn prefetch<'a, 'b>(
     id: &ExportsInfo,
     exports_info_artifact: &'a ExportsInfoArtifact,
-    mode: PrefetchExportsInfoMode<'a>,
+    mode: PrefetchExportsInfoMode<'b>,
   ) -> PrefetchedExportsInfoWrapper<'a> {
-    fn prefetch_exports<'a>(
+    let (mode_kind, nested_depth) = match &mode {
+      PrefetchExportsInfoMode::Default => (PrefetchedExportsInfoModeKind::Default, 0),
+      PrefetchExportsInfoMode::Nested(names) => {
+        (PrefetchedExportsInfoModeKind::Nested, names.len())
+      }
+      PrefetchExportsInfoMode::Full => (PrefetchedExportsInfoModeKind::Full, 0),
+    };
+
+    fn prefetch_exports_small<'a, 'b>(
+      id: &ExportsInfo,
+      exports_info_artifact: &'a ExportsInfoArtifact,
+      res: &mut SmallVec<[PrefetchedExportsInfoEntry<'a>; 4]>,
+      mode: PrefetchExportsInfoMode<'b>,
+    ) {
+      if res.iter().any(|entry| entry.id == *id) {
+        return;
+      }
+
+      let exports_info = id.as_data(exports_info_artifact);
+      res.push(PrefetchedExportsInfoEntry {
+        id: *id,
+        data: exports_info,
+      });
+
+      match mode {
+        PrefetchExportsInfoMode::Default => {}
+        PrefetchExportsInfoMode::Nested(names) => {
+          if let Some(nested) = names
+            .first()
+            .and_then(|name| exports_info.exports().get(name))
+            .and_then(|export_info| export_info.exports_info())
+          {
+            prefetch_exports_small(
+              &nested,
+              exports_info_artifact,
+              res,
+              PrefetchExportsInfoMode::Nested(&names[1..]),
+            );
+          }
+        }
+        PrefetchExportsInfoMode::Full => unreachable!("full mode should use map storage"),
+      }
+
+      if let Some(other_exports) = exports_info.other_exports_info().exports_info() {
+        prefetch_exports_small(
+          &other_exports,
+          exports_info_artifact,
+          res,
+          PrefetchExportsInfoMode::Default,
+        );
+      }
+
+      if let Some(side_exports) = exports_info.side_effects_only_info().exports_info() {
+        prefetch_exports_small(
+          &side_exports,
+          exports_info_artifact,
+          res,
+          PrefetchExportsInfoMode::Default,
+        );
+      }
+    }
+
+    fn prefetch_exports_map<'a, 'b>(
       id: &ExportsInfo,
       exports_info_artifact: &'a ExportsInfoArtifact,
       res: &mut FxHashMap<ExportsInfo, &'a ExportsInfoData>,
-      mode: PrefetchExportsInfoMode<'a>,
+      mode: PrefetchExportsInfoMode<'b>,
     ) {
       if res.contains_key(id) {
         return;
@@ -494,7 +610,7 @@ impl ExportsInfoGetter {
             .and_then(|name| exports_info.exports().get(name))
             .and_then(|export_info| export_info.exports_info())
           {
-            prefetch_exports(
+            prefetch_exports_map(
               &nested,
               exports_info_artifact,
               res,
@@ -505,7 +621,7 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::Full => {
           for export_info in exports_info.exports().values() {
             if let Some(nested_exports_info) = export_info.exports_info() {
-              prefetch_exports(
+              prefetch_exports_map(
                 &nested_exports_info,
                 exports_info_artifact,
                 res,
@@ -517,7 +633,7 @@ impl ExportsInfoGetter {
       }
 
       if let Some(other_exports) = exports_info.other_exports_info().exports_info() {
-        prefetch_exports(
+        prefetch_exports_map(
           &other_exports,
           exports_info_artifact,
           res,
@@ -526,7 +642,7 @@ impl ExportsInfoGetter {
       }
 
       if let Some(side_exports) = exports_info.side_effects_only_info().exports_info() {
-        prefetch_exports(
+        prefetch_exports_map(
           &side_exports,
           exports_info_artifact,
           res,
@@ -535,37 +651,35 @@ impl ExportsInfoGetter {
       }
     }
 
-    let initial_capacity = {
-      let exports_info = id.as_data(exports_info_artifact);
-      let extra_nested_exports =
-        usize::from(exports_info.other_exports_info().exports_info().is_some())
-          + usize::from(
-            exports_info
-              .side_effects_only_info()
-              .exports_info()
-              .is_some(),
-          );
-      match mode {
-        PrefetchExportsInfoMode::Default => 1 + extra_nested_exports,
-        PrefetchExportsInfoMode::Nested(names) => {
-          1 + extra_nested_exports
-            + usize::from(
-              names
-                .first()
-                .and_then(|name| exports_info.exports().get(name))
-                .and_then(|export_info| export_info.exports_info())
-                .is_some(),
-            )
-        }
-        PrefetchExportsInfoMode::Full => 1 + exports_info.exports().len() + extra_nested_exports,
+    let exports = match mode {
+      PrefetchExportsInfoMode::Full => {
+        let initial_capacity = {
+          let exports_info = id.as_data(exports_info_artifact);
+          let extra_nested_exports =
+            usize::from(exports_info.other_exports_info().exports_info().is_some())
+              + usize::from(
+                exports_info
+                  .side_effects_only_info()
+                  .exports_info()
+                  .is_some(),
+              );
+          1 + exports_info.exports().len() + extra_nested_exports
+        };
+        let mut res = FxHashMap::with_capacity_and_hasher(initial_capacity, Default::default());
+        prefetch_exports_map(id, exports_info_artifact, &mut res, mode.clone());
+        PrefetchedExportsInfoStorage::Large(Arc::new(res))
+      }
+      PrefetchExportsInfoMode::Default | PrefetchExportsInfoMode::Nested(_) => {
+        let mut res = SmallVec::new();
+        prefetch_exports_small(id, exports_info_artifact, &mut res, mode.clone());
+        PrefetchedExportsInfoStorage::Small(res)
       }
     };
-    let mut res = FxHashMap::with_capacity_and_hasher(initial_capacity, Default::default());
-    prefetch_exports(id, exports_info_artifact, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
-      exports: Arc::new(res),
+      exports,
       entry: *id,
-      mode,
+      mode: mode_kind,
+      nested_depth,
     }
   }
 
@@ -606,7 +720,7 @@ impl ExportsInfoGetter {
 
   /// `Option<UsedName>` correspond to webpack `string | string[] | false`
   pub fn get_used_name(
-    info: GetUsedNameParam<'_>,
+    info: GetUsedNameParam<'_, '_>,
     runtime: Option<&RuntimeSpec>,
     names: &[Atom],
   ) -> Option<UsedName> {
@@ -664,20 +778,33 @@ impl ExportsInfoGetter {
     exports_info_artifact: &'a ExportsInfoArtifact,
   ) -> PrefetchedExportsInfoWrapper<'a> {
     let (entry, exports) = meta;
-    let exports = exports
-      .into_iter()
-      .map(|e| (e, exports_info_artifact.get_exports_info_by_id(&e)))
-      .collect::<FxHashMap<_, _>>();
+    let exports = if exports.len() <= 4 {
+      let exports = exports
+        .into_iter()
+        .map(|e| PrefetchedExportsInfoEntry {
+          id: e,
+          data: exports_info_artifact.get_exports_info_by_id(&e),
+        })
+        .collect::<SmallVec<[_; 4]>>();
+      PrefetchedExportsInfoStorage::Small(exports)
+    } else {
+      let exports = exports
+        .into_iter()
+        .map(|e| (e, exports_info_artifact.get_exports_info_by_id(&e)))
+        .collect::<FxHashMap<_, _>>();
+      PrefetchedExportsInfoStorage::Large(Arc::new(exports))
+    };
 
     PrefetchedExportsInfoWrapper {
-      exports: Arc::new(exports),
+      exports,
       entry,
-      mode: PrefetchExportsInfoMode::Full,
+      mode: PrefetchedExportsInfoModeKind::Full,
+      nested_depth: 0,
     }
   }
 }
 
-pub enum GetUsedNameParam<'a> {
+pub enum GetUsedNameParam<'a, 'b> {
   WithoutNames(&'a PrefetchedExportsInfoUsed),
-  WithNames(&'a PrefetchedExportsInfoWrapper<'a>),
+  WithNames(&'a PrefetchedExportsInfoWrapper<'b>),
 }
