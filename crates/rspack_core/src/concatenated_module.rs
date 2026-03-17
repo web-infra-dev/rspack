@@ -1381,13 +1381,19 @@ impl Module for ConcatenatedModule {
       }
     }
 
+    // `escaped_names` / `escaped_identifiers` can retain a large amount of
+    // temporary escaped naming state. Move them off the critical path once
+    // naming is complete.
+    fast_set(&mut escaped_names, HashMap::default());
+    fast_set(&mut escaped_identifiers, HashMap::default());
+
     // `NameAllocator` can retain a large amount of temporary name state.
     // Move it off the critical path once naming is complete.
     fast_set(&mut name_allocator, NameAllocator::default());
 
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
-    let changes = module_to_info_map
+    let mut changes = module_to_info_map
       .par_values()
       .filter_map(|info| {
         let ModuleInfo::Concatenated(info) = info else {
@@ -1462,17 +1468,21 @@ impl Module for ConcatenatedModule {
       })
       .collect::<Vec<_>>();
 
-    for (module_info_id, changes) in changes {
-      for (name_result, (low, high)) in changes {
+    for (module_info_id, module_changes) in changes.iter_mut() {
+      for (name_result, (low, high)) in mem::take(module_changes) {
         name_result.apply_to_info(&mut module_to_info_map, &mut needed_namespace_objects);
         let info = module_to_info_map
-          .get_mut(&module_info_id)
+          .get_mut(module_info_id)
           .and_then(|info| info.try_as_concatenated_mut())
           .expect("should have concatenate module info");
         let source = info.source.as_mut().expect("should have source");
         source.replace(low, high, name_result.name, None);
       }
     }
+
+    // `changes` can accumulate many final-name rewrites for large concatenated modules.
+    // Move it off the critical path once all replacements are applied.
+    fast_set(&mut changes, Vec::new());
 
     let mut exports_map: HashMap<Atom, String> = HashMap::default();
     let mut unused_exports: HashSet<Atom> = HashSet::default();
