@@ -145,6 +145,7 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(pattern).expect("should construct the regex")
 });
 
+#[derive(Default)]
 struct NameAllocator {
   used_names: HashSet<Atom>,
   used_strings: HashSet<String>,
@@ -1379,6 +1380,10 @@ impl Module for ConcatenatedModule {
         top_level_declarations.insert(external_name_interop.clone());
       }
     }
+
+    // `NameAllocator` can retain a large amount of temporary name state.
+    // Move it off the critical path once naming is complete.
+    fast_set(&mut name_allocator, NameAllocator::default());
 
     // Find and replace references to modules
     // Splitting read and write to avoid violating rustc borrow rules
