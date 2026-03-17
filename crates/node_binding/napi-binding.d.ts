@@ -1772,12 +1772,6 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
-  /**
-   * Path to PnP manifest file
-   *
-   * Default `None`
-   */
-  pnpManifest?: string | false
 }
 
 export interface NativeWatcherOptions {
