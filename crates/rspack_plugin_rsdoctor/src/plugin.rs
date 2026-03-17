@@ -72,7 +72,6 @@ pub enum RsdoctorPluginModuleGraphFeature {
   ModuleGraph,
   ModuleIds,
   ModuleSources,
-  TreeShaking,
 }
 
 impl From<String> for RsdoctorPluginModuleGraphFeature {
@@ -81,7 +80,6 @@ impl From<String> for RsdoctorPluginModuleGraphFeature {
       "graph" => RsdoctorPluginModuleGraphFeature::ModuleGraph,
       "ids" => RsdoctorPluginModuleGraphFeature::ModuleIds,
       "sources" => RsdoctorPluginModuleGraphFeature::ModuleSources,
-      "treeShaking" => RsdoctorPluginModuleGraphFeature::TreeShaking, // Retained feature
       _ => panic!("invalid module graph feature: {value}"),
     }
   }
@@ -93,7 +91,6 @@ impl fmt::Display for RsdoctorPluginModuleGraphFeature {
       RsdoctorPluginModuleGraphFeature::ModuleGraph => write!(f, "graph"),
       RsdoctorPluginModuleGraphFeature::ModuleIds => write!(f, "ids"),
       RsdoctorPluginModuleGraphFeature::ModuleSources => write!(f, "sources"),
-      RsdoctorPluginModuleGraphFeature::TreeShaking => write!(f, "treeShaking"), // Retained feature
     }
   }
 }
@@ -416,6 +413,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &module_ukey_to_info,
   );
 
+  // 7. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
