@@ -120,6 +120,8 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
           profile: ${{ inputs.profile }}
+          pre: |
+            export CC_x86_64_unknown_linux_musl=clang
 
       - name: Build aarch64-unknown-linux-musl in Docker
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
@@ -128,6 +130,8 @@ jobs:
           target: ${{ inputs.target }}
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
           profile: ${{ inputs.profile }}
+          pre: |
+            export CC_aarch64_unknown_linux_musl=clang
 
       # Windows
       - name: Build i686-pc-windows-msvc
