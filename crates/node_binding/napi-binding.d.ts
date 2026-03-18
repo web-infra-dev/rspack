@@ -2188,6 +2188,12 @@ export interface RawDynamicEntryPluginOptions {
   entry: () => Promise<RawEntryDynamicResult[]>
 }
 
+export interface RawEnableLibraryPluginOptions {
+  libraryType: string
+  preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
+}
+
 export interface RawEntryDynamicResult {
   import: Array<string>
   options: JsEntryOptions
