@@ -37,7 +37,7 @@ pub struct ConcatConfiguration {
   pub root_module: ModuleIdentifier,
   runtime: Option<RuntimeSpec>,
   modules: IdentifierIndexSet,
-  warnings: IdentifierMap<Warning>,
+  warnings: IdentifierMap<Arc<Warning>>,
 }
 
 impl ConcatConfiguration {
@@ -65,11 +65,11 @@ impl ConcatConfiguration {
     self.modules.len() == 1
   }
 
-  fn add_warning(&mut self, module: ModuleIdentifier, problem: Warning) {
+  fn add_warning(&mut self, module: ModuleIdentifier, problem: Arc<Warning>) {
     self.warnings.insert(module, problem);
   }
 
-  fn get_warnings_sorted(&self) -> Vec<(ModuleIdentifier, Warning)> {
+  fn get_warnings_sorted(&self) -> Vec<(ModuleIdentifier, Arc<Warning>)> {
     let mut sorted_warnings: Vec<_> = self.warnings.clone().into_iter().collect();
     sorted_warnings.sort_by_key(|(id, _)| *id);
     sorted_warnings
@@ -240,13 +240,13 @@ impl ModuleConcatenationPlugin {
     active_runtime: Option<&RuntimeSpec>,
     possible_modules: &IdentifierSet,
     candidates: &mut IdentifierSet,
-    failure_cache: &mut IdentifierMap<Warning>,
+    failure_cache: &mut IdentifierMap<Arc<Warning>>,
     success_cache: &mut RuntimeIdentifierCache<Vec<ModuleIdentifier>>,
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
-  ) -> Option<Warning> {
+  ) -> Option<Arc<Warning>> {
     statistics
       .module_visit
       .entry(*module_id)
@@ -257,7 +257,7 @@ impl ModuleConcatenationPlugin {
 
     if let Some(cache_entry) = failure_cache.get(module_id) {
       statistics.cached += 1;
-      return Some(cache_entry.clone());
+      return Some(Arc::clone(cache_entry));
     }
 
     if config.has(module_id) {
@@ -283,8 +283,8 @@ impl ModuleConcatenationPlugin {
 
       if !possible_modules.contains(module_id) {
         statistics.invalid_module += 1;
-        let problem = Warning::Id(*module_id);
-        failure_cache.insert(*module_id, problem.clone());
+        let problem = Arc::new(Warning::Id(*module_id));
+        failure_cache.insert(*module_id, Arc::clone(&problem));
         return Some(problem);
       }
 
@@ -324,8 +324,8 @@ impl ModuleConcatenationPlugin {
         };
 
         statistics.incorrect_chunks += 1;
-        let problem = Warning::Problem(problem_string);
-        failure_cache.insert(*module_id, problem.clone());
+        let problem = Arc::new(Warning::Problem(problem_string));
+        failure_cache.insert(*module_id, Arc::clone(&problem));
         return Some(problem);
       }
 
@@ -370,9 +370,9 @@ impl ModuleConcatenationPlugin {
               // }
             )
           };
-          let problem = Warning::Problem(problem);
+          let problem = Arc::new(Warning::Problem(problem));
           statistics.incorrect_dependency += 1;
-          failure_cache.insert(*module_id, problem.clone());
+          failure_cache.insert(*module_id, Arc::clone(&problem));
           return Some(problem);
         }
       }
@@ -463,8 +463,8 @@ impl ModuleConcatenationPlugin {
         };
 
         statistics.incorrect_chunks_of_importer += 1;
-        let problem = Warning::Problem(problem);
-        failure_cache.insert(*module_id, problem.clone());
+        let problem = Arc::new(Warning::Problem(problem));
+        failure_cache.insert(*module_id, Arc::clone(&problem));
         return Some(problem);
       }
 
@@ -516,9 +516,9 @@ impl ModuleConcatenationPlugin {
             names.join(", ")
           )
         };
-        let problem = Warning::Problem(problem);
+        let problem = Arc::new(Warning::Problem(problem));
         statistics.incorrect_module_dependency += 1;
-        failure_cache.insert(*module_id, problem.clone());
+        failure_cache.insert(*module_id, Arc::clone(&problem));
         return Some(problem);
       }
 
@@ -588,9 +588,9 @@ impl ModuleConcatenationPlugin {
             )
           };
 
-          let problem = Warning::Problem(problem);
+          let problem = Arc::new(Warning::Problem(problem));
           statistics.incorrect_runtime_condition += 1;
-          failure_cache.insert(*module_id, problem.clone());
+          failure_cache.insert(*module_id, Arc::clone(&problem));
           return Some(problem);
         }
       }
@@ -628,7 +628,7 @@ impl ModuleConcatenationPlugin {
           config.rollback(*backup);
         }
         statistics.importer_failed += 1;
-        failure_cache.insert(*module_id, problem.clone());
+        failure_cache.insert(*module_id, Arc::clone(&problem));
         return Some(problem);
       }
     }
@@ -1260,7 +1260,6 @@ impl ModuleConcatenationPlugin {
           &modules_without_runtime_cache,
         ) {
           Some(problem) => {
-            failure_cache.insert(imp, problem.clone());
             current_configuration.add_warning(imp, problem);
           }
           _ => {
@@ -1288,7 +1287,7 @@ impl ModuleConcatenationPlugin {
         let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
           optimization_bailouts.push(OptimizationBailoutItem::Message(
-            self.format_bailout_warning(warning.0, &warning.1),
+            self.format_bailout_warning(warning.0, warning.1.as_ref()),
           ));
         }
       }
