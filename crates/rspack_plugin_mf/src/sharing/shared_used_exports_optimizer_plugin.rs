@@ -21,9 +21,54 @@ use super::{
   shared_used_exports_optimizer_runtime_module::SharedUsedExportsOptimizerRuntimeModule,
 };
 use crate::{container::container_entry_module::ContainerEntryModule, manifest::StatsRoot};
+
+const SHARED_LAYER_SEPARATOR: &str = "\u{0000}";
+
+fn make_shared_lookup_key(share_key: &str, layer: Option<&str>) -> String {
+  match layer {
+    Some(layer) => format!("{share_key}{SHARED_LAYER_SEPARATOR}{layer}"),
+    None => share_key.to_string(),
+  }
+}
+
+fn split_shared_lookup_key(shared_key: &str) -> (&str, Option<&str>) {
+  match shared_key.split_once(SHARED_LAYER_SEPARATOR) {
+    Some((share_key, layer)) => (share_key, Some(layer)),
+    None => (shared_key, None),
+  }
+}
+
+fn resolve_shared_lookup_key(
+  shared_map: &FxHashMap<String, SharedEntryData>,
+  share_key: &str,
+  layer: Option<&str>,
+) -> Option<String> {
+  if let Some(layer) = layer {
+    let layered_key = make_shared_lookup_key(share_key, Some(layer));
+    if shared_map.contains_key(&layered_key) {
+      return Some(layered_key);
+    }
+  }
+
+  if shared_map.contains_key(share_key) {
+    return Some(share_key.to_string());
+  }
+
+  let mut matches = shared_map
+    .keys()
+    .filter(|key| split_shared_lookup_key(key).0 == share_key)
+    .cloned();
+  let first = matches.next()?;
+  if matches.next().is_none() {
+    return Some(first);
+  }
+  None
+}
+
 #[derive(Debug, Clone)]
 pub struct OptimizeSharedConfig {
   pub share_key: String,
+  pub layer: Option<String>,
   pub tree_shaking: bool,
   pub used_exports: Vec<String>,
 }
@@ -61,8 +106,9 @@ impl SharedUsedExportsOptimizerPlugin {
         .into_iter()
         .map(Atom::from)
         .collect::<Vec<_>>();
+      let lookup_key = make_shared_lookup_key(&config.share_key, config.layer.as_deref());
       shared_map.insert(
-        config.share_key,
+        lookup_key,
         SharedEntryData {
           used_exports: atoms,
         },
@@ -153,25 +199,22 @@ async fn optimize_dependencies(
           return None;
         }
         let mut modules_to_process = Vec::new();
+        let layer = module.get_layer().map(|layer| layer.as_str());
         let share_key = match module_type {
           rspack_core::ModuleType::ConsumeShared => {
             let consume_shared_module = module.as_any().downcast_ref::<ConsumeSharedModule>()?;
-            // Use the readable_identifier to extract the share key
-            // The share key is part of the identifier string in format "consume shared module ({share_scope}) {share_key}@..."
             let identifier =
               consume_shared_module.readable_identifier(&rspack_core::Context::default());
-            let identifier_str = identifier.to_string();
-            let parts: Vec<&str> = identifier_str.split(") ").collect();
-            if parts.len() < 2 {
-              return None;
+            let mut rest = identifier.strip_prefix("consume shared module ")?;
+            let scope_end = rest.find(") ")?;
+            rest = &rest[scope_end + 2..];
+            if rest.starts_with('(') {
+              let layer_end = rest.find(") ")?;
+              rest = &rest[layer_end + 2..];
             }
-            let share_key_part = parts[1];
-            let share_key_end = if let Some(stripped) = share_key_part.strip_prefix('@') {
-              stripped.find('@').map_or(share_key_part.len(), |i| i + 1)
-            } else {
-              share_key_part.find('@').unwrap_or(share_key_part.len())
-            };
-            let sk: String = share_key_part[..share_key_end].to_string();
+            let head = rest.split(" (").next().unwrap_or(rest);
+            let at = head.rfind('@').unwrap_or(head.len());
+            let sk = head[..at].to_string();
             collect_processed_modules(
               module_graph,
               consume_shared_module.get_blocks(),
@@ -205,7 +248,10 @@ async fn optimize_dependencies(
           }
           _ => return None,
         };
-        Some((share_key, modules_to_process))
+        Some((
+          make_shared_lookup_key(&share_key, layer),
+          modules_to_process,
+        ))
       })
     };
 
@@ -330,7 +376,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .expect("lock poisoned");
 
       for shared in &mut stats_root.shared {
-        if let Some(exports_set) = shared_referenced_exports.get(&shared.name) {
+        let shared_lookup_key = make_shared_lookup_key(&shared.name, shared.layer.as_deref());
+        if let Some(exports_set) = shared_referenced_exports.get(&shared_lookup_key) {
           shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
         }
       }
@@ -403,9 +450,16 @@ fn dependency_referenced_exports(
   };
 
   let share_key: &str = module_dependency.request();
+  let Some(shared_lookup_key) = resolve_shared_lookup_key(
+    &self.shared_map,
+    share_key,
+    dependency.get_layer().map(|layer| layer.as_str()),
+  ) else {
+    return Ok(());
+  };
 
   // Check if dependency type is EsmImportSpecifier and share_key is in shared_map
-  if !self.shared_map.contains_key(share_key) {
+  if !self.shared_map.contains_key(&shared_lookup_key) {
     return Ok(());
   }
   let mut final_exports = exports.clone();
@@ -426,7 +480,7 @@ fn dependency_referenced_exports(
       .shared_referenced_exports
       .write()
       .expect("lock poisoned");
-    shared_referenced_exports.remove(share_key);
+    shared_referenced_exports.remove(&shared_lookup_key);
     return Ok(());
   }
   if (final_exports.is_empty() || is_exports_object)
@@ -454,13 +508,13 @@ fn dependency_referenced_exports(
   }
 
   // Process each referenced export
-  if self.shared_map.contains_key(share_key) {
+  if self.shared_map.contains_key(&shared_lookup_key) {
     let mut shared_referenced_exports = self
       .shared_referenced_exports
       .write()
       .expect("lock poisoned");
     let export_set = shared_referenced_exports
-      .entry(share_key.to_string())
+      .entry(shared_lookup_key)
       .or_default();
 
     for referenced_export in &final_exports {

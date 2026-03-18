@@ -8,7 +8,11 @@ it('should load tree shaking shared via set "runtime-infer" mode', async () => {
     'default Uilib has Button, List, Badge exports not tree shaking, and ui-lib-es Button value is Button should tree shaking',
   );
 
-  const bundlePath = path.join(__dirname, 'node_modules_ui-lib_index_js.js');
+  const uiLibBundleFile = fs
+    .readdirSync(__dirname)
+    .find((file) => /ui-lib_index_js\.js$/.test(file));
+  expect(uiLibBundleFile).toBeDefined();
+  const bundlePath = path.join(__dirname, uiLibBundleFile);
   const bundleContent = fs.readFileSync(bundlePath, 'utf-8');
   expect(bundleContent).toContain('Button');
   expect(bundleContent).toContain('Badge');
@@ -23,6 +27,7 @@ it('should load tree shaking shared via set "runtime-infer" mode', async () => {
   expect(Object.keys(uiLibShared.treeShaking.lib()).sort()).toEqual([
     'Button',
     'default',
+    'layer',
   ]);
 
   const uiLibFallback = (await uiLibShared.get())();
@@ -106,6 +111,10 @@ it('should inject usedExports into entry chunk by default', async () => {
     'Button',
     'default',
   ]);
+  expect(__webpack_require__.federation.usedExports['(ui-layer)']).toBeUndefined();
+  expect(
+    __webpack_require__.federation.usedExports['(ui-layer) ui-lib'],
+  ).toBeUndefined();
 });
 
 it('should inject usedExports into manifest and stats if enable manifest', async () => {
@@ -119,4 +128,8 @@ it('should inject usedExports into manifest and stats if enable manifest', async
       statsContent.shared.find((s) => s.name === 'ui-lib').usedExports.sort(),
     ),
   ).toEqual(JSON.stringify(['Button', 'default']));
+  expect(statsContent.shared.some((s) => s.name === '(ui-layer)')).toBe(false);
+  expect(statsContent.shared.some((s) => s.name === '(ui-layer) ui-lib')).toBe(
+    false,
+  );
 });

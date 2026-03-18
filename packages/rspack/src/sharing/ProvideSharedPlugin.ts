@@ -35,6 +35,8 @@ type ProvidesV1Config = {
 };
 type ProvidesEnhancedConfig = ProvidesV1Config & ProvidesEnhancedExtraConfig;
 type ProvidesEnhancedExtraConfig = {
+  layer?: string;
+  request?: string;
   singleton?: boolean;
   strictVersion?: boolean;
   requiredVersion?: false | string;
@@ -48,8 +50,8 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
   options: Provides<Enhanced>,
   shareScope?: ShareScope,
   enhanced?: boolean,
-) {
-  return parseOptions(
+): [string, Omit<RawProvideOptions, 'key'>][] {
+  return parseOptions<ProvidesConfig<Enhanced>, Omit<RawProvideOptions, 'key'>>(
     options,
     (item) => {
       if (Array.isArray(item)) throw new Error('Unexpected array of provides');
@@ -68,9 +70,11 @@ export function normalizeProvideShareOptions<Enhanced extends boolean = false>(
         eager: !!item.eager,
       };
       if (enhanced) {
-        const enhancedItem: ProvidesConfig<true> = item;
+        const enhancedItem = item as ProvidesConfig<true>;
         return {
           ...raw,
+          layer: enhancedItem.layer,
+          request: enhancedItem.request,
           singleton: enhancedItem.singleton,
           requiredVersion: enhancedItem.requiredVersion,
           strictVersion: enhancedItem.strictVersion,

@@ -58,6 +58,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
 pub struct RawExposeOptions {
   pub key: String,
   pub name: Option<String>,
+  pub layer: Option<String>,
   pub import: Vec<String>,
 }
 
@@ -67,6 +68,7 @@ impl From<RawExposeOptions> for (String, ExposeOptions) {
       value.key,
       ExposeOptions {
         name: value.name,
+        layer: value.layer,
         import: value.import,
       },
     )
@@ -118,6 +120,8 @@ impl From<RawRemoteOptions> for (String, RemoteOptions) {
 #[napi(object)]
 pub struct RawProvideOptions {
   pub key: String,
+  pub request: Option<String>,
+  pub layer: Option<String>,
   pub share_key: String,
   pub share_scope: Either<String, Vec<String>>,
   #[napi(ts_type = "string | false | undefined")]
@@ -135,6 +139,8 @@ impl From<RawProvideOptions> for (String, ProvideOptions) {
     (
       value.key,
       ProvideOptions {
+        request: value.request,
+        layer: value.layer,
         share_key: value.share_key,
         share_scope: into_share_scope(value.share_scope),
         version: value.version.map(|v| RawVersionWrapper(v).into()),
@@ -220,6 +226,7 @@ pub struct RawOptimizeSharedConfig {
   pub share_key: String,
   pub tree_shaking: bool,
   pub used_exports: Option<Vec<String>>,
+  pub layer: Option<String>,
 }
 
 impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
@@ -228,6 +235,7 @@ impl From<RawOptimizeSharedConfig> for OptimizeSharedConfig {
       share_key: value.share_key,
       tree_shaking: value.tree_shaking,
       used_exports: value.used_exports.unwrap_or_default(),
+      layer: value.layer,
     }
   }
 }
@@ -264,6 +272,9 @@ impl From<RawSharedUsedExportsOptimizerPluginOptions> for SharedUsedExportsOptim
 #[napi(object)]
 pub struct RawConsumeOptions {
   pub key: String,
+  pub request: Option<String>,
+  pub issuer_layer: Option<String>,
+  pub layer: Option<String>,
   pub import: Option<String>,
   pub import_resolved: Option<String>,
   pub share_key: String,
@@ -282,6 +293,9 @@ impl From<RawConsumeOptions> for (String, ConsumeOptions) {
     (
       value.key,
       ConsumeOptions {
+        request: value.request,
+        issuer_layer: value.issuer_layer,
+        layer: value.layer,
         import: value.import,
         import_resolved: value.import_resolved,
         share_key: value.share_key,
@@ -373,6 +387,7 @@ pub struct RawManifestSharedOption {
   pub name: String,
   pub version: Option<String>,
   pub required_version: Option<String>,
+  pub layer: Option<String>,
   pub singleton: Option<bool>,
 }
 
@@ -441,6 +456,7 @@ impl From<RawModuleFederationManifestPluginOptions> for ModuleFederationManifest
           name: shared.name,
           version: shared.version,
           required_version: shared.required_version,
+          layer: shared.layer,
           singleton: shared.singleton,
         })
         .collect(),

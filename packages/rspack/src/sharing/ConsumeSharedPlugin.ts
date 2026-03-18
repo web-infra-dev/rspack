@@ -9,12 +9,18 @@ import {
 } from '../builtin-plugin/base';
 import type { Compiler } from '../Compiler';
 import { parseOptions } from '../container/options';
+import type { ShareScope } from './SharePlugin';
 import { ShareRuntimePlugin } from './ShareRuntimePlugin';
-import { isRequiredVersion } from './utils';
+import {
+  isRequiredVersion,
+  resolveShareKey,
+  resolveShareRequest,
+  resolveShareScope,
+} from './utils';
 
 export type ConsumeSharedPluginOptions = {
   consumes: Consumes;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Consumes = (ConsumesItem | ConsumesObject)[] | ConsumesObject;
@@ -25,10 +31,13 @@ export type ConsumesObject = {
 export type ConsumesConfig = {
   eager?: boolean;
   import?: false | ConsumesItem;
+  issuerLayer?: string;
+  layer?: string;
   packageName?: string;
+  request?: string;
   requiredVersion?: false | string;
   shareKey?: string;
-  shareScope?: string | string[];
+  shareScope?: ShareScope;
   singleton?: boolean;
   strictVersion?: boolean;
   treeShakingMode?: 'server-calc' | 'runtime-infer';
@@ -36,7 +45,8 @@ export type ConsumesConfig = {
 
 export function normalizeConsumeShareOptions(
   consumes: Consumes,
-  shareScope?: string | string[],
+  shareScope?: ShareScope,
+  enhanced?: boolean,
 ) {
   return parseOptions(
     consumes,
@@ -47,44 +57,56 @@ export function normalizeConsumeShareOptions(
           ? // item is a request/key
             {
               import: key,
-              shareScope: shareScope || 'default',
+              shareScope: resolveShareScope(undefined, shareScope),
               shareKey: key,
               requiredVersion: undefined,
               packageName: undefined,
               strictVersion: false,
               singleton: false,
               eager: false,
+              issuerLayer: undefined,
+              layer: undefined,
+              request: key,
               treeShakingMode: undefined,
             }
           : // key is a request/key
             // item is a version
             {
               import: key,
-              shareScope: shareScope || 'default',
+              shareScope: resolveShareScope(undefined, shareScope),
               shareKey: key,
               requiredVersion: item,
               strictVersion: true,
               packageName: undefined,
               singleton: false,
               eager: false,
+              issuerLayer: undefined,
+              layer: undefined,
+              request: key,
               treeShakingMode: undefined,
             };
       return result;
     },
-    (item, key) => ({
-      import: item.import === false ? undefined : item.import || key,
-      shareScope: item.shareScope || shareScope || 'default',
-      shareKey: item.shareKey || key,
-      requiredVersion: item.requiredVersion,
-      strictVersion:
-        typeof item.strictVersion === 'boolean'
-          ? item.strictVersion
-          : item.import !== false && !item.singleton,
-      packageName: item.packageName,
-      singleton: !!item.singleton,
-      eager: !!item.eager,
-      treeShakingMode: item.treeShakingMode,
-    }),
+    (item, key) => {
+      const request = resolveShareRequest(item.request, key);
+      return {
+        import: item.import === false ? undefined : item.import || request,
+        shareScope: resolveShareScope(item.shareScope, shareScope),
+        shareKey: resolveShareKey(item.shareKey, request),
+        requiredVersion: item.requiredVersion,
+        strictVersion:
+          typeof item.strictVersion === 'boolean'
+            ? item.strictVersion
+            : item.import !== false && !item.singleton,
+        packageName: item.packageName,
+        singleton: !!item.singleton,
+        eager: !!item.eager,
+        issuerLayer: enhanced ? item.issuerLayer : undefined,
+        layer: enhanced ? item.layer : undefined,
+        request,
+        treeShakingMode: item.treeShakingMode,
+      };
+    },
   );
 }
 
@@ -98,6 +120,7 @@ export class ConsumeSharedPlugin extends RspackBuiltinPlugin {
       consumes: normalizeConsumeShareOptions(
         options.consumes,
         options.shareScope,
+        options.enhanced,
       ),
       enhanced: options.enhanced ?? false,
     };

@@ -114,22 +114,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .as_any()
       .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
     {
-      // Parse share_key from readable_identifier
       let ident = consume.readable_identifier(&Context::default()).to_string();
-      // Format: "consume shared module ({scope}) {share_key}@..."
       let key = {
-        let mut key = String::new();
-        if let Some(pos) = ident.find(") ") {
-          let rest = &ident[pos + 2..];
-          // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
-          let suffix_start = rest.find(" (").unwrap_or(rest.len());
-          let head = &rest[..suffix_start];
-          // Use the LAST '@' within the head to split "{share_key}@{version}",
-          // so scoped names like "@scope/pkg@1.0.0" are handled correctly.
-          let at = head.rfind('@').unwrap_or(head.len());
-          key = head[..at].to_string();
+        let Some(mut rest) = ident.strip_prefix("consume shared module ") else {
+          continue;
+        };
+        let Some(scope_end) = rest.find(") ") else {
+          continue;
+        };
+        rest = &rest[scope_end + 2..];
+        if rest.starts_with('(') {
+          let Some(layer_end) = rest.find(") ") else {
+            continue;
+          };
+          rest = &rest[layer_end + 2..];
         }
-        key
+        let head = rest.split(" (").next().unwrap_or(rest);
+        let at = head.rfind('@').unwrap_or(head.len());
+        head[..at].to_string()
       };
       if key.is_empty() {
         continue;

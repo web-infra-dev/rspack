@@ -102,6 +102,13 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
         .code_generation_results
         .get(&module, Some(chunk.runtime()));
       if let Some(data) = code_gen.data.get::<CodeGenerationDataConsumeShared>() {
+        let fallback_source = if enhanced {
+          code_gen
+            .get(&SourceType::ConsumeShared)
+            .map(|source| source.source().into_string_lossy().into_owned())
+        } else {
+          None
+        };
         let share_scope_json = if enhanced {
           json_stringify(&data.share_scope)
         } else {
@@ -113,16 +120,31 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
               .map_or("default", |s| s.as_str()),
           )
         };
+        let layer_data = if enhanced {
+          format!(", layer: {}", json_stringify(&data.layer))
+        } else {
+          String::new()
+        };
         module_id_to_consume_data_mapping.insert(id, format!(
-          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}, fallback: {}, treeShakingMode: {} }}",
+          "{{ shareScope: {}, shareKey: {}, import: {}, requiredVersion: {}, strictVersion: {}, singleton: {}, eager: {}{}, fallback: {}, treeShakingMode: {} }}",
           share_scope_json,
           json_stringify(&data.share_key),
           json_stringify(&data.import),
-          json_stringify_str(&data.required_version.as_ref().map_or_else(|| "*".to_string(), |v| v.to_string())),
+          json_stringify_str(
+            &data
+              .required_version
+              .as_ref()
+              .map_or_else(|| "*".to_string(), |v| v.to_string())
+          ),
           json_stringify(&data.strict_version),
           json_stringify(&data.singleton),
           json_stringify(&data.eager),
-          data.fallback.as_deref().unwrap_or("undefined"),
+          layer_data,
+          data
+            .fallback
+            .as_deref()
+            .or(fallback_source.as_deref())
+            .unwrap_or("undefined"),
           json_stringify(&data.tree_shaking_mode),
         ));
       }
@@ -245,6 +267,7 @@ pub struct CodeGenerationDataConsumeShared {
   pub strict_version: bool,
   pub singleton: bool,
   pub eager: bool,
+  pub layer: Option<String>,
   pub fallback: Option<String>,
   pub tree_shaking_mode: Option<String>,
 }

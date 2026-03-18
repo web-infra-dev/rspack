@@ -8,6 +8,15 @@ use rspack_core::{
 use rspack_error::{Result, error};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+const SHARED_LAYER_SEPARATOR: &str = "\u{0000}";
+
+fn split_shared_lookup_key(shared_key: &str) -> (&str, Option<&str>) {
+  match shared_key.split_once(SHARED_LAYER_SEPARATOR) {
+    Some((share_key, layer)) => (share_key, Some(layer)),
+    None => (shared_key, None),
+  }
+}
+
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct SharedUsedExportsOptimizerRuntimeModule {
@@ -44,9 +53,14 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
+    let mut merged_exports = FxHashMap::<String, FxHashSet<String>>::default();
+    for (shared_lookup_key, set) in self.shared_used_exports.iter() {
+      let (share_key, _) = split_shared_lookup_key(shared_lookup_key);
+      let merged_set = merged_exports.entry(share_key.to_string()).or_default();
+      merged_set.extend(set.iter().cloned());
+    }
     // Convert set to vec for JSON serialization stability
-    let stable_map: BTreeMap<String, Vec<String>> = self
-      .shared_used_exports
+    let stable_map: BTreeMap<String, Vec<String>> = merged_exports
       .iter()
       .map(|(share_key, set)| {
         let mut v: Vec<String> = set.iter().cloned().collect();

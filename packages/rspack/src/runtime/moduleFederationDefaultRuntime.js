@@ -91,8 +91,11 @@ export default function () {
                 strictVersion: data.strictVersion,
                 singleton: data.singleton,
                 eager: data.eager,
+                layer: data.layer,
               },
-              scope: [data.shareScope],
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
             },
             shareKey: data.shareKey,
             treeShaking: __webpack_require__.federation.sharedFallback
@@ -106,7 +109,6 @@ export default function () {
         return consumesLoadingModuleToHandlerMapping;
       },
     );
-
     early(__webpack_require__.federation, 'initOptions', () => ({}));
     early(
       __webpack_require__.federation.initOptions,
@@ -134,6 +136,7 @@ export default function () {
               requiredVersion,
               strictVersion,
               treeShakingMode,
+              layer,
             } = stage;
             const shareConfig = {};
             const isValidValue = function (val) {
@@ -150,6 +153,9 @@ export default function () {
             }
             if (isValidValue(strictVersion)) {
               shareConfig.strictVersion = strictVersion;
+            }
+            if (isValidValue(layer)) {
+              shareConfig.layer = layer;
             }
             const options = {
               version,
@@ -230,9 +236,20 @@ export default function () {
         for (let [id, remoteData] of Object.entries(
           remotesLoadingModuleIdToRemoteDataMapping,
         )) {
-          const info =
-            __module_federation_remote_infos__[remoteData.remoteName];
-          if (info) idToRemoteMap[id] = info;
+          const existingInfos =
+            __module_federation_remote_infos__[remoteData.remoteName] || [];
+          let info = existingInfos;
+          if (remoteData.remoteInfo) {
+            const hasRemoteInfo = existingInfos.some(
+              (item) =>
+                item.externalType === remoteData.remoteInfo.externalType &&
+                item.name === remoteData.remoteInfo.name,
+            );
+            info = hasRemoteInfo
+              ? existingInfos
+              : [remoteData.remoteInfo, ...existingInfos];
+          }
+          if (info.length > 0) idToRemoteMap[id] = info;
         }
         return idToRemoteMap;
       },
@@ -261,17 +278,66 @@ export default function () {
         webpackRequire: __webpack_require__,
       }),
     );
-    override(__webpack_require__.f, 'consumes', (chunkId, promises) =>
-      __webpack_require__.federation.bundlerRuntime.consumes({
-        chunkId,
-        promises,
-        chunkMapping: consumesLoadingChunkMapping,
-        moduleToHandlerMapping:
-          __webpack_require__.federation.consumesLoadingModuleToHandlerMapping,
-        installedModules: consumesLoadinginstalledModules,
-        webpackRequire: __webpack_require__,
-      }),
-    );
+    const initConsumeShareScopes = (moduleIds) => {
+      if (!Array.isArray(moduleIds) || moduleIds.length === 0) {
+        return [];
+      }
+      const initPromises = [];
+      const initializedScopes = new Set();
+      for (const moduleId of moduleIds) {
+        const consumeData = consumesLoadingModuleToConsumeDataMapping[moduleId];
+        const rawShareScope = consumeData?.shareScope;
+        const initShareScope = Array.isArray(rawShareScope)
+          ? rawShareScope
+          : [rawShareScope || 'default'];
+        const shareScopeKey = JSON.stringify(initShareScope);
+        if (initializedScopes.has(shareScopeKey)) {
+          continue;
+        }
+        initializedScopes.add(shareScopeKey);
+        const initialized = __webpack_require__.I(initShareScope, []);
+        if (initialized && initialized.then) {
+          initPromises.push(initialized);
+        }
+      }
+      return initPromises;
+    };
+    override(__webpack_require__.f, 'consumes', (chunkId, promises) => {
+      const runtimeConsumes = () =>
+        __webpack_require__.federation.bundlerRuntime.consumes({
+          chunkId,
+          promises,
+          chunkMapping: consumesLoadingChunkMapping,
+          moduleToHandlerMapping:
+            __webpack_require__.federation
+              .consumesLoadingModuleToHandlerMapping,
+          installedModules: consumesLoadinginstalledModules,
+          webpackRequire: __webpack_require__,
+        });
+      const chunkConsumes = consumesLoadingChunkMapping[chunkId];
+      const initPromises = initConsumeShareScopes(chunkConsumes);
+      if (initPromises.length === 0) {
+        return runtimeConsumes();
+      }
+      promises.push(
+        Promise.all(initPromises).then(() => {
+          const nestedPromises = [];
+          __webpack_require__.federation.bundlerRuntime.consumes({
+            chunkId,
+            promises: nestedPromises,
+            chunkMapping: consumesLoadingChunkMapping,
+            moduleToHandlerMapping:
+              __webpack_require__.federation
+                .consumesLoadingModuleToHandlerMapping,
+            installedModules: consumesLoadinginstalledModules,
+            webpackRequire: __webpack_require__,
+          });
+          return nestedPromises.length > 0
+            ? Promise.all(nestedPromises)
+            : undefined;
+        }),
+      );
+    });
     override(__webpack_require__, 'I', (name, initScope) =>
       __webpack_require__.federation.bundlerRuntime.I({
         shareScopeName: name,
@@ -313,6 +379,9 @@ export default function () {
       });
 
     if (__webpack_require__.consumesLoadingData?.initialConsumes) {
+      initConsumeShareScopes(
+        __webpack_require__.consumesLoadingData.initialConsumes,
+      );
       __webpack_require__.federation.bundlerRuntime.installInitialConsumes({
         webpackRequire: __webpack_require__,
         installedModules: consumesLoadinginstalledModules,

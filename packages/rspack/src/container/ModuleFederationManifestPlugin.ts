@@ -118,6 +118,7 @@ export type ManifestSharedOption = {
   name: string;
   version?: string;
   requiredVersion?: string;
+  layer?: string;
   singleton?: boolean;
 };
 
@@ -261,6 +262,7 @@ function collectManifestShared(
       name,
       version,
       requiredVersion,
+      layer: config.layer,
       singleton: config.singleton,
     };
   });

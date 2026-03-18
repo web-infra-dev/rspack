@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  DependencyType, FactorizeInfo, ModuleDependency, ModuleLayer, ResourceIdentifier,
 };
 
 #[cacheable]
@@ -10,18 +10,24 @@ pub struct ContainerExposedDependency {
   id: DependencyId,
   request: String,
   pub exposed_name: String,
+  layer: Option<ModuleLayer>,
   resource_identifier: ResourceIdentifier,
   dependency_type: DependencyType,
   factorize_info: FactorizeInfo,
 }
 
 impl ContainerExposedDependency {
-  pub fn new(exposed_name: String, request: String) -> Self {
-    let resource_identifier = format!("exposed dependency {exposed_name}={request}").into();
+  pub fn new(exposed_name: String, request: String, layer: Option<ModuleLayer>) -> Self {
+    let resource_identifier = if let Some(layer) = &layer {
+      format!("exposed dependency {exposed_name}={request}|layer={layer}").into()
+    } else {
+      format!("exposed dependency {exposed_name}={request}").into()
+    };
     Self {
       id: DependencyId::new(),
       request,
       exposed_name,
+      layer,
       resource_identifier,
       dependency_type: DependencyType::ContainerExposed,
       factorize_info: Default::default(),
@@ -34,6 +40,7 @@ impl ContainerExposedDependency {
       id: DependencyId::new(),
       request,
       exposed_name: String::new(),
+      layer: None,
       resource_identifier,
       dependency_type: DependencyType::ShareContainerFallback,
       factorize_info: Default::default(),
@@ -53,6 +60,10 @@ impl Dependency for ContainerExposedDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &self.dependency_type
+  }
+
+  fn get_layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
   }
 
   fn resource_identifier(&self) -> Option<&str> {
