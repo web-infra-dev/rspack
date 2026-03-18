@@ -65,20 +65,24 @@ impl Bucket {
       .map(|(pack_id, index)| {
         let fs = self.fs.clone();
         let pack_id = *pack_id;
-        async move {
+        let expected_hash = index.content_hash();
+        tokio::spawn(async move {
           let (pack, hash) = Pack::load(&fs, pack_id).await?;
-          if !index.check_content_hash(hash) {
+          if hash != expected_hash {
             return Err(Error::CorruptedData(format!(
               "Pack '{}' content hash mismatch: expected {}, got {}",
               pack_id.pack_name(),
-              index.content_hash(),
+              expected_hash,
               hash
             )));
           }
           Ok(pack)
-        }
+        })
       });
-    let results = try_join_all(tasks).await?;
+    let results = try_join_all(tasks)
+      .await?
+      .into_iter()
+      .collect::<Result<Vec<_>>>()?;
     for pack in results {
       result.extend(pack.data());
     }
@@ -137,15 +141,17 @@ impl Bucket {
       pending_packs.push((pack_id, pack));
     }
 
-    // Perform parallel writes
+    // Perform parallel writes on multiple threads
     let results = try_join_all(pending_packs.into_iter().map(|(pack_id, pack)| {
       let fs = writable_fs.clone();
-      async move {
+      tokio::spawn(async move {
         let index = pack.save(&fs, pack_id).await?;
         Ok::<_, Error>((pack_id, pack, index))
-      }
+      })
     }))
-    .await?;
+    .await?
+    .into_iter()
+    .collect::<Result<Vec<_>>>()?;
 
     // Update metadata with results
     let mut added_files = Vec::with_capacity(results.len());
