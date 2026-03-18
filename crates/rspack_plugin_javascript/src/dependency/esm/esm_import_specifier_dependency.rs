@@ -687,6 +687,47 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 struct ESMImportSpecifierDependencyCondition;
 
 impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
+  fn is_connection_active(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
+    let dependency = dependency
+      .downcast_ref::<ESMImportSpecifierDependency>()
+      .expect("should be ESMImportSpecifierDependency");
+    match dependency.used_by_exports.as_ref() {
+      Some(UsedByExports::Bool(false)) => false,
+      None | Some(UsedByExports::Bool(true)) => {
+        connection_active_inline_value_for_esm_import_specifier(
+          dependency,
+          connection,
+          runtime,
+          module_graph,
+          exports_info_artifact,
+        )
+      }
+      Some(UsedByExports::Set(_)) => {
+        connection_active_used_by_exports(
+          connection,
+          runtime,
+          module_graph,
+          exports_info_artifact,
+          dependency.used_by_exports.as_ref(),
+        ) && connection_active_inline_value_for_esm_import_specifier(
+          dependency,
+          connection,
+          runtime,
+          module_graph,
+          exports_info_artifact,
+        )
+      }
+    }
+  }
+
   fn get_connection_state(
     &self,
     connection: &ModuleGraphConnection,
@@ -695,24 +736,12 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    let dependency = module_graph.dependency_by_id(&connection.dependency_id);
-    let dependency = dependency
-      .downcast_ref::<ESMImportSpecifierDependency>()
-      .expect("should be ESMImportSpecifierDependency");
-    ConnectionState::Active(
-      connection_active_inline_value_for_esm_import_specifier(
-        dependency,
-        connection,
-        runtime,
-        module_graph,
-        exports_info_artifact,
-      ) && connection_active_used_by_exports(
-        connection,
-        runtime,
-        module_graph,
-        exports_info_artifact,
-        dependency.used_by_exports.as_ref(),
-      ),
-    )
+    ConnectionState::Active(self.is_connection_active(
+      connection,
+      runtime,
+      module_graph,
+      _module_graph_cache,
+      exports_info_artifact,
+    ))
   }
 }
