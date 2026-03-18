@@ -5,7 +5,7 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
-use rspack_collections::{Identifier, IdentifierMap};
+use rspack_collections::Identifier;
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
