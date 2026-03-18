@@ -288,6 +288,28 @@ export class RspackOptionsApply {
       options.output.enabledLibraryTypes &&
       options.output.enabledLibraryTypes.length > 0
     ) {
+      const hasModernModule =
+        options.output.enabledLibraryTypes.includes('modern-module');
+      const hasNonModernModule = options.output.enabledLibraryTypes.some(
+        t => t !== 'modern-module',
+      );
+
+      if (options.output.library?.preserveModules && !hasModernModule) {
+        const logger =
+          compiler.getInfrastructureLogger('rspack.RspackOptionsApply');
+        logger.warn(
+          '`preserveModules` only works for `modern-module` library type and will be ignored for other library types.',
+        );
+      }
+
+      if (hasModernModule && hasNonModernModule) {
+        const logger =
+          compiler.getInfrastructureLogger('rspack.RspackOptionsApply');
+        logger.warn(
+          '`modern-module` is used together with other library types. ESM format has impact on chunkLoading and chunkFormat, which may not be compatible with other library types.',
+        );
+      }
+
       for (const type of options.output.enabledLibraryTypes) {
         if (type === 'modern-module') {
           enableLibSplitChunks = true;
