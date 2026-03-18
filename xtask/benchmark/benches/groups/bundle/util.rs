@@ -58,7 +58,6 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     .cache(rspack_core::CacheOptions::Disabled)
     .resolve(Resolve {
       extensions: Some(vec!["...".to_string(), ".jsx".to_string()]),
-      symlinks: Some(false),
       ..Default::default()
     })
     .experiments(Experiments::builder().css(true))
@@ -129,24 +128,26 @@ pub fn derive_projects(
     .collect()
 }
 
-fn resolve_bench_project_dir(project: &str) -> PathBuf {
+fn resolve_benchcases_dir() -> PathBuf {
   let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
     .expect("RSPACK_BENCHCASES_DIR is required and must be an absolute path, e.g. RSPACK_BENCHCASES_DIR=/path/to/.bench/rspack-benchcases");
 
-  PathBuf::from(benchcases_dir)
-    .canonicalize()
-    .unwrap()
-    .join(project)
+  PathBuf::from(benchcases_dir).canonicalize().unwrap()
+}
+
+fn resolve_bench_project_dir(project: &str) -> PathBuf {
+  resolve_benchcases_dir().join(project)
 }
 
 async fn preload_input_filesystem(project: &str) -> io::Result<Arc<dyn ReadableFileSystem>> {
-  let project_dir = resolve_bench_project_dir(project);
+  let _ = project;
+  let benchcases_dir = resolve_benchcases_dir();
   let memory_fs = Arc::new(MemoryFileSystem::default());
   let mut materialized_paths = HashSet::new();
   let mut active_canonical_dirs = HashSet::new();
 
   preload_directory(
-    &project_dir,
+    &benchcases_dir,
     &memory_fs,
     &mut materialized_paths,
     &mut active_canonical_dirs,
