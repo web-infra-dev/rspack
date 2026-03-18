@@ -23,8 +23,7 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    AllowedMemberTypes, CallHooksName, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, TagInfoData, VariableDeclaration, VariableDeclarationKind,
+    CallHooksName, JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
     context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
     get_non_optional_part,
   },
@@ -628,13 +627,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     {
       return Some(true);
     }
-    if let MemberExpressionInfo::Expression(info) =
-      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
-      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
-      && parser
-        .get_tag_data(&name.clone(), COMMONJS_REQUIRE_TAG)
-        .is_some()
+    if let Some(ident) = expr.as_ident()
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
+      && let Some(info) = name_info.info
+      && let Some(name) = info.name.clone()
+      && parser.get_tag_data(&name, COMMONJS_REQUIRE_TAG).is_some()
     {
       return Some(true);
     }

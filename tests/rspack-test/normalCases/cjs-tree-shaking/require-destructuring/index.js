@@ -20,3 +20,10 @@ it("should support require context destructuring assignment", () => {
 	expect(a).toBe("a/a");
 	expect(usedExports).toEqual(["a", "usedExports"]);
 });
+
+it("should not analyze destructuring member access", () => {
+	const m = require("./nested");
+	const { a, usedExports } = m.inner;
+	expect(a).toBe("a");
+	expect(usedExports).toEqual(true);
+});
