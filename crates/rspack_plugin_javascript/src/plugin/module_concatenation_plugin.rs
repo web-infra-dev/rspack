@@ -1206,12 +1206,10 @@ impl ModuleConcatenationPlugin {
         .expect("should have module");
       let module_graph = compilation.get_module_graph();
       let module_graph_cache = &compilation.module_graph_cache_artifact;
-      let filtered_runtime = {
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
-        filter_runtime(Some(runtime), |r| exports_info.is_module_used(r))
-      };
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
+      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,

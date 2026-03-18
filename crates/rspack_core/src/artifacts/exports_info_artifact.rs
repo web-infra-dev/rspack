@@ -68,22 +68,22 @@ impl ExportsInfoArtifact {
       .expect("should have exports info")
   }
 
-  pub fn get_prefetched_exports_info_optional<'a, 'b>(
-    &'a self,
+  pub fn get_prefetched_exports_info_optional<'b>(
+    &'b self,
     module_identifier: &ModuleIdentifier,
     mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'a>> {
+  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
     self
       .module_exports_info
       .get(module_identifier)
       .map(move |exports_info| ExportsInfoGetter::prefetch(exports_info, self, mode))
   }
 
-  pub fn get_prefetched_exports_info<'a, 'b>(
-    &'a self,
+  pub fn get_prefetched_exports_info<'b>(
+    &'b self,
     module_identifier: &ModuleIdentifier,
     mode: PrefetchExportsInfoMode<'b>,
-  ) -> PrefetchedExportsInfoWrapper<'a> {
+  ) -> PrefetchedExportsInfoWrapper<'b> {
     let exports_info = self.get_exports_info(module_identifier);
     ExportsInfoGetter::prefetch(&exports_info, self, mode)
   }
