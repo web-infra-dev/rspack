@@ -1,4 +1,3 @@
-use async_recursion::async_recursion;
 use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
@@ -30,7 +29,6 @@ pub async fn module_rules_matcher<'a>(
 }
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-#[async_recursion]
 pub async fn module_rule_matcher<'a>(
   module_rule: &'a ModuleRule,
   resource_data: &ResourceData,
@@ -39,6 +37,127 @@ pub async fn module_rule_matcher<'a>(
   dependency: &DependencyCategory,
   attributes: Option<&ImportAttributes>,
   matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+) -> Result<bool> {
+  enum MatcherTask<'a> {
+    Rule(&'a ModuleRule),
+    Rules {
+      rules: &'a [ModuleRule],
+      index: usize,
+      awaiting_child: bool,
+    },
+    FinalizeRule {
+      one_of: Option<&'a [ModuleRule]>,
+    },
+    OneOf {
+      rules: &'a [ModuleRule],
+      index: usize,
+      matched_once: bool,
+      awaiting_child: bool,
+    },
+  }
+
+  let mut tasks = vec![MatcherTask::Rule(module_rule)];
+  let mut last_rule_result = None;
+
+  while let Some(task) = tasks.pop() {
+    match task {
+      MatcherTask::Rule(rule) => {
+        if !module_rule_match_locals(
+          rule,
+          resource_data,
+          issuer,
+          issuer_layer,
+          dependency,
+          attributes,
+        )
+        .await?
+        {
+          last_rule_result = Some(false);
+          continue;
+        }
+
+        matched_rules.push(&rule.effect);
+        tasks.push(MatcherTask::FinalizeRule {
+          one_of: rule.one_of.as_deref(),
+        });
+
+        if let Some(rules) = rule.rules.as_deref() {
+          tasks.push(MatcherTask::Rules {
+            rules,
+            index: 0,
+            awaiting_child: false,
+          });
+        }
+      }
+      MatcherTask::Rules {
+        rules,
+        index,
+        awaiting_child,
+      } => {
+        if awaiting_child {
+          last_rule_result.take();
+        }
+
+        if let Some(rule) = rules.get(index) {
+          tasks.push(MatcherTask::Rules {
+            rules,
+            index: index + 1,
+            awaiting_child: true,
+          });
+          tasks.push(MatcherTask::Rule(rule));
+        }
+      }
+      MatcherTask::FinalizeRule { one_of } => {
+        if let Some(one_of) = one_of {
+          tasks.push(MatcherTask::OneOf {
+            rules: one_of,
+            index: 0,
+            matched_once: false,
+            awaiting_child: false,
+          });
+        } else {
+          last_rule_result = Some(true);
+        }
+      }
+      MatcherTask::OneOf {
+        rules,
+        index,
+        mut matched_once,
+        awaiting_child,
+      } => {
+        if awaiting_child {
+          matched_once |= last_rule_result.take().unwrap_or(false);
+          if matched_once {
+            last_rule_result = Some(true);
+            continue;
+          }
+        }
+
+        if let Some(rule) = rules.get(index) {
+          tasks.push(MatcherTask::OneOf {
+            rules,
+            index: index + 1,
+            matched_once,
+            awaiting_child: true,
+          });
+          tasks.push(MatcherTask::Rule(rule));
+        } else {
+          last_rule_result = Some(false);
+        }
+      }
+    }
+  }
+
+  Ok(last_rule_result.unwrap_or(false))
+}
+
+async fn module_rule_match_locals<'a>(
+  module_rule: &'a ModuleRule,
+  resource_data: &ResourceData,
+  issuer: Option<&'a str>,
+  issuer_layer: Option<&'a str>,
+  dependency: &DependencyCategory,
+  attributes: Option<&ImportAttributes>,
 ) -> Result<bool> {
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(resource_data.resource().into()).await?
@@ -196,44 +315,6 @@ pub async fn module_rule_matcher<'a>(
           return Ok(false);
         }
       }
-    }
-  }
-
-  matched_rules.push(&module_rule.effect);
-
-  if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(
-      rules,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    )
-    .await?;
-  }
-
-  if let Some(one_of) = &module_rule.one_of {
-    let mut matched_once = false;
-    for rule in one_of {
-      if module_rule_matcher(
-        rule,
-        resource_data,
-        issuer,
-        issuer_layer,
-        dependency,
-        attributes,
-        matched_rules,
-      )
-      .await?
-      {
-        matched_once = true;
-        break;
-      }
-    }
-    if !matched_once {
-      return Ok(false);
     }
   }
 
