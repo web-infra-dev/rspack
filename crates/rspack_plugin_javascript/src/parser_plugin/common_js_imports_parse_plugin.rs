@@ -198,6 +198,9 @@ fn create_require_resolve_context_dependency(
 }
 
 pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExpr) -> bool {
+  if call.args.len() != 1 {
+    return false;
+  }
   let Some(callee) = call.callee.as_expr() else {
     return false;
   };
