@@ -1994,7 +1994,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable"
-version = "0.100.0-beta.6"
+version = "0.100.0-beta.7"
 dependencies = [
  "camino",
  "dashmap",
@@ -2020,7 +2020,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_cacheable_macros"
-version = "0.100.0-beta.6"
+version = "0.100.0-beta.7"
 dependencies = [
  "quote",
  "syn 2.0.117",
@@ -2043,7 +2043,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_collections"
-version = "0.100.0-beta.6"
+version = "0.100.0-beta.7"
 dependencies = [
  "dashmap",
  "hashlink",
