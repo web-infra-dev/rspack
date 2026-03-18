@@ -507,17 +507,35 @@ pub(crate) fn analyze_dyn_import_targets(
 /// Compute a short name from a module identifier.
 ///
 /// Rules:
-/// - If the filename stem is "index", use the parent directory name
+/// - If the filename stem is "index" and the path is inside `node_modules`,
+///   use the package name (the segment right after `node_modules/`,
+///   or `@scope/pkg` for scoped packages).
+/// - If the filename stem is "index" otherwise, use the parent directory name
 /// - Otherwise, use the filename stem (without extension)
 ///
 /// Examples:
 /// - `node_modules/lib/index.js` → `lib`
+/// - `node_modules/lib/dist/index.js` → `lib`
+/// - `node_modules/@scope/pkg/dist/index.js` → `@scope/pkg`
 /// - `/path/to/src/index.js` → `src`
 /// - `/path/to/src/app.js` → `app`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
   let path = Path::new(identifier);
   let stem = path.file_stem()?.to_str()?;
   if stem == "index" {
+    // If inside node_modules, extract the package name
+    if let Some(pos) = identifier.rfind("node_modules/") {
+      let after_nm = &identifier[pos + "node_modules/".len()..];
+      if after_nm.starts_with('@') {
+        // Scoped package: @scope/pkg/...
+        let mut parts = after_nm.splitn(3, '/');
+        let scope = parts.next()?;
+        let name = parts.next()?;
+        return Some(format!("{scope}/{name}"));
+      } else {
+        return Some(after_nm.split('/').next()?.to_string());
+      }
+    }
     let parent = path.parent()?;
     let dir_name = parent.file_name()?.to_str()?;
     Some(dir_name.to_string())
