@@ -4,7 +4,7 @@ use crate::{ExternalsPlugin, node_builtins::is_node_builtin};
 
 pub fn esm_node_target_plugin() -> BoxPlugin {
   ExternalsPlugin::new(
-    "commonjs".to_string(),
+    "node-commonjs".to_string(),
     vec![ExternalItem::Fn(Box::new(|ctx| {
       Box::pin(async move {
         if !is_node_builtin(&ctx.request) {
