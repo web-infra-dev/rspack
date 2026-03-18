@@ -343,7 +343,13 @@ pub(crate) fn analyze_dyn_import_targets(
       continue;
     }
 
-    let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+    let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!("{e}");
+        continue;
+      }
+    };
     let chunk_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -391,7 +397,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!("{e}");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
@@ -450,7 +462,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!("{e}");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }

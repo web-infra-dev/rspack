@@ -499,7 +499,7 @@ var {} = {{}};
     }
 
     for (module, source) in namespace_object_sources {
-      let chunk = Self::get_module_chunk(module, compilation);
+      let chunk = Self::get_module_chunk(module, compilation)?;
       let chunk_link = link.get_mut_unwrap(&chunk);
       chunk_link.namespace_object_sources.insert(module, source);
     }
@@ -509,20 +509,30 @@ var {} = {{}};
     Ok(())
   }
 
-  pub fn get_module_chunk(m: ModuleIdentifier, compilation: &Compilation) -> ChunkUkey {
+  pub fn get_module_chunk(
+    m: ModuleIdentifier,
+    compilation: &Compilation,
+  ) -> rspack_error::Result<ChunkUkey> {
     let chunks = compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .get_module_chunks(m);
+    Self::validate_single_chunk(m, chunks)
+  }
+
+  fn validate_single_chunk(
+    m: ModuleIdentifier,
+    chunks: &FxHashSet<ChunkUkey>,
+  ) -> rspack_error::Result<ChunkUkey> {
     if chunks.is_empty() {
-      panic!("module {m} is not in any chunk");
+      return Err(rspack_error::error!("module {m} is not in any chunk"));
     }
 
     if chunks.len() > 1 {
-      panic!("module {m} is in multiple chunks");
+      return Err(rspack_error::error!("module {m} is in multiple chunks"));
     }
 
-    *chunks.iter().next().expect("at least one chunk")
+    Ok(*chunks.iter().next().expect("at least one chunk"))
   }
 
   fn deconflict_symbols(
@@ -833,7 +843,7 @@ var {} = {{}};
         continue;
       }
 
-      let chunk_ukey = Self::get_module_chunk(*m, compilation);
+      let chunk_ukey = Self::get_module_chunk(*m, compilation)?;
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -884,7 +894,7 @@ var {} = {{}};
               return Ok(info);
             }
 
-            let chunk_ukey = Self::get_module_chunk(m, compilation);
+            let chunk_ukey = Self::get_module_chunk(m, compilation)?;
 
             let module_graph = compilation.get_module_graph();
 
@@ -1370,7 +1380,13 @@ var {} = {{}};
 
         match binding {
           Ref::Symbol(symbol_binding) => {
-            let ref_chunk = Self::get_module_chunk(symbol_binding.module, compilation);
+            let ref_chunk = match Self::get_module_chunk(symbol_binding.module, compilation) {
+              Ok(c) => c,
+              Err(e) => {
+                errors.push(e.into());
+                continue;
+              }
+            };
             let ref_info = &mut concate_modules_map[&symbol_binding.module];
 
             match ref_info {
@@ -1593,7 +1609,13 @@ var {} = {{}};
         })
         .copied()
       {
-        let entry_module_chunk = Self::get_module_chunk(entry_module, compilation);
+        let entry_module_chunk = match Self::get_module_chunk(entry_module, compilation) {
+          Ok(c) => c,
+          Err(e) => {
+            errors.push(e.into());
+            continue;
+          }
+        };
         entry_imports.entry(entry_module).or_default();
 
         // NOTE: Similar hashbang and directives handling logic.
@@ -1662,7 +1684,13 @@ var {} = {{}};
       };
 
       for dyn_target in dyn_targets {
-        let source_chunk = Self::get_module_chunk(dyn_target, compilation);
+        let source_chunk = match Self::get_module_chunk(dyn_target, compilation) {
+          Ok(c) => c,
+          Err(e) => {
+            errors.push(e.into());
+            continue;
+          }
+        };
         if entry_chunk_ukey_set.contains(&source_chunk) {
           continue;
         }
@@ -1872,7 +1900,13 @@ var {} = {{}};
       let all_used_names = &mut chunk_link.used_names;
 
       for ((symbol, m), mut all_refs) in ref_by_symbol {
-        let ref_chunk = Self::get_module_chunk(m, compilation);
+        let ref_chunk = match Self::get_module_chunk(m, compilation) {
+          Ok(c) => c,
+          Err(e) => {
+            errors.push(e.into());
+            continue;
+          }
+        };
         let info = &concate_modules_map[&m];
         let from_external = matches!(info, ModuleInfo::External(_));
         let needs_import_chunk = ref_chunk != *chunk;
@@ -2529,4 +2563,51 @@ fn normal_render(
   }
 
   reference
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::{ChunkUkey, ModuleIdentifier};
+  use rspack_util::fx_hash::FxHashSet;
+
+  use crate::EsmLibraryPlugin;
+
+  #[test]
+  fn get_module_chunk_empty_chunks_returns_error() {
+    let m = ModuleIdentifier::from("test_module");
+    let chunks = FxHashSet::default();
+    let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(
+      err_msg.contains("not in any chunk"),
+      "expected 'not in any chunk', got: {err_msg}"
+    );
+  }
+
+  #[test]
+  fn get_module_chunk_multiple_chunks_returns_error() {
+    let m = ModuleIdentifier::from("test_module");
+    let mut chunks = FxHashSet::default();
+    chunks.insert(ChunkUkey::new());
+    chunks.insert(ChunkUkey::new());
+    let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
+    assert!(result.is_err());
+    let err_msg = result.unwrap_err().to_string();
+    assert!(
+      err_msg.contains("in multiple chunks"),
+      "expected 'in multiple chunks', got: {err_msg}"
+    );
+  }
+
+  #[test]
+  fn get_module_chunk_single_chunk_returns_ok() {
+    let m = ModuleIdentifier::from("test_module");
+    let expected_chunk = ChunkUkey::new();
+    let mut chunks = FxHashSet::default();
+    chunks.insert(expected_chunk);
+    let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap(), expected_chunk);
+  }
 }

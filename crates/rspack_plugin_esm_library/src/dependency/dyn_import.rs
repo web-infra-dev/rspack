@@ -141,17 +141,29 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    let ref_chunk_ukey = EsmLibraryPlugin::get_module_chunk(
+    let ref_chunk_ukey = match EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),
       code_generatable_context.compilation,
-    );
+    ) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!("{e}");
+        return;
+      }
+    };
 
-    let orig_chunk = EsmLibraryPlugin::get_module_chunk(
+    let orig_chunk = match EsmLibraryPlugin::get_module_chunk(
       *module_graph
         .get_parent_module(dep_id)
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
-    );
+    ) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!("{e}");
+        return;
+      }
+    };
 
     /*
     For:
