@@ -657,3 +657,66 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
       .insert(name, chunk_ukey);
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::short_name_from_identifier;
+
+  #[test]
+  fn short_name_non_index_file() {
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/app.js"),
+      Some("app".into())
+    );
+  }
+
+  #[test]
+  fn short_name_index_uses_parent_dir() {
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/index.js"),
+      Some("src".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_flat() {
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/index.js"),
+      Some("lib".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_nested() {
+    // The main bug: node_modules/lib/dist/index.js should return "lib", not "dist"
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/dist/index.js"),
+      Some("lib".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("/abs/path/node_modules/my-pkg/lib/index.js"),
+      Some("my-pkg".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_scoped() {
+    assert_eq!(
+      short_name_from_identifier("node_modules/@scope/pkg/dist/index.js"),
+      Some("@scope/pkg".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("/abs/node_modules/@org/lib/src/index.js"),
+      Some("@org/lib".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_non_index() {
+    // Non-index files in node_modules should use the stem, not the package name
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/dist/utils.js"),
+      Some("utils".into())
+    );
+  }
+}
