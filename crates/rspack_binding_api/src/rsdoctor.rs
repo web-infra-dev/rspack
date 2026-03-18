@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use napi::Either;
 use napi_derive::napi;
+use rspack_core::BuildMetaExportsType;
 use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
   RsdoctorChunkModules, RsdoctorConnection, RsdoctorConnectionsOnlyImport,
@@ -61,7 +62,14 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .into_iter()
         .map(|loc| loc.into())
         .collect::<Vec<_>>(),
-      exports_type: value.exports_type,
+      exports_type: match value.exports_type {
+        BuildMetaExportsType::Namespace => "namespace",
+        BuildMetaExportsType::Default => "default",
+        BuildMetaExportsType::Flagged => "flagged",
+        BuildMetaExportsType::Dynamic => "dynamic",
+        BuildMetaExportsType::Unset => "unset",
+      }
+      .to_string(),
     }
   }
 }

@@ -3,9 +3,9 @@ use std::sync::{Arc, atomic::AtomicI32};
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxModule, BuildMetaExportsType, ChunkGraph, Compilation, Context, DependencyId, DependencyType,
-  ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact,
-  ModuleType, OptimizationBailoutItem, PrefetchExportsInfoMode, UsageState,
+  BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
+  Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType,
+  OptimizationBailoutItem, PrefetchExportsInfoMode, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -129,14 +129,7 @@ pub fn collect_modules(
           bailout_reason: HashSet::default(),
           side_effects: None,
           side_effects_locations: Vec::new(),
-          exports_type: match module.build_meta().exports_type {
-            BuildMetaExportsType::Namespace => "namespace",
-            BuildMetaExportsType::Default => "default",
-            BuildMetaExportsType::Flagged => "flagged",
-            BuildMetaExportsType::Dynamic => "dynamic",
-            BuildMetaExportsType::Unset => "unset",
-          }
-          .to_string(),
+          exports_type: module.build_meta().exports_type,
         },
       )
     })
