@@ -112,12 +112,8 @@ fn filter_client_components(
   if resource.is_empty() {
     return;
   }
-  let is_css_module = is_css_mod(module);
 
   if visited.contains(&module.identifier()) {
-    if is_css_module {
-      return;
-    }
     if component_info
       .client_component_imports
       .contains_key(resource.as_ref())
@@ -154,7 +150,7 @@ fn filter_client_components(
   }
 
   let module_graph = compilation.get_module_graph();
-  if is_css_module {
+  if is_css_mod(module) {
     let side_effect_free = module
       .factory_meta()
       .and_then(|meta| meta.side_effect_free)
