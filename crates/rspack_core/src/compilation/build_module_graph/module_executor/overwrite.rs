@@ -42,7 +42,7 @@ impl Task<ExecutorTaskContext> for OverwriteTask {
     // factorize result task
     if let Some(factorize_result_task) = origin_task.as_any().downcast_ref::<FactorizeResultTask>()
     {
-      let dep_id = *factorize_result_task.dependencies[0].id();
+      let dep_id = factorize_result_task.dependencies.primary_dependency_id();
       let original_module_identifier = factorize_result_task.original_module_identifier;
       let mut res = overwrite_tasks(origin_task.main_run(origin_context).await?);
       if res.is_empty() {
@@ -53,7 +53,7 @@ impl Task<ExecutorTaskContext> for OverwriteTask {
 
     // add task
     if let Some(add_task) = origin_task.as_any().downcast_ref::<AddTask>() {
-      let dep_id = *add_task.dependencies[0].id();
+      let dep_id = add_task.dependency_ids[0];
       let original_module_identifier = add_task.original_module_identifier;
       let target_module_identifier = add_task.module.identifier();
 

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{TaskContext, factorize::FactorizeTask};
+use super::{FactorizeDependencies, TaskContext, factorize::FactorizeTask};
 use crate::{
   ContextDependency, DependencyId, Module, ModuleIdentifier,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -27,7 +27,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       dependencies,
       from_unlazy,
     } = *self;
-    let mut sorted_dependencies = HashMap::default();
+    let mut sorted_dependencies = HashMap::<Cow<'_, str>, FactorizeDependencies>::default();
 
     // First mark all dependencies as added
     for dependency_id in &dependencies {
@@ -63,10 +63,42 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       };
 
       if let Some(resource_identifier) = resource_identifier {
-        sorted_dependencies
-          .entry(resource_identifier)
-          .or_insert(vec![])
-          .push(dependency.clone());
+        match sorted_dependencies.entry(resource_identifier) {
+          std::collections::hash_map::Entry::Vacant(entry) => {
+            if dependency.as_context_dependency().is_some() {
+              entry.insert(FactorizeDependencies::Complete(vec![dependency.clone()]));
+            } else {
+              entry.insert(FactorizeDependencies::deferred(
+                dependency.clone(),
+                vec![dependency_id],
+              ));
+            }
+          }
+          std::collections::hash_map::Entry::Occupied(mut entry) => match entry.get_mut() {
+            FactorizeDependencies::Complete(dependencies) => {
+              dependencies.push(dependency.clone());
+            }
+            FactorizeDependencies::Deferred {
+              first_dependency,
+              dependency_ids,
+            } => {
+              if dependency.as_context_dependency().is_some() {
+                let mut dependencies = Vec::with_capacity(dependency_ids.len() + 1);
+                dependencies.push(first_dependency.clone());
+                dependencies.extend(
+                  dependency_ids
+                    .iter()
+                    .skip(1)
+                    .map(|dependency_id| module_graph.dependency_by_id(dependency_id).clone()),
+                );
+                dependencies.push(dependency.clone());
+                *entry.get_mut() = FactorizeDependencies::Complete(dependencies);
+              } else {
+                dependency_ids.push(dependency_id);
+              }
+            }
+          },
+        }
       }
     }
 
@@ -80,7 +112,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         .module_by_identifier(&original_module_identifier)
         .and_then(|m| m.as_normal_module())
         .and_then(|m| m.source().cloned());
-      let dependency = &dependencies[0];
+      let dependency = dependencies.first_dependency();
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
       let module_factory = context

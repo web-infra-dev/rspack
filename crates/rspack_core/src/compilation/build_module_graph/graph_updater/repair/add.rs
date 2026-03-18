@@ -2,7 +2,7 @@ use rspack_error::Result;
 
 use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
 use crate::{
-  BoxDependency, BoxModule, ModuleIdentifier,
+  BoxModule, DependencyId, ForwardId, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -13,7 +13,7 @@ pub struct AddTask {
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub module: BoxModule,
   pub module_graph_module: Box<ModuleGraphModule>,
-  pub dependencies: Vec<BoxDependency>,
+  pub dependency_ids: Vec<DependencyId>,
   pub from_unlazy: bool,
 }
 
@@ -37,14 +37,14 @@ impl Task<TaskContext> for AddTask {
       set_resolved_module(
         module_graph,
         self.original_module_identifier,
-        self.dependencies,
+        &self.dependency_ids,
         *issuer,
       )?;
 
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
+    let forwarded_ids = forwarded_ids_from_dependency_ids(module_graph, &self.dependency_ids);
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -54,7 +54,7 @@ impl Task<TaskContext> for AddTask {
       set_resolved_module(
         module_graph,
         self.original_module_identifier,
-        self.dependencies,
+        &self.dependency_ids,
         module_identifier,
       )?;
 
@@ -105,7 +105,7 @@ impl Task<TaskContext> for AddTask {
     set_resolved_module(
       module_graph,
       self.original_module_identifier,
-      self.dependencies,
+      &self.dependency_ids,
       module_identifier,
     )?;
 
@@ -131,16 +131,34 @@ impl Task<TaskContext> for AddTask {
 fn set_resolved_module(
   module_graph: &mut ModuleGraph,
   original_module_identifier: Option<ModuleIdentifier>,
-  dependencies: Vec<BoxDependency>,
+  dependency_ids: &[DependencyId],
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
-  for dependency in dependencies {
+  for dependency_id in dependency_ids {
     module_graph.set_resolved_module(
       original_module_identifier,
-      *dependency.id(),
+      *dependency_id,
       module_identifier,
     )?;
-    module_graph.add_dependency(dependency);
   }
   Ok(())
+}
+
+fn forwarded_ids_from_dependency_ids(
+  module_graph: &ModuleGraph,
+  dependency_ids: &[DependencyId],
+) -> ForwardedIdSet {
+  let mut forwarded_ids = ForwardedIdSet::empty();
+  if let ForwardedIdSet::IdSet(ids) = &mut forwarded_ids {
+    for dependency_id in dependency_ids {
+      match module_graph.dependency_by_id(dependency_id).forward_id() {
+        ForwardId::All => return ForwardedIdSet::All,
+        ForwardId::Id(id) => {
+          ids.insert(id);
+        }
+        ForwardId::Empty => {}
+      }
+    }
+  }
+  forwarded_ids
 }

@@ -1,7 +1,9 @@
 use std::collections::hash_map::Entry;
 
 use super::{
-  super::graph_updater::repair::{context::TaskContext, factorize::FactorizeTask},
+  super::graph_updater::repair::{
+    FactorizeDependencies, context::TaskContext, factorize::FactorizeTask,
+  },
   context::{ExecutorTaskContext, ImportModuleMeta},
   execute::ExecuteTask,
   overwrite::overwrite_tasks,
@@ -71,7 +73,7 @@ impl Task<ExecutorTaskContext> for EntryTask {
           issuer: None,
           issuer_layer: meta.layer.clone(),
           original_module_context: None,
-          dependencies: vec![dep],
+          dependencies: FactorizeDependencies::deferred(dep, vec![dep_id]),
           resolve_options: None,
           options: origin_context.compiler_options.clone(),
           resolver_factory: origin_context.resolver_factory.clone(),

@@ -11,9 +11,69 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ExportsInfoArtifact,
+  BoxDependency, BuildDependency, Compilation, DependencyId, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
 };
+
+#[derive(Debug)]
+pub enum FactorizeDependencies {
+  Complete(Vec<BoxDependency>),
+  Deferred {
+    first_dependency: BoxDependency,
+    dependency_ids: Vec<DependencyId>,
+  },
+}
+
+impl FactorizeDependencies {
+  pub fn deferred(first_dependency: BoxDependency, dependency_ids: Vec<DependencyId>) -> Self {
+    Self::Deferred {
+      first_dependency,
+      dependency_ids,
+    }
+  }
+
+  pub fn first_dependency(&self) -> &BoxDependency {
+    match self {
+      Self::Complete(dependencies) => dependencies.first().expect("dependency expected"),
+      Self::Deferred {
+        first_dependency, ..
+      } => first_dependency,
+    }
+  }
+
+  pub fn primary_dependency_id(&self) -> DependencyId {
+    *self.first_dependency().id()
+  }
+
+  pub fn into_factory_parts(self) -> (Vec<BoxDependency>, Option<Vec<DependencyId>>) {
+    match self {
+      Self::Complete(dependencies) => (dependencies, None),
+      Self::Deferred {
+        first_dependency,
+        dependency_ids,
+      } => (vec![first_dependency], Some(dependency_ids)),
+    }
+  }
+
+  pub fn from_factory_parts(
+    dependencies: Vec<BoxDependency>,
+    dependency_ids: Option<Vec<DependencyId>>,
+  ) -> Self {
+    match dependency_ids {
+      Some(dependency_ids) => {
+        let first_dependency = dependencies
+          .into_iter()
+          .next()
+          .expect("dependency expected");
+        Self::Deferred {
+          first_dependency,
+          dependency_ids,
+        }
+      }
+      None => Self::Complete(dependencies),
+    }
+  }
+}
 
 pub async fn repair(
   compilation: &Compilation,
@@ -53,7 +113,7 @@ pub async fn repair(
             issuer: None,
             issuer_layer: None,
             original_module_context: None,
-            dependencies: vec![dependency.clone()],
+            dependencies: FactorizeDependencies::deferred(dependency.clone(), vec![dep_id]),
             resolve_options: None,
             options: compilation.options.clone(),
             resolver_factory: compilation.resolver_factory.clone(),
