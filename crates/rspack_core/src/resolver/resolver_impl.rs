@@ -12,8 +12,7 @@ use rspack_util::location::byte_line_column_to_offset;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
-  Alias, AliasMap, DependencyCategory, PnpManifest, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType,
+  Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -299,20 +298,6 @@ fn to_rspack_resolver_options(
     .into_iter()
     .map(PathBuf::from)
     .collect();
-  let pnp_manifest = match options.pnp_manifest {
-    Some(PnpManifest::Path(p)) => Some(p.into()),
-    Some(PnpManifest::Disabled) => None,
-    None => {
-      if options.pnp.unwrap_or(false) {
-        std::env::current_dir()
-          .ok()
-          .and_then(|cwd| pnp::find_closest_pnp_manifest_path(&cwd))
-      } else {
-        None
-      }
-    }
-  };
-
   rspack_resolver::ResolveOptions {
     fallback,
     modules,
@@ -337,7 +322,6 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
-    pnp_manifest,
   }
 }
 

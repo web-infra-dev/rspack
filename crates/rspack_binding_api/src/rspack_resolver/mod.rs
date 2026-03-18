@@ -214,10 +214,6 @@ impl ResolverFactory {
       symlinks: op.symlinks.unwrap_or(default.symlinks),
       builtin_modules: op.builtin_modules.unwrap_or(default.builtin_modules),
       enable_pnp: op.enable_pnp.unwrap_or_default(),
-      pnp_manifest: op.pnp_manifest.and_then(|m| match m {
-        Either::A(p) => Some(PathBuf::from(p)),
-        Either::B(_) => None,
-      }),
     }
   }
 }
