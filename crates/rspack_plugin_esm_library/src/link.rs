@@ -509,7 +509,7 @@ var {} = {{}};
     Ok(())
   }
 
-  pub fn get_module_chunk(
+  pub(crate) fn get_module_chunk(
     m: ModuleIdentifier,
     compilation: &Compilation,
   ) -> rspack_error::Result<ChunkUkey> {
@@ -524,15 +524,11 @@ var {} = {{}};
     m: ModuleIdentifier,
     chunks: &FxHashSet<ChunkUkey>,
   ) -> rspack_error::Result<ChunkUkey> {
-    if chunks.is_empty() {
-      return Err(rspack_error::error!("module {m} is not in any chunk"));
+    match chunks.len() {
+      0 => Err(rspack_error::error!("module {m} is not in any chunk")),
+      1 => Ok(*chunks.iter().next().unwrap()),
+      _ => Err(rspack_error::error!("module {m} is in multiple chunks")),
     }
-
-    if chunks.len() > 1 {
-      return Err(rspack_error::error!("module {m} is in multiple chunks"));
-    }
-
-    Ok(*chunks.iter().next().expect("at least one chunk"))
   }
 
   fn deconflict_symbols(

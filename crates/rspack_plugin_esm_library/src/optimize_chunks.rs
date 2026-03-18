@@ -346,7 +346,7 @@ pub(crate) fn analyze_dyn_import_targets(
     let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
       Ok(c) => c,
       Err(e) => {
-        tracing::warn!("{e}");
+        tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
         continue;
       }
     };
@@ -400,7 +400,7 @@ pub(crate) fn analyze_dyn_import_targets(
       let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
         Ok(c) => c,
         Err(e) => {
-          tracing::warn!("{e}");
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
           continue;
         }
       };
@@ -465,7 +465,7 @@ pub(crate) fn analyze_dyn_import_targets(
       let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
         Ok(c) => c,
         Err(e) => {
-          tracing::warn!("{e}");
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
           continue;
         }
       };

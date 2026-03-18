@@ -147,7 +147,16 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     ) {
       Ok(c) => c,
       Err(e) => {
-        tracing::warn!("{e}");
+        tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import target");
+        let missing_promise = code_generatable_context
+          .runtime_template
+          .missing_module_promise(request);
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          missing_promise,
+          None,
+        );
         return;
       }
     };
@@ -160,7 +169,16 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     ) {
       Ok(c) => c,
       Err(e) => {
-        tracing::warn!("{e}");
+        tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import source");
+        let missing_promise = code_generatable_context
+          .runtime_template
+          .missing_module_promise(request);
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          missing_promise,
+          None,
+        );
         return;
       }
     };
