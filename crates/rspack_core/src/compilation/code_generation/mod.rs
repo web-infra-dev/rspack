@@ -194,11 +194,23 @@ pub(crate) async fn code_generation_modules(
                 codegen_res
                   .runtime_requirements
                   .extend(*runtime_template.runtime_requirements());
-                codegen_res.set_hash(
-                  &options.output.hash_function,
-                  &options.output.hash_digest,
-                  &options.output.hash_salt,
-                );
+                if module.as_concatenated_module().is_some() {
+                  // Concatenated modules are special here: `job.hash` already
+                  // fingerprints the generated module bodies, so we only need
+                  // to fold in the remaining codegen metadata.
+                  codegen_res.set_hash_for_concatenated_module(
+                    &job.hash,
+                    &options.output.hash_function,
+                    &options.output.hash_digest,
+                    &options.output.hash_salt,
+                  );
+                } else {
+                  codegen_res.set_hash(
+                    &options.output.hash_function,
+                    &options.output.hash_digest,
+                    &options.output.hash_salt,
+                  );
+                }
                 codegen_res
               })
           })
