@@ -633,7 +633,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         .get_tag_data(&name.clone(), COMMONJS_REQUIRE_TAG)
         .is_some()
     {
-      dbg!(&info);
       return Some(true);
     }
     None

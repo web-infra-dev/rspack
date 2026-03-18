@@ -17,7 +17,7 @@ use crate::{
   },
   parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{CallHooksName, JavascriptParser, expr_name},
+  visitors::JavascriptParser,
 };
 
 fn get_value_of_property_description(expr: &Expr) -> Option<&Expr> {
