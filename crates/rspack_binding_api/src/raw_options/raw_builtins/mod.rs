@@ -63,7 +63,8 @@ use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
-  ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin, node_target_plugin,
+  ExternalsPlugin, electron_target_plugin, esm_node_target_plugin, http_externals_rspack_plugin,
+  node_target_plugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
@@ -158,6 +159,7 @@ pub enum BuiltinPluginName {
   DynamicEntryPlugin,
   ExternalsPlugin,
   NodeTargetPlugin,
+  EsmNodeTargetPlugin,
   ElectronTargetPlugin,
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
@@ -398,6 +400,9 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(plugin);
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
+      BuiltinPluginName::EsmNodeTargetPlugin => {
+        plugins.push(esm_node_target_plugin());
+      }
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;

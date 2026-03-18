@@ -530,6 +530,7 @@ export declare enum BuiltinPluginName {
   DynamicEntryPlugin = 'DynamicEntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
   NodeTargetPlugin = 'NodeTargetPlugin',
+  EsmNodeTargetPlugin = 'EsmNodeTargetPlugin',
   ElectronTargetPlugin = 'ElectronTargetPlugin',
   EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
   EnableLibraryPlugin = 'EnableLibraryPlugin',
@@ -2888,6 +2889,11 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   forceNodeShims?: boolean
+  /**
+   * Externalize Node.js builtin modules with ESM-aware external types
+   * @default `false`
+   */
+  externalEsmNodeBuiltin?: boolean
 }
 
 export interface RawRstestPluginOptions {
