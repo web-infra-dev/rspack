@@ -65,7 +65,7 @@ jobs:
 
       - name: Setup Zig for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: mlugg/setup-zig@v2
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
         with:
           version: '0.14.1'
 
