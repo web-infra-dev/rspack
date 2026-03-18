@@ -1,5 +1,5 @@
 use std::{
-  collections::HashSet,
+  collections::{HashMap, HashSet},
   io,
   path::{Path, PathBuf},
   sync::Arc,
@@ -10,7 +10,10 @@ use rspack_core::{
   Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
   ModuleRuleUseLoader, Resolve, RuleSetCondition,
 };
-use rspack_fs::{MemoryFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{
+  FileMetadata, FilePermissions, MemoryFileSystem, ReadableFileSystem, WritableFileSystem,
+};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use serde_json::json;
 
@@ -20,6 +23,94 @@ pub type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder + Send + Syn
 pub struct BuilderOptions {
   pub project: &'static str,
   pub entry: &'static str,
+}
+
+#[derive(Debug)]
+struct PreloadedInputFileSystem {
+  memory: Arc<MemoryFileSystem>,
+  symlink_metadata: HashMap<Utf8PathBuf, FileMetadata>,
+  symlink_targets: HashMap<Utf8PathBuf, Utf8PathBuf>,
+}
+
+impl PreloadedInputFileSystem {
+  fn new(
+    memory: Arc<MemoryFileSystem>,
+    symlink_metadata: HashMap<Utf8PathBuf, FileMetadata>,
+    symlink_targets: HashMap<Utf8PathBuf, Utf8PathBuf>,
+  ) -> Self {
+    Self {
+      memory,
+      symlink_metadata,
+      symlink_targets,
+    }
+  }
+
+  fn canonicalized_path(&self, path: &Utf8Path) -> Utf8PathBuf {
+    let path = normalize_utf8_path(path);
+    self
+      .symlink_targets
+      .iter()
+      .filter_map(|(symlink_path, target_path)| {
+        path
+          .strip_prefix(symlink_path)
+          .ok()
+          .map(|rest| (symlink_path, target_path, rest))
+      })
+      .max_by_key(|(symlink_path, _, _)| symlink_path.as_str().len())
+      .map(|(_, target_path, rest)| {
+        if rest.as_str().is_empty() {
+          target_path.clone()
+        } else {
+          target_path.join(rest)
+        }
+      })
+      .unwrap_or(path)
+  }
+}
+
+#[async_trait::async_trait]
+impl ReadableFileSystem for PreloadedInputFileSystem {
+  async fn read(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    self.memory.read(&normalize_utf8_path(path)).await
+  }
+
+  fn read_sync(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    self.memory.read_sync(&normalize_utf8_path(path))
+  }
+
+  async fn metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    self.memory.metadata(&normalize_utf8_path(path)).await
+  }
+
+  fn metadata_sync(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    self.memory.metadata_sync(&normalize_utf8_path(path))
+  }
+
+  async fn symlink_metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    let path = normalize_utf8_path(path);
+    if let Some(metadata) = self.symlink_metadata.get(&path) {
+      return Ok(metadata.clone());
+    }
+    self.memory.metadata(&path).await
+  }
+
+  async fn canonicalize(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+    let path = self.canonicalized_path(path);
+    self.memory.metadata(&path).await?;
+    Ok(path)
+  }
+
+  async fn read_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    ReadableFileSystem::read_dir(self.memory.as_ref(), &normalize_utf8_path(dir)).await
+  }
+
+  fn read_dir_sync(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    self.memory.read_dir_sync(&normalize_utf8_path(dir))
+  }
+
+  async fn permissions(&self, _path: &Utf8Path) -> rspack_fs::Result<Option<FilePermissions>> {
+    Ok(None)
+  }
 }
 
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
@@ -145,16 +236,24 @@ async fn preload_input_filesystem(project: &str) -> io::Result<Arc<dyn ReadableF
   let memory_fs = Arc::new(MemoryFileSystem::default());
   let mut materialized_paths = HashSet::new();
   let mut active_canonical_dirs = HashSet::new();
+  let mut symlink_metadata = HashMap::new();
+  let mut symlink_targets = HashMap::new();
 
   preload_directory(
     &benchcases_dir,
     &memory_fs,
     &mut materialized_paths,
     &mut active_canonical_dirs,
+    &mut symlink_metadata,
+    &mut symlink_targets,
   )
   .await?;
 
-  Ok(memory_fs)
+  Ok(Arc::new(PreloadedInputFileSystem::new(
+    memory_fs,
+    symlink_metadata,
+    symlink_targets,
+  )))
 }
 
 async fn preload_directory(
@@ -162,9 +261,23 @@ async fn preload_directory(
   memory_fs: &MemoryFileSystem,
   materialized_paths: &mut HashSet<PathBuf>,
   active_canonical_dirs: &mut HashSet<PathBuf>,
+  symlink_metadata: &mut HashMap<Utf8PathBuf, FileMetadata>,
+  symlink_targets: &mut HashMap<Utf8PathBuf, Utf8PathBuf>,
 ) -> io::Result<()> {
   if !materialized_paths.insert(path.to_path_buf()) {
     return Ok(());
+  }
+
+  let symlink_meta = std::fs::symlink_metadata(path)?;
+  if symlink_meta.file_type().is_symlink() {
+    symlink_metadata.insert(
+      path_to_utf8_pathbuf(path)?,
+      FileMetadata::try_from(symlink_meta).map_err(fs_error_to_io_error)?,
+    );
+    symlink_targets.insert(
+      path_to_utf8_pathbuf(path)?,
+      path_to_utf8_pathbuf(&path.canonicalize()?)?,
+    );
   }
 
   let metadata = std::fs::metadata(path)?;
@@ -189,6 +302,8 @@ async fn preload_directory(
         memory_fs,
         materialized_paths,
         active_canonical_dirs,
+        symlink_metadata,
+        symlink_targets,
       ))
       .await?;
     }
@@ -225,6 +340,37 @@ fn path_to_utf8(path: &Path) -> io::Result<&str> {
   })
 }
 
+fn path_to_utf8_pathbuf(path: &Path) -> io::Result<Utf8PathBuf> {
+  Utf8PathBuf::from_path_buf(path.to_path_buf()).map_err(|path| {
+    io::Error::new(
+      io::ErrorKind::InvalidData,
+      format!("benchmark path must be valid UTF-8: {}", path.display()),
+    )
+  })
+}
+
 fn fs_error_to_io_error(error: rspack_fs::Error) -> io::Error {
   io::Error::other(error.to_string())
+}
+
+fn normalize_utf8_path(path: &Utf8Path) -> Utf8PathBuf {
+  let mut normalized = PathBuf::new();
+
+  for component in path.as_std_path().components() {
+    match component {
+      std::path::Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
+      std::path::Component::RootDir => normalized.push(std::path::MAIN_SEPARATOR.to_string()),
+      std::path::Component::CurDir => {}
+      std::path::Component::ParentDir => {
+        normalized.pop();
+      }
+      std::path::Component::Normal(part) => normalized.push(part),
+    }
+  }
+
+  if normalized.as_os_str().is_empty() && path.is_absolute() {
+    normalized.push(std::path::MAIN_SEPARATOR.to_string());
+  }
+
+  normalized.assert_utf8()
 }

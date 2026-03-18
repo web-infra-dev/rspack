@@ -12,11 +12,13 @@ codspeed = ["criterion2/codspeed"]
 default  = []
 
 [dependencies]
+async-trait  = { workspace = true }
 criterion2   = { workspace = true }
 rspack       = { workspace = true, features = ["full"] }
 rspack_core  = { workspace = true }
 rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
+rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_tasks = { workspace = true }
 serde_json   = { workspace = true }
