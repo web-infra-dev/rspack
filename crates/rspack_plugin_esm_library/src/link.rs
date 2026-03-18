@@ -10,32 +10,28 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
   ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsType, FindTargetResult, GetUsedNameParam, IdentCollector, ImportSpec, ModuleGraph,
+  ExportsType, FindTargetResult, GetUsedNameParam, ImportSpec, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
   PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
-use rspack_javascript_compiler::ast::Ast;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
-  visitors::swc_visitor::resolver,
 };
 use rspack_util::{
   SpanExt,
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet, indexmap},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::{
-  common::{FileName, Spanned, SyntaxContext},
-  ecma::{
-    ast::{EsVersion, Program},
-    parser::{EsSyntax, Syntax, parse_file_as_module},
-  },
-};
+use swc_core::common::SyntaxContext;
+use swc_experimental_ecma_ast::{Ast, EsVersion, StringAllocator};
+use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
+use swc_experimental_ecma_semantic::resolver::resolver;
+use swc_node_comments::SwcComments;
 
 use crate::{
   EsmLibraryPlugin,
@@ -576,7 +572,7 @@ var {} = {{}};
     // merge all all_used_names from hoisted modules
     for id in &chunk_link.hoisted_modules {
       let concate_info = concate_modules_map[id].as_concatenated();
-      all_used_names.extend(concate_info.all_used_names.clone());
+      all_used_names.extend(concate_info.all_used_names.iter().cloned());
     }
 
     // Pre-reserve namespace object names from dyn_import_ns_map so other
@@ -979,32 +975,29 @@ var {} = {{}};
                       .and_then(|js_options| js_options.jsx)
                   })
                   .unwrap_or(false);
-                let cm: Arc<swc_core::common::SourceMap> = Default::default();
-                let readable_identifier = m.readable_identifier(&compilation.options.context);
-                let fm = cm.new_source_file(
-                  Arc::new(FileName::Custom(readable_identifier.clone().into_owned())),
-                  render_source
-                    .source
-                    .source()
-                    .into_string_lossy()
-                    .into_owned(),
-                );
-                let mut errors = vec![];
-                let module = match parse_file_as_module(
-                  &fm,
+                let source_str = render_source
+                  .source
+                  .source()
+                  .into_string_lossy()
+                  .into_owned();
+                let comments = SwcComments::default();
+                let mut ast = Ast::new(source_str.len(), StringAllocator::default());
+                let lexer = swc_experimental_ecma_parser::Lexer::new(
                   Syntax::Es(EsSyntax {
                     jsx,
                     ..Default::default()
                   }),
                   EsVersion::EsNext,
-                  None,
-                  &mut errors,
-                ) {
+                  StringSource::new(&source_str),
+                  Some(&comments),
+                  ast.string_allocator(),
+                );
+                let mut parser = Parser::new_from(&mut ast, lexer);
+                let module = match parser.parse_module() {
                   Ok(module) => module,
                   Err(err) => {
-                    // return empty error as we already push error to compilation.diagnostics
                     return Err(Error::from_string(
-                      Some(fm.src.clone().into_string()),
+                      Some(source_str.clone()),
                       err.span().real_lo() as usize,
                       err.span().real_hi() as usize,
                       "JavaScript parse error:\n".to_string(),
@@ -1012,62 +1005,50 @@ var {} = {{}};
                     ));
                   }
                 };
-                let mut ast = Ast::new(Program::Module(module), cm, None);
+                let ast = &ast;
+                let semantic = resolver(module, ast);
+                let ids = collect_ident(ast, module);
 
-                let mut global_ctxt = SyntaxContext::empty();
-                let mut module_ctxt = SyntaxContext::empty();
-                let mut collector = IdentCollector::default();
+                concate_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
+                concate_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+
+                let top_level_scope_id = semantic.top_level_scope_id();
                 let mut all_used_names = FxHashSet::default();
-                ast.transform(|program, context| {
-                  global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-                  module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-                  program.visit_mut_with(&mut resolver(
-                    context.unresolved_mark,
-                    context.top_level_mark,
-                    false,
-                  ));
-                  program.visit_with(&mut collector);
-                });
-
-                let mut idents = vec![];
-                for ident in collector.ids {
-                  if ident.id.ctxt == global_ctxt {
-                    all_used_names.insert(ident.id.sym.clone());
-                  }
-                  if ident.is_class_expr_with_ident {
-                    all_used_names.insert(ident.id.sym.clone());
-                    continue;
-                  }
-                  if ident.id.ctxt != module_ctxt {
-                    all_used_names.insert(ident.id.sym.clone());
-                  }
-                  idents.push(ident);
-                }
-
+                all_used_names.reserve(ids.len());
+                concate_info.idents.reserve(ids.len());
+                concate_info.global_scope_ident.reserve(ids.len());
                 let mut binding_to_ref: FxIndexMap<
                   (Atom, SyntaxContext),
                   Vec<ConcatenatedModuleIdent>,
                 > = Default::default();
+                binding_to_ref.reserve(ids.len());
 
-                for ident in &idents {
-                  match binding_to_ref.entry((ident.id.sym.clone(), ident.id.ctxt)) {
-                    indexmap::map::Entry::Occupied(mut occ) => {
-                      occ.get_mut().push(ident.clone());
-                    }
-                    indexmap::map::Entry::Vacant(vac) => {
-                      vac.insert(vec![ident.clone()]);
-                    }
+                for ident in ids {
+                  let scope = semantic.node_scope(ident.id);
+                  let is_global = scope.to_ctxt() == concate_info.global_ctxt;
+                  let legacy = if is_global {
+                    let leg = ident.to_legacy(ast, &semantic);
+                    concate_info.global_scope_ident.push(leg.clone());
+                    all_used_names.insert(leg.id.sym.clone());
+                    Some(leg)
+                  } else {
+                    None
                   };
+                  if ident.is_class_expr_with_ident {
+                    all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+                    continue;
+                  }
+                  if scope != top_level_scope_id {
+                    all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+                  }
+                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(ast, &semantic));
+                  concate_info.idents.push(legacy.clone());
+                  binding_to_ref
+                    .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+                    .or_default()
+                    .push(legacy);
                 }
 
-                concate_info.global_scope_ident = idents
-                  .iter()
-                  .filter(|ident| ident.id.ctxt == global_ctxt)
-                  .cloned()
-                  .collect();
-                concate_info.global_ctxt = global_ctxt;
-                concate_info.module_ctxt = module_ctxt;
-                concate_info.idents = idents;
                 concate_info.all_used_names = all_used_names;
                 concate_info.binding_to_ref = binding_to_ref;
                 concate_info.has_ast = true;
@@ -1164,13 +1145,24 @@ var {} = {{}};
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     collect_own_exports: bool,
+    cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> FxIndexSet<Either<Atom, ModuleIdentifier>> {
+    // Memoize recursive calls to avoid redundant traversals of the same
+    // module's export * chains (hot path: conn.is_active + dep.get_mode).
+    if collect_own_exports && let Some(cached) = cache.get(&module_id) {
+      return cached.clone();
+    }
+
     let module = module_graph
       .module_by_identifier(&module_id)
       .expect("should have module");
 
     if module.as_external_module().is_some() {
-      return std::iter::once(Either::Right(module_id)).collect();
+      let result: FxIndexSet<_> = std::iter::once(Either::Right(module_id)).collect();
+      if collect_own_exports {
+        cache.insert(module_id, result.clone());
+      }
+      return result;
     }
 
     let mut exports = if collect_own_exports {
@@ -1212,16 +1204,20 @@ var {} = {{}};
 
         if matches!(mode, ExportMode::DynamicReexport(_)) {
           let ref_module = conn.module_identifier();
-          // collect all exports from ref module
           exports.extend(Self::resolve_re_export_star_from_unknown(
             *ref_module,
             module_graph,
             module_graph_cache,
             exports_info_artifact,
             true,
+            cache,
           ));
         }
       }
+    }
+
+    if collect_own_exports {
+      cache.insert(module_id, exports.clone());
     }
 
     exports
@@ -1310,6 +1306,7 @@ var {} = {{}};
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
     filter_unused: bool,
+    re_export_star_cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1343,6 +1340,7 @@ var {} = {{}};
       // by usage above — only collect `export *` targets here.
       // When filter_unused is false (entry modules), also collect own exports.
       !filter_unused,
+      re_export_star_cache,
     )
     .iter()
     .for_each(|either| {
@@ -1576,6 +1574,11 @@ var {} = {{}};
     let context = &compilation.options.context;
     let module_graph = compilation.get_module_graph();
 
+    // Cache for resolve_re_export_star_from_unknown to avoid redundant
+    // traversals of the same module's export * chains across entry modules.
+    let mut re_export_star_cache: IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>> =
+      IdentifierMap::default();
+
     // we don't modify exports and imports in chunk_link directly unless,
     // we re-borrow data from the chunk_link many times to avoid borrow
     // checker issue, so put chunk_link.exports, chunk_link.imports and
@@ -1666,6 +1669,7 @@ var {} = {{}};
           escaped_identifiers,
           false,
           false,
+          &mut re_export_star_cache,
         ));
       }
     }
@@ -1760,6 +1764,7 @@ var {} = {{}};
             escaped_identifiers,
             allow_rename,
             true,
+            &mut re_export_star_cache,
           ));
         }
       }
@@ -1829,6 +1834,31 @@ var {} = {{}};
           let Some(conn) = module_graph.connection_by_dependency_id(dep_id) else {
             continue;
           };
+
+          let ref_module = *conn.module_identifier();
+          let ref_in_same_chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_chunks(ref_module)
+            .contains(chunk);
+
+          // Fast path: for non-ESM imports to modules in the same chunk,
+          // skip the expensive is_target_active check since chunk_imports
+          // for same-chunk modules are unused.
+          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
+            if !ref_in_same_chunk
+              && conn.is_target_active(
+                module_graph,
+                None,
+                &compilation.module_graph_cache_artifact,
+                &compilation.exports_info_artifact,
+              )
+            {
+              chunk_imports.entry(ref_module).or_default();
+            }
+            continue;
+          }
+
           if !conn.is_target_active(
             module_graph,
             None,
@@ -1839,14 +1869,9 @@ var {} = {{}};
           }
 
           let outgoing_module_info = &concate_modules_map[conn.module_identifier()];
-          let ref_module = *conn.module_identifier();
 
           //ensure chunk
           chunk_imports.entry(ref_module).or_default();
-
-          if !matches!(dep.dependency_type(), DependencyType::EsmImport) {
-            continue;
-          }
 
           if outgoing_module_info.is_external() {
             if ChunkGraph::get_module_id(&compilation.module_ids_artifact, ref_module).is_none() {
