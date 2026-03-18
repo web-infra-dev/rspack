@@ -1146,15 +1146,18 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         &item.module
       )
     });
-    let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
 
-    if compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .is_module_in_chunk(&item.module, item.chunk)
+    // Use bitmask for module-in-chunk check (avoids 2 HashMap lookups in chunk_graph)
+    if self
+      .mask_by_chunk
+      .get(&item.chunk)
+      .expect("chunk must in mask_by_chunk")
+      .bit(module_ordinal)
     {
       return;
     }
+
+    let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
 
     if cgi.min_available_modules.bit(module_ordinal) {
       cgi.skipped_items.insert(item.module);
@@ -1940,23 +1943,21 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let origin_queue_len = self.queue.len();
 
       // 1. Reconsider skipped items
-      let add_and_enter_modules = skipped_items
-        .iter()
-        .filter_map(|module| {
-          let ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
-            panic!("expected a module ordinal for identifier '{module}', but none was found.")
-          });
-          if !min_available_modules.bit(*ordinal) {
-            Some(*module)
-          } else {
-            None
-          }
-        })
-        .collect::<Vec<_>>();
+      // Use retain instead of collect + shift_remove to avoid O(n²)
+      let mut add_and_enter_modules = Vec::new();
+      skipped_items.retain(|module| {
+        let ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
+          panic!("expected a module ordinal for identifier '{module}', but none was found.")
+        });
+        if !min_available_modules.bit(*ordinal) {
+          add_and_enter_modules.push(*module);
+          false
+        } else {
+          true
+        }
+      });
 
       for m in add_and_enter_modules {
-        skipped_items.shift_remove(&m);
-
         self
           .queue
           .push(QueueAction::AddAndEnterModule(AddAndEnterModule {
@@ -1967,49 +1968,55 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       }
 
       // 2. Reconsider skipped connections
+      // Use retain instead of collect indices + shift_remove_index to avoid O(n²)
       if !skipped_module_connections.is_empty() {
-        let mut active_connections = Vec::new();
-        for (i, (module, connections)) in skipped_module_connections.iter().enumerate() {
+        let ordinal_by_module = &self.ordinal_by_module;
+        let module_graph = compilation.get_module_graph();
+        let module_graph_cache = &compilation.module_graph_cache_artifact;
+        let exports_info_artifact = &compilation.exports_info_artifact;
+
+        let mut queue_actions = Vec::new();
+        let mut modules_to_skip = Vec::new();
+
+        skipped_module_connections.retain(|(module, connections)| {
           let active_state = get_active_state_of_connections(
             connections,
             Some(&runtime),
-            compilation.get_module_graph(),
-            &compilation.module_graph_cache_artifact,
-            &compilation.exports_info_artifact,
+            module_graph,
+            module_graph_cache,
+            exports_info_artifact,
           );
           if active_state.is_false() {
-            continue;
+            return true;
           }
           if active_state.is_true() {
-            active_connections.push(i);
-            let module_ordinal = self.ordinal_by_module.get(module).unwrap_or_else(|| {
+            let module_ordinal = ordinal_by_module.get(module).unwrap_or_else(|| {
               panic!("expected a module ordinal for identifier '{module}', but none was found.")
             });
             if min_available_modules.bit(*module_ordinal) {
-              skipped_items.insert(*module);
-              continue;
+              modules_to_skip.push(*module);
+              return false;
             }
+            queue_actions.push(QueueAction::AddAndEnterModule(AddAndEnterModule {
+              module: *module,
+              chunk_group_info: chunk_group_info_ukey,
+              chunk,
+            }));
+            return false;
           }
-          self.queue.push(if active_state.is_true() {
-            QueueAction::AddAndEnterModule(AddAndEnterModule {
-              module: *module,
-              chunk_group_info: chunk_group_info_ukey,
-              chunk,
-            })
-          } else {
-            QueueAction::ProcessBlock(ProcessBlock {
-              block: (*module).into(),
-              module: *module,
-              chunk_group_info: chunk_group_info_ukey,
-              chunk,
-            })
-          })
-        }
+          queue_actions.push(QueueAction::ProcessBlock(ProcessBlock {
+            block: (*module).into(),
+            module: *module,
+            chunk_group_info: chunk_group_info_ukey,
+            chunk,
+          }));
+          true
+        });
 
-        active_connections.reverse();
-        for i in active_connections {
-          skipped_module_connections.shift_remove_index(i);
+        for m in modules_to_skip {
+          skipped_items.insert(m);
         }
+        self.queue.extend(queue_actions);
       }
 
       // 3. Reconsider children chunk groups

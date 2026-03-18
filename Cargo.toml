@@ -358,10 +358,6 @@ opt-level = "s"
 [profile.release.package.rspack_plugin_progress]
 opt-level = "s"
 
-[profile.release.package.num-bigint]
-opt-level = "s"
-
-
 [profile.release.package.swc_error_reporters]
 opt-level = "s"
 
