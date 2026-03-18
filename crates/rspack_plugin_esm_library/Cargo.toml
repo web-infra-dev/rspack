@@ -18,7 +18,6 @@ rspack_error               = { workspace = true }
 rspack_futures             = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
-rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_rslib        = { workspace = true }
 rspack_plugin_runtime      = { workspace = true }
