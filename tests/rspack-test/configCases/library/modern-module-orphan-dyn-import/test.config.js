@@ -1,6 +1,6 @@
 /** @type {import('@rspack/test-tools').TConfigCaseConfig} */
 module.exports = {
 	findBundle: (i, options) => {
-		return ["main.js"];
+		return ["index.mjs"];
 	}
 };
