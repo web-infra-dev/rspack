@@ -15,8 +15,9 @@ use crate::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
   },
+  parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::JavascriptParser,
+  visitors::{CallHooksName, JavascriptParser, expr_name},
 };
 
 fn get_value_of_property_description(expr: &Expr) -> Option<&Expr> {
@@ -145,11 +146,7 @@ fn parse_require_call<'a>(
     expr = &*member.obj;
   }
   if let Some(call) = expr.as_call()
-    && call.args.len() == 1
-    && let Some(callee) = call.callee.as_expr()
-    && let Some(callee) = callee.as_ident()
-    && let Some(info) = parser.get_free_info_from_variable(&callee.sym)
-    && info.name == "require"
+    && is_require_call_expr(parser, call)
   {
     let arg = &call.args[0];
     if arg.spread.is_some() {
