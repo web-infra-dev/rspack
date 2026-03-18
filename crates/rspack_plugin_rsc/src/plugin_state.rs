@@ -30,11 +30,11 @@ pub struct ClientModuleImport {
 pub struct EntryState {
   pub injected_client_entries: Vec<ClientModuleImport>,
   pub client_modules: FxHashMap<String, ManifestExport>,
+  /// Server entry resource -> CSS import paths.
+  pub css_imports_per_server_entry: FxHashMap<String, FxIndexSet<String>>,
   /// Dependency path -> action id/name pairs.
   pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
-  /// Server entry resource -> CSS import paths.
-  pub entry_css_imports: FxHashMap<String, FxIndexSet<String>>,
   /// Server entry resource -> CSS chunk file paths.
   pub entry_css_files: FxHashMap<String, FxIndexSet<String>>,
   pub entry_js_files: FxIndexSet<String>,

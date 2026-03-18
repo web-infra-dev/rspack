@@ -17,16 +17,18 @@ use crate::{
   utils::{get_module_resource, is_css_mod},
 };
 
-// { [client import path]: [exported names] }
+// { [request to inject into client compilation]: [exported names] }
+// CSS requests are represented by an empty export set.
 pub type ClientComponentImports = FxHashMap<String, FxIndexSet<Atom>>;
 // { [server entry path]: [css imports] }
-pub type CssImports = FxHashMap<String, FxIndexSet<String>>;
+// Used only to map emitted CSS files back to server entries in the manifest.
+pub type CssImportsPerServerEntry = FxHashMap<String, FxIndexSet<String>>;
 
 #[derive(Debug, Default)]
 pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
-  pub css_imports: CssImports,
   pub client_component_imports: ClientComponentImports,
+  pub css_imports_per_server_entry: CssImportsPerServerEntry,
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
@@ -110,8 +112,12 @@ fn filter_client_components(
   if resource.is_empty() {
     return;
   }
+  let is_css_module = is_css_mod(module);
 
   if visited.contains(&module.identifier()) {
+    if is_css_module {
+      return;
+    }
     if component_info
       .client_component_imports
       .contains_key(resource.as_ref())
@@ -148,7 +154,7 @@ fn filter_client_components(
   }
 
   let module_graph = compilation.get_module_graph();
-  if is_css_mod(module) {
+  if is_css_module {
     let side_effect_free = module
       .factory_meta()
       .and_then(|meta| meta.side_effect_free)
@@ -164,9 +170,14 @@ fn filter_client_components(
       }
     }
 
+    component_info
+      .client_component_imports
+      .entry(resource.to_string())
+      .or_default();
+
     for server_entry in server_entries.iter() {
       component_info
-        .css_imports
+        .css_imports_per_server_entry
         .entry(server_entry.clone())
         .or_default()
         .insert(resource.to_string());
