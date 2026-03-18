@@ -1,12 +1,12 @@
-use std::{hash::Hash, rc::Rc, sync::LazyLock};
+use std::{borrow::Cow, hash::Hash, rc::Rc, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
   CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoGetter, GetTargetResult, Module,
-  ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper,
-  UsageState, get_target,
+  ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -304,7 +304,11 @@ async fn render_js_module_package(
     }
 
     for b in module_graph.get_optimization_bailout(&module.identifier()) {
-      new_source.add(RawStringSource::from(to_comment_with_nl(b)))
+      let s = match b {
+        OptimizationBailoutItem::Message(msg) => Cow::Borrowed(msg.as_str()),
+        b => Cow::Owned(b.to_string()),
+      };
+      new_source.add(RawStringSource::from(to_comment_with_nl(&s)))
     }
   }
 
