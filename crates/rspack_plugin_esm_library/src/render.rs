@@ -405,7 +405,7 @@ var {} = {{}};
     // render imports and exports to other chunks
     for required_module in already_required {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-      let target_chunk = Self::get_module_chunk(required_module, compilation);
+      let target_chunk = Self::get_module_chunk(required_module, compilation)?;
       if &target_chunk != chunk_ukey {
         imported_chunks.entry(target_chunk).or_default();
       }
@@ -487,7 +487,7 @@ var {} = {{}};
     }
 
     for (id, imports) in &chunk_link.imports {
-      let chunk = Self::get_module_chunk(*id, compilation);
+      let chunk = Self::get_module_chunk(*id, compilation)?;
       if &chunk == chunk_ukey {
         // ignore self import
         continue;
