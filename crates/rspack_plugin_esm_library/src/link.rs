@@ -499,6 +499,15 @@ var {} = {{}};
     }
 
     for (module, source) in namespace_object_sources {
+      // Skip orphan modules — they are not in any chunk
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(module)
+        .is_empty()
+      {
+        continue;
+      }
       let chunk = Self::get_module_chunk(module, compilation)?;
       let chunk_link = link.get_mut_unwrap(&chunk);
       chunk_link.namespace_object_sources.insert(module, source);
@@ -1680,6 +1689,15 @@ var {} = {{}};
       };
 
       for dyn_target in dyn_targets {
+        // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(dyn_target)
+          .is_empty()
+        {
+          continue;
+        }
         let source_chunk = match Self::get_module_chunk(dyn_target, compilation) {
           Ok(c) => c,
           Err(e) => {

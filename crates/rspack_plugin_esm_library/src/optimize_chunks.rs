@@ -303,6 +303,15 @@ pub(crate) fn analyze_dyn_import_targets(
         continue;
       }
       let target = conn.module_identifier();
+      // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*target)
+        .is_empty()
+      {
+        continue;
+      }
       all_dyn_targets.insert(*target);
 
       if !concatenated_modules.contains(target) {
