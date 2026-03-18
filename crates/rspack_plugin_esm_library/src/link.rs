@@ -526,7 +526,7 @@ var {} = {{}};
   ) -> rspack_error::Result<ChunkUkey> {
     match chunks.len() {
       0 => Err(rspack_error::error!("module {m} is not in any chunk")),
-      1 => Ok(*chunks.iter().next().unwrap()),
+      1 => Ok(*chunks.iter().next().expect("chunks.len() == 1")),
       _ => Err(rspack_error::error!("module {m} is in multiple chunks")),
     }
   }
