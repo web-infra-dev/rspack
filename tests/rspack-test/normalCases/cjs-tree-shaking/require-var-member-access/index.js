@@ -18,4 +18,7 @@ it("should not require user defined require", () => {
 	const require = (s) => s;
 	expect(require("./module?3")).toBe("./module?3");
 	expect(__STATS__.modules.some(m => m.name.endsWith("require-destructuring/module.js?3"))).toBe(false);
+	const module = { require: (s) => s };
+	expect(module.require("./module?4")).toBe("./module?4");
+	expect(__STATS__.modules.some(m => m.name.endsWith("require-destructuring/module.js?4"))).toBe(false);
 });
