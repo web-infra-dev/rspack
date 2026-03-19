@@ -2,6 +2,7 @@ use std::io::ErrorKind;
 
 use cow_utils::CowUtils;
 use rspack_fs::Error as FSError;
+use tokio::task::JoinError;
 
 /// Rspack storage errors.
 #[derive(Debug)]
@@ -29,6 +30,12 @@ impl std::error::Error for Error {}
 impl From<FSError> for Error {
   fn from(e: FSError) -> Self {
     Error::FS(e)
+  }
+}
+
+impl From<JoinError> for Error {
+  fn from(e: JoinError) -> Self {
+    Error::InvalidFormat(e.to_string())
   }
 }
 

@@ -98,30 +98,37 @@ impl DB {
         // Acquire write lock for the entire commit operation
         let mut buckets = buckets.lock().await;
 
-        let mut pending_buckets = Vec::with_capacity(changes.len());
-        for (bucket_name, bucket_changes) in changes {
-          let bucket = if let Some(bucket) = buckets.remove(&bucket_name) {
-            bucket
-          } else {
-            let fs = transaction.readable_fs().child_fs(&bucket_name);
-            Bucket::new(fs).await?
-          };
-          pending_buckets.push((bucket_name, bucket, bucket_changes));
-        }
+        // Separate cached buckets from those that need initialization,
+        // so both Bucket::new and bucket.save can run in parallel.
+        let pending_buckets: Vec<_> = changes
+          .into_iter()
+          .map(|(bucket_name, bucket_changes)| {
+            let cached = buckets.remove(&bucket_name);
+            (bucket_name, cached, bucket_changes)
+          })
+          .collect();
 
         let results = try_join_all(pending_buckets.into_iter().map(
-          |(bucket_name, mut bucket, changes)| {
-            // Apply changes and collect file operations
+          |(bucket_name, cached_bucket, changes)| {
+            let readable_fs = transaction.readable_fs().child_fs(&bucket_name);
             let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
-            async move {
+            tokio::spawn(async move {
+              // Initialize bucket if not already cached (runs in parallel across buckets)
+              let mut bucket = if let Some(bucket) = cached_bucket {
+                bucket
+              } else {
+                Bucket::new(readable_fs).await?
+              };
               let affacted_files = bucket
                 .save(Some(writable_fs), changes, max_pack_size)
                 .await?;
               Ok::<_, Error>((bucket_name, bucket, affacted_files))
-            }
+            })
           },
         ))
-        .await?;
+        .await?
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
 
         let mut all_files_to_add = Vec::new();
         let mut all_files_to_remove = Vec::new();
