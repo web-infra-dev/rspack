@@ -43,7 +43,7 @@
     "directory": "packages/rspack"
   },
   "devDependencies": {
-    "@ast-grep/napi": "^0.41.1",
+    "@ast-grep/napi": "^0.42.0",
     "@napi-rs/wasm-runtime": "1.0.7",
     "@rsbuild/plugin-node-polyfill": "^1.4.4",
     "@rslib/core": "0.20.0",
