@@ -3275,3 +3275,6 @@ export interface TsconfigOptions {
    */
   references?: 'auto' | string[]
 }
+
+/** Returns [allocated, deallocated, peak_live] in bytes for WASM memory diagnostics. */
+export declare function wasmAllocStats(): Array<bigint>
