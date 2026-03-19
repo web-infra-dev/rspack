@@ -97,12 +97,42 @@ export class Tester implements ITester {
         `Error occured while closing compilers of '${this.config.name}':\n${e.stack}`,
       );
     }
+    if (process.env.WASM) {
+      Tester.logWasmMemory(this.config.name);
+    }
     if (__DEBUG__) {
       try {
         generateDebugReport(this.context);
       } catch (e) {
         console.warn(`Generate debug report failed: ${(e as Error).message}`);
       }
+    }
+  }
+
+  private static wasmBinding: any;
+  private static logWasmMemory(testName: string) {
+    try {
+      if (!Tester.wasmBinding) {
+        Tester.wasmBinding = require('@rspack/binding');
+      }
+      const binding = Tester.wasmBinding;
+      const parts: string[] = [];
+      if (binding.__sharedMemory) {
+        const wasmMB = binding.__sharedMemory.buffer.byteLength / 1048576;
+        parts.push(`wasm_linear=${wasmMB.toFixed(0)}MB`);
+      }
+      if (binding.wasmAllocStats) {
+        const [alloc, dealloc, peak] = binding.wasmAllocStats();
+        const liveMB = Number(alloc - dealloc) / 1048576;
+        const peakMB = Number(peak) / 1048576;
+        parts.push(`rust_live=${liveMB.toFixed(0)}MB`);
+        parts.push(`rust_peak=${peakMB.toFixed(0)}MB`);
+      }
+      if (parts.length > 0) {
+        console.log(`[WASM-MEM] ${testName} | ${parts.join(' | ')}`);
+      }
+    } catch (_) {
+      // ignore if binding not available
     }
   }
 

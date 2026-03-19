@@ -169,3 +169,4 @@ module.exports.sync = __napiModule.exports.sync
 module.exports.syncTraceEvent = __napiModule.exports.syncTraceEvent
 module.exports.transform = __napiModule.exports.transform
 module.exports.transformSync = __napiModule.exports.transformSync
+module.exports.__sharedMemory = __sharedMemory
