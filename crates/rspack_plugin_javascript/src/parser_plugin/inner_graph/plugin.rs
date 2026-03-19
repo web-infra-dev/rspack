@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use rspack_core::UsedByExports;
 use rspack_util::SpanExt;
@@ -71,11 +71,11 @@ pub struct InnerGraphPlugin {
 }
 
 pub static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
-static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
+static TOP_LEVEL_SYMBOL_ID: AtomicU32 = AtomicU32::new(1);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub(crate) struct TopLevelSymbol {
-  id: usize,
+  id: u32,
   name: Atom,
 }
 
@@ -349,6 +349,7 @@ impl InnerGraphPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for InnerGraphPlugin {
   fn program(
     &self,

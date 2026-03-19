@@ -2,8 +2,9 @@ mod resource_id;
 
 use std::hash::BuildHasherDefault;
 
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_paths::{ArcPath, ArcPathMap, ArcPathSet};
+use rustc_hash::FxHashSet;
 use ustr::IdentityHasher;
 
 pub use self::resource_id::ResourceId;
@@ -13,7 +14,7 @@ use crate::{DependencyId, utils::incremental_info::IncrementalInfo};
 #[derive(Debug, Default)]
 pub struct PathResourceIds {
   modules: IdentifierSet,
-  dependencies: UkeySet<DependencyId>,
+  dependencies: FxHashSet<DependencyId>,
 }
 
 impl PathResourceIds {
@@ -39,7 +40,7 @@ impl PathResourceIds {
     &self.modules
   }
 
-  pub fn dependencies(&self) -> &UkeySet<DependencyId> {
+  pub fn dependencies(&self) -> &FxHashSet<DependencyId> {
     &self.dependencies
   }
 }

@@ -156,6 +156,9 @@ pub struct SwcLoaderJsOptions {
   pub collect_type_script_info: Option<RawCollectTypeScriptInfoOptions>,
 
   #[serde(default)]
+  pub transform_import: Option<Vec<RawImportOptions>>,
+
+  #[serde(default)]
   pub rspack_experiments: Option<RawRspackExperiments>,
 }
 
@@ -164,6 +167,7 @@ pub struct SwcLoaderJsOptions {
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
   pub(crate) swc_options: Options,
+  pub(crate) transform_import: Option<Vec<ImportOptions>>,
   pub(crate) rspack_experiments: RspackExperiments,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
 }
@@ -200,6 +204,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       is_module,
       schema,
       collect_type_script_info,
+      transform_import,
       rspack_experiments,
       source_map_ignore_list,
     } = option;
@@ -234,6 +239,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
         swcrc: false,
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
+      transform_import: transform_import.map(|i| i.into_iter().map(|v| v.into()).collect()),
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
       collect_typescript_info: collect_type_script_info.map(|v| v.into()),
     })

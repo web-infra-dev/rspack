@@ -83,9 +83,7 @@ impl ModuleGraphConnection {
     if !self.conditional {
       return self.active;
     }
-    module_graph
-      .get_condition_state(self, runtime, module_graph_cache, exports_info_artifact)
-      .is_true()
+    module_graph.is_connection_active(self, runtime, module_graph_cache, exports_info_artifact)
   }
 
   pub fn active_state(

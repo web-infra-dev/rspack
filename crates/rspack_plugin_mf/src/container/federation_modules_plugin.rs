@@ -6,7 +6,6 @@
 
 use std::sync::{Arc, Mutex, OnceLock};
 
-use rspack_collections::UkeyMap;
 use rspack_core::{
   Compilation, CompilationId, CompilationParams, CompilerCompilation, Dependency, Plugin,
 };
@@ -14,6 +13,7 @@ use rspack_error::Result;
 use rspack_hook::{define_hook, plugin, plugin_hook};
 #[cfg(allocative)]
 use rspack_util::allocative;
+use rustc_hash::FxHashMap;
 use tokio::sync::Mutex as TokioMutex;
 
 use super::{
@@ -51,7 +51,7 @@ impl Default for FederationModulesPluginCompilationHooks {
 
 #[cfg_attr(allocative, allocative::root)]
 static FEDERATION_MODULES_PLUGIN_HOOKS_MAP: OnceLock<
-  Mutex<UkeyMap<CompilationId, Arc<FederationModulesPluginCompilationHooks>>>,
+  Mutex<FxHashMap<CompilationId, Arc<FederationModulesPluginCompilationHooks>>>,
 > = OnceLock::new();
 
 #[plugin]
@@ -69,7 +69,7 @@ impl FederationModulesPlugin {
   ) -> Arc<FederationModulesPluginCompilationHooks> {
     let key = compilation.id();
     let mut map = FEDERATION_MODULES_PLUGIN_HOOKS_MAP
-      .get_or_init(|| Mutex::new(UkeyMap::default()))
+      .get_or_init(|| Mutex::new(FxHashMap::default()))
       .lock()
       .expect("Failed to lock FEDERATION_MODULES_PLUGIN_HOOKS_MAP");
     map
@@ -82,7 +82,7 @@ impl FederationModulesPlugin {
     compilation_id: CompilationId,
   ) -> Arc<FederationModulesPluginCompilationHooks> {
     let mut map = FEDERATION_MODULES_PLUGIN_HOOKS_MAP
-      .get_or_init(|| Mutex::new(UkeyMap::default()))
+      .get_or_init(|| Mutex::new(FxHashMap::default()))
       .lock()
       .expect("Failed to lock FEDERATION_MODULES_PLUGIN_HOOKS_MAP");
     map

@@ -26,10 +26,18 @@ export type SwcLoaderOptions = Config & {
    */
   collectTypeScriptInfo?: CollectTypeScriptInfoOptions;
   /**
+   * Ported from [babel-plugin-import](https://github.com/umijs/babel-plugin-import),
+   * used to transform imports for modular component libraries.
+   */
+  transformImport?: PluginImportOptions;
+  /**
    * Experimental features provided by Rspack.
    * @experimental
    */
   rspackExperiments?: {
+    /**
+     * @deprecated Use top-level `transformImport` instead.
+     */
     import?: PluginImportOptions;
     /**
      * Enable React Server Components support.

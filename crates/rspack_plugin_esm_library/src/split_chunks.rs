@@ -375,7 +375,13 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
         continue;
       }
 
-      let orig_chunk = EsmLibraryPlugin::get_module_chunk(*m, compilation);
+      let orig_chunk = match EsmLibraryPlugin::get_module_chunk(*m, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during split_chunks");
+          continue;
+        }
+      };
 
       compilation
         .build_chunk_graph_artifact

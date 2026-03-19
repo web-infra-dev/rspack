@@ -4,7 +4,7 @@ mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
 pub use drive::*;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, Module, ModuleIdentifier, compare_modules_by_identifier,
 };

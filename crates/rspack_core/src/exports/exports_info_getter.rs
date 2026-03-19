@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use either::Either;
 use itertools::Itertools;
-use rspack_collections::UkeyMap;
 use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::FxHashMap;
 
 use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
@@ -30,7 +30,7 @@ pub struct PrefetchedExportsInfoWrapper<'a> {
    * stored in a map to prevent circular references
    * When redirect, this data can be cloned to generate a new PrefetchedExportsInfoWrapper with a new entry
    */
-  exports: Arc<UkeyMap<ExportsInfo, &'a ExportsInfoData>>,
+  exports: Arc<FxHashMap<ExportsInfo, &'a ExportsInfoData>>,
   /**
    * The entry of the current exports info
    */
@@ -66,10 +66,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
    * Get the data of the current exports info
    */
   pub fn data(&self) -> &ExportsInfoData {
-    self
-      .exports
-      .get(&self.entry)
-      .expect("should have nested exports info")
+    self.data_in_exports_info(&self.entry)
   }
 
   pub fn meta(&self) -> (ExportsInfo, Vec<ExportsInfo>) {
@@ -88,31 +85,28 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     self.get_exports_in_exports_info(&self.entry)
   }
 
-  fn get_other_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
-    let data = self
+  fn data_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportsInfoData {
+    self
       .exports
       .get(exports_info)
-      .expect("should have nested exports info");
-    data.other_exports_info()
+      .expect("should have nested exports info")
+  }
+
+  fn get_other_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
+    self.data_in_exports_info(exports_info).other_exports_info()
   }
 
   fn get_side_effects_in_exports_info(&self, exports_info: &ExportsInfo) -> &ExportInfoData {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.side_effects_only_info()
+    self
+      .data_in_exports_info(exports_info)
+      .side_effects_only_info()
   }
 
   fn get_exports_in_exports_info(
     &self,
     exports_info: &ExportsInfo,
   ) -> impl Iterator<Item = (&Atom, &ExportInfoData)> {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.exports().iter()
+    self.data_in_exports_info(exports_info).exports().iter()
   }
 
   fn get_named_export_in_exports_info(
@@ -120,52 +114,54 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     exports_info: &ExportsInfo,
     name: &Atom,
   ) -> Option<&ExportInfoData> {
-    let data = self
-      .exports
-      .get(exports_info)
-      .expect("should have nested exports info");
-    data.exports().get(name)
+    self.data_in_exports_info(exports_info).exports().get(name)
   }
 
   pub fn get_read_only_export_info(&self, name: &Atom) -> &ExportInfoData {
-    self.get_read_only_export_info_impl(&self.entry, name)
+    self.get_read_only_export_info_impl(self.entry, name)
   }
 
   fn get_read_only_export_info_impl(
     &self,
-    exports_info: &ExportsInfo,
+    exports_info: ExportsInfo,
     name: &Atom,
   ) -> &ExportInfoData {
-    if let Some(export_info) = self.get_named_export_in_exports_info(exports_info, name) {
+    if let Some(export_info) = self.get_named_export_in_exports_info(&exports_info, name) {
       return export_info;
     }
-    self.get_other_in_exports_info(exports_info)
+    self.get_other_in_exports_info(&exports_info)
   }
 
   pub fn get_read_only_export_info_recursive(&self, names: &[Atom]) -> Option<&ExportInfoData> {
     let (exports_info, name) = self.get_read_only_export_info_recursive_impl(names)?;
-    let data = self
-      .exports
-      .get(&exports_info)
-      .expect("should have nested exports info");
-    data.exports().get(&name)
+    self
+      .data_in_exports_info(&exports_info)
+      .exports()
+      .get(&name)
   }
 
   fn get_read_only_export_info_recursive_impl(
     &self,
     names: &[Atom],
   ) -> Option<(ExportsInfo, Atom)> {
+    self.get_read_only_export_info_recursive_in_exports_info(self.entry, names)
+  }
+
+  fn get_read_only_export_info_recursive_in_exports_info(
+    &self,
+    exports_info: ExportsInfo,
+    names: &[Atom],
+  ) -> Option<(ExportsInfo, Atom)> {
     if names.is_empty() {
       return None;
     }
-    let export_info = self.get_read_only_export_info(&names[0]);
+    let export_info = self.get_read_only_export_info_impl(exports_info, &names[0]);
     if names.len() == 1 {
-      return Some((self.entry, names[0].clone()));
+      return Some((exports_info, names[0].clone()));
     }
 
-    export_info.exports_info().and_then(move |exports_info| {
-      let redirect = self.redirect(exports_info, true);
-      redirect.get_read_only_export_info_recursive_impl(&names[1..])
+    export_info.exports_info().and_then(|nested_exports_info| {
+      self.get_read_only_export_info_recursive_in_exports_info(nested_exports_info, &names[1..])
     })
   }
 
@@ -175,18 +171,25 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   fn get_nested_exports_info_impl(&self, name: Option<&[Atom]>) -> Option<ExportsInfo> {
+    self.get_nested_exports_info_in_exports_info(self.entry, name)
+  }
+
+  fn get_nested_exports_info_in_exports_info(
+    &self,
+    exports_info: ExportsInfo,
+    name: Option<&[Atom]>,
+  ) -> Option<ExportsInfo> {
     if let Some(name) = name
       && !name.is_empty()
     {
-      let info = self.get_read_only_export_info(&name[0]);
-      if let Some(exports_info) = &info.exports_info() {
-        let redirect = self.redirect(*exports_info, true);
-        return redirect.get_nested_exports_info_impl(Some(&name[1..]));
+      let info = self.get_read_only_export_info_impl(exports_info, &name[0]);
+      if let Some(nested_exports_info) = info.exports_info() {
+        return self.get_nested_exports_info_in_exports_info(nested_exports_info, Some(&name[1..]));
       } else {
         return None;
       }
     }
-    Some(self.entry)
+    Some(exports_info)
   }
 
   pub fn get_relevant_exports(&self, runtime: Option<&RuntimeSpec>) -> Vec<&ExportInfoData> {
@@ -352,12 +355,14 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn is_module_used(&self, runtime: Option<&RuntimeSpec>) -> bool {
-    if self.is_used(runtime) {
+    if self.is_used_impl(self.entry, runtime) {
       return true;
     }
 
     if !matches!(
-      self.side_effects_only_info().get_used(runtime),
+      self
+        .get_side_effects_in_exports_info(&self.entry)
+        .get_used(runtime),
       UsageState::Unused
     ) {
       return true;
@@ -366,11 +371,18 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn is_used(&self, runtime: Option<&RuntimeSpec>) -> bool {
-    if self.other_exports_info().is_used(runtime) {
+    self.is_used_impl(self.entry, runtime)
+  }
+
+  fn is_used_impl(&self, exports_info: ExportsInfo, runtime: Option<&RuntimeSpec>) -> bool {
+    if self
+      .get_other_in_exports_info(&exports_info)
+      .is_used(runtime)
+    {
       return true;
     }
 
-    for (_, export_info) in self.exports() {
+    for (_, export_info) in self.get_exports_in_exports_info(&exports_info) {
       if export_info.is_used(runtime) {
         return true;
       }
@@ -379,13 +391,20 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn is_export_provided(&self, names: &[Atom]) -> Option<ExportProvided> {
+    self.is_export_provided_impl(self.entry, names)
+  }
+
+  fn is_export_provided_impl(
+    &self,
+    exports_info: ExportsInfo,
+    names: &[Atom],
+  ) -> Option<ExportProvided> {
     let name = names.first()?;
-    let info_data = self.get_read_only_export_info(name);
-    if let Some(nested_exports_info) = &info_data.exports_info()
+    let info_data = self.get_read_only_export_info_impl(exports_info, name);
+    if let Some(nested_exports_info) = info_data.exports_info()
       && names.len() > 1
     {
-      let redirected = self.redirect(*nested_exports_info, true);
-      return redirected.is_export_provided(&names[1..]);
+      return self.is_export_provided_impl(nested_exports_info, &names[1..]);
     }
     let provided = info_data.provided()?;
 
@@ -402,21 +421,31 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
   }
 
   pub fn get_used(&self, names: &[Atom], runtime: Option<&RuntimeSpec>) -> UsageState {
+    self.get_used_impl(self.entry, names, runtime)
+  }
+
+  fn get_used_impl(
+    &self,
+    exports_info: ExportsInfo,
+    names: &[Atom],
+    runtime: Option<&RuntimeSpec>,
+  ) -> UsageState {
     if names.len() == 1 {
       let value = &names[0];
-      let info = self.get_read_only_export_info(value);
+      let info = self.get_read_only_export_info_impl(exports_info, value);
       let used = info.get_used(runtime);
       return used;
     }
     if names.is_empty() {
-      return self.other_exports_info().get_used(runtime);
+      return self
+        .get_other_in_exports_info(&exports_info)
+        .get_used(runtime);
     }
-    let info_data = self.get_read_only_export_info(&names[0]);
-    if let Some(exports_info) = &info_data.exports_info()
+    let info_data = self.get_read_only_export_info_impl(exports_info, &names[0]);
+    if let Some(nested_exports_info) = info_data.exports_info()
       && names.len() > 1
     {
-      let redirected = self.redirect(*exports_info, true);
-      return redirected.get_used(&names[1..], runtime);
+      return self.get_used_impl(nested_exports_info, &names[1..], runtime);
     }
     info_data.get_used(runtime)
   }
@@ -476,7 +505,7 @@ impl ExportsInfoGetter {
     fn prefetch_exports<'a>(
       id: &ExportsInfo,
       exports_info_artifact: &'a ExportsInfoArtifact,
-      res: &mut UkeyMap<ExportsInfo, &'a ExportsInfoData>,
+      res: &mut FxHashMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
       if res.contains_key(id) {
@@ -560,7 +589,7 @@ impl ExportsInfoGetter {
         PrefetchExportsInfoMode::Full => 1 + exports_info.exports().len() + extra_nested_exports,
       }
     };
-    let mut res = UkeyMap::with_capacity_and_hasher(initial_capacity, Default::default());
+    let mut res = FxHashMap::with_capacity_and_hasher(initial_capacity, Default::default());
     prefetch_exports(id, exports_info_artifact, &mut res, mode.clone());
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(res),
@@ -621,42 +650,47 @@ impl ExportsInfoGetter {
         Some(UsedName::Normal(vec![]))
       }
       GetUsedNameParam::WithNames(info) => {
-        if names.is_empty() {
-          if !info.is_used(runtime) {
-            return None;
-          }
-          return Some(UsedName::Normal(vec![]));
-        }
-        let export_info = info.get_read_only_export_info(&names[0]);
-        let first = export_info.get_used_name(Some(&names[0]), runtime)?;
-        let mut arr = match first {
-          UsedNameItem::Str(first) => UsedName::Normal(vec![first]),
-          UsedNameItem::Inlined(inlined) => UsedName::Inlined(InlinedUsedName::new(inlined)),
-        };
-        if names.len() == 1 {
-          return Some(arr);
-        }
-        if let Some(exports_info) = &export_info.exports_info()
-          && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
-        {
-          let nested_exports_info: PrefetchedExportsInfoWrapper<'_> =
-            info.redirect(*exports_info, true);
-          let nested = Self::get_used_name(
-            GetUsedNameParam::WithNames(&nested_exports_info),
-            runtime,
-            &names[1..],
-          )?;
-          let nested = match nested {
-            UsedName::Inlined(_) => return Some(nested),
-            UsedName::Normal(names) => names,
-          };
-          arr.append(nested);
-          return Some(arr);
-        }
-        arr.append(names.iter().skip(1).cloned());
-        Some(arr)
+        Self::get_used_name_in_exports_info(info, info.entry, runtime, names)
       }
     }
+  }
+
+  fn get_used_name_in_exports_info(
+    info: &PrefetchedExportsInfoWrapper<'_>,
+    exports_info: ExportsInfo,
+    runtime: Option<&RuntimeSpec>,
+    names: &[Atom],
+  ) -> Option<UsedName> {
+    if names.is_empty() {
+      if !info.is_used_impl(exports_info, runtime) {
+        return None;
+      }
+      return Some(UsedName::Normal(vec![]));
+    }
+
+    let export_info = info.get_read_only_export_info_impl(exports_info, &names[0]);
+    let first = export_info.get_used_name(Some(&names[0]), runtime)?;
+    let mut arr = match first {
+      UsedNameItem::Str(first) => UsedName::Normal(vec![first]),
+      UsedNameItem::Inlined(inlined) => UsedName::Inlined(InlinedUsedName::new(inlined)),
+    };
+    if names.len() == 1 {
+      return Some(arr);
+    }
+    if let Some(nested_exports_info) = export_info.exports_info()
+      && export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed
+    {
+      let nested =
+        Self::get_used_name_in_exports_info(info, nested_exports_info, runtime, &names[1..])?;
+      let nested = match nested {
+        UsedName::Inlined(_) => return Some(nested),
+        UsedName::Normal(names) => names,
+      };
+      arr.append(nested);
+      return Some(arr);
+    }
+    arr.append(names.iter().skip(1).cloned());
+    Some(arr)
   }
 
   pub fn from_meta<'a>(
@@ -667,7 +701,7 @@ impl ExportsInfoGetter {
     let exports = exports
       .into_iter()
       .map(|e| (e, exports_info_artifact.get_exports_info_by_id(&e)))
-      .collect::<UkeyMap<_, _>>();
+      .collect::<FxHashMap<_, _>>();
 
     PrefetchedExportsInfoWrapper {
       exports: Arc::new(exports),

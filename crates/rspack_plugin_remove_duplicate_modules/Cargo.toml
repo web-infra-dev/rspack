@@ -13,7 +13,6 @@ workspace = true
 ignored = ["tracing"]
 
 [dependencies]
-dashmap = { workspace = true }
 rayon   = { workspace = true }
 tracing = { workspace = true }
 
@@ -21,3 +20,4 @@ rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
 rspack_hook        = { workspace = true }
+rspack_util        = { workspace = true }

@@ -81,17 +81,13 @@ export const applyRspackOptionsDefaults = (
     }
   }
 
-  // IGNORE(devtool): Rspack use cheap-module-source-map by default
   F(options, 'devtool', () =>
     development ? 'cheap-module-source-map' : false,
   );
   D(options, 'watch', false);
-  // IGNORE(lazyCompilation): Unlike webpack where lazyCompilation is configured under experiments, Rspack exposes this option at the configuration root level.
   D(options, 'lazyCompilation', false);
-  // IGNORE(bail): bail is default to false in webpack, but it's set in `Compilation`
   D(options, 'bail', false);
 
-  // IGNORE(cache): cache is default to { type: "memory" } in webpack when the mode is development,
   // but Rspack currently does not support this option
   F(options, 'cache', () => development);
 
@@ -164,7 +160,6 @@ export const applyRspackOptionsDefaults = (
 
   options.resolve = cleverMerge(
     getResolveDefaults({
-      context: options.context!,
       targetProperties,
       mode: options.mode,
     }),
@@ -213,7 +208,6 @@ const applyInfrastructureLoggingDefaults = (
 
 const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
-  // IGNORE(experiments.asyncWebAssembly): Rspack enable async WebAssembly by default
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
 
@@ -223,7 +217,6 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
     // D(experiments.buildHttp, "frozen", false);
   }
 
-  // IGNORE(experiments.useInputFileSystem): Rspack specific configuration
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
 };
@@ -326,7 +319,6 @@ const applyModuleDefaults = (
   assertNotNill(module.parser);
   assertNotNill(module.generator);
 
-  // IGNORE(module.parser): already check to align in 2024.6.27
   F(module.parser, ASSET_MODULE_TYPE, () => ({}));
   assertNotNill(module.parser.asset);
   F(module.parser.asset, 'dataUrlCondition', () => ({}));
@@ -367,7 +359,6 @@ const applyModuleDefaults = (
   D(module.parser['css/module'], 'namedExports', true);
   D(module.parser['css/module'], 'url', true);
 
-  // IGNORE(module.generator): already check to align in 2024.6.27
   F(module.generator, 'css', () => ({}));
   assertNotNill(module.generator.css);
   applyCssGeneratorOptionsDefaults(module.generator.css, {
@@ -395,7 +386,6 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/module'], 'exportsConvention', 'as-is');
   D(module.generator['css/module'], 'localIdentName', localIdentName);
-  // IGNORE(module.defaultRules): Rspack does not support `rule.assert`
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
     const esm = {
@@ -411,7 +401,6 @@ const applyModuleDefaults = (
     const commonjs = {
       type: 'javascript/dynamic',
     };
-    // IGNORE(module.rules): Rspack not use case-insensitive regex by default
     const rules: RuleSetRules = [
       {
         mimetype: 'application/node',
@@ -614,7 +603,6 @@ const applyOutputDefaults = (
   );
   F(environment, 'bigIntLiteral', () => tp && optimistic(tp.bigIntLiteral));
   F(environment, 'const', () => tp && optimistic(tp.const));
-  // IGNORE(output.environment.methodShorthand): will align method shorthand optimization for webpack soon
   F(environment, 'methodShorthand', () => tp && optimistic(tp.methodShorthand));
   F(environment, 'arrowFunction', () => tp && optimistic(tp.arrowFunction));
   F(environment, 'asyncFunction', () => tp && optimistic(tp.asyncFunction));
@@ -707,15 +695,12 @@ const applyOutputDefaults = (
   });
 
   const uniqueNameId = Template.toIdentifier(output.uniqueName);
-  // IGNORE(output.hotUpdateGlobal): Rspack uses 'rspackHotUpdate' by default
   F(output, 'hotUpdateGlobal', () => `rspackHotUpdate${uniqueNameId}`);
-  // IGNORE(output.chunkLoadingGlobal): Rspack uses 'rspackChunk' by default
   F(output, 'chunkLoadingGlobal', () => `rspackChunk${uniqueNameId}`);
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
   D(output, 'compareBeforeEmit', true);
   F(output, 'path', () => path.join(process.cwd(), 'dist'));
-  // IGNORE(output.pathinfo): Rspack disabled pathinfo by default
   F(output, 'pathinfo', () => false);
   D(
     output,
@@ -723,10 +708,8 @@ const applyOutputDefaults = (
     tp && (tp.document || tp.importScripts) ? 'auto' : '',
   );
 
-  // IGNORE(output.hashFunction): Rspack uses faster xxhash64 by default
   D(output, 'hashFunction', 'xxhash64');
   D(output, 'hashDigest', 'hex');
-  // IGNORE(output.hashDigestLength): xxhash64 uses 16-bit hash
   D(output, 'hashDigestLength', 16);
   D(output, 'strictModuleErrorHandling', false);
 
@@ -833,7 +816,6 @@ const applyOutputDefaults = (
   });
   D(output, 'importFunctionName', 'import');
   D(output, 'importMetaName', 'import.meta');
-  // IGNORE(output.clean): The default value of `output.clean` in webpack is undefined, but it has the same effect as false.
   F(output, 'clean', () => !!output.clean);
   D(output, 'crossOriginLoading', false);
   D(output, 'workerPublicPath', '');
@@ -883,7 +865,6 @@ const applyOutputDefaults = (
     return Array.from(enabledWasmLoadingTypes);
   });
 
-  // IGNORE(output.bundlerInfo): rspack specific
   D(output, 'bundlerInfo', {});
   if (typeof output.bundlerInfo === 'object') {
     D(output.bundlerInfo, 'version', RSPACK_VERSION);
@@ -986,20 +967,17 @@ const applyNodeDefaults = (
 ) => {
   if (node === false) return;
 
-  // IGNORE(node.global): The default value of `global` is determined by `futureDefaults` in webpack.
   F(node, 'global', () => {
     // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
-  // IGNORE(node.__dirname): The default value of `__dirname` is determined by `futureDefaults` in webpack.
   F(node, '__dirname', () => {
     // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
-  // IGNORE(node.__filename): The default value of `__filename` is determined by `futureDefaults` in webpack.
   F(node, '__filename', () => {
     // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.node)
@@ -1028,8 +1006,6 @@ const applyOptimizationDefaults = (
     development: boolean;
   },
 ) => {
-  // IGNORE(optimization.removeAvailableModules): removeAvailableModules is no use for webpack
-  D(optimization, 'removeAvailableModules', true);
   D(optimization, 'removeEmptyChunks', true);
   D(optimization, 'mergeDuplicateChunks', true);
   F(optimization, 'moduleIds', (): 'natural' | 'named' | 'deterministic' => {
@@ -1051,11 +1027,9 @@ const applyOptimizationDefaults = (
   D(optimization, 'emitOnErrors', !production);
   D(optimization, 'runtimeChunk', false);
   D(optimization, 'realContentHash', production);
-  // IGNORE(optimization.avoidEntryIife): to update the default value of webpack and bump webpack version in Rspack.
   D(optimization, 'avoidEntryIife', false);
   D(optimization, 'minimize', production);
   D(optimization, 'concatenateModules', production);
-  // IGNORE(optimization.minimizer): Rspack use `SwcJsMinimizerRspackPlugin` and `LightningCssMinimizerRspackPlugin` by default
   A(optimization, 'minimizer', () => [
     new SwcJsMinimizerRspackPlugin(),
     new LightningCssMinimizerRspackPlugin(),
@@ -1067,7 +1041,6 @@ const applyOptimizationDefaults = (
   });
   const { splitChunks } = optimization;
   if (splitChunks) {
-    // IGNORE(optimization.splitChunks.defaultSizeTypes): experiments.css is deprecated
     A(splitChunks, 'defaultSizeTypes', () => ['javascript', 'css', 'unknown']);
     D(splitChunks, 'hidePathInfo', production);
     D(splitChunks, 'chunks', 'async');
@@ -1083,7 +1056,6 @@ const applyOptimizationDefaults = (
       production ? 30 : Number.POSITIVE_INFINITY,
     );
     D(splitChunks, 'automaticNameDelimiter', '-');
-    // IGNORE(splitChunks.cacheGroups): Rspack not use case-insensitive regex by default
     const { cacheGroups } = splitChunks;
     if (cacheGroups) {
       F(cacheGroups, 'default', () => ({
@@ -1117,11 +1089,9 @@ const getResolveLoaderDefaults = () => {
 // The values are aligned with webpack
 // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/config/defaults.js#L1431
 const getResolveDefaults = ({
-  context,
   targetProperties,
   mode,
 }: {
-  context: string;
   targetProperties: false | TargetProperties;
   mode?: Mode;
 }) => {
@@ -1136,7 +1106,7 @@ const getResolveDefaults = ({
     if (targetProperties.electron) conditions.push('electron');
     if (targetProperties.nwjs) conditions.push('nwjs');
   }
-  const jsExtensions = ['.js', '.json', '.wasm'];
+  const jsExtensions = ['.js', '.json'];
 
   const tp = targetProperties;
 
@@ -1164,7 +1134,6 @@ const getResolveDefaults = ({
 
   const resolveOptions: ResolveOptions = {
     // enable pnp only in pnp environment, see https://yarnpkg.com/advanced/pnpapi#processversionspnp
-    // IGNORE(resolve.pnp): Rspack use `resolve.enable` to enable Yarn PnP feature
     pnp: getPnpDefault(),
     modules: ['node_modules'],
     conditionNames: conditions,
@@ -1172,7 +1141,7 @@ const getResolveDefaults = ({
     extensions: [],
     aliasFields: [],
     exportsFields: ['exports'],
-    roots: [context],
+    roots: [],
     mainFields: ['main'],
     importsFields: ['imports'],
     byDependency: {
@@ -1195,20 +1164,16 @@ const getResolveDefaults = ({
     },
   };
 
-  const styleConditions = [];
-
-  styleConditions.push('webpack');
-  styleConditions.push(mode === 'development' ? 'development' : 'production');
-  styleConditions.push('style');
-
-  // IGNORE(resolve.byDependency.css-import): Rspack enables `css` by default currently
   resolveOptions.byDependency!['css-import'] = {
     // We avoid using any main files because we have to be consistent with CSS `@import`
     // and CSS `@import` does not handle `main` files in directories,
     // you should always specify the full URL for styles
     mainFiles: [],
     mainFields: ['style', '...'],
-    conditionNames: styleConditions,
+    conditionNames: [
+      mode === 'development' ? 'development' : 'production',
+      'style',
+    ],
     extensions: ['.css'],
     preferRelative: true,
   };

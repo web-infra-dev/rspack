@@ -1,7 +1,6 @@
 use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
-use rspack_collections::{Ukey, impl_item_ukey};
 use rspack_util::atom::Atom;
 use serde::Serialize;
 
@@ -10,14 +9,12 @@ use crate::ExportsInfoArtifact;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct ExportsInfo(Ukey);
-
-impl_item_ukey!(ExportsInfo);
+pub struct ExportsInfo(u32);
 
 impl ExportsInfo {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
-    Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed).into())
+    Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed))
   }
 
   pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportsInfoData {

@@ -17,6 +17,7 @@ pub struct ConstPlugin;
 const RESOURCE_FRAGMENT: &str = "__resourceFragment";
 const RESOURCE_QUERY: &str = "__resourceQuery";
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ConstPlugin {
   fn expression_logical_operator(
     &self,

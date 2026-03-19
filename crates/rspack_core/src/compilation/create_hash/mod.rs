@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rustc_hash::FxHashSet;
 
 use super::*;
 use crate::{
@@ -45,7 +46,7 @@ pub async fn create_hash(
   // possible to depend on full hash, but for library type commonjs/module, it's possible to
   // have non-runtime chunks depend on full hash, the library format plugin is using
   // dependent_full_hash hook to declare it.
-  let mut full_hash_chunks: UkeySet<_> = compilation
+  let mut full_hash_chunks: FxHashSet<_> = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .keys()
@@ -53,8 +54,8 @@ pub async fn create_hash(
     .collect::<Vec<_>>()
     .into_par_iter()
     .try_fold(
-      UkeySet::default,
-      |mut local_set, chunk_ukey| -> Result<UkeySet<_>> {
+      FxHashSet::default,
+      |mut local_set, chunk_ukey| -> Result<FxHashSet<_>> {
         let mut chunk_dependent_full_hash = false;
         plugin_driver.compilation_hooks.dependent_full_hash.call(
           compilation,
@@ -68,8 +69,8 @@ pub async fn create_hash(
       },
     )
     .try_reduce(
-      UkeySet::default,
-      |mut acc, local_set| -> Result<UkeySet<_>> {
+      FxHashSet::default,
+      |mut acc, local_set| -> Result<FxHashSet<_>> {
         acc.extend(local_set);
         Ok(acc)
       },
@@ -152,7 +153,7 @@ pub async fn create_hash(
     Ok(())
   }
 
-  let unordered_runtime_chunks: UkeySet<ChunkUkey> =
+  let unordered_runtime_chunks: FxHashSet<ChunkUkey> =
     compilation.get_chunk_graph_entries().collect();
   let start = logger.time("hashing: hash chunks");
   let other_chunks: Vec<_> = create_hash_chunks

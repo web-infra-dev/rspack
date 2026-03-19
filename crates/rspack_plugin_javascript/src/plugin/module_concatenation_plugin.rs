@@ -3,7 +3,7 @@ use std::{borrow::Cow, collections::VecDeque, rc::Rc, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{
-  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
+  Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
   BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
@@ -394,10 +394,9 @@ impl ModuleConcatenationPlugin {
           if let Some(origin_runtime) = module_cache.get(origin_module).map(|m| &m.runtime) {
             !runtime.is_disjoint(origin_runtime)
           } else {
-            let mut origin_runtime = RuntimeSpec::default();
-            for r in chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey) {
-              origin_runtime.extend(r);
-            }
+            let origin_runtime = RuntimeSpec::from_runtimes(
+              chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
+            );
             !runtime.is_disjoint(&origin_runtime)
           }
         } else {
@@ -1083,17 +1082,15 @@ impl ModuleConcatenationPlugin {
         let module = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
-        let mut runtime = RuntimeSpec::default();
-        for r in compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_module_runtimes_iter(
-            module_id,
-            &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          )
-        {
-          runtime.extend(r);
-        }
+        let runtime = RuntimeSpec::from_runtimes(
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_module_runtimes_iter(
+              module_id,
+              &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+            ),
+        );
 
         let _ = get_cached_readable_identifier(
           &module_id,
@@ -1160,7 +1157,7 @@ impl ModuleConcatenationPlugin {
             .map(std::vec::Vec::len)
             .sum::<usize>();
         let mut active_incomings =
-          UkeyMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
+          HashMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
         for connection in incomings
           .from_non_modules
           .iter()
@@ -1503,7 +1500,7 @@ pub struct NoRuntimeModuleCache {
   provided_names: bool,
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: IncomingConnections,
-  active_incomings: UkeyMap<DependencyId, bool>,
+  active_incomings: HashMap<DependencyId, bool>,
   number_of_chunks: usize,
 }
 
@@ -1767,7 +1764,7 @@ fn add_concatenated_module(
 fn is_connection_active_in_runtime(
   connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
-  cached_active_incomings: &UkeyMap<DependencyId, bool>,
+  cached_active_incomings: &HashMap<DependencyId, bool>,
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,

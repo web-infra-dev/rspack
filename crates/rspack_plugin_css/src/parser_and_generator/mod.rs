@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use indexmap::{IndexMap, IndexSet};
 use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_cacheable::{
@@ -24,7 +23,11 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_util::{
+  atom::Atom,
+  ext::DynHash,
+  fx_hash::{FxIndexMap, FxIndexSet},
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -63,14 +66,14 @@ pub struct CssExport {
   pub orig_name: String,
 }
 
-pub type CssExports = IndexMap<String, IndexSet<CssExport>>;
+pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
 
 fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
   if let Some(existing) = exports.get_mut(&name) {
     existing.insert(css_export)
   } else {
     exports
-      .insert(name, IndexSet::from_iter([css_export]))
+      .insert(name, FxIndexSet::from_iter([css_export]))
       .is_none()
   }
 }
@@ -763,7 +766,7 @@ fn get_used_exports<'a>(
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> IndexMap<&'a str, &'a IndexSet<CssExport>> {
+) -> FxIndexMap<&'a str, &'a FxIndexSet<CssExport>> {
   let exports_info = exports_info_artifact
     .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
 

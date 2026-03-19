@@ -9,6 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
+use rspack_util::fx_hash::FxIndexMap;
 pub use target::Targets;
 
 macro_rules! d {
@@ -39,7 +40,6 @@ use builder_context::BuiltinPluginOptions;
 use derive_more::Debug;
 use devtool::DevtoolFlags;
 use externals::ExternalsPresets;
-use indexmap::IndexMap;
 use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
@@ -318,11 +318,11 @@ impl CompilerBuilder {
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_empty_chunks(true));
   ///
   /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
   /// let compiler =
-  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///   Compiler::builder().optimization(Optimization::builder().remove_empty_chunks(true));
   ///
   /// // Or directly passing `Optimization`
   /// // let compiler = Compiler::builder().optimization(Optimization { ... });
@@ -569,7 +569,7 @@ pub struct CompilerOptionsBuilder {
   /// The environment in which the code should run.
   target: Option<Targets>,
   /// The entry point of the application.
-  entry: IndexMap<String, EntryDescription>,
+  entry: FxIndexMap<String, EntryDescription>,
   /// External libraries that should not be bundled.
   externals: Option<Vec<ExternalItem>>,
   /// The type of externals.
@@ -791,7 +791,7 @@ impl CompilerOptionsBuilder {
     self
   }
 
-  /// Set options for optimization.  
+  /// Set options for optimization.
   ///
   /// Both are accepted:
   /// - [`OptimizationOptionsBuilder`]
@@ -805,11 +805,11 @@ impl CompilerOptionsBuilder {
   ///
   /// // Using builder without calling `build()`
   /// let compiler = Compiler::builder()
-  ///   .optimization(OptimizationOptionsBuilder::default().remove_available_modules(true));
+  ///   .optimization(OptimizationOptionsBuilder::default().remove_empty_chunks(true));
   ///
   /// // `Optimization::builder` equals to `OptimizationOptionsBuilder::default()`
   /// let compiler =
-  ///   Compiler::builder().optimization(Optimization::builder().remove_available_modules(true));
+  ///   Compiler::builder().optimization(Optimization::builder().remove_empty_chunks(true));
   ///
   /// // Or directly passing `Optimization`
   /// // let compiler = Compiler::builder().optimization(Optimization { ... });
@@ -1167,7 +1167,7 @@ impl CompilerOptionsBuilder {
 
     // apply resolve defaults
     let resolve = {
-      let resolve_defaults = get_resolve_defaults(&context, mode, &target_properties, css);
+      let resolve_defaults = get_resolve_defaults(mode, &target_properties, css);
       if let Some(resolve) = self.resolve.take() {
         resolve_defaults.merge(resolve)
       } else {
@@ -1281,12 +1281,7 @@ impl CompilerOptionsBuilder {
   }
 }
 
-fn get_resolve_defaults(
-  context: &Context,
-  mode: Mode,
-  target_properties: &TargetProperties,
-  css: bool,
-) -> Resolve {
+fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: bool) -> Resolve {
   let mut conditions = vec!["webpack".to_string()];
 
   // Add mode condition
@@ -1312,7 +1307,7 @@ fn get_resolve_defaults(
     conditions.push("nwjs".to_string());
   }
 
-  let js_extensions = vec![".js".to_string(), ".json".to_string(), ".wasm".to_string()];
+  let js_extensions = vec![".js".to_string(), ".json".to_string()];
 
   let browser_field = target_properties.web()
     && (!target_properties.node()
@@ -1387,11 +1382,10 @@ fn get_resolve_defaults(
 
   // Add CSS dependencies if enabled
   if css {
-    let mut style_conditions = vec!["webpack".to_string()];
-    style_conditions.push(match mode {
+    let mut style_conditions = vec![match mode {
       Mode::Development => "development".to_string(),
       _ => "production".to_string(),
-    });
+    }];
     style_conditions.push("style".to_string());
 
     by_dependency.push((
@@ -1414,7 +1408,7 @@ fn get_resolve_defaults(
     extensions: Some(vec![]),
     alias_fields: Some(vec![]),
     exports_fields: Some(vec![vec!["exports".to_string()]]),
-    roots: Some(vec![context.to_string()]),
+    roots: Some(vec![]),
     main_fields: Some(vec!["main".to_string()]),
     imports_fields: Some(vec![vec!["imports".to_string()]]),
     by_dependency: Some(ByDependency::from_iter(by_dependency)),
@@ -2662,7 +2656,7 @@ impl OutputOptionsBuilder {
     target_properties: Option<&TargetProperties>,
     is_affected_by_browserslist: bool,
     development: bool,
-    entry: &IndexMap<String, EntryDescription>,
+    entry: &FxIndexMap<String, EntryDescription>,
     _future_defaults: bool,
   ) -> Result<OutputOptions> {
     let tp = target_properties;
@@ -3206,8 +3200,6 @@ impl OutputOptionsBuilder {
 /// [`OptimizationOptions`]: rspack_core::options::Optimization
 #[derive(Debug, Default)]
 pub struct OptimizationOptionsBuilder {
-  /// Detect and remove modules from chunks these modules are already included in all parents.
-  remove_available_modules: Option<bool>,
   /// Remove empty chunks generated in the compilation.
   remove_empty_chunks: Option<bool>,
   /// Merge chunks which contain the same modules.
@@ -3250,7 +3242,6 @@ pub struct OptimizationOptionsBuilder {
 impl From<Optimization> for OptimizationOptionsBuilder {
   fn from(value: Optimization) -> Self {
     OptimizationOptionsBuilder {
-      remove_available_modules: Some(value.remove_available_modules),
       side_effects: Some(value.side_effects),
       provided_exports: Some(value.provided_exports),
       used_exports: Some(value.used_exports),
@@ -3276,7 +3267,6 @@ impl From<Optimization> for OptimizationOptionsBuilder {
 impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
   fn from(value: &mut OptimizationOptionsBuilder) -> Self {
     OptimizationOptionsBuilder {
-      remove_available_modules: value.remove_available_modules.take(),
       remove_empty_chunks: value.remove_empty_chunks.take(),
       merge_duplicate_chunks: value.merge_duplicate_chunks.take(),
       module_ids: value.module_ids.take(),
@@ -3300,12 +3290,6 @@ impl From<&mut OptimizationOptionsBuilder> for OptimizationOptionsBuilder {
 }
 
 impl OptimizationOptionsBuilder {
-  /// Set whether to detect and remove modules from chunks these modules are already included in all parents.
-  pub fn remove_available_modules(&mut self, value: bool) -> &mut Self {
-    self.remove_available_modules = Some(value);
-    self
-  }
-
   /// Set whether to remove empty chunks generated in the compilation.
   pub fn remove_empty_chunks(&mut self, value: bool) -> &mut Self {
     self.remove_empty_chunks = Some(value);
@@ -3459,7 +3443,6 @@ impl OptimizationOptionsBuilder {
     production: bool,
     _css: bool,
   ) -> Result<Optimization> {
-    let remove_available_modules = d!(self.remove_available_modules, false);
     let remove_empty_chunks = d!(self.remove_empty_chunks, true);
     if remove_empty_chunks {
       builder_context
@@ -3682,7 +3665,6 @@ impl OptimizationOptionsBuilder {
     }
 
     Ok(Optimization {
-      remove_available_modules,
       side_effects,
       provided_exports,
       used_exports,

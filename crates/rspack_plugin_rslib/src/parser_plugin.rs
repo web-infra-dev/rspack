@@ -14,6 +14,7 @@ impl RslibParserPlugin {
   }
 }
 
+#[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for RslibParserPlugin {
   fn member(
     &self,

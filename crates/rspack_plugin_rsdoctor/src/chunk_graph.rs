@@ -1,12 +1,12 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
-use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
   ModuleGraph,
 };
+use rspack_util::fx_hash::{FxHashMap, FxIndexMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -16,10 +16,10 @@ use crate::{
 };
 
 pub fn collect_chunks(
-  chunks: &UkeyMap<ChunkUkey, &Chunk>,
+  chunks: &HashMap<ChunkUkey, &Chunk>,
   chunk_graph: &ChunkGraph,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> UkeyMap<ChunkUkey, RsdoctorChunk> {
+) -> HashMap<ChunkUkey, RsdoctorChunk> {
   chunks
     .par_iter()
     .map(|(chunk_id, chunk)| {
@@ -50,15 +50,15 @@ pub fn collect_chunks(
         },
       )
     })
-    .collect::<UkeyMap<_, _>>()
+    .collect::<HashMap<_, _>>()
 }
 
 pub fn collect_chunk_dependencies(
-  chunks: &UkeyMap<ChunkUkey, &Chunk>,
-  rsd_chunks: &UkeyMap<ChunkUkey, RsdoctorChunk>,
+  chunks: &HashMap<ChunkUkey, &Chunk>,
+  rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,
-) -> UkeyMap<ChunkUkey, (HashSet<RsdoctorChunkUkey>, HashSet<RsdoctorChunkUkey>)> {
+) -> HashMap<ChunkUkey, (HashSet<RsdoctorChunkUkey>, HashSet<RsdoctorChunkUkey>)> {
   chunks
     .par_iter()
     .map(|(chunk_id, chunk)| {
@@ -103,14 +103,14 @@ pub fn collect_chunk_dependencies(
         ),
       )
     })
-    .collect::<UkeyMap<_, _>>()
+    .collect::<HashMap<_, _>>()
 }
 
 pub fn collect_entrypoints(
-  entrypoints: &IndexMap<String, ChunkGroupUkey>,
-  rsd_chunks: &UkeyMap<ChunkUkey, RsdoctorChunk>,
+  entrypoints: &FxIndexMap<String, ChunkGroupUkey>,
+  rsd_chunks: &FxHashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> UkeyMap<ChunkGroupUkey, RsdoctorEntrypoint> {
+) -> FxHashMap<ChunkGroupUkey, RsdoctorEntrypoint> {
   entrypoints
     .par_iter()
     .map(|(name, ukey)| {
@@ -133,7 +133,7 @@ pub fn collect_entrypoints(
         },
       )
     })
-    .collect::<UkeyMap<_, _>>()
+    .collect::<HashMap<_, _>>()
 }
 
 pub fn collect_assets(
@@ -235,9 +235,9 @@ pub fn collect_chunk_assets(
 }
 
 pub fn collect_entrypoint_assets(
-  entrypoints: &IndexMap<String, ChunkGroupUkey>,
-  rsd_assets: &HashMap<String, RsdoctorAsset>,
-  entrypoint_ukey_map: &UkeyMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
+  entrypoints: &FxIndexMap<String, ChunkGroupUkey>,
+  rsd_assets: &FxHashMap<String, RsdoctorAsset>,
+  entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,
 ) -> Vec<RsdoctorEntrypointAssets> {

@@ -1,21 +1,18 @@
-use std::{
-  cmp::Ordering,
-  fmt::Debug,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{cmp::Ordering, fmt::Debug, hash::Hash};
 
-use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, IdentifierSet, UkeyIndexMap, UkeyIndexSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey,
   Compilation, EntryOptions, Filename, RenderManifestEntry, RuntimeSpec, SourceType,
-  chunk_graph_chunk::ChunkId, compare_chunk_group, sort_group_by_index,
+  chunk_graph_chunk::{ChunkId, IndexChunkIdMap},
+  compare_chunk_group, sort_group_by_index,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -65,7 +62,7 @@ pub struct Chunk {
   filename_template: Option<Filename>,
   css_filename_template: Option<Filename>,
   prevent_integration: bool,
-  groups: UkeySet<ChunkGroupUkey>,
+  groups: HashSet<ChunkGroupUkey>,
   runtime: RuntimeSpec,
   files: HashSet<String>,
   auxiliary_files: HashSet<String>,
@@ -73,15 +70,11 @@ pub struct Chunk {
   rendered: bool,
 }
 
-impl DatabaseItem for Chunk {
-  type ItemUkey = ChunkUkey;
-
-  fn ukey(&self) -> Self::ItemUkey {
+impl Chunk {
+  pub fn ukey(&self) -> ChunkUkey {
     self.ukey
   }
-}
 
-impl Chunk {
   pub fn kind(&self) -> ChunkKind {
     self.kind
   }
@@ -142,7 +135,7 @@ impl Chunk {
     self.id_name_hints.insert(hint);
   }
 
-  pub fn groups(&self) -> &UkeySet<ChunkGroupUkey> {
+  pub fn groups(&self) -> &HashSet<ChunkGroupUkey> {
     &self.groups
   }
 
@@ -356,15 +349,15 @@ impl Chunk {
   pub fn get_all_referenced_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> UkeyIndexSet<ChunkUkey> {
-    let mut chunks = UkeyIndexSet::default();
-    let mut visit_chunk_groups = UkeySet::default();
+  ) -> FxIndexSet<ChunkUkey> {
+    let mut chunks = FxIndexSet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
-      chunks: &mut UkeyIndexSet<ChunkUkey>,
+      chunks: &mut FxIndexSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
 
@@ -400,15 +393,15 @@ impl Chunk {
   pub fn get_all_initial_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> UkeyIndexSet<ChunkUkey> {
-    let mut chunks = UkeyIndexSet::default();
-    let mut visit_chunk_groups = UkeySet::default();
+  ) -> FxIndexSet<ChunkUkey> {
+    let mut chunks = FxIndexSet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_chunks(
       chunk_group_ukey: &ChunkGroupUkey,
-      chunks: &mut UkeyIndexSet<ChunkUkey>,
+      chunks: &mut FxIndexSet<ChunkUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
 
@@ -445,15 +438,15 @@ impl Chunk {
   pub fn get_all_referenced_async_entrypoints(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> UkeyIndexSet<ChunkGroupUkey> {
-    let mut async_entrypoints = UkeyIndexSet::default();
-    let mut visit_chunk_groups = UkeySet::default();
+  ) -> FxIndexSet<ChunkGroupUkey> {
+    let mut async_entrypoints = FxIndexSet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_async_entrypoints(
       chunk_group_ukey: &ChunkGroupUkey,
-      async_entrypoints: &mut UkeyIndexSet<ChunkGroupUkey>,
+      async_entrypoints: &mut FxIndexSet<ChunkGroupUkey>,
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       let group = chunk_group_by_ukey.expect_get(chunk_group_ukey);
 
@@ -502,17 +495,17 @@ impl Chunk {
     // is about loading the async chunks, so even the chunk is inside Entrypoint but loading it indeed need the
     // chunk loading runtime.
     // For a real case checkout the test: `rspack-test-tools/configCases/chunk-loading/depend-on-with-chunk-load`
-    let mut queue = UkeyIndexSet::default();
+    let mut queue = FxIndexSet::default();
 
     let initial_chunks = self
       .groups
       .iter()
       .map(|chunk_group| chunk_group_by_ukey.expect_get(chunk_group))
-      .map(|group| group.chunks.iter().copied().collect::<UkeySet<_>>())
-      .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<UkeySet<_>>())
+      .map(|group| group.chunks.iter().copied().collect::<HashSet<_>>())
+      .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<HashSet<_>>())
       .unwrap_or_default();
 
-    let mut visit_chunk_groups = UkeySet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     for chunk_group_ukey in self.get_sorted_groups_iter(chunk_group_by_ukey) {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
@@ -530,9 +523,9 @@ impl Chunk {
 
     fn check_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      initial_chunks: &UkeySet<ChunkUkey>,
+      initial_chunks: &HashSet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
-      visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) -> bool {
       let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) else {
         return false;
@@ -575,29 +568,29 @@ impl Chunk {
   pub fn get_all_async_chunks(
     &self,
     chunk_group_by_ukey: &ChunkGroupByUkey,
-  ) -> UkeyIndexSet<ChunkUkey> {
-    let mut queue = UkeyIndexSet::default();
-    let mut chunks = UkeyIndexSet::default();
+  ) -> FxIndexSet<ChunkUkey> {
+    let mut queue = FxIndexSet::default();
+    let mut chunks = FxIndexSet::default();
 
     let initial_chunks = self
       .groups
       .iter()
       .map(|chunk_group| chunk_group_by_ukey.expect_get(chunk_group))
-      .map(|group| group.chunks.iter().copied().collect::<UkeySet<_>>())
-      .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<UkeySet<_>>())
+      .map(|group| group.chunks.iter().copied().collect::<HashSet<_>>())
+      .reduce(|acc, prev| acc.intersection(&prev).copied().collect::<HashSet<_>>())
       .unwrap_or_default();
 
     let mut initial_queue = self
       .get_sorted_groups_iter(chunk_group_by_ukey)
       .map(|c| c.to_owned())
-      .collect::<UkeyIndexSet<ChunkGroupUkey>>();
+      .collect::<FxIndexSet<ChunkGroupUkey>>();
 
-    let mut visit_chunk_groups = UkeySet::default();
+    let mut visit_chunk_groups = HashSet::default();
 
     fn add_to_queue(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      queue: &mut UkeyIndexSet<ChunkGroupUkey>,
-      initial_queue: &mut UkeyIndexSet<ChunkGroupUkey>,
+      queue: &mut FxIndexSet<ChunkGroupUkey>,
+      initial_queue: &mut FxIndexSet<ChunkGroupUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
     ) {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
@@ -629,10 +622,10 @@ impl Chunk {
 
     fn add_chunks(
       chunk_group_by_ukey: &ChunkGroupByUkey,
-      chunks: &mut UkeyIndexSet<ChunkUkey>,
-      initial_chunks: &UkeySet<ChunkUkey>,
+      chunks: &mut FxIndexSet<ChunkUkey>,
+      initial_chunks: &HashSet<ChunkUkey>,
       chunk_group_ukey: &ChunkGroupUkey,
-      visit_chunk_groups: &mut UkeySet<ChunkGroupUkey>,
+      visit_chunk_groups: &mut HashSet<ChunkGroupUkey>,
     ) {
       if let Some(chunk_group) = chunk_group_by_ukey.get(chunk_group_ukey) {
         for chunk_ukey in chunk_group.chunks.iter() {
@@ -791,7 +784,7 @@ impl Chunk {
       }
     });
 
-    let mut result: UkeyIndexMap<ChunkGroupUkey, UkeyIndexSet<ChunkUkey>> = UkeyIndexMap::default();
+    let mut result: FxIndexMap<ChunkGroupUkey, FxIndexSet<ChunkUkey>> = FxIndexMap::default();
     for (_, group_ukey, child_group_ukey) in list.iter() {
       let child_group = chunk_group_by_ukey.expect_get(child_group_ukey);
       result
@@ -892,8 +885,7 @@ impl Chunk {
     include_direct_children: bool,
     compilation: &Compilation,
     filter_fn: &F,
-  ) -> HashMap<ChunkGroupOrderKey, IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>>
-  {
+  ) -> HashMap<ChunkGroupOrderKey, IndexChunkIdMap<Vec<ChunkId>>> {
     fn add_child_ids_by_orders_to_map<F: Fn(&ChunkUkey, &Compilation) -> bool>(
       chunk_ukey: &ChunkUkey,
       order: &ChunkGroupOrderKey,
@@ -948,10 +940,7 @@ impl Chunk {
       })
       .collect::<Vec<_>>();
 
-    let mut result: HashMap<
-      ChunkGroupOrderKey,
-      IndexMap<ChunkId, Vec<ChunkId>, BuildHasherDefault<FxHasher>>,
-    > = HashMap::default();
+    let mut result: HashMap<ChunkGroupOrderKey, IndexChunkIdMap<Vec<ChunkId>>> = HashMap::default();
     for (order, chunk_ukey, child_chunk_ids) in add_child_ids_results {
       result
         .entry(order)

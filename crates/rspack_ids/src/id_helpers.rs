@@ -8,7 +8,7 @@ use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
-use rspack_collections::{DatabaseItem, Identifier, UkeyMap};
+use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
   Compilation, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
@@ -20,7 +20,7 @@ use rspack_util::{
   itoa,
   number_hash::get_number_hash,
 };
-use rustc_hash::{FxHashSet, FxHasher};
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
 #[allow(clippy::type_complexity)]
 #[allow(clippy::collapsible_else_if)]
@@ -389,7 +389,7 @@ fn compare_chunks_by_modules<'a>(
   module_ids: &'a ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
-  ordered_chunk_modules_cache: &mut UkeyMap<ChunkUkey, Vec<Option<&'a str>>>,
+  ordered_chunk_modules_cache: &mut FxHashMap<ChunkUkey, Vec<Option<&'a str>>>,
 ) -> Ordering {
   let a_ukey = a.ukey();
   let b_ukey = b.ukey();
@@ -479,7 +479,7 @@ pub fn compare_chunks_natural<'a>(
   module_ids: &'a ModuleIdsArtifact,
   a: &Chunk,
   b: &Chunk,
-  ordered_chunk_modules_cache: &mut UkeyMap<ChunkUkey, Vec<Option<&'a str>>>,
+  ordered_chunk_modules_cache: &mut FxHashMap<ChunkUkey, Vec<Option<&'a str>>>,
 ) -> Ordering {
   let name_ordering = compare_ids(a.name().unwrap_or_default(), b.name().unwrap_or_default());
   if name_ordering != Ordering::Equal {

@@ -258,7 +258,7 @@ impl AMDDefineDependencyParserPlugin {
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
       phase: None,
     };
@@ -587,6 +587,7 @@ impl AMDDefineDependencyParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
   fn call(
     &self,

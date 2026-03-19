@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet, UkeyDashSet, UkeyMap, UkeySet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
   ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_util::{
   atom::Atom,
-  fx_hash::{FxHashMap, FxHashSet},
+  fx_hash::{FxDashSet, FxHashMap, FxHashSet},
 };
 
 use crate::EsmLibraryPlugin;
@@ -24,8 +24,8 @@ use crate::EsmLibraryPlugin;
 /// c depends on a, so entry chunk needs to re-export symbols from a
 pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
   let module_graph = compilation.get_module_graph();
-  let mut entrypoint_chunks = UkeyMap::<ChunkUkey, ChunkGroupUkey>::default();
-  let mut entry_module_belongs: IdentifierMap<UkeySet<ChunkUkey>> = IdentifierMap::default();
+  let mut entrypoint_chunks = FxHashMap::<ChunkUkey, ChunkGroupUkey>::default();
+  let mut entry_module_belongs: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
 
   for entrypoint_ukey in compilation.entrypoints().values() {
     let entrypoint = compilation
@@ -52,7 +52,7 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
     }
   }
 
-  let dirty_chunks = UkeyDashSet::default();
+  let dirty_chunks = FxDashSet::default();
 
   compilation
     .build_chunk_graph_artifact
@@ -270,7 +270,7 @@ pub(crate) fn analyze_dyn_import_targets(
   compilation: &Compilation,
   concatenated_modules: &IdentifierSet,
   dyn_import_ns_map: &Arc<AtomicRefCell<IdentifierMap<Atom>>>,
-) -> (UkeySet<ChunkUkey>, IdentifierSet, IdentifierSet) {
+) -> (FxHashSet<ChunkUkey>, IdentifierSet, IdentifierSet) {
   let module_graph = compilation.get_module_graph();
   let mut all_dyn_targets = IdentifierSet::default();
   let mut namespace_targets = IdentifierSet::default();
@@ -303,6 +303,15 @@ pub(crate) fn analyze_dyn_import_targets(
         continue;
       }
       let target = conn.module_identifier();
+      // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*target)
+        .is_empty()
+      {
+        continue;
+      }
       all_dyn_targets.insert(*target);
 
       if !concatenated_modules.contains(target) {
@@ -320,9 +329,9 @@ pub(crate) fn analyze_dyn_import_targets(
   }
 
   // Classify chunks: single-module or entry chunks get strict exports
-  let mut strict_chunks = UkeySet::default();
+  let mut strict_chunks = FxHashSet::default();
 
-  let entrypoint_chunks: UkeySet<ChunkUkey> = compilation
+  let entrypoint_chunks: FxHashSet<ChunkUkey> = compilation
     .build_chunk_graph_artifact
     .entrypoints
     .values()
@@ -343,7 +352,13 @@ pub(crate) fn analyze_dyn_import_targets(
       continue;
     }
 
-    let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+    let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+        continue;
+      }
+    };
     let chunk_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -379,8 +394,8 @@ pub(crate) fn analyze_dyn_import_targets(
     // Step 1: Collect export names per module per chunk (for non-strict, non-external,
     // concatenated modules) to detect export name conflicts between modules sharing a chunk.
     let exports_info_artifact = &compilation.exports_info_artifact;
-    let mut chunk_module_exports: UkeyMap<ChunkUkey, Vec<(_, FxHashSet<Atom>)>> =
-      UkeyMap::default();
+    let mut chunk_module_exports: FxHashMap<ChunkUkey, Vec<(_, FxHashSet<Atom>)>> =
+      FxHashMap::default();
     for module_id in &sorted_targets {
       if !concatenated_modules.contains(module_id) {
         continue;
@@ -391,7 +406,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
@@ -438,7 +459,7 @@ pub(crate) fn analyze_dyn_import_targets(
 
     // Step 3: Only assign namespace names when needed (namespace used as a whole or has conflicts)
     // Track used names per chunk to avoid collisions between multiple dyn targets
-    let mut chunk_used_names: UkeyMap<ChunkUkey, FxHashSet<Atom>> = UkeyMap::default();
+    let mut chunk_used_names: FxHashMap<ChunkUkey, FxHashSet<Atom>> = FxHashMap::default();
 
     for module_id in &sorted_targets {
       if !concatenated_modules.contains(module_id) {
@@ -450,7 +471,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }

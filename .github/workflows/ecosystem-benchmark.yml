@@ -110,18 +110,29 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Run rspack-ecosystem-benchmark
+      - name: Run rspack-ecosystem-benchmark bench
         timeout-minutes: 40
-        id: run-benchmark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RSPACK_DIR=$(pwd)
           git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
-          result=$(node bin/cli.js compare --base latest --current current)
-          echo "$result"
-          echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
+
+      - name: Get HEAD SHA
+        id: get-sha
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Compare benchmark results
+        id: run-benchmark
+        uses: ./.github/actions/benchmark/compare
+        with:
+          event-name: ${{ github.event_name }}
+          commit-sha: ${{ steps.get-sha.outputs.sha }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload benchmark result
         if: github.event_name == 'push'

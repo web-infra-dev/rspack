@@ -14,6 +14,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_asset::AssetParserAndGenerator;
+use rspack_plugin_externals::esm_node_target_plugin;
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, JavascriptModulesRender, JsPlugin, RenderSource,
   parser_and_generator::JavaScriptParserAndGenerator,
@@ -34,6 +35,7 @@ use crate::{
 pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
   pub force_node_shims: bool,
+  pub external_esm_node_builtin: bool,
 }
 
 #[derive(Debug)]
@@ -249,6 +251,10 @@ impl Plugin for RslibPlugin {
       .compiler_hooks
       .asset_emitted
       .tap(asset_emitted::new(self));
+
+    if self.options.external_esm_node_builtin {
+      esm_node_target_plugin().apply(ctx)?;
+    }
 
     Ok(())
   }

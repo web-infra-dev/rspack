@@ -92,7 +92,13 @@ pub async fn preserve_modules(
     else {
       continue;
     };
-    let chunk = EsmLibraryPlugin::get_module_chunk(module_id, compilation);
+    let chunk = match EsmLibraryPlugin::get_module_chunk(module_id, compilation) {
+      Ok(c) => c,
+      Err(e) => {
+        errors.push(e.into());
+        continue;
+      }
+    };
     let old_chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey

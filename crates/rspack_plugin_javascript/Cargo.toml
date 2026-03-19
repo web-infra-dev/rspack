@@ -30,13 +30,14 @@ rspack_hash = { workspace = true }
 rspack_hook = { workspace = true }
 rspack_ids = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
+rspack_macros = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_util = { workspace = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
-smallvec = { workspace = true }
 slotmap = { workspace = true }
+smallvec = { workspace = true }
 sugar_path = { workspace = true }
 swc_core = { workspace = true, features = [
   "__parser",

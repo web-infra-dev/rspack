@@ -307,7 +307,6 @@ module.exports = {
 			    nodeEnv: false,
 			    providedExports: true,
 			    realContentHash: false,
-			    removeAvailableModules: true,
 			    removeEmptyChunks: true,
 			    runtimeChunk: false,
 			    sideEffects: flag,
@@ -434,7 +433,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -454,7 +452,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -464,7 +461,6 @@ module.exports = {
 			      },
 			      css-import: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],
@@ -490,7 +486,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -510,7 +505,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -530,7 +524,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -550,7 +543,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -573,7 +565,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -593,7 +584,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -625,9 +615,7 @@ module.exports = {
 			      node_modules,
 			    ],
 			    pnp: false,
-			    roots: Array [
-			      <TEST_ROOT>,
-			    ],
+			    roots: Array [],
 			  },
 			  resolveLoader: Object {
 			    conditionNames: Array [

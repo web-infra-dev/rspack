@@ -31,6 +31,10 @@ pub use entry::*;
 pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
@@ -40,8 +44,9 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExtendedReferencedExport,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone)]
@@ -134,6 +139,25 @@ pub trait DependencyConditionFn: Sync + Send {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
+
+  fn is_connection_active(
+    &self,
+    conn: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    self
+      .get_connection_state(
+        conn,
+        runtime,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+      )
+      .is_true()
+  }
 }
 
 #[derive(Clone)]
@@ -153,6 +177,23 @@ impl DependencyCondition {
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     self.0.get_connection_state(
+      connection,
+      runtime,
+      mg,
+      module_graph_cache,
+      exports_info_artifact,
+    )
+  }
+
+  pub fn is_connection_active(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    self.0.is_connection_active(
       connection,
       runtime,
       mg,
@@ -219,4 +260,87 @@ impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
       swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ReferencedSpecifier {
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub names: Vec<Atom>,
+  pub is_call: bool,
+  pub namespace_object_as_context: bool,
+}
+
+impl ReferencedSpecifier {
+  pub fn new(names: Vec<Atom>) -> Self {
+    Self {
+      names,
+      is_call: false,
+      namespace_object_as_context: false,
+    }
+  }
+
+  pub fn new_call(names: Vec<Atom>, namespace_object_as_context: bool) -> Self {
+    Self {
+      names,
+      is_call: true,
+      namespace_object_as_context,
+    }
+  }
+}
+
+pub fn create_referenced_exports_by_referenced_specifiers(
+  referenced_specifiers: &[ReferencedSpecifier],
+  exports_type: ExportsType,
+) -> Vec<ExtendedReferencedExport> {
+  let mut refs = vec![];
+  for ReferencedSpecifier {
+    names,
+    is_call,
+    namespace_object_as_context,
+  } in referenced_specifiers
+  {
+    let mut names = names.as_slice();
+    let mut namespace_object_as_context = *namespace_object_as_context;
+
+    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
+    // because it's more common in cjs and json
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) {
+      namespace_object_as_context = true;
+    }
+
+    if let Some(id) = names.first()
+      && id == "default"
+    {
+      match exports_type {
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+          if names.len() == 1 {
+            return create_exports_object_referenced();
+          }
+          names = &names[1..];
+        }
+        ExportsType::Dynamic => {
+          return create_exports_object_referenced();
+        }
+        _ => {}
+      }
+    }
+
+    if namespace_object_as_context && *is_call {
+      if names.len() == 1 {
+        return create_exports_object_referenced();
+      }
+      // remove last one
+      names = &names[..names.len().saturating_sub(1)];
+    }
+    refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
+      names.to_vec(),
+      false,
+      false,
+    )));
+  }
+  refs
 }

@@ -3,7 +3,7 @@ mod hot_module_replacement;
 use std::collections::hash_map;
 
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
-use rspack_collections::{DatabaseItem, IdentifierSet, UkeyMap};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAsset, CompilationParams,
@@ -11,7 +11,7 @@ use rspack_core::{
   ModuleId, ModuleIdentifier, ModuleType, NormalModuleFactoryParser, NormalModuleLoader,
   ParserAndGenerator, ParserOptions, PathData, Plugin, RunnerContext, RuntimeGlobals,
   RuntimeModule, RuntimeModuleExt, RuntimeSpec,
-  chunk_graph_chunk::ChunkId,
+  chunk_graph_chunk::{ChunkId, ChunkIdSet},
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -84,7 +84,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let mut updated_runtime_modules: IdentifierSet = Default::default();
-  let mut updated_chunks: UkeyMap<ChunkUkey, HashSet<String>> = Default::default();
+  let mut updated_chunks: HashMap<ChunkUkey, HashSet<String>> = Default::default();
   for (identifier, old_runtime_module_hash) in &old_runtime_modules {
     if let Some(new_runtime_module_hash) = compilation.runtime_modules_hash.get(identifier) {
       // updated
@@ -499,7 +499,7 @@ impl Plugin for HotModuleReplacementPlugin {
 
 #[derive(Default)]
 struct HotUpdateContent {
-  updated_chunk_ids: HashSet<ChunkId>,
-  removed_chunk_ids: HashSet<ChunkId>,
+  updated_chunk_ids: ChunkIdSet,
+  removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
 }

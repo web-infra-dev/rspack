@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
-use rspack_collections::{DatabaseItem, UkeySet};
 use rspack_core::{ChunkUkey, Compilation};
+use rustc_hash::FxHashSet;
 
 use crate::{CacheGroup, SplitChunksPlugin};
 
@@ -13,7 +13,7 @@ impl SplitChunksPlugin {
     &self,
     compilation: &Compilation,
     cache_group: &CacheGroup,
-    used_chunks: &mut Cow<UkeySet<ChunkUkey>>,
+    used_chunks: &mut Cow<FxHashSet<ChunkUkey>>,
   ) {
     let chunk_db = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;

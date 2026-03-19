@@ -103,6 +103,7 @@ pub struct URLPlugin {
   pub mode: Option<JavascriptParserUrl>,
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for URLPlugin {
   fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
     (for_name == "URL").then_some(true)
@@ -198,7 +199,7 @@ impl JavascriptParserPlugin for URLPlugin {
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
       phase: None,
     };

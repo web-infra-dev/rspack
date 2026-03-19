@@ -9,7 +9,6 @@ version.workspace = true
 
 [dependencies]
 cow-utils                = { workspace = true }
-dashmap                  = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
 itertools                = { workspace = true }

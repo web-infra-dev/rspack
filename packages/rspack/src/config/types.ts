@@ -821,7 +821,6 @@ export type ResolveOptions = {
 
   /**
    * A list of directories where server-relative URLs (beginning with '/') are resolved.
-   * It defaults to the context configuration option.
    * On systems other than Windows, these requests are initially resolved as an absolute path.
    * @default []
    */
@@ -831,8 +830,6 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
-  /** Path to PnP manifest file */
-  pnpManifest?: string | false;
 };
 
 /** Used to configure the Rspack module resolution */
@@ -2584,9 +2581,6 @@ export type Optimization = {
    */
   runtimeChunk?: OptimizationRuntimeChunk;
 
-  /** Detect and remove modules from chunks these modules are already included in all parents. */
-  removeAvailableModules?: boolean;
-
   /**
    * Remove empty chunks generated in the compilation.
    * @default true
@@ -2941,6 +2935,7 @@ export type {
   DevServerHost,
   DevServerMiddleware,
   DevServerMiddlewareHandler,
+  DevServerMiddlewareObject,
   DevServerOpenOptions,
   DevServerProxyConfigArray,
   DevServerProxyConfigArrayItem,

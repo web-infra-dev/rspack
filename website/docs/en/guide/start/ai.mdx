@@ -1,0 +1,103 @@
+---
+description: 'This guide helps AI understand Rspack features, configuration, and best practices for more accurate development assistance.'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# AI
+
+To help AI better understand Rspack's features, configuration, and best practices so it can provide more accurate assistance during day-to-day development and troubleshooting, Rspack provides the following capabilities:
+
+- [Agent Skills](#agent-skills)
+- [llms.txt](#llmstxt)
+- [Markdown docs](#markdown-docs)
+- [AGENTS.md](#agentsmd)
+
+## Agent Skills
+
+Agent Skills are domain-specific knowledge packs that can be installed into Agents, enabling them to give more accurate and professional suggestions or perform actions in specific scenarios.
+
+In the [rstackjs/agent-skills](https://github.com/rstackjs/agent-skills) repository, there are many skills for the Rstack ecosystem. The skills related to Rspack include:
+
+- [rspack-best-practices](https://github.com/rstackjs/agent-skills#rspack-best-practices): Best practices for Rspack.
+- [rspack-v2-upgrade](https://github.com/rstackjs/agent-skills#rspack-v2-upgrade): Upgrade an existing Rspack 1.x project to v2.
+- [rspack-debugging](https://github.com/rstackjs/agent-skills#rspack-debugging): Debug crashes or deadlocks/hangs in the Rspack build process using LLDB.
+- [rspack-tracing](https://github.com/rstackjs/agent-skills#rspack-tracing): Diagnose Rspack build failures or performance bottlenecks.
+
+In Coding Agents that support skills, you can use the [skills](https://www.npmjs.com/package/skills) package to install a specific skill with the following command:
+
+<PackageManagerTabs
+  command="skills add rstackjs/agent-skills --skill rspack-best-practices"
+  dlx
+/>
+
+After installation, simply use natural language prompts to trigger the skill, for example:
+
+```
+Help me migrate this Rspack 1.x project to v2
+```
+
+## llms.txt
+
+[llms.txt](https://llmstxt.org/) is a standard that helps LLMs discover and use project documentation. Rspack follows this standard and publishes the following two files:
+
+- [llms.txt](https://rspack.rs/llms.txt): A structured index file containing the titles, links, and brief descriptions of all documentation pages.
+
+```
+https://rspack.rs/llms.txt
+```
+
+- [llms-full.txt](https://rspack.rs/llms-full.txt): A full-content file that concatenates the complete content of every documentation page into a single file.
+
+```
+https://rspack.rs/llms-full.txt
+```
+
+You can choose the file that best fits your use case:
+
+- `llms.txt` is smaller and consumes fewer tokens, making it suitable for AI to fetch specific pages on demand.
+- `llms-full.txt` contains the complete documentation content, so AI doesn't need to follow individual links — ideal when you need AI to have a comprehensive understanding of Rspack, though it consumes more tokens and is best used with AI tools that support large context windows.
+
+## Markdown docs
+
+Every Rspack documentation page has a corresponding `.md` plain-text version that can be provided directly to AI. On any doc page, you can click “Copy Markdown” or “Copy Markdown Link” under the title to get the Markdown content or link.
+
+```
+https://rspack.rs/guide/start/introduction.md
+```
+
+Providing the Markdown link or content allows AI to focus on a specific chapter, which is useful for targeted troubleshooting or looking up a particular topic.
+
+## AGENTS.md
+
+When you create a new project with [create-rspack](https://www.npmjs.com/package/create-rspack), the generated project includes an `AGENTS.md` file. This file follows the [AGENTS.md](https://agents.md/) specification and provides key project information to Agents.
+
+Example `AGENTS.md` content:
+
+```markdown wrapCode
+# AGENTS.md
+
+You are an expert in JavaScript, Rspack, and web application development. You write maintainable, performant, and accessible code.
+
+## Commands
+
+- `npm run dev` - Start the dev server
+- `npm run build` - Build the app for production
+- `npm run preview` - Preview the production build locally
+
+## Docs
+
+- Rspack: <https://rspack.rs/llms.txt>
+```
+
+You can also customize it for your project, adding more details about the project structure, overall architecture, and other relevant information so Agents can better understand your project.
+
+::: tip
+
+If you are using Claude Code, you can create a `CLAUDE.md` file and reference the `AGENTS.md` file in it.
+
+```markdown title="CLAUDE.md"
+@AGENTS.md
+```
+
+:::

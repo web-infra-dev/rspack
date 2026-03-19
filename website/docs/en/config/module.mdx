@@ -1,3 +1,7 @@
+---
+description: 'Used to decide how to handle different types of modules in a project'
+---
+
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 import WebpackLicense from '@components/WebpackLicense';
@@ -1555,6 +1559,69 @@ export default {
   },
 };
 ```
+
+### module.parser.javascript.strictThisContextOnImports
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Controls whether Rspack preserves the `this` binding strictly when calling exported functions as object members from imported modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        strictThisContextOnImports: false,
+      },
+    },
+  },
+};
+```
+
+This mainly affects cases where an exported function uses `this` to refer to the current module object, for example:
+
+```js title="index.js"
+import * as mod from './mod';
+
+console.log(mod.fn());
+```
+
+```js title="mod.js"
+export function fn() {
+  return this.value;
+}
+
+export const value = 42;
+```
+
+In the example above, enabling this option prints `42`. When it is disabled, `value` is considered unused and removed for better tree shaking, so the result becomes `undefined`.
+
+- When set to `true`, Rspack follows the spec more strictly and prioritizes correct runtime `this` semantics, but tree shaking can become less effective.
+- When set to `false`, Rspack can generate more optimized output, but runtime `this` semantics may no longer be preserved in these patterns.
+
+This pattern is uncommon in real-world ESM code, and enabling the option can reduce tree shaking effectiveness, so the default is `false`.
+
+:::tip
+If you run into this pattern in practice, it is usually better to avoid relying on it. If that is not possible, prefer enabling it only for specific modules with [module rule condition](/config/module-rules#condition).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /index\.js$/, // Only enable strictThisContextOnImports for import statements in the index.js module
+        parser: {
+          javascript: {
+            strictThisContextOnImports: true,
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+:::
 
 ### module.parser.javascript.jsx
 

@@ -2,7 +2,7 @@ use core::fmt;
 use std::borrow::Cow;
 
 use itertools::Itertools;
-use rspack_collections::{IdentifierMap, UkeyMap};
+use rspack_collections::IdentifierMap;
 use rspack_util::env::has_query;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -12,8 +12,8 @@ use crate::{
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
-pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkSizeOptions};
-pub use chunk_graph_module::{ChunkGraphModule, ModuleId};
+pub use chunk_graph_chunk::{ChunkGraphChunk, ChunkIdMap, ChunkSizeOptions, IndexChunkIdMap};
+pub use chunk_graph_module::{ChunkGraphModule, ModuleId, ModuleIdMap};
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGraph {
@@ -21,7 +21,7 @@ pub struct ChunkGraph {
   pub(crate) block_to_chunk_group_ukey: HashMap<AsyncDependenciesBlockIdentifier, ChunkGroupUkey>,
 
   pub(crate) chunk_graph_module_by_module_identifier: IdentifierMap<ChunkGraphModule>,
-  chunk_graph_chunk_by_chunk_ukey: UkeyMap<ChunkUkey, ChunkGraphChunk>,
+  chunk_graph_chunk_by_chunk_ukey: HashMap<ChunkUkey, ChunkGraphChunk>,
 
   runtime_ids: HashMap<String, Option<String>>,
 }

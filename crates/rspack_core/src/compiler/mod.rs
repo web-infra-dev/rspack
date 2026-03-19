@@ -558,6 +558,8 @@ impl Compiler {
       .call(&self.compilation)
       .await?;
 
+    self.cache.close().await;
+
     Ok(())
   }
 }

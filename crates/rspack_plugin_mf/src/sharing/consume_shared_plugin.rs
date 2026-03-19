@@ -1,5 +1,4 @@
 use std::{
-  collections::HashSet,
   fmt,
   sync::{Arc, LazyLock, OnceLock},
 };
@@ -17,6 +16,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::fx_hash::FxHashSet;
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -112,7 +112,7 @@ pub async fn get_description_file(
   satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
 ) -> (Option<serde_json::Value>, Option<Vec<String>>) {
   let description_filename = "package.json";
-  let mut checked_file_paths = HashSet::new();
+  let mut checked_file_paths = FxHashSet::default();
 
   loop {
     let description_file = dir.join(description_filename);

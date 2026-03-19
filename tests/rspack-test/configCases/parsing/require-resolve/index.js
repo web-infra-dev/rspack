@@ -22,3 +22,4 @@ const resolve6 = require.resolve('./a', { paths: [ cwd, path.resolve(cwd, 'node_
 // const __require = require
 // const resolve8 = __require.resolve('./other.js')
 
+const resolve9 = require.resolve('./foo').replace('', '')

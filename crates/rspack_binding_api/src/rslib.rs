@@ -10,6 +10,9 @@ pub struct RawRslibPluginOptions {
   /// Add shims for javascript/esm modules
   /// @default `false`
   pub force_node_shims: Option<bool>,
+  /// Externalize Node.js builtin modules with ESM-aware external types
+  /// @default `false`
+  pub external_esm_node_builtin: Option<bool>,
 }
 
 impl From<RawRslibPluginOptions> for RslibPluginOptions {
@@ -17,6 +20,7 @@ impl From<RawRslibPluginOptions> for RslibPluginOptions {
     Self {
       intercept_api_plugin: value.intercept_api_plugin.unwrap_or_default(),
       force_node_shims: value.force_node_shims.unwrap_or_default(),
+      external_esm_node_builtin: value.external_esm_node_builtin.unwrap_or_default(),
     }
   }
 }

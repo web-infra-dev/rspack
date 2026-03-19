@@ -2,9 +2,9 @@ use std::cmp::Ordering;
 
 use derive_more::Debug;
 use itertools::Itertools;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   CacheGroup,
@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub(crate) struct IndexedCacheGroup<'a> {
-  pub cache_group_index: usize,
+  pub cache_group_index: u32,
   pub cache_group: &'a CacheGroup,
 }
 
@@ -43,7 +43,7 @@ impl<'a> IndexedCacheGroup<'a> {
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
-  pub cache_group_index: usize,
+  pub cache_group_index: u32,
   pub cache_group_reuse_existing_chunk: bool,
   /// If the `ModuleGroup` is going to create a chunk, which will be named using `chunk_name`
   /// A module
@@ -52,7 +52,7 @@ pub(crate) struct ModuleGroup {
   pub source_types_modules: FxHashMap<SourceType, IdentifierSet>,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
-  pub chunks: UkeySet<ChunkUkey>,
+  pub chunks: FxHashSet<ChunkUkey>,
   added: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
@@ -60,11 +60,7 @@ pub(crate) struct ModuleGroup {
 }
 
 impl ModuleGroup {
-  pub fn new(
-    chunk_name: Option<String>,
-    cache_group_index: usize,
-    cache_group: &CacheGroup,
-  ) -> Self {
+  pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
     Self {
       modules: Default::default(),
       cache_group_index,
@@ -121,7 +117,7 @@ impl ModuleGroup {
   }
 
   pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
-    &cache_groups[self.cache_group_index]
+    &cache_groups[self.cache_group_index as usize]
   }
 
   pub fn get_total_size(&self) -> f64 {

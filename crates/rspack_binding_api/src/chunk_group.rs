@@ -2,9 +2,9 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{Either, Env, JsString, bindgen_prelude::ToNapiValue};
 use napi_derive::napi;
-use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
+use rustc_hash::FxHashMap;
 
 use crate::{
   chunk::ChunkWrapper,
@@ -169,27 +169,19 @@ impl ChunkGroup {
   #[napi(ts_args_type = "module: Module")]
   pub fn get_module_pre_order_index(&self, module: ModuleObjectRef) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
-    Ok(
-      chunk_group
-        .module_pre_order_index(&module.identifier)
-        .map(|v| v as u32),
-    )
+    Ok(chunk_group.module_pre_order_index(&module.identifier))
   }
 
   #[napi(ts_args_type = "module: Module")]
   pub fn get_module_post_order_index(&self, module: ModuleObjectRef) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
 
-    Ok(
-      chunk_group
-        .module_post_order_index(&module.identifier)
-        .map(|v| v as u32),
-    )
+    Ok(chunk_group.module_post_order_index(&module.identifier))
   }
 }
 
 thread_local! {
-  static CHUNK_GROUP_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, UkeyMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
+  static CHUNK_GROUP_INSTANCE_REFS: RefCell<FxHashMap<CompilationId, FxHashMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct ChunkGroupWrapper {
@@ -228,7 +220,7 @@ impl ToNapiValue for ChunkGroupWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = UkeyMap::default();
+            let refs = FxHashMap::default();
             entry.insert(refs)
           }
         };

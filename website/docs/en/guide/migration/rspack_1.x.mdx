@@ -1,3 +1,7 @@
+---
+description: 'If you are using a Coding Agent that supports Skills, install the rspack-v2-upgrade skill to help with the upgrade process from v1 to v2'
+---
+
 import { PackageManagerTabs } from '@theme';
 
 # Upgrading from v1 to v2
@@ -21,21 +25,34 @@ After installation, let the Coding Agent guide you through the upgrade.
 
 Rspack 2.0 requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported.
 
-## Pure ESM package
+## Pure ESM packages
 
-Both `@rspack/core` and `@rspack/cli` are now published as **pure ESM** packages, with CommonJS builds removed.
+`@rspack/core`, `@rspack/cli` and `@rspack/dev-server` are now published as **pure ESM** packages, with CommonJS builds removed.
 
 In Node.js 20 and later, the runtime natively supports loading ESM modules via [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require). As a result, for most projects that use Rspack through its JavaScript API, this change should have no practical impact and does not require any code modifications.
 
 > This does not affect Rspack's ability to build CommonJS output. All related build behavior and configuration options remain unchanged.
 
-## CLI dependency updates
+## Dev server
 
-Starting with Rspack 2.0, [@rspack/dev-server](https://npmjs.com/package/@rspack/dev-server) has been made an optional dependency of `@rspack/cli`. This is because some workflows, such as running only `rspack build`, do not require a dev server.
+[@rspack/dev-server](https://npmjs.com/package/@rspack/dev-server) 2.0 has been released, with the following changes:
 
-When using the `rspack serve` or `rspack preview` commands, install it manually:
+- `@rspack/cli` no longer depends on `@rspack/dev-server` by default, since some workflows do not require a dev server. When using the `rspack dev` or `rspack serve` commands, install `@rspack/dev-server` manually:
 
-<PackageManagerTabs command="add @rspack/dev-server -D" />
+<PackageManagerTabs command="add @rspack/dev-server@beta -D" />
+
+- Some [devServer](/config/dev-server) options have changed, including `devServer.proxy` and `devServer.watchFiles`. See the [upgrade guide](https://github.com/rstackjs/rspack-dev-server/blob/main/docs/migrate-v1-to-v2.md) for more details.
+
+`@rspack/dev-server` dependencies are now more streamlined and modernized:
+
+- It introduces the new [@rspack/dev-middleware](https://github.com/rstackjs/rspack-dev-middleware) package to replace `webpack-dev-middleware`.
+- It uses [connect-next](https://github.com/rstackjs/connect-next) instead of Express v4 as the default middleware framework.
+
+## Bundle analysis
+
+The built-in `webpack-bundler-analyzer` has been removed from `@rspack/cli`, and the `--analyze` flag is no longer available.
+
+If you need to analyze bundle outputs, it is recommended to use [Rsdoctor](/guide/optimization/use-rsdoctor), which provides more powerful analysis capabilities.
 
 ## Experimental configuration changes
 
@@ -66,20 +83,7 @@ Available `type` options:
 
 ### experiments.asyncWebAssembly enabled by default
 
-The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has been changed from `false` to `true`. Async WebAssembly support is now enabled by default, but you still need to configure `type: 'webassembly/async'` in `module.rules` to enable it:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.wasm$/,
-        type: 'webassembly/async',
-      },
-    ],
-  },
-};
-```
+The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) has changed from `false` to `true`. Files with the `.wasm` extension will now be handled using the built-in `webassembly/async` rule.
 
 If you don't need this feature, you can explicitly disable it:
 
@@ -201,6 +205,23 @@ export default {
 };
 ```
 
+`experiments.lazyCompilationMiddleware` has been moved to the top-level [lazyCompilationMiddleware](/guide/features/lazy-compilation#integrating-with-custom-server):
+
+```diff title="rspack.config.mjs"
+- const middleware = rspack.experiments.lazyCompilationMiddleware(compiler);
++ const middleware = rspack.lazyCompilationMiddleware(compiler);
+
+const server = new DevServer(
+  {
+    port: 3000,
+    setupMiddlewares(other) {
+      return [middleware, ...other];
+    },
+  },
+  compiler,
+);
+```
+
 ### Removed experiments.lazyBarrel
 
 `experiments.lazyBarrel` has been removed. The [Lazy barrel](/guide/optimization/lazy-barrel) optimization will be enabled by default.
@@ -252,14 +273,14 @@ export default {
 
 The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
 
-If you want to restore the old behavior, you can explicitly set it to `warn`:
+If you want to restore the old behavior, you can explicitly set it to `auto`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       javascript: {
-        exportsPresence: 'warn',
+        exportsPresence: 'auto',
       },
     },
   },
@@ -290,7 +311,7 @@ export default {
 
 ### Disabled builtin:swc-loader reading .swcrc
 
-In Rspack 2.0, `builtin:swc-loader` disables `.swcrc` file reading by default. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
+In Rspack 2.0, `builtin:swc-loader` no longer supports reading `.swcrc` files. You need to migrate your SWC configuration to the loader options in `rspack.config.js`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -433,6 +454,18 @@ export default {
 
 The `output.charset` configuration has been removed. This option was used to add a `charset` attribute to generated `<script>` tags, but modern browsers default to UTF-8 encoding, so this configuration is no longer needed.
 
+### Removed optimization.removeAvailableModules
+
+The `optimization.removeAvailableModules` configuration has been removed. This option had no actual effect in Rspack and can be safely removed from your configuration:
+
+```diff title="rspack.config.mjs"
+export default {
+  optimization: {
+-   removeAvailableModules: true,
+  },
+};
+```
+
 ## Stats changes
 
 ### Changed default parameters of stats.toJson()
@@ -493,7 +526,7 @@ export default {
 
 ### Removed experiments.SubResourceIntegrityPlugin
 
-`experiments.SubResourceIntegrityPlugin` has been removed. You can use [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) from the exported object directly:
+`experiments.SubResourceIntegrityPlugin` has been moved to the top-level [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin):
 
 ```diff title="rspack.config.mjs"
 import rspack from '@rspack/core';
@@ -607,12 +640,69 @@ export default {
 };
 ```
 
+## Resolve behavior changes
+
+### Default extensions change
+
+Rspack 2.0 no longer includes `.wasm` in the default [resolve.extensions](/config/resolve#resolveextensions) used for JavaScript requests.
+
+In practice, this means extension-less requests such as `import './module'` or `require('./module')` will no longer try `./module.wasm` by default.
+
+Explicit imports like `import './module.wasm'` are not affected.
+
+If you need to preserve the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
+
+### CSS resolve conditions
+
+Rspack 2.0 no longer includes `webpack` in the default CSS `@import` resolve conditions.
+
+If you need to preserve the previous behavior, add `webpack` back explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      'css-import': {
+        conditionNames: ['webpack', '...'],
+      },
+    },
+  },
+};
+```
+
 ## Other changes
 
-### Changed default value of devtool
+### Changed `devtool` default value
+
+The default value of the [devtool](/config/devtool) option has changed:
 
 - When `mode` is `development`, the default value of `devtool` has been changed from `eval` to `cheap-module-source-map`
-- When `mode` is `production`, the default value of `devtool` in `@rspack/cli` has been changed from `source-map` to `false`
+- When `mode` is `production` and you are using `@rspack/cli`, the default value of `devtool` has been changed from `source-map` to `false`
+
+If you need source maps in production, we recommend setting `devtool` to `source-map` or `hidden-source-map`:
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  devtool: isProd ? 'source-map' : 'cheap-module-source-map',
+};
+```
 
 ### Removed runtime module deprecated properties
 
@@ -652,3 +742,25 @@ The `ProgressPlugin` custom handler's third argument has changed from `items: st
 
 - `builtModules: number`: Number of modules built so far
 - `moduleIdentifier?: string`: Identifier of the module being built (only provided during `build modules` updates)
+
+### Changed default value of `resolve.roots`
+
+The resolve's [roots](/config/resolve#resolveroots) configuration default value has been changed from `[ context ]` to `[]`.
+
+If you rely on server-relative URL resolution that expects paths to resolve relative to the `roots` directories, explicitly configure the `roots` option:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    roots: [context], // the context path of the rspack config
+  },
+};
+```
+
+### Removed `readResourceForScheme` hook
+
+`NormalModule.getCompilationHooks(compilation).readResourceForScheme` has been removed. This hook was only a legacy alias for `readResource.for(scheme)`, so migrate to that API directly.
+
+### `@module-federation/runtime-tools` is declared as optional peerDependency
+
+The `@module-federation/runtime-tools` package has been changed from `dependencies` to optional `peerDependencies` (declared via `peerDependencies` + `peerDependenciesMeta.optional`). If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), ensure that this package is explicitly installed in your project.

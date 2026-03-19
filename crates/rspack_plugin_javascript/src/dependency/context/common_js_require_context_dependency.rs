@@ -2,9 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -48,8 +48,8 @@ impl CommonJsRequireContextDependency {
     }
   }
 
-  pub fn set_referenced_exports(&mut self, referenced_exports: Vec<Vec<swc_core::atoms::Atom>>) {
-    self.options.referenced_exports = Some(referenced_exports);
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.options.referenced_specifiers = Some(referenced_specifiers);
     self.resource_identifier =
       create_resource_identifier_for_context_dependency(None, &self.options);
   }
@@ -87,28 +87,6 @@ impl Dependency for CommonJsRequireContextDependency {
       return Some(vec![critical.clone()]);
     }
     None
-  }
-
-  fn get_referenced_exports(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-    _exports_info_artifact: &ExportsInfoArtifact,
-    _runtime: Option<&RuntimeSpec>,
-  ) -> Vec<ExtendedReferencedExport> {
-    if let Some(referenced_exports) = &self.options.referenced_exports {
-      return referenced_exports
-        .iter()
-        .map(|referenced_export| {
-          ExtendedReferencedExport::Export(ReferencedExport::new(
-            referenced_export.clone(),
-            false,
-            false,
-          ))
-        })
-        .collect();
-    }
-    create_exports_object_referenced()
   }
 
   fn loc(&self) -> Option<DependencyLocation> {

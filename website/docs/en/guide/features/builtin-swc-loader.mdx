@@ -1,3 +1,7 @@
+---
+description: 'SWC (Speedy Web Compiler) is a transformer and minimizer for JavaScript and TypeScript based on Rust'
+---
+
 import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # Builtin swc-loader
@@ -305,13 +309,7 @@ export default {
 };
 ```
 
-### rspackExperiments
-
-Experimental features provided by rspack.
-
-### rspackExperiments.import
-
-<ApiMeta stability={Stability.Experimental} />
+### transformImport
 
 Ported from [babel-plugin-import](https://github.com/umijs/babel-plugin-import), configurations are basically the same.
 
@@ -332,14 +330,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'foo',
-                customName: 'foo/es/{{ member }}',
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'foo',
+              customName: 'foo/es/{{ member }}',
+            },
+          ],
         },
       },
     ],
@@ -364,14 +360,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'foo',
-                customName: 'foo/es/{{ kebabCase member }}',
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'foo',
+              customName: 'foo/es/{{ kebabCase member }}',
+            },
+          ],
         },
       },
     ],
@@ -400,14 +394,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'antd',
-                style: '{{member}}/style/index.css',
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'antd',
+              style: '{{member}}/style/index.css',
+            },
+          ],
         },
       },
     ],
@@ -433,14 +425,12 @@ export default {
       {
         use: 'builtin:swc-loader',
         options: {
-          rspackExperiments: {
-            import: [
-              {
-                libraryName: 'antd',
-                style: true,
-              },
-            ],
-          },
+          transformImport: [
+            {
+              libraryName: 'antd',
+              style: true,
+            },
+          ],
         },
       },
     ],
@@ -454,6 +444,14 @@ The above configuration will transform `import { Button } from 'antd';` to:
 import Button from 'antd/es/button';
 import 'antd/es/button/style';
 ```
+
+### rspackExperiments
+
+Experimental features provided by rspack.
+
+:::warning
+`rspackExperiments.import` has been moved to the top-level [`transformImport`](#transformimport) option. The `rspackExperiments.import` option is deprecated and will be removed in a future version.
+:::
 
 ### collectTypeScriptInfo
 

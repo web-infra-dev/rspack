@@ -108,7 +108,6 @@ use std::{
 
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
-use rspack_collections::UkeyMap;
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
   PluginExt,
@@ -116,7 +115,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;
 
 use crate::{
@@ -149,7 +148,7 @@ use crate::{
 pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_version!();
 
 thread_local! {
-  static COMPILER_REFERENCES: RefCell<UkeyMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+  static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
 }
 
 #[js_function(1)]
@@ -206,7 +205,6 @@ impl JsCompiler {
         rspack_loader_lightningcss::LightningcssLoaderPlugin::new(),
       ));
       plugins.push(Box::new(rspack_loader_swc::SwcLoaderPlugin::new()));
-      plugins.push(Box::new(rspack_plugin_rsc::ClientEntryLoaderPlugin::new()));
       plugins.push(Box::new(rspack_plugin_rsc::ActionEntryLoaderPlugin::new()));
       plugins.push(Box::new(
         rspack_loader_react_refresh::ReactRefreshLoaderPlugin::new(),
@@ -383,8 +381,8 @@ impl JsCompiler {
           async move {
             compiler
               .rebuild(
-                changed_files.into_iter().collect::<HashSet<_>>(),
-                removed_files.into_iter().collect::<HashSet<_>>(),
+                changed_files.into_iter().collect::<FxHashSet<_>>(),
+                removed_files.into_iter().collect::<FxHashSet<_>>(),
               )
               .await
               .to_napi_result_with_message(|e| {
