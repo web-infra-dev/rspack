@@ -682,18 +682,18 @@ impl Compilation {
     .await;
 
     // restore artifacts before teardown — after_build_module_graph reads them
-    match build_result {
+    let build_result = match build_result {
       Ok((make_artifact, exports_info_artifact)) => {
         self.build_module_graph_artifact = make_artifact.into();
         self.exports_info_artifact = exports_info_artifact.into();
+        Ok(())
       }
-      Err(ref _e) => {
-        // artifacts were consumed by update_module_graph; restore defaults
-        // so after_build_module_graph doesn't read stolen state
-        self.build_module_graph_artifact = Default::default();
-        self.exports_info_artifact = Default::default();
+      Err(e) => {
+        self.build_module_graph_artifact = StealCell::new(BuildModuleGraphArtifact::new());
+        self.exports_info_artifact = StealCell::new(ExportsInfoArtifact::default());
+        Err(e)
       }
-    }
+    };
 
     // tear down the executor so build_module_graph_pass can set it up fresh
     if started_executor {
@@ -703,9 +703,7 @@ impl Compilation {
       }
     }
 
-    build_result?;
-
-    Ok(())
+    build_result
   }
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
