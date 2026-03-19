@@ -119,6 +119,8 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
   }
 };
 
+__webpack_require__.rstest_do_mock_require = __webpack_require__.rstest_do_mock;
+
 __webpack_require__.rstest_hoisted = (fn) => {
   return fn();
 };
@@ -190,6 +192,8 @@ module.exports = [
 	rstestEntry("./importActual.js"),
 	rstestEntry("./importActualHoisted.js"),
 	rstestEntry("./requireActual.js"),
+	rstestEntry("./doMockRequire.js"),
+	rstestEntry("./unmockRequire.js"),
 	{
 		entry: "./test.js",
 		target: "node",
