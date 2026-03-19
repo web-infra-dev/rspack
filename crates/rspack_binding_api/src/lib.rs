@@ -586,20 +586,6 @@ fn sync_trace_event(events: Vec<RawTraceEvent>) {
   trace_event::sync_trace_event(events);
 }
 
-/// Returns [allocated, deallocated, peak_live] in bytes for WASM memory diagnostics.
-#[napi]
-#[cfg(target_family = "wasm")]
-fn wasm_alloc_stats() -> Vec<u64> {
-  use std::sync::atomic::Ordering::Relaxed;
-
-  use rspack_allocator::wasm_counting::{ALLOCATED, DEALLOCATED, PEAK};
-  vec![
-    ALLOCATED.load(Relaxed) as u64,
-    DEALLOCATED.load(Relaxed) as u64,
-    PEAK.load(Relaxed) as u64,
-  ]
-}
-
 fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   rspack_core::set_thread_local_allocator(Box::new(allocator::NapiAllocatorImpl::new(env)));
   Ok(())

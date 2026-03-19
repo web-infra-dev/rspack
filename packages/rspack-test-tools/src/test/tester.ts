@@ -115,21 +115,12 @@ export class Tester implements ITester {
       if (!Tester.wasmBinding) {
         Tester.wasmBinding = require('@rspack/binding');
       }
-      const binding = Tester.wasmBinding;
-      const parts: string[] = [];
-      if (binding.__sharedMemory) {
-        const wasmMB = binding.__sharedMemory.buffer.byteLength / 1048576;
-        parts.push(`wasm_linear=${wasmMB.toFixed(0)}MB`);
-      }
-      if (binding.wasmAllocStats) {
-        const [alloc, dealloc, peak] = binding.wasmAllocStats();
-        const liveMB = Number(alloc - dealloc) / 1048576;
-        const peakMB = Number(peak) / 1048576;
-        parts.push(`rust_live=${liveMB.toFixed(0)}MB`);
-        parts.push(`rust_peak=${peakMB.toFixed(0)}MB`);
-      }
-      if (parts.length > 0) {
-        console.log(`[WASM-MEM] ${testName} | ${parts.join(' | ')}`);
+      const mem = Tester.wasmBinding.__sharedMemory;
+      if (mem) {
+        const wasmMB = mem.buffer.byteLength / 1048576;
+        console.log(
+          `[WASM-MEM] ${testName} | wasm_linear=${wasmMB.toFixed(0)}MB`,
+        );
       }
     } catch (_) {
       // ignore if binding not available
