@@ -115,5 +115,5 @@ jobs:
         with:
           mode: 'memory'
           # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
-          run: cargo codspeed run
+          run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
