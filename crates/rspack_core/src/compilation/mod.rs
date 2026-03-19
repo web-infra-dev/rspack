@@ -703,7 +703,9 @@ impl Compilation {
       }
     }
 
-    build_result.map(|_| ())
+    build_result?;
+
+    Ok(())
   }
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
