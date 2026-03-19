@@ -24,6 +24,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
+  fx_hash::FxIndexMap,
   identifier::make_paths_absolute,
   node_path::NodePath,
 };
@@ -301,7 +302,7 @@ impl SourceMapDevToolPlugin {
     map_options: &MapOptions,
   ) -> Result<(
     Vec<SourceMapTask>,
-    HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
   )> {
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
     let condition_object = AssetConditionsObject {
@@ -505,10 +506,10 @@ impl SourceMapDevToolPlugin {
     };
 
     let mut tasks: Vec<SourceMapTask> = Vec::with_capacity(results.len());
-    let mut reference_to_source_name_mapping: HashMap<
+    let mut reference_to_source_name_mapping: FxIndexMap<
       SourceReference,
       (String, Option<Utf8PathBuf>),
-    > = HashMap::default();
+    > = FxIndexMap::default();
 
     for result in results {
       let Some((task, source_name_entries)) = result? else {
@@ -527,24 +528,15 @@ impl SourceMapDevToolPlugin {
   async fn deduplicate_source_names(
     &self,
     compilation: &Compilation,
-    reference_to_source_name_mapping: &mut HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &mut FxIndexMap<
+      SourceReference,
+      (String, Option<Utf8PathBuf>),
+    >,
   ) -> Result<()> {
     let output_options = &compilation.options.output;
     let mut used_names_set = HashSet::<&String>::default();
     for (source_reference, (source_name, unresolved_source_map_path)) in
       reference_to_source_name_mapping
-        .iter_mut()
-        .sorted_by(|(key_a, _), (key_b, _)| {
-          let ident_a = match key_a {
-            SourceReference::Module(identifier) => identifier,
-            SourceReference::Source(source) => source.as_ref(),
-          };
-          let ident_b = match key_b {
-            SourceReference::Module(identifier) => identifier,
-            SourceReference::Source(source) => source.as_ref(),
-          };
-          ident_a.len().cmp(&ident_b.len())
-        })
     {
       let mut has_name = used_names_set.contains(source_name);
       if !has_name {
@@ -600,7 +592,7 @@ impl SourceMapDevToolPlugin {
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
     tasks: Vec<SourceMapTask>,
   ) -> Result<Vec<MappedAsset>> {
     let mapped_assets = rspack_futures::scope::<_, Result<_>>(|token| {
@@ -664,7 +656,7 @@ impl SourceMapDevToolPlugin {
     plugin: &SourceMapDevToolPlugin,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
     asset_filename: Arc<str>,
     source: BoxSource,
     mut source_map: SourceMap,
