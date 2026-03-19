@@ -1,7 +1,8 @@
 #![allow(clippy::unwrap_used)]
+use std::cell::RefCell;
 use std::sync::Arc;
 
-use criterion::criterion_group;
+use criterion::{BatchSize, criterion_group};
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
@@ -195,11 +196,16 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   });
 
   assert!(compiler.compilation.get_errors().next().is_none());
+  let compiler = RefCell::new(compiler);
 
   c.bench_function("rust@build_chunk_graph", |b| {
-    b.iter_with_setup_wrapper(|runner| {
-      reset_chunk_graph_state(&mut compiler.compilation);
-      runner.run(|| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        reset_chunk_graph_state(&mut compiler.compilation);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
         build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
         assert_eq!(
           compiler
@@ -209,8 +215,9 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
             .len(),
           NUM_MODULES / 10
         );
-      });
-    });
+      },
+      BatchSize::PerIteration,
+    );
   });
 }
 
@@ -230,7 +237,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
   let random_table =
     serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
-  let mut compiler = Compiler::builder()
+  let compiler = Compiler::builder()
     .context("/")
     .entry("main", "/src/dynamic-0.js")
     .input_filesystem(fs.clone())
@@ -246,39 +253,42 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
   });
+  let compiler = RefCell::new(compiler);
 
   c.bench_function("rust@build_module_graph", |b| {
-    b.iter_with_setup_wrapper(|runner| {
-      reset_compilation_state(&mut compiler);
-      rt.block_on(async {
-        let mut compilation_params = compiler.new_compilation_params();
-        compiler
-          .plugin_driver
-          .compiler_hooks
-          .this_compilation
-          .call(&mut compiler.compilation, &mut compilation_params)
-          .await
-          .unwrap();
-        compiler
-          .plugin_driver
-          .compiler_hooks
-          .compilation
-          .call(&mut compiler.compilation, &mut compilation_params)
-          .await
-          .unwrap();
-        compiler
-          .plugin_driver
-          .compiler_hooks
-          .make
-          .call(&mut compiler.compilation)
-          .await
-          .unwrap();
-      });
-      assert!(
-        compiler.compilation.get_errors().next().is_none(),
-        "build_module_graph benchmark setup should not produce compilation errors"
-      );
-      runner.run(|| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        reset_compilation_state(&mut compiler);
+        let plugin_driver = compiler.plugin_driver.clone();
+        rt.block_on(async {
+          let mut compilation_params = compiler.new_compilation_params();
+          plugin_driver
+            .compiler_hooks
+            .this_compilation
+            .call(&mut compiler.compilation, &mut compilation_params)
+            .await
+            .unwrap();
+          plugin_driver
+            .compiler_hooks
+            .compilation
+            .call(&mut compiler.compilation, &mut compilation_params)
+            .await
+            .unwrap();
+          plugin_driver
+            .compiler_hooks
+            .make
+            .call(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        assert!(
+          compiler.compilation.get_errors().next().is_none(),
+          "build_module_graph benchmark setup should not produce compilation errors"
+        );
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
         rt.block_on(async {
           build_module_graph_pass(&mut compiler.compilation)
             .await
@@ -292,8 +302,9 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
           compiler.compilation.get_module_graph().modules_len(),
           NUM_MODULES + NUM_MODULES / 10
         );
-      });
-    });
+      },
+      BatchSize::PerIteration,
+    );
   });
 }
 
