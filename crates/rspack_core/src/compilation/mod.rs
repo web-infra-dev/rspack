@@ -652,6 +652,17 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
+    // ensure module executor is running so loaders can call `importModule`
+    let started_executor = match &self.module_executor {
+      Some(me) if !me.is_running() => {
+        let mut module_executor = self.module_executor.take().expect("checked above");
+        module_executor.before_build_module_graph(self).await?;
+        self.module_executor = Some(module_executor);
+        true
+      }
+      _ => false,
+    };
+
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
     let (make_artifact, exports_info_artifact) = update_module_graph(
@@ -671,6 +682,14 @@ impl Compilation {
     .await?;
     self.build_module_graph_artifact = make_artifact.into();
     self.exports_info_artifact = exports_info_artifact.into();
+
+    // tear down the executor so build_module_graph_pass can set it up fresh
+    if started_executor {
+      if let Some(mut module_executor) = self.module_executor.take() {
+        module_executor.after_build_module_graph(self).await?;
+        self.module_executor = Some(module_executor);
+      }
+    }
 
     Ok(())
   }
