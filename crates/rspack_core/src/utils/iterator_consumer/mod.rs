@@ -1,3 +1,4 @@
+mod bound_future;
 mod future;
 mod rayon;
 mod rayon_fut;

@@ -67,7 +67,7 @@ impl Snapshot {
   }
 
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
+  pub async fn add(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath> + Send) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
     // TODO merge package version file

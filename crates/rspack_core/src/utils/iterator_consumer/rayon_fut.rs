@@ -1,47 +1,55 @@
-use std::{future::Future, sync::Arc};
+use std::{future::Future, pin::Pin, sync::Arc};
 
 use rayon::iter::ParallelIterator;
 use tokio::sync::mpsc::unbounded_channel;
 
-use super::RayonConsumer;
+use super::{RayonConsumer, bound_future::BoundFuture};
 
 /// Tools for consume rayon iterator which return feature.
-#[async_trait::async_trait]
-pub trait RayonFutureConsumer {
+pub trait RayonFutureConsumer<'a> {
   type Item;
-  /// Use to immediately consume the data produced by the future in the rayon iterator
-  /// without waiting for all the data to be processed.
-  /// The closures runs in the current thread.
-  async fn fut_consume(self, func: impl FnMut(Self::Item) + Send);
+  /// Drives every future in the parallel iterator concurrently via `tokio::spawn`
+  /// and calls `func` with each output on the current thread as results arrive.
+  /// The returned [`BoundFuture`] must be awaited to completion.
+  fn fut_consume(self, func: impl FnMut(Self::Item) + Send + 'a) -> BoundFuture<'a, ()>;
 }
 
-#[async_trait::async_trait]
-impl<I, Fut> RayonFutureConsumer for I
+impl<'a, I, Fut> RayonFutureConsumer<'a> for I
 where
-  I: ParallelIterator<Item = Fut> + Send,
-  Fut: Future + Send + 'static,
-  Fut::Output: Send + 'static,
+  I: ParallelIterator<Item = Fut> + Send + 'a,
+  Fut: Future + Send + 'a,
+  Fut::Output: Send + 'a,
 {
   type Item = Fut::Output;
-  async fn fut_consume(self, mut func: impl FnMut(Self::Item) + Send) {
-    let mut rx = {
-      // Create the channel in the closure to ensure all sender are dropped when iterator completes
-      // This ensures that the receiver does not get stuck in an infinite loop.
-      let (tx, rx) = unbounded_channel::<Self::Item>();
+
+  fn fut_consume(self, mut func: impl FnMut(Self::Item) + Send + 'a) -> BoundFuture<'a, ()> {
+    BoundFuture::new(async move {
+      let (tx, mut rx) = unbounded_channel::<Fut::Output>();
       let tx = Arc::new(tx);
+
+      // `consume` drives the parallel iterator on the rayon thread pool and
+      // delivers futures to the closure on the calling thread (blocking).
       self.consume(|fut| {
         let tx = tx.clone();
-        tokio::spawn(async move {
-          let data = fut.await;
-          tx.send(data).expect("should send success");
-        });
-      });
-      rx
-    };
 
-    while let Some(data) = rx.recv().await {
-      func(data);
-    }
+        let task: Pin<Box<dyn std::future::Future<Output = ()> + Send + 'a>> =
+          Box::pin(async move {
+            tx.send(fut.await).expect("should send success");
+          });
+
+        // SAFETY: same argument as in `FutureConsumer::fut_consume`.
+        let static_task: Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>> =
+          unsafe { std::mem::transmute(task) };
+        tokio::spawn(static_task);
+      });
+
+      // Drop the last sender so the channel closes after the iterator is exhausted.
+      drop(tx);
+
+      while let Some(data) = rx.recv().await {
+        func(data);
+      }
+    })
   }
 }
 
