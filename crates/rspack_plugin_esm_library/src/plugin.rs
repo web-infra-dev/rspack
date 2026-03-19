@@ -44,7 +44,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    optimize_runtime_chunks,
+    optimize_runtime_chunks, pull_module_into_non_entry_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
@@ -685,6 +685,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     crate::split_chunks::split(cache_groups, compilation).await?;
   }
 
+  pull_module_into_non_entry_chunks(compilation);
   ensure_entry_exports(compilation);
   let concate_modules_map = self.concatenated_modules_map.read().await;
   let concatenated_modules = concate_modules_map

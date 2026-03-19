@@ -15,6 +15,108 @@ use rspack_util::{
 
 use crate::EsmLibraryPlugin;
 
+/// For each non-entry initial chunk, pull any modules that are currently in entry
+/// chunks but are referenced (via outgoing connections) by modules in this chunk.
+///
+/// This prevents circular chunk imports in ESM library output. Without this, a
+/// shared chunk containing `lib.js` (which has `export * from './a'`) would try to
+/// import from the entry chunk containing `a.js`, while the entry chunk also imports
+/// the shared chunk — creating a cycle.
+///
+/// By moving `a.js` into the shared chunk, both entries can cleanly import their
+/// needed exports from the shared chunk.
+pub(crate) fn pull_module_into_non_entry_chunks(compilation: &mut Compilation) {
+  // Identify entry chunks
+  let entrypoint_chunks: FxHashSet<ChunkUkey> = compilation
+    .build_chunk_graph_artifact
+    .entrypoints
+    .values()
+    .map(|entrypoint_ukey| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(entrypoint_ukey)
+        .get_entrypoint_chunk()
+    })
+    .collect();
+
+  // Iterate until stable: moving a module may introduce new cross-chunk
+  // references if the moved module itself has dependencies in entry chunks.
+  loop {
+    // Phase 1: Collect moves (immutable borrow of compilation via module_graph)
+    let moves = {
+      let module_graph = compilation.get_module_graph();
+      let mut moves: Vec<(ModuleIdentifier, ChunkUkey, ChunkUkey)> = Vec::new();
+
+      for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+        // Skip entry chunks
+        if entrypoint_chunks.contains(chunk_ukey) {
+          continue;
+        }
+
+        // Only handle initial chunks (shared chunks loaded with entries).
+        // Async chunks are handled by ensure_entry_exports.
+        if !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+          continue;
+        }
+
+        let modules: Vec<_> = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules_identifier(chunk_ukey)
+          .iter()
+          .copied()
+          .collect();
+
+        for m in &modules {
+          let outgoings = module_graph.get_active_outcoming_connections_by_module(
+            m,
+            None,
+            module_graph,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+          );
+
+          for target_module in outgoings.keys() {
+            let target_chunks = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_module_chunks(*target_module);
+
+            for target_chunk in target_chunks.iter().copied().collect::<Vec<_>>() {
+              if entrypoint_chunks.contains(&target_chunk) && target_chunk != *chunk_ukey {
+                moves.push((*target_module, target_chunk, *chunk_ukey));
+              }
+            }
+          }
+        }
+      }
+
+      moves
+    }; // module_graph borrow dropped here
+
+    if moves.is_empty() {
+      break;
+    }
+
+    // Phase 2: Apply moves (mutable borrow of compilation)
+    let mut seen = FxHashSet::<ModuleIdentifier>::default();
+    for (module_id, from_chunk, to_chunk) in moves {
+      if !seen.insert(module_id) {
+        continue;
+      }
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .disconnect_chunk_and_module(&from_chunk, module_id);
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .connect_chunk_and_module(to_chunk, module_id);
+    }
+  }
+}
+
 /// Ensure that all entry chunks only export the exports used by other chunks,
 /// this requires no other chunks depend on the entry chunk to get exports
 ///
@@ -80,7 +182,6 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
             for entry_chunk in entry_chunks {
               dirty_chunks.insert(*entry_chunk);
             }
-            break;
           }
         }
       }
