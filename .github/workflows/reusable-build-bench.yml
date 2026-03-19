@@ -115,5 +115,5 @@ jobs:
         with:
           mode: 'memory'
           # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
-          run: pnpm run bench:js
+          run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
