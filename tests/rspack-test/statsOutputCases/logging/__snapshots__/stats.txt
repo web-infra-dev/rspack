@@ -36,7 +36,7 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
 |     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
 |     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
+|     at onMessage <PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -56,7 +56,7 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
 |     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
 |     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
+|     at onMessage <PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <-> Unimportant
   <i> Info message
       Just log
