@@ -24,7 +24,7 @@ permissions:
 jobs:
   bench:
     name: Bench
-    runs-on: rspack-ubuntu-22.04-physical-large
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
