@@ -506,7 +506,11 @@ pub(crate) fn analyze_dyn_import_targets(
 
 /// Compute a short name from a module identifier.
 ///
-/// Rules:
+/// Identifiers may carry a module-type prefix (`css|…`), trailing metadata
+/// separated by `|`, or a `?query` suffix.  These are stripped first so that
+/// only the clean file path is used for name derivation.
+///
+/// Rules (applied to the cleaned path):
 /// - If the filename stem is "index" and the path is inside `node_modules`,
 ///   use the package name (the segment right after `node_modules/`,
 ///   or `@scope/pkg` for scoped packages).
@@ -514,15 +518,28 @@ pub(crate) fn analyze_dyn_import_targets(
 /// - Otherwise, use the filename stem (without extension).
 ///
 /// Examples:
-/// - `node_modules/lib/index.js` → `lib`
 /// - `node_modules/lib/dist/index.js` → `lib`
 /// - `node_modules/@scope/pkg/dist/index.js` → `@scope/pkg`
-/// - `/path/to/src/index.js` → `src`
 /// - `/path/to/src/app.js` → `app`
+/// - `css|./node_modules/lib/dist/index.css|0||||}` → `lib`
+/// - `/path/to/src/index.js?query=1` → `src`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
+  // Strip ?query suffix.
+  let s = identifier
+    .split_once('?')
+    .map_or(identifier, |(path, _)| path);
+
+  // Strip module-type prefix and trailing metadata.
+  // e.g. "css|./path/to/file.css|0||||}" → "./path/to/file.css"
+  let s = if let Some((_, rest)) = s.split_once('|') {
+    rest.split('|').next().unwrap_or(rest)
+  } else {
+    s
+  };
+
   // Module identifiers always use '/', so pure string ops suffice (no Path needed).
-  let last_slash = identifier.rfind('/');
-  let filename = last_slash.map_or(identifier, |p| &identifier[p + 1..]);
+  let last_slash = s.rfind('/');
+  let filename = last_slash.map_or(s, |p| &s[p + 1..]);
   let stem = filename.rsplit_once('.').map_or(filename, |(name, _)| name);
 
   if stem != "index" {
@@ -530,8 +547,8 @@ fn short_name_from_identifier(identifier: &str) -> Option<String> {
   }
 
   // For index files inside node_modules, extract the package name.
-  if let Some(nm_pos) = identifier.rfind("node_modules/") {
-    let after_nm = &identifier[nm_pos + "node_modules/".len()..];
+  if let Some(nm_pos) = s.rfind("node_modules/") {
+    let after_nm = &s[nm_pos + "node_modules/".len()..];
     let pkg_end = if after_nm.starts_with('@') {
       // Scoped package (@scope/pkg): find the second '/'.
       let first = after_nm.find('/')?;
@@ -543,7 +560,7 @@ fn short_name_from_identifier(identifier: &str) -> Option<String> {
   }
 
   // Fallback: parent directory name.
-  let dir = &identifier[..last_slash?];
+  let dir = &s[..last_slash?];
   let start = dir.rfind('/').map_or(0, |p| p + 1);
   Some(dir[start..].to_owned())
 }
@@ -721,6 +738,51 @@ mod tests {
     assert_eq!(
       short_name_from_identifier("node_modules/lib/dist/utils.js"),
       Some("utils".into())
+    );
+  }
+
+  #[test]
+  fn short_name_strips_query() {
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/app.js?query=1"),
+      Some("app".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/index.js?v=2&hash=abc"),
+      Some("src".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/dist/index.js?query"),
+      Some("lib".into())
+    );
+  }
+
+  #[test]
+  fn short_name_strips_module_type_prefix() {
+    assert_eq!(
+      short_name_from_identifier("css|./src/style.css|0||||}"),
+      Some("style".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("css|./node_modules/lib/dist/index.css|0||||}"),
+      Some("lib".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("css|./node_modules/@scope/pkg/dist/index.css|0||||}"),
+      Some("@scope/pkg".into())
+    );
+    // type prefix without trailing metadata
+    assert_eq!(
+      short_name_from_identifier("css-module|./src/app.module.css"),
+      Some("app.module".into())
+    );
+  }
+
+  #[test]
+  fn short_name_strips_both_prefix_and_query() {
+    assert_eq!(
+      short_name_from_identifier("css|./src/style.css?inline|0||||}"),
+      Some("style".into())
     );
   }
 }
