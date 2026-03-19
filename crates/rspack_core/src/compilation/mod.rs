@@ -665,7 +665,7 @@ impl Compilation {
 
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let build_result = update_module_graph(
       self,
       make_artifact,
       exports_info_artifact,
@@ -679,9 +679,7 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
-    self.build_module_graph_artifact = make_artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
+    .await;
 
     // tear down the executor so build_module_graph_pass can set it up fresh
     if started_executor {
@@ -690,6 +688,10 @@ impl Compilation {
         self.module_executor = Some(module_executor);
       }
     }
+
+    let (make_artifact, exports_info_artifact) = build_result?;
+    self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
 
     Ok(())
   }
