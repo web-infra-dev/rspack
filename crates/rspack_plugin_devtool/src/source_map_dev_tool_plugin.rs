@@ -8,7 +8,6 @@ use std::{
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
-use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
