@@ -51,7 +51,6 @@ pub struct PersistentCache {
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
-  async_mode: bool,
   storage: Arc<dyn Storage>,
   // TODO replace to logger and output warnings directly.
   warnings: Vec<String>,
@@ -65,7 +64,6 @@ impl PersistentCache {
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
   ) -> Self {
-    let async_mode = compiler_options.mode.is_development();
     let project_root = if option.portable {
       Some(compiler_options.context.as_path().to_path_buf())
     } else {
@@ -107,7 +105,6 @@ impl PersistentCache {
       make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
       meta_occasion: MetaOccasion::new(storage.clone(), codec),
       warnings: Default::default(),
-      async_mode,
       storage,
     }
   }
@@ -133,21 +130,7 @@ impl PersistentCache {
   }
 
   async fn save(&mut self) {
-    let rx = match self.storage.trigger_save() {
-      Ok(rx) => rx,
-      Err(err) => {
-        self.warnings.push(err.to_string());
-        return;
-      }
-    };
-    if self.async_mode {
-      tokio::spawn(async {
-        if let Err(err) = rx.await.expect("should receive message") {
-          // TODO use infra structure logger to println
-          println!("persistent cache save failed. {err}");
-        }
-      });
-    } else if let Err(err) = rx.await.expect("should receive message") {
+    if let Err(err) = self.storage.save().await {
       self.warnings.push(err.to_string());
     }
   }
@@ -287,5 +270,9 @@ impl Cache for PersistentCache {
         .make_occasion
         .save(&compilation.build_module_graph_artifact);
     }
+  }
+
+  async fn close(&self) {
+    self.storage.flush().await;
   }
 }

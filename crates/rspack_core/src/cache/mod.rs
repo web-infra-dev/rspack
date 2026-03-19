@@ -15,8 +15,8 @@ use crate::{CacheOptions, Compilation, CompilerOptions};
 /// Cache trait
 ///
 /// The cache trait provides a pair of methods that are called before and after the core build steps.
-/// * before_<step_name>(): set or clean artifact to enable or disable incremental build
-/// * after_<step_name>(): save artifact or nothing
+/// * `before_<step_name>()`: set or clean artifact to enable or disable incremental build
+/// * `after_<step_name>()`: save artifact or nothing
 ///
 /// ### Why not define it as a hook directly
 /// * The design of cache is different from webpack.
@@ -90,6 +90,9 @@ pub trait Cache: Debug + Send + Sync {
 
   /// Store old compilation for artifact recovery (used by MemoryCache)
   fn store_old_compilation(&mut self, _compilation: Box<Compilation>) {}
+
+  /// Shuts down the cache, flushing all pending background storage writes to completion.
+  async fn close(&self) {}
 }
 
 pub fn new_cache(

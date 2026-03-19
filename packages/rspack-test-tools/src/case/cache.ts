@@ -113,7 +113,6 @@ async function generateOptions(
 ): Promise<RspackOptions> {
   let options = {
     context: temp,
-    mode: 'production',
     cache: true,
     devtool: false,
     output: {

@@ -48,7 +48,7 @@ impl Error {
         }
         let error_string = e.to_string();
         let error_content = error_string.cow_to_ascii_lowercase();
-        error_content.contains("no such file") || error_content.contains("file not exists")
+        error_content.contains("no such file") || error_content.contains("not exist")
       }
       _ => false,
     }

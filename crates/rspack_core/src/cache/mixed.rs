@@ -222,4 +222,8 @@ impl Cache for MixedCache {
   async fn after_emit_assets(&self, compilation: &Compilation) {
     self.persistent.after_emit_assets(compilation).await;
   }
+
+  async fn close(&self) {
+    self.persistent.close().await;
+  }
 }
