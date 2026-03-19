@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
@@ -510,8 +510,8 @@ pub(crate) fn analyze_dyn_import_targets(
 /// - If the filename stem is "index" and the path is inside `node_modules`,
 ///   use the package name (the segment right after `node_modules/`,
 ///   or `@scope/pkg` for scoped packages).
-/// - If the filename stem is "index" otherwise, use the parent directory name
-/// - Otherwise, use the filename stem (without extension)
+/// - If the filename stem is "index" otherwise, use the parent directory name.
+/// - Otherwise, use the filename stem (without extension).
 ///
 /// Examples:
 /// - `node_modules/lib/index.js` → `lib`
@@ -520,28 +520,32 @@ pub(crate) fn analyze_dyn_import_targets(
 /// - `/path/to/src/index.js` → `src`
 /// - `/path/to/src/app.js` → `app`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
-  let path = Path::new(identifier);
-  let stem = path.file_stem()?.to_str()?;
-  if stem == "index" {
-    // If inside node_modules, extract the package name
-    if let Some(pos) = identifier.rfind("node_modules/") {
-      let after_nm = &identifier[pos + "node_modules/".len()..];
-      if after_nm.starts_with('@') {
-        // Scoped package: @scope/pkg/...
-        let mut parts = after_nm.splitn(3, '/');
-        let scope = parts.next()?;
-        let name = parts.next()?;
-        return Some(format!("{scope}/{name}"));
-      } else {
-        return Some(after_nm.split('/').next()?.to_string());
-      }
-    }
-    let parent = path.parent()?;
-    let dir_name = parent.file_name()?.to_str()?;
-    Some(dir_name.to_string())
-  } else {
-    Some(stem.to_string())
+  // Module identifiers always use '/', so pure string ops suffice (no Path needed).
+  let last_slash = identifier.rfind('/');
+  let filename = last_slash.map_or(identifier, |p| &identifier[p + 1..]);
+  let stem = filename.rsplit_once('.').map_or(filename, |(name, _)| name);
+
+  if stem != "index" {
+    return Some(stem.to_owned());
   }
+
+  // For index files inside node_modules, extract the package name.
+  if let Some(nm_pos) = identifier.rfind("node_modules/") {
+    let after_nm = &identifier[nm_pos + "node_modules/".len()..];
+    let pkg_end = if after_nm.starts_with('@') {
+      // Scoped package (@scope/pkg): find the second '/'.
+      let first = after_nm.find('/')?;
+      first + 1 + after_nm[first + 1..].find('/')?
+    } else {
+      after_nm.find('/')?
+    };
+    return Some(after_nm[..pkg_end].to_owned());
+  }
+
+  // Fallback: parent directory name.
+  let dir = &identifier[..last_slash?];
+  let start = dir.rfind('/').map_or(0, |p| p + 1);
+  Some(dir[start..].to_owned())
 }
 
 /// For unnamed dynamic-import chunks with exactly one root module,
