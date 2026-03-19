@@ -58,6 +58,7 @@ impl Default for ScopeInfoDB {
 }
 
 impl ScopeInfoDB {
+  #[inline]
   pub fn new() -> Self {
     Self {
       map: SlotMap::with_key(),
@@ -66,6 +67,7 @@ impl ScopeInfoDB {
     }
   }
 
+  #[inline]
   fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
     let is_strict = match parent {
       Some(parent) => self.expect_get_scope(parent).is_strict,
@@ -79,14 +81,17 @@ impl ScopeInfoDB {
     self.map.insert(info)
   }
 
+  #[inline]
   pub fn create(&mut self) -> ScopeInfoId {
     self._create(None)
   }
 
+  #[inline]
   pub fn create_child(&mut self, parent: ScopeInfoId) -> ScopeInfoId {
     self._create(Some(parent))
   }
 
+  #[inline]
   pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
     self
       .map
@@ -94,6 +99,7 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
     self
       .map
@@ -101,6 +107,7 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
     self
       .variable_info_db
@@ -109,6 +116,7 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
     self
       .tag_info_db
@@ -117,6 +125,7 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn expect_get_mut_tag_info(&mut self, id: TagInfoId) -> &mut TagInfo {
     self
       .tag_info_db
@@ -125,19 +134,22 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
-    let definitions = self.expect_get_scope(id);
-    if let Some(&top_value) = definitions.map.get(key) {
+    let top_scope = self.expect_get_scope(id);
+    if let Some(&top_value) = top_scope.map.get(key) {
       if top_value == VariableInfoId::tombstone() || top_value == VariableInfoId::undefined() {
         None
       } else {
         Some(top_value)
       }
-    } else if let Some(parent) = definitions.parent {
+    } else if let Some(parent) = top_scope.parent {
       let mut current = Some(parent);
       while let Some(current_id) = current {
         let scope = self.expect_get_scope(current_id);
         if let Some(&value) = scope.map.get(key) {
+          let top_scope = self.expect_get_mut_scope(id);
+          top_scope.map.insert(key.clone(), value);
           if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
             return None;
           } else {
@@ -146,8 +158,8 @@ impl ScopeInfoDB {
         }
         current = scope.parent;
       }
-      let definitions = self.expect_get_mut_scope(id);
-      definitions
+      let top_scope = self.expect_get_mut_scope(id);
+      top_scope
         .map
         .insert(key.clone(), VariableInfoId::tombstone());
       None
@@ -156,11 +168,13 @@ impl ScopeInfoDB {
     }
   }
 
+  #[inline]
   pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
     let scope = self.expect_get_mut_scope(id);
     scope.map.insert(key, variable_info_id);
   }
 
+  #[inline]
   pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     let scope = self.expect_get_mut_scope(id);
     if scope.parent.is_some() {
@@ -265,6 +279,7 @@ pub struct VariableInfo {
 }
 
 impl VariableInfo {
+  #[inline]
   pub fn create(
     definitions_db: &mut ScopeInfoDB,
     declared_scope: ScopeInfoId,
@@ -284,14 +299,17 @@ impl VariableInfo {
       })
   }
 
+  #[inline]
   pub fn id(&self) -> VariableInfoId {
     self.id
   }
 
+  #[inline]
   pub fn is_free(&self) -> bool {
     self.flags.contains(VariableInfoFlags::FREE)
   }
 
+  #[inline]
   pub fn is_tagged(&self) -> bool {
     self.flags.contains(VariableInfoFlags::TAGGED)
   }

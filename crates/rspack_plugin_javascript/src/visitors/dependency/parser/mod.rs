@@ -1,7 +1,7 @@
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;
-mod location_advancer;
+mod location_tracker;
 mod walk;
 mod walk_block_pre;
 mod walk_module_pre;
@@ -54,7 +54,7 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     ScanDependenciesResult,
-    dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
+    dependency::parser::{ast::ExprRef, location_tracker::DependencyLocationTracker},
     scope_info::{
       ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
     },
@@ -386,7 +386,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) has_inlinable_const_decls: bool,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
-  pub(crate) location_advancer: DependencyLocationAdvancer,
+  pub(crate) location_advancer: DependencyLocationTracker,
   pub(crate) collecting_dependencies_for_block: Option<usize>,
 }
 
@@ -569,7 +569,7 @@ impl<'parser> JavascriptParser<'parser> {
       side_effects_item: None,
       parser_runtime_requirements,
       is_renaming: None,
-      location_advancer: DependencyLocationAdvancer::new(),
+      location_advancer: DependencyLocationTracker::new(),
       collecting_dependencies_for_block: None,
     }
   }

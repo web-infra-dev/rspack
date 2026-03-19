@@ -5,13 +5,14 @@ use rspack_core::{DependencyLocation, DependencyRange, RealDependencyLocation, S
 /// This optimization reduces repeated source scans when processing dependencies
 /// in increasing source order (common for import statements).
 #[derive(Debug, Default)]
-pub struct DependencyLocationAdvancer {
+pub struct DependencyLocationTracker {
   last_range: Option<DependencyRange>,
   last_location: Option<DependencyLocation>,
   last_start_pos: Option<SourcePosition>,
+  last_end_pos: Option<SourcePosition>,
 }
 
-impl DependencyLocationAdvancer {
+impl DependencyLocationTracker {
   pub fn new() -> Self {
     Self::default()
   }
@@ -66,12 +67,16 @@ impl DependencyLocationAdvancer {
       return self.last_location.clone();
     }
 
-    // Determine the base point for calculation
-    let (base_offset, base_pos) = if let (Some(last_range), Some(last_start_pos)) =
-      (self.last_range, self.last_start_pos)
+    // Prefer advancing from the previous end when ranges are monotonically increasing,
+    // otherwise fall back to the previous start or the beginning of the file.
+    let (base_offset, base_pos) = if let (Some(last_range), Some(last_end_pos)) =
+      (self.last_range, self.last_end_pos)
+      && start >= last_range.end as usize
+    {
+      (last_range.end as usize, last_end_pos)
+    } else if let (Some(last_range), Some(last_start_pos)) = (self.last_range, self.last_start_pos)
       && start >= last_range.start as usize
     {
-      // Incremental path: Use the previously cached position
       (last_range.start as usize, last_start_pos)
     } else {
       // Fallback path: Start calculating from the beginning of the file (1-based)
@@ -103,6 +108,7 @@ impl DependencyLocationAdvancer {
 
       if let DependencyLocation::Real(real_loc) = loc {
         self.last_start_pos = Some(real_loc.start);
+        self.last_end_pos = Some(real_loc.end.unwrap_or(real_loc.start));
       }
     }
 
@@ -116,7 +122,7 @@ mod tests {
 
   #[test]
   fn test_same_range_cache() {
-    let mut cache = DependencyLocationAdvancer::new();
+    let mut cache = DependencyLocationTracker::new();
     let source = "import a from './a';\nimport b from './b';";
     let range = DependencyRange::new(0, 20);
 
@@ -133,7 +139,7 @@ mod tests {
 
   #[test]
   fn test_incremental_calculation() {
-    let mut cache = DependencyLocationAdvancer::new();
+    let mut cache = DependencyLocationTracker::new();
     let source = "import a from './a';\nimport b from './b';\nimport c from './c';";
 
     // First location
@@ -155,7 +161,7 @@ mod tests {
 
   #[test]
   fn test_fallback_to_full_calculation() {
-    let mut cache = DependencyLocationAdvancer::new();
+    let mut cache = DependencyLocationTracker::new();
     let source = "import a from './a';\nimport b from './b';\nimport c from './c';";
 
     // First location
@@ -179,12 +185,63 @@ mod tests {
   }
 
   #[test]
+  fn test_prefers_last_end_for_later_ranges() {
+    let mut cache = DependencyLocationTracker::new();
+    let source = "import a from './a';\nimport b from './b';\n";
+
+    let first = cache
+      .compute_dependency_location(source, DependencyRange::new(0, 20))
+      .unwrap();
+    assert!(matches!(first, DependencyLocation::Real(_)));
+
+    cache.last_start_pos = Some(SourcePosition {
+      line: 99,
+      column: 99,
+    });
+
+    let second = cache
+      .compute_dependency_location(source, DependencyRange::new(21, 41))
+      .unwrap();
+    let DependencyLocation::Real(real) = second else {
+      panic!("expected real dependency location");
+    };
+    assert_eq!(real.start.line, 2);
+    assert_eq!(real.start.column, 1);
+  }
+
+  #[test]
+  fn test_overlapping_ranges_do_not_use_last_end() {
+    let mut cache = DependencyLocationTracker::new();
+    let source = "import a from './a';\nimport b from './b';\n";
+
+    let first = cache
+      .compute_dependency_location(source, DependencyRange::new(0, 20))
+      .unwrap();
+    assert!(matches!(first, DependencyLocation::Real(_)));
+
+    cache.last_start_pos = Some(SourcePosition { line: 1, column: 1 });
+    cache.last_end_pos = Some(SourcePosition {
+      line: 99,
+      column: 99,
+    });
+
+    let overlapping = cache
+      .compute_dependency_location(source, DependencyRange::new(10, 15))
+      .unwrap();
+    let DependencyLocation::Real(real) = overlapping else {
+      panic!("expected real dependency location");
+    };
+    assert_eq!(real.start.line, 1);
+    assert_eq!(real.start.column, 11);
+  }
+
+  #[test]
   fn test_advance_pos_same_line() {
     let source = "hello world";
     let from_pos = SourcePosition { line: 1, column: 1 };
 
     // Advance from position 0 to 5 ("hello")
-    let result = DependencyLocationAdvancer::advance_pos(source, 0, from_pos, 5);
+    let result = DependencyLocationTracker::advance_pos(source, 0, from_pos, 5);
     assert!(result.is_some());
     let pos = result.unwrap();
     assert_eq!(pos.line, 1);
@@ -197,7 +254,7 @@ mod tests {
     let from_pos = SourcePosition { line: 1, column: 6 };
 
     // Advance from position 5 (after "hello") to 11 (end of "world")
-    let result = DependencyLocationAdvancer::advance_pos(source, 5, from_pos, 11);
+    let result = DependencyLocationTracker::advance_pos(source, 5, from_pos, 11);
     assert!(result.is_some());
     let pos = result.unwrap();
     assert_eq!(pos.line, 2);
@@ -210,7 +267,7 @@ mod tests {
     let from_pos = SourcePosition { line: 1, column: 1 };
 
     // Advance from 0 to 6 bytes (first two characters "你好")
-    let result = DependencyLocationAdvancer::advance_pos(source, 0, from_pos, 6);
+    let result = DependencyLocationTracker::advance_pos(source, 0, from_pos, 6);
     assert!(result.is_some());
     let pos = result.unwrap();
     assert_eq!(pos.line, 1);
@@ -223,7 +280,7 @@ mod tests {
     let from_pos = SourcePosition { line: 1, column: 1 };
 
     // Advance from 0 to 9 bytes (includes emoji)
-    let result = DependencyLocationAdvancer::advance_pos(source, 0, from_pos, 9);
+    let result = DependencyLocationTracker::advance_pos(source, 0, from_pos, 9);
     assert!(result.is_some());
     let pos = result.unwrap();
     assert_eq!(pos.line, 1);
@@ -232,7 +289,7 @@ mod tests {
 
   #[test]
   fn test_multiple_ranges() {
-    let mut cache = DependencyLocationAdvancer::new();
+    let mut cache = DependencyLocationTracker::new();
     let source = "import a from './a';\nimport b from './b';\nimport c from './c';";
 
     // Test multiple ranges to ensure cache works correctly
@@ -259,7 +316,7 @@ mod tests {
 
   #[test]
   fn test_empty_source() {
-    let mut cache = DependencyLocationAdvancer::new();
+    let mut cache = DependencyLocationTracker::new();
     let source = "";
     let range = DependencyRange::new(0, 0);
 
@@ -269,7 +326,7 @@ mod tests {
 
   #[test]
   fn test_single_line() {
-    let mut cache = DependencyLocationAdvancer::new();
+    let mut cache = DependencyLocationTracker::new();
     let source = "single line";
     let range = DependencyRange::new(0, 11);
 
