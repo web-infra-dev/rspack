@@ -26,17 +26,6 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory.create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at Stats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-|     at Array.map (<anonymous>)
-|     at MultiStats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Object.check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Tester.runCheckStepMethods (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
-|     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at onMessage <PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
@@ -46,17 +35,6 @@ LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory.create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at Stats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-|     at Array.map (<anonymous>)
-|     at MultiStats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Object.check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Tester.runCheckStepMethods (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
-|     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at onMessage <PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <-> Unimportant
   <i> Info message
       Just log
