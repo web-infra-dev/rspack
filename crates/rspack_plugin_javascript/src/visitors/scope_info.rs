@@ -93,45 +93,27 @@ impl ScopeInfoDB {
 
   #[inline]
   pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
-    self
-      .map
-      .get(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+    unsafe { self.map.get_unchecked(id) }
   }
 
   #[inline]
   pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
-    self
-      .map
-      .get_mut(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+    unsafe { self.map.get_unchecked_mut(id) }
   }
 
   #[inline]
   pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
-    self
-      .variable_info_db
-      .map
-      .get(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+    unsafe { self.variable_info_db.map.get_unchecked(id) }
   }
 
   #[inline]
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
-    self
-      .tag_info_db
-      .map
-      .get(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+    unsafe { self.tag_info_db.map.get_unchecked(id) }
   }
 
   #[inline]
   pub fn expect_get_mut_tag_info(&mut self, id: TagInfoId) -> &mut TagInfo {
-    self
-      .tag_info_db
-      .map
-      .get_mut(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+    unsafe { self.tag_info_db.map.get_unchecked_mut(id) }
   }
 
   #[inline]
