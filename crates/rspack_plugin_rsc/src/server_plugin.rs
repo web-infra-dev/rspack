@@ -19,7 +19,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   component_info::{
-    ClientComponentImports, CssImports, collect_component_info_from_entry_dependency,
+    ClientComponentImports, CssImportsPerServerEntry, collect_component_info_from_entry_dependency,
   },
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
@@ -39,7 +39,7 @@ struct ClientEntry {
   entry_name: Arc<str>,
   runtime: RuntimeSpec,
   client_imports: ClientComponentImports,
-  css_imports: CssImports,
+  css_imports_per_server_entry: CssImportsPerServerEntry,
 }
 
 #[derive(Debug)]
@@ -255,13 +255,13 @@ impl RscServerPlugin {
         action_entry_imports.insert(dep, actions);
       }
       if !component_info.client_component_imports.is_empty()
-        || !component_info.css_imports.is_empty()
+        || !component_info.css_imports_per_server_entry.is_empty()
       {
         client_entries_to_inject.push(ClientEntry {
           entry_name: entry_name.clone(),
           runtime: runtime.clone(),
           client_imports: component_info.client_component_imports,
-          css_imports: component_info.css_imports,
+          css_imports_per_server_entry: component_info.css_imports_per_server_entry,
         });
       }
 
@@ -451,23 +451,15 @@ impl RscServerPlugin {
       entry_name,
       runtime,
       client_imports,
-      css_imports,
+      css_imports_per_server_entry,
     } = client_entry;
 
     let client_entries = {
       let mut modules = Vec::new();
-      let merged_css_imports = css_imports.values().flatten().collect::<FxHashSet<_>>();
-      for request in merged_css_imports {
-        modules.push(ClientModuleImport {
-          request: request.clone(),
-          ids: Default::default(),
-        });
-      }
-
       let entry_state = plugin_state.entries.entry(entry_name.clone()).or_default();
       entry_state
-        .entry_css_imports
-        .extend(css_imports.into_iter());
+        .css_imports_per_server_entry
+        .extend(css_imports_per_server_entry);
 
       for (request, ids) in &client_imports {
         modules.push(ClientModuleImport {
