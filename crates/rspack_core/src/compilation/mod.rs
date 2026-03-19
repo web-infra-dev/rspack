@@ -696,11 +696,9 @@ impl Compilation {
     };
 
     // tear down the executor so build_module_graph_pass can set it up fresh
-    if started_executor {
-      if let Some(mut module_executor) = self.module_executor.take() {
-        module_executor.after_build_module_graph(self).await?;
-        self.module_executor = Some(module_executor);
-      }
+    if started_executor && let Some(mut module_executor) = self.module_executor.take() {
+      module_executor.after_build_module_graph(self).await?;
+      self.module_executor = Some(module_executor);
     }
 
     build_result
