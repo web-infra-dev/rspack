@@ -303,6 +303,15 @@ pub(crate) fn analyze_dyn_import_targets(
         continue;
       }
       let target = conn.module_identifier();
+      // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*target)
+        .is_empty()
+      {
+        continue;
+      }
       all_dyn_targets.insert(*target);
 
       if !concatenated_modules.contains(target) {
@@ -343,7 +352,13 @@ pub(crate) fn analyze_dyn_import_targets(
       continue;
     }
 
-    let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+    let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+        continue;
+      }
+    };
     let chunk_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -391,7 +406,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
@@ -450,7 +471,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }

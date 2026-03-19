@@ -94,7 +94,7 @@ fn record_module(
 
   if is_css_mod(module.as_ref()) {
     let mut matched_server_entries = Vec::new();
-    for (server_entry, imports) in &entry_state.entry_css_imports {
+    for (server_entry, imports) in &entry_state.css_imports_per_server_entry {
       if imports.contains(resource.as_ref()) {
         matched_server_entries.push(server_entry.clone());
       }

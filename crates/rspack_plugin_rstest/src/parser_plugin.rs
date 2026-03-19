@@ -715,6 +715,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     _import_then: Option<&CallExpr>,
+    _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {

@@ -1,6 +1,5 @@
 use rspack_core::{
-  ExportsInfoArtifact, ModuleGraph, ModuleGraphConnection, PrefetchExportsInfoMode, RuntimeSpec,
-  UsageState, UsedByExports,
+  ExportsInfoArtifact, ModuleGraph, ModuleGraphConnection, RuntimeSpec, UsageState, UsedByExports,
 };
 
 pub mod plugin;
@@ -23,9 +22,12 @@ pub fn connection_active_used_by_exports(
   let module_identifier = mg
     .get_parent_module(&connection.dependency_id)
     .expect("should have parent module");
-  let exports_info = exports_info_artifact
-    .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
-  used_by_exports
-    .iter()
-    .any(|name| exports_info.get_used(std::slice::from_ref(name), runtime) != UsageState::Unused)
+  let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
+  used_by_exports.iter().any(|name| {
+    exports_info
+      .named_exports(name)
+      .unwrap_or_else(|| exports_info.other_exports_info())
+      .get_used(runtime)
+      != UsageState::Unused
+  })
 }
