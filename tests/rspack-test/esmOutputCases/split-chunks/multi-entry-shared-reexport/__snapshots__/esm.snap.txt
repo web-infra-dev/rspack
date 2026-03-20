@@ -1,0 +1,48 @@
+```mjs title=entry2.mjs
+
+// ./entry2.js
+
+
+
+
+
+export { b } from "./lib_js.mjs";
+
+```
+
+```mjs title=lib_js.mjs
+// ./side-effect.js
+console.log('hi')
+
+// ./a.js
+const a = () => 42
+
+// ./b.js
+const b = () => 42
+
+// ./lib.js
+
+
+
+
+export { a, b };
+
+```
+
+```mjs title=main.mjs
+
+// ./entry1.js
+
+
+
+
+it('should import different exports from shared lib chunk', async () => {
+	const e1 = await import(/*webpackIgnore: true*/ './main.mjs')
+	const e2 = await import(/*webpackIgnore: true*/ './entry2.mjs')
+	expect(e1.a()).toBe(42)
+	expect(e2.b()).toBe(42)
+})
+
+export { a } from "./lib_js.mjs";
+
+```
