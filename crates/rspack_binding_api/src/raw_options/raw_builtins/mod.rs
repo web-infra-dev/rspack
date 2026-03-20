@@ -6,6 +6,7 @@ mod raw_copy;
 mod raw_css_chunking;
 mod raw_css_extract;
 mod raw_dll;
+mod raw_dts;
 mod raw_esm_lib;
 mod raw_html;
 mod raw_http_uri;
@@ -58,6 +59,7 @@ use rspack_plugin_devtool::{
 use rspack_plugin_dll::{
   DllEntryPlugin, DllReferenceAgencyPlugin, FlagAllModulesAsUsedPlugin, LibManifestPlugin,
 };
+use rspack_plugin_dts::DtsPlugin;
 use rspack_plugin_dynamic_entry::DynamicEntryPlugin;
 use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
@@ -118,6 +120,7 @@ use self::{
   raw_css_chunking::RawCssChunkingPluginOptions,
   raw_css_extract::RawCssExtractPluginOption,
   raw_dll::{RawDllEntryPluginOptions, RawLibManifestPluginOptions},
+  raw_dts::RawDtsPluginOptions,
   raw_html::RawHtmlRspackPluginOptions,
   raw_ignore::RawIgnorePluginOptions,
   raw_lazy_compilation::{JsBackend, RawLazyCompilationOption},
@@ -237,6 +240,7 @@ pub enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin,
   BundlerInfoRspackPlugin,
   CssExtractRspackPlugin,
+  DtsRspackPlugin,
   SubresourceIntegrityPlugin,
   RsdoctorPlugin,
   RstestPlugin,
@@ -761,6 +765,15 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::CssExtractRspackPlugin => {
         let plugin = rspack_plugin_extract_css::plugin::PluginCssExtract::new(
           downcast_into::<RawCssExtractPluginOption>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed();
+        plugins.push(plugin);
+      }
+      BuiltinPluginName::DtsRspackPlugin => {
+        let plugin = DtsPlugin::new(
+          downcast_into::<RawDtsPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

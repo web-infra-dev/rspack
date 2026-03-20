@@ -604,6 +604,7 @@ export declare enum BuiltinPluginName {
   LightningCssMinimizerRspackPlugin = 'LightningCssMinimizerRspackPlugin',
   BundlerInfoRspackPlugin = 'BundlerInfoRspackPlugin',
   CssExtractRspackPlugin = 'CssExtractRspackPlugin',
+  DtsRspackPlugin = 'DtsRspackPlugin',
   SubresourceIntegrityPlugin = 'SubresourceIntegrityPlugin',
   RsdoctorPlugin = 'RsdoctorPlugin',
   RstestPlugin = 'RstestPlugin',
@@ -2182,6 +2183,17 @@ export interface RawDllReferenceAgencyPluginOptions {
 
 export interface RawDraft {
   customMedia: boolean
+}
+
+export interface RawDtsPluginEntry {
+  name: string
+  request: string
+}
+
+export interface RawDtsPluginOptions {
+  entries: Array<RawDtsPluginEntry>
+  filename: string
+  externals: Array<string>
 }
 
 export interface RawDynamicEntryPluginOptions {

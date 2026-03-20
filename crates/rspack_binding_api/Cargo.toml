@@ -85,6 +85,7 @@ rspack_plugin_copy                     = { workspace = true }
 rspack_plugin_css                      = { workspace = true }
 rspack_plugin_css_chunking             = { workspace = true }
 rspack_plugin_devtool                  = { workspace = true }
+rspack_plugin_dts                      = { workspace = true }
 rspack_plugin_dll                      = { workspace = true }
 rspack_plugin_dynamic_entry            = { workspace = true }
 rspack_plugin_ensure_chunk_conditions  = { workspace = true }

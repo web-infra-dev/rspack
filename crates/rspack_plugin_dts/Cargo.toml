@@ -1,0 +1,25 @@
+[package]
+description       = "rspack dts plugin"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_dts"
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[dependencies]
+async-trait      = { workspace = true }
+derive_more      = { workspace = true, features = ["debug"] }
+once_cell        = { workspace = true }
+rspack_cacheable = { workspace = true }
+rspack_core      = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_hook      = { workspace = true }
+rspack_sources   = { workspace = true }
+rustc-hash       = { workspace = true }
+serde            = { workspace = true, features = ["derive"] }
+serde_json       = { workspace = true }
+swc_core         = { workspace = true }
+tracing          = { workspace = true }
+
+[lints]
+workspace = true

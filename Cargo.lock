@@ -3680,6 +3680,7 @@ dependencies = [
  "rspack_plugin_css_chunking",
  "rspack_plugin_devtool",
  "rspack_plugin_dll",
+ "rspack_plugin_dts",
  "rspack_plugin_dynamic_entry",
  "rspack_plugin_ensure_chunk_conditions",
  "rspack_plugin_entry",
@@ -4394,6 +4395,25 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "tracing",
+]
+
+[[package]]
+name = "rspack_plugin_dts"
+version = "0.100.0-beta.7"
+dependencies = [
+ "async-trait",
+ "derive_more",
+ "once_cell",
+ "rspack_cacheable",
+ "rspack_core",
+ "rspack_error",
+ "rspack_hook",
+ "rspack_sources",
+ "rustc-hash",
+ "serde",
+ "serde_json",
+ "swc_core",
  "tracing",
 ]
 

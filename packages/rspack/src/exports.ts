@@ -361,8 +361,8 @@ import {
   sync as resolveSync,
   syncTraceEvent,
 } from '@rspack/binding';
-import { createNativePlugin } from './builtin-plugin';
 ///// Experiments SWC /////
+import { createNativePlugin, DtsPlugin } from './builtin-plugin';
 import { minify, minifySync, transform, transformSync } from './swc';
 import { JavaScriptTracer } from './trace';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
@@ -393,6 +393,7 @@ interface Experiments {
     sync: typeof resolveSync;
   };
   CssChunkingPlugin: typeof CssChunkingPlugin;
+  DtsPlugin: typeof DtsPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
   rsc: typeof rsc;
@@ -444,6 +445,7 @@ export const experiments: Experiments = {
     sync: resolveSync,
   },
   CssChunkingPlugin,
+  DtsPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
   rsc,

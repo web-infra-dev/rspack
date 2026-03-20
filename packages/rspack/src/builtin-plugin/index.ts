@@ -20,6 +20,7 @@ export * from './DeterministicChunkIdsPlugin';
 export * from './DeterministicModuleIdsPlugin';
 export * from './DllEntryPlugin';
 export * from './DllReferenceAgencyPlugin';
+export * from './DtsPlugin';
 export * from './DynamicEntryPlugin';
 export * from './ElectronTargetPlugin';
 export * from './EnableChunkLoadingPlugin';

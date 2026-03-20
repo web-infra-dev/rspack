@@ -1,0 +1,13 @@
+{
+  "name": "examples-dts-plugin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rspack build"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*",
+    "typescript": "^5.9.3"
+  }
+}
