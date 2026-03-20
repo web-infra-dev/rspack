@@ -664,8 +664,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
        */
       if let ClassMember::StaticBlock(_) = element {
         let class_var = parser
-          .get_variable_info(&top_level_symbol_variable_name)
-          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+          .get_variable_info_id(&top_level_symbol_variable_name)
+          .map(ExportedVariableInfo::VariableInfo)
           .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
         if let Some(class_ident) = class_decl_or_expr.ident() {
           parser.set_variable(class_ident.sym.clone(), class_var.clone());

@@ -1012,8 +1012,8 @@ impl JavascriptParser<'_> {
           .unwrap_or_default()
         {
           let variable = parser
-            .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .get_variable_info_id(&rename_identifier)
+            .map(ExportedVariableInfo::VariableInfo)
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           return Some(variable);
         }
@@ -1385,8 +1385,8 @@ impl JavascriptParser<'_> {
           .unwrap_or_default()
         {
           let variable = self
-            .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .get_variable_info_id(&rename_identifier)
+            .map(ExportedVariableInfo::VariableInfo)
             .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
           self.set_variable(ident.sym.clone(), variable);
         }

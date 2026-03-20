@@ -733,6 +733,10 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
+  pub fn get_variable_info_id(&mut self, name: &Atom) -> Option<VariableInfoId> {
+    self.definitions_db.get(self.definitions, name)
+  }
+
   pub fn get_tag_data(
     &mut self,
     name: &Atom,

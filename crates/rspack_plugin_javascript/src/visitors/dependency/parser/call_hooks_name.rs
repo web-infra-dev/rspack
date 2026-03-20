@@ -21,7 +21,7 @@ impl CallHooksName for Atom {
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
+    if let Some(id) = parser.get_variable_info_id(self) {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {

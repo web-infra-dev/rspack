@@ -126,18 +126,20 @@ impl ScopeInfoDB {
   }
 
   pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
-    let definitions = self.expect_get_scope(id);
-    if let Some(&top_value) = definitions.map.get(key) {
+    let top_scope = self.expect_get_scope(id);
+    if let Some(&top_value) = top_scope.map.get(key) {
       if top_value == VariableInfoId::tombstone() || top_value == VariableInfoId::undefined() {
         None
       } else {
         Some(top_value)
       }
-    } else if let Some(parent) = definitions.parent {
+    } else if let Some(parent) = top_scope.parent {
       let mut current = Some(parent);
       while let Some(current_id) = current {
         let scope = self.expect_get_scope(current_id);
         if let Some(&value) = scope.map.get(key) {
+          let top_scope = self.expect_get_mut_scope(id);
+          top_scope.map.insert(key.clone(), value);
           if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
             return None;
           } else {
@@ -146,8 +148,8 @@ impl ScopeInfoDB {
         }
         current = scope.parent;
       }
-      let definitions = self.expect_get_mut_scope(id);
-      definitions
+      let top_scope = self.expect_get_mut_scope(id);
+      top_scope
         .map
         .insert(key.clone(), VariableInfoId::tombstone());
       None
