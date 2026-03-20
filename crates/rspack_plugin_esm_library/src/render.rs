@@ -550,25 +550,44 @@ var {} = {{}};
       import_source.add(RawStringSource::from_static("\n"));
     }
 
-    // Deduplicate: remove init fragments for external modules whose source is
-    // already handled by raw_import_stmts (which generates ESM import statements).
+    // Deduplicate: remove init fragments for external modules whose namespace
+    // import is already provided by raw_import_stmts.
     // This prevents duplicate `import * as X from "source"` when the same external
     // module is referenced by both scope-hoisted and non-scope-hoisted modules.
+    // We only drop the fragment when raw_import_stmts already includes a namespace
+    // import (`ns_import`) for the same source+attributes, because a namespace
+    // binding (`__rspack_external_<id>`) is what the non-scope-hoisted module body
+    // references. Named-only imports would not provide that binding.
     {
-      let raw_import_sources: FxHashSet<&str> = chunk_link
+      let ns_import_sources: FxHashSet<String> = chunk_link
         .raw_import_stmts
-        .keys()
-        .filter_map(|source| match source {
-          RawImportSource::Source((s, _)) => Some(s.as_str()),
-          _ => None,
+        .iter()
+        .filter_map(|(source, spec)| {
+          if spec.ns_import.is_none() {
+            return None;
+          }
+          match source {
+            RawImportSource::Source((s, attr)) => {
+              // Reconstruct the key format used by module_external_fragment_key:
+              // "source" or "source|json_attrs"
+              let key = if let Some(attr_str) = attr {
+                // attr_str has format " with {json}" - strip the " with " prefix
+                let json_part = attr_str.strip_prefix(" with ").unwrap_or(attr_str);
+                format!("{}|{}", s, json_part)
+              } else {
+                s.clone()
+              };
+              Some(key)
+            }
+            _ => None,
+          }
         })
         .collect();
 
-      if !raw_import_sources.is_empty() {
+      if !ns_import_sources.is_empty() {
         chunk_init_fragments.retain(|frag| {
           if let InitFragmentKey::ModuleExternal(key) = frag.key() {
-            let source_part = key.split('|').next().unwrap_or(key);
-            !raw_import_sources.contains(source_part)
+            !ns_import_sources.contains(key)
           } else {
             true
           }
