@@ -1,12 +1,12 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import fs, * as __rspack_external_fs from "fs";
+import fs from "fs";
 
 // NAMESPACE OBJECT: ./file.js
 var file_namespaceObject = {};
 __webpack_require__.r(file_namespaceObject);
 __webpack_require__.d(file_namespaceObject, { 
-  fsNs: () => (__rspack_external_fs),
+  fsDefault: () => (fs),
   value: () => (value) });
 
 

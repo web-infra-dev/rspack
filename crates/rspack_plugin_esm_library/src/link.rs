@@ -59,6 +59,7 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
 }
 
 static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
+static DEFAULT_EXPORT: LazyLock<Atom> = LazyLock::new(|| "default".into());
 
 #[derive(Default, Debug)]
 pub(crate) struct ExportsContext {
@@ -461,16 +462,21 @@ impl EsmLibraryPlugin {
                       .raw_import_stmts
                       .entry(RawImportSource::Source((request, None)))
                       .or_default();
-                    let namespace_object_name = match target_info {
-                      Some(ModuleInfo::Concatenated(concatenated_info)) => {
-                        concatenated_info.namespace_object_name.as_ref()
-                      }
-                      _ => None,
+                    let (namespace_object_name, default_import_name) = match target_info {
+                      Some(ModuleInfo::Concatenated(concatenated_info)) => (
+                        concatenated_info.namespace_object_name.as_ref(),
+                        concatenated_info.get_internal_name(&DEFAULT_EXPORT),
+                      ),
+                      _ => (None, None),
                     };
 
                     if namespace_object_name == Some(&symbol_binding.symbol) {
                       import_spec
                         .ns_import
+                        .get_or_insert_with(|| symbol_binding.symbol.clone());
+                    } else if default_import_name == Some(&symbol_binding.symbol) {
+                      import_spec
+                        .default_import
                         .get_or_insert_with(|| symbol_binding.symbol.clone());
                     } else {
                       import_spec
