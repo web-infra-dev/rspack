@@ -591,32 +591,18 @@ impl ExternalModule {
               }
               UsedExports::UsedNames(atoms) => {
                 if !safe_to_optimize {
-                  chunk_init_fragments.push(
-                    NormalInitFragment::new(
-                      format!(
-                        "import * as __rspack_external_{} from {}{};\n",
-                        id.as_ref(),
-                        json_stringify_str(request.primary()),
-                        attributes.unwrap_or_default()
-                      ),
-                      InitFragmentStage::StageESMImports,
-                      module_graph
-                        .get_pre_order_index(&self.identifier())
-                        .map_or(0, |num| num as i32),
-                      InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                        request.primary(),
-                        &self.dependency_meta.attributes,
-                      )),
-                      None,
-                    )
-                    .boxed(),
-                  );
                   let external_module_id = format!("__rspack_external_{id}");
                   let namespace_export_with_name = format!(
                     "{}{}{}",
                     NAMESPACE_OBJECT_EXPORT,
                     &external_module_id,
                     &property_access(request.iter(), 1)
+                  );
+
+                  concatenation_scope.register_namespace_import(
+                    request.primary().to_string(),
+                    attributes,
+                    external_module_id.into(),
                   );
                   concatenation_scope.register_namespace_export(&namespace_export_with_name);
                 } else {

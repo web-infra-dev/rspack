@@ -3,9 +3,10 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
-  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
-  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
+  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, InitFragmentKey,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_imports,
+  render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -547,6 +548,32 @@ var {} = {{}};
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
       import_source.add(RawStringSource::from_static("\n"));
+    }
+
+    // Deduplicate: remove init fragments for external modules whose source is
+    // already handled by raw_import_stmts (which generates ESM import statements).
+    // This prevents duplicate `import * as X from "source"` when the same external
+    // module is referenced by both scope-hoisted and non-scope-hoisted modules.
+    {
+      let raw_import_sources: FxHashSet<&str> = chunk_link
+        .raw_import_stmts
+        .keys()
+        .filter_map(|source| match source {
+          RawImportSource::Source((s, _)) => Some(s.as_str()),
+          _ => None,
+        })
+        .collect();
+
+      if !raw_import_sources.is_empty() {
+        chunk_init_fragments.retain(|frag| {
+          if let InitFragmentKey::ModuleExternal(key) = frag.key() {
+            let source_part = key.split('|').next().unwrap_or(key);
+            !raw_import_sources.contains(source_part)
+          } else {
+            true
+          }
+        });
+      }
     }
 
     // render init fragments
