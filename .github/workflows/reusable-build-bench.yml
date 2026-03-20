@@ -95,3 +95,89 @@ jobs:
           # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
           run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
+
+      - name: sleep 4h
+        run: sleep 14400
+
+      - name: fail
+        run: exit 1
+
+  bench-self-runner:
+    name: Bench-self-runner
+    runs-on: rspack-ubuntu-22.04-physical-large
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: build-bench-${{ inputs.target }}
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
+        with:
+          tool: cargo-codspeed@4.4.1
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Show restored binding
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Download benches
+        uses: ./.github/actions/artifact/download
+        with:
+          name: codspeed-${{ inputs.target }}
+          path: target/codspeed/analysis/
+
+      - name: Show Codspeed
+        run: |
+          ls -Rl target/codspeed/
+          chmod +x target/codspeed/analysis/rspack_benchmark/benches
+
+      - name: Pnpm Setup
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Build JS
+        run: pnpm run build:js
+      - name: Run benchmark (simulation)
+        uses: ./.github/actions/codspeed
+        timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
+        with:
+          mode: 'simulation'
+          run: pnpm run bench:ci
+          token: ${{ secrets.CODSPEED_TOKEN }}
+
+      - name: Run benchmark (memory)
+        uses: ./.github/actions/codspeed
+        timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
+        with:
+          mode: 'memory'
+          # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
+          run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
+          token: ${{ secrets.CODSPEED_TOKEN }}
+
+      - name: sleep 4h
+        run: sleep 14400
+
+      - name: fail
+        run: exit 1

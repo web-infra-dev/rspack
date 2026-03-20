@@ -10,6 +10,16 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
+      upload_artifact:
+        description: Upload full report as artifact (optional)
+        required: false
+        type: boolean
+        default: false
+      dump_sysctl_all:
+        description: Dump `sysctl -a` (large output)
+        required: false
+        type: boolean
+        default: false
   pull_request:
     types: [opened, synchronize]
   push:
@@ -33,8 +43,253 @@ permissions:
   pull-requests: write
 
 jobs:
+  probe-github-runner:
+    name: Probe github ubuntu-22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Probe runner environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REPORT=runner-env.txt
+          if [ "${{ inputs.upload_artifact }}" = "true" ]; then
+            exec > >(tee "$REPORT") 2>&1
+          fi
+
+          section() {
+            printf '\n===== %s =====\n' "$1"
+          }
+
+          section "basic"
+          date
+          echo "runner=${{ inputs.runner }}"
+          uname -a
+          cat /etc/os-release || true
+
+          section "current user"
+          id
+          echo "user=$(id -un || true)"
+          echo "uid=$(id -u || true) gid=$(id -g || true)"
+          groups || true
+          echo "HOME=$HOME"
+          echo "SHELL=${SHELL:-<unset>}"
+          echo "PATH=$PATH"
+
+          section "passwd/group entries"
+          if command -v getent >/dev/null 2>&1; then
+            getent passwd "$(id -un)" || true
+            getent group "$(id -gn)" || true
+          else
+            grep -E "^$(id -un):" /etc/passwd || true
+            grep -E "^$(id -gn):" /etc/group || true
+          fi
+
+          section "sudo"
+          if command -v sudo >/dev/null 2>&1; then
+            if sudo -n true 2>/dev/null; then
+              echo "sudo: ok (passwordless)"
+              sudo -n -l 2>/dev/null || true
+            else
+              echo "sudo: not available"
+            fi
+          else
+            echo "sudo: <not installed>"
+          fi
+
+          section "hardware"
+          command -v lscpu >/dev/null 2>&1 && lscpu || true
+          nproc || true
+          free -h || true
+          df -h || true
+
+          section "limits"
+          ulimit -a || true
+
+          section "bpf sysctl (user)"
+          for f in \
+            /proc/sys/kernel/unprivileged_bpf_disabled \
+            /proc/sys/kernel/perf_event_paranoid \
+            /proc/sys/kernel/kptr_restrict \
+            /proc/sys/kernel/dmesg_restrict \
+            /proc/sys/net/core/bpf_jit_enable \
+            /proc/sys/net/core/bpf_jit_kallsyms \
+            /proc/sys/net/core/bpf_jit_harden
+          do
+            if [ -f "$f" ]; then
+              echo "$f=$(cat "$f")"
+            else
+              echo "$f=<missing>"
+            fi
+          done
+
+          section "process security (user)"
+          grep -E '^(NoNewPrivs|Seccomp|CapEff|CapBnd):' /proc/self/status || true
+
+          section "KVM/virt"
+          command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt || true
+          echo "cpu flags (vmx/svm):"
+          grep -m1 -E 'vmx|svm' /proc/cpuinfo || true
+          echo "/dev/kvm:"
+          ls -l /dev/kvm 2>/dev/null || echo "/dev/kvm: <missing or no access>"
+          command -v lsmod >/dev/null 2>&1 && lsmod | grep -E '^kvm(_intel|_amd)?\b' || true
+
+          section "kernel btf & tracefs (root)"
+          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            sudo -E bash -c '
+              set -euo pipefail
+              echo "[root] id=$(id)"
+              echo "[root] uname=$(uname -a)"
+              echo "[root] /sys/kernel/btf/vmlinux:"; ls -l /sys/kernel/btf/vmlinux || true
+              echo "[root] mounts(tracefs/debugfs):"; grep -E "tracefs|debugfs" /proc/mounts || true
+              echo "[root] /sys/kernel/tracing:"; ls -l /sys/kernel/tracing || true
+              echo "[root] sched_process_fork id:"; ls -l /sys/kernel/tracing/events/sched/sched_process_fork/id || true
+              echo "[root] status caps/seccomp:"; grep -E "^(NoNewPrivs|Seccomp|CapEff|CapBnd):" /proc/self/status || true
+
+              if command -v bpftool >/dev/null 2>&1; then
+                echo "[root] bpftool version:"; bpftool version || true
+                echo "[root] bpftool feature probe kernel:"; bpftool feature probe kernel || true
+              else
+                echo "[root] bpftool: <not installed>"
+              fi
+            '
+          else
+            echo "sudo: not available, skip root checks"
+          fi
+
+          if [ "${{ inputs.dump_sysctl_all }}" = "true" ]; then
+            section "sysctl -a (root, large output)"
+            if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+              sudo -E sysctl -a 2>/dev/null || true
+            else
+              sysctl -a 2>/dev/null || true
+            fi
+          fi
+
+  probe-self-runner:
+    name: Probe self ubuntu-22.04
+    runs-on: rspack-ubuntu-22.04-physical-large
+    steps:
+      - name: Probe runner environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          REPORT=runner-env.txt
+          if [ "${{ inputs.upload_artifact }}" = "true" ]; then
+            exec > >(tee "$REPORT") 2>&1
+          fi
+
+          section() {
+            printf '\n===== %s =====\n' "$1"
+          }
+
+          section "basic"
+          date
+          echo "runner=${{ inputs.runner }}"
+          uname -a
+          cat /etc/os-release || true
+
+          section "current user"
+          id
+          echo "user=$(id -un || true)"
+          echo "uid=$(id -u || true) gid=$(id -g || true)"
+          groups || true
+          echo "HOME=$HOME"
+          echo "SHELL=${SHELL:-<unset>}"
+          echo "PATH=$PATH"
+
+          section "passwd/group entries"
+          if command -v getent >/dev/null 2>&1; then
+            getent passwd "$(id -un)" || true
+            getent group "$(id -gn)" || true
+          else
+            grep -E "^$(id -un):" /etc/passwd || true
+            grep -E "^$(id -gn):" /etc/group || true
+          fi
+
+          section "sudo"
+          if command -v sudo >/dev/null 2>&1; then
+            if sudo -n true 2>/dev/null; then
+              echo "sudo: ok (passwordless)"
+              sudo -n -l 2>/dev/null || true
+            else
+              echo "sudo: not available"
+            fi
+          else
+            echo "sudo: <not installed>"
+          fi
+
+          section "hardware"
+          command -v lscpu >/dev/null 2>&1 && lscpu || true
+          nproc || true
+          free -h || true
+          df -h || true
+
+          section "limits"
+          ulimit -a || true
+
+          section "bpf sysctl (user)"
+          for f in \
+            /proc/sys/kernel/unprivileged_bpf_disabled \
+            /proc/sys/kernel/perf_event_paranoid \
+            /proc/sys/kernel/kptr_restrict \
+            /proc/sys/kernel/dmesg_restrict \
+            /proc/sys/net/core/bpf_jit_enable \
+            /proc/sys/net/core/bpf_jit_kallsyms \
+            /proc/sys/net/core/bpf_jit_harden
+          do
+            if [ -f "$f" ]; then
+              echo "$f=$(cat "$f")"
+            else
+              echo "$f=<missing>"
+            fi
+          done
+
+          section "process security (user)"
+          grep -E '^(NoNewPrivs|Seccomp|CapEff|CapBnd):' /proc/self/status || true
+
+          section "KVM/virt"
+          command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt || true
+          echo "cpu flags (vmx/svm):"
+          grep -m1 -E 'vmx|svm' /proc/cpuinfo || true
+          echo "/dev/kvm:"
+          ls -l /dev/kvm 2>/dev/null || echo "/dev/kvm: <missing or no access>"
+          command -v lsmod >/dev/null 2>&1 && lsmod | grep -E '^kvm(_intel|_amd)?\b' || true
+
+          section "kernel btf & tracefs (root)"
+          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            sudo -E bash -c '
+              set -euo pipefail
+              echo "[root] id=$(id)"
+              echo "[root] uname=$(uname -a)"
+              echo "[root] /sys/kernel/btf/vmlinux:"; ls -l /sys/kernel/btf/vmlinux || true
+              echo "[root] mounts(tracefs/debugfs):"; grep -E "tracefs|debugfs" /proc/mounts || true
+              echo "[root] /sys/kernel/tracing:"; ls -l /sys/kernel/tracing || true
+              echo "[root] sched_process_fork id:"; ls -l /sys/kernel/tracing/events/sched/sched_process_fork/id || true
+              echo "[root] status caps/seccomp:"; grep -E "^(NoNewPrivs|Seccomp|CapEff|CapBnd):" /proc/self/status || true
+
+              if command -v bpftool >/dev/null 2>&1; then
+                echo "[root] bpftool version:"; bpftool version || true
+                echo "[root] bpftool feature probe kernel:"; bpftool feature probe kernel || true
+              else
+                echo "[root] bpftool: <not installed>"
+              fi
+            '
+          else
+            echo "sudo: not available, skip root checks"
+          fi
+
+          if [ "${{ inputs.dump_sysctl_all }}" = "true" ]; then
+            section "sysctl -a (root, large output)"
+            if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+              sudo -E sysctl -a 2>/dev/null || true
+            else
+              sysctl -a 2>/dev/null || true
+            fi
+          fi
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: rspack-ubuntu-22.04-mini
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
