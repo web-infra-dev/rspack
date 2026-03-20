@@ -40,19 +40,19 @@ impl JavascriptParser<'_> {
   where
     F: FnOnce(&mut Self),
   {
-    let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_in_try = self.in_try;
     let old_terminated = self.terminated;
 
     self.in_tagged_template_tag = false;
-    self.definitions = self.definitions_db.create_child(old_definitions);
+    self.scope_stack.push_scope();
+
     f(self);
 
     let terminated = self.terminated;
 
-    self.definitions = old_definitions;
+    self.scope_stack.pop_scope();
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.in_try = old_in_try;
@@ -68,7 +68,6 @@ impl JavascriptParser<'_> {
     F: FnOnce(&mut Self),
     I: Iterator<Item = Cow<'a, Pat>>,
   {
-    let old_definitions = self.definitions;
     let old_in_try = self.in_try;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
@@ -77,7 +76,7 @@ impl JavascriptParser<'_> {
     self.in_try = false;
     self.in_tagged_template_tag = false;
     self.terminated = None;
-    self.definitions = self.definitions_db.create_child(old_definitions);
+    self.scope_stack.push_scope();
 
     if has_this {
       self.undefined_variable(&"this".into());
@@ -90,7 +89,7 @@ impl JavascriptParser<'_> {
     f(self);
 
     self.in_try = old_in_try;
-    self.definitions = old_definitions;
+    self.scope_stack.pop_scope();
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.terminated = old_terminated;
@@ -101,12 +100,11 @@ impl JavascriptParser<'_> {
     F: FnOnce(&mut Self),
     I: Iterator<Item = Cow<'a, Pat>>,
   {
-    let old_definitions = self.definitions;
     let old_top_level_scope = self.top_level_scope;
     let old_in_tagged_template_tag = self.in_tagged_template_tag;
     let old_terminated = self.terminated;
 
-    self.definitions = self.definitions_db.create_child(old_definitions);
+    self.scope_stack.push_scope();
     self.in_tagged_template_tag = false;
     self.terminated = None;
     if has_this {
@@ -117,7 +115,7 @@ impl JavascriptParser<'_> {
     });
     f(self);
 
-    self.definitions = old_definitions;
+    self.scope_stack.pop_scope();
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
     self.terminated = old_terminated;

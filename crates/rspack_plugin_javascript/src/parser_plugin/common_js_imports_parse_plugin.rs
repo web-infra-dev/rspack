@@ -664,7 +664,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     if for_name == COMMONJS_REQUIRE_TAG {
       let tag_info = parser
-        .definitions_db
+        .scope_stack
         .expect_get_tag_info(parser.current_tag_info?);
       let data = RequireTagData::downcast(tag_info.data.clone()?);
       if let Some(keys) = parser
@@ -710,7 +710,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);
@@ -734,7 +734,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);

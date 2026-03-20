@@ -119,7 +119,10 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     }
     let root_info = right.root_info();
     let settings = if let ExportedVariableInfo::VariableInfo(variable) = root_info
-      && let Some(variable_name) = &parser.definitions_db.expect_get_variable(*variable).name
+      && let Some(variable_name) = &parser
+        .scope_stack
+        .expect_get_variable(*variable)
+        .name
       && let Some(data) = parser.get_tag_data(&variable_name.clone(), ESM_SPECIFIER_TAG)
     {
       ESMSpecifierData::downcast(data)
@@ -176,7 +179,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
       && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
+      && let Some(name) = &parser.scope_stack.expect_get_variable(*id).name
       && parser
         .get_tag_data(&name.clone(), ESM_SPECIFIER_TAG)
         .is_some()
@@ -196,7 +199,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
     let referenced_properties_in_destructuring = parser
@@ -248,7 +251,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
@@ -313,7 +316,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 

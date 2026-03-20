@@ -55,9 +55,7 @@ use crate::{
   visitors::{
     ScanDependenciesResult,
     dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
-    scope_info::{
-      ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
-    },
+    scope_info::{ScopeStack, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId},
   },
 };
 
@@ -362,8 +360,7 @@ pub struct JavascriptParser<'parser> {
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   // ===== states =======
-  pub(crate) definitions_db: ScopeInfoDB,
-  pub(super) definitions: ScopeInfoId,
+  pub(crate) scope_stack: ScopeStack,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -523,7 +520,7 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
-    let mut db = ScopeInfoDB::new();
+    let scope_stack = ScopeStack::new();
 
     Self {
       last_esm_import_order: 0,
@@ -541,8 +538,7 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
-      definitions: db.create(),
-      definitions_db: db,
+      scope_stack,
       plugin_drive,
       resource_data,
       factory_meta,
@@ -729,12 +725,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
-    let id = self.definitions_db.get(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_variable(id))
+    let id = self.scope_stack.get(name)?;
+    Some(self.scope_stack.expect_get_variable(id))
   }
 
   pub fn get_variable_info_id(&mut self, name: &Atom) -> Option<VariableInfoId> {
-    self.definitions_db.get(self.definitions, name)
+    self.scope_stack.get(name)
   }
 
   pub fn get_tag_data(
@@ -746,7 +742,7 @@ impl<'parser> JavascriptParser<'parser> {
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)
       .and_then(|tag_info_id| {
-        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+        let mut tag_info = Some(self.scope_stack.expect_get_tag_info(tag_info_id));
 
         while let Some(cur_tag_info) = tag_info {
           if cur_tag_info.tag == tag {
@@ -754,7 +750,7 @@ impl<'parser> JavascriptParser<'parser> {
           }
           tag_info = cur_tag_info
             .next
-            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+            .map(|tag_info_id| self.scope_stack.expect_get_tag_info(tag_info_id))
         }
 
         None
@@ -796,53 +792,53 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn get_all_variables_from_current_scope(
     &self,
   ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
-    let scope = self.definitions_db.expect_get_scope(self.definitions);
+    let scope = self.scope_stack.current_scope();
     scope.variables()
   }
 
   pub fn define_variable(&mut self, name: Atom) {
-    let definitions = self.definitions;
+    let current_scope_level = self.scope_stack.current_level();
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
-      && definitions == variable_info.declared_scope
+      && current_scope_level == variable_info.declared_scope_level
     {
       return;
     }
     let info = VariableInfo::create(
-      &mut self.definitions_db,
-      definitions,
+      &mut self.scope_stack,
+      current_scope_level,
       None,
       VariableInfoFlags::NORMAL,
       None,
     );
-    self.definitions_db.set(definitions, name, info);
+    self.scope_stack.set(name, info);
   }
 
   pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
-    let scope_id = self.definitions;
     match variable {
       ExportedVariableInfo::Name(variable) => {
         if name == variable {
-          self.definitions_db.delete(scope_id, &name);
+          self.scope_stack.delete(&name);
         } else {
+          let current_scope_level = self.scope_stack.current_level();
           let variable = VariableInfo::create(
-            &mut self.definitions_db,
-            scope_id,
+            &mut self.scope_stack,
+            current_scope_level,
             Some(variable),
             VariableInfoFlags::FREE,
             None,
           );
-          self.definitions_db.set(scope_id, name, variable);
+          self.scope_stack.set(name, variable);
         }
       }
       ExportedVariableInfo::VariableInfo(variable) => {
-        self.definitions_db.set(scope_id, name, variable);
+        self.scope_stack.set(name, variable);
       }
     }
   }
 
   fn undefined_variable(&mut self, name: &Atom) {
-    self.definitions_db.delete(self.definitions, name)
+    self.scope_stack.delete(name)
   }
 
   pub fn tag_variable<Data: TagInfoData>(
@@ -873,48 +869,49 @@ impl<'parser> JavascriptParser<'parser> {
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
     let data = data.map(|data| TagInfoData::into_any(data));
-    let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
-      let old_info = self.definitions_db.expect_get_variable(old_info_id);
+    let new_info = if let Some(old_info_id) = self.scope_stack.get(&name) {
+      let old_info = self.scope_stack.expect_get_variable(old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {
-        let declared_scope = old_info.declared_scope;
+        let declared_scope_level = old_info.declared_scope_level;
         // FIXME: remove `.clone`
         let name = old_info.name.clone();
         let flags = old_info.flags | flags;
         let tag_info = Some(TagInfo::create(
-          &mut self.definitions_db,
+          &mut self.scope_stack,
           tag,
           data,
           Some(old_tag_info),
         ));
         VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
+          &mut self.scope_stack,
+          declared_scope_level,
           name,
           flags,
           tag_info,
         )
       } else {
-        let declared_scope = old_info.declared_scope;
-        let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
+        let declared_scope_level = old_info.declared_scope_level;
+        let tag_info = Some(TagInfo::create(&mut self.scope_stack, tag, data, None));
         VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
+          &mut self.scope_stack,
+          declared_scope_level,
           Some(name.clone()),
           flags,
           tag_info,
         )
       }
     } else {
-      let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
+      let tag_info = Some(TagInfo::create(&mut self.scope_stack, tag, data, None));
+      let current_scope_level = self.scope_stack.current_level();
       VariableInfo::create(
-        &mut self.definitions_db,
-        self.definitions,
+        &mut self.scope_stack,
+        current_scope_level,
         Some(name.clone()),
         flags,
         tag_info,
       )
     };
-    self.definitions_db.set(self.definitions, name, new_info);
+    self.scope_stack.set(name, new_info);
   }
 
   fn _get_member_expression_info<'ast>(
@@ -1310,7 +1307,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   fn set_strict(&mut self, value: bool) {
-    let current_scope = self.definitions_db.expect_get_mut_scope(self.definitions);
+    let current_scope = self.scope_stack.current_scope_mut();
     current_scope.is_strict = value;
   }
 
@@ -1329,7 +1326,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn is_strict(&mut self) -> bool {
-    let scope = self.definitions_db.expect_get_scope(self.definitions);
+    let scope = self.scope_stack.current_scope();
     scope.is_strict
   }
 
