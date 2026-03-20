@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use napi::Either;
 use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
@@ -62,12 +64,25 @@ pub(crate) async fn loader_yield(
     .await
     .into_rspack_result()?;
 
-  let new_cx = runner
-    .call_async(loader_context.try_into()?)
-    .await
-    .into_rspack_result()?
-    .await
-    .into_rspack_result()?;
+  let js_loader_context: JsLoaderContext = loader_context.try_into()?;
+
+  // On WASM, a memory OOB trap in call_js_cb leaks the oneshot sender
+  // (panic=abort skips destructors), causing call_async().await to hang
+  // forever. Use a timeout so the test suite fails fast instead.
+  let new_cx = tokio::time::timeout(Duration::from_secs(120), async {
+    runner
+      .call_async(js_loader_context)
+      .await
+      .into_rspack_result()?
+      .await
+      .into_rspack_result()
+  })
+  .await
+  .unwrap_or_else(|_| {
+    Err(rspack_error::error!(
+      "Loader call timed out after 120s, possibly due to WASM memory corruption"
+    ))
+  })?;
 
   if loader_context.state() == LoaderState::Pitching {
     let list = collect_loaders_without_pitch(loader_context, &new_cx);

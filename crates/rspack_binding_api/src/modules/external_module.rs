@@ -17,8 +17,8 @@ impl ExternalModule {
     let (_, module) = self.as_ref()?;
     let user_request = env.create_string(module.user_request())?;
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
+    MODULE_PROPERTIES_BUFFER.with(|cell| {
+      let mut properties = cell.take();
       properties.clear();
 
       properties.push(
@@ -26,7 +26,9 @@ impl ExternalModule {
           .with_utf8_name("userRequest")?
           .with_value(&user_request),
       );
-      Self::new_inherited(self, env, &mut properties)
+      let result = Self::new_inherited(self, env, &mut properties);
+      cell.set(properties);
+      result
     })
   }
 

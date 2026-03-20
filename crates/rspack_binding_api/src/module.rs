@@ -1,5 +1,10 @@
 #![allow(deprecated)]
-use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
+use std::{
+  any::TypeId,
+  cell::{Cell, RefCell},
+  ptr::NonNull,
+  sync::Arc,
+};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
@@ -56,7 +61,10 @@ impl From<JsFactoryMeta> for FactoryMeta {
 }
 
 thread_local! {
-  pub(crate) static MODULE_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(4));
+  // Cell instead of RefCell: if a WASM trap occurs while the buffer is
+  // in use, Cell leaves a clean default state (empty Vec) rather than a
+  // permanently-poisoned borrow flag that would crash all later calls.
+  pub(crate) static MODULE_PROPERTIES_BUFFER: Cell<Vec<Property>> = Cell::new(Vec::new());
 }
 
 // ## Clarify Access Methods for napi Module to Rust Module
@@ -221,8 +229,8 @@ impl Module {
       Ok(())
     }
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
+    MODULE_PROPERTIES_BUFFER.with(|cell| {
+      let mut properties = cell.take();
       properties.clear();
       properties.push(
         Property::new()
@@ -279,7 +287,9 @@ impl Module {
         Ok::<(), napi::Error>(())
       })?;
 
-      object.define_properties(&properties)
+      let result = object.define_properties(&properties);
+      cell.set(properties);
+      result
     })?;
 
     Ok(instance)
@@ -573,85 +583,97 @@ impl ModuleObject {
 impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     unsafe {
-      MODULE_INSTANCE_REFS.with(|refs| {
-      let mut refs_by_compiler_id = refs.borrow_mut();
-      let entry = refs_by_compiler_id.entry(val.compiler_id);
-      let refs = match entry {
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          let refs = IdentifierMap::default();
-          entry.insert(refs)
+      // Check if the module instance is already cached (fast path).
+      // The borrow is released before any expensive work to prevent RefCell
+      // poisoning on WASM: if a WASM trap occurs during custom_into_instance,
+      // the RefCell borrow guard is never dropped (panic=abort), leaving it
+      // permanently locked and crashing all subsequent to_napi_value calls.
+      let cached = MODULE_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compiler_id = refs.borrow_mut();
+        if let Some(refs) = refs_by_compiler_id.get_mut(&val.compiler_id) {
+          if let Some(instance_ref) = refs.get_mut(&val.identifier) {
+            let instance = match instance_ref {
+              Either5::A(normal_module) => &mut normal_module.module,
+              Either5::B(concatenated_module) => &mut concatenated_module.module,
+              Either5::C(context_module) => &mut context_module.module,
+              Either5::D(external_module) => &mut external_module.module,
+              Either5::E(module) => &mut **module,
+            };
+            instance.ptr = val.ptr;
+            let napi_value = match instance_ref {
+              Either5::A(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::B(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::C(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::D(r) => ToNapiValue::to_napi_value(env, r),
+              Either5::E(r) => ToNapiValue::to_napi_value(env, r),
+            };
+            return Some(napi_value);
+          }
         }
+        None
+      });
+
+      if let Some(result) = cached {
+        return result;
+      }
+
+      // Slow path: create a new module instance OUTSIDE the RefCell borrow.
+      let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
+        let references = ref_cell.borrow();
+        references.get(&val.compiler_id).cloned()
+      });
+
+      let Some(compiler_reference) = compiler_reference else {
+        return Err(napi::Error::from_reason(format!(
+          "Unable to construct module with id = {} now. The Compiler has been garbage collected by JavaScript.",
+          val.identifier
+        )));
       };
 
-      match refs.entry(val.identifier) {
-        std::collections::hash_map::Entry::Occupied(mut entry) => {
-          let instance_ref = entry.get_mut();
-          let instance = match instance_ref {
-            Either5::A(normal_module) => &mut normal_module.module,
-            Either5::B(concatenated_module) => &mut concatenated_module.module,
-            Either5::C(context_module) => &mut context_module.module,
-            Either5::D(external_module) => &mut external_module.module,
-            Either5::E(module) => &mut **module,
-          };
-          instance.ptr = val.ptr;
-          match instance_ref {
-            Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-            Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-            Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-            Either5::D(r) =>ToNapiValue::to_napi_value(env, r),
-            Either5::E(r) => ToNapiValue::to_napi_value(env, r),
-          }
-        }
-        std::collections::hash_map::Entry::Vacant(entry) => {
-          match COMPILER_REFERENCES.with(|ref_cell| {
-            let references = ref_cell.borrow();
-            references.get(&val.compiler_id).cloned()
-          }) {
-            Some(compiler_reference) => {
-              let js_module = Module {
-                identifier: val.identifier,
-                compiler_id: val.compiler_id,
-                ptr: val.ptr,
-                compiler_reference,
-                build_info_ref: Default::default(),
-              };
-              let env_wrapper = Env::from_raw(env);
+      let js_module = Module {
+        identifier: val.identifier,
+        compiler_id: val.compiler_id,
+        ptr: val.ptr,
+        compiler_reference,
+        build_info_ref: Default::default(),
+      };
+      let env_wrapper = Env::from_raw(env);
 
-              let instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
-                let instance = NormalModule::new(js_module).custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::A(OneShotInstanceRef::from_instance(env, instance)?))
-              } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
-                let instance = ConcatenatedModule { module: js_module }.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::B(OneShotInstanceRef::from_instance(env, instance)?))
-              } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
-                let instance = ContextModule { module: js_module }.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::C(OneShotInstanceRef::from_instance(env, instance)?))
-              } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
-                let instance = ExternalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::D(OneShotInstanceRef::from_instance(env, instance)?))
-              } else {
-                let instance = js_module.custom_into_instance(&env_wrapper)?;
-                entry.insert(Either5::E(OneShotInstanceRef::from_instance(env, instance)?))
-              };
-              match instance_ref {
-                Either5::A(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::B(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::C(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::D(r) => ToNapiValue::to_napi_value(env, r),
-                Either5::E(r) => ToNapiValue::to_napi_value(env, r),
-              }
-            },
-            None => {
-              Err(napi::Error::from_reason(format!(
-                "Unable to construct module with id = {} now. The Compiler has been garbage collected by JavaScript.",
-                val.identifier
-              )))
-            },
-          }
+      let new_instance_ref = if val.type_id == TypeId::of::<rspack_core::NormalModule>() {
+        let instance = NormalModule::new(js_module).custom_into_instance(&env_wrapper)?;
+        Either5::A(OneShotInstanceRef::from_instance(env, instance)?)
+      } else if val.type_id == TypeId::of::<rspack_core::ConcatenatedModule>() {
+        let instance =
+          ConcatenatedModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+        Either5::B(OneShotInstanceRef::from_instance(env, instance)?)
+      } else if val.type_id == TypeId::of::<rspack_core::ContextModule>() {
+        let instance = ContextModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+        Either5::C(OneShotInstanceRef::from_instance(env, instance)?)
+      } else if val.type_id == TypeId::of::<rspack_core::ExternalModule>() {
+        let instance = ExternalModule { module: js_module }.custom_into_instance(&env_wrapper)?;
+        Either5::D(OneShotInstanceRef::from_instance(env, instance)?)
+      } else {
+        let instance = js_module.custom_into_instance(&env_wrapper)?;
+        Either5::E(OneShotInstanceRef::from_instance(env, instance)?)
+      };
+
+      // Insert into cache and return the napi value.
+      MODULE_INSTANCE_REFS.with(|refs| {
+        let mut refs_by_compiler_id = refs.borrow_mut();
+        let module_refs = refs_by_compiler_id
+          .entry(val.compiler_id)
+          .or_insert_with(IdentifierMap::default);
+        let instance_ref = module_refs
+          .entry(val.identifier)
+          .or_insert(new_instance_ref);
+        match instance_ref {
+          Either5::A(r) => ToNapiValue::to_napi_value(env, r),
+          Either5::B(r) => ToNapiValue::to_napi_value(env, r),
+          Either5::C(r) => ToNapiValue::to_napi_value(env, r),
+          Either5::D(r) => ToNapiValue::to_napi_value(env, r),
+          Either5::E(r) => ToNapiValue::to_napi_value(env, r),
         }
-      }
-    })
+      })
     }
   }
 }

@@ -86,8 +86,8 @@ impl NormalModule {
       Ok(())
     }
 
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
+    MODULE_PROPERTIES_BUFFER.with(|cell| {
+      let mut properties = cell.take();
       properties.clear();
 
       properties.push(
@@ -126,7 +126,9 @@ impl NormalModule {
           .with_getter(match_resource_getter)
           .with_setter(match_resource_setter),
       );
-      Self::new_inherited(self, env, &mut properties)
+      let result = Self::new_inherited(self, env, &mut properties);
+      cell.set(properties);
+      result
     })
   }
 

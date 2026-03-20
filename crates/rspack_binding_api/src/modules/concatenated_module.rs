@@ -14,11 +14,13 @@ impl ConcatenatedModule {
     self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
+    MODULE_PROPERTIES_BUFFER.with(|cell| {
+      let mut properties = cell.take();
       properties.clear();
 
-      Self::new_inherited(self, env, &mut properties)
+      let result = Self::new_inherited(self, env, &mut properties);
+      cell.set(properties);
+      result
     })
   }
 
