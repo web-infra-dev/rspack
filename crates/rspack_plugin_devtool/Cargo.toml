@@ -11,7 +11,6 @@ version.workspace = true
 cow-utils                = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
-itertools                = { workspace = true }
 memchr                   = { workspace = true }
 regex                    = { workspace = true }
 rspack_collections       = { workspace = true }
