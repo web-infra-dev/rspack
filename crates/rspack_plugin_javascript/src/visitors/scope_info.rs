@@ -91,9 +91,9 @@ impl TagInfoArena {
 #[derive(Debug)]
 pub struct ScopeStack {
   scope_arena: Vec<ScopeInfo>,
-  active_len: usize,
-  variables: VariableInfoArena,
-  tags: TagInfoArena,
+  stack_len: usize,
+  variable_arena: VariableInfoArena,
+  tag_arena: TagInfoArena,
 }
 
 impl Default for ScopeStack {
@@ -108,62 +108,66 @@ impl ScopeStack {
   pub fn new() -> Self {
     Self {
       scope_arena: Default::default(),
-      active_len: 0,
-      variables: VariableInfoArena::new(),
-      tags: TagInfoArena::new(),
+      stack_len: 0,
+      variable_arena: VariableInfoArena::new(),
+      tag_arena: TagInfoArena::new(),
     }
   }
 
   #[inline]
   pub fn current_scope_level(&self) -> usize {
-    debug_assert!(self.active_len > 0, "scope should exist");
-    self.active_len - 1
+    debug_assert!(self.stack_len > 0, "scope should exist");
+    self.stack_len - 1
   }
 
   #[inline]
-  fn active_scopes(&self) -> &[ScopeInfo] {
-    &self.scope_arena[..self.active_len]
+  fn stack_view(&self) -> &[ScopeInfo] {
+    &self.scope_arena[..self.stack_len]
   }
 
   #[inline]
-  fn active_scopes_mut(&mut self) -> &mut [ScopeInfo] {
-    &mut self.scope_arena[..self.active_len]
+  fn stack_view_mut(&mut self) -> &mut [ScopeInfo] {
+    &mut self.scope_arena[..self.stack_len]
   }
 
   #[inline]
   pub fn initialize_root_scope(&mut self) {
-    debug_assert_eq!(self.active_len, 0);
+    debug_assert_eq!(self.stack_len, 0);
     debug_assert!(self.scope_arena.is_empty());
     self.scope_arena.push(ScopeInfo::new(false));
-    self.active_len = 1;
+    self.stack_len = 1;
   }
 
   #[inline]
   pub fn push_scope(&mut self) {
     let is_strict = self.current_scope().is_strict;
-    if let Some(scope) = self.scope_arena.get_mut(self.active_len) {
+    if let Some(scope) = self.scope_arena.get_mut(self.stack_len) {
       scope.reset_for_reuse(is_strict);
     } else {
       self.scope_arena.push(ScopeInfo::new(is_strict));
     }
-    self.active_len += 1;
+    self.stack_len += 1;
   }
 
   #[inline]
   pub fn pop_scope(&mut self) {
-    debug_assert!(self.active_len > 1, "root scope should not be popped");
-    self.active_len -= 1;
+    debug_assert!(self.stack_len > 0, "cannot pop root scope, stack_len: {}");
+    self.stack_len -= 1;
   }
 
   #[inline]
   pub fn current_scope(&self) -> &ScopeInfo {
-    self.active_scopes().last().expect("scope should exist")
+    debug_assert!(
+      self.stack_len > 0,
+      "scope stack is empty, call `initialize_root_scope` first"
+    );
+    unsafe { self.scope_arena.get_unchecked(self.stack_len - 1) }
   }
 
   #[inline]
   pub fn current_scope_mut(&mut self) -> &mut ScopeInfo {
     self
-      .active_scopes_mut()
+      .stack_view_mut()
       .last_mut()
       .expect("scope should exist")
   }
@@ -171,7 +175,7 @@ impl ScopeStack {
   #[inline]
   pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
     self
-      .variables
+      .variable_arena
       .entries
       .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
@@ -180,7 +184,7 @@ impl ScopeStack {
   #[inline]
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
     self
-      .tags
+      .tag_arena
       .entries
       .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
@@ -189,7 +193,7 @@ impl ScopeStack {
   #[inline]
   pub fn expect_get_mut_tag_info(&mut self, id: TagInfoId) -> &mut TagInfo {
     self
-      .tags
+      .tag_arena
       .entries
       .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
@@ -200,9 +204,10 @@ impl ScopeStack {
     (!id.is_missing()).then_some(id)
   }
 
+  #[inline]
   pub fn get(&mut self, key: &Atom) -> Option<VariableInfoId> {
     let (current_scope, parent_scopes) = self
-      .active_scopes_mut()
+      .stack_view_mut()
       .split_last_mut()
       .expect("scope should exist");
 
@@ -237,9 +242,10 @@ impl ScopeStack {
       .insert(key, variable_info_id);
   }
 
+  #[inline]
   pub fn delete(&mut self, key: &Atom) {
     let (current_scope, parent_scopes) = self
-      .active_scopes_mut()
+      .stack_view_mut()
       .split_last_mut()
       .expect("scope should exist");
 
@@ -261,6 +267,7 @@ pub struct TagInfo {
 }
 
 impl TagInfo {
+  #[inline]
   pub fn create(
     scope_stack: &mut ScopeStack,
     tag: &'static str,
@@ -268,7 +275,7 @@ impl TagInfo {
     next: Option<TagInfoId>,
   ) -> TagInfoId {
     let tag_info = TagInfo { tag, data, next };
-    scope_stack.tags.insert(tag_info)
+    scope_stack.tag_arena.insert(tag_info)
   }
 }
 
@@ -355,13 +362,15 @@ impl VariableInfo {
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
-    scope_stack.variables.insert_with_key(|id| VariableInfo {
-      id,
-      declared_scope_level,
-      name,
-      flags,
-      tag_info,
-    })
+    scope_stack
+      .variable_arena
+      .insert_with_key(|id| VariableInfo {
+        id,
+        declared_scope_level,
+        name,
+        flags,
+        tag_info,
+      })
   }
 
   #[inline]
@@ -401,6 +410,7 @@ impl ScopeInfo {
     self.is_strict = is_strict;
   }
 
+  #[inline]
   pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
     self
       .bindings
