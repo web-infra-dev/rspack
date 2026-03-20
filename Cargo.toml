@@ -131,9 +131,9 @@ allocative = { package = "rspack-allocative", version = "0.3.5", default-feature
 ] }
 
 # Pinned
-napi        = { git = "https://github.com/CPunisher/napi-rs.git", branch = "03-20-refactor/error-new", default-features = false }
-napi-build  = { git = "https://github.com/CPunisher/napi-rs.git", branch = "03-20-refactor/error-new", default-features = false }
-napi-derive = { git = "https://github.com/CPunisher/napi-rs.git", branch = "03-20-refactor/error-new", default-features = false }
+napi        = { version = "3.8.3", default-features = false }
+napi-build  = { version = "2.3.1", default-features = false }
+napi-derive = { version = "3.5.2", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
