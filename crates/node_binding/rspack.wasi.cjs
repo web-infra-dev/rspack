@@ -26,8 +26,12 @@ const __wasi = new __nodeWASI({
 
 const __emnapiContext = __emnapiGetDefaultContext()
 
+// Pre-allocate at maximum to avoid memory.grow during execution.
+// SharedArrayBuffer is always backed by maximum*64KB regardless of initial,
+// so this doesn't increase physical memory usage. It eliminates a suspected
+// V8 race in shared-memory bounds-check propagation after memory.grow.
 const __sharedMemory = new WebAssembly.Memory({
-  initial: 16384,
+  initial: 65536,
   maximum: 65536,
   shared: true,
 })
