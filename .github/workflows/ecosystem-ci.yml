@@ -66,7 +66,6 @@ jobs:
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       test: false
       bench: false
-      prefer_docker: false
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
