@@ -141,17 +141,47 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    let ref_chunk_ukey = EsmLibraryPlugin::get_module_chunk(
+    let ref_chunk_ukey = match EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),
       code_generatable_context.compilation,
-    );
+    ) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import target");
+        let missing_promise = code_generatable_context
+          .runtime_template
+          .missing_module_promise(request);
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          missing_promise,
+          None,
+        );
+        return;
+      }
+    };
 
-    let orig_chunk = EsmLibraryPlugin::get_module_chunk(
+    let orig_chunk = match EsmLibraryPlugin::get_module_chunk(
       *module_graph
         .get_parent_module(dep_id)
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
-    );
+    ) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import source");
+        let missing_promise = code_generatable_context
+          .runtime_template
+          .missing_module_promise(request);
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          missing_promise,
+          None,
+        );
+        return;
+      }
+    };
 
     /*
     For:

@@ -17,8 +17,8 @@ importers:
         specifier: 2.4.6
         version: 2.4.6
       '@rslint/core':
-        specifier: 0.2.3
-        version: 0.2.3
+        specifier: 0.3.1
+        version: 0.3.1(jiti@2.6.1)
       '@rstest/core':
         specifier: ^0.9.2
         version: 0.9.2(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(jsdom@26.1.0)
@@ -231,8 +231,8 @@ importers:
         version: 0.5.19
     devDependencies:
       '@ast-grep/napi':
-        specifier: ^0.41.1
-        version: 0.41.1
+        specifier: ^0.42.0
+        version: 0.42.0
       '@napi-rs/wasm-runtime':
         specifier: 1.0.7
         version: 1.0.7
@@ -403,8 +403,8 @@ importers:
         specifier: 4.53.0
         version: 4.53.0
       path-serializer:
-        specifier: 0.5.1
-        version: 0.5.1
+        specifier: 0.6.0
+        version: 0.6.0
       pretty-format:
         specifier: 30.3.0
         version: 30.3.0
@@ -489,8 +489,8 @@ importers:
         version: 19.2.4(react@19.2.4)
     devDependencies:
       '@codspeed/vitest-plugin':
-        specifier: ^4.0.1
-        version: 4.0.1(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))
+        specifier: ^5.2.0
+        version: 5.2.0(tinybench@2.9.0)(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
@@ -508,7 +508,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       vitest:
         specifier: ^3.2.4
-        version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+        version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
 
   tests/e2e:
     devDependencies:
@@ -693,11 +693,11 @@ importers:
         specifier: ^2.2.3
         version: 2.2.3
       less:
-        specifier: 4.4.2
-        version: 4.4.2
+        specifier: 4.6.4
+        version: 4.6.4
       less-loader:
         specifier: ^12.3.2
-        version: 12.3.2(@rspack/core@packages+rspack)(less@4.4.2)(webpack@5.104.1)
+        version: 12.3.2(@rspack/core@packages+rspack)(less@4.6.4)(webpack@5.104.1)
       lodash:
         specifier: ^4.17.23
         version: 4.17.23
@@ -983,8 +983,8 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@ast-grep/napi-darwin-arm64@0.41.1':
-    resolution: {integrity: sha512-sZHwg/oD6YB2y4VD8ZMeMHBq/ONil+mx+bB61YAiGQB+8UCMSFxJupvtNICB/BnIFqcPCVz/jCaSdbASLrbXQQ==}
+  '@ast-grep/napi-darwin-arm64@0.42.0':
+    resolution: {integrity: sha512-HOPvjsrsASvfkRJGCd/++KZvfDCtBx6v8DKTEzzlc6fQJlhiRMPKe8T4d5I2T2rgV5pHsyJLSBLqEK7m346NTw==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [darwin]
@@ -995,8 +995,8 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@ast-grep/napi-darwin-x64@0.41.1':
-    resolution: {integrity: sha512-SL9hGB8sKvPnLUcigiDQrhohL7N4ujy1+t885kGcBkMXR73JT05OpPmvw0AWmg8l2iH1e5uNK/ZjnV/lSkynxQ==}
+  '@ast-grep/napi-darwin-x64@0.42.0':
+    resolution: {integrity: sha512-q3jt+a6kDbXgbCSuIqaxjgLbTCDYGE2yb1o6metpsGbW+xVZR4ATYMJ8izyYhn2sQungTfUNn2/vo/2Bhbvpxg==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [darwin]
@@ -1007,8 +1007,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@ast-grep/napi-linux-arm64-gnu@0.41.1':
-    resolution: {integrity: sha512-mkNQpkm1jvnIdeRMnEWZ4Q0gNGApoNTMAoJRVmY11CkA4C/vIdNIjxj7UB61xV42Ng/A7Fw8mQUQuFos0lAKPQ==}
+  '@ast-grep/napi-linux-arm64-gnu@0.42.0':
+    resolution: {integrity: sha512-+e2ThyRiBZATlcdgfrD7uYy9oWVS6/AdUTnC3xOwR+lCz80lr87kmcmeK6XN6hBwaqncBBkKV3ECMA8ibZPUZA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -1019,8 +1019,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@ast-grep/napi-linux-arm64-musl@0.41.1':
-    resolution: {integrity: sha512-0G3cHyc+8A945aLie55bLZ+oaEBer0EFlyP/GlwRAx4nn5vGBct1hVTxSexWJ6AxnnRNPlN0mvswVwXiE7H7gA==}
+  '@ast-grep/napi-linux-arm64-musl@0.42.0':
+    resolution: {integrity: sha512-f/oW3KaHuOMuBkCcvI6R71xM9SvkdUVKHhbJEtBFo5D1j6CjY9ipWdjlk9mOJ2KLLM6uYdjjvkJkBPlPuFTukg==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [linux]
@@ -1031,8 +1031,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@ast-grep/napi-linux-x64-gnu@0.41.1':
-    resolution: {integrity: sha512-+aNiCik3iTMtUrMp1k2yIMjby1U64EydTH1qotlx+fh8YvwrwwxZWct7NlurY3MILgT/WONSxhHKmL5NsbB4dw==}
+  '@ast-grep/napi-linux-x64-gnu@0.42.0':
+    resolution: {integrity: sha512-y9T/Tm6V6zkmcAJlWXUO0ACYLSlk5o5NVU+AYun7NzDWIM86Y3lnoDF5WxeZKonVoaGAnkCXVlNH8Tsr/NTQWw==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -1043,8 +1043,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@ast-grep/napi-linux-x64-musl@0.41.1':
-    resolution: {integrity: sha512-rBrZSx5za3OliYcJcUrbLct+1+8oxh8ZEjYPiLCybe4FhspNKGM952g8a4sjgRuwbKS9BstYO9Fz+wthFnaFUQ==}
+  '@ast-grep/napi-linux-x64-musl@0.42.0':
+    resolution: {integrity: sha512-t1PwL6YweDL63QDK3TC9QTKROcVgN4XoMxlp/zN2NYvCUM90mSvqh/Py/ouchzluHaqCzEeEp9089WFEDWwQOA==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [linux]
@@ -1055,8 +1055,8 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@ast-grep/napi-win32-arm64-msvc@0.41.1':
-    resolution: {integrity: sha512-uNRHM3a1qFN0SECJDCEDVy1b0N75JNhJE2O/2BhDkDo0qM8kEewf9jRtG1fwpgZbMK2KoKvMHU/KQ73fWN44Zw==}
+  '@ast-grep/napi-win32-arm64-msvc@0.42.0':
+    resolution: {integrity: sha512-bxKLXF1JmU33BoJKrbWcGsG7Xmk2zCQaUjmeHrxhgBhg2w2zo3CSf5S6DOyOp13hefgLXBLn6oXNzXgqpX/+lA==}
     engines: {node: '>= 10'}
     cpu: [arm64]
     os: [win32]
@@ -1067,8 +1067,8 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@ast-grep/napi-win32-ia32-msvc@0.41.1':
-    resolution: {integrity: sha512-uNPQwGUBGIbCX+WhEIfYJf/VrS7o5+vJvT4MVEHI8aVJnpjcFsLrFI0hIv044OXxnleOo2HUvEmjOrub//at/Q==}
+  '@ast-grep/napi-win32-ia32-msvc@0.42.0':
+    resolution: {integrity: sha512-+/XbHDN+558rXwB2BylWPHj/cczRGDKivToHS2120TGQePmUetspu93wltqzAD7SVJnBILc2sEK1T1/jutZEvw==}
     engines: {node: '>= 10'}
     cpu: [ia32]
     os: [win32]
@@ -1079,8 +1079,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@ast-grep/napi-win32-x64-msvc@0.41.1':
-    resolution: {integrity: sha512-xFp68OCUEmWYcqoreZFaf2xwMhm/22Qf6bR2Qyn8WNVY9RF4m4+k5K+7Wn+n9xy0vHUPhtFd1So/SvuaqLHEoA==}
+  '@ast-grep/napi-win32-x64-msvc@0.42.0':
+    resolution: {integrity: sha512-/5PTpk7EFuqwdJyKleX2gPztL5j73Nq/cdkEJQq1Fbx+ze+UM75JniW3D7J7WZygN58+EN9DAxpc2QOlK32urQ==}
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
@@ -1089,8 +1089,8 @@ packages:
     resolution: {integrity: sha512-Hb4o6h1Pf6yRUAX07DR4JVY7dmQw+RVQMW5/m55GoiAT/VRoKCWBtIUPPOnqDVhbx1Cjfil9b6EDrgJsUAujEQ==}
     engines: {node: '>= 10'}
 
-  '@ast-grep/napi@0.41.1':
-    resolution: {integrity: sha512-OYQVWBbb43af2lTSCayMS7wsZ20nl+fw6LGVl/5zSuHTZRNfANknKLk3wMA4y7RIaAiIwrldAmI6GNZeIDRTkQ==}
+  '@ast-grep/napi@0.42.0':
+    resolution: {integrity: sha512-f3DAjeC657EqbWN2In+girgbpvnKMV77bONyhuezXK4XQtvbGCB55u3CnNvQv6EP0caIBTtDHqO5CVyO6qY4LQ==}
     engines: {node: '>= 10'}
 
   '@babel/code-frame@7.29.0':
@@ -1363,14 +1363,15 @@ packages:
   '@chevrotain/utils@11.1.2':
     resolution: {integrity: sha512-4mudFAQ6H+MqBTfqLmU7G1ZwRzCLfJEooL/fsF6rCX5eePMbGhoy5n4g+G4vlh2muDcsCTJtL+uKbOzWxs5LHA==}
 
-  '@codspeed/core@4.0.1':
-    resolution: {integrity: sha512-fJ53arfgtzCDZa8DuGJhpTZ3Ll9A1uW5nQ2jSJnfO4Hl5MRD2cP8P4vPvIUAGbdbjwCxR1jat6cW8OloMJkJXw==}
+  '@codspeed/core@5.2.0':
+    resolution: {integrity: sha512-CmDhpWjcOJg2iBOQ/BmBnSBq8qxlM3r4h8uvYDkoUaba+EKRT3T73BZtKuml/48jZMsB+4/FG2UbTBinDWtuvw==}
 
-  '@codspeed/vitest-plugin@4.0.1':
-    resolution: {integrity: sha512-aqmrPJzX9cD50UWDsOyih5L5WcEYlNQg3u84sJJ9ZuuLApA51w+LGxk6Xbyb8LJF9n/CwM94HKHV/qArfnvDoQ==}
+  '@codspeed/vitest-plugin@5.2.0':
+    resolution: {integrity: sha512-soXKIQBqJzjVQyWRwe2HNfhCaBgxhG25m8+PI3F5zFFsV3FQxMJXHsMECNtrgm+SRiCiWv/OFTcfCMZRy4nKtw==}
     peerDependencies:
-      vite: ^4.2.0 || ^5.0.0 || ^6.0.0
-      vitest: '>=1.2.2'
+      tinybench: '>=2.9.0'
+      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+      vitest: ^3.2 || ^4
 
   '@cspell/cspell-bundled-dicts@9.7.0':
     resolution: {integrity: sha512-s7h1vo++Q3AsfQa3cs0u/KGwm3SYInuIlC4kjlCBWjQmb4KddiZB5O1u0+3TlA7GycHb5M4CR7MDfHUICgJf+w==}
@@ -2919,37 +2920,42 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.2.3':
-    resolution: {integrity: sha512-qp/DOQSjkYYsg/Ta+v9kny01pdYMBznHjTaB3FyN3e/zRQAyfHc5DcUQ76Yy056XCd3QnQlsZmuv3CR7q1oeYA==}
+  '@rslint/core@0.3.1':
+    resolution: {integrity: sha512-ZZPxsCBpL/EAHff3flxBroj4nMaqgQccDEGTmu7tbjs3/wCnwWuMmQrrH+Ha5e9piJLeA5s8OaBYFehPkWOr/w==}
     hasBin: true
+    peerDependencies:
+      jiti: ^2.0.0
+    peerDependenciesMeta:
+      jiti:
+        optional: true
 
-  '@rslint/darwin-arm64@0.2.3':
-    resolution: {integrity: sha512-BsRHYyxuwXSYKM/CKhoj3Pr/U/EmiXBMw+eBVhneYn/VtYrFINA2B2AThlnRadhYrbGyuKX4XAKP+11zoNUR0g==}
+  '@rslint/darwin-arm64@0.3.1':
+    resolution: {integrity: sha512-/nWXFMfOCGojeZcTlF9TVmZ9GLhrHnDAU75hB1FV6KvQsk3Yszb1HyciziqMDeazxaz9XQgK76DfeJrB5R5kZA==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rslint/darwin-x64@0.2.3':
-    resolution: {integrity: sha512-CcLrrtgCltgjWEgxYr67g/yC8/uL6Zb5X0kGfIbJFGNdKCghqF6WEOCZNtDJqizeo7Mz3ObTilJ5pKQLNDa00Q==}
+  '@rslint/darwin-x64@0.3.1':
+    resolution: {integrity: sha512-PO0cSLH3x8DZO8sMft67NSAX/xhhieAvixaLszvzyAtDZEs3cS6piypCEXkLoiSuNOE1JTAXkhTP4sH2kKVZXg==}
     cpu: [x64]
     os: [darwin]
 
-  '@rslint/linux-arm64@0.2.3':
-    resolution: {integrity: sha512-PW63tAVgYU/TF+kGnSHqf3miQn8gJKTFFHRmfLf+Wdit8GzGN6KbIazvgnVf1hyxeIJpd6PVz4yFJfzbQ3FCiw==}
+  '@rslint/linux-arm64@0.3.1':
+    resolution: {integrity: sha512-u0z3+4ZiGYa11lWJAXa0Tk5oBEtzhJUlNrx/0G41X/abnPXSDrWSZ9w3erA9dCBZcS2T0qIcf+XFeniOB4/Adg==}
     cpu: [arm64]
     os: [linux]
 
-  '@rslint/linux-x64@0.2.3':
-    resolution: {integrity: sha512-IA4rWPrOaMILw+aiJ7HmmuSqO93az9SgFXNDBZm+MM0lI8UWAcb4/EniOwA9yPwMA8eyO8kUBnU8zUiztdTOwg==}
+  '@rslint/linux-x64@0.3.1':
+    resolution: {integrity: sha512-GEevRYWyrz+5/kspcCFg4wPGzOoRimcgCl48KwmF30ZCqw3I37M/7hv5JvKbdUL9oh47lHDB2MEJJ7Iby7bhHA==}
     cpu: [x64]
     os: [linux]
 
-  '@rslint/win32-arm64@0.2.3':
-    resolution: {integrity: sha512-tzLn31SFdAVQSnSG6J+jj3Za+Y4CAKRz/69ytJwuzpBHCQmwyYPC5H+crGMC9Bvn4G9Pc/YomwMHfyfbsLNhzw==}
+  '@rslint/win32-arm64@0.3.1':
+    resolution: {integrity: sha512-P4Hyoui3y9eoZzWOiCqYRBHEssVuycTYJk0OmYXTPtUXX+MKXQd/7qcpmpO+P7LswOH+xmlEi144Cml86CyeGw==}
     cpu: [arm64]
     os: [win32]
 
-  '@rslint/win32-x64@0.2.3':
-    resolution: {integrity: sha512-VxDtgEr4NJ+11olyzrm6piaYXBbtix4oEuhB7orWTMXANudPn6V5x7hheUPPqkOGaRyaby5zta1FOjU/6gvIIw==}
+  '@rslint/win32-x64@0.3.1':
+    resolution: {integrity: sha512-xlV1PXhVE3smvCdRrBMhoirnSwmbtzk6FEGhwH3qJrWKu+2/Ixgt1YZawhSl1yRXLvx+nT7tXtM/hHShy36iBA==}
     cpu: [x64]
     os: [win32]
 
@@ -4149,8 +4155,9 @@ packages:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
 
-  copy-anything@2.0.6:
-    resolution: {integrity: sha512-1j20GZTsvKNkc4BY3NpMOM8tt///wY3FpIzozTOFO2ffuZcV61nojHXVKIy3WM+7ADCy5FVhdZYHYDdgTU0yJw==}
+  copy-anything@3.0.5:
+    resolution: {integrity: sha512-yCEafptTtb4bk7GLEQoM8KVJpxAfdBJYaXyzQEgQQQgYrZiDp8SJmGKlYza6CYjEDNstAdNdKA3UuoULlEbS6w==}
+    engines: {node: '>=12.13'}
 
   copy-to-clipboard@3.3.3:
     resolution: {integrity: sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA==}
@@ -5400,8 +5407,9 @@ packages:
     resolution: {integrity: sha512-p3EcsicXjit7SaskXHs1hA91QxgTw46Fv6EFKKGS5DRFLD8yKnohjF3hxoju94b/OcMZoQukzpPpBE9uLVKzgQ==}
     engines: {node: '>= 0.4'}
 
-  is-what@3.14.1:
-    resolution: {integrity: sha512-sNxgpk9793nzSs7bA6JQJGeIuRBQhAaNGG77kzYQgMkrID+lS6SlK07K5LaptscDlSaIgH+GPFzf+d75FVxozA==}
+  is-what@4.1.16:
+    resolution: {integrity: sha512-ZhMwEosbFJkA0YhFnNDgTM4ZxDRsS6HqTo7qsZM08fehyRYIYa0yHu5R6mgo1n/8MgaPBXiPimPD77baVFYg+A==}
+    engines: {node: '>=12.13'}
 
   is-wsl@3.1.1:
     resolution: {integrity: sha512-e6rvdUCiQCAuumZslxRJWR/Doq4VpPR82kqclvcS0efgt430SlGIk05vdCN58+VrzgtIcfNODjozVielycD4Sw==}
@@ -5592,9 +5600,9 @@ packages:
       webpack:
         optional: true
 
-  less@4.4.2:
-    resolution: {integrity: sha512-j1n1IuTX1VQjIy3tT7cyGbX7nvQOsFLoIqobZv4ttI5axP923gA44zUj6miiA6R5Aoms4sEGVIIcucXUbRI14g==}
-    engines: {node: '>=14'}
+  less@4.6.4:
+    resolution: {integrity: sha512-OJmO5+HxZLLw0RLzkqaNHzcgEAQG7C0y3aMbwtCzIUFZsLMNNq/1IdAdHEycQ58CwUO3jPTHmoN+tE5I7FQxNg==}
+    engines: {node: '>=18'}
     hasBin: true
 
   lilconfig@3.1.3:
@@ -6224,8 +6232,8 @@ packages:
     resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
     engines: {node: 18 || 20 || >=22}
 
-  path-serializer@0.5.1:
-    resolution: {integrity: sha512-bMTznw/TiZbmxlPQEV1pFatJFQcBKt3i9glDcPqygSx5xGrcM4MTCSjY+3SgW9Y628zfRmuJ1uAc/t/A3Tw0QA==}
+  path-serializer@0.6.0:
+    resolution: {integrity: sha512-LlnjpuCARGnJ4X3IirMg0qozvqyTQHmM5ZqUDYmz+yanhjHSP5BqpmgHkOjiFHad9+bYNW9f5ECXv1tUyw2B9A==}
 
   pathe@2.0.3:
     resolution: {integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==}
@@ -8020,55 +8028,55 @@ snapshots:
   '@ast-grep/napi-darwin-arm64@0.37.0':
     optional: true
 
-  '@ast-grep/napi-darwin-arm64@0.41.1':
+  '@ast-grep/napi-darwin-arm64@0.42.0':
     optional: true
 
   '@ast-grep/napi-darwin-x64@0.37.0':
     optional: true
 
-  '@ast-grep/napi-darwin-x64@0.41.1':
+  '@ast-grep/napi-darwin-x64@0.42.0':
     optional: true
 
   '@ast-grep/napi-linux-arm64-gnu@0.37.0':
     optional: true
 
-  '@ast-grep/napi-linux-arm64-gnu@0.41.1':
+  '@ast-grep/napi-linux-arm64-gnu@0.42.0':
     optional: true
 
   '@ast-grep/napi-linux-arm64-musl@0.37.0':
     optional: true
 
-  '@ast-grep/napi-linux-arm64-musl@0.41.1':
+  '@ast-grep/napi-linux-arm64-musl@0.42.0':
     optional: true
 
   '@ast-grep/napi-linux-x64-gnu@0.37.0':
     optional: true
 
-  '@ast-grep/napi-linux-x64-gnu@0.41.1':
+  '@ast-grep/napi-linux-x64-gnu@0.42.0':
     optional: true
 
   '@ast-grep/napi-linux-x64-musl@0.37.0':
     optional: true
 
-  '@ast-grep/napi-linux-x64-musl@0.41.1':
+  '@ast-grep/napi-linux-x64-musl@0.42.0':
     optional: true
 
   '@ast-grep/napi-win32-arm64-msvc@0.37.0':
     optional: true
 
-  '@ast-grep/napi-win32-arm64-msvc@0.41.1':
+  '@ast-grep/napi-win32-arm64-msvc@0.42.0':
     optional: true
 
   '@ast-grep/napi-win32-ia32-msvc@0.37.0':
     optional: true
 
-  '@ast-grep/napi-win32-ia32-msvc@0.41.1':
+  '@ast-grep/napi-win32-ia32-msvc@0.42.0':
     optional: true
 
   '@ast-grep/napi-win32-x64-msvc@0.37.0':
     optional: true
 
-  '@ast-grep/napi-win32-x64-msvc@0.41.1':
+  '@ast-grep/napi-win32-x64-msvc@0.42.0':
     optional: true
 
   '@ast-grep/napi@0.37.0':
@@ -8083,17 +8091,17 @@ snapshots:
       '@ast-grep/napi-win32-ia32-msvc': 0.37.0
       '@ast-grep/napi-win32-x64-msvc': 0.37.0
 
-  '@ast-grep/napi@0.41.1':
+  '@ast-grep/napi@0.42.0':
     optionalDependencies:
-      '@ast-grep/napi-darwin-arm64': 0.41.1
-      '@ast-grep/napi-darwin-x64': 0.41.1
-      '@ast-grep/napi-linux-arm64-gnu': 0.41.1
-      '@ast-grep/napi-linux-arm64-musl': 0.41.1
-      '@ast-grep/napi-linux-x64-gnu': 0.41.1
-      '@ast-grep/napi-linux-x64-musl': 0.41.1
-      '@ast-grep/napi-win32-arm64-msvc': 0.41.1
-      '@ast-grep/napi-win32-ia32-msvc': 0.41.1
-      '@ast-grep/napi-win32-x64-msvc': 0.41.1
+      '@ast-grep/napi-darwin-arm64': 0.42.0
+      '@ast-grep/napi-darwin-x64': 0.42.0
+      '@ast-grep/napi-linux-arm64-gnu': 0.42.0
+      '@ast-grep/napi-linux-arm64-musl': 0.42.0
+      '@ast-grep/napi-linux-x64-gnu': 0.42.0
+      '@ast-grep/napi-linux-x64-musl': 0.42.0
+      '@ast-grep/napi-win32-arm64-msvc': 0.42.0
+      '@ast-grep/napi-win32-ia32-msvc': 0.42.0
+      '@ast-grep/napi-win32-x64-msvc': 0.42.0
 
   '@babel/code-frame@7.29.0':
     dependencies:
@@ -8383,7 +8391,7 @@ snapshots:
 
   '@chevrotain/utils@11.1.2': {}
 
-  '@codspeed/core@4.0.1':
+  '@codspeed/core@5.2.0':
     dependencies:
       axios: 1.13.6
       find-up: 6.3.0
@@ -8392,11 +8400,12 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@codspeed/vitest-plugin@4.0.1(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))':
+  '@codspeed/vitest-plugin@5.2.0(tinybench@2.9.0)(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))':
     dependencies:
-      '@codspeed/core': 4.0.1
-      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
-      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+      '@codspeed/core': 5.2.0
+      tinybench: 2.9.0
+      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+      vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
     transitivePeerDependencies:
       - debug
 
@@ -9832,31 +9841,32 @@ snapshots:
       - '@typescript/native-preview'
       - core-js
 
-  '@rslint/core@0.2.3':
+  '@rslint/core@0.3.1(jiti@2.6.1)':
     optionalDependencies:
-      '@rslint/darwin-arm64': 0.2.3
-      '@rslint/darwin-x64': 0.2.3
-      '@rslint/linux-arm64': 0.2.3
-      '@rslint/linux-x64': 0.2.3
-      '@rslint/win32-arm64': 0.2.3
-      '@rslint/win32-x64': 0.2.3
+      '@rslint/darwin-arm64': 0.3.1
+      '@rslint/darwin-x64': 0.3.1
+      '@rslint/linux-arm64': 0.3.1
+      '@rslint/linux-x64': 0.3.1
+      '@rslint/win32-arm64': 0.3.1
+      '@rslint/win32-x64': 0.3.1
+      jiti: 2.6.1
 
-  '@rslint/darwin-arm64@0.2.3':
+  '@rslint/darwin-arm64@0.3.1':
     optional: true
 
-  '@rslint/darwin-x64@0.2.3':
+  '@rslint/darwin-x64@0.3.1':
     optional: true
 
-  '@rslint/linux-arm64@0.2.3':
+  '@rslint/linux-arm64@0.3.1':
     optional: true
 
-  '@rslint/linux-x64@0.2.3':
+  '@rslint/linux-x64@0.3.1':
     optional: true
 
-  '@rslint/win32-arm64@0.2.3':
+  '@rslint/win32-arm64@0.3.1':
     optional: true
 
-  '@rslint/win32-x64@0.2.3':
+  '@rslint/win32-x64@0.3.1':
     optional: true
 
   '@rspack/binding-darwin-arm64@2.0.0-beta.3':
@@ -10466,13 +10476,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.2.4(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))':
+  '@vitest/mocker@3.2.4(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))':
     dependencies:
       '@vitest/spy': 3.2.4
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
 
   '@vitest/pretty-format@3.2.4':
     dependencies:
@@ -11217,9 +11227,9 @@ snapshots:
 
   cookie@1.1.1: {}
 
-  copy-anything@2.0.6:
+  copy-anything@3.0.5:
     dependencies:
-      is-what: 3.14.1
+      is-what: 4.1.16
 
   copy-to-clipboard@3.3.3:
     dependencies:
@@ -12666,7 +12676,7 @@ snapshots:
     dependencies:
       which-typed-array: 1.1.20
 
-  is-what@3.14.1: {}
+  is-what@4.1.16: {}
 
   is-wsl@3.1.1:
     dependencies:
@@ -12903,18 +12913,17 @@ snapshots:
 
   layout-base@2.0.1: {}
 
-  less-loader@12.3.2(@rspack/core@packages+rspack)(less@4.4.2)(webpack@5.104.1):
+  less-loader@12.3.2(@rspack/core@packages+rspack)(less@4.6.4)(webpack@5.104.1):
     dependencies:
-      less: 4.4.2
+      less: 4.6.4
     optionalDependencies:
       '@rspack/core': link:packages/rspack
       webpack: 5.104.1
 
-  less@4.4.2:
+  less@4.6.4:
     dependencies:
-      copy-anything: 2.0.6
+      copy-anything: 3.0.5
       parse-node-version: 1.0.1
-      tslib: 2.8.1
     optionalDependencies:
       errno: 0.1.8
       graceful-fs: 4.2.11
@@ -13865,7 +13874,7 @@ snapshots:
       lru-cache: 11.2.6
       minipass: 7.1.3
 
-  path-serializer@0.5.1: {}
+  path-serializer@0.6.0: {}
 
   pathe@2.0.3: {}
 
@@ -15313,13 +15322,13 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-node@3.2.4(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2):
+  vite-node@3.2.4(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -15334,7 +15343,7 @@ snapshots:
       - tsx
       - yaml
 
-  vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2):
+  vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -15346,17 +15355,17 @@ snapshots:
       '@types/node': 20.19.37
       fsevents: 2.3.3
       jiti: 2.6.1
-      less: 4.4.2
+      less: 4.6.4
       sass: 1.97.3
       sass-embedded: 1.97.3
       terser: 5.46.1
       yaml: 2.8.2
 
-  vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2):
+  vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.37)(jiti@2.6.1)(jsdom@26.1.0)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2):
     dependencies:
       '@types/chai': 5.2.3
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))
+      '@vitest/mocker': 3.2.4(vite@7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -15374,8 +15383,8 @@ snapshots:
       tinyglobby: 0.2.15
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
-      vite-node: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(less@4.4.2)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+      vite: 7.3.1(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
+      vite-node: 3.2.4(@types/node@20.19.37)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.2)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/debug': 4.1.12

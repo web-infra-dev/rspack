@@ -1172,6 +1172,7 @@ export interface JsRsdoctorModule {
   issuerPath: Array<number>
   bailoutReason: Array<string>
   sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
+  exportsType: string
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1773,12 +1774,6 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
-  /**
-   * Path to PnP manifest file
-   *
-   * Default `None`
-   */
-  pnpManifest?: string | false
 }
 
 export interface NativeWatcherOptions {
@@ -2192,6 +2187,12 @@ export interface RawDraft {
 export interface RawDynamicEntryPluginOptions {
   context: string
   entry: () => Promise<RawEntryDynamicResult[]>
+}
+
+export interface RawEnableLibraryPluginOptions {
+  libraryType: string
+  preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
 }
 
 export interface RawEntryDynamicResult {
@@ -2835,7 +2836,6 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
-  pnpManifest?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2863,7 +2863,6 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
-  pnpManifest?: string | false
 }
 
 export interface RawResolveTsconfigOptions {

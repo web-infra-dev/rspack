@@ -14,12 +14,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
 
-use crate::{
-  modern_module_library_plugin::{
-    render_as_default_only_export, render_as_default_with_named_exports, render_as_named_exports,
-  },
-  utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk},
-};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 
@@ -170,4 +165,71 @@ impl Plugin for ModuleLibraryPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
+}
+
+pub fn render_as_default_only_export(exports: &[(String, Option<String>)]) -> String {
+  render_as_default_export_impl(exports)
+}
+
+pub fn render_as_named_exports(exports: &[(String, Option<String>)]) -> String {
+  render_as_named_exports_impl(exports, false)
+}
+
+pub fn render_as_default_with_named_exports(exports: &[(String, Option<String>)]) -> String {
+  format!(
+    "{}\n{}",
+    render_as_named_exports_impl(exports, true),
+    render_as_default_only_export(exports),
+  )
+}
+
+fn render_as_named_exports_impl(
+  exports: &[(String, Option<String>)],
+  ignore_default: bool,
+) -> String {
+  format!(
+    "export {{ {} }};\n",
+    exports
+      .iter()
+      .filter(|(_, exported)| {
+        if ignore_default {
+          !matches!(exported.as_deref(), Some("default"))
+        } else {
+          true
+        }
+      })
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{local} as {exported}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
+}
+
+fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> String {
+  if let Some((local, _)) = exports
+    .iter()
+    .find(|(_, exported)| matches!(exported.as_deref(), Some("default")))
+  {
+    return format!("export {{ {local} as default }};\n",);
+  }
+
+  format!(
+    "var __rspack_exports_default = {{ {} }};\nexport default __rspack_exports_default;\n",
+    exports
+      .iter()
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{exported}: {local}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
 }

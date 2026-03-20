@@ -22,10 +22,9 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
-    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    get_non_optional_part, parse_order_string,
+    ContextModuleScanResult, JavascriptParser, Statement, TagInfoData, TopLevelScope,
+    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
+    create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -135,13 +134,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     {
       return Some(true);
     }
-    if let MemberExpressionInfo::Expression(info) =
-      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
-      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
-      && parser
-        .get_tag_data(&name.clone(), DYNAMIC_IMPORT_TAG)
-        .is_some()
+    if let Some(ident) = expr.as_ident()
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
+      && let Some(info) = name_info.info
+      && let Some(name) = info.name.clone()
+      && parser.get_tag_data(&name, DYNAMIC_IMPORT_TAG).is_some()
     {
       return Some(true);
     }

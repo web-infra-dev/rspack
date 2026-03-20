@@ -54,7 +54,7 @@
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
     "memfs": "4.53.0",
-    "path-serializer": "0.5.1",
+    "path-serializer": "0.6.0",
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",

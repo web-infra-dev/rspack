@@ -129,6 +129,7 @@ pub fn collect_modules(
           bailout_reason: HashSet::default(),
           side_effects: None,
           side_effects_locations: Vec::new(),
+          exports_type: module.build_meta().exports_type,
         },
       )
     })

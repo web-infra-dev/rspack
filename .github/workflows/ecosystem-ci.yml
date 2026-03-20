@@ -25,6 +25,7 @@ on:
           - nuxt
           - plugin
           - lynx-stack
+          - rsbuild-rsc-plugin
       suiteRef:
         description: 'suite ref to use'
         required: true
@@ -127,6 +128,7 @@ jobs:
               "nuxt",
               "plugin",
               "lynx-stack",
+              "rsbuild-rsc-plugin",
             ]
             if (suiteName !== "-") {
               suites = suites.filter(suite => suite === suiteName)

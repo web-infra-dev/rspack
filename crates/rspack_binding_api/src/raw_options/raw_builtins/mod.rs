@@ -140,7 +140,8 @@ use crate::{
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
-    SourceMapDevToolPluginOptions, raw_builtins::raw_esm_lib::RawEsmLibraryPlugin,
+    SourceMapDevToolPluginOptions,
+    raw_builtins::raw_esm_lib::{RawEnableLibraryPluginOptions, RawEsmLibraryPlugin},
   },
   rslib::RawRslibPluginOptions,
 };
@@ -414,9 +415,14 @@ impl<'a> BuiltinPlugin<'a> {
         enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
       }
       BuiltinPluginName::EnableLibraryPlugin => {
-        let library_type = downcast_into::<String>(self.options)
+        let options = downcast_into::<RawEnableLibraryPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        enable_library_plugin(library_type, plugins);
+        enable_library_plugin(
+          options.library_type,
+          options.preserve_modules.as_deref().map(Into::into),
+          options.split_chunks.map(Into::into),
+          plugins,
+        );
       }
       BuiltinPluginName::EnableWasmLoadingPlugin => {
         let wasm_loading_type = downcast_into::<String>(self.options)

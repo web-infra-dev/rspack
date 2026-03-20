@@ -2,6 +2,7 @@ use std::io::ErrorKind;
 
 use cow_utils::CowUtils;
 use rspack_fs::Error as FSError;
+use tokio::task::JoinError;
 
 /// Rspack storage errors.
 #[derive(Debug)]
@@ -32,6 +33,12 @@ impl From<FSError> for Error {
   }
 }
 
+impl From<JoinError> for Error {
+  fn from(e: JoinError) -> Self {
+    Error::InvalidFormat(e.to_string())
+  }
+}
+
 impl From<Error> for rspack_error::Error {
   fn from(value: Error) -> Self {
     rspack_error::error!(value.to_string())
@@ -48,7 +55,7 @@ impl Error {
         }
         let error_string = e.to_string();
         let error_content = error_string.cow_to_ascii_lowercase();
-        error_content.contains("no such file") || error_content.contains("file not exists")
+        error_content.contains("no such file") || error_content.contains("not exist")
       }
       _ => false,
     }

@@ -71,7 +71,13 @@ impl ScopeFileSystem {
   ) -> Result<()> {
     let from_file = from.workspace.join(relative_path.as_ref());
     let to_file = to.workspace.join(relative_path.as_ref());
-    from.fs.rename(&from_file, &to_file).await?;
+    if let Err(e) = from.fs.rename(&from_file, &to_file).await {
+      // If the source file is not found, ignore the error.
+      let e: Error = e.into();
+      if !e.is_not_found() {
+        return Err(e);
+      }
+    }
     Ok(())
   }
 
@@ -196,6 +202,10 @@ mod tests {
 
     let temp_fs = fs.child_fs(".temp");
     temp_fs.write("a.txt", "2".as_bytes()).await?;
+
+    // Moving a non-existent file should succeed
+    ScopeFileSystem::move_to(&temp_fs, &fs, "b.txt").await?;
+    assert_eq!(fs.read("a.txt").await?, "1".as_bytes());
 
     ScopeFileSystem::move_to(&temp_fs, &fs, "a.txt").await?;
     assert_eq!(fs.read("a.txt").await?, "2".as_bytes());

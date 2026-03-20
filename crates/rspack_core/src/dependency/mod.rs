@@ -139,6 +139,25 @@ pub trait DependencyConditionFn: Sync + Send {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
+
+  fn is_connection_active(
+    &self,
+    conn: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    self
+      .get_connection_state(
+        conn,
+        runtime,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+      )
+      .is_true()
+  }
 }
 
 #[derive(Clone)]
@@ -158,6 +177,23 @@ impl DependencyCondition {
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     self.0.get_connection_state(
+      connection,
+      runtime,
+      mg,
+      module_graph_cache,
+      exports_info_artifact,
+    )
+  }
+
+  pub fn is_connection_active(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    self.0.is_connection_active(
       connection,
       runtime,
       mg,
