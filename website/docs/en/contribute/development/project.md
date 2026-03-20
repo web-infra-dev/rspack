@@ -15,7 +15,7 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_binding_api`**: Node.js binding API that bridges Rust core functionality to JavaScript/TypeScript interfaces
 - **`node_binding`**: Node.js binding implementation that generates Node.js native modules
 - **`rspack_napi`**: NAPI (Node-API) support layer for interoperability between Rust and Node.js
-- **`rspack_allocator`**: Memory allocator using mimalloc to optimize memory allocation performance (Linux/macOS)
+- **`rspack_allocator`**: Memory allocator using snmalloc to optimize memory allocation performance on native targets
 
 ### Build & binding crates
 

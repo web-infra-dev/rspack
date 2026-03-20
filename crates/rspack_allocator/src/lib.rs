@@ -1,13 +1,13 @@
 #[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]
 #[cfg(not(any(feature = "sftrace-setup", feature = "tracy-client")))]
-static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+static GLOBAL: snmalloc_rs::SnMalloc = snmalloc_rs::SnMalloc;
 
 #[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]
 #[cfg(feature = "sftrace-setup")]
-static GLOBAL: sftrace_setup::SftraceAllocator<mimalloc::MiMalloc> =
-  sftrace_setup::SftraceAllocator(mimalloc::MiMalloc);
+static GLOBAL: sftrace_setup::SftraceAllocator<snmalloc_rs::SnMalloc> =
+  sftrace_setup::SftraceAllocator(snmalloc_rs::SnMalloc);
 
 #[global_allocator]
 #[cfg(not(any(miri, target_family = "wasm")))]

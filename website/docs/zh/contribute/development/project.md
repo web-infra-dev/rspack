@@ -15,7 +15,7 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_binding_api`**: Node.js 绑定 API，将 Rust 核心功能桥接到 JavaScript/TypeScript 接口
 - **`node_binding`**: Node.js 绑定实现，用于生成 Node.js 原生模块
 - **`rspack_napi`**: NAPI (Node-API) 支持层，用于 Rust 和 Node.js 之间的互操作性
-- **`rspack_allocator`**: 使用 mimalloc 的内存分配器，用于优化内存分配性能（Linux/macOS）
+- **`rspack_allocator`**: 使用 snmalloc 的内存分配器，用于优化原生目标上的内存分配性能
 
 ### 构建与绑定 Crates
 

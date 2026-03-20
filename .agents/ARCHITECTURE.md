@@ -276,7 +276,7 @@ Unified error system.
 
 ### Memory Management
 
-- Uses mimalloc for optimized allocation (Linux/macOS)
+- Uses snmalloc for optimized allocation on native targets
 - Efficient data structures (custom HashMap, HashSet)
 - Minimizes allocations in hot paths
 
