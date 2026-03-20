@@ -1,6 +1,5 @@
 #![allow(clippy::unwrap_used)]
-use std::cell::RefCell;
-use std::sync::Arc;
+use std::{cell::RefCell, sync::Arc};
 
 use criterion::{BatchSize, criterion_group};
 use rspack::builder::Builder as _;
