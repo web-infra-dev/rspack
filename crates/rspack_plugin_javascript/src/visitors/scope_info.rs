@@ -406,11 +406,10 @@ impl ScopeInfo {
   }
 
   #[inline]
-  pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
+  pub fn variables(&self) -> impl Iterator<Item = (&Atom, &VariableInfoId)> {
     self
       .bindings
       .iter()
       .filter(|&(_, &info_id)| !info_id.is_missing())
-      .map(|(name, info_id)| (name.as_str(), info_id))
   }
 }

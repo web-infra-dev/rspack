@@ -792,7 +792,7 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_all_variables_from_current_scope(
     &self,
-  ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
+  ) -> impl Iterator<Item = (&Atom, &VariableInfoId)> {
     let scope = self.scope_stack.current_scope();
     scope.variables()
   }
