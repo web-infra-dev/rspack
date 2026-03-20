@@ -6,6 +6,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
+use rspack_napi::NapiResultToRspackResultExt;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
@@ -59,14 +60,14 @@ pub(crate) async fn loader_yield(
       self.runner_getter.call(compiler_id).await
     })
     .await
-    .to_rspack_result()?;
+    .into_rspack_result()?;
 
   let new_cx = runner
     .call_async(loader_context.try_into()?)
     .await
-    .to_rspack_result()?
+    .into_rspack_result()?
     .await
-    .to_rspack_result()?;
+    .into_rspack_result()?;
 
   if loader_context.state() == LoaderState::Pitching {
     let list = collect_loaders_without_pitch(loader_context, &new_cx);

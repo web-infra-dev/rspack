@@ -3,6 +3,26 @@ use std::{ffi::CString, ptr};
 use napi::{Env, Error, bindgen_prelude::*, sys::napi_value};
 use rspack_error::Error as RspackError;
 
+/// Safely convert `Result<T, napi::Error>` into `rspack_error::Result<T>`.
+///
+/// `napi::Error::Drop` calls `napi_reference_unref` which requires a valid
+/// emnapi env. On WASM worker threads the env handle can become stale, causing
+/// `memory access out of bounds` or `checkGCAccess` crashes. This trait
+/// extracts the error message and uses `mem::forget` to skip the Drop.
+pub trait NapiResultToRspackResultExt<T> {
+  fn into_rspack_result(self) -> rspack_error::Result<T>;
+}
+
+impl<T> NapiResultToRspackResultExt<T> for std::result::Result<T, napi::Error> {
+  fn into_rspack_result(self) -> rspack_error::Result<T> {
+    self.map_err(|e| {
+      let msg = e.reason.clone();
+      std::mem::forget(e);
+      rspack_error::error!(msg)
+    })
+  }
+}
+
 pub trait NapiErrorToRspackErrorExt {
   fn to_rspack_error(self, env: &Env) -> RspackError;
 }

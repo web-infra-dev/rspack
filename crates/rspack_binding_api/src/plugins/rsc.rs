@@ -11,7 +11,7 @@ use napi::{
 };
 use once_cell::unsync::OnceCell;
 use rspack_core::{Compiler, CompilerId};
-use rspack_error::ToStringResultToRspackResultExt;
+use rspack_napi::NapiResultToRspackResultExt;
 use rspack_plugin_rsc::{Coordinator, OnManifest, RscClientPluginOptions, RscServerPluginOptions};
 
 use crate::JsCompiler;
@@ -42,7 +42,7 @@ impl JsCoordinator {
         move || -> BoxFuture<'static, rspack_error::Result<CompilerId>> {
           let ts_fn = ts_fn.clone();
           Box::pin(async move {
-            let external = ts_fn.call_async(()).await.to_rspack_result()?;
+            let external = ts_fn.call_async(()).await.into_rspack_result()?;
             Ok(**external)
           })
         },
@@ -100,7 +100,7 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
         Some(Box::new(
           move || -> BoxFuture<'static, rspack_error::Result<()>> {
             let ts_fn = ts_fn.clone();
-            Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
+            Box::pin(async move { ts_fn.call_async(()).await.into_rspack_result() })
           },
         ))
       }
@@ -123,9 +123,9 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
             ts_fn
               .call_async(json)
               .await
-              .to_rspack_result()?
+              .into_rspack_result()?
               .await
-              .to_rspack_result()
+              .into_rspack_result()
           })
         }))
       }
