@@ -135,6 +135,7 @@ impl ScopeStack {
     debug_assert_eq!(self.active_len, 0);
     debug_assert!(self.scope_arena.is_empty());
     self.scope_arena.push(ScopeInfo::new(false));
+    self.active_len = 1;
   }
 
   #[inline]
