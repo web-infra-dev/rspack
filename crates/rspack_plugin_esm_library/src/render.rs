@@ -563,9 +563,7 @@ var {} = {{}};
         .raw_import_stmts
         .iter()
         .filter_map(|(source, spec)| {
-          if spec.ns_import.is_none() {
-            return None;
-          }
+          spec.ns_import.as_ref()?;
           match source {
             RawImportSource::Source((s, attr)) => {
               // Reconstruct the key format used by module_external_fragment_key:
@@ -573,7 +571,7 @@ var {} = {{}};
               let key = if let Some(attr_str) = attr {
                 // attr_str has format " with {json}" - strip the " with " prefix
                 let json_part = attr_str.strip_prefix(" with ").unwrap_or(attr_str);
-                format!("{}|{}", s, json_part)
+                format!("{s}|{json_part}")
               } else {
                 s.clone()
               };

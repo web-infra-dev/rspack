@@ -1,5 +1,5 @@
-import * as __rspack_external_externals0 from "externals0";
 import * as __rspack_external_externals1 from "externals1";
+import * as __rspack_external_externals0 from "externals0";
 var __webpack_modules__ = ({
 "./bar.js"() {
 
