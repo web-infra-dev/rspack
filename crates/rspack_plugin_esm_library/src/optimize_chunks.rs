@@ -539,8 +539,9 @@ fn short_name_from_identifier(identifier: &str) -> Option<String> {
 
   // Normalize Windows backslashes to forward slashes so that all subsequent
   // string operations work uniformly regardless of platform.
-  let s = s.replace('\\', "/");
-  let s = s.as_str();
+  use cow_utils::CowUtils;
+  let s = s.cow_replace('\\', "/");
+  let s = s.as_ref();
 
   let last_slash = s.rfind('/');
   let filename = last_slash.map_or(s, |p| &s[p + 1..]);
