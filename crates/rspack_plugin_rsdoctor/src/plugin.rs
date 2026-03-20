@@ -397,7 +397,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     .collect();
   let connections_only_imports = collect_connections_only_imports(
     &modules,
-    &*module_ukey_map,
+    &module_ukey_map,
     module_graph,
     &compilation.module_graph_cache_artifact,
     &module_ukey_to_info,
