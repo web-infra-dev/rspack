@@ -113,6 +113,7 @@ impl JavascriptParser<'_> {
     self.enter_patterns(params, |this, ident| {
       this.define_variable(ident.sym.clone());
     });
+
     f(self);
 
     self.scope_stack.pop_scope();

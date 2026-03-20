@@ -139,18 +139,18 @@ impl ScopeStack {
 
   #[inline]
   pub fn pop_scope(&mut self) {
-    debug_assert!(self.stack.len() > 1);
+    debug_assert!(self.stack.len() >= 1);
     self.stack.pop();
   }
 
   #[inline]
   pub fn current_scope(&self) -> &ScopeInfo {
-    self.stack.last().expect("active scope should exist")
+    self.stack.last().expect("scope should exist")
   }
 
   #[inline]
   pub fn current_scope_mut(&mut self) -> &mut ScopeInfo {
-    self.stack.last_mut().expect("active scope should exist")
+    self.stack.last_mut().expect("scope should exist 2")
   }
 
   #[inline]
@@ -190,29 +190,26 @@ impl ScopeStack {
       return Self::resolve_variable(*value);
     }
 
-    let resolved = (0..self.stack.len() - 1)
+    let found = self.stack[..self.stack.len() - 1]
+      .iter()
       .rev()
-      .find_map(|level| self.stack[level].map.get(key).copied());
+      .find_map(|scope| scope.map.get(key).copied());
 
-    if let Some(value) = resolved {
-      let top_scope = self.current_scope_mut();
-      top_scope.map.insert(key.clone(), value);
-      return Self::resolve_variable(value);
+    if let Some(variable_info_id) = found {
+      self.set(key.clone(), variable_info_id);
+      return Self::resolve_variable(variable_info_id);
     }
 
     if self.stack.len() > 1 {
-      let top_scope = self.current_scope_mut();
-      top_scope
-        .map
-        .insert(key.clone(), VariableInfoId::tombstone());
+      self.set(key.clone(), VariableInfoId::tombstone());
     }
 
     None
   }
 
+  #[inline]
   pub fn set(&mut self, key: Atom, variable_info_id: VariableInfoId) {
-    let scope = self.current_scope_mut();
-    scope.map.insert(key, variable_info_id);
+    self.current_scope_mut().map.insert(key, variable_info_id);
   }
 
   pub fn delete(&mut self, key: &Atom) {

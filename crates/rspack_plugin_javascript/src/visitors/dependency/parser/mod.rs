@@ -520,7 +520,8 @@ impl<'parser> JavascriptParser<'parser> {
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
-    let scope_stack = ScopeStack::new();
+    let mut scope_stack = ScopeStack::new();
+    scope_stack.create();
 
     Self {
       last_esm_import_order: 0,
