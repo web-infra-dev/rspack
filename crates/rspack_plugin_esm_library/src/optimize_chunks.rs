@@ -537,7 +537,11 @@ fn short_name_from_identifier(identifier: &str) -> Option<String> {
     s
   };
 
-  // Module identifiers always use '/', so pure string ops suffice (no Path needed).
+  // Normalize Windows backslashes to forward slashes so that all subsequent
+  // string operations work uniformly regardless of platform.
+  let s = s.replace('\\', "/");
+  let s = s.as_str();
+
   let last_slash = s.rfind('/');
   let filename = last_slash.map_or(s, |p| &s[p + 1..]);
   let stem = filename.rsplit_once('.').map_or(filename, |(name, _)| name);
@@ -783,6 +787,26 @@ mod tests {
     assert_eq!(
       short_name_from_identifier("css|./src/style.css?inline|0||||}"),
       Some("style".into())
+    );
+  }
+
+  #[test]
+  fn short_name_windows_backslash_paths() {
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\src\app.js"),
+      Some("app".into())
+    );
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\src\index.js"),
+      Some("src".into())
+    );
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\node_modules\lib\dist\index.js"),
+      Some("lib".into())
+    );
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\node_modules\@scope\pkg\dist\index.js"),
+      Some("@scope/pkg".into())
     );
   }
 }
