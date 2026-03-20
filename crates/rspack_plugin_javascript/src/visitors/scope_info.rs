@@ -121,11 +121,6 @@ impl ScopeStack {
   }
 
   #[inline]
-  fn stack_view(&self) -> &[ScopeInfo] {
-    &self.scope_arena[..self.stack_len]
-  }
-
-  #[inline]
   fn stack_view_mut(&mut self) -> &mut [ScopeInfo] {
     &mut self.scope_arena[..self.stack_len]
   }
@@ -151,7 +146,7 @@ impl ScopeStack {
 
   #[inline]
   pub fn pop_scope(&mut self) {
-    debug_assert!(self.stack_len > 0, "cannot pop root scope, stack_len: {}");
+    debug_assert!(self.stack_len > 0, "cannot pop scope");
     self.stack_len -= 1;
   }
 
