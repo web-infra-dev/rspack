@@ -2682,8 +2682,7 @@ dependencies = [
 [[package]]
 name = "napi"
 version = "3.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6944d0bf100571cd6e1a98a316cdca262deb6fccf8d93f5ae1502ca3fc88bd3"
+source = "git+https://github.com/CPunisher/napi-rs.git?branch=03-20-refactor%2Ferror-new#6efd50665af9874e4a4accca8ff3e696016293cc"
 dependencies = [
  "anyhow",
  "bitflags 2.11.0",
@@ -2701,14 +2700,12 @@ dependencies = [
 [[package]]
 name = "napi-build"
 version = "2.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d376940fd5b723c6893cd1ee3f33abbfd86acb1cd1ec079f3ab04a2a3bc4d3b1"
+source = "git+https://github.com/CPunisher/napi-rs.git?branch=03-20-refactor%2Ferror-new#6efd50665af9874e4a4accca8ff3e696016293cc"
 
 [[package]]
 name = "napi-derive"
 version = "3.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c914b5e420182bfb73504e0607592cdb8e2e21437d450883077669fb72a114d"
+source = "git+https://github.com/CPunisher/napi-rs.git?branch=03-20-refactor%2Ferror-new#6efd50665af9874e4a4accca8ff3e696016293cc"
 dependencies = [
  "convert_case 0.11.0",
  "ctor 0.6.3",
@@ -2721,8 +2718,7 @@ dependencies = [
 [[package]]
 name = "napi-derive-backend"
 version = "5.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0864cf6a82e2cfb69067374b64c9253d7e910e5b34db833ed7495dda56ccb18"
+source = "git+https://github.com/CPunisher/napi-rs.git?branch=03-20-refactor%2Ferror-new#6efd50665af9874e4a4accca8ff3e696016293cc"
 dependencies = [
  "convert_case 0.11.0",
  "proc-macro2",
@@ -2734,8 +2730,7 @@ dependencies = [
 [[package]]
 name = "napi-sys"
 version = "3.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eb602b84d7c1edae45e50bbf1374696548f36ae179dfa667f577e384bb90c2b"
+source = "git+https://github.com/CPunisher/napi-rs.git?branch=03-20-refactor%2Ferror-new#6efd50665af9874e4a4accca8ff3e696016293cc"
 dependencies = [
  "libloading",
 ]
