@@ -44,7 +44,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    optimize_runtime_chunks, pull_module_into_non_entry_chunks,
+    optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
@@ -437,10 +437,28 @@ async fn finish_modules(
     );
   }
 
-  for m in entry_modules {
+  for m in entry_modules.iter() {
     exports_info_artifact
-      .get_exports_info_data_mut(&m)
+      .get_exports_info_data_mut(m)
       .set_used_in_unknown_way(None);
+
+    // Also mark the direct dependencies of entry modules as used in all runtimes.
+    // Without this, re-export connections (e.g. `export * from './a'`) in modules
+    // like `lib.js` may be pruned by the side-effects optimization for runtimes
+    // that don't use specific exports. This causes re-exported modules to not appear
+    // in all entry chunks, preventing SplitChunksPlugin from extracting them into
+    // a shared chunk alongside the re-exporting module.
+    if let Some(module) = module_graph.module_by_identifier(m) {
+      for dep_id in module.get_dependencies() {
+        if let Some(dep_module) = module_graph.module_identifier_by_dependency_id(dep_id) {
+          if !entry_modules.contains(dep_module) {
+            exports_info_artifact
+              .get_exports_info_data_mut(dep_module)
+              .set_used_in_unknown_way(None);
+          }
+        }
+      }
+    }
   }
 
   Ok(())
@@ -685,7 +703,6 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     crate::split_chunks::split(cache_groups, compilation).await?;
   }
 
-  pull_module_into_non_entry_chunks(compilation);
   ensure_entry_exports(compilation);
   let concate_modules_map = self.concatenated_modules_map.read().await;
   let concatenated_modules = concate_modules_map
