@@ -104,7 +104,7 @@ export default {
 - **可能出错**：某些模块无法被正确合并，可能导致产物行为异常
 - **有限的代码分割支持**：代码分割后的产物会变得复杂，难以进行静态分析和优化
 
-为了彻底解决这些问题，我们引入了实验性的 [EsmLibraryPlugin](/plugins/rspack/esm-library-plugin) 插件，它专为构建 ESM 库设计，让生成的代码更加简洁和高效：
+为了彻底解决这些问题，我们引入了实验性的 [EsmLibraryPlugin](https://v1.rspack.rs/plugins/rspack/esm-library-plugin) 插件，它专为构建 ESM 库设计，让生成的代码更加简洁和高效：
 
 - **完全接管打包过程**：在编译阶段完成模块连接，不再依赖 Rspack 的运行时代码
 - **支持代码分割**：分割后的代码可被静态分析和 tree shaking 友好
