@@ -48,11 +48,25 @@ pub(crate) fn pull_module_into_non_entry_chunks(compilation: &mut Compilation) {
       let module_graph = compilation.get_module_graph();
       let mut moves: Vec<(ModuleIdentifier, ChunkUkey, ChunkUkey)> = Vec::new();
 
-      for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+      // Sort chunk keys for deterministic iteration order
+      let mut chunk_ukeys: Vec<_> = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .keys()
+        .copied()
+        .collect();
+      chunk_ukeys.sort();
+
+      for chunk_ukey in &chunk_ukeys {
         // Skip entry chunks
         if entrypoint_chunks.contains(chunk_ukey) {
           continue;
         }
+
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey);
 
         // Only handle initial chunks (shared chunks loaded with entries).
         // Async chunks are handled by ensure_entry_exports.
@@ -60,13 +74,14 @@ pub(crate) fn pull_module_into_non_entry_chunks(compilation: &mut Compilation) {
           continue;
         }
 
-        let modules: Vec<_> = compilation
+        let mut modules: Vec<_> = compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_modules_identifier(chunk_ukey)
           .iter()
           .copied()
           .collect();
+        modules.sort();
 
         for m in &modules {
           let outgoings = module_graph.get_active_outcoming_connections_by_module(
@@ -77,7 +92,21 @@ pub(crate) fn pull_module_into_non_entry_chunks(compilation: &mut Compilation) {
             &compilation.exports_info_artifact,
           );
 
-          for target_module in outgoings.keys() {
+          for (target_module, connections) in &outgoings {
+            // Only consider static import edges, not dynamic imports.
+            // Dynamic imports are lazy — pulling them into a shared chunk
+            // would turn them into eager code loading, a behavioral regression.
+            let has_static_import = connections.iter().any(|conn| {
+              let dep = module_graph.dependency_by_id(&conn.dependency_id);
+              !matches!(
+                dep.dependency_type(),
+                DependencyType::DynamicImport | DependencyType::DynamicImportEager
+              )
+            });
+            if !has_static_import {
+              continue;
+            }
+
             let target_chunks = compilation
               .build_chunk_graph_artifact
               .chunk_graph
@@ -100,15 +129,36 @@ pub(crate) fn pull_module_into_non_entry_chunks(compilation: &mut Compilation) {
     }
 
     // Phase 2: Apply moves (mutable borrow of compilation)
+    // Sort moves by module identifier for deterministic deduplication
+    // when a module could be moved to multiple shared chunks.
+    let mut sorted_moves = moves;
+    sorted_moves.sort_by_key(|(module_id, _, _)| *module_id);
+
     let mut seen = FxHashSet::<ModuleIdentifier>::default();
-    for (module_id, from_chunk, to_chunk) in moves {
+    for (module_id, from_chunk, to_chunk) in sorted_moves {
       if !seen.insert(module_id) {
         continue;
       }
+
+      // If the module is an entry module in the source chunk, also
+      // disconnect/reconnect the entry-module mapping to keep the
+      // chunk graph consistent.
+      let is_entry = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .is_entry_module(&module_id);
+
       compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .disconnect_chunk_and_module(&from_chunk, module_id);
+      if is_entry {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .disconnect_chunk_and_entry_module(&from_chunk, module_id);
+      }
+
       compilation
         .build_chunk_graph_artifact
         .chunk_graph
