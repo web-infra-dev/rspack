@@ -1584,14 +1584,21 @@ impl Module for ConcatenatedModule {
 
     // Define exports
     if !exports_map.is_empty() {
-      let mut definitions = Vec::new();
-      for (key, value) in exports_map.iter() {
-        definitions.push(format!(
-          "\n  {}: {}",
-          property_name(key).expect("should convert to property_name"),
-          runtime_template.returning_function(value, "")
-        ));
-      }
+      let mut definitions: Vec<_> = exports_map
+        .iter()
+        .map(|(key, value)| {
+          (
+            key.clone(),
+            format!(
+              "\n  {}: {}",
+              property_name(key).expect("should convert to property_name"),
+              runtime_template.returning_function(value, "")
+            ),
+          )
+        })
+        .collect();
+      definitions.sort_by(|a, b| a.0.cmp(&b.0));
+      let definitions: Vec<_> = definitions.into_iter().map(|(_, s)| s).collect();
 
       let exports_argument = self.get_exports_argument();
 
