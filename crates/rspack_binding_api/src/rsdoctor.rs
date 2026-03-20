@@ -31,6 +31,7 @@ pub struct JsRsdoctorModule {
   pub issuer_path: Vec<i32>,
   pub bailout_reason: Vec<String>,
   pub side_effects_locations: Vec<JsRsdoctorSideEffectLocation>,
+  pub exports_type: String,
 }
 
 impl From<RsdoctorModule> for JsRsdoctorModule {
@@ -59,6 +60,7 @@ impl From<RsdoctorModule> for JsRsdoctorModule {
         .into_iter()
         .map(|loc| loc.into())
         .collect::<Vec<_>>(),
+      exports_type: value.exports_type.to_string(),
     }
   }
 }

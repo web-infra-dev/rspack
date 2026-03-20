@@ -1148,6 +1148,7 @@ export interface JsRsdoctorModule {
   issuerPath: Array<number>
   bailoutReason: Array<string>
   sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
+  exportsType: string
 }
 
 export interface JsRsdoctorModuleGraph {
