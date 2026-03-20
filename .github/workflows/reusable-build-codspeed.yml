@@ -40,7 +40,7 @@ jobs:
       - name: Build Benchmark
         env:
           RUSTFLAGS: '--cfg codspeed'
-        run: cargo codspeed build -m memory --profile codspeed -p rspack_benchmark --features codspeed
+        run: cargo codspeed build --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Upload Artifact
         uses: ./.github/actions/artifact/upload
