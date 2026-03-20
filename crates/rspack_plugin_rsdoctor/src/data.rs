@@ -200,6 +200,25 @@ pub struct RsdoctorConnectionsOnlyImport {
   pub connections: Vec<RsdoctorConnectionsOnlyImportConnection>,
 }
 
+/// Timing record for a single loader phase on a specific module.
+#[derive(Debug, Default)]
+pub struct RsdoctorLoaderProfile {
+  /// The module ukey this profile belongs to.
+  pub module: ModuleUkey,
+  /// Loader identifier (full request: path + query + fragment).
+  pub loader: String,
+  /// Milliseconds since UNIX epoch; 0 = phase was not executed.
+  pub pitch_start_at: u64,
+  pub pitch_end_at: u64,
+  pub normal_start_at: u64,
+  pub normal_end_at: u64,
+}
+
+#[derive(Debug, Default)]
+pub struct RsdoctorLoaderProfilesPatch {
+  pub profiles: Vec<RsdoctorLoaderProfile>,
+}
+
 #[derive(Debug, Default)]
 pub struct RsdoctorModuleGraph {
   pub modules: Vec<RsdoctorModule>,

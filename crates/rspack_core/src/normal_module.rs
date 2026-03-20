@@ -17,7 +17,9 @@ use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
+use rspack_loader_runner::{
+  AdditionalData, Content, LoaderContext, LoaderTimingRecord, ResourceData, run_loaders,
+};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
@@ -150,6 +152,11 @@ pub struct NormalModule {
   build_meta: BuildMeta,
   parsed: bool,
 
+  /// Loader timing collected during the most recent build of this module.
+  /// Populated by `run_loaders`; reset on each rebuild.
+  /// Not meaningful for modules restored from persistent cache.
+  pub loader_profiles: Vec<LoaderTimingRecord>,
+
   source_map_kind: SourceMapKind,
 }
 
@@ -219,6 +226,7 @@ impl NormalModule {
       build_meta: Default::default(),
       parsed: false,
       source_map_kind: SourceMapKind::empty(),
+      loader_profiles: Vec::new(),
     }
   }
 
@@ -418,6 +426,7 @@ impl Module for NormalModule {
     .instrument(info_span!("NormalModule:run_loaders",))
     .await;
     self = loader_result.context.module;
+    self.loader_profiles = loader_result.loader_timings;
 
     if let Some(err) = err {
       self.build_info.cacheable = loader_result.cacheable;

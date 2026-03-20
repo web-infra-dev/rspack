@@ -13,6 +13,7 @@ use crate::{
   context::{LoaderContext, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
+  timing::LoaderTimingRecord,
 };
 
 impl<Context: Send> LoaderContext<Context> {
@@ -74,6 +75,11 @@ fn create_loader_context<Context: Send>(
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 
+  let loader_timings = loader_items
+    .iter()
+    .map(|item| LoaderTimingRecord::new(item.request().to_string()))
+    .collect::<Vec<_>>();
+
   LoaderContext {
     hot: false,
     cacheable: true,
@@ -92,6 +98,7 @@ fn create_loader_context<Context: Send>(
     plugin,
     resource_data,
     diagnostics: vec![],
+    loader_timings,
   }
 }
 
@@ -147,8 +154,12 @@ async fn run_loaders_impl<Context: Send>(
 
         cx.current_loader().set_pitch_executed();
         let loader = cx.current_loader().loader().clone();
-        let span = info_span!("run_loader:pitch", resource);
+        let loader_id = cx.current_loader().request().to_string();
+        let idx = cx.loader_index as usize;
+        cx.loader_timings[idx].record_pitch_start();
+        let span = info_span!("run_loader:pitch", resource, loader_id);
         loader.pitch(cx).instrument(span).await?;
+        cx.loader_timings[idx].record_pitch_end();
         if cx.content.is_some() {
           cx.state.transition(State::Normal);
           cx.loader_index -= 1;
@@ -182,9 +193,12 @@ async fn run_loaders_impl<Context: Send>(
 
         cx.current_loader().set_normal_executed();
         let loader = cx.current_loader().loader().clone();
-
-        let span = info_span!("run_loader:normal", resource);
+        let loader_id = cx.current_loader().request().to_string();
+        let idx = cx.loader_index as usize;
+        cx.loader_timings[idx].record_normal_start();
+        let span = info_span!("run_loader:normal", resource, loader_id);
         loader.run(cx).instrument(span).await?;
+        cx.loader_timings[idx].record_normal_end();
         if !cx.current_loader().finish_called() {
           // If nothing is returned from this loader,
           // we set everything to [None] and move to the next loader.
@@ -224,6 +238,8 @@ pub struct LoaderResult<Context> {
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
   pub current_loader: Option<Utf8PathBuf>,
+  /// Per-loader timing records collected during this run.
+  pub loader_timings: Vec<LoaderTimingRecord>,
 }
 
 impl<Context: Send> LoaderResult<Context> {
@@ -250,6 +266,7 @@ impl<Context: Send> LoaderResult<Context> {
         })
         .flatten()
         .map(|loader| loader.path().to_path_buf()),
+      loader_timings: loader_context.loader_timings,
     }
   }
 }

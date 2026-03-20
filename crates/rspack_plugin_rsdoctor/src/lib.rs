@@ -5,7 +5,7 @@ mod module_graph;
 mod plugin;
 
 pub use data::*;
-pub use drive::*;
+pub use drive::{RsdoctorPluginLoaderProfilesHook, *};
 pub use plugin::{
   RsdoctorPlugin, RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature,
   RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature, SendAssets, SendChunkGraph,

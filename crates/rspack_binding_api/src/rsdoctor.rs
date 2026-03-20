@@ -6,12 +6,12 @@ use rspack_plugin_rsdoctor::{
   RsdoctorAsset, RsdoctorAssetPatch, RsdoctorChunk, RsdoctorChunkAssets, RsdoctorChunkGraph,
   RsdoctorChunkModules, RsdoctorConnection, RsdoctorConnectionsOnlyImport,
   RsdoctorConnectionsOnlyImportConnection, RsdoctorDependency, RsdoctorEntrypoint,
-  RsdoctorEntrypointAssets, RsdoctorExportInfo, RsdoctorModule, RsdoctorModuleGraph,
-  RsdoctorModuleGraphModule, RsdoctorModuleId, RsdoctorModuleIdsPatch,
-  RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch, RsdoctorPluginChunkGraphFeature,
-  RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions, RsdoctorPluginSourceMapFeature,
-  RsdoctorSideEffect, RsdoctorSideEffectLocation, RsdoctorSourcePosition, RsdoctorSourceRange,
-  RsdoctorStatement, RsdoctorVariable,
+  RsdoctorEntrypointAssets, RsdoctorExportInfo, RsdoctorLoaderProfile, RsdoctorLoaderProfilesPatch,
+  RsdoctorModule, RsdoctorModuleGraph, RsdoctorModuleGraphModule, RsdoctorModuleId,
+  RsdoctorModuleIdsPatch, RsdoctorModuleOriginalSource, RsdoctorModuleSourcesPatch,
+  RsdoctorPluginChunkGraphFeature, RsdoctorPluginModuleGraphFeature, RsdoctorPluginOptions,
+  RsdoctorPluginSourceMapFeature, RsdoctorSideEffect, RsdoctorSideEffectLocation,
+  RsdoctorSourcePosition, RsdoctorSourceRange, RsdoctorStatement, RsdoctorVariable,
 };
 use rustc_hash::FxHashSet;
 
@@ -551,6 +551,42 @@ impl From<RsdoctorAssetPatch> for JsRsdoctorAssetPatch {
   }
 }
 
+#[napi(object)]
+pub struct JsRsdoctorLoaderProfile {
+  pub module: i32,
+  pub loader: String,
+  pub pitch_start_at: u32,
+  pub pitch_end_at: u32,
+  pub normal_start_at: u32,
+  pub normal_end_at: u32,
+}
+
+impl From<RsdoctorLoaderProfile> for JsRsdoctorLoaderProfile {
+  fn from(value: RsdoctorLoaderProfile) -> Self {
+    JsRsdoctorLoaderProfile {
+      module: value.module,
+      loader: value.loader,
+      pitch_start_at: value.pitch_start_at as u32,
+      pitch_end_at: value.pitch_end_at as u32,
+      normal_start_at: value.normal_start_at as u32,
+      normal_end_at: value.normal_end_at as u32,
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsRsdoctorLoaderProfilesPatch {
+  pub profiles: Vec<JsRsdoctorLoaderProfile>,
+}
+
+impl From<RsdoctorLoaderProfilesPatch> for JsRsdoctorLoaderProfilesPatch {
+  fn from(value: RsdoctorLoaderProfilesPatch) -> Self {
+    JsRsdoctorLoaderProfilesPatch {
+      profiles: value.profiles.into_iter().map(|p| p.into()).collect(),
+    }
+  }
+}
+
 #[napi(object, object_to_js = false)]
 pub struct RawRsdoctorPluginOptions {
   #[napi(ts_type = "boolean | Array<'graph' | 'ids' | 'sources'>")]
@@ -559,6 +595,8 @@ pub struct RawRsdoctorPluginOptions {
   pub chunk_graph_features: Either<bool, Vec<String>>,
   #[napi(ts_type = "{ module?: boolean; cheap?: boolean } | undefined")]
   pub source_map_features: Option<JsRsdoctorSourceMapFeatures>,
+  /// When true, per-loader timing data is collected via the `loader_profiles` hook.
+  pub loader_profiles: Option<bool>,
 }
 
 #[napi(object)]
@@ -584,6 +622,7 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
     }
 
     Self {
+      loader_profiles: value.loader_profiles.unwrap_or(false),
       module_graph_features: match value.module_graph_features {
         Either::A(true) => FxHashSet::from_iter([
           RsdoctorPluginModuleGraphFeature::ModuleGraph,

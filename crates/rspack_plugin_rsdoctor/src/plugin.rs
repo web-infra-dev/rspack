@@ -5,11 +5,12 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, OptimizationBailoutItem, Plugin,
+  CompilationParams, CompilationSucceedModule, CompilerCompilation, CompilerId, ModuleIdsArtifact,
+  OptimizationBailoutItem, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -22,9 +23,9 @@ use rspack_util::fx_hash::{FxDashMap, FxHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
-  EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph,
-  RsdoctorModuleIdsPatch, RsdoctorModuleSourcesPatch, RsdoctorPluginHooks,
-  RsdoctorStatsModuleIssuer,
+  EntrypointUkey, ModuleUkey, RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorLoaderProfile,
+  RsdoctorLoaderProfilesPatch, RsdoctorModuleGraph, RsdoctorModuleIdsPatch,
+  RsdoctorModuleSourcesPatch, RsdoctorPluginHooks, RsdoctorStatsModuleIssuer,
   chunk_graph::{
     collect_assets, collect_chunk_assets, collect_chunk_dependencies, collect_chunk_modules,
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
@@ -65,6 +66,22 @@ static ENTRYPOINT_UKEY_MAP: LazyLock<
 
 #[cfg_attr(allocative, allocative::root)]
 static JSON_MODULE_SIZE_MAP: LazyLock<FxDashMap<CompilationId, crate::RsdoctorJsonModuleSizes>> =
+  LazyLock::new(FxDashMap::default);
+
+/// Raw loader timing accumulated during the build phase (before module ukeys are assigned).
+/// Maps compilation_id → list of (module_identifier, loader_id, timing fields).
+#[derive(Debug, Default)]
+struct RawLoaderProfile {
+  module_identifier: rspack_collections::Identifier,
+  loader: String,
+  pitch_start_at: u64,
+  pitch_end_at: u64,
+  normal_start_at: u64,
+  normal_end_at: u64,
+}
+
+#[cfg_attr(allocative, allocative::root)]
+static LOADER_PROFILES_MAP: LazyLock<FxDashMap<CompilationId, Vec<RawLoaderProfile>>> =
   LazyLock::new(FxDashMap::default);
 
 #[derive(Debug, Hash, PartialEq, Eq)]
@@ -131,6 +148,9 @@ pub struct RsdoctorPluginOptions {
   pub module_graph_features: FxHashSet<RsdoctorPluginModuleGraphFeature>,
   pub chunk_graph_features: FxHashSet<RsdoctorPluginChunkGraphFeature>,
   pub source_map_features: RsdoctorPluginSourceMapFeature,
+  /// When true, per-loader timing data is collected and sent via the
+  /// `loader_profiles` hook.
+  pub loader_profiles: bool,
 }
 
 #[plugin]
@@ -195,6 +215,42 @@ async fn compilation(
 ) -> Result<()> {
   MODULE_UKEY_MAP.insert(compilation.id(), IdentifierMap::default());
   ENTRYPOINT_UKEY_MAP.insert(compilation.id(), HashMap::default());
+  if self.options.loader_profiles {
+    LOADER_PROFILES_MAP.insert(compilation.id(), Vec::new());
+  }
+  Ok(())
+}
+
+#[plugin_hook(CompilationSucceedModule for RsdoctorPlugin)]
+async fn succeed_module(
+  &self,
+  _compiler_id: CompilerId,
+  compilation_id: CompilationId,
+  module: &mut rspack_core::BoxModule,
+) -> Result<()> {
+  let Some(mut profiles_entry) = LOADER_PROFILES_MAP.get_mut(&compilation_id) else {
+    return Ok(());
+  };
+
+  let Some(normal_module) = module.as_normal_module() else {
+    return Ok(());
+  };
+
+  if normal_module.loader_profiles.is_empty() {
+    return Ok(());
+  }
+
+  for record in &normal_module.loader_profiles {
+    profiles_entry.push(RawLoaderProfile {
+      module_identifier: normal_module.identifier(),
+      loader: record.identifier.clone(),
+      pitch_start_at: record.pitch_start_at,
+      pitch_end_at: record.pitch_end_at,
+      normal_start_at: record.normal_start_at,
+      normal_end_at: record.normal_end_at,
+    });
+  }
+
   Ok(())
 }
 
@@ -437,6 +493,55 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   Ok(None)
 }
 
+#[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = 10000)]
+async fn send_loader_profiles(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  if !self.options.loader_profiles {
+    return Ok(None);
+  }
+
+  let Some((_, raw_profiles)) = LOADER_PROFILES_MAP.remove(&compilation.id()) else {
+    return Ok(None);
+  };
+
+  if raw_profiles.is_empty() {
+    return Ok(None);
+  }
+
+  let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
+  let module_ukey_map = MODULE_UKEY_MAP
+    .get(&compilation.id())
+    .expect("should have module ukey map");
+
+  let profiles: Vec<RsdoctorLoaderProfile> = raw_profiles
+    .into_iter()
+    .map(|raw| RsdoctorLoaderProfile {
+      module: module_ukey_map
+        .get(&raw.module_identifier)
+        .copied()
+        .unwrap_or(-1),
+      loader: raw.loader,
+      pitch_start_at: raw.pitch_start_at,
+      pitch_end_at: raw.pitch_end_at,
+      normal_start_at: raw.normal_start_at,
+      normal_end_at: raw.normal_end_at,
+    })
+    .collect();
+
+  tokio::spawn(async move {
+    match hooks
+      .borrow()
+      .loader_profiles
+      .call(&mut RsdoctorLoaderProfilesPatch { profiles })
+      .await
+    {
+      Ok(_) => {}
+      Err(e) => panic!("rsdoctor send loader profiles failed: {e}"),
+    };
+  });
+
+  Ok(None)
+}
+
 #[plugin_hook(CompilationModuleIds for RsdoctorPlugin, stage = 9999)]
 async fn module_ids(
   &self,
@@ -592,6 +697,11 @@ impl Plugin for RsdoctorPlugin {
       .compilation_hooks
       .optimize_chunk_modules
       .tap(optimize_chunk_modules::new(self));
+    // Send loader profiles after module ukeys are assigned (stage 10000 > 9999)
+    ctx
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(send_loader_profiles::new(self));
 
     ctx
       .compilation_hooks
@@ -610,6 +720,13 @@ impl Plugin for RsdoctorPlugin {
       .after_process_assets
       .tap(after_process_assets::new(self));
 
+    if self.options.loader_profiles {
+      ctx
+        .compilation_hooks
+        .succeed_module
+        .tap(succeed_module::new(self));
+    }
+
     SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
       cheap: self.options.source_map_features.cheap,
       module: self.options.source_map_features.module,
@@ -621,5 +738,6 @@ impl Plugin for RsdoctorPlugin {
 
   fn clear_cache(&self, id: CompilationId) {
     COMPILATION_HOOKS_MAP.remove(&id);
+    LOADER_PROFILES_MAP.remove(&id);
   }
 }

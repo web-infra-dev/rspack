@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   AdditionalData, Content, LoaderItem, LoaderRunnerPlugin, ParseMeta, ResourceData,
-  loader::LoaderItemList,
+  loader::LoaderItemList, timing::LoaderTimingRecord,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -52,6 +52,9 @@ pub struct LoaderContext<Context: Send> {
   pub build_dependencies: HashSet<PathBuf>,
 
   pub diagnostics: Vec<Diagnostic>,
+
+  /// Per-loader timing records, indexed in the same order as `loader_items`.
+  pub loader_timings: Vec<LoaderTimingRecord>,
 
   /// Loader States
   pub(crate) state: State,
