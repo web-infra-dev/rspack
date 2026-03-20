@@ -119,10 +119,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     }
     let root_info = right.root_info();
     let settings = if let ExportedVariableInfo::VariableInfo(variable) = root_info
-      && let Some(variable_name) = &parser
-        .scope_stack
-        .expect_get_variable(*variable)
-        .name
+      && let Some(variable_name) = &parser.scope_stack.expect_get_variable(*variable).name
       && let Some(data) = parser.get_tag_data(&variable_name.clone(), ESM_SPECIFIER_TAG)
     {
       ESMSpecifierData::downcast(data)

@@ -521,7 +521,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut scope_stack = ScopeStack::new();
-    scope_stack.create();
+    scope_stack.initialize_root_scope();
 
     Self {
       last_esm_import_order: 0,
@@ -798,7 +798,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn define_variable(&mut self, name: Atom) {
-    let current_scope_level = self.scope_stack.current_level();
+    let current_scope_level = self.scope_stack.current_scope_level();
     if let Some(variable_info) = self.get_variable_info(&name)
       && variable_info.tag_info.is_some()
       && current_scope_level == variable_info.declared_scope_level
@@ -821,7 +821,7 @@ impl<'parser> JavascriptParser<'parser> {
         if name == variable {
           self.scope_stack.delete(&name);
         } else {
-          let current_scope_level = self.scope_stack.current_level();
+          let current_scope_level = self.scope_stack.current_scope_level();
           let variable = VariableInfo::create(
             &mut self.scope_stack,
             current_scope_level,
@@ -903,7 +903,7 @@ impl<'parser> JavascriptParser<'parser> {
       }
     } else {
       let tag_info = Some(TagInfo::create(&mut self.scope_stack, tag, data, None));
-      let current_scope_level = self.scope_stack.current_level();
+      let current_scope_level = self.scope_stack.current_scope_level();
       VariableInfo::create(
         &mut self.scope_stack,
         current_scope_level,

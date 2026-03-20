@@ -48,51 +48,52 @@ impl TagInfoId {
 }
 
 #[derive(Debug, Default)]
-pub struct VariableInfoDB {
-  map: Vec<VariableInfo>,
+pub struct VariableInfoArena {
+  entries: Vec<VariableInfo>,
 }
 
-impl VariableInfoDB {
+impl VariableInfoArena {
   #[inline]
   fn new() -> Self {
     Self {
-      map: Default::default(),
+      entries: Default::default(),
     }
   }
 
   #[inline]
   fn insert_with_key(&mut self, f: impl FnOnce(VariableInfoId) -> VariableInfo) -> VariableInfoId {
-    let id = VariableInfoId::from_index(self.map.len());
-    self.map.push(f(id));
+    let id = VariableInfoId::from_index(self.entries.len());
+    self.entries.push(f(id));
     id
   }
 }
 
 #[derive(Debug, Default)]
-pub struct TagInfoDB {
-  pub map: Vec<TagInfo>,
+pub struct TagInfoArena {
+  entries: Vec<TagInfo>,
 }
 
-impl TagInfoDB {
+impl TagInfoArena {
   fn new() -> Self {
     Self {
-      map: Default::default(),
+      entries: Default::default(),
     }
   }
 
   #[inline]
   fn insert(&mut self, tag_info: TagInfo) -> TagInfoId {
-    let id = TagInfoId::from_index(self.map.len());
-    self.map.push(tag_info);
+    let id = TagInfoId::from_index(self.entries.len());
+    self.entries.push(tag_info);
     id
   }
 }
 
 #[derive(Debug)]
 pub struct ScopeStack {
-  stack: Vec<ScopeInfo>,
-  variable_info_db: VariableInfoDB,
-  tag_info_db: TagInfoDB,
+  scope_arena: Vec<ScopeInfo>,
+  active_len: usize,
+  variables: VariableInfoArena,
+  tags: TagInfoArena,
 }
 
 impl Default for ScopeStack {
@@ -106,58 +107,71 @@ impl ScopeStack {
   #[inline]
   pub fn new() -> Self {
     Self {
-      stack: Default::default(),
-      variable_info_db: VariableInfoDB::new(),
-      tag_info_db: TagInfoDB::new(),
+      scope_arena: Default::default(),
+      active_len: 0,
+      variables: VariableInfoArena::new(),
+      tags: TagInfoArena::new(),
     }
   }
 
   #[inline]
-  pub fn current_level(&self) -> usize {
-    self.stack.len() - 1
+  pub fn current_scope_level(&self) -> usize {
+    debug_assert!(self.active_len > 0, "scope should exist");
+    self.active_len - 1
   }
 
   #[inline]
-  fn push(&mut self, is_strict: bool) {
-    self.stack.push(ScopeInfo {
-      is_strict,
-      map: Default::default(),
-    });
+  fn active_scopes(&self) -> &[ScopeInfo] {
+    &self.scope_arena[..self.active_len]
   }
 
   #[inline]
-  pub fn create(&mut self) {
-    debug_assert!(self.stack.is_empty());
-    self.push(false);
+  fn active_scopes_mut(&mut self) -> &mut [ScopeInfo] {
+    &mut self.scope_arena[..self.active_len]
+  }
+
+  #[inline]
+  pub fn initialize_root_scope(&mut self) {
+    debug_assert_eq!(self.active_len, 0);
+    debug_assert!(self.scope_arena.is_empty());
+    self.scope_arena.push(ScopeInfo::new(false));
   }
 
   #[inline]
   pub fn push_scope(&mut self) {
     let is_strict = self.current_scope().is_strict;
-    self.push(is_strict);
+    if let Some(scope) = self.scope_arena.get_mut(self.active_len) {
+      scope.reset_for_reuse(is_strict);
+    } else {
+      self.scope_arena.push(ScopeInfo::new(is_strict));
+    }
+    self.active_len += 1;
   }
 
   #[inline]
   pub fn pop_scope(&mut self) {
-    debug_assert!(self.stack.len() >= 1);
-    self.stack.pop();
+    debug_assert!(self.active_len > 1, "root scope should not be popped");
+    self.active_len -= 1;
   }
 
   #[inline]
   pub fn current_scope(&self) -> &ScopeInfo {
-    self.stack.last().expect("scope should exist")
+    self.active_scopes().last().expect("scope should exist")
   }
 
   #[inline]
   pub fn current_scope_mut(&mut self) -> &mut ScopeInfo {
-    self.stack.last_mut().expect("scope should exist 2")
+    self
+      .active_scopes_mut()
+      .last_mut()
+      .expect("scope should exist")
   }
 
   #[inline]
   pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
     self
-      .variable_info_db
-      .map
+      .variables
+      .entries
       .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
@@ -165,8 +179,8 @@ impl ScopeStack {
   #[inline]
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
     self
-      .tag_info_db
-      .map
+      .tags
+      .entries
       .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
@@ -174,8 +188,8 @@ impl ScopeStack {
   #[inline]
   pub fn expect_get_mut_tag_info(&mut self, id: TagInfoId) -> &mut TagInfo {
     self
-      .tag_info_db
-      .map
+      .tags
+      .entries
       .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
@@ -186,22 +200,29 @@ impl ScopeStack {
   }
 
   pub fn get(&mut self, key: &Atom) -> Option<VariableInfoId> {
-    if let Some(value) = self.current_scope().map.get(key) {
-      return Self::resolve_variable(*value);
-    }
+    let (current_scope, parent_scopes) = self
+      .active_scopes_mut()
+      .split_last_mut()
+      .expect("scope should exist");
 
-    let found = self.stack[..self.stack.len() - 1]
-      .iter()
-      .rev()
-      .find_map(|scope| scope.map.get(key).copied());
-
-    if let Some(variable_info_id) = found {
-      self.set(key.clone(), variable_info_id);
+    if let Some(&variable_info_id) = current_scope.bindings.get(key) {
       return Self::resolve_variable(variable_info_id);
     }
 
-    if self.stack.len() > 1 {
-      self.set(key.clone(), VariableInfoId::tombstone());
+    let found = parent_scopes
+      .iter()
+      .rev()
+      .find_map(|scope| scope.bindings.get(key).copied());
+
+    if let Some(variable_info_id) = found {
+      current_scope.bindings.insert(key.clone(), variable_info_id);
+      return Self::resolve_variable(variable_info_id);
+    }
+
+    if !parent_scopes.is_empty() {
+      current_scope
+        .bindings
+        .insert(key.clone(), VariableInfoId::tombstone());
     }
 
     None
@@ -209,16 +230,24 @@ impl ScopeStack {
 
   #[inline]
   pub fn set(&mut self, key: Atom, variable_info_id: VariableInfoId) {
-    self.current_scope_mut().map.insert(key, variable_info_id);
+    self
+      .current_scope_mut()
+      .bindings
+      .insert(key, variable_info_id);
   }
 
   pub fn delete(&mut self, key: &Atom) {
-    if self.current_level() > 0 {
-      let scope = self.current_scope_mut();
-      scope.map.insert(key.clone(), VariableInfoId::tombstone());
+    let (current_scope, parent_scopes) = self
+      .active_scopes_mut()
+      .split_last_mut()
+      .expect("scope should exist");
+
+    if !parent_scopes.is_empty() {
+      current_scope
+        .bindings
+        .insert(key.clone(), VariableInfoId::tombstone());
     } else {
-      let scope = self.current_scope_mut();
-      scope.map.remove(key);
+      current_scope.bindings.remove(key);
     }
   }
 }
@@ -238,7 +267,7 @@ impl TagInfo {
     next: Option<TagInfoId>,
   ) -> TagInfoId {
     let tag_info = TagInfo { tag, data, next };
-    scope_stack.tag_info_db.insert(tag_info)
+    scope_stack.tags.insert(tag_info)
   }
 }
 
@@ -325,15 +354,13 @@ impl VariableInfo {
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
-    scope_stack
-      .variable_info_db
-      .insert_with_key(|id| VariableInfo {
-        id,
-        declared_scope_level,
-        name,
-        flags,
-        tag_info,
-      })
+    scope_stack.variables.insert_with_key(|id| VariableInfo {
+      id,
+      declared_scope_level,
+      name,
+      flags,
+      tag_info,
+    })
   }
 
   #[inline]
@@ -354,14 +381,28 @@ impl VariableInfo {
 
 #[derive(Debug)]
 pub struct ScopeInfo {
-  map: FxHashMap<Atom, VariableInfoId>,
+  bindings: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
 
 impl ScopeInfo {
+  #[inline]
+  fn new(is_strict: bool) -> Self {
+    Self {
+      bindings: Default::default(),
+      is_strict,
+    }
+  }
+
+  #[inline]
+  fn reset_for_reuse(&mut self, is_strict: bool) {
+    self.bindings.clear();
+    self.is_strict = is_strict;
+  }
+
   pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
     self
-      .map
+      .bindings
       .iter()
       .filter(|&(_, &info_id)| !info_id.is_missing())
       .map(|(name, info_id)| (name.as_str(), info_id))
