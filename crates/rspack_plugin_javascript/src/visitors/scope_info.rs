@@ -3,27 +3,27 @@ use rustc_hash::FxHashMap;
 use swc_core::atoms::Atom;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct VariableInfoId(usize);
+pub struct VariableInfoId(u32);
 
 impl VariableInfoId {
   #[inline]
   fn from_index(index: usize) -> Self {
-    Self(index)
+    Self(index as u32)
   }
 
   #[inline]
   fn index(self) -> usize {
-    self.0
+    self.0 as usize
   }
 
   #[inline]
   pub fn tombstone() -> Self {
-    Self(usize::MAX)
+    Self(u32::MAX)
   }
 
   #[inline]
   pub fn undefined() -> Self {
-    Self(usize::MAX - 1)
+    Self(u32::MAX - 1)
   }
 
   #[inline]
@@ -33,17 +33,17 @@ impl VariableInfoId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TagInfoId(usize);
+pub struct TagInfoId(u32);
 
 impl TagInfoId {
   #[inline]
   fn from_index(index: usize) -> Self {
-    Self(index)
+    Self(index as u32)
   }
 
   #[inline]
   fn index(self) -> usize {
-    self.0
+    self.0 as usize
   }
 }
 
