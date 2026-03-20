@@ -461,10 +461,23 @@ impl EsmLibraryPlugin {
                       .raw_import_stmts
                       .entry(RawImportSource::Source((request, None)))
                       .or_default();
-                    import_spec
-                      .atoms
-                      .entry(symbol_binding.symbol.clone())
-                      .or_insert_with(|| symbol_binding.symbol.clone());
+                    let namespace_object_name = match target_info {
+                      Some(ModuleInfo::Concatenated(concatenated_info)) => {
+                        concatenated_info.namespace_object_name.as_ref()
+                      }
+                      _ => None,
+                    };
+
+                    if namespace_object_name == Some(&symbol_binding.symbol) {
+                      import_spec
+                        .ns_import
+                        .get_or_insert_with(|| symbol_binding.symbol.clone());
+                    } else {
+                      import_spec
+                        .atoms
+                        .entry(symbol_binding.symbol.clone())
+                        .or_insert_with(|| symbol_binding.symbol.clone());
+                    }
                   }
                 }
               }
