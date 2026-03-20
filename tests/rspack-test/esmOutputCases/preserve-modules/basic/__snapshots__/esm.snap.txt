@@ -6,12 +6,12 @@ const demo = () => 'demo'
 ;
 /* export default */ const src_demo = (demo);
 
-export { src_demo };
+export default src_demo;
 
 ```
 
 ```mjs title=index.mjs
-import { src_demo } from "./demo/index.mjs";
+import { default as src_demo } from "./demo/index.mjs";
 import "./other1_index_js-other2_index_js.mjs";
 
 // ./src/index.js

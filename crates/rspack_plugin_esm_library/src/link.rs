@@ -461,10 +461,20 @@ impl EsmLibraryPlugin {
                       .raw_import_stmts
                       .entry(RawImportSource::Source((request, None)))
                       .or_default();
-                    import_spec
-                      .atoms
-                      .entry(symbol_binding.symbol.clone())
-                      .or_insert_with(|| symbol_binding.symbol.clone());
+                    let already_bound = import_spec
+                      .default_import
+                      .as_ref()
+                      .is_some_and(|atom| atom == &symbol_binding.symbol)
+                      || import_spec
+                        .ns_import
+                        .as_ref()
+                        .is_some_and(|atom| atom == &symbol_binding.symbol);
+                    if !already_bound {
+                      import_spec
+                        .atoms
+                        .entry(symbol_binding.symbol.clone())
+                        .or_insert_with(|| symbol_binding.symbol.clone());
+                    }
                   }
                 }
               }
@@ -1692,6 +1702,95 @@ var {} = {{}};
           link,
           needed_namespace,
           entry_imports,
+          &mut exports,
+          escaped_identifiers,
+          false,
+          false,
+          &mut re_export_star_cache,
+        ));
+      }
+    }
+
+    if let Some(root) = &self.preserve_modules {
+      let preserve_entry_modules = compilation
+        .entries
+        .values()
+        .flat_map(|entry| entry.all_dependencies())
+        .chain(compilation.global_entry.all_dependencies())
+        .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+        .copied()
+        .collect::<FxHashSet<_>>();
+
+      let mut preserve_modules = module_graph.modules_keys().copied().collect::<Vec<_>>();
+      preserve_modules.sort_unstable();
+
+      for module_id in preserve_modules {
+        if preserve_entry_modules.contains(&module_id) {
+          continue;
+        }
+
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(module_id)
+          .is_empty()
+          || compilation
+            .code_generation_results
+            .get_one(&module_id)
+            .get(&SourceType::JavaScript)
+            .is_none()
+        {
+          continue;
+        }
+
+        let Some(normal_module) = module_graph
+          .module_by_identifier(&module_id)
+          .expect("should have module")
+          .as_normal_module()
+        else {
+          continue;
+        };
+
+        let Some(abs_path) = normal_module
+          .resource_resolved_data()
+          .path()
+          .map(|p| p.as_std_path())
+        else {
+          continue;
+        };
+
+        if !abs_path.starts_with(root) {
+          continue;
+        }
+
+        let module_chunk = match Self::get_module_chunk(module_id, compilation) {
+          Ok(c) => c,
+          Err(e) => {
+            errors.push(e.into());
+            continue;
+          }
+        };
+
+        let needed_namespace = needed_namespace_objects_by_ukey
+          .entry(module_chunk)
+          .or_default();
+        let module_imports = imports
+          .get_mut(&module_chunk)
+          .unwrap_or_else(|| panic!("should set imports for chunk {module_chunk:?}"));
+        module_imports.entry(module_id).or_default();
+
+        let required = required.entry(module_chunk).or_default();
+
+        errors.extend(self.link_entry_module_exports(
+          module_id,
+          module_chunk,
+          module_chunk,
+          compilation,
+          concate_modules_map,
+          required,
+          link,
+          needed_namespace,
+          module_imports,
           &mut exports,
           escaped_identifiers,
           false,
