@@ -30,9 +30,9 @@ use crate::{
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
   },
   module_graph::{
-    collect_concatenated_modules, collect_json_module_sizes, collect_module_dependencies,
-    collect_module_ids, collect_module_original_sources, collect_module_side_effects_locations,
-    collect_modules,
+    collect_concatenated_modules, collect_connections_only_imports, collect_json_module_sizes,
+    collect_module_dependencies, collect_module_ids, collect_module_original_sources,
+    collect_module_side_effects_locations, collect_modules,
   },
 };
 
@@ -391,6 +391,18 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     }
   }
 
+  let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
+    .values()
+    .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
+    .collect();
+  let connections_only_imports = collect_connections_only_imports(
+    &modules,
+    &*module_ukey_map,
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+    &module_ukey_to_info,
+  );
+
   // 7. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
@@ -403,6 +415,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
         chunk_modules,
+        connections_only_imports,
       })
       .await
     {
