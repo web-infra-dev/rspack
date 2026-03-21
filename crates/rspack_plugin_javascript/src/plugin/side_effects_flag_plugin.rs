@@ -5,9 +5,9 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
   DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode, RayonConsumer,
-  ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
+  RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
@@ -16,6 +16,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
+use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 use swc_core::ecma::ast::*;
 
@@ -27,6 +28,9 @@ enum SideEffects {
   String(String),
   Array(Vec<String>),
 }
+
+type EvaluationPreservingConnections =
+  FxHashMap<(ModuleIdentifier, ModuleIdentifier), Vec<DependencyId>>;
 
 impl SideEffects {
   pub fn from_description(description: &serde_json::Value) -> Option<Self> {
@@ -70,6 +74,88 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
     String::from("**/") + trim_start
   };
   fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
+}
+
+fn is_retargetable_dependency(dependency_id: &DependencyId, module_graph: &ModuleGraph) -> bool {
+  let dep = module_graph.dependency_by_id(dependency_id);
+  dep.is::<ESMExportImportedSpecifierDependency>() || dep.is::<ESMImportSpecifierDependency>()
+}
+
+fn get_evaluation_preserving_connections(
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+) -> EvaluationPreservingConnections {
+  let mut connections = EvaluationPreservingConnections::default();
+
+  for (original_module, _) in module_graph.modules() {
+    for connection in module_graph.get_outgoing_connections(original_module) {
+      let state = module_graph
+        .dependency_by_id(&connection.dependency_id)
+        .get_module_evaluation_side_effects_state(
+          module_graph,
+          module_graph_cache,
+          &mut Default::default(),
+          &mut Default::default(),
+        );
+      if state == ConnectionState::Active(true) {
+        connections
+          .entry((*original_module, *connection.module_identifier()))
+          .or_default()
+          .push(connection.dependency_id);
+      }
+    }
+  }
+
+  connections
+}
+
+fn is_evaluation_preserved(
+  original_module: ModuleIdentifier,
+  target_module: ModuleIdentifier,
+  excluded_dependency: DependencyId,
+  evaluation_preserving_connections: &EvaluationPreservingConnections,
+) -> bool {
+  evaluation_preserving_connections
+    .get(&(original_module, target_module))
+    .is_some_and(|dependencies| dependencies.iter().any(|dep| dep != &excluded_dependency))
+}
+
+fn can_skip_target_module(
+  original_module: ModuleIdentifier,
+  target_module: ModuleIdentifier,
+  excluded_dependency: DependencyId,
+  side_effects_state_map: &IdentifierMap<ConnectionState>,
+  evaluation_preserving_connections: &EvaluationPreservingConnections,
+) -> bool {
+  if side_effects_state_map[&target_module] == ConnectionState::Active(false) {
+    return true;
+  }
+
+  is_evaluation_preserved(
+    original_module,
+    target_module,
+    excluded_dependency,
+    evaluation_preserving_connections,
+  )
+}
+
+fn can_skip_resolved_target(
+  target: &ResolvedExportInfoTarget,
+  side_effects_state_map: &IdentifierMap<ConnectionState>,
+  evaluation_preserving_connections: &EvaluationPreservingConnections,
+  module_graph: &ModuleGraph,
+) -> bool {
+  let Some(original_module) = module_graph.get_parent_module(&target.dependency).copied() else {
+    return false;
+  };
+
+  can_skip_target_module(
+    original_module,
+    target.module,
+    target.dependency,
+    side_effects_state_map,
+    evaluation_preserving_connections,
+  )
 }
 
 pub trait ClassExt {
@@ -177,6 +263,8 @@ async fn optimize_dependencies(
       )
     })
     .collect();
+  let evaluation_preserving_connections =
+    get_evaluation_preserving_connections(module_graph, &compilation.module_graph_cache_artifact);
 
   let inner_start = logger.time("prepare connections");
   let modules: IdentifierSet = if let Some(mutations) = compilation
@@ -206,8 +294,9 @@ async fn optimize_dependencies(
         if modules.contains(&original_module) {
           continue;
         }
-        let dep = module_graph.dependency_by_id(&connection.dependency_id);
-        if dep.is::<ESMExportImportedSpecifierDependency>() && modules.insert(original_module) {
+        if is_retargetable_dependency(&connection.dependency_id, module_graph)
+          && modules.insert(original_module)
+        {
           affected_incoming_modules(&original_module, module_graph, modules);
         }
       }
@@ -248,10 +337,9 @@ async fn optimize_dependencies(
   let inner_start = logger.time("find optimizable connections");
   modules
     .par_iter()
-    .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map(|module| {
       module_graph
-        .get_incoming_connections(module)
+        .get_outgoing_connections(module)
         .collect::<Vec<_>>()
     })
     .map(|connection| {
@@ -260,6 +348,7 @@ async fn optimize_dependencies(
         can_optimize_connection(
           connection,
           &side_effects_state_map,
+          &evaluation_preserving_connections,
           module_graph,
           exports_info_artifact,
         ),
@@ -293,12 +382,12 @@ async fn optimize_dependencies(
     let module_graph = build_module_graph_artifact.get_module_graph();
     do_optimizes = new_connections
       .into_par_iter()
-      .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
       .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
       .filter_map(|connection| {
         can_optimize_connection(
           connection,
           &side_effects_state_map,
+          &evaluation_preserving_connections,
           module_graph,
           exports_info_artifact,
         )
@@ -349,11 +438,23 @@ fn do_optimize_connection(
 fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
+  evaluation_preserving_connections: &EvaluationPreservingConnections,
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<SideEffectsDoOptimize> {
   let original_module = connection.original_module_identifier?;
   let dependency_id = connection.dependency_id;
+
+  if !can_skip_target_module(
+    original_module,
+    *connection.module_identifier(),
+    dependency_id,
+    side_effects_state_map,
+    evaluation_preserving_connections,
+  ) {
+    return None;
+  }
+
   let dep = module_graph.dependency_by_id(&dependency_id);
 
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
@@ -368,7 +469,12 @@ fn can_optimize_connection(
       module_graph,
       exports_info_artifact,
       Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
+        can_skip_resolved_target(
+          target,
+          side_effects_state_map,
+          evaluation_preserving_connections,
+          module_graph,
+        )
       }),
     )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
@@ -415,7 +521,12 @@ fn can_optimize_connection(
       module_graph,
       exports_info_artifact,
       Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
+        can_skip_resolved_target(
+          target,
+          side_effects_state_map,
+          evaluation_preserving_connections,
+          module_graph,
+        )
       }),
       &mut Default::default(),
     ) else {
