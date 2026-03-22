@@ -4,11 +4,11 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
-  RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
+  DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, ImportPhase, Logger,
+  ModuleFactoryCreateData, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -78,26 +78,68 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
 
 fn is_retargetable_dependency(dependency_id: &DependencyId, module_graph: &ModuleGraph) -> bool {
   let dep = module_graph.dependency_by_id(dependency_id);
-  dep.is::<ESMExportImportedSpecifierDependency>() || dep.is::<ESMImportSpecifierDependency>()
+  if dep.is::<ESMExportImportedSpecifierDependency>() {
+    return true;
+  }
+
+  dep
+    .downcast_ref::<ESMImportSpecifierDependency>()
+    .is_some_and(|dep| !dep.namespace_object_as_context && !dep.get_ids(module_graph).is_empty())
+}
+
+fn is_evaluation_preserving_connection(
+  connection: &ModuleGraphConnection,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> bool {
+  if !connection
+    .active_state(
+      module_graph,
+      None,
+      module_graph_cache,
+      exports_info_artifact,
+    )
+    .is_true()
+  {
+    return false;
+  }
+
+  let dep = module_graph.dependency_by_id(&connection.dependency_id);
+  if dep.lazy().is_some() || dep.get_phase() != ImportPhase::Evaluation {
+    return false;
+  }
+
+  dep
+    .get_module_evaluation_side_effects_state(
+      module_graph,
+      module_graph_cache,
+      &mut Default::default(),
+      &mut Default::default(),
+    )
+    .is_true()
 }
 
 fn get_evaluation_preserving_connections(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+  side_effects_state_map: &IdentifierMap<ConnectionState>,
 ) -> EvaluationPreservingConnections {
   let mut connections = EvaluationPreservingConnections::default();
 
   for (original_module, _) in module_graph.modules() {
+    if !side_effects_state_map[original_module].is_true() {
+      continue;
+    }
+
     for connection in module_graph.get_outgoing_connections(original_module) {
-      let state = module_graph
-        .dependency_by_id(&connection.dependency_id)
-        .get_module_evaluation_side_effects_state(
-          module_graph,
-          module_graph_cache,
-          &mut Default::default(),
-          &mut Default::default(),
-        );
-      if state == ConnectionState::Active(true) {
+      if is_evaluation_preserving_connection(
+        connection,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+      ) {
         connections
           .entry((*original_module, *connection.module_identifier()))
           .or_default()
@@ -263,8 +305,12 @@ async fn optimize_dependencies(
       )
     })
     .collect();
-  let evaluation_preserving_connections =
-    get_evaluation_preserving_connections(module_graph, &compilation.module_graph_cache_artifact);
+  let evaluation_preserving_connections = get_evaluation_preserving_connections(
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+    exports_info_artifact,
+    &side_effects_state_map,
+  );
 
   let inner_start = logger.time("prepare connections");
   let modules: IdentifierSet = if let Some(mutations) = compilation
