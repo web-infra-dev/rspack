@@ -457,9 +457,10 @@ impl EsmLibraryPlugin {
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
                   {
-                    let request = ext.user_request().to_string();
-                    let import_spec = chunk_link
-                      .raw_import_stmts
+                    let request = ext.get_request().primary().to_string();
+                    let (raw_import_stmts, used_names) =
+                      (&mut chunk_link.raw_import_stmts, &mut chunk_link.used_names);
+                    let import_spec = raw_import_stmts
                       .entry(RawImportSource::Source((request, None)))
                       .or_default();
                     let (namespace_object_name, default_import_name) = match target_info {
@@ -471,18 +472,45 @@ impl EsmLibraryPlugin {
                     };
 
                     if namespace_object_name == Some(&symbol_binding.symbol) {
-                      import_spec
-                        .ns_import
-                        .get_or_insert_with(|| symbol_binding.symbol.clone());
+                      let local = import_spec.ns_import.get_or_insert_with(|| {
+                        if used_names.contains(&symbol_binding.symbol) {
+                          let new_name = find_new_name(&symbol_binding.symbol, used_names, &[]);
+                          used_names.insert(new_name.clone());
+                          new_name
+                        } else {
+                          used_names.insert(symbol_binding.symbol.clone());
+                          symbol_binding.symbol.clone()
+                        }
+                      });
+                      symbol_binding.symbol = local.clone();
                     } else if default_import_name == Some(&symbol_binding.symbol) {
-                      import_spec
-                        .default_import
-                        .get_or_insert_with(|| symbol_binding.symbol.clone());
+                      let local = import_spec.default_import.get_or_insert_with(|| {
+                        if used_names.contains(&symbol_binding.symbol) {
+                          let new_name = find_new_name(&symbol_binding.symbol, used_names, &[]);
+                          used_names.insert(new_name.clone());
+                          new_name
+                        } else {
+                          used_names.insert(symbol_binding.symbol.clone());
+                          symbol_binding.symbol.clone()
+                        }
+                      });
+                      symbol_binding.symbol = local.clone();
+                    } else if let Some(local) = import_spec.atoms.get(&symbol_binding.symbol) {
+                      symbol_binding.symbol = local.clone();
                     } else {
+                      let local = if used_names.contains(&symbol_binding.symbol) {
+                        let new_name = find_new_name(&symbol_binding.symbol, used_names, &[]);
+                        used_names.insert(new_name.clone());
+                        new_name
+                      } else {
+                        used_names.insert(symbol_binding.symbol.clone());
+                        symbol_binding.symbol.clone()
+                      };
                       import_spec
                         .atoms
                         .entry(symbol_binding.symbol.clone())
-                        .or_insert_with(|| symbol_binding.symbol.clone());
+                        .or_insert_with(|| local.clone());
+                      symbol_binding.symbol = local;
                     }
                   }
                 }
