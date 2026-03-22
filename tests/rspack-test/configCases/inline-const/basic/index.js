@@ -83,31 +83,26 @@ it("should respect side effects when inline constants", () => {
   expect(block.includes(`((/* inlined export .REMOVE_CONST */true)).toBe(true)`)).toBe(true);
 })
 
-it("should not inline and link to re-export module when have side effects", () => {
+it("should inline re-export bindings while preserving side effects", () => {
   // START:F
   expect(reexportedSideEffects.REMOVE_CONST).toBe(true);
+  expect(globalThis.__sideEffects).toBe("constants.side-effects.js");
   // END:F
   const block = generated.match(/\/\/ START:F([\s\S]*)\/\/ END:F/)[1];
-  if (CONCATENATED) {
-    expect(block.includes(`inlined export`)).toBe(true);
-  } else {
-    expect(block.includes(`inlined export`)).toBe(false);
-  }
+  expect(block.includes(`inlined export`)).toBe(true);
 })
 
-it("should not inline and link to re-export module when have barrel side effects", () => {
+it("should inline barrel re-export bindings while preserving side effects", () => {
   // START:G
   expect(reexportedBarrelSideEffects.REMOVE_s).toBe("remove");
   // END:G
   expect(globalThis.__barrelSideEffects).toBe("re-export.barrel-side-effects.js");
   const block = generated.match(/\/\/ START:G([\s\S]*)\/\/ END:G/)[1];
-  if (CONCATENATED) {
-    expect(block.includes(`inlined export`)).toBe(true);
-  } else {
+  if (!CONCATENATED) {
     const code = generated.match(/"\.\/re-export\.barrel-side-effects\.js"\(.*{([\s\S]*?)},/)[1];
     expect(code.includes(`__webpack_require__("./constants.js")`)).toBe(false);
-    expect(block.includes(`inlined export`)).toBe(false);
   }
+  expect(block.includes(`inlined export`)).toBe(true);
 })
 
 it("should not inline destructing with re-export", () => {

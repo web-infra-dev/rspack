@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, ImportPhase, Logger,
+  DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, ImportPhase, Logger, Mode,
   ModuleFactoryCreateData, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
   PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
@@ -220,19 +220,37 @@ fn can_skip_resolved_target(
   )
 }
 
+fn has_compatible_target_phase(
+  source_dependency_id: DependencyId,
+  target: &ResolvedExportInfoTarget,
+  module_graph: &ModuleGraph,
+) -> bool {
+  module_graph
+    .dependency_by_id(&source_dependency_id)
+    .get_phase()
+    == module_graph
+      .dependency_by_id(&target.dependency)
+      .get_phase()
+}
+
 fn refresh_do_optimizes(
   do_optimizes: &SideEffectsOptimizeArtifact,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
+  enable_preserved_evaluation_retarget: bool,
 ) -> (SideEffectsOptimizeArtifact, Option<DependencyId>) {
   let side_effects_state_map = get_side_effects_state_map(module_graph, module_graph_cache);
-  let evaluation_preserving_connections = get_evaluation_preserving_connections(
-    module_graph,
-    module_graph_cache,
-    exports_info_artifact,
-    &side_effects_state_map,
-  );
+  let evaluation_preserving_connections = if enable_preserved_evaluation_retarget {
+    get_evaluation_preserving_connections(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &side_effects_state_map,
+    )
+  } else {
+    Default::default()
+  };
   let mut refreshed_do_optimizes = SideEffectsOptimizeArtifact::default();
   let mut serial_dependency = None;
 
@@ -356,15 +374,20 @@ async fn optimize_dependencies(
   let start = logger.time("update connections");
 
   let module_graph = build_module_graph_artifact.get_module_graph();
+  let enable_preserved_evaluation_retarget = matches!(compilation.options.mode, Mode::Production);
 
   let side_effects_state_map =
     get_side_effects_state_map(module_graph, &compilation.module_graph_cache_artifact);
-  let evaluation_preserving_connections = get_evaluation_preserving_connections(
-    module_graph,
-    &compilation.module_graph_cache_artifact,
-    exports_info_artifact,
-    &side_effects_state_map,
-  );
+  let evaluation_preserving_connections = if enable_preserved_evaluation_retarget {
+    get_evaluation_preserving_connections(
+      module_graph,
+      &compilation.module_graph_cache_artifact,
+      exports_info_artifact,
+      &side_effects_state_map,
+    )
+  } else {
+    Default::default()
+  };
 
   let inner_start = logger.time("prepare connections");
   let modules: IdentifierSet = if let Some(mutations) = compilation
@@ -474,6 +497,7 @@ async fn optimize_dependencies(
       module_graph,
       &compilation.module_graph_cache_artifact,
       exports_info_artifact,
+      enable_preserved_evaluation_retarget,
     );
     if do_optimizes.is_empty() {
       break;
@@ -564,6 +588,10 @@ fn can_optimize_connection(
 
   let dep = module_graph.dependency_by_id(&dependency_id);
 
+  if dep.get_phase() != ImportPhase::Evaluation {
+    return None;
+  }
+
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
@@ -584,6 +612,9 @@ fn can_optimize_connection(
         )
       }),
     )?;
+    if !has_compatible_target_phase(dependency_id, &target, module_graph) {
+      return None;
+    }
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
     }
@@ -639,6 +670,9 @@ fn can_optimize_connection(
     ) else {
       return None;
     };
+    if !has_compatible_target_phase(dependency_id, &target, module_graph) {
+      return None;
+    }
 
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
