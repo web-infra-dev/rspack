@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  Dependency, DependencyCategory, InnerGraphUsageOperation, JavascriptParserUrl, RuntimeGlobals,
+  ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions, Dependency,
+  DependencyCategory, InnerGraphUsageOperation, JavascriptParserUrl, RuntimeGlobals,
   RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;

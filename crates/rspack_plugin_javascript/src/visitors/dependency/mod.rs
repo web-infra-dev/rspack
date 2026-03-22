@@ -5,7 +5,7 @@ mod util;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, InnerGraphState, ModuleIdentifier, ModuleLayer, ModuleType,
-  ParseMeta, ParserOptions, ResourceData, RuntimeTemplate, SideEffectsBailoutItemWithSpan,
+  ParseMeta, ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;

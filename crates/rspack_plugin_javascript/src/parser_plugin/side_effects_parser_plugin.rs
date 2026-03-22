@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
 };
@@ -51,9 +49,7 @@ struct PureAnnotation<'a> {
 }
 
 fn has_no_side_effects_notation(comments: Option<&dyn Comments>, span: Span) -> bool {
-  comments
-    .map(|comments| comments.has_flag(span.lo, "NO_SIDE_EFFECTS"))
-    .unwrap_or(false)
+  comments.is_some_and(|comments| comments.has_flag(span.lo, "NO_SIDE_EFFECTS"))
 }
 
 impl<'a> Visit for PureAnnotation<'a> {
@@ -329,8 +325,7 @@ fn is_pure_call_expr(
       .build_info
       .side_effects_free
       .as_ref()
-      .map(|side_effects_free| side_effects_free.contains(&ident.sym))
-      .unwrap_or(false)
+      .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
     {
       return true;
     }
@@ -791,14 +786,6 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
-<<<<<<< HEAD
-      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments),
-      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments),
-      Expr::Seq(seq_expr) => seq_expr
-        .exprs
-        .iter()
-        .all(|expr| is_pure_expression(parser, expr, unresolved_ctxt, comments)),
-=======
       Expr::Call(_) => is_pure_call_expr(
         parser,
         analyze_side_effects_free,
@@ -807,6 +794,7 @@ pub fn is_pure_expression<'a>(
         comments,
         callees,
       ),
+      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments),
       Expr::Paren(_) => unreachable!(),
       Expr::Seq(seq_expr) => {
         for expr in &seq_expr.exprs {
@@ -823,7 +811,6 @@ pub fn is_pure_expression<'a>(
         }
         true
       }
->>>>>>> 2dd70fc9dd (feat(treeshaking): optimize pure functions)
       _ => !expr.may_have_side_effects(ExprCtx {
         unresolved_ctxt,
         is_unresolved_ref_safe: true,

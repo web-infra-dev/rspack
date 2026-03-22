@@ -85,7 +85,7 @@ impl InnerGraphParserPlugin {
   pub fn infer_dependency_usage(
     state: &mut InnerGraphState,
   ) -> Vec<(InnerGraphUsageOperation, UsedByExports)> {
-    let mut non_terminal = HashSet::from_iter(state.inner_graph.keys().cloned());
+    let mut non_terminal = state.inner_graph.keys().copied().collect::<HashSet<_>>();
     let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
     while !non_terminal.is_empty() {
@@ -186,11 +186,10 @@ impl InnerGraphParserPlugin {
       let used_by_exports = if let Some(usage) = usage {
         match usage {
           InnerGraphMapValue::Set(set) => {
-            let finalized_set = HashSet::from_iter(
-              set
-                .iter()
-                .map(|item| item.to_atom(&state.symbol_map).clone()),
-            );
+            let finalized_set = set
+              .iter()
+              .map(|item| item.to_atom(&state.symbol_map))
+              .collect::<HashSet<_>>();
             UsedByExports::Set(finalized_set)
           }
           InnerGraphMapValue::True => UsedByExports::Bool(true),

@@ -5,11 +5,10 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, Compilation, CompilationFinishModules,
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
-  DependencyRange, ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger,
-  ModuleFactoryCreateData, ModuleGraph, ModuleGraphConnection, ModuleIdentifier,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin, PrefetchExportsInfoMode,
-  RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget,
-  SideEffectsOptimizeArtifact,
+  ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
+  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -254,7 +253,7 @@ async fn finish_modules(
           let start = issue_check.start as usize;
           let before = &s[..start.min(s.len())];
           let line = before.chars().filter(|c| *c == '\n').count() + 1;
-          let col = before.len() - before.rfind('\n').map(|p| p + 1).unwrap_or(0);
+          let col = before.len() - before.rfind('\n').map_or(0, |p| p + 1);
           format!("{line}:{col}")
         });
         let atom = &issue_check.atom;
@@ -262,7 +261,7 @@ async fn finish_modules(
         let reason = format!(
           "Call `{atom}` with side_effects in source code at {short_id}{}",
           if let Some(msg) = msg {
-            format!(":{}", msg)
+            format!(":{msg}")
           } else {
             String::new()
           }
