@@ -120,6 +120,26 @@ fn is_evaluation_preserving_connection(
     .is_true()
 }
 
+fn get_side_effects_state_map(
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+) -> IdentifierMap<ConnectionState> {
+  module_graph
+    .modules_par()
+    .map(|(module_identifier, module)| {
+      (
+        *module_identifier,
+        module.get_side_effects_connection_state(
+          module_graph,
+          module_graph_cache,
+          &mut Default::default(),
+          &mut Default::default(),
+        ),
+      )
+    })
+    .collect()
+}
+
 fn get_evaluation_preserving_connections(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
@@ -198,6 +218,52 @@ fn can_skip_resolved_target(
     side_effects_state_map,
     evaluation_preserving_connections,
   )
+}
+
+fn refresh_do_optimizes(
+  do_optimizes: &SideEffectsOptimizeArtifact,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> (SideEffectsOptimizeArtifact, Option<DependencyId>) {
+  let side_effects_state_map = get_side_effects_state_map(module_graph, module_graph_cache);
+  let evaluation_preserving_connections = get_evaluation_preserving_connections(
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+    &side_effects_state_map,
+  );
+  let mut refreshed_do_optimizes = SideEffectsOptimizeArtifact::default();
+  let mut serial_dependency = None;
+
+  let mut dependency_ids: Vec<_> = do_optimizes.keys().copied().collect();
+  dependency_ids.sort_unstable();
+
+  for dependency_id in dependency_ids {
+    let Some(connection) = module_graph.connection_by_dependency_id(&dependency_id) else {
+      continue;
+    };
+
+    let Some(do_optimize) = can_optimize_connection(
+      connection,
+      &side_effects_state_map,
+      &evaluation_preserving_connections,
+      module_graph,
+      exports_info_artifact,
+    ) else {
+      continue;
+    };
+
+    if serial_dependency.is_none()
+      && side_effects_state_map[connection.module_identifier()] != ConnectionState::Active(false)
+    {
+      serial_dependency = Some(dependency_id);
+    }
+
+    refreshed_do_optimizes.insert(dependency_id, do_optimize);
+  }
+
+  (refreshed_do_optimizes, serial_dependency)
 }
 
 pub trait ClassExt {
@@ -291,20 +357,8 @@ async fn optimize_dependencies(
 
   let module_graph = build_module_graph_artifact.get_module_graph();
 
-  let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
-    .modules_par()
-    .map(|(module_identifier, module)| {
-      (
-        *module_identifier,
-        module.get_side_effects_connection_state(
-          module_graph,
-          &compilation.module_graph_cache_artifact,
-          &mut Default::default(),
-          &mut Default::default(),
-        ),
-      )
-    })
-    .collect();
+  let side_effects_state_map =
+    get_side_effects_state_map(module_graph, &compilation.module_graph_cache_artifact);
   let evaluation_preserving_connections = get_evaluation_preserving_connections(
     module_graph,
     &compilation.module_graph_cache_artifact,
@@ -409,37 +463,44 @@ async fn optimize_dependencies(
     });
   logger.time_end(inner_start);
 
-  let mut do_optimizes = side_effects_optimize_artifact.clone();
+  let mut pending_optimizes = side_effects_optimize_artifact.clone();
 
   let inner_start = logger.time("do optimize connections");
   let mut do_optimized_count = 0;
-  while !do_optimizes.is_empty() {
-    do_optimized_count += do_optimizes.len();
+  while !pending_optimizes.is_empty() {
+    let module_graph = build_module_graph_artifact.get_module_graph();
+    let (do_optimizes, serial_dependency) = refresh_do_optimizes(
+      &pending_optimizes,
+      module_graph,
+      &compilation.module_graph_cache_artifact,
+      exports_info_artifact,
+    );
+    if do_optimizes.is_empty() {
+      break;
+    }
 
+    pending_optimizes = do_optimizes.clone();
     let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
-    let new_connections: Vec<_> = do_optimizes
-      .into_iter()
-      .map(|(dependency, do_optimize)| {
-        do_optimize_connection(dependency, do_optimize, module_graph, exports_info_artifact)
-      })
-      .collect();
-
-    let module_graph = build_module_graph_artifact.get_module_graph();
-    do_optimizes = new_connections
-      .into_par_iter()
-      .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
-      .filter_map(|connection| {
-        can_optimize_connection(
-          connection,
-          &side_effects_state_map,
-          &evaluation_preserving_connections,
-          module_graph,
-          exports_info_artifact,
-        )
-        .map(|i| (connection.dependency_id, i))
-      })
-      .collect();
+    if let Some(serial_dependency) = serial_dependency {
+      // Preserved-evaluation rewrites can invalidate sibling candidates in the same source module.
+      do_optimized_count += 1;
+      let do_optimize = do_optimizes
+        .get(&serial_dependency)
+        .expect("serial dependency should exist")
+        .clone();
+      do_optimize_connection(
+        serial_dependency,
+        do_optimize,
+        module_graph,
+        exports_info_artifact,
+      );
+    } else {
+      do_optimized_count += do_optimizes.len();
+      for (dependency, do_optimize) in do_optimizes {
+        do_optimize_connection(dependency, do_optimize, module_graph, exports_info_artifact);
+      }
+    }
   }
   logger.time_end(inner_start);
 

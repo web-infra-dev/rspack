@@ -1,0 +1,219 @@
+(() => {
+"use strict";
+var __webpack_modules__ = ({
+670
+/*!**************!*\
+  !*** ./a.js ***!
+  \**************/
+/*! namespace exports */
+/*! export a [provided] [unused] [could be renamed] */
+/*! runtime requirements:  */
+/*! Statement with side_effects in source code at ./a.js<LINE_COL_RANGE> */
+() {
+const state =
+	globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier ??
+	(globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier = {
+		order: []
+	});
+
+state.a = "a";
+state.order.push("a");
+
+const a = "a";
+
+
+},
+899
+/*!**************!*\
+  !*** ./b.js ***!
+  \**************/
+/*! namespace exports */
+/*! export b [provided] [used in main] [could be renamed] */
+/*! runtime requirements: __webpack_require__.d, __webpack_require__.*, __webpack_exports__ */
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
+function b() {
+	return "b";
+}
+
+
+},
+964
+/*!**************!*\
+  !*** ./c.js ***!
+  \**************/
+/*! namespace exports */
+/*! export c [provided] [unused] [could be renamed] */
+/*! runtime requirements:  */
+/*! Statement with side_effects in source code at ./c.js<LINE_COL_RANGE> */
+() {
+const state =
+	globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier ??
+	(globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier = {
+		order: []
+	});
+
+state.c = "c";
+state.order.push("c");
+
+const c = "c";
+
+
+},
+425
+/*!**************!*\
+  !*** ./d.js ***!
+  \**************/
+/*! namespace exports */
+/*! export d [provided] [used in main] [could be renamed] */
+/*! runtime requirements: __webpack_require__.d, __webpack_require__.*, __webpack_exports__ */
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  d: () => (d)
+});
+function d() {
+	return "d";
+}
+
+
+},
+174
+/*!****************!*\
+  !*** ./lib.js ***!
+  \****************/
+/*! namespace exports */
+/*! export a [provided] [unused] [could be renamed] -> ./a.js a */
+/*! export b [provided] [unused] [could be renamed] -> ./b.js b */
+/*! export c [provided] [unused] [could be renamed] -> ./c.js c */
+/*! export d [provided] [unused] [could be renamed] -> ./d.js d */
+/*! runtime requirements: __webpack_require__ */
+(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _a__rspack_import_0 = __webpack_require__(/*! ./a */ 670);
+/* import */ var _c__rspack_import_1 = __webpack_require__(/*! ./c */ 964);
+
+
+
+
+
+
+},
+
+});
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be isolated against other modules in the chunk.
+(() => {
+
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+/*! namespace exports */
+/*! runtime requirements: __webpack_require__ */
+/*! Statement with side_effects in source code at ./index.js<LINE_COL>-42 */
+/* import */ var _lib__rspack_import_0 = __webpack_require__(/*! ./lib */ 174);
+/* import */ var _lib__rspack_import_1 = __webpack_require__(/*! ./lib */ 899);
+/* import */ var _lib__rspack_import_2 = __webpack_require__(/*! ./lib */ 425);
+
+
+const fs = require("fs");
+const path = require("path");
+
+const state =
+	globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier ??
+	(globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier = {
+		order: []
+	});
+const bundlePath = path.resolve(__dirname, "bundle0.js");
+const generated = fs.readFileSync(bundlePath, "utf-8");
+
+state.order.push("index");
+
+function getModuleBlock(source, moduleId) {
+	const start = source.indexOf(`*** ${moduleId} ***`);
+	expect(start).toBeGreaterThan(-1);
+	const end = source.indexOf('\nconst fs = require("fs");', start);
+	expect(end).toBeGreaterThan(start);
+	return source.slice(start, end);
+}
+
+function getModuleId(source, moduleId) {
+	const start = source.indexOf(`*** ${moduleId} ***`);
+	expect(start).toBeGreaterThan(-1);
+	const lines = source.slice(0, start).split("\n");
+
+	for (let i = lines.length - 1; i >= 0; i -= 1) {
+		const line = lines[i].trim();
+		if (/^\d+$/.test(line)) {
+			return line;
+		}
+	}
+
+	throw new Error(`Cannot find module id for ${moduleId}`);
+}
+
+it("should preserve side effects and execution order", () => {
+	expect((0,_lib__rspack_import_1.b)()).toBe("b");
+	expect((0,_lib__rspack_import_2.d)()).toBe("d");
+	expect(state.a).toBe("a");
+	expect(state.c).toBe("c");
+	expect(state.order).toEqual(["a", "c", "index"]);
+});
+
+it("should retarget both bindings while keeping the side-effect import", () => {
+	const indexBlock = getModuleBlock(generated, "./index.js");
+	const libModuleId = getModuleId(generated, "./lib.js");
+	const bModuleId = getModuleId(generated, "./b.js");
+	const dModuleId = getModuleId(generated, "./d.js");
+
+	expect(indexBlock).toContain(`__webpack_require__(/*! ./lib */ ${libModuleId})`);
+	expect(indexBlock).toContain(`__webpack_require__(/*! ./lib */ ${bModuleId})`);
+	expect(indexBlock).toContain(`__webpack_require__(/*! ./lib */ ${dModuleId})`);
+	expect(generated).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "bundle0.js.txt"));
+});
+
+afterAll(() => {
+	delete globalThis.__configCases_sideEffects_reexportPreservedEvalMultiSpecifier;
+});
+
+})();
+
+})()
+;
