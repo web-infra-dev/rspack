@@ -1162,7 +1162,7 @@ impl CompilerOptionsBuilder {
       builder_context,
       development,
       production,
-      css,
+      &experiments,
     )?;
 
     // apply resolve defaults
@@ -3441,7 +3441,7 @@ impl OptimizationOptionsBuilder {
     builder_context: &mut BuilderContext,
     development: bool,
     production: bool,
-    _css: bool,
+    experiments: &Experiments,
   ) -> Result<Optimization> {
     let remove_empty_chunks = d!(self.remove_empty_chunks, true);
     if remove_empty_chunks {
@@ -3570,7 +3570,9 @@ impl OptimizationOptionsBuilder {
     if side_effects.is_enable() {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::SideEffectsFlagPlugin);
+        .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
+          experiments.advanced_tree_shaking,
+        ));
     }
 
     let inline_exports = d!(self.inline_exports, production);
@@ -3813,6 +3815,30 @@ mod test {
 
       let plugins = context.take_plugins(&compiler_options);
       assert!(!plugins.is_empty());
+    })
+  }
+
+  #[test]
+  fn side_effects_flag_plugin_respects_advanced_tree_shaking() {
+    within_compiler_context_for_testing_sync(|| {
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Production)
+        .target(vec!["web".to_string()])
+        .experiments(ExperimentsBuilder {
+          advanced_tree_shaking: Some(true),
+          ..Default::default()
+        })
+        .build(&mut context)
+        .unwrap();
+
+      assert!(compiler_options.experiments.advanced_tree_shaking);
+      assert!(
+        context
+          .plugins
+          .iter()
+          .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(true)))
+      );
     })
   }
 
