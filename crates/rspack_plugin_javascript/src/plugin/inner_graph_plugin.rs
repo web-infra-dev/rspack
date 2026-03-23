@@ -14,16 +14,18 @@ use rustc_hash::FxHashMap;
 use swc_core::common::BytePos;
 
 use crate::{
-  InnerGraphParserPlugin,
+  FLAG_DEPENDENCY_EXPORTS_STAGE, InnerGraphParserPlugin,
   dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
   parser_and_generator::JavaScriptParserAndGenerator,
 };
+
+pub static INNER_GRAPH_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 20;
 
 #[plugin]
 #[derive(Debug, Default)]
 pub struct InnerGraphPlugin;
 
-#[plugin_hook(CompilationFinishModules for InnerGraphPlugin)]
+#[plugin_hook(CompilationFinishModules for InnerGraphPlugin, stage = INNER_GRAPH_PLUGIN_STAGE)]
 async fn finish_modules(
   &self,
   compilation: &Compilation,
