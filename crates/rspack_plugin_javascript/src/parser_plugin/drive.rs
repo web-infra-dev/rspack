@@ -21,15 +21,16 @@ use crate::{
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
-  plugins_by_hook: [SmallVec<[u32; 2]>; JavascriptParserPluginHook::COUNT],
+  plugins_by_hook: [SmallVec<[u16; 2]>; JavascriptParserPluginHook::COUNT],
 }
 
 impl JavaScriptParserPluginDrive {
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+    debug_assert!(plugins.len() <= u16::MAX as usize);
     let plugin_hooks = plugins
       .iter()
       .map(|plugin| plugin.implemented_hooks())
-      .collect::<Vec<_>>();
+      .collect::<SmallVec<[super::JavascriptParserPluginHooks; 32]>>();
     let mut hook_counts = [0usize; JavascriptParserPluginHook::COUNT];
 
     for hooks in &plugin_hooks {
@@ -38,12 +39,12 @@ impl JavaScriptParserPluginDrive {
       }
     }
 
-    let mut plugins_by_hook: [SmallVec<[u32; 2]>; JavascriptParserPluginHook::COUNT] =
+    let mut plugins_by_hook: [SmallVec<[u16; 2]>; JavascriptParserPluginHook::COUNT] =
       std::array::from_fn(|idx| SmallVec::with_capacity(hook_counts[idx]));
 
     for (idx, hooks) in plugin_hooks.iter().copied().enumerate() {
       for hook in hooks.iter() {
-        plugins_by_hook[hook as usize].push(idx as u32);
+        plugins_by_hook[hook as usize].push(idx as u16);
       }
     }
 
