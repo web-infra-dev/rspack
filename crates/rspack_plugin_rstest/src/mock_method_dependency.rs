@@ -180,7 +180,7 @@ impl MockMethodDependencyTemplate {
     request: &str,
   ) {
     let init = NormalInitFragment::new(
-      format!("/* RSTEST:{flag}_PLACEHOLDER:{hoist_id}:{request} */;"),
+      format!("/* RSTEST:{flag}:{hoist_id}:{request}:PLACEHOLDER */;"),
       InitFragmentStage::StageESMImports,
       0,
       InitFragmentKey::Const(format!("rstest mock_hoist {hoist_id}")),
@@ -241,6 +241,7 @@ impl MockMethodDependencyTemplate {
   ) {
     let callee_range: DependencyRange = dep.callee_span.into();
     let should_hoist = hoist_flag.is_some() && dep.hoist;
+    let hoist_marker = hoist_flag.map(|flag| format!("{flag}:{hoist_id}:{request}"));
 
     if should_hoist && dep.statement_span.is_some() {
       // Case 1: Variable declaration with hoisting (e.g., `const mocks = rs.hoisted(...)`)
@@ -250,9 +251,9 @@ impl MockMethodDependencyTemplate {
         dep,
         require_name,
         mock_method,
-        hoist_flag.expect("hoist_flag should be Some when should_hoist is true"),
-        hoist_id,
-        request,
+        hoist_marker
+          .as_deref()
+          .expect("hoist marker should exist when should_hoist is true"),
         &callee_range,
       );
     } else if should_hoist {
@@ -263,9 +264,9 @@ impl MockMethodDependencyTemplate {
         dep,
         require_name,
         mock_method,
-        hoist_flag.expect("hoist_flag should be Some when should_hoist is true"),
-        hoist_id,
-        request,
+        hoist_marker
+          .as_deref()
+          .expect("hoist marker should exist when should_hoist is true"),
         &callee_range,
       );
     } else {
@@ -283,9 +284,7 @@ impl MockMethodDependencyTemplate {
     dep: &MockMethodDependency,
     require_name: &str,
     mock_method: &str,
-    flag: &str,
-    hoist_id: &str,
-    request: &str,
+    hoist_marker: &str,
     callee_range: &DependencyRange,
   ) {
     let stmt_range: DependencyRange = dep
@@ -297,7 +296,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       stmt_range.start,
       stmt_range.start,
-      format!("/* RSTEST:{flag}_HOIST_START:{hoist_id}:{request} */"),
+      format!("/* RSTEST:{hoist_marker}:HOIST_START */"),
       None,
     );
 
@@ -305,7 +304,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       stmt_range.end,
       stmt_range.end,
-      format!("\n/* RSTEST:{flag}_HOIST_END:{hoist_id}:{request} */"),
+      format!("\n/* RSTEST:{hoist_marker}:HOIST_END */"),
       None,
     );
 
@@ -328,9 +327,7 @@ impl MockMethodDependencyTemplate {
     dep: &MockMethodDependency,
     require_name: &str,
     mock_method: &str,
-    flag: &str,
-    hoist_id: &str,
-    request: &str,
+    hoist_marker: &str,
     callee_range: &DependencyRange,
   ) {
     // Comment out original callee and add HOIST_START + runtime method
@@ -338,9 +335,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       callee_range.end,
       callee_range.end,
-      format!(
-        " */ /* RSTEST:{flag}_HOIST_START:{hoist_id}:{request} */{require_name}.{mock_method}"
-      ),
+      format!(" */ /* RSTEST:{hoist_marker}:HOIST_START */{require_name}.{mock_method}"),
       None,
     );
 
@@ -349,7 +344,7 @@ impl MockMethodDependencyTemplate {
     source.replace(
       call_range.end,
       call_range.end,
-      format!("\n/* RSTEST:{flag}_HOIST_END:{hoist_id}:{request} */"),
+      format!("\n/* RSTEST:{hoist_marker}:HOIST_END */"),
       None,
     );
   }
