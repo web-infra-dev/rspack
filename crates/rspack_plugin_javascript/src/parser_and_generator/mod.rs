@@ -241,7 +241,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       parser_lexer,
       module_type_to_is_module(module_type),
       Some(comments.clone()),
-      Some(source_string.len()),
+      true,
     ) {
       Ok(ast) => ast,
       Err(e) => {

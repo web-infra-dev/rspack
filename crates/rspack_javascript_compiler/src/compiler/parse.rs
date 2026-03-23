@@ -52,7 +52,7 @@ impl JavaScriptCompiler {
       comments.as_ref().map(|c| c as &dyn Comments),
     );
 
-    parse_with_lexer(lexer, is_module, None)
+    parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| {
         Ast::new(program, self.cm.clone(), comments)
           .with_context(ast::Context::new(self.cm, Some(self.globals)))
@@ -74,7 +74,7 @@ impl JavaScriptCompiler {
     lexer: Lexer,
     is_module: IsModule,
     comments: Option<SwcComments>,
-    with_tokens: Option<usize>,
+    with_tokens: bool,
   ) -> Result<(Ast, Option<Vec<TokenAndSpan>>), BatchErrors> {
     parse_with_lexer(lexer, is_module, with_tokens)
       .map(|(program, tokens)| {
@@ -105,7 +105,7 @@ impl JavaScriptCompiler {
     comments: Option<&dyn Comments>,
   ) -> Result<SwcProgram, BatchErrors> {
     let lexer = Lexer::new(syntax, target, SourceFileInput::from(&*fm), comments);
-    parse_with_lexer(lexer, is_module, None)
+    parse_with_lexer(lexer, is_module, false)
       .map(|(program, _)| program)
       .map_err(|errs| {
         BatchErrors(
@@ -122,11 +122,11 @@ use swc_core::ecma::parser::unstable::Capturing;
 fn parse_with_lexer(
   lexer: Lexer,
   is_module: IsModule,
-  with_tokens: Option<usize>,
+  with_tokens: bool,
 ) -> Result<(SwcProgram, Option<Vec<TokenAndSpan>>), Vec<parser::error::Error>> {
   let inner = || {
     // don't call capturing when with_tokens is false to avoid performance cost
-    let (tokens, program_result, mut errors) = if let Some(source_len) = with_tokens {
+    let (tokens, program_result, mut errors) = if with_tokens {
       // `source.len + 1` is an overestimation of the number of tokens.
       // It's wasteful and might be optimized in the future.
       let lexer = Capturing::with_capacity(lexer, source_len + 1);
