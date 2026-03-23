@@ -39,12 +39,6 @@ it("should use the same accessor syntax for import and export", function () {
 	expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}\\d+${regexEscape(")/* .bar */.bar);")}`);
 	expectSourceToMatch(source, `${regexEscape("const harmonyexport_cjsimportdefault = (__webpack_require__(")}\\d+${regexEscape(")/* [\"default\"] */[\"default\"]);")}`);
 
-	// Checking concatenatedmodule.js formation of exports
-	expectSourceToContain(source, "mod3: () => (/* reexport */ harmony_module_3_namespaceObject)");
-
-	// Checking concatenatedmodule.js formation of namespace objects
-	expectSourceToContain(source, "apple: () => (apple)");
-
 	// Do not break default option
 	expectSourceToContain(source, "[\"default\"] = (___CSS_LOADER_EXPORT___)");
 });

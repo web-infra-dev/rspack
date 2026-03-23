@@ -83,13 +83,14 @@ it("should respect side effects when inline constants", () => {
   expect(block.includes(`((/* inlined export .REMOVE_CONST */true)).toBe(true)`)).toBe(true);
 })
 
-it("should inline re-export bindings while preserving side effects", () => {
+it("should preserve re-export bindings when the final target has side effects", () => {
   // START:F
   expect(reexportedSideEffects.REMOVE_CONST).toBe(true);
   expect(globalThis.__sideEffects).toBe("constants.side-effects.js");
   // END:F
   const block = generated.match(/\/\/ START:F([\s\S]*)\/\/ END:F/)[1];
-  expect(block.includes(`inlined export`)).toBe(true);
+  expect(block.includes(`inlined export`)).toBe(CONCATENATED);
+  expect(generated.includes(`/* reexport safe */ (/* inlined export _constants_side_effects__rspack_import_0 */true)`)).toBe(true);
 })
 
 it("should inline barrel re-export bindings while preserving side effects", () => {

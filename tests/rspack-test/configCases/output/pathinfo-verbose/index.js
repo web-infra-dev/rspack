@@ -8,7 +8,7 @@ it("should add all modules headers info above modules", () => {
   !*** ./sut.js ***!
   \\****************/
 /*! namespace exports */
-/*! runtime requirements: __webpack_require__.n, __webpack_require__.*, __webpack_require__ */
+/*! runtime requirements: __webpack_require__ */
 /*! Statement with side_effects in source code at ./sut.js:3:1-29 */    
     `.trim())
 
@@ -28,8 +28,9 @@ it("should add all modules headers info above modules", () => {
 /*! namespace exports */
 /*! export default [not provided] [unused] [provision prevents renaming] */
 /*! export message [provided] [used in sut] [provision prevents renaming] */
+/*! export secret [maybe provided (runtime-defined)] [used in sut] [provision prevents renaming] -> ./cjs.js secret */
 /*! other exports [maybe provided (runtime-defined)] [unused] -> ./cjs.js */
-/*! runtime requirements: __webpack_require__.n, __webpack_require__.d, __webpack_require__.*, __webpack_require__, __webpack_exports__ */
+/*! runtime requirements: __webpack_require__.o, __webpack_require__.n, __webpack_require__.d, __webpack_require__.*, __webpack_require__, __webpack_exports__ */
 `.trim())
 
 

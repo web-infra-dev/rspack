@@ -4,10 +4,10 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, Compilation, CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta,
-  DependencyId, ExportsInfoArtifact, FactoryMeta, GetTargetResult, ImportPhase, Logger, Mode,
-  ModuleFactoryCreateData, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
-  PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  DependencyId, DependencyType, ExportsInfoArtifact, FactoryMeta, GetTargetResult, ImportPhase,
+  Logger, Mode, ModuleFactoryCreateData, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
+  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
   SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
@@ -29,8 +29,8 @@ enum SideEffects {
   Array(Vec<String>),
 }
 
-type EvaluationPreservingConnections =
-  FxHashMap<(ModuleIdentifier, ModuleIdentifier), Vec<DependencyId>>;
+type EvaluationPreservingConnections = FxHashMap<(ModuleIdentifier, ModuleIdentifier), usize>;
+type SelfSideEffectFreeModules = IdentifierMap<bool>;
 
 impl SideEffects {
   pub fn from_description(description: &serde_json::Value) -> Option<Self> {
@@ -93,29 +93,29 @@ fn is_evaluation_preserving_connection(
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
-  if !connection
-    .active_state(
+  let dep = module_graph.dependency_by_id(&connection.dependency_id);
+  if dep.lazy().is_some() || dep.get_phase() != ImportPhase::Evaluation {
+    return false;
+  }
+
+  if !dep
+    .get_module_evaluation_side_effects_state(
       module_graph,
-      None,
       module_graph_cache,
-      exports_info_artifact,
+      &mut Default::default(),
+      &mut Default::default(),
     )
     .is_true()
   {
     return false;
   }
 
-  let dep = module_graph.dependency_by_id(&connection.dependency_id);
-  if dep.lazy().is_some() || dep.get_phase() != ImportPhase::Evaluation {
-    return false;
-  }
-
-  dep
-    .get_module_evaluation_side_effects_state(
+  connection
+    .active_state(
       module_graph,
+      None,
       module_graph_cache,
-      &mut Default::default(),
-      &mut Default::default(),
+      exports_info_artifact,
     )
     .is_true()
 }
@@ -160,10 +160,9 @@ fn get_evaluation_preserving_connections(
         module_graph_cache,
         exports_info_artifact,
       ) {
-        connections
+        *connections
           .entry((*original_module, *connection.module_identifier()))
-          .or_default()
-          .push(connection.dependency_id);
+          .or_default() += 1;
       }
     }
   }
@@ -174,59 +173,68 @@ fn get_evaluation_preserving_connections(
 fn is_evaluation_preserved(
   original_module: ModuleIdentifier,
   target_module: ModuleIdentifier,
-  excluded_dependency: DependencyId,
   evaluation_preserving_connections: &EvaluationPreservingConnections,
 ) -> bool {
   evaluation_preserving_connections
     .get(&(original_module, target_module))
-    .is_some_and(|dependencies| dependencies.iter().any(|dep| dep != &excluded_dependency))
+    .is_some_and(|count| *count > 0)
 }
 
 fn can_skip_target_module(
   original_module: ModuleIdentifier,
   target_module: ModuleIdentifier,
-  excluded_dependency: DependencyId,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   evaluation_preserving_connections: &EvaluationPreservingConnections,
+  module_graph: &ModuleGraph,
 ) -> bool {
   if side_effects_state_map[&target_module] == ConnectionState::Active(false) {
     return true;
   }
 
+  if module_graph
+    .module_by_identifier(&target_module)
+    .and_then(|module| module.factory_meta().and_then(|meta| meta.side_effect_free))
+    == Some(false)
+  {
+    return false;
+  }
+
   is_evaluation_preserved(
     original_module,
     target_module,
-    excluded_dependency,
     evaluation_preserving_connections,
   )
 }
 
-fn is_self_side_effect_free_module(
-  module_identifier: &ModuleIdentifier,
-  module_graph: &ModuleGraph,
-) -> bool {
-  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
-    return false;
-  };
-
-  if let Some(side_effect_free) = module.factory_meta().and_then(|meta| meta.side_effect_free) {
-    return side_effect_free;
-  }
-
-  module.build_meta().side_effect_free == Some(true)
+fn get_self_side_effect_free_modules(module_graph: &ModuleGraph) -> SelfSideEffectFreeModules {
+  module_graph
+    .modules_par()
+    .map(|(module_identifier, module)| {
+      let side_effect_free = module
+        .factory_meta()
+        .and_then(|meta| meta.side_effect_free)
+        .unwrap_or(module.build_meta().side_effect_free == Some(true));
+      (*module_identifier, side_effect_free)
+    })
+    .collect()
 }
 
 fn can_skip_resolved_target(
   target: &ResolvedExportInfoTarget,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   evaluation_preserving_connections: &EvaluationPreservingConnections,
+  self_side_effect_free_modules: &SelfSideEffectFreeModules,
   module_graph: &ModuleGraph,
 ) -> bool {
   if is_side_effect_free_target(target, side_effects_state_map) {
     return true;
   }
 
-  if !is_self_side_effect_free_module(&target.module, module_graph) {
+  if !self_side_effect_free_modules
+    .get(&target.module)
+    .copied()
+    .unwrap_or(false)
+  {
     return false;
   }
 
@@ -237,7 +245,6 @@ fn can_skip_resolved_target(
   is_evaluation_preserved(
     original_module,
     target.module,
-    target.dependency,
     evaluation_preserving_connections,
   )
 }
@@ -262,24 +269,56 @@ fn has_compatible_target_phase(
       .get_phase()
 }
 
+fn is_hmr_boundary_dependency_type(dependency_type: &DependencyType) -> bool {
+  matches!(
+    dependency_type,
+    DependencyType::ModuleHotAccept
+      | DependencyType::ModuleHotDecline
+      | DependencyType::ImportMetaHotAccept
+      | DependencyType::ImportMetaHotDecline
+  )
+}
+
+fn has_hmr_boundary_to_target(
+  original_module: ModuleIdentifier,
+  target_module: ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
+  module_graph
+    .get_outgoing_connections(&original_module)
+    .any(|connection| {
+      *connection.module_identifier() == target_module
+        && is_hmr_boundary_dependency_type(
+          module_graph
+            .dependency_by_id(&connection.dependency_id)
+            .dependency_type(),
+        )
+    })
+}
+
+fn has_outgoing_hmr_boundary(
+  module_identifier: ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
+  module_graph
+    .get_outgoing_connections(&module_identifier)
+    .any(|connection| {
+      is_hmr_boundary_dependency_type(
+        module_graph
+          .dependency_by_id(&connection.dependency_id)
+          .dependency_type(),
+      )
+    })
+}
+
 fn refresh_do_optimizes(
   do_optimizes: &SideEffectsOptimizeArtifact,
   module_graph: &ModuleGraph,
-  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
-  enable_preserved_evaluation_retarget: bool,
+  side_effects_state_map: &IdentifierMap<ConnectionState>,
+  evaluation_preserving_connections: &EvaluationPreservingConnections,
+  self_side_effect_free_modules: &SelfSideEffectFreeModules,
 ) -> (SideEffectsOptimizeArtifact, Option<DependencyId>) {
-  let side_effects_state_map = get_side_effects_state_map(module_graph, module_graph_cache);
-  let evaluation_preserving_connections = if enable_preserved_evaluation_retarget {
-    get_evaluation_preserving_connections(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-      &side_effects_state_map,
-    )
-  } else {
-    Default::default()
-  };
   let mut refreshed_do_optimizes = SideEffectsOptimizeArtifact::default();
   let mut serial_dependency = None;
 
@@ -293,8 +332,9 @@ fn refresh_do_optimizes(
 
     let Some(do_optimize) = can_optimize_connection(
       connection,
-      &side_effects_state_map,
-      &evaluation_preserving_connections,
+      side_effects_state_map,
+      evaluation_preserving_connections,
+      self_side_effect_free_modules,
       module_graph,
       exports_info_artifact,
     ) else {
@@ -407,6 +447,7 @@ async fn optimize_dependencies(
 
   let side_effects_state_map =
     get_side_effects_state_map(module_graph, &compilation.module_graph_cache_artifact);
+  let self_side_effect_free_modules = get_self_side_effect_free_modules(module_graph);
   let evaluation_preserving_connections = if enable_preserved_evaluation_retarget {
     get_evaluation_preserving_connections(
       module_graph,
@@ -501,6 +542,7 @@ async fn optimize_dependencies(
           connection,
           &side_effects_state_map,
           &evaluation_preserving_connections,
+          &self_side_effect_free_modules,
           module_graph,
           exports_info_artifact,
         ),
@@ -521,12 +563,15 @@ async fn optimize_dependencies(
   let mut do_optimized_count = 0;
   while !pending_optimizes.is_empty() {
     let module_graph = build_module_graph_artifact.get_module_graph();
+    // Retargeted specifier/reexport edges do not contribute module-evaluation side effects,
+    // so these maps remain stable throughout the fixpoint loop.
     let (do_optimizes, serial_dependency) = refresh_do_optimizes(
       &pending_optimizes,
       module_graph,
-      &compilation.module_graph_cache_artifact,
       exports_info_artifact,
-      enable_preserved_evaluation_retarget,
+      &side_effects_state_map,
+      &evaluation_preserving_connections,
+      &self_side_effect_free_modules,
     );
     if do_optimizes.is_empty() {
       break;
@@ -599,6 +644,7 @@ fn can_optimize_connection(
   connection: &ModuleGraphConnection,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   evaluation_preserving_connections: &EvaluationPreservingConnections,
+  self_side_effect_free_modules: &SelfSideEffectFreeModules,
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<SideEffectsDoOptimize> {
@@ -608,10 +654,19 @@ fn can_optimize_connection(
   if !can_skip_target_module(
     original_module,
     *connection.module_identifier(),
-    dependency_id,
     side_effects_state_map,
     evaluation_preserving_connections,
+    module_graph,
   ) {
+    return None;
+  }
+
+  if has_hmr_boundary_to_target(
+    original_module,
+    *connection.module_identifier(),
+    module_graph,
+  ) || has_outgoing_hmr_boundary(*connection.module_identifier(), module_graph)
+  {
     return None;
   }
 
@@ -637,6 +692,7 @@ fn can_optimize_connection(
           target,
           side_effects_state_map,
           evaluation_preserving_connections,
+          self_side_effect_free_modules,
           module_graph,
         )
       }),
@@ -695,6 +751,7 @@ fn can_optimize_connection(
           target,
           side_effects_state_map,
           evaluation_preserving_connections,
+          self_side_effect_free_modules,
           module_graph,
         )
       }),
