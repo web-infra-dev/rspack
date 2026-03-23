@@ -201,23 +201,52 @@ fn can_skip_target_module(
   )
 }
 
+fn is_self_side_effect_free_module(
+  module_identifier: &ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> bool {
+  let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+    return false;
+  };
+
+  if let Some(side_effect_free) = module.factory_meta().and_then(|meta| meta.side_effect_free) {
+    return side_effect_free;
+  }
+
+  module.build_meta().side_effect_free == Some(true)
+}
+
 fn can_skip_resolved_target(
   target: &ResolvedExportInfoTarget,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   evaluation_preserving_connections: &EvaluationPreservingConnections,
   module_graph: &ModuleGraph,
 ) -> bool {
+  if is_side_effect_free_target(target, side_effects_state_map) {
+    return true;
+  }
+
+  if !is_self_side_effect_free_module(&target.module, module_graph) {
+    return false;
+  }
+
   let Some(original_module) = module_graph.get_parent_module(&target.dependency).copied() else {
     return false;
   };
 
-  can_skip_target_module(
+  is_evaluation_preserved(
     original_module,
     target.module,
     target.dependency,
-    side_effects_state_map,
     evaluation_preserving_connections,
   )
+}
+
+fn is_side_effect_free_target(
+  target: &ResolvedExportInfoTarget,
+  side_effects_state_map: &IdentifierMap<ConnectionState>,
+) -> bool {
+  side_effects_state_map[&target.module] == ConnectionState::Active(false)
 }
 
 fn has_compatible_target_phase(
@@ -612,6 +641,9 @@ fn can_optimize_connection(
         )
       }),
     )?;
+    if !is_side_effect_free_target(&target, side_effects_state_map) {
+      return None;
+    }
     if !has_compatible_target_phase(dependency_id, &target, module_graph) {
       return None;
     }
@@ -670,6 +702,9 @@ fn can_optimize_connection(
     ) else {
       return None;
     };
+    if !is_side_effect_free_target(&target, side_effects_state_map) {
+      return None;
+    }
     if !has_compatible_target_phase(dependency_id, &target, module_graph) {
       return None;
     }
