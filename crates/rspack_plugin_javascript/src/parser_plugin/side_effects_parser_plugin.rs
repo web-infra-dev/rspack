@@ -11,8 +11,9 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      Class, ClassMember, Decl, Expr, ExprOrSpread, Function, ModuleDecl, Pat, PropName, Stmt,
-      VarDecl, VarDeclKind, VarDeclOrExpr,
+      ArrowExpr, AssignExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr,
+      ExprOrSpread, Function, ModuleDecl, ModuleItem, Pat, Program, PropName, SimpleAssignTarget,
+      Stmt, UpdateExpr, VarDecl, VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
@@ -46,6 +47,48 @@ impl SideEffectsParserPlugin {
 struct PureAnnotation<'a> {
   side_effects_free: FxHashSet<Atom>,
   parser: &'a JavascriptParser<'a>,
+}
+
+enum AutoSideEffectsFreeCandidate<'a> {
+  Function(&'a Function),
+  Arrow(&'a ArrowExpr),
+}
+
+struct AutoSideEffectsFreeBinding<'a> {
+  name: Atom,
+  candidate: AutoSideEffectsFreeCandidate<'a>,
+}
+
+impl AutoSideEffectsFreeBinding<'_> {
+  fn is_side_effects_free(
+    &self,
+    parser: &mut JavascriptParser,
+    analyze_side_effects_free: bool,
+    unresolved_ctxt: SyntaxContext,
+    comments: Option<&dyn Comments>,
+  ) -> bool {
+    match self.candidate {
+      AutoSideEffectsFreeCandidate::Function(function) => is_side_effects_free_function_body(
+        parser,
+        analyze_side_effects_free,
+        function,
+        unresolved_ctxt,
+        comments,
+      ),
+      AutoSideEffectsFreeCandidate::Arrow(arrow) => is_side_effects_free_arrow_body(
+        parser,
+        analyze_side_effects_free,
+        arrow,
+        unresolved_ctxt,
+        comments,
+      ),
+    }
+  }
+}
+
+#[derive(Default)]
+struct TopLevelMutationCollector {
+  mutated_bindings: FxHashSet<Atom>,
 }
 
 fn has_no_side_effects_notation(comments: Option<&dyn Comments>, span: Span) -> bool {
@@ -145,6 +188,156 @@ impl<'a> Visit for PureAnnotation<'a> {
   }
 }
 
+impl Visit for TopLevelMutationCollector {
+  fn visit_function(&mut self, _node: &Function) {}
+
+  fn visit_arrow_expr(&mut self, _node: &ArrowExpr) {}
+
+  fn visit_assign_expr(&mut self, node: &AssignExpr) {
+    if let Some(SimpleAssignTarget::Ident(ident)) = node.left.as_simple() {
+      self.mutated_bindings.insert(ident.sym.clone());
+    }
+    node.right.visit_with(self);
+  }
+
+  fn visit_update_expr(&mut self, node: &UpdateExpr) {
+    if let Expr::Ident(ident) = &*node.arg {
+      self.mutated_bindings.insert(ident.sym.clone());
+    }
+  }
+}
+
+fn collect_top_level_mutated_bindings(program: &Program) -> FxHashSet<Atom> {
+  let mut collector = TopLevelMutationCollector::default();
+  program.visit_with(&mut collector);
+  collector.mutated_bindings
+}
+
+fn push_auto_side_effects_free_var_decl_candidates<'a>(
+  var_decl: &'a VarDecl,
+  candidates: &mut Vec<AutoSideEffectsFreeBinding<'a>>,
+) {
+  if !matches!(var_decl.kind, VarDeclKind::Const) {
+    return;
+  }
+
+  for declarator in &var_decl.decls {
+    let Some(ident) = declarator.name.as_ident() else {
+      continue;
+    };
+
+    match declarator.init.as_deref() {
+      Some(Expr::Fn(fn_expr)) => candidates.push(AutoSideEffectsFreeBinding {
+        name: ident.sym.clone(),
+        candidate: AutoSideEffectsFreeCandidate::Function(&fn_expr.function),
+      }),
+      Some(Expr::Arrow(arrow_expr)) => candidates.push(AutoSideEffectsFreeBinding {
+        name: ident.sym.clone(),
+        candidate: AutoSideEffectsFreeCandidate::Arrow(arrow_expr),
+      }),
+      _ => {}
+    }
+  }
+}
+
+fn push_auto_side_effects_free_stmt_candidates<'a>(
+  stmt: &'a Stmt,
+  candidates: &mut Vec<AutoSideEffectsFreeBinding<'a>>,
+) {
+  if let Stmt::Decl(decl) = stmt {
+    match decl {
+      Decl::Fn(fn_decl) => candidates.push(AutoSideEffectsFreeBinding {
+        name: fn_decl.ident.sym.clone(),
+        candidate: AutoSideEffectsFreeCandidate::Function(&fn_decl.function),
+      }),
+      Decl::Var(var_decl) => {
+        push_auto_side_effects_free_var_decl_candidates(var_decl, candidates);
+      }
+      _ => {}
+    }
+  }
+}
+
+fn push_auto_side_effects_free_module_decl_candidates<'a>(
+  decl: &'a ModuleDecl,
+  candidates: &mut Vec<AutoSideEffectsFreeBinding<'a>>,
+) {
+  match decl {
+    ModuleDecl::ExportDefaultExpr(default_expr) => {
+      if let Some(fn_expr) = default_expr.expr.as_fn_expr()
+        && let Some(ident) = &fn_expr.ident
+      {
+        candidates.push(AutoSideEffectsFreeBinding {
+          name: ident.sym.clone(),
+          candidate: AutoSideEffectsFreeCandidate::Function(&fn_expr.function),
+        });
+      }
+    }
+    ModuleDecl::ExportDefaultDecl(default_decl) => {
+      if let Some(fn_expr) = default_decl.decl.as_fn_expr()
+        && let Some(ident) = &fn_expr.ident
+      {
+        candidates.push(AutoSideEffectsFreeBinding {
+          name: ident.sym.clone(),
+          candidate: AutoSideEffectsFreeCandidate::Function(&fn_expr.function),
+        });
+      }
+    }
+    ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
+      Decl::Fn(fn_decl) => candidates.push(AutoSideEffectsFreeBinding {
+        name: fn_decl.ident.sym.clone(),
+        candidate: AutoSideEffectsFreeCandidate::Function(&fn_decl.function),
+      }),
+      Decl::Var(var_decl) => {
+        push_auto_side_effects_free_var_decl_candidates(var_decl, candidates);
+      }
+      _ => {}
+    },
+    _ => {}
+  }
+}
+
+fn collect_auto_side_effects_free_candidates<'a>(
+  program: &'a Program,
+  mutated_bindings: &FxHashSet<Atom>,
+) -> Vec<AutoSideEffectsFreeBinding<'a>> {
+  let mut candidates = Vec::new();
+  match program {
+    Program::Module(module) => {
+      for item in &module.body {
+        match item {
+          ModuleItem::Stmt(stmt) => {
+            push_auto_side_effects_free_stmt_candidates(stmt, &mut candidates);
+          }
+          ModuleItem::ModuleDecl(decl) => {
+            push_auto_side_effects_free_module_decl_candidates(decl, &mut candidates);
+          }
+        }
+      }
+    }
+    Program::Script(script) => {
+      for stmt in &script.body {
+        push_auto_side_effects_free_stmt_candidates(stmt, &mut candidates);
+      }
+    }
+  }
+
+  let mut seen = FxHashSet::default();
+  let mut duplicates = FxHashSet::default();
+  for candidate in &candidates {
+    if !seen.insert(candidate.name.clone()) {
+      duplicates.insert(candidate.name.clone());
+    }
+  }
+
+  candidates
+    .into_iter()
+    .filter(|candidate| {
+      !duplicates.contains(&candidate.name) && !mutated_bindings.contains(&candidate.name)
+    })
+    .collect()
+}
+
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for SideEffectsParserPlugin {
   fn program(
@@ -170,6 +363,38 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
       if let Some(flagged_side_effects_free) = &parser.javascript_options.side_effects_free {
         let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
         side_effects_free.extend(flagged_side_effects_free.iter().cloned().map(Into::into));
+      }
+
+      let mutated_bindings = collect_top_level_mutated_bindings(ast);
+      let auto_candidates = collect_auto_side_effects_free_candidates(ast, &mutated_bindings);
+
+      let mut changed = true;
+      while changed {
+        changed = false;
+        for candidate in &auto_candidates {
+          if parser
+            .build_info
+            .side_effects_free
+            .as_ref()
+            .is_some_and(|side_effects_free| side_effects_free.contains(&candidate.name))
+          {
+            continue;
+          }
+
+          if candidate.is_side_effects_free(
+            parser,
+            self.analyze_side_effects_free,
+            self.unresolve_ctxt,
+            parser.comments,
+          ) {
+            parser
+              .build_info
+              .side_effects_free
+              .get_or_insert_default()
+              .insert(candidate.name.clone());
+            changed = true;
+          }
+        }
       }
     }
 
@@ -767,6 +992,149 @@ pub fn is_pure_pat<'a>(
       unresolved_ctxt,
       comments,
       callees,
+    ),
+  }
+}
+
+fn is_side_effects_free_param(pat: &Pat) -> bool {
+  matches!(pat, Pat::Ident(_))
+}
+
+fn is_side_effects_free_var_decl(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  var_decl: &VarDecl,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+) -> bool {
+  for declarator in &var_decl.decls {
+    if declarator.name.as_ident().is_none() {
+      return false;
+    }
+
+    if let Some(init) = declarator.init.as_deref()
+      && !is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        init,
+        unresolved_ctxt,
+        comments,
+        None,
+      )
+    {
+      return false;
+    }
+  }
+
+  true
+}
+
+fn is_side_effects_free_block_stmt(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  block_stmt: &BlockStmt,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+) -> bool {
+  for stmt in &block_stmt.stmts {
+    match stmt {
+      Stmt::Empty(_) => {}
+      Stmt::Expr(expr_stmt) => {
+        if !is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &expr_stmt.expr,
+          unresolved_ctxt,
+          comments,
+          None,
+        ) {
+          return false;
+        }
+      }
+      Stmt::Return(return_stmt) => {
+        if let Some(arg) = return_stmt.arg.as_deref()
+          && !is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            arg,
+            unresolved_ctxt,
+            comments,
+            None,
+          )
+        {
+          return false;
+        }
+      }
+      Stmt::Decl(Decl::Var(var_decl)) => {
+        if !is_side_effects_free_var_decl(
+          parser,
+          analyze_side_effects_free,
+          var_decl,
+          unresolved_ctxt,
+          comments,
+        ) {
+          return false;
+        }
+      }
+      _ => return false,
+    }
+  }
+
+  true
+}
+
+fn is_side_effects_free_function_body(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  function: &Function,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+) -> bool {
+  if !function
+    .params
+    .iter()
+    .all(|param| is_side_effects_free_param(&param.pat))
+  {
+    return false;
+  }
+
+  function.body.as_ref().is_none_or(|body| {
+    is_side_effects_free_block_stmt(
+      parser,
+      analyze_side_effects_free,
+      body,
+      unresolved_ctxt,
+      comments,
+    )
+  })
+}
+
+fn is_side_effects_free_arrow_body(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  arrow_expr: &ArrowExpr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+) -> bool {
+  if !arrow_expr.params.iter().all(is_side_effects_free_param) {
+    return false;
+  }
+
+  match &*arrow_expr.body {
+    BlockStmtOrExpr::BlockStmt(block_stmt) => is_side_effects_free_block_stmt(
+      parser,
+      analyze_side_effects_free,
+      block_stmt,
+      unresolved_ctxt,
+      comments,
+    ),
+    BlockStmtOrExpr::Expr(expr) => is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      expr,
+      unresolved_ctxt,
+      comments,
+      None,
     ),
   }
 }
