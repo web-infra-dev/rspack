@@ -661,21 +661,19 @@ impl ModuleGraph {
       .and_then(|module_identifier| self.module_graph_module_by_identifier(module_identifier))
   }
 
+  #[inline]
   pub fn module_identifier_by_dependency_id(
     &self,
     dep_id: &DependencyId,
   ) -> Option<&ModuleIdentifier> {
-    self
-      .inner
-      .connections
-      .get(dep_id)
-      .map(|con| con.module_identifier())
+    let connection = self.inner.connections.get(dep_id)?;
+    Some(connection.module_identifier())
   }
 
+  #[inline]
   pub fn get_module_by_dependency_id(&self, dep_id: &DependencyId) -> Option<&BoxModule> {
-    self
-      .module_identifier_by_dependency_id(dep_id)
-      .and_then(|module_id| self.inner.modules.get(module_id))
+    let connection = self.inner.connections.get(dep_id)?;
+    self.inner.modules.get(connection.module_identifier())
   }
 
   fn add_connection(
@@ -763,6 +761,7 @@ impl ModuleGraph {
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
+  #[inline]
   pub fn module_graph_module_by_identifier(
     &self,
     identifier: &ModuleIdentifier,
@@ -787,6 +786,7 @@ impl ModuleGraph {
       .unwrap_or_else(|| panic!("ModuleGraphModule with identifier {identifier:?} not found"))
   }
 
+  #[inline]
   pub fn get_ordered_outgoing_connections(
     &self,
     module_identifier: &ModuleIdentifier,
@@ -796,12 +796,13 @@ impl ModuleGraph {
       .map(|m| {
         m.all_dependencies
           .iter()
-          .filter_map(|dep_id| self.connection_by_dependency_id(dep_id))
+          .filter_map(|dep_id| self.inner.connections.get(dep_id))
       })
       .into_iter()
       .flatten()
   }
 
+  #[inline]
   pub fn get_outgoing_deps_in_order(
     &self,
     module_identifier: &ModuleIdentifier,
@@ -811,12 +812,13 @@ impl ModuleGraph {
       .map(|m| {
         m.all_dependencies
           .iter()
-          .filter(|dep_id| self.connection_by_dependency_id(dep_id).is_some())
+          .filter(|dep_id| self.inner.connections.get(dep_id).is_some())
       })
       .into_iter()
       .flatten()
   }
 
+  #[inline]
   pub fn connection_by_dependency_id(
     &self,
     dependency_id: &DependencyId,
@@ -824,11 +826,10 @@ impl ModuleGraph {
     self.inner.connections.get(dependency_id)
   }
 
+  #[inline]
   pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
-    match self.connection_by_dependency_id(dependency_id) {
-      Some(connection) => Some(&connection.resolved_module),
-      None => None,
-    }
+    let connection = self.inner.connections.get(dependency_id)?;
+    Some(&connection.resolved_module)
   }
 
   pub fn connection_by_dependency_id_mut(
@@ -916,6 +917,7 @@ impl ModuleGraph {
     }
   }
 
+  #[inline]
   pub fn get_outgoing_connections(
     &self,
     module_id: &ModuleIdentifier,
@@ -926,12 +928,13 @@ impl ModuleGraph {
         mgm
           .outgoing_connections()
           .iter()
-          .filter_map(|id| self.connection_by_dependency_id(id))
+          .filter_map(|id| self.inner.connections.get(id))
       })
       .into_iter()
       .flatten()
   }
 
+  #[inline]
   pub fn get_incoming_connections(
     &self,
     module_id: &ModuleIdentifier,
@@ -942,7 +945,7 @@ impl ModuleGraph {
         mgm
           .incoming_connections()
           .iter()
-          .filter_map(|id| self.connection_by_dependency_id(id))
+          .filter_map(|id| self.inner.connections.get(id))
       })
       .into_iter()
       .flatten()

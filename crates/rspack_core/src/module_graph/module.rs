@@ -1,7 +1,6 @@
 use std::fmt;
 
 use rspack_cacheable::{cacheable, with::Skip};
-use rustc_hash::FxHashSet;
 
 use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
 
@@ -37,11 +36,12 @@ impl fmt::Display for OptimizationBailoutItem {
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
-  // edges from module to module
-  outgoing_connections: FxHashSet<DependencyId>,
+  // These adjacency lists are read far more often than they are mutated.
+  // Keeping them dense makes the module-graph traversal APIs cheaper to iterate.
+  outgoing_connections: Vec<DependencyId>,
   // incoming connections will regenerate by persistent cache recovery.
   #[cacheable(with=Skip)]
-  incoming_connections: FxHashSet<DependencyId>,
+  incoming_connections: Vec<DependencyId>,
 
   issuer: ModuleIssuer,
 
@@ -73,26 +73,42 @@ impl ModuleGraphModule {
   }
 
   pub fn add_incoming_connection(&mut self, dependency_id: DependencyId) {
-    self.incoming_connections.insert(dependency_id);
+    debug_assert!(!self.incoming_connections.contains(&dependency_id));
+    self.incoming_connections.push(dependency_id);
   }
 
   pub fn remove_incoming_connection(&mut self, dependency_id: &DependencyId) {
-    self.incoming_connections.remove(dependency_id);
+    if let Some(index) = self
+      .incoming_connections
+      .iter()
+      .position(|id| id == dependency_id)
+    {
+      self.incoming_connections.swap_remove(index);
+    }
   }
 
   pub fn add_outgoing_connection(&mut self, dependency_id: DependencyId) {
-    self.outgoing_connections.insert(dependency_id);
+    debug_assert!(!self.outgoing_connections.contains(&dependency_id));
+    self.outgoing_connections.push(dependency_id);
   }
 
   pub fn remove_outgoing_connection(&mut self, dependency_id: &DependencyId) {
-    self.outgoing_connections.remove(dependency_id);
+    if let Some(index) = self
+      .outgoing_connections
+      .iter()
+      .position(|id| id == dependency_id)
+    {
+      self.outgoing_connections.swap_remove(index);
+    }
   }
 
-  pub fn incoming_connections(&self) -> &FxHashSet<DependencyId> {
+  #[inline]
+  pub fn incoming_connections(&self) -> &Vec<DependencyId> {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &FxHashSet<DependencyId> {
+  #[inline]
+  pub fn outgoing_connections(&self) -> &Vec<DependencyId> {
     &self.outgoing_connections
   }
 
