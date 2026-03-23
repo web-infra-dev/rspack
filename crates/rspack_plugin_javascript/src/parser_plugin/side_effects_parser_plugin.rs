@@ -198,8 +198,11 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
         } else {
           // record all potential pure callee
           for (callee, span) in callees {
-            if let Some(deferred) = try_extract_deferred_check(parser, callee, span) {
-              parser.build_info.deferred_pure_checks.insert(deferred);
+            if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+              parser
+                .build_info
+                .deferred_pure_checks
+                .insert(deferred_check);
             } else {
               let range = DependencyRange::from(span);
               let loc = parser.to_dependency_location(range);
@@ -232,8 +235,11 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
           ));
         }
         for (callee, span) in callees {
-          if let Some(deferred) = try_extract_deferred_check(parser, callee, span) {
-            parser.build_info.deferred_pure_checks.insert(deferred);
+          if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+            parser
+              .build_info
+              .deferred_pure_checks
+              .insert(deferred_check);
           } else {
             let range = DependencyRange::from(span);
             let loc = parser.to_dependency_location(range);
@@ -279,7 +285,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
       if !not_defined.is_empty() {
         let resource = parser.resource_data.resource();
         parser.add_warning(
-          rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[{{index}}].sideEffectsFree`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
+          rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[*].sideEffectsFree`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
         );
       }
     }
@@ -707,8 +713,11 @@ impl SideEffectsParserPlugin {
 
     if parser.side_effects_item.is_none() {
       for (callee, span) in callees {
-        if let Some(deferred) = try_extract_deferred_check(parser, callee, span) {
-          parser.build_info.deferred_pure_checks.insert(deferred);
+        if let Some(deferred_check) = try_extract_deferred_check(parser, callee, span) {
+          parser
+            .build_info
+            .deferred_pure_checks
+            .insert(deferred_check);
         } else {
           let range = DependencyRange::from(span);
           let loc = parser.to_dependency_location(range);

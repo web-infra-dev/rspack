@@ -16,7 +16,7 @@ const foo10 = /*#__NO_SIDE_EFFECTS__*/ function* () { }
 
 export const foo14 = /*#__NO_SIDE_EFFECTS__*/ () => { }
 export const foo15 = /*#__NO_SIDE_EFFECTS__*/ function () { }
-export const foo16 = /*#__NO_SIDE_EFFECTS__*/ async () => { unreacheable() }
+export const foo16 = /*#__NO_SIDE_EFFECTS__*/ async () => { unreachable() }
 export const foo17 = /*#__NO_SIDE_EFFECTS__*/ async function () { }
 export const foo18 = /*#__NO_SIDE_EFFECTS__*/ function* () { }
 

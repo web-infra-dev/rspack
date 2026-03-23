@@ -24,7 +24,7 @@ use crate::{
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
 };
 
-pub static SIDE_EFFECTS_FLAG_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 1;
+pub static SIDE_EFFECTS_FLAG_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 10;
 
 #[derive(Clone, Debug)]
 enum SideEffects {

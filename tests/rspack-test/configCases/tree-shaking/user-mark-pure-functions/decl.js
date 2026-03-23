@@ -1,3 +1,3 @@
 export function pureFn() {
-  unreacheable()
+  unreachable()
 }
