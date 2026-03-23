@@ -129,7 +129,7 @@ fn parse_with_lexer(
     let (tokens, program_result, mut errors) = if with_tokens {
       // `source.len + 1` is an overestimation of the number of tokens.
       // It's wasteful and might be optimized in the future.
-      let lexer = Capturing::with_capacity(lexer, source_len + 1);
+      let lexer = Capturing::new(lexer);
       let mut parser = Parser::new_from(lexer);
       let program_result = match is_module {
         IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
