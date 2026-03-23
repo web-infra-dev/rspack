@@ -189,6 +189,7 @@ module.exports = [
 	rstestEntry("./doMock.js"),
 	rstestEntry("./mockFactory.js"),
 	rstestEntry("./manualMock.js"),
+	rstestEntry("./directoryManualMock.js"),
 	rstestEntry("./importActual.js"),
 	rstestEntry("./importActualHoisted.js"),
 	rstestEntry("./requireActual.js"),

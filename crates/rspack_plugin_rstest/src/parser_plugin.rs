@@ -1,4 +1,4 @@
-use camino::Utf8PathBuf;
+use camino::{Utf8Path, Utf8PathBuf};
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
 };
@@ -193,13 +193,20 @@ impl RstestParserPlugin {
     None
   }
 
-  fn calc_mocked_target(&self, value: &str) -> Utf8PathBuf {
+  fn calc_mocked_target(&self, value: &str, resource_path: Option<&Utf8Path>) -> Utf8PathBuf {
     // node:foo will be mocked to `__mocks__/foo`.
     let stripped = value.strip_prefix("node:").unwrap_or(value);
     let path_buf = Utf8PathBuf::from(stripped);
     let is_relative_request = stripped.starts_with('.'); // TODO: consider alias?
 
     if is_relative_request {
+      if let Some(resource_dir) = resource_path.and_then(Utf8Path::parent) {
+        let resolved_request = resource_dir.join(&path_buf);
+        if resolved_request.is_dir() {
+          return path_buf.join("__mocks__").join("index");
+        }
+      }
+
       // Mock relative request to alongside `__mocks__` directory.
       path_buf.parent().map_or_else(
         || Utf8PathBuf::from("__mocks__").join(&path_buf),
@@ -273,7 +280,11 @@ impl RstestParserPlugin {
             parser.handle_top_level_await();
           }
 
-          if let Some(mocked_target) = self.calc_mocked_target(&lit_str).as_std_path().to_str() {
+          if let Some(mocked_target) = self
+            .calc_mocked_target(&lit_str, parser.resource_data.path())
+            .as_std_path()
+            .to_str()
+          {
             let dep = MockModuleIdDependency::new(
               lit_str.clone(),
               first_arg.span().into(),
@@ -464,7 +475,7 @@ impl RstestParserPlugin {
         if let Some(lit) = first_arg.expr.as_lit() {
           if let Some(lit) = lit.as_str() {
             if let Some(mocked_target) = self
-              .calc_mocked_target(&lit.value.to_string_lossy())
+              .calc_mocked_target(&lit.value.to_string_lossy(), parser.resource_data.path())
               .as_std_path()
               .to_str()
             {
