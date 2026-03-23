@@ -416,8 +416,36 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
-
-    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32);
+    let is_js_auto = module_type.is_js_auto();
+    let is_js_esm = module_type.is_js_esm();
+    let is_js_dynamic = module_type.is_js_dynamic();
+    let has_esm_plugins = is_js_auto || is_js_esm;
+    let has_amd_plugins = compiler_options.amd.is_some() && (is_js_auto || is_js_dynamic);
+    let has_commonjs_plugins = is_js_auto || is_js_dynamic;
+    let commonjs_exports = javascript_options
+      .commonjs
+      .as_ref()
+      .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
+        commonjs.exports
+      });
+    let has_commonjs_exports_plugin =
+      has_commonjs_plugins && commonjs_exports != JavascriptParserCommonjsExportsOption::Disable;
+    let handle_cjs = has_commonjs_plugins && compiler_options.node.is_some();
+    let handle_esm = has_esm_plugins;
+    let has_node_stuff_plugin = handle_cjs || handle_esm;
+    let has_shared_js_plugins = is_js_auto || is_js_dynamic || is_js_esm;
+    let plugin_capacity = parser_plugins.len()
+      + 8
+      + usize::from(has_esm_plugins) * 6
+      + usize::from(has_amd_plugins) * 3
+      + usize::from(has_commonjs_plugins) * 2
+      + usize::from(has_commonjs_exports_plugin)
+      + usize::from(has_node_stuff_plugin)
+      + usize::from(has_shared_js_plugins) * 6
+      + usize::from(compiler_options.optimization.inline_exports)
+      + usize::from(compiler_options.optimization.inner_graph)
+      + usize::from(compiler_options.optimization.side_effects.is_true());
+    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(plugin_capacity);
 
     plugins.append(parser_plugins);
 
@@ -434,7 +462,7 @@ impl<'parser> JavascriptParser<'parser> {
     ));
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
-    if module_type.is_js_auto() || module_type.is_js_esm() {
+    if has_esm_plugins {
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
       plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
       plugins.push(Box::new(
@@ -455,7 +483,7 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
     }
 
-    if compiler_options.amd.is_some() && (module_type.is_js_auto() || module_type.is_js_dynamic()) {
+    if has_amd_plugins {
       plugins.push(Box::new(
         parser_plugin::AMDRequireDependenciesBlockParserPlugin,
       ));
@@ -463,15 +491,9 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::AMDParserPlugin));
     }
 
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    if has_commonjs_plugins {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
-      let commonjs_exports = javascript_options
-        .commonjs
-        .as_ref()
-        .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
-          commonjs.exports
-        });
       if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
         plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
           commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
@@ -481,16 +503,13 @@ impl<'parser> JavascriptParser<'parser> {
 
     // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
     // CJS features require node options; ESM features are always available for ESM-capable modules
-    let handle_cjs =
-      (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
-    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
     if handle_cjs || handle_esm {
       plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
         handle_cjs, handle_esm,
       )));
     }
 
-    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
+    if has_shared_js_plugins {
       plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
       plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
       plugins.push(Box::new(parser_plugin::APIPlugin::new(
