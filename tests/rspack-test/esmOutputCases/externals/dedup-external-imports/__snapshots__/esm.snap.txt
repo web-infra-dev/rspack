@@ -1,0 +1,27 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+import { readFile } from "fs";
+
+// fs?f137
+
+// ./lib.js
+
+
+// fs?303b
+
+// ./lib2.js
+
+
+
+// ./index.js
+
+
+
+it('should not have duplicate import identifiers', async () => {
+	expect(readFile).toBeDefined()
+	expect(__rspack_external_fs).toBeDefined()
+	expect(__rspack_external_fs.readFile).toBe(readFile)
+})
+
+
+```
