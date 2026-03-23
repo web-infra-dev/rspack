@@ -202,12 +202,13 @@ impl RstestParserPlugin {
     if is_relative_request {
       if let Some(resource_dir) = resource_path.and_then(Utf8Path::parent) {
         let resolved_request = resource_dir.join(&path_buf);
+        // `./foo` -> `./foo/index.*` should look for `./foo/__mocks__/index.*`.
         if resolved_request.is_dir() {
           return path_buf.join("__mocks__").join("index");
         }
       }
 
-      // Mock relative request to alongside `__mocks__` directory.
+      // For non-directory relative requests, keep using sibling `__mocks__`.
       path_buf.parent().map_or_else(
         || Utf8PathBuf::from("__mocks__").join(&path_buf),
         |p| {
