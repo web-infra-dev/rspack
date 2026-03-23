@@ -68,6 +68,12 @@ pub(crate) struct ExportsContext {
   re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
 }
 
+enum ExternalImportBinding {
+  Default,
+  Named(Atom),
+  Namespace,
+}
+
 impl EsmLibraryPlugin {
   fn strict_export_chunk(&self, chunk: ChunkUkey) -> bool {
     self.strict_export_chunks.borrow().contains(&chunk)
@@ -185,6 +191,38 @@ impl EsmLibraryPlugin {
       .entry(imported_name)
       .or_default()
       .insert(export_name);
+  }
+
+  fn get_external_import_binding(
+    info: &rspack_core::ConcatenatedModuleInfo,
+    local_name: &Atom,
+  ) -> Option<ExternalImportBinding> {
+    info.import_map.as_ref().and_then(|import_map| {
+      import_map.values().find_map(|imported_atoms| {
+        if imported_atoms
+          .namespace
+          .as_ref()
+          .is_some_and(|namespace| namespace == local_name)
+        {
+          return Some(ExternalImportBinding::Namespace);
+        }
+
+        imported_atoms.specifiers.iter().find_map(|imported_name| {
+          let internal_name = info
+            .get_internal_name(imported_name)
+            .unwrap_or(imported_name);
+          if internal_name != local_name {
+            return None;
+          }
+
+          Some(if imported_name == "default" {
+            ExternalImportBinding::Default
+          } else {
+            ExternalImportBinding::Named(imported_name.clone())
+          })
+        })
+      })
+    })
   }
 
   pub(crate) async fn link(
@@ -458,59 +496,93 @@ impl EsmLibraryPlugin {
                     .and_then(|m| m.as_external_module())
                   {
                     let request = ext.get_request().primary().to_string();
-                    let (raw_import_stmts, used_names) =
-                      (&mut chunk_link.raw_import_stmts, &mut chunk_link.used_names);
-                    let import_spec = raw_import_stmts
+                    let import_binding = concate_modules_map
+                      .get(&symbol_binding.module)
+                      .and_then(|target_info| match target_info {
+                        ModuleInfo::Concatenated(target_info) => {
+                          Self::get_external_import_binding(target_info, &symbol_binding.symbol)
+                            .or_else(|| {
+                              let namespace_object_name =
+                                target_info.namespace_object_name.as_ref();
+                              let default_import_name =
+                                target_info.get_internal_name(&DEFAULT_EXPORT);
+
+                              if namespace_object_name == Some(&symbol_binding.symbol) {
+                                Some(ExternalImportBinding::Namespace)
+                              } else if default_import_name == Some(&symbol_binding.symbol) {
+                                Some(ExternalImportBinding::Default)
+                              } else {
+                                None
+                              }
+                            })
+                        }
+                        ModuleInfo::External(_) => None,
+                      })
+                      .unwrap_or_else(|| {
+                        export_info.name().map_or_else(
+                          || ExternalImportBinding::Named(symbol_binding.symbol.clone()),
+                          |imported_name| {
+                            if imported_name == "default" {
+                              ExternalImportBinding::Default
+                            } else {
+                              ExternalImportBinding::Named(imported_name.clone())
+                            }
+                          },
+                        )
+                      });
+                    let import_spec = chunk_link
+                      .raw_import_stmts
                       .entry(RawImportSource::Source((request, None)))
                       .or_default();
-                    let (namespace_object_name, default_import_name) = match target_info {
-                      Some(ModuleInfo::Concatenated(concatenated_info)) => (
-                        concatenated_info.namespace_object_name.as_ref(),
-                        concatenated_info.get_internal_name(&DEFAULT_EXPORT),
-                      ),
-                      _ => (None, None),
+
+                    let existing_local = match &import_binding {
+                      ExternalImportBinding::Default => import_spec.default_import.as_ref(),
+                      ExternalImportBinding::Named(imported_name) => {
+                        import_spec.atoms.get(imported_name)
+                      }
+                      ExternalImportBinding::Namespace => import_spec.ns_import.as_ref(),
                     };
 
-                    if namespace_object_name == Some(&symbol_binding.symbol) {
-                      let local = import_spec.ns_import.get_or_insert_with(|| {
-                        if used_names.contains(&symbol_binding.symbol) {
-                          let new_name = find_new_name(&symbol_binding.symbol, used_names, &[]);
-                          used_names.insert(new_name.clone());
-                          new_name
-                        } else {
-                          used_names.insert(symbol_binding.symbol.clone());
-                          symbol_binding.symbol.clone()
-                        }
-                      });
-                      symbol_binding.symbol = local.clone();
-                    } else if default_import_name == Some(&symbol_binding.symbol) {
-                      let local = import_spec.default_import.get_or_insert_with(|| {
-                        if used_names.contains(&symbol_binding.symbol) {
-                          let new_name = find_new_name(&symbol_binding.symbol, used_names, &[]);
-                          used_names.insert(new_name.clone());
-                          new_name
-                        } else {
-                          used_names.insert(symbol_binding.symbol.clone());
-                          symbol_binding.symbol.clone()
-                        }
-                      });
-                      symbol_binding.symbol = local.clone();
-                    } else if let Some(local) = import_spec.atoms.get(&symbol_binding.symbol) {
-                      symbol_binding.symbol = local.clone();
+                    if let Some(existing_local) = existing_local {
+                      symbol_binding.symbol = existing_local.clone();
                     } else {
-                      let local = if used_names.contains(&symbol_binding.symbol) {
-                        let new_name = find_new_name(&symbol_binding.symbol, used_names, &[]);
-                        used_names.insert(new_name.clone());
+                      let already_bound = import_spec
+                        .default_import
+                        .as_ref()
+                        .is_some_and(|atom| atom == &symbol_binding.symbol)
+                        || import_spec
+                          .ns_import
+                          .as_ref()
+                          .is_some_and(|atom| atom == &symbol_binding.symbol)
+                        || import_spec
+                          .atoms
+                          .values()
+                          .any(|atom| atom == &symbol_binding.symbol);
+
+                      let local_name = if already_bound {
+                        let new_name = find_new_name(
+                          symbol_binding.symbol.as_str(),
+                          &chunk_link.used_names,
+                          &[],
+                        );
+                        chunk_link.used_names.insert(new_name.clone());
                         new_name
                       } else {
-                        used_names.insert(symbol_binding.symbol.clone());
                         symbol_binding.symbol.clone()
                       };
-                      import_spec
-                        .atoms
-                        .entry(symbol_binding.symbol.clone())
-                        .or_insert_with(|| local.clone());
-                      symbol_binding.symbol = local;
+
+                      match import_binding {
+                        ExternalImportBinding::Default => {
+                          import_spec.default_import = Some(local_name.clone());
+                        }
+                        ExternalImportBinding::Named(imported_name) => {
+                          import_spec.atoms.insert(imported_name, local_name.clone());
+                        }
+                        ExternalImportBinding::Namespace => {
+                          import_spec.ns_import = Some(local_name.clone());
+                        }
+                      }
+                      symbol_binding.symbol = local_name;
                     }
                   }
                 }
@@ -1739,6 +1811,95 @@ var {} = {{}};
           link,
           needed_namespace,
           entry_imports,
+          &mut exports,
+          escaped_identifiers,
+          false,
+          false,
+          &mut re_export_star_cache,
+        ));
+      }
+    }
+
+    if let Some(root) = &self.preserve_modules {
+      let preserve_entry_modules = compilation
+        .entries
+        .values()
+        .flat_map(|entry| entry.all_dependencies())
+        .chain(compilation.global_entry.all_dependencies())
+        .filter_map(|dep_id| module_graph.module_identifier_by_dependency_id(dep_id))
+        .copied()
+        .collect::<FxHashSet<_>>();
+
+      let mut preserve_modules = module_graph.modules_keys().copied().collect::<Vec<_>>();
+      preserve_modules.sort_unstable();
+
+      for module_id in preserve_modules {
+        if preserve_entry_modules.contains(&module_id) {
+          continue;
+        }
+
+        if compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(module_id)
+          .is_empty()
+          || compilation
+            .code_generation_results
+            .get_one(&module_id)
+            .get(&SourceType::JavaScript)
+            .is_none()
+        {
+          continue;
+        }
+
+        let Some(normal_module) = module_graph
+          .module_by_identifier(&module_id)
+          .expect("should have module")
+          .as_normal_module()
+        else {
+          continue;
+        };
+
+        let Some(abs_path) = normal_module
+          .resource_resolved_data()
+          .path()
+          .map(|p| p.as_std_path())
+        else {
+          continue;
+        };
+
+        if !abs_path.starts_with(root) {
+          continue;
+        }
+
+        let module_chunk = match Self::get_module_chunk(module_id, compilation) {
+          Ok(c) => c,
+          Err(e) => {
+            errors.push(e.into());
+            continue;
+          }
+        };
+
+        let needed_namespace = needed_namespace_objects_by_ukey
+          .entry(module_chunk)
+          .or_default();
+        let module_imports = imports
+          .get_mut(&module_chunk)
+          .unwrap_or_else(|| panic!("should set imports for chunk {module_chunk:?}"));
+        module_imports.entry(module_id).or_default();
+
+        let required = required.entry(module_chunk).or_default();
+
+        errors.extend(self.link_entry_module_exports(
+          module_id,
+          module_chunk,
+          module_chunk,
+          compilation,
+          concate_modules_map,
+          required,
+          link,
+          needed_namespace,
+          module_imports,
           &mut exports,
           escaped_identifiers,
           false,

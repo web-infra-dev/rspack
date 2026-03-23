@@ -25,7 +25,7 @@ const { /* CheckVersionMap */J: CheckVersionMap } = types_namespaceObject;
 
 const value = CheckVersionMap.major;
 
-export { duplicate_package_namespaceObject as duplicatePackage };
+export { duplicate_package_namespaceObject as duplicatePackage, value };
 
 ```
 
@@ -43,7 +43,7 @@ const CheckVersionMap = {
 	major: 1
 };
 
-export { types_namespaceObject };
+export { CheckVersionMap, types_namespaceObject };
 
 ```
 
