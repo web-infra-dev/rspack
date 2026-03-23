@@ -8,6 +8,7 @@ use std::{
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
+use itertools::Itertools;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
@@ -534,9 +535,29 @@ impl SourceMapDevToolPlugin {
   ) -> Result<()> {
     let output_options = &compilation.options.output;
     let mut used_names_set = HashSet::<&String>::default();
-    for (source_reference, (source_name, unresolved_source_map_path)) in
+
+    // Sort source references by identifier length so the shorter canonical resource wins first.
+    // A CSS file can appear twice in the same source map: once as the extracted CSS module and
+    // once as a longer loader-chain virtual module like
+    // `cssExtractLoader.js!css-loader!...!style.css`. Both can resolve to the same default source
+    // name, so the shorter entry should claim it first and force the longer virtual module to use
+    // the fallback template instead.
+    let sorted_iter =
       reference_to_source_name_mapping
-    {
+        .iter_mut()
+        .sorted_by(|(key_a, _), (key_b, _)| {
+          let ident_a = match key_a {
+            SourceReference::Module(identifier) => identifier.as_str(),
+            SourceReference::Source(source) => source.as_ref(),
+          };
+          let ident_b = match key_b {
+            SourceReference::Module(identifier) => identifier.as_str(),
+            SourceReference::Source(source) => source.as_ref(),
+          };
+          ident_a.len().cmp(&ident_b.len())
+        });
+
+    for (source_reference, (source_name, unresolved_source_map_path)) in sorted_iter {
       let mut has_name = used_names_set.contains(source_name);
       if !has_name {
         used_names_set.insert(source_name);

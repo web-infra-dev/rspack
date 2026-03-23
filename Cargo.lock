@@ -4419,6 +4419,7 @@ dependencies = [
  "cow-utils",
  "derive_more",
  "futures",
+ "itertools 0.14.0",
  "memchr",
  "regex",
  "rspack_collections",
