@@ -1,11 +1,16 @@
-const { foo: hoistedFoo } = require('./src/barrel')
-
 rs.mockRequire('./src/foo')
+rs.mockRequire('./src/bar')
+rs.unmockRequire('./src/foo')
+
+const { foo: hoistedFoo, bar: hoistedBar } = require('./src/barrel')
 
 it('unmockRequire should be hoisted', () => {
 	expect(hoistedFoo).toBe('foo')
-	rs.unmockRequire('./src/foo')
 	expect(require('./src/foo').value).toBe('foo')
+})
+
+it('unmockRequire should preserve source order with other hoisted requests', () => {
+	expect(hoistedBar).toBe('mocked_bar_with_mocked_foo')
 })
 
 it('doUnmockRequire should work', () => {

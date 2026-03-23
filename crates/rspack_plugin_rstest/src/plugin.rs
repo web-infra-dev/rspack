@@ -21,7 +21,7 @@ use rspack_plugin_javascript::{
 use rustc_hash::FxHashMap as HashMap;
 
 static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
+  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):([^:]+):(.*?) \*\/")
     .expect("should initialize rstest flag regex")
 });
 
@@ -67,34 +67,36 @@ impl RstestPlugin {
 
   fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {
     let old_source = old.clone();
-    let old_content = old.source().into_string_lossy();
     let mut replace = ReplaceSource::new(old_source);
 
-    for (mocked_id, pos) in replace_map {
+    for pos in replace_map.values() {
       if let (Some(placeholder_start), Some(placeholder_end)) =
         (pos.placeholder_start, pos.placeholder_end)
+        && let (
+          Some(content_start),
+          Some(content_end),
+          Some(content_with_flag_start),
+          Some(content_with_flag_end),
+        ) = (
+          pos.content_start,
+          pos.content_end,
+          pos.content_with_flag_start,
+          pos.content_with_flag_end,
+        )
       {
-        let content = pos
-          .hoist_blocks
-          .iter()
-          .map(|block| &old_content[block.content_start..block.content_end])
-          .collect::<Vec<_>>()
-          .join(";\n");
+        let content = &old.source().into_string_lossy()[content_start..content_end];
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon
-          format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
+          format! {"// [Rstest mock hoist] \"{}\"\n{content};\n\n", pos.request},
           None,
         );
-
-        for block in &pos.hoist_blocks {
-          replace.replace_static(
-            block.content_with_flag_start as u32,
-            block.content_with_flag_end as u32,
-            "",
-            None,
-          );
-        }
+        replace.replace_static(
+          content_with_flag_start as u32,
+          content_with_flag_end as u32,
+          "",
+          None,
+        );
       }
     }
 
@@ -184,17 +186,13 @@ async fn compilation_stage_9999(
   Ok(())
 }
 
-#[derive(Debug)]
-struct MockHoistBlock {
-  content_start: usize,
-  content_with_flag_start: usize,
-  content_end: usize,
-  content_with_flag_end: usize,
-}
-
 #[derive(Debug, Default)]
 struct MockFlagPos {
-  hoist_blocks: Vec<MockHoistBlock>,
+  request: String,
+  content_start: Option<usize>,
+  content_with_flag_start: Option<usize>,
+  content_end: Option<usize>,
+  content_with_flag_end: Option<usize>,
   placeholder_start: Option<usize>,
   placeholder_end: Option<usize>,
 }
@@ -215,7 +213,6 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
 
   for file in files {
     let mut pos_map: HashMap<String, MockFlagPos> = HashMap::default();
-    let mut pending_hoist_map: HashMap<String, Vec<(usize, usize)>> = HashMap::default();
     let _res = compilation.update_asset(file.as_str(), |old, info| {
       // Only handles JavaScript.
       if info.javascript_module.is_none() {
@@ -226,29 +223,21 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       let captures: Vec<_> = RSTEST_FLAG_RE.captures_iter(&content).collect();
 
       for c in captures {
-        let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(2), c.get(3)] else {
+        let [Some(full), Some(t), Some(hoist_id), Some(request)] =
+          [c.get(0), c.get(2), c.get(3), c.get(4)]
+        else {
           continue;
         };
 
-        let entry = pos_map.entry(request.as_str().to_string()).or_default();
+        let entry = pos_map.entry(hoist_id.as_str().to_string()).or_default();
+        entry.request = request.as_str().to_string();
 
         if t.as_str() == "HOIST_START" {
-          pending_hoist_map
-            .entry(request.as_str().to_string())
-            .or_default()
-            .push((full.start(), full.end()));
+          entry.content_with_flag_start = Some(full.start());
+          entry.content_start = Some(full.end());
         } else if t.as_str() == "HOIST_END" {
-          if let Some((content_with_flag_start, content_start)) = pending_hoist_map
-            .get_mut(request.as_str())
-            .and_then(|pending| pending.pop())
-          {
-            entry.hoist_blocks.push(MockHoistBlock {
-              content_start,
-              content_with_flag_start,
-              content_end: full.start(),
-              content_with_flag_end: full.end(),
-            });
-          }
+          entry.content_with_flag_end = Some(full.end());
+          entry.content_end = Some(full.start());
         } else if t.as_str() == "PLACEHOLDER" {
           entry.placeholder_start = Some(full.start());
           entry.placeholder_end = Some(full.end());
