@@ -150,6 +150,10 @@ impl JavascriptParserPluginHooks {
     Self(0)
   }
 
+  pub const fn from_bits(bits: u64) -> Self {
+    Self(bits & JavascriptParserPluginHook::VALID_MASK)
+  }
+
   pub const fn all() -> Self {
     Self(JavascriptParserPluginHook::VALID_MASK)
   }

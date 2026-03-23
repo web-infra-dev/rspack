@@ -58,16 +58,15 @@ fn expand_impl(input: &mut ItemImpl) -> Result<()> {
     hook_variants.push(hook_variant_ident(&func.sig.ident)?);
   }
 
-  let body = if let Some(first) = hook_variants.first() {
-    let rest = &hook_variants[1..];
+  let body = if hook_variants.is_empty() {
     quote! {
       ::rspack_plugin_javascript::JavascriptParserPluginHooks::empty()
-        .with(::rspack_plugin_javascript::JavascriptParserPluginHook::#first)
-        #(.with(::rspack_plugin_javascript::JavascriptParserPluginHook::#rest))*
     }
   } else {
     quote! {
-      ::rspack_plugin_javascript::JavascriptParserPluginHooks::empty()
+      ::rspack_plugin_javascript::JavascriptParserPluginHooks::from_bits(
+        0 #( | ::rspack_plugin_javascript::JavascriptParserPluginHook::#hook_variants.mask())*
+      )
     }
   };
 

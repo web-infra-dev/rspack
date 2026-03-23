@@ -26,10 +26,14 @@ pub struct JavaScriptParserPluginDrive {
 
 impl JavaScriptParserPluginDrive {
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+    let plugin_hooks = plugins
+      .iter()
+      .map(|plugin| plugin.implemented_hooks())
+      .collect::<Vec<_>>();
     let mut hook_counts = [0usize; JavascriptParserPluginHook::COUNT];
 
-    for plugin in &plugins {
-      for hook in plugin.implemented_hooks().iter() {
+    for hooks in &plugin_hooks {
+      for hook in hooks.iter() {
         hook_counts[hook as usize] += 1;
       }
     }
@@ -37,8 +41,8 @@ impl JavaScriptParserPluginDrive {
     let mut plugins_by_hook: [SmallVec<[u32; 2]>; JavascriptParserPluginHook::COUNT] =
       std::array::from_fn(|idx| SmallVec::with_capacity(hook_counts[idx]));
 
-    for (idx, plugin) in plugins.iter().enumerate() {
-      for hook in plugin.implemented_hooks().iter() {
+    for (idx, hooks) in plugin_hooks.iter().copied().enumerate() {
+      for hook in hooks.iter() {
         plugins_by_hook[hook as usize].push(idx as u32);
       }
     }
