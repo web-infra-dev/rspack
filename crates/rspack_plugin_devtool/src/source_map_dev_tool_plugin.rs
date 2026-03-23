@@ -534,7 +534,10 @@ impl SourceMapDevToolPlugin {
     >,
   ) -> Result<()> {
     let output_options = &compilation.options.output;
-    let mut used_names_set = HashSet::<&String>::default();
+    let mut used_names_set = HashSet::<&String>::with_capacity_and_hasher(
+      reference_to_source_name_mapping.len(),
+      Default::default(),
+    );
 
     // Sort source references by identifier length so the shorter canonical resource wins first.
     // A CSS file can appear twice in the same source map: once as the extracted CSS module and
