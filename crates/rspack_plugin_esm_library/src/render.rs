@@ -3,9 +3,10 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
-  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
-  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
+  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, InitFragmentKey,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_imports,
+  render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -547,6 +548,49 @@ var {} = {{}};
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
       import_source.add(RawStringSource::from_static("\n"));
+    }
+
+    // Deduplicate: remove init fragments for external modules whose namespace
+    // import is already provided by raw_import_stmts.
+    // This prevents duplicate `import * as X from "source"` when the same external
+    // module is referenced by both scope-hoisted and non-scope-hoisted modules.
+    // We only drop the fragment when raw_import_stmts already includes a namespace
+    // import (`ns_import`) for the same source+attributes, because a namespace
+    // binding (`__rspack_external_<id>`) is what the non-scope-hoisted module body
+    // references. Named-only imports would not provide that binding.
+    {
+      let ns_import_sources: FxHashSet<String> = chunk_link
+        .raw_import_stmts
+        .iter()
+        .filter_map(|(source, spec)| {
+          spec.ns_import.as_ref()?;
+          match source {
+            RawImportSource::Source((s, attr)) => {
+              // Reconstruct the key format used by module_external_fragment_key:
+              // "source" or "source|json_attrs"
+              let key = if let Some(attr_str) = attr {
+                // attr_str has format " with {json}" - strip the " with " prefix
+                let json_part = attr_str.strip_prefix(" with ").unwrap_or(attr_str);
+                format!("{s}|{json_part}")
+              } else {
+                s.clone()
+              };
+              Some(key)
+            }
+            _ => None,
+          }
+        })
+        .collect();
+
+      if !ns_import_sources.is_empty() {
+        chunk_init_fragments.retain(|frag| {
+          if let InitFragmentKey::ModuleExternal(key) = frag.key() {
+            !ns_import_sources.contains(key)
+          } else {
+            true
+          }
+        });
+      }
     }
 
     // render init fragments
