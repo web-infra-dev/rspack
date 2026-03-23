@@ -68,6 +68,11 @@ pub enum JavascriptParserPluginHook {
 
 impl JavascriptParserPluginHook {
   pub const COUNT: usize = Self::ImportMetaPropertyInDestructuring as usize + 1;
+  const VALID_MASK: u64 = if Self::COUNT == 64 {
+    u64::MAX
+  } else {
+    (1u64 << Self::COUNT) - 1
+  };
 
   pub const ALL: [Self; Self::COUNT] = [
     Self::PreStatement,
@@ -138,13 +143,15 @@ const _: () = assert!(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct JavascriptParserPluginHooks(u64);
 
+pub struct JavascriptParserPluginHooksIter(u64);
+
 impl JavascriptParserPluginHooks {
   pub const fn empty() -> Self {
     Self(0)
   }
 
   pub const fn all() -> Self {
-    Self(u64::MAX)
+    Self(JavascriptParserPluginHook::VALID_MASK)
   }
 
   pub const fn contains(self, hook: JavascriptParserPluginHook) -> bool {
@@ -153,6 +160,24 @@ impl JavascriptParserPluginHooks {
 
   pub const fn with(self, hook: JavascriptParserPluginHook) -> Self {
     Self(self.0 | hook.mask())
+  }
+
+  pub fn iter(self) -> JavascriptParserPluginHooksIter {
+    JavascriptParserPluginHooksIter(self.0)
+  }
+}
+
+impl Iterator for JavascriptParserPluginHooksIter {
+  type Item = JavascriptParserPluginHook;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.0 == 0 {
+      return None;
+    }
+
+    let idx = self.0.trailing_zeros() as usize;
+    self.0 &= self.0 - 1;
+    Some(JavascriptParserPluginHook::ALL[idx])
   }
 }
 

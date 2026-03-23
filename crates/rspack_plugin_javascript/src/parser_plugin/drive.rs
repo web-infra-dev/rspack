@@ -29,11 +29,8 @@ impl JavaScriptParserPluginDrive {
     let mut plugins_by_hook = std::array::from_fn(|_| SmallVec::new());
 
     for (idx, plugin) in plugins.iter().enumerate() {
-      let implemented_hooks = plugin.implemented_hooks();
-      for hook in JavascriptParserPluginHook::ALL {
-        if implemented_hooks.contains(hook) {
-          plugins_by_hook[hook as usize].push(idx as u32);
-        }
+      for hook in plugin.implemented_hooks().iter() {
+        plugins_by_hook[hook as usize].push(idx as u32);
       }
     }
 
