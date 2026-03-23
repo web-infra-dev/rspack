@@ -206,57 +206,61 @@ async fn finish_modules(
         return None;
       }
 
-      // check if all deferred pure checks are pure
-      let issue_check = build_info.deferred_pure_checks.iter().find(|needs_check| {
-        // find the ref target
-        let Some(ref_module) = module_graph.module_identifier_by_dependency_id(&needs_check.dep_id)
-        else {
-          return true;
-        };
+      // find the first deferred pure check that resolves to an impure target
+      let impure_check = build_info
+        .deferred_pure_checks
+        .iter()
+        .find(|deferred_check| {
+          // find the ref target
+          let Some(ref_module) =
+            module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
+          else {
+            return true;
+          };
 
-        let target_exports_info = exports_info_artifact
-          .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
-        let target_export_info =
-          target_exports_info.get_export_info_without_mut_module_graph(&needs_check.atom);
+          let target_exports_info = exports_info_artifact
+            .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+          let target_export_info =
+            target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
 
-        let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
-          &target_export_info,
-          module_graph,
-          exports_info_artifact,
-          Rc::new(|_| true),
-          &mut Default::default(),
-        ) && let Some(export) = &target.export
-          && let Some(atom) = export.first()
-        {
-          (target.module, atom.clone())
-        } else {
-          (*ref_module, needs_check.atom.clone())
-        };
+          let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
+            &target_export_info,
+            module_graph,
+            exports_info_artifact,
+            Rc::new(|_| true),
+            &mut Default::default(),
+          ) && let Some(export) = &target.export
+            && let Some(atom) = export.first()
+          {
+            (target.module, atom.clone())
+          } else {
+            (*ref_module, deferred_check.atom.clone())
+          };
 
-        let ref_module = module_graph
-          .module_by_identifier(&ref_module_id)
-          .expect("should have module");
+          let ref_module = module_graph
+            .module_by_identifier(&ref_module_id)
+            .expect("should have module");
 
-        let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
-          return true;
-        };
-        !side_effects_free.contains(&atom)
-      });
+          let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
+            return true;
+          };
+          !side_effects_free.contains(&atom)
+        });
 
-      if let Some(issue_check) = issue_check {
+      if let Some(impure_check) = impure_check {
         let short_id = module.readable_identifier(&compilation.options.context);
         let source = module
           .source()
           .map(|source| source.source().into_string_lossy().to_string());
         let msg = source.as_deref().map(|s| {
           // Calculate line:column from byte offset
-          let start = issue_check.start as usize;
+          let start = impure_check.start as usize;
           let before = &s[..start.min(s.len())];
           let line = before.chars().filter(|c| *c == '\n').count() + 1;
           let col = before.len() - before.rfind('\n').map_or(0, |p| p + 1);
           format!("{line}:{col}")
         });
-        let atom = &issue_check.atom;
+        let atom = &impure_check.atom;
 
         let reason = format!(
           "Call `{atom}` with side_effects in source code at {short_id}{}",
