@@ -637,6 +637,16 @@ impl RstestParserPlugin {
         self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
         Some(true)
       }
+      // rs.unmockRequire
+      ("rs" | "rstest", "unmockRequire") => {
+        self.process_mock(parser, call_expr, true, false, MockMethod::Unmock, false);
+        Some(true)
+      }
+      // rs.doUnmockRequire
+      ("rs" | "rstest", "doUnmockRequire") => {
+        self.process_mock(parser, call_expr, false, false, MockMethod::Unmock, false);
+        Some(true)
+      }
       // rs.resetModules
       ("rs" | "rstest", "resetModules") => self.reset_modules(parser, call_expr),
       // rs.hoisted
@@ -715,6 +725,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     _import_then: Option<&CallExpr>,
+    _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {

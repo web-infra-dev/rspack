@@ -530,6 +530,7 @@ export declare enum BuiltinPluginName {
   DynamicEntryPlugin = 'DynamicEntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
   NodeTargetPlugin = 'NodeTargetPlugin',
+  EsmNodeTargetPlugin = 'EsmNodeTargetPlugin',
   ElectronTargetPlugin = 'ElectronTargetPlugin',
   EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
   EnableLibraryPlugin = 'EnableLibraryPlugin',
@@ -1171,6 +1172,7 @@ export interface JsRsdoctorModule {
   issuerPath: Array<number>
   bailoutReason: Array<string>
   sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
+  exportsType: string
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1772,12 +1774,6 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
-  /**
-   * Path to PnP manifest file
-   *
-   * Default `None`
-   */
-  pnpManifest?: string | false
 }
 
 export interface NativeWatcherOptions {
@@ -2191,6 +2187,12 @@ export interface RawDraft {
 export interface RawDynamicEntryPluginOptions {
   context: string
   entry: () => Promise<RawEntryDynamicResult[]>
+}
+
+export interface RawEnableLibraryPluginOptions {
+  libraryType: string
+  preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
 }
 
 export interface RawEntryDynamicResult {
@@ -2834,7 +2836,6 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
-  pnpManifest?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2862,7 +2863,6 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
-  pnpManifest?: string | false
 }
 
 export interface RawResolveTsconfigOptions {
@@ -2888,6 +2888,11 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   forceNodeShims?: boolean
+  /**
+   * Externalize Node.js builtin modules with ESM-aware external types
+   * @default `false`
+   */
+  externalEsmNodeBuiltin?: boolean
 }
 
 export interface RawRstestPluginOptions {
@@ -3050,8 +3055,7 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
-/**
- * this is a process level tracing, which means it would be shared by all compilers in the same process
+/** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58

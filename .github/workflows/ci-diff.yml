@@ -44,7 +44,6 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: false
       bench: false
-      prefer_docker: false
       ref: ${{ github.event.pull_request.head.sha }}
 
   diff-projects:

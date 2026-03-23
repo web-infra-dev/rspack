@@ -1,0 +1,85 @@
+```mjs title=main.mjs
+// ./index.js
+it("should avoid namespace and named binding collisions for duplicate externals", async () => {
+	const modA = await import("./shared.mjs").then(m => m.a_namespaceObject);
+	const modB = await import("./shared.mjs").then(m => m.b_namespaceObject);
+
+	expect(modA.resolve).toBeDefined();
+	expect(typeof modA.resolve.join).toBe("function");
+	expect(modA.resolve.resolve).toBe(modB.resolve);
+	expect(modB.marker).toBe("b");
+});
+
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=shared.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import * as __rspack_external_path from "path";
+import { resolve } from "path";
+
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__webpack_require__.r(a_namespaceObject);
+__webpack_require__.d(a_namespaceObject, { 
+  resolve: () => (__rspack_external_path) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__webpack_require__.r(b_namespaceObject);
+__webpack_require__.d(b_namespaceObject, { 
+  marker: () => (marker),
+  resolve: () => (resolve) });
+
+
+// path?2d49
+
+// ./a.js
+
+
+
+
+// path?2b46
+
+// ./b.js
+
+
+const marker = "b";
+
+export { a_namespaceObject, b_namespaceObject };
+
+```

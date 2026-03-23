@@ -1,7 +1,6 @@
 use std::sync::Mutex;
 
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::oneshot::{Receiver, channel};
 
 use crate::{Result, Storage};
 
@@ -38,10 +37,13 @@ impl Storage for MemoryStorage {
     map.get_mut(scope).map(|map| map.remove(key));
   }
 
-  fn trigger_save(&self) -> Result<Receiver<Result<()>>> {
-    let (rs, rx) = channel::<Result<()>>();
-    let _ = rs.send(Ok(()));
-    Ok(rx)
+  async fn save(&self) -> Result<()> {
+    // MemoryStorage holds all data in memory; nothing to persist
+    Ok(())
+  }
+
+  async fn flush(&self) {
+    // MemoryStorage has no background tasks; nothing to flush
   }
 
   async fn reset(&self) {

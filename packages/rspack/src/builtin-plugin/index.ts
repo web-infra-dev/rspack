@@ -28,6 +28,7 @@ export * from './EnableWasmLoadingPlugin';
 export * from './EnsureChunkConditionsPlugin';
 export * from './EntryPlugin';
 export * from './EsmLibraryPlugin';
+export * from './EsmNodeTargetPlugin';
 export * from './EvalDevToolModulePlugin';
 export * from './EvalSourceMapDevToolPlugin';
 export * from './ExternalsPlugin';

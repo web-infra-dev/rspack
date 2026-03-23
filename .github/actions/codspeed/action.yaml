@@ -81,12 +81,12 @@ runs:
         # Validate required inputs
         # (custom message for smoother v4 migration)
         if [ -z "${{ inputs.mode }}" ]; then
-          echo "::error title=Missing required input 'mode'::The 'mode' input is required as of CodSpeed Action v4. Please explicitly set 'mode' to 'simulation' or 'walltime'. Before, this variable was automatically set to instrumentation on every runner except for CodSpeed macro runners where it was set to walltime by default. See https://codspeed.io/docs/instruments for details."
+          echo "::error title=Missing required input 'mode'::The 'mode' input is required as of CodSpeed Action v4. Please explicitly set 'mode' to 'simulation', 'walltime', or 'memory'. Before, this variable was automatically set to instrumentation on every runner except for CodSpeed macro runners where it was set to walltime by default. See https://codspeed.io/docs/instruments for details."
           exit 1
         fi
 
         # We can use official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
-        cargo install --git https://github.com/CPunisher/runner.git --rev 9c1ca5aa4742b8524843c0ac3e417c6ecb91b1bd codspeed-runner
+        cargo install --force --git https://github.com/CPunisher/runner.git --rev c9c78a30e08fe1df68f743ae9017273397a866a2 codspeed-runner
 
         # Get the runner arguments
         RUNNER_ARGS=""

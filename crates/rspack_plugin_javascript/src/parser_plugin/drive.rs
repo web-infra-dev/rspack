@@ -683,10 +683,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     parser: &mut JavascriptParser,
     expr: &CallExpr,
     import_then: Option<&CallExpr>,
+    members: Option<(&[Atom], bool /* is_call */)>,
   ) -> Option<bool> {
     assert!(expr.callee.is_import());
     for plugin in self.plugins_for(JavascriptParserPluginHook::ImportCall) {
-      let res = plugin.import_call(parser, expr, import_then);
+      let res = plugin.import_call(parser, expr, import_then, members);
       // `SyncBailHook`
       if res.is_some() {
         return res;

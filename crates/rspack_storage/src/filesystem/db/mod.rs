@@ -6,10 +6,7 @@ use std::{collections::hash_map::Entry, sync::Arc};
 
 use futures::future::try_join_all;
 use rustc_hash::FxHashMap as HashMap;
-use tokio::sync::{
-  Mutex,
-  oneshot::{Receiver, channel},
-};
+use tokio::sync::Mutex;
 
 use self::{bucket::Bucket, task_queue::TaskQueue, transaction::Transaction};
 use super::ScopeFileSystem;
@@ -82,17 +79,15 @@ impl DB {
     bucket.load_all().await
   }
 
-  /// Saves changes to multiple buckets atomically using a two-phase commit.
+  /// Enqueues changes to multiple buckets for atomic persistence using a two-phase commit.
   ///
   /// Changes are grouped by bucket name. For each key-value pair:
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
-  /// Updates the database metadata with current save time.
-  /// Returns a channel receiver that will report the save result asynchronously.
-  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) -> Result<Receiver<Result<()>>> {
-    let (tx, rx) = channel();
-
+  /// The write is performed asynchronously by the background [`TaskQueue`] worker.
+  /// Call [`DB::flush`] to wait until the enqueued write has completed.
+  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) {
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
 
@@ -103,30 +98,37 @@ impl DB {
         // Acquire write lock for the entire commit operation
         let mut buckets = buckets.lock().await;
 
-        let mut pending_buckets = Vec::with_capacity(changes.len());
-        for (bucket_name, bucket_changes) in changes {
-          let bucket = if let Some(bucket) = buckets.remove(&bucket_name) {
-            bucket
-          } else {
-            let fs = transaction.readable_fs().child_fs(&bucket_name);
-            Bucket::new(fs).await?
-          };
-          pending_buckets.push((bucket_name, bucket, bucket_changes));
-        }
+        // Separate cached buckets from those that need initialization,
+        // so both Bucket::new and bucket.save can run in parallel.
+        let pending_buckets: Vec<_> = changes
+          .into_iter()
+          .map(|(bucket_name, bucket_changes)| {
+            let cached = buckets.remove(&bucket_name);
+            (bucket_name, cached, bucket_changes)
+          })
+          .collect();
 
         let results = try_join_all(pending_buckets.into_iter().map(
-          |(bucket_name, mut bucket, changes)| {
-            // Apply changes and collect file operations
+          |(bucket_name, cached_bucket, changes)| {
+            let readable_fs = transaction.readable_fs().child_fs(&bucket_name);
             let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
-            async move {
+            tokio::spawn(async move {
+              // Initialize bucket if not already cached (runs in parallel across buckets)
+              let mut bucket = if let Some(bucket) = cached_bucket {
+                bucket
+              } else {
+                Bucket::new(readable_fs).await?
+              };
               let affacted_files = bucket
                 .save(Some(writable_fs), changes, max_pack_size)
                 .await?;
               Ok::<_, Error>((bucket_name, bucket, affacted_files))
-            }
+            })
           },
         ))
-        .await?;
+        .await?
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
 
         let mut all_files_to_add = Vec::new();
         let mut all_files_to_remove = Vec::new();
@@ -151,10 +153,11 @@ impl DB {
           .await
       };
 
-      let _ = tx.send(task_fn().await);
+      if let Err(err) = task_fn().await {
+        // TODO use infrastructure logger instead of println
+        println!("persistent cache save failed. {err}");
+      }
     });
-
-    Ok(rx)
   }
 
   /// Waits for all pending background save tasks to complete.
@@ -198,7 +201,7 @@ mod test {
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
     // save data and wait finish
-    let _ = db.save(data, 25);
+    db.save(data, 25);
     db.flush().await;
 
     let mut data1 = db.load(name_1).await?;
