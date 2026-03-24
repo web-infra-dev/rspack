@@ -485,8 +485,8 @@ impl AMDDefineDependencyParserPlugin {
         |parser| {
           for (name, rename_identifier) in fn_renames.iter() {
             let variable = parser
-              .get_variable_info(rename_identifier)
-              .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+              .get_variable_info_id(rename_identifier)
+              .map(ExportedVariableInfo::VariableInfo)
               .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
             parser.set_variable(name.clone(), variable);
           }
@@ -541,8 +541,8 @@ impl AMDDefineDependencyParserPlugin {
             |parser| {
               for (name, rename_identifier) in fn_renames.iter() {
                 let variable = parser
-                  .get_variable_info(rename_identifier)
-                  .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+                  .get_variable_info_id(rename_identifier)
+                  .map(ExportedVariableInfo::VariableInfo)
                   .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
                 parser.set_variable(name.clone(), variable);
               }

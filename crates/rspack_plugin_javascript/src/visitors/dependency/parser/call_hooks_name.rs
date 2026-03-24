@@ -21,7 +21,7 @@ impl CallHooksName for Atom {
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
+    if let Some(id) = parser.get_variable_info_id(self) {
       // resolved variable info
       call_hooks_info(id, parser, hook_call)
     } else {
@@ -116,12 +116,12 @@ fn call_hooks_info<F, T>(
 where
   F: Fn(&mut JavascriptParser, &str) -> Option<T>,
 {
-  let info = parser.definitions_db.expect_get_variable(id);
+  let info = parser.scope_stack.expect_get_variable(id);
   let mut next_tag_info = info.tag_info;
 
   while let Some(tag_info_id) = next_tag_info {
     parser.current_tag_info = Some(tag_info_id);
-    let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
+    let tag_info = parser.scope_stack.expect_get_tag_info(tag_info_id);
     let next = tag_info.next;
     let result = hook_call(parser, tag_info.tag);
     parser.current_tag_info = None;
@@ -131,7 +131,7 @@ where
     next_tag_info = next;
   }
 
-  let info = parser.definitions_db.expect_get_variable(id);
+  let info = parser.scope_stack.expect_get_variable(id);
   if let Some(name) = &info.name
     && (info.is_free() || info.is_tagged())
   {

@@ -206,7 +206,7 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_mut_tag_info(parser.current_tag_info?);
 
     let mut nested_require_data = NestedRequireData::downcast(tag_info.data.take()?);

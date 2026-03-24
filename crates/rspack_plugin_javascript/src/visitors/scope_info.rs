@@ -1,172 +1,255 @@
 use bitflags::bitflags;
 use rustc_hash::FxHashMap;
-use slotmap::{KeyData, SlotMap, new_key_type};
 use swc_core::atoms::Atom;
 
-new_key_type! {
-  pub struct ScopeInfoId;
-  pub struct VariableInfoId;
-  pub struct TagInfoId;
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct VariableInfoId(u32);
 
 impl VariableInfoId {
+  #[inline]
+  fn from_index(index: usize) -> Self {
+    Self(index as u32)
+  }
+
+  #[inline]
+  fn index(self) -> usize {
+    self.0 as usize
+  }
+
+  #[inline]
   pub fn tombstone() -> Self {
-    Self::from(KeyData::from_ffi(u64::MAX))
+    Self(u32::MAX)
   }
+
+  #[inline]
   pub fn undefined() -> Self {
-    Self::from(KeyData::from_ffi(u64::MAX - 1))
+    Self(u32::MAX - 1)
+  }
+
+  #[inline]
+  fn is_missing(self) -> bool {
+    self == Self::tombstone() || self == Self::undefined()
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TagInfoId(u32);
+
+impl TagInfoId {
+  #[inline]
+  fn from_index(index: usize) -> Self {
+    Self(index as u32)
+  }
+
+  #[inline]
+  fn index(self) -> usize {
+    self.0 as usize
   }
 }
 
 #[derive(Debug, Default)]
-pub struct VariableInfoDB {
-  map: SlotMap<VariableInfoId, VariableInfo>,
+pub struct VariableInfoArena {
+  entries: Vec<VariableInfo>,
 }
 
-impl VariableInfoDB {
+impl VariableInfoArena {
+  #[inline]
   fn new() -> Self {
     Self {
-      map: SlotMap::with_key(),
+      entries: Default::default(),
     }
+  }
+
+  #[inline]
+  fn insert_with_key(&mut self, f: impl FnOnce(VariableInfoId) -> VariableInfo) -> VariableInfoId {
+    let id = VariableInfoId::from_index(self.entries.len());
+    self.entries.push(f(id));
+    id
   }
 }
 
 #[derive(Debug, Default)]
-pub struct TagInfoDB {
-  pub map: SlotMap<TagInfoId, TagInfo>,
+pub struct TagInfoArena {
+  entries: Vec<TagInfo>,
 }
 
-impl TagInfoDB {
+impl TagInfoArena {
   fn new() -> Self {
     Self {
-      map: SlotMap::with_key(),
+      entries: Default::default(),
     }
+  }
+
+  #[inline]
+  fn insert(&mut self, tag_info: TagInfo) -> TagInfoId {
+    let id = TagInfoId::from_index(self.entries.len());
+    self.entries.push(tag_info);
+    id
   }
 }
 
 #[derive(Debug)]
-pub struct ScopeInfoDB {
-  map: SlotMap<ScopeInfoId, ScopeInfo>,
-  variable_info_db: VariableInfoDB,
-  tag_info_db: TagInfoDB,
+pub struct ScopeStack {
+  scope_arena: Vec<ScopeInfo>,
+  stack_len: usize,
+  variable_arena: VariableInfoArena,
+  tag_arena: TagInfoArena,
 }
 
-impl Default for ScopeInfoDB {
+impl Default for ScopeStack {
+  #[inline]
   fn default() -> Self {
     Self::new()
   }
 }
 
-impl ScopeInfoDB {
+impl ScopeStack {
+  #[inline]
   pub fn new() -> Self {
     Self {
-      map: SlotMap::with_key(),
-      variable_info_db: VariableInfoDB::new(),
-      tag_info_db: TagInfoDB::new(),
+      scope_arena: Default::default(),
+      stack_len: 0,
+      variable_arena: VariableInfoArena::new(),
+      tag_arena: TagInfoArena::new(),
     }
   }
 
-  fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
-    let is_strict = match parent {
-      Some(parent) => self.expect_get_scope(parent).is_strict,
-      None => false,
-    };
-    let info = ScopeInfo {
-      is_strict,
-      parent,
-      map: Default::default(),
-    };
-    self.map.insert(info)
+  #[inline]
+  pub fn current_scope_level(&self) -> usize {
+    debug_assert!(self.stack_len > 0, "scope should exist");
+    self.stack_len - 1
   }
 
-  pub fn create(&mut self) -> ScopeInfoId {
-    self._create(None)
+  #[inline]
+  fn stack_view_mut(&mut self) -> &mut [ScopeInfo] {
+    &mut self.scope_arena[..self.stack_len]
   }
 
-  pub fn create_child(&mut self, parent: ScopeInfoId) -> ScopeInfoId {
-    self._create(Some(parent))
+  #[inline]
+  pub fn initialize_root_scope(&mut self) {
+    debug_assert_eq!(self.stack_len, 0);
+    debug_assert!(self.scope_arena.is_empty());
+    self.scope_arena.push(ScopeInfo::new(false));
+    self.stack_len = 1;
   }
 
-  pub fn expect_get_scope(&self, id: ScopeInfoId) -> &ScopeInfo {
+  #[inline]
+  pub fn push_scope(&mut self) {
+    let is_strict = self.current_scope().is_strict;
+    if let Some(scope) = self.scope_arena.get_mut(self.stack_len) {
+      scope.reset_for_reuse(is_strict);
+    } else {
+      self.scope_arena.push(ScopeInfo::new(is_strict));
+    }
+    self.stack_len += 1;
+  }
+
+  #[inline]
+  pub fn pop_scope(&mut self) {
+    debug_assert!(self.stack_len > 0, "cannot pop scope");
+    self.stack_len -= 1;
+  }
+
+  #[inline]
+  pub fn current_scope(&self) -> &ScopeInfo {
+    debug_assert!(
+      self.stack_len > 0,
+      "scope stack is empty, call `initialize_root_scope` first"
+    );
+    unsafe { self.scope_arena.get_unchecked(self.stack_len - 1) }
+  }
+
+  #[inline]
+  pub fn current_scope_mut(&mut self) -> &mut ScopeInfo {
     self
-      .map
-      .get(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
+      .stack_view_mut()
+      .last_mut()
+      .expect("scope should exist")
   }
 
-  pub fn expect_get_mut_scope(&mut self, id: ScopeInfoId) -> &mut ScopeInfo {
-    self
-      .map
-      .get_mut(id)
-      .unwrap_or_else(|| panic!("{id:#?} should exist"))
-  }
-
+  #[inline]
   pub fn expect_get_variable(&self, id: VariableInfoId) -> &VariableInfo {
     self
-      .variable_info_db
-      .map
-      .get(id)
+      .variable_arena
+      .entries
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn expect_get_tag_info(&self, id: TagInfoId) -> &TagInfo {
     self
-      .tag_info_db
-      .map
-      .get(id)
+      .tag_arena
+      .entries
+      .get(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
+  #[inline]
   pub fn expect_get_mut_tag_info(&mut self, id: TagInfoId) -> &mut TagInfo {
     self
-      .tag_info_db
-      .map
-      .get_mut(id)
+      .tag_arena
+      .entries
+      .get_mut(id.index())
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
-    let definitions = self.expect_get_scope(id);
-    if let Some(&top_value) = definitions.map.get(key) {
-      if top_value == VariableInfoId::tombstone() || top_value == VariableInfoId::undefined() {
-        None
-      } else {
-        Some(top_value)
-      }
-    } else if let Some(parent) = definitions.parent {
-      let mut current = Some(parent);
-      while let Some(current_id) = current {
-        let scope = self.expect_get_scope(current_id);
-        if let Some(&value) = scope.map.get(key) {
-          if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
-            return None;
-          } else {
-            return Some(value);
-          }
-        }
-        current = scope.parent;
-      }
-      let definitions = self.expect_get_mut_scope(id);
-      definitions
-        .map
-        .insert(key.clone(), VariableInfoId::tombstone());
-      None
-    } else {
-      None
+  #[inline]
+  fn resolve_variable(id: VariableInfoId) -> Option<VariableInfoId> {
+    (!id.is_missing()).then_some(id)
+  }
+
+  #[inline]
+  pub fn get(&mut self, key: &Atom) -> Option<VariableInfoId> {
+    let (current_scope, parent_scopes) = self
+      .stack_view_mut()
+      .split_last_mut()
+      .expect("scope should exist");
+
+    if let Some(&variable_info_id) = current_scope.bindings.get(key) {
+      return Self::resolve_variable(variable_info_id);
     }
+
+    let found = parent_scopes
+      .iter()
+      .rev()
+      .find_map(|scope| scope.bindings.get(key).copied());
+
+    if let Some(variable_info_id) = found {
+      current_scope.bindings.insert(key.clone(), variable_info_id);
+      return Self::resolve_variable(variable_info_id);
+    }
+
+    if !parent_scopes.is_empty() {
+      current_scope
+        .bindings
+        .insert(key.clone(), VariableInfoId::tombstone());
+    }
+
+    None
   }
 
-  pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
-    let scope = self.expect_get_mut_scope(id);
-    scope.map.insert(key, variable_info_id);
+  #[inline]
+  pub fn set(&mut self, key: Atom, variable_info_id: VariableInfoId) {
+    self
+      .current_scope_mut()
+      .bindings
+      .insert(key, variable_info_id);
   }
 
-  pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
-    let scope = self.expect_get_mut_scope(id);
-    if scope.parent.is_some() {
-      scope.map.insert(key.clone(), VariableInfoId::tombstone());
+  #[inline]
+  pub fn delete(&mut self, key: &Atom) {
+    let (current_scope, parent_scopes) = self
+      .stack_view_mut()
+      .split_last_mut()
+      .expect("scope should exist");
+
+    if !parent_scopes.is_empty() {
+      current_scope
+        .bindings
+        .insert(key.clone(), VariableInfoId::tombstone());
     } else {
-      scope.map.remove(key);
+      current_scope.bindings.remove(key);
     }
   }
 }
@@ -179,14 +262,15 @@ pub struct TagInfo {
 }
 
 impl TagInfo {
+  #[inline]
   pub fn create(
-    definitions_db: &mut ScopeInfoDB,
+    scope_stack: &mut ScopeStack,
     tag: &'static str,
     data: Option<Box<dyn anymap::CloneAny>>,
     next: Option<TagInfoId>,
   ) -> TagInfoId {
     let tag_info = TagInfo { tag, data, next };
-    definitions_db.tag_info_db.map.insert(tag_info)
+    scope_stack.tag_arena.insert(tag_info)
   }
 }
 
@@ -206,7 +290,7 @@ bitflags! {
 #[derive(Debug, PartialEq, Eq)]
 pub struct VariableInfo {
   id: VariableInfoId,
-  pub declared_scope: ScopeInfoId,
+  pub declared_scope_level: usize,
 
   /// `name` is alias name for free variable or tagged variable.
   ///
@@ -265,33 +349,36 @@ pub struct VariableInfo {
 }
 
 impl VariableInfo {
+  #[inline]
   pub fn create(
-    definitions_db: &mut ScopeInfoDB,
-    declared_scope: ScopeInfoId,
+    scope_stack: &mut ScopeStack,
+    declared_scope_level: usize,
     name: Option<Atom>,
     flags: VariableInfoFlags,
     tag_info: Option<TagInfoId>,
   ) -> VariableInfoId {
-    definitions_db
-      .variable_info_db
-      .map
+    scope_stack
+      .variable_arena
       .insert_with_key(|id| VariableInfo {
         id,
-        declared_scope,
+        declared_scope_level,
         name,
         flags,
         tag_info,
       })
   }
 
+  #[inline]
   pub fn id(&self) -> VariableInfoId {
     self.id
   }
 
+  #[inline]
   pub fn is_free(&self) -> bool {
     self.flags.contains(VariableInfoFlags::FREE)
   }
 
+  #[inline]
   pub fn is_tagged(&self) -> bool {
     self.flags.contains(VariableInfoFlags::TAGGED)
   }
@@ -299,17 +386,30 @@ impl VariableInfo {
 
 #[derive(Debug)]
 pub struct ScopeInfo {
-  parent: Option<ScopeInfoId>,
-  map: FxHashMap<Atom, VariableInfoId>,
+  bindings: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
 
 impl ScopeInfo {
-  pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
+  #[inline]
+  fn new(is_strict: bool) -> Self {
+    Self {
+      bindings: Default::default(),
+      is_strict,
+    }
+  }
+
+  #[inline]
+  fn reset_for_reuse(&mut self, is_strict: bool) {
+    self.bindings.clear();
+    self.is_strict = is_strict;
+  }
+
+  #[inline]
+  pub fn variables(&self) -> impl Iterator<Item = (&Atom, &VariableInfoId)> {
     self
-      .map
+      .bindings
       .iter()
-      .filter(|&(_, &info_id)| info_id != VariableInfoId::tombstone())
-      .map(|(name, info_id)| (name.as_str(), info_id))
+      .filter(|&(_, &info_id)| !info_id.is_missing())
   }
 }

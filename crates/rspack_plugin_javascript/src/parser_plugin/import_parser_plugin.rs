@@ -174,7 +174,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     if let Some(keys) = parser
@@ -213,7 +213,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);
@@ -237,7 +237,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);

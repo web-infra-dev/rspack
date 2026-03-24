@@ -62,7 +62,7 @@ impl JavascriptParserPlugin for InlineConstPlugin {
     // Propagate inlinable constants. Help the rest const variable declarations that referencing the
     // inlinable constants to evaluate to an inlinable constants.
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = InlinableConstData::downcast(tag_info.data.clone()?);
     Some(match data.value {

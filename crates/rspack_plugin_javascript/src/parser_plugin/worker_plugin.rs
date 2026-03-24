@@ -356,7 +356,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .scope_stack
       .expect_get_tag_info(parser.current_tag_info?);
     let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
     if let Some(value) = self.pattern_syntax.get(data.key.as_str())
@@ -393,7 +393,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
-        .definitions_db
+        .scope_stack
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
@@ -455,7 +455,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
-        .definitions_db
+        .scope_stack
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");

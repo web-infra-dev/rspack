@@ -112,7 +112,7 @@ impl InnerGraphPlugin {
     }
 
     if let Some(tag_info) = parser.current_tag_info {
-      let tag_info = parser.definitions_db.expect_get_tag_info(tag_info);
+      let tag_info = parser.scope_stack.expect_get_tag_info(tag_info);
       let symbol = TopLevelSymbol::downcast(tag_info.data.clone().expect("should have data"));
       let usage = parser.inner_graph.get_top_level_symbol();
       parser.inner_graph.add_usage(
@@ -331,7 +331,7 @@ impl InnerGraphPlugin {
     let existing = parser.get_variable_info(name);
     if let Some(existing) = existing
       && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
+      && let tag_info = parser.scope_stack.expect_get_mut_tag_info(tag_info)
       && tag_info.tag == TOP_LEVEL_SYMBOL
       && let Some(tag_data) = tag_info.data.clone()
     {
@@ -664,8 +664,8 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
        */
       if let ClassMember::StaticBlock(_) = element {
         let class_var = parser
-          .get_variable_info(&top_level_symbol_variable_name)
-          .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+          .get_variable_info_id(&top_level_symbol_variable_name)
+          .map(ExportedVariableInfo::VariableInfo)
           .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
         if let Some(class_ident) = class_decl_or_expr.ident() {
           parser.set_variable(class_ident.sym.clone(), class_var.clone());

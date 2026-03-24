@@ -1,4 +1,3 @@
-use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
 use super::{JavascriptParserPlugin, TopLevelSymbol};
@@ -35,7 +34,8 @@ impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
     }
     let variables: Vec<_> = parser
       .get_all_variables_from_current_scope()
-      .map(|(name, _)| Atom::new(name))
+      .map(|(name, _)| name)
+      .cloned()
       .collect();
     for name in variables {
       if parser.is_variable_defined(&name) {
