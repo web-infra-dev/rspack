@@ -10,7 +10,7 @@ on:
   push:
     branches:
       - main
-      - v2
+      - v1.x
     paths-ignore:
       - '**/*.md'
       - 'website/**'
@@ -111,14 +111,56 @@ jobs:
         run: pnpm run build:js
 
       - name: Run rspack-ecosystem-benchmark
-        id: run-benchmark
+        timeout-minutes: 40
         run: |
           RSPACK_DIR=$(pwd)
           git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
-          result=$(node bin/cli.js compare --base latest --current current)
+
+      - name: Get HEAD SHA
+        id: get-sha
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Resolve compare base
+        id: resolve-base
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: string
+          script: |
+            if (context.eventName === 'push') {
+              return context.payload.before
+            }
+
+            const prNumber = Number(context.payload.inputs.pr)
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              throw new Error('`inputs.pr` is required for workflow_dispatch benchmark comparison')
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber
+            })
+
+            const { data } = await github.rest.repos.compareCommitsWithBasehead({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              basehead: `${pr.base.ref}...${{ steps.get-sha.outputs.sha }}`
+            })
+
+            return data.merge_base_commit.sha
+
+      - name: Compare benchmark results
+        id: run-benchmark
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd rspack-ecosystem-benchmark
+          result=$(node bin/cli.js compare --base ${{ steps.resolve-base.outputs.result }} --current current)
           echo "$result"
           echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
 
