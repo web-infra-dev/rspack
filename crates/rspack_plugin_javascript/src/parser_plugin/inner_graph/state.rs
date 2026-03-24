@@ -24,6 +24,7 @@ pub enum InnerGraphUsageOperation {
 pub struct InnerGraphState {
   pub(crate) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
   pub(crate) usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
+  pub(crate) top_level_symbol_by_name: HashMap<swc_core::atoms::Atom, TopLevelSymbol>,
   current_top_level_symbol: Option<TopLevelSymbol>,
   enable: bool,
 

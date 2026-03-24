@@ -153,6 +153,29 @@ impl TopLevelSymbol {
 }
 
 impl InnerGraphPlugin {
+  fn cached_top_level_symbol(parser: &JavascriptParser, name: &Atom) -> Option<TopLevelSymbol> {
+    parser
+      .inner_graph
+      .top_level_symbol_by_name
+      .get(name)
+      .cloned()
+  }
+
+  fn get_top_level_symbol(parser: &mut JavascriptParser, name: &Atom) -> Option<TopLevelSymbol> {
+    if let Some(symbol) = Self::cached_top_level_symbol(parser, name) {
+      return Some(symbol);
+    }
+
+    let symbol = parser
+      .get_tag_data(name, TOP_LEVEL_SYMBOL)
+      .map(TopLevelSymbol::downcast)?;
+    parser
+      .inner_graph
+      .top_level_symbol_by_name
+      .insert(name.clone(), symbol.clone());
+    Some(symbol)
+  }
+
   pub fn new(unresolved_mark: Mark) -> Self {
     Self {
       unresolved_context: SyntaxContext::empty().apply_mark(unresolved_mark),
@@ -372,9 +395,7 @@ impl InnerGraphPlugin {
   }
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
-    let symbol = parser
-      .get_tag_data(name, TOP_LEVEL_SYMBOL)
-      .map(TopLevelSymbol::downcast)
+    let symbol = Self::get_top_level_symbol(parser, name)
       .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
 
     parser.inner_graph.add_usage(symbol, usage);
@@ -400,17 +421,11 @@ impl InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     name: &Atom,
   ) -> TopLevelSymbol {
-    parser.define_variable(name.clone());
-
-    let existing = parser.get_variable_info(name);
-    if let Some(existing) = existing
-      && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
-      && tag_info.tag == TOP_LEVEL_SYMBOL
-      && let Some(tag_data) = tag_info.data.clone()
-    {
-      return TopLevelSymbol::downcast(tag_data);
+    if let Some(symbol) = Self::cached_top_level_symbol(parser, name) {
+      return symbol;
     }
+
+    parser.define_variable(name.clone());
 
     let symbol = TopLevelSymbol::new(name.clone());
     parser.tag_variable_with_flags(
@@ -419,6 +434,10 @@ impl InnerGraphPlugin {
       Some(symbol.clone()),
       VariableInfoFlags::NORMAL,
     );
+    parser
+      .inner_graph
+      .top_level_symbol_by_name
+      .insert(name.clone(), symbol.clone());
     symbol
   }
 }
