@@ -60,18 +60,10 @@ jobs:
         run: ls -lah crates/node_binding/*.node
 
       - name: Download simulation benches
-        if: inputs.measurement == 'simulation'
         uses: ./.github/actions/artifact/download
         with:
           name: codspeed-simulation-${{ inputs.target }}
-          path: target/codspeed/analysis/
-
-      - name: Download walltime benches
-        if: inputs.measurement == 'walltime'
-        uses: ./.github/actions/artifact/download
-        with:
-          name: codspeed-walltime-${{ inputs.target }}
-          path: target/codspeed/walltime/
+          path: target/codspeed/
 
       - name: Show Codspeed
         run: |
