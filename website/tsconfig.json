@@ -11,7 +11,7 @@
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "paths": {
-      "@theme": ["./theme"],
+      "@theme/*": ["./theme/*"],
       "@hooks/*": ["./hooks/*"],
       "@components/*": ["./components/*"],
       "@builtIns": ["./components/builtIns"],
