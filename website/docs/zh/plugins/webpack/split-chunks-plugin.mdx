@@ -561,10 +561,10 @@ cacheGroup: {
 
 常见原因包括：
 
-- 共享候选模块太小，不满足 `minSize`
-- 拆分后的总体积缩减不满足 `minSizeReduction`
-- 候选模块不满足 `minChunks`
-- `maxAsyncRequests` 或 `maxInitialRequests` 拒绝了这次拆分
+- 共享候选模块太小，不满足 [`splitChunks.minSize`](#splitchunksminsize)
+- 拆分后的总体积缩减不满足 [`splitChunks.minSizeReduction`](#splitchunksminsizereduction)
+- 候选模块不满足 [`splitChunks.minChunks`](#splitchunksminchunks)
+- [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 或 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 拒绝了这次拆分
 - `chunks`、`test` 或自定义 cacheGroup 实际上没有选中同一组 chunk 组合
 
 很小的重复模块往往是有意为之。把它们额外抽成一个 chunk，未必比保留重复更好。
@@ -581,4 +581,4 @@ cacheGroup: {
 
 有可能。
 
-在 `mini-css-extract-plugin`、`experiments.css` 这类 extracted CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)。
+在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类 extracted CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)。

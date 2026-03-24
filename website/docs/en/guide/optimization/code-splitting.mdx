@@ -106,7 +106,7 @@ export default {
 
 After rebuilding, you will find that `shared.js` has been extracted separately, and there is an additional Chunk in the output that contains only `shared.js`.
 
-If `shared.js` still appears duplicated after lowering `minSize`, check `splitChunks.minSizeReduction`, `splitChunks.minChunks`, and request limits such as `maxAsyncRequests` / `maxInitialRequests` before reaching for `enforce`.
+If `shared.js` still appears duplicated after lowering [`splitChunks.minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize), check [`splitChunks.minSizeReduction`](/plugins/webpack/split-chunks-plugin#splitchunksminsizereduction), [`splitChunks.minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks), and request limits such as [`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) before reaching for [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupenforce).
 
 For most production applications, a good baseline is:
 

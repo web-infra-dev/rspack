@@ -567,10 +567,10 @@ Allows to assign modules to a cache group by module type.
 
 Common reasons include:
 
-- the shared candidate is too small to satisfy `minSize`
-- the split does not satisfy `minSizeReduction`
-- the candidate does not satisfy `minChunks`
-- `maxAsyncRequests` or `maxInitialRequests` rejects the split
+- the shared candidate is too small to satisfy [`splitChunks.minSize`](#splitchunksminsize)
+- the split does not satisfy [`splitChunks.minSizeReduction`](#splitchunksminsizereduction)
+- the candidate does not satisfy [`splitChunks.minChunks`](#splitchunksminchunks)
+- [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) or [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) rejects the split
 - `chunks`, `test`, or custom cache groups do not actually select the same chunk combination
 
 Very small duplicates are often intentional. Extracting them into an extra chunk can be worse than keeping them duplicated.
@@ -587,4 +587,4 @@ No. Tree shaking decides what code is kept. `splitChunks` only decides how kept 
 
 Yes, potentially. This caveat is about extracted CSS, not JavaScript execution order.
 
-In extracted CSS flows such as `mini-css-extract-plugin` or `experiments.css`, changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin).
+In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [built-in support for CSS](/guide/tech/css#built-in-support-for-css), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin).
