@@ -322,6 +322,7 @@ impl Dependency for CommonJsExportRequireDependency {
           // `module.exports = require("./m")` can't be mangled
           can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
+          ns_access: false,
         })]
       }
     };
@@ -386,6 +387,7 @@ impl Dependency for CommonJsExportRequireDependency {
           // `module.exports = require("./m")` can't be mangled
           can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
+          ns_access: false,
         })
       })
       .collect_vec()
