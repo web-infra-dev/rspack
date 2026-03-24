@@ -58,6 +58,7 @@
     "node-polyfill-webpack-plugin": "^4.1.0",
     "postcss-loader": "^8.2.1",
     "postcss-pxtorem": "^6.1.0",
+    "preact": "^10.29.0",
     "prop-types": "^15.8.1",
     "raw-loader": "^4.0.2",
     "react": "^19.2.4",

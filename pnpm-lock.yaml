@@ -610,7 +610,7 @@ importers:
         version: link:../../packages/rspack
       '@rspack/plugin-preact-refresh':
         specifier: 1.1.5
-        version: 1.1.5(@prefresh/core@1.5.9(preact@10.28.4))(@prefresh/utils@1.2.1)
+        version: 1.1.5(@prefresh/core@1.5.9(preact@10.29.0))(@prefresh/utils@1.2.1)
       '@rspack/plugin-react-refresh':
         specifier: ^1.6.1
         version: 1.6.1(react-refresh@0.18.0)
@@ -725,6 +725,9 @@ importers:
       postcss-pxtorem:
         specifier: ^6.1.0
         version: 6.1.0(postcss@8.5.8)
+      preact:
+        specifier: ^10.29.0
+        version: 10.29.0
       prop-types:
         specifier: ^15.8.1
         version: 15.8.1
@@ -6411,8 +6414,8 @@ packages:
     resolution: {integrity: sha512-dM0jVuXJPsDN6DvRpea484tCUaMiXWjuCn++HGTqUWzGDjv5tZkEZldAJ/UMlqRYGFrD/etByo4/xOuC/snX2A==}
     engines: {node: '>=20'}
 
-  preact@10.28.4:
-    resolution: {integrity: sha512-uKFfOHWuSNpRFVTnljsCluEFq57OKT+0QdOiQo8XWnQ/pSvg7OpX5eNOejELXJMWy+BwM2nobz0FkvzmnpCNsQ==}
+  preact@10.29.0:
+    resolution: {integrity: sha512-wSAGyk2bYR1c7t3SZ3jHcM6xy0lcBcDel6lODcs9ME6Th++Dx2KU+6D3HD8wMMKGA8Wpw7OMd3/4RGzYRpzwRg==}
 
   prebundle@1.6.4:
     resolution: {integrity: sha512-/tGhmRQmH3obwxick6wIXMMn35XjaKP8UWB5itrNsHIqBnI5hXIgzMCsoTzY25bG26NSzT79XZ3trGAmBIr9TQ==}
@@ -9688,9 +9691,9 @@ snapshots:
     dependencies:
       playwright: 1.58.2
 
-  '@prefresh/core@1.5.9(preact@10.28.4)':
+  '@prefresh/core@1.5.9(preact@10.29.0)':
     dependencies:
-      preact: 10.28.4
+      preact: 10.29.0
 
   '@prefresh/utils@1.2.1': {}
 
@@ -10001,9 +10004,9 @@ snapshots:
 
   '@rspack/lite-tapable@1.1.0': {}
 
-  '@rspack/plugin-preact-refresh@1.1.5(@prefresh/core@1.5.9(preact@10.28.4))(@prefresh/utils@1.2.1)':
+  '@rspack/plugin-preact-refresh@1.1.5(@prefresh/core@1.5.9(preact@10.29.0))(@prefresh/utils@1.2.1)':
     dependencies:
-      '@prefresh/core': 1.5.9(preact@10.28.4)
+      '@prefresh/core': 1.5.9(preact@10.29.0)
       '@prefresh/utils': 1.2.1
 
   '@rspack/plugin-react-refresh@1.6.1(react-refresh@0.18.0)':
@@ -14032,7 +14035,7 @@ snapshots:
 
   powershell-utils@0.1.0: {}
 
-  preact@10.28.4: {}
+  preact@10.29.0: {}
 
   prebundle@1.6.4(typescript@6.0.2):
     dependencies:

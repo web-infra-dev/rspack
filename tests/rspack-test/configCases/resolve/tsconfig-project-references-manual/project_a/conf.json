@@ -2,7 +2,7 @@
   "compilerOptions": {
     "composite": true,
     "paths": {
-      "@/*": ["./aliased/*"]
+      "@/*": ["./src/aliased/*"]
     }
   }
 }
