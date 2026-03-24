@@ -9,8 +9,6 @@
     "./utils"
   ],
   "compilerOptions": {
-    "strict": true,
-    "baseUrl": ".",
     "module": "ES2022",
     "moduleResolution": "bundler",
     "paths": {

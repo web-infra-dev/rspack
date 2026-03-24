@@ -53,8 +53,8 @@ importers:
         specifier: 3.8.1
         version: 3.8.1
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
       zx:
         specifier: 8.8.5
         version: 8.8.5
@@ -71,8 +71,8 @@ importers:
         specifier: 1.8.1
         version: 1.8.1(node-addon-api@7.1.1)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
     optionalDependencies:
       '@rspack/binding-darwin-arm64':
         specifier: workspace:*
@@ -117,8 +117,8 @@ importers:
         specifier: 1.8.1
         version: 1.8.1(node-addon-api@7.1.1)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
 
   examples/basic:
     devDependencies:
@@ -163,8 +163,8 @@ importers:
         specifier: ^0.18.0
         version: 0.18.0
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
 
   examples/vanilla:
     devDependencies:
@@ -178,8 +178,8 @@ importers:
         specifier: 2.0.0-beta.7
         version: 2.0.0-beta.7(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
 
   npm/darwin-arm64: {}
 
@@ -213,10 +213,10 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 0.20.0
-        version: 0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@5.9.3)
+        version: 0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@6.0.2)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
 
   packages/rspack:
     dependencies:
@@ -241,7 +241,7 @@ importers:
         version: 1.4.4(@rsbuild/core@2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))
       '@rslib/core':
         specifier: 0.20.0
-        version: 0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@5.9.3)
+        version: 0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@6.0.2)
       '@rspack/lite-tapable':
         specifier: 1.1.0
         version: 1.1.0
@@ -277,13 +277,13 @@ importers:
         version: 11.0.0
       prebundle:
         specifier: ^1.6.4
-        version: 1.6.4(typescript@5.9.3)
+        version: 1.6.4(typescript@6.0.2)
       tinypool:
         specifier: ^1.1.1
         version: 1.1.1
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
       watchpack:
         specifier: 2.4.4
         version: 2.4.4
@@ -326,7 +326,7 @@ importers:
     devDependencies:
       '@rslib/core':
         specifier: 0.20.0
-        version: 0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@5.9.3)
+        version: 0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@6.0.2)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -353,10 +353,10 @@ importers:
         version: 4.0.7
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@20.19.37)(typescript@5.9.3)
+        version: 10.9.2(@types/node@20.19.37)(typescript@6.0.2)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
 
   packages/rspack-test-tools:
     dependencies:
@@ -443,8 +443,8 @@ importers:
         specifier: ^21.1.7
         version: 21.1.7
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
       wast-loader:
         specifier: ^1.14.1
         version: 1.14.1
@@ -473,8 +473,8 @@ importers:
         specifier: ^7.7.4
         version: 7.7.4
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
       zx:
         specifier: 8.8.5
         version: 8.8.5
@@ -559,7 +559,7 @@ importers:
         version: 8.5.8
       postcss-loader:
         specifier: ^8.2.1
-        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.8)(typescript@5.9.3)(webpack@5.104.1)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.8)(typescript@6.0.2)(webpack@5.104.1)
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -571,16 +571,16 @@ importers:
         version: 0.18.0
       rspack-vue-loader:
         specifier: ^17.5.0
-        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.30(typescript@5.9.3))
+        version: 17.5.0(@rspack/core@packages+rspack)(vue@3.5.30(typescript@6.0.2))
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(yaml@2.8.2)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
       vue:
         specifier: ^3.5.30
-        version: 3.5.30(typescript@5.9.3)
+        version: 3.5.30(typescript@6.0.2)
       ws:
         specifier: ^8.19.0
         version: 8.19.0
@@ -718,7 +718,7 @@ importers:
         version: 4.1.0(webpack@5.104.1)
       postcss-loader:
         specifier: ^8.2.1
-        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.8)(typescript@5.9.3)(webpack@5.104.1)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.8)(typescript@6.0.2)(webpack@5.104.1)
       postcss-pxtorem:
         specifier: ^6.1.0
         version: 6.1.0(postcss@8.5.8)
@@ -766,13 +766,13 @@ importers:
         version: 3.0.0
       ts-checker-rspack-plugin:
         specifier: ^1.3.0
-        version: 1.3.0(@rspack/core@packages+rspack)(tslib@2.8.1)(typescript@5.9.3)
+        version: 1.3.0(@rspack/core@packages+rspack)(tslib@2.8.1)(typescript@6.0.2)
       ts-loader:
         specifier: ^9.5.4
-        version: 9.5.4(typescript@5.9.3)(webpack@5.104.1)
+        version: 9.5.4(typescript@6.0.2)(webpack@5.104.1)
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
       url-loader:
         specifier: ^4.1.1
         version: 4.1.1(file-loader@6.2.0(webpack@5.104.1))(webpack@5.104.1)
@@ -814,7 +814,7 @@ importers:
         version: 1.13.6
       markdown-to-jsx:
         specifier: ^9.7.9
-        version: 9.7.9(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
+        version: 9.7.9(react@19.2.4)(vue@3.5.30(typescript@6.0.2))
       mermaid:
         specifier: ^11.12.3
         version: 11.12.3
@@ -880,8 +880,8 @@ importers:
         specifier: 1.0.3
         version: 1.0.3(@rspress/core@2.0.5(@module-federation/runtime-tools@2.1.0)(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.48.0)(micromark-util-types@2.0.2)(micromark@4.0.2))
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.2
+        version: 6.0.2
 
 packages:
 
@@ -7487,8 +7487,8 @@ packages:
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.2:
+    resolution: {integrity: sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -9830,12 +9830,12 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)
 
-  '@rslib/core@0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@5.9.3)':
+  '@rslib/core@0.20.0(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)(typescript@6.0.2)':
     dependencies:
       '@rsbuild/core': 2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)
-      rsbuild-plugin-dts: 0.20.0(@rsbuild/core@2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))(typescript@5.9.3)
+      rsbuild-plugin-dts: 0.20.0(@rsbuild/core@2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))(typescript@6.0.2)
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.2
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
       - '@typescript/native-preview'
@@ -10556,11 +10556,11 @@ snapshots:
       '@vue/shared': 3.5.30
       csstype: 3.2.3
 
-  '@vue/server-renderer@3.5.30(vue@3.5.30(typescript@5.9.3))':
+  '@vue/server-renderer@3.5.30(vue@3.5.30(typescript@6.0.2))':
     dependencies:
       '@vue/compiler-ssr': 3.5.30
       '@vue/shared': 3.5.30
-      vue: 3.5.30(typescript@5.9.3)
+      vue: 3.5.30(typescript@6.0.2)
 
   '@vue/shared@3.5.30': {}
 
@@ -11247,14 +11247,14 @@ snapshots:
     dependencies:
       layout-base: 2.0.1
 
-  cosmiconfig@9.0.1(typescript@5.9.3):
+  cosmiconfig@9.0.1(typescript@6.0.2):
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
       js-yaml: 4.1.1
       parse-json: 5.2.0
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.2
 
   create-ecdh@4.0.4:
     dependencies:
@@ -13041,10 +13041,10 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@9.7.9(react@19.2.4)(vue@3.5.30(typescript@5.9.3)):
+  markdown-to-jsx@9.7.9(react@19.2.4)(vue@3.5.30(typescript@6.0.2)):
     optionalDependencies:
       react: 19.2.4
-      vue: 3.5.30(typescript@5.9.3)
+      vue: 3.5.30(typescript@6.0.2)
 
   marked@16.4.2: {}
 
@@ -13967,9 +13967,9 @@ snapshots:
       postcss: 8.5.8
       yaml: 2.8.2
 
-  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.8)(typescript@5.9.3)(webpack@5.104.1):
+  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.8)(typescript@6.0.2)(webpack@5.104.1):
     dependencies:
-      cosmiconfig: 9.0.1(typescript@5.9.3)
+      cosmiconfig: 9.0.1(typescript@6.0.2)
       jiti: 2.6.1
       postcss: 8.5.8
       semver: 7.7.4
@@ -14031,13 +14031,13 @@ snapshots:
 
   preact@10.28.4: {}
 
-  prebundle@1.6.4(typescript@5.9.3):
+  prebundle@1.6.4(typescript@6.0.2):
     dependencies:
       '@vercel/ncc': 0.38.4
       cac: 6.7.14
       prettier: 3.8.1
       rollup: 4.59.0
-      rollup-plugin-dts: 6.3.0(rollup@4.59.0)(typescript@5.9.3)
+      rollup-plugin-dts: 6.3.0(rollup@4.59.0)(typescript@6.0.2)
       terser: 5.46.0
     transitivePeerDependencies:
       - typescript
@@ -14459,11 +14459,11 @@ snapshots:
 
   robust-predicates@3.0.2: {}
 
-  rollup-plugin-dts@6.3.0(rollup@4.59.0)(typescript@5.9.3):
+  rollup-plugin-dts@6.3.0(rollup@4.59.0)(typescript@6.0.2):
     dependencies:
       magic-string: 0.30.21
       rollup: 4.59.0
-      typescript: 5.9.3
+      typescript: 6.0.2
     optionalDependencies:
       '@babel/code-frame': 7.29.0
 
@@ -14507,12 +14507,12 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@0.20.0(@rsbuild/core@2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))(typescript@5.9.3):
+  rsbuild-plugin-dts@0.20.0(@rsbuild/core@2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0))(typescript@6.0.2):
     dependencies:
       '@ast-grep/napi': 0.37.0
       '@rsbuild/core': 2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.2
 
   rsbuild-plugin-google-analytics@1.0.5(@rsbuild/core@2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)):
     optionalDependencies:
@@ -14522,13 +14522,13 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.0.0-beta.6(@module-federation/runtime-tools@2.1.0)(core-js@3.48.0)
 
-  rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.30(typescript@5.9.3)):
+  rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.30(typescript@6.0.2)):
     dependencies:
       '@rspack/lite-tapable': 1.1.0
       chalk: 4.1.2
     optionalDependencies:
       '@rspack/core': link:packages/rspack
-      vue: 3.5.30(typescript@5.9.3)
+      vue: 3.5.30(typescript@6.0.2)
 
   rspress-plugin-font-open-sans@1.0.3(@rspress/core@2.0.5(@module-federation/runtime-tools@2.1.0)(@types/mdast@4.0.4)(@types/react@19.2.14)(core-js@3.48.0)(micromark-util-types@2.0.2)(micromark@4.0.2)):
     dependencies:
@@ -15130,13 +15130,13 @@ snapshots:
 
   trough@2.2.0: {}
 
-  ts-checker-rspack-plugin@1.3.0(@rspack/core@packages+rspack)(tslib@2.8.1)(typescript@5.9.3):
+  ts-checker-rspack-plugin@1.3.0(@rspack/core@packages+rspack)(tslib@2.8.1)(typescript@6.0.2):
     dependencies:
       '@rspack/lite-tapable': 1.1.0
       chokidar: 3.6.0
       memfs: 4.56.11(tslib@2.8.1)
       picocolors: 1.1.1
-      typescript: 5.9.3
+      typescript: 6.0.2
     optionalDependencies:
       '@rspack/core': link:packages/rspack
     transitivePeerDependencies:
@@ -15146,17 +15146,17 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  ts-loader@9.5.4(typescript@5.9.3)(webpack@5.104.1):
+  ts-loader@9.5.4(typescript@6.0.2)(webpack@5.104.1):
     dependencies:
       chalk: 4.1.2
       enhanced-resolve: 5.20.1
       micromatch: 4.0.8
       semver: 7.7.4
       source-map: 0.7.6
-      typescript: 5.9.3
+      typescript: 6.0.2
       webpack: 5.104.1
 
-  ts-node@10.9.2(@types/node@20.19.37)(typescript@5.9.3):
+  ts-node@10.9.2(@types/node@20.19.37)(typescript@6.0.2):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.12
@@ -15170,7 +15170,7 @@ snapshots:
       create-require: 1.1.1
       diff: 4.0.4
       make-error: 1.3.6
-      typescript: 5.9.3
+      typescript: 6.0.2
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
@@ -15206,7 +15206,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typescript@5.9.3: {}
+  typescript@6.0.2: {}
 
   ufo@1.6.3: {}
 
@@ -15431,15 +15431,15 @@ snapshots:
 
   vscode-uri@3.1.0: {}
 
-  vue@3.5.30(typescript@5.9.3):
+  vue@3.5.30(typescript@6.0.2):
     dependencies:
       '@vue/compiler-dom': 3.5.30
       '@vue/compiler-sfc': 3.5.30
       '@vue/runtime-dom': 3.5.30
-      '@vue/server-renderer': 3.5.30(vue@3.5.30(typescript@5.9.3))
+      '@vue/server-renderer': 3.5.30(vue@3.5.30(typescript@6.0.2))
       '@vue/shared': 3.5.30
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.2
 
   w-json@1.3.10: {}
 

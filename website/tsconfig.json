@@ -5,13 +5,11 @@
     "allowJs": true,
     "noEmit": true,
     "module": "ES2020",
-    "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "Bundler",
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
-    "baseUrl": "./",
     "paths": {
       "@theme": ["./theme"],
       "@hooks/*": ["./hooks/*"],

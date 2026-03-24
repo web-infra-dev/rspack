@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "composite": true,
-    "baseUrl": "./src",
     "paths": {
       "@/*": ["./aliased/*"]
     }
