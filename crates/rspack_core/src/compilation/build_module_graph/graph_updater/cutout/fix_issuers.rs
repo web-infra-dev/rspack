@@ -227,7 +227,7 @@ impl FixIssuers {
           mgm.set_issuer(origin_issuer);
         }
 
-        let incoming_connections: Vec<_> = mgm.incoming_connections().iter().copied().collect();
+        let incoming_connections = mgm.incoming_connections().clone();
         let issuer_identifier = mgm.issuer().identifier().copied();
         let mut parents = Vec::with_capacity(incoming_connections.len());
         for dep_id in incoming_connections {

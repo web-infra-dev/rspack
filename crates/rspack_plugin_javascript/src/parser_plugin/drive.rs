@@ -26,7 +26,7 @@ pub struct JavaScriptParserPluginDrive {
 
 impl JavaScriptParserPluginDrive {
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
-    debug_assert!(plugins.len() <= u16::MAX as usize);
+    debug_assert!(u16::try_from(plugins.len()).is_ok());
     let mut hook_counts = [0usize; JavascriptParserPluginHook::COUNT];
 
     for plugin in &plugins {

@@ -153,29 +153,6 @@ impl TopLevelSymbol {
 }
 
 impl InnerGraphPlugin {
-  fn cached_top_level_symbol(parser: &JavascriptParser, name: &Atom) -> Option<TopLevelSymbol> {
-    parser
-      .inner_graph
-      .top_level_symbol_by_name
-      .get(name)
-      .cloned()
-  }
-
-  fn get_top_level_symbol(parser: &mut JavascriptParser, name: &Atom) -> Option<TopLevelSymbol> {
-    if let Some(symbol) = Self::cached_top_level_symbol(parser, name) {
-      return Some(symbol);
-    }
-
-    let symbol = parser
-      .get_tag_data(name, TOP_LEVEL_SYMBOL)
-      .map(TopLevelSymbol::downcast)?;
-    parser
-      .inner_graph
-      .top_level_symbol_by_name
-      .insert(name.clone(), symbol.clone());
-    Some(symbol)
-  }
-
   pub fn new(unresolved_mark: Mark) -> Self {
     Self {
       unresolved_context: SyntaxContext::empty().apply_mark(unresolved_mark),
@@ -231,8 +208,9 @@ impl InnerGraphPlugin {
       HashMap::with_capacity_and_hasher(state.inner_graph.len(), Default::default());
 
     while !non_terminal.is_empty() {
-      let mut remaining = Vec::with_capacity(non_terminal.len());
-      for key in non_terminal.drain(..) {
+      let current_non_terminal = std::mem::take(&mut non_terminal);
+      let mut remaining = Vec::with_capacity(current_non_terminal.len());
+      for key in current_non_terminal {
         // Using enum to manipulate original is pretty hard, so I use an extra variable to
         // flagging the new set has changed to boolean `true`
         // you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/InnerGraph.js#L150
@@ -395,7 +373,9 @@ impl InnerGraphPlugin {
   }
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
-    let symbol = Self::get_top_level_symbol(parser, name)
+    let symbol = parser
+      .get_tag_data(name, TOP_LEVEL_SYMBOL)
+      .map(TopLevelSymbol::downcast)
       .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
 
     parser.inner_graph.add_usage(symbol, usage);
@@ -421,11 +401,17 @@ impl InnerGraphPlugin {
     parser: &mut crate::visitors::JavascriptParser,
     name: &Atom,
   ) -> TopLevelSymbol {
-    if let Some(symbol) = Self::cached_top_level_symbol(parser, name) {
-      return symbol;
-    }
-
     parser.define_variable(name.clone());
+
+    let existing = parser.get_variable_info(name);
+    if let Some(existing) = existing
+      && let Some(tag_info) = existing.tag_info
+      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
+      && tag_info.tag == TOP_LEVEL_SYMBOL
+      && let Some(tag_data) = tag_info.data.clone()
+    {
+      return TopLevelSymbol::downcast(tag_data);
+    }
 
     let symbol = TopLevelSymbol::new(name.clone());
     parser.tag_variable_with_flags(
@@ -434,36 +420,7 @@ impl InnerGraphPlugin {
       Some(symbol.clone()),
       VariableInfoFlags::NORMAL,
     );
-    parser
-      .inner_graph
-      .top_level_symbol_by_name
-      .insert(name.clone(), symbol.clone());
     symbol
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use swc_core::atoms::Atom;
-
-  use super::{InnerGraphMapSetValue, InnerGraphSet, TopLevelSymbol};
-
-  #[test]
-  fn inner_graph_set_preserves_set_semantics() {
-    let symbol = TopLevelSymbol::new(Atom::from("symbol"));
-    let first = InnerGraphMapSetValue::Str(Atom::from("a"));
-    let second = InnerGraphMapSetValue::TopLevel(symbol);
-
-    let mut left = InnerGraphSet::default();
-    assert!(left.insert(first.clone()));
-    assert!(left.insert(second.clone()));
-    assert!(!left.insert(first.clone()));
-
-    let mut right = InnerGraphSet::default();
-    assert!(right.insert(second));
-    assert!(right.insert(first));
-
-    assert_eq!(left, right);
   }
 }
 
@@ -930,5 +887,30 @@ impl JavascriptParserPlugin for InnerGraphPlugin {
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);
     None
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use swc_core::atoms::Atom;
+
+  use super::{InnerGraphMapSetValue, InnerGraphSet, TopLevelSymbol};
+
+  #[test]
+  fn inner_graph_set_preserves_set_semantics() {
+    let symbol = TopLevelSymbol::new(Atom::from("symbol"));
+    let first = InnerGraphMapSetValue::Str(Atom::from("a"));
+    let second = InnerGraphMapSetValue::TopLevel(symbol);
+
+    let mut left = InnerGraphSet::default();
+    assert!(left.insert(first.clone()));
+    assert!(left.insert(second.clone()));
+    assert!(!left.insert(first.clone()));
+
+    let mut right = InnerGraphSet::default();
+    assert!(right.insert(second));
+    assert!(right.insert(first));
+
+    assert_eq!(left, right);
   }
 }
