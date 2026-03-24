@@ -1,4 +1,3 @@
-use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::Span,
@@ -21,36 +20,47 @@ use crate::{
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
-  plugins_by_hook: [SmallVec<[u16; 2]>; JavascriptParserPluginHook::COUNT],
+  plugin_offsets_by_hook: [u16; JavascriptParserPluginHook::COUNT + 1],
+  plugin_indices_by_hook: Vec<u16>,
 }
 
 impl JavaScriptParserPluginDrive {
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
     debug_assert!(plugins.len() <= u16::MAX as usize);
-    let plugin_hooks = plugins
-      .iter()
-      .map(|plugin| plugin.implemented_hooks())
-      .collect::<SmallVec<[super::JavascriptParserPluginHooks; 32]>>();
     let mut hook_counts = [0usize; JavascriptParserPluginHook::COUNT];
 
-    for hooks in &plugin_hooks {
-      for hook in hooks.iter() {
+    for plugin in &plugins {
+      for hook in plugin.implemented_hooks().iter() {
         hook_counts[hook as usize] += 1;
       }
     }
 
-    let mut plugins_by_hook: [SmallVec<[u16; 2]>; JavascriptParserPluginHook::COUNT] =
-      std::array::from_fn(|idx| SmallVec::with_capacity(hook_counts[idx]));
+    let mut plugin_offsets_by_hook = [0u16; JavascriptParserPluginHook::COUNT + 1];
+    for (idx, count) in hook_counts.into_iter().enumerate() {
+      plugin_offsets_by_hook[idx + 1] =
+        plugin_offsets_by_hook[idx] + u16::try_from(count).expect("plugin count overflow");
+    }
 
-    for (idx, hooks) in plugin_hooks.iter().copied().enumerate() {
-      for hook in hooks.iter() {
-        plugins_by_hook[hook as usize].push(idx as u16);
+    let mut plugin_indices_by_hook =
+      vec![0u16; plugin_offsets_by_hook[JavascriptParserPluginHook::COUNT] as usize];
+    let mut next_plugin_offset_by_hook = plugin_offsets_by_hook;
+
+    for (idx, plugin) in plugins.iter().enumerate() {
+      let idx = idx as u16;
+      for hook in plugin.implemented_hooks().iter() {
+        let hook = hook as usize;
+        let plugin_offset = &mut next_plugin_offset_by_hook[hook];
+        unsafe {
+          *plugin_indices_by_hook.get_unchecked_mut(*plugin_offset as usize) = idx;
+        }
+        *plugin_offset += 1;
       }
     }
 
     Self {
       plugins,
-      plugins_by_hook,
+      plugin_offsets_by_hook,
+      plugin_indices_by_hook,
     }
   }
 
@@ -59,8 +69,13 @@ impl JavaScriptParserPluginDrive {
     &self,
     hook: JavascriptParserPluginHook,
   ) -> impl Iterator<Item = &BoxJavascriptParserPlugin> {
-    let hooks = unsafe { self.plugins_by_hook.get_unchecked(hook as usize) };
-    hooks
+    let hook = hook as usize;
+    let start = unsafe { *self.plugin_offsets_by_hook.get_unchecked(hook) as usize };
+    let end = unsafe { *self.plugin_offsets_by_hook.get_unchecked(hook + 1) as usize };
+    self
+      .plugin_indices_by_hook
+      .get(start..end)
+      .unwrap_or_default()
       .iter()
       .map(|idx| unsafe { self.plugins.get_unchecked(*idx as usize) })
   }
