@@ -7,8 +7,8 @@ use rspack_core::{
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget, SideEffectsDoOptimize,
-  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
+  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -25,6 +25,7 @@ use crate::{
 };
 
 pub static SIDE_EFFECTS_FLAG_PLUGIN_STAGE: i32 = FLAG_DEPENDENCY_EXPORTS_STAGE + 10;
+const CALL_WITH_SIDE_EFFECTS_BAILOUT: &str = "Call with side effects";
 
 #[derive(Clone, Debug)]
 enum SideEffects {
@@ -179,16 +180,11 @@ async fn finish_modules(
     .collect();
 
   let module_graph = compilation.get_module_graph();
-  let mut modules_with_impurities = Vec::new();
+  let mut deferred_side_effect_states = Vec::new();
   for module_identifier in &modules {
     let Some(module) = module_graph.module_by_identifier(module_identifier) else {
       continue;
     };
-
-    // if already has side effects by another statement, skip
-    if module.build_meta().side_effect_free == Some(false) {
-      continue;
-    }
 
     // if user set side effect free, skip
     if module
@@ -244,9 +240,7 @@ async fn finish_modules(
         !side_effects_free.contains(&atom)
       });
 
-    if impure_check.is_some() {
-      modules_with_impurities.push(*module_identifier);
-    }
+    deferred_side_effect_states.push((*module_identifier, impure_check.is_some()));
   }
 
   // SAFETY: We need mutable access to update module build_meta and optimization bailout.
@@ -255,17 +249,21 @@ async fn finish_modules(
   let compilation_mut = unsafe { &mut *(compilation as *const Compilation as *mut Compilation) };
   let module_graph_mut = compilation_mut.get_module_graph_mut();
 
-  for module_id in modules_with_impurities {
+  for (module_id, has_impure_deferred_check) in deferred_side_effect_states {
     let module = module_graph_mut
       .module_by_identifier_mut(&module_id)
       .expect("should have module");
-    module.build_meta_mut().side_effect_free = Some(false);
+    module.build_meta_mut().side_effect_free = Some(!has_impure_deferred_check);
 
-    module_graph_mut
-      .get_optimization_bailout_mut(&module_id)
-      .push(rspack_core::OptimizationBailoutItem::Message(String::from(
-        "Call with side effects",
+    let bailouts = module_graph_mut.get_optimization_bailout_mut(&module_id);
+    bailouts.retain(
+      |item| !matches!(item, OptimizationBailoutItem::Message(msg) if msg == CALL_WITH_SIDE_EFFECTS_BAILOUT),
+    );
+    if has_impure_deferred_check {
+      bailouts.push(OptimizationBailoutItem::Message(String::from(
+        CALL_WITH_SIDE_EFFECTS_BAILOUT,
       )));
+    }
   }
 
   Ok(())

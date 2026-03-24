@@ -324,7 +324,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {
-      build_meta.side_effect_free = Some(side_effects_item.is_none());
+      let has_side_effects = side_effects_item.is_some();
+      build_meta.side_effect_free = Some(!has_side_effects);
+      if has_side_effects {
+        build_info.deferred_pure_checks.clear();
+      }
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
         let msg = item.loc?.to_string();
         Some(SideEffectsBailoutItem { msg, ty: item.ty })
