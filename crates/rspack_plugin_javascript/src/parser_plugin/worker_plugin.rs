@@ -23,7 +23,7 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   parser_plugin::url_plugin::is_meta_url,
   utils::object_properties::get_literal_str_by_obj_prop,
-  visitors::{JavascriptParser, TagInfoData, VariableDeclaration},
+  visitors::{JavascriptParser, VariableDeclaration},
 };
 
 #[derive(Debug)]
@@ -398,10 +398,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if for_name != WORKER_SPECIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_tag_info(parser.current_tag_info?);
-    let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
+    let data = parser.current_tag_data::<WorkerSpecifierData>()?;
     if self.matches_pattern_members(data.key.as_str(), members) {
       return handle_worker(parser, &call_expr.args, call_expr.span).map(
         |(parsed_path, parsed_options, first_arg, need_new_url)| {
@@ -433,10 +430,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
-      let tag_info = parser
-        .definitions_db
-        .expect_get_tag_info(parser.current_tag_info?);
-      let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
+      let settings = parser.current_tag_data::<ESMSpecifierData>()?;
       if self.contains_from_syntax(
         &self.from_call_syntax,
         &settings.ids,
@@ -495,10 +489,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
-      let tag_info = parser
-        .definitions_db
-        .expect_get_tag_info(parser.current_tag_info?);
-      let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
+      let settings = parser.current_tag_data::<ESMSpecifierData>()?;
       if self.contains_from_syntax(
         &self.from_new_syntax,
         &settings.ids,

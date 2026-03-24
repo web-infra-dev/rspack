@@ -195,10 +195,17 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_tag_info(parser.current_tag_info?);
-    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
+    let (source, name, source_order, ids, phase, attributes) = {
+      let settings = parser.current_tag_data::<ESMSpecifierData>()?;
+      (
+        settings.source.clone(),
+        settings.name.clone(),
+        settings.source_order,
+        settings.ids.clone(),
+        settings.phase,
+        settings.attributes.clone(),
+      )
+    };
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&ident.span())
@@ -206,19 +213,19 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let range = DependencyRange::from(ident.span);
     let loc = parser.to_dependency_location(range);
     let dep = ESMImportSpecifierDependency::new(
-      settings.source,
-      settings.name,
-      settings.source_order,
+      source,
+      name,
+      source_order,
       parser.in_short_hand,
       !parser.is_asi_position(ident.span_lo()),
       ident.span.into(),
-      settings.ids.into_vec(),
+      ids.into_vec(),
       parser.in_tagged_template_tag,
       true,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       referenced_properties_in_destructuring,
-      settings.phase,
-      settings.attributes,
+      phase,
+      attributes,
       loc,
     );
     let dep_idx = parser.next_dependency_idx();
@@ -247,10 +254,17 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_tag_info(parser.current_tag_info?);
-    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
+    let (source, name, source_order, mut ids, phase, attributes) = {
+      let settings = parser.current_tag_data::<ESMSpecifierData>()?;
+      (
+        settings.source.clone(),
+        settings.name.clone(),
+        settings.source_order,
+        settings.ids.clone(),
+        settings.phase,
+        settings.attributes.clone(),
+      )
+    };
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let span = if members.len() > non_optional_members.len() {
@@ -262,13 +276,12 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     } else {
       callee.span()
     };
-    let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
     let mut dep = ESMImportSpecifierDependency::new(
-      settings.source,
-      settings.name,
-      settings.source_order,
+      source,
+      name,
+      source_order,
       false,
       !parser.is_asi_position(call_expr.span_lo()),
       span.into(),
@@ -279,8 +292,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       // we don't need to pass destructuring properties here, since this is a call expr,
       // pass destructuring properties here won't help for tree shaking.
       None,
-      settings.phase,
-      settings.attributes,
+      phase,
+      attributes,
       parser.to_dependency_location(DependencyRange::from(call_expr.callee.span())),
     );
     dep.namespace_object_as_context = parser
@@ -312,10 +325,17 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if for_name != ESM_SPECIFIER_TAG {
       return None;
     }
-    let tag_info = parser
-      .definitions_db
-      .expect_get_tag_info(parser.current_tag_info?);
-    let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
+    let (source, name, source_order, mut ids, phase, attributes) = {
+      let settings = parser.current_tag_data::<ESMSpecifierData>()?;
+      (
+        settings.source.clone(),
+        settings.name.clone(),
+        settings.source_order,
+        settings.ids.clone(),
+        settings.phase,
+        settings.attributes.clone(),
+      )
+    };
 
     let non_optional_members = get_non_optional_part(members, members_optionals);
     let span = if members.len() > non_optional_members.len() {
@@ -327,16 +347,15 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     } else {
       member_expr.span()
     };
-    let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&member_expr.span())
       .cloned();
     let dep = ESMImportSpecifierDependency::new(
-      settings.source,
-      settings.name,
-      settings.source_order,
+      source,
+      name,
+      source_order,
       false,
       !parser.is_asi_position(member_expr.span_lo()),
       span.into(),
@@ -345,8 +364,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       false, // x.xx()
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       referenced_properties_in_destructuring,
-      settings.phase,
-      settings.attributes,
+      phase,
+      attributes,
       parser.to_dependency_location(DependencyRange::from(span)),
     );
     let dep_idx = parser.next_dependency_idx();

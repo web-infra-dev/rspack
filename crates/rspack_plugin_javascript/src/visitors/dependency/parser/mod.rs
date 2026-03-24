@@ -65,6 +65,8 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
 
   fn downcast(any: Box<dyn anymap::CloneAny>) -> Self;
+
+  fn downcast_ref(any: &dyn anymap::CloneAny) -> &Self;
 }
 
 impl<T> TagInfoData for T
@@ -78,6 +80,12 @@ where
   fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
     *(any as Box<dyn std::any::Any>)
       .downcast()
+      .expect("TagInfoData should be downcasted from correct tag info")
+  }
+
+  fn downcast_ref(any: &dyn anymap::CloneAny) -> &Self {
+    (any as &dyn std::any::Any)
+      .downcast_ref()
       .expect("TagInfoData should be downcasted from correct tag info")
   }
 }
@@ -774,6 +782,13 @@ impl<'parser> JavascriptParser<'parser> {
 
         None
       })
+  }
+
+  pub fn current_tag_data<Data: TagInfoData>(&self) -> Option<&Data> {
+    let tag_info = self
+      .definitions_db
+      .expect_get_tag_info(self.current_tag_info?);
+    Some(Data::downcast_ref(tag_info.data.as_deref()?))
   }
 
   pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
