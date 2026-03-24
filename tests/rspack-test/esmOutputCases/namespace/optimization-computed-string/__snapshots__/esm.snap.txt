@@ -1,0 +1,26 @@
+```mjs title=main.mjs
+// ./quux.js
+function a() {
+  return "effect";
+}
+
+function b() {
+  return "b";
+}
+
+// ./index.js
+
+
+const index_a = a();
+const index_b = b();
+
+it("should optimize namespace lookup chains for computed string keys", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.a).toBe("effect");
+  expect(mod.b).toBe("b");
+});
+
+export { index_a as a, index_b as b };
+
+```

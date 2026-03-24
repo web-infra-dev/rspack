@@ -1,0 +1,75 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import * as __rspack_external_fs from "fs";
+
+// NAMESPACE OBJECT: ./reexport-external.js
+var reexport_external_namespaceObject = {};
+__webpack_require__.r(reexport_external_namespaceObject);
+__webpack_require__.d(reexport_external_namespaceObject, { 
+  marker: () => (marker),
+  readFile: () => (readFile) });
+var reexport_external_namespaceObject_starExports = __rspack_external_fs;
+var reexport_external_namespaceObject_starDefs = {};
+Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    reexport_external_namespaceObject_starDefs[key] = function() { return reexport_external_namespaceObject_starExports[key]; };
+  }
+});
+__webpack_require__.d(reexport_external_namespaceObject, reexport_external_namespaceObject_starDefs);
+
+
+// fs
+
+// ./reexport-external.js
+
+
+const readFile = 42;
+const marker = "marker";
+
+// ./index.js
+
+
+it("should merge local exports with external star reexports inside exported namespace", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.fsNs.readFile).toBe(42);
+  expect(typeof mod.fsNs.readFileSync).toBe("function");
+  expect(mod.fsNs.marker).toBe("marker");
+});
+
+export { reexport_external_namespaceObject as fsNs };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

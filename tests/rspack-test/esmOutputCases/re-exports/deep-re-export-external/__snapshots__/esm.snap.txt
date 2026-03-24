@@ -8,6 +8,14 @@ __webpack_require__.r(externals_namespaceObject);
 __webpack_require__.d(externals_namespaceObject, { 
   "default": () => (__rspack_external_fs["default"]),
   readFile: () => (__rspack_external_fs.readFile) });
+var externals_namespaceObject_starExports = __rspack_external_fs;
+var externals_namespaceObject_starDefs = {};
+Object.keys(externals_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    externals_namespaceObject_starDefs[key] = function() { return externals_namespaceObject_starExports[key]; };
+  }
+});
+__webpack_require__.d(externals_namespaceObject, externals_namespaceObject_starDefs);
 
 
 // fs
