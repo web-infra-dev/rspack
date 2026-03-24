@@ -1267,6 +1267,29 @@ export class Entries implements Map<string, EntryData> {
     return this.#data.delete(key);
   }
 
+  getOrInsert(key: string, defaultValue: EntryData): EntryData {
+    const value = this.get(key);
+    if (value !== undefined) {
+      return value;
+    }
+
+    this.set(key, defaultValue);
+    return this.get(key)!;
+  }
+
+  getOrInsertComputed(
+    key: string,
+    callback: (key: string) => EntryData,
+  ): EntryData {
+    const value = this.get(key);
+    if (value !== undefined) {
+      return value;
+    }
+
+    this.set(key, callback(key));
+    return this.get(key)!;
+  }
+
   get(key: string): EntryData | undefined {
     const binding = this.#data.get(key);
     return binding ? EntryData.__from_binding(binding) : undefined;
