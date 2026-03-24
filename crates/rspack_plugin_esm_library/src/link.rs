@@ -563,30 +563,20 @@ impl EsmLibraryPlugin {
               find_new_name(star_exports_base.as_str(), &chunk_link.used_names, &[]);
             chunk_link.used_names.insert(star_exports_name.clone());
 
-            let star_defs_base = format!("{name}_starDefs");
-            let star_defs_name =
-              find_new_name(star_defs_base.as_str(), &chunk_link.used_names, &[]);
-            chunk_link.used_names.insert(star_defs_name.clone());
-
             format!(
               r#"var {} = {};
-var {} = {{}};
 Object.keys({}).forEach(function(key) {{
   if (key !== "default" && key !== "__esModule") {{
-    {}[key] = function() {{ return {}[key]; }};
+    {}({}, {{ [key]: function() {{ return {}[key]; }} }});
   }}
 }});
-{}({}, {});
 "#,
               star_exports_name,
               binding.render(),
-              star_defs_name,
-              star_exports_name,
-              star_defs_name,
               star_exports_name,
               runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
               name,
-              star_defs_name
+              star_exports_name
             )
           } else {
             String::new()

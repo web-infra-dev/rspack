@@ -6,13 +6,11 @@ import * as __rspack_external_fs from "fs";
 var reexport_external_namespaceObject = {};
 __webpack_require__.r(reexport_external_namespaceObject);
 var reexport_external_namespaceObject_starExports = __rspack_external_fs;
-var reexport_external_namespaceObject_starDefs = {};
 Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key) {
   if (key !== "default" && key !== "__esModule") {
-    reexport_external_namespaceObject_starDefs[key] = function() { return reexport_external_namespaceObject_starExports[key]; };
+    __webpack_require__.d(reexport_external_namespaceObject, { [key]: function() { return reexport_external_namespaceObject_starExports[key]; } });
   }
 });
-__webpack_require__.d(reexport_external_namespaceObject, reexport_external_namespaceObject_starDefs);
 
 
 // fs
