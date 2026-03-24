@@ -49,7 +49,7 @@ jobs:
       - name: Upload Artifact
         uses: ./.github/actions/artifact/upload
         with:
-          name: codspeed-${{ inputs.target }}
+          name: codspeed-${{ inputs.measurement }}-${{ inputs.target }}
           path: |
             target/codspeed/analysis/**/
             target/codspeed/walltime/**/

@@ -74,6 +74,17 @@ jobs:
     if: inputs.bench
     needs: [build, codspeed]
     with:
+      measurement: 'simulation'
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.bench-runner || inputs.runner }}
+      ref: ${{ inputs.ref }}
+
+  bench-walltime:
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: inputs.bench
+    needs: [build, codspeed-walltime]
+    with:
+      measurement: 'walltime'
       target: ${{ inputs.target }}
       runner: ${{ inputs.bench-runner || inputs.runner }}
       ref: ${{ inputs.ref }}

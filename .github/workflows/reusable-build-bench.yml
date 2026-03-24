@@ -3,6 +3,10 @@ name: Reusable Release
 on:
   workflow_call:
     inputs:
+      measurement:
+        required: false
+        type: string
+        default: 'simulation'
       target:
         required: true
         type: string
@@ -23,7 +27,7 @@ permissions:
 
 jobs:
   bench:
-    name: Bench
+    name: ${{ inputs.measurement == 'walltime' && 'Bench-walltime' || 'Bench' }}
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -55,19 +59,29 @@ jobs:
       - name: Show restored binding
         run: ls -lah crates/node_binding/*.node
 
-      - name: Download benches
+      - name: Download simulation benches
+        if: inputs.measurement == 'simulation'
         uses: ./.github/actions/artifact/download
         with:
-          name: codspeed-${{ inputs.target }}
-          path: 
-            target/codspeed/analysis/
-            target/codspeed/walltime/
+          name: codspeed-simulation-${{ inputs.target }}
+          path: target/codspeed/analysis/
+
+      - name: Download walltime benches
+        if: inputs.measurement == 'walltime'
+        uses: ./.github/actions/artifact/download
+        with:
+          name: codspeed-walltime-${{ inputs.target }}
+          path: target/codspeed/walltime/
 
       - name: Show Codspeed
         run: |
           ls -Rl target/codspeed/
-          chmod +x target/codspeed/analysis/rspack_benchmark/benches
-          chmod +x target/codspeed/walltime/rspack_benchmark/benches
+          if [ "${{ inputs.measurement }}" = "simulation" ]; then
+            chmod +x target/codspeed/analysis/rspack_benchmark/benches
+          fi
+          if [ "${{ inputs.measurement }}" = "walltime" ]; then
+            chmod +x target/codspeed/walltime/rspack_benchmark/benches
+          fi
 
       - name: Pnpm Setup
         timeout-minutes: 5
@@ -79,6 +93,7 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
       - name: Run benchmark (simulation)
+        if: inputs.measurement == 'simulation'
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
         env:
@@ -89,6 +104,7 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
 
       - name: Run benchmark (memory)
+        if: inputs.measurement == 'simulation'
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
         env:
@@ -99,6 +115,7 @@ jobs:
           run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
           token: ${{ secrets.CODSPEED_TOKEN }}
       - name: Run benchmark (walltime)
+        if: inputs.measurement == 'walltime'
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
         with:
