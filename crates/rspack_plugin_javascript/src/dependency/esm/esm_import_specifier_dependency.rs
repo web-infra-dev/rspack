@@ -53,6 +53,7 @@ pub struct ESMImportSpecifierDependency {
   pub evaluated_in_operator: bool,
   loc: Option<DependencyLocation>,
   pub namespace_object_as_context: bool,
+  ns_access: bool,
   factorize_info: FactorizeInfo,
 }
 
@@ -68,6 +69,7 @@ impl ESMImportSpecifierDependency {
     ids: Vec<Atom>,
     call: bool,
     direct_import: bool,
+    ns_access: bool,
     export_presence_mode: ExportPresenceMode,
     referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
     phase: ImportPhase,
@@ -91,6 +93,7 @@ impl ESMImportSpecifierDependency {
       used_by_exports: None,
       evaluated_in_operator: false,
       namespace_object_as_context: false,
+      ns_access,
       referenced_properties_in_destructuring,
       phase,
       attributes,
@@ -124,7 +127,14 @@ impl ESMImportSpecifierDependency {
       refs
         .into_iter()
         // Do not inline if there are any places where used as destructuring
-        .map(|name| ExtendedReferencedExport::Export(ReferencedExport::new(name, true, false)))
+        .map(|name| {
+          ExtendedReferencedExport::Export(ReferencedExport {
+            name,
+            can_mangle: true,
+            can_inline: false,
+            ns_access: self.ns_access,
+          })
+        })
         .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![ExtendedReferencedExport::Export(ReferencedExport {
@@ -132,6 +142,7 @@ impl ESMImportSpecifierDependency {
         can_mangle: true,
         // Need access the export value to trigger side effects for deferred module
         can_inline: !self.phase.is_defer(),
+        ns_access: self.ns_access,
       })]
     } else {
       create_exports_object_referenced()
