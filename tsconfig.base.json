@@ -6,7 +6,6 @@
     "esModuleInterop": true,
     "outDir": "dist",
     "declaration": true,
-    "types": ["node"],
     "isolatedModules": true,
     "sourceMap": true,
     "declarationMap": true,
