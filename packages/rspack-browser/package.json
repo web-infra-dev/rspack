@@ -34,7 +34,7 @@
   "dependencies": {
     "@napi-rs/wasm-runtime": "1.1.1",
     "@rspack/lite-tapable": "1.1.0",
-    "@swc/types": "0.1.25",
+    "@swc/types": "0.1.26",
     "@types/watchpack": "^2.4.5",
     "memfs": "4.53.0",
     "webpack-sources": "3.3.4"
