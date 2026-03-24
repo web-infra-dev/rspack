@@ -160,6 +160,26 @@ async function build() {
 					return;
 				}
 
+				if (!watch && !validateTypeDeclarations(envs)) {
+					if (previousDts !== undefined && previousDts !== readFileSync(dts, "utf8")) {
+						console.warn(
+							`generated ${NAPI_BINDING_DTS} failed type check, restoring the checked-in declaration file`
+						);
+						writeFileSync(dts, previousDts);
+						if (!validateTypeDeclarations(envs)) {
+							reject(
+								new Error(`restored ${NAPI_BINDING_DTS} still failed the binding type check`)
+							);
+							return;
+						}
+					} else {
+						reject(
+							new Error(`generated ${NAPI_BINDING_DTS} failed the binding type check`)
+						);
+						return;
+					}
+				}
+
 				// For browser wasm, we rename the artifacts to distinguish them from node wasm
 				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
@@ -179,4 +199,22 @@ async function build() {
 			resolve(code);
 		});
 	});
+}
+
+function validateTypeDeclarations(envs) {
+	const result = spawnSync(
+		process.platform === "win32" ? "pnpm.cmd" : "pnpm",
+		["exec", "tsc", "-p", "tsconfig.type-test.json"],
+		{
+			cwd: path.resolve(__dirname, ".."),
+			stdio: "inherit",
+			env: envs,
+		}
+	);
+
+	if (result.error) {
+		throw result.error;
+	}
+
+	return result.status === 0;
 }
