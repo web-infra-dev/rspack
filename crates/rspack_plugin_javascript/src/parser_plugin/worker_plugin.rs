@@ -1,12 +1,11 @@
 use std::hash::Hash;
 
-use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
 };
 use rspack_hash::RspackHash;
 use rspack_util::SpanExt;
-use rustc_hash::{FxHashMap, FxHashSet};
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
@@ -232,11 +231,11 @@ fn handle_worker<'a>(
 }
 
 pub struct WorkerPlugin {
-  new_syntax: FxHashSet<String>,
-  call_syntax: FxHashSet<String>,
-  from_new_syntax: FxHashSet<(String, String)>,
-  from_call_syntax: FxHashSet<(String, String)>,
-  pattern_syntax: FxHashMap<String, FxHashSet<String>>,
+  new_syntax: SyntaxEntries,
+  call_syntax: SyntaxEntries,
+  from_new_syntax: FromSyntaxEntries,
+  from_call_syntax: FromSyntaxEntries,
+  pattern_syntax: PatternSyntaxEntries,
 }
 
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
@@ -252,14 +251,25 @@ struct WorkerSpecifierData {
   key: Atom,
 }
 
+type SyntaxEntries = SmallVec<[Box<str>; 2]>;
+type FromSyntaxEntries = SmallVec<[(Box<str>, Box<str>); 1]>;
+type PatternSyntaxEntries = SmallVec<[PatternSyntax; 1]>;
+type PatternMembers = SmallVec<[Box<str>; 1]>;
+
+#[derive(Debug)]
+struct PatternSyntax {
+  pattern: Box<str>,
+  members: PatternMembers,
+}
+
 impl WorkerPlugin {
   pub fn new(syntax_list: &[String]) -> Self {
     let mut this = Self {
-      new_syntax: FxHashSet::default(),
-      call_syntax: FxHashSet::default(),
-      from_new_syntax: FxHashSet::default(),
-      from_call_syntax: FxHashSet::default(),
-      pattern_syntax: FxHashMap::default(),
+      new_syntax: SyntaxEntries::new(),
+      call_syntax: SyntaxEntries::new(),
+      from_new_syntax: FromSyntaxEntries::new(),
+      from_call_syntax: FromSyntaxEntries::new(),
+      pattern_syntax: PatternSyntaxEntries::new(),
     };
     for syntax in syntax_list {
       if syntax == "..." {
@@ -273,6 +283,50 @@ impl WorkerPlugin {
     this
   }
 
+  fn insert_pattern_syntax(&mut self, pattern: &str, members: &str) {
+    if let Some(entry) = self
+      .pattern_syntax
+      .iter_mut()
+      .find(|entry| entry.pattern.as_ref() == pattern)
+    {
+      insert_unique_syntax(&mut entry.members, members);
+    } else {
+      let mut pattern_members = PatternMembers::new();
+      pattern_members.push(members.into());
+      self.pattern_syntax.push(PatternSyntax {
+        pattern: pattern.into(),
+        members: pattern_members,
+      });
+    }
+  }
+
+  fn has_pattern_syntax(&self, pattern: &str) -> bool {
+    self
+      .pattern_syntax
+      .iter()
+      .any(|entry| entry.pattern.as_ref() == pattern)
+  }
+
+  fn matches_pattern_members(&self, pattern: &str, members: &[Atom]) -> bool {
+    self
+      .pattern_syntax
+      .iter()
+      .find(|entry| entry.pattern.as_ref() == pattern)
+      .is_some_and(|entry| {
+        entry
+          .members
+          .iter()
+          .any(|candidate| dotted_members_match(candidate, members.iter().map(Atom::as_str)))
+      })
+  }
+
+  fn contains_from_syntax(&self, entries: &FromSyntaxEntries, ids: &[Atom], source: &str) -> bool {
+    entries.iter().any(|(candidate_ids, candidate_source)| {
+      candidate_source.as_ref() == source
+        && dotted_members_match(candidate_ids, ids.iter().map(Atom::as_str))
+    })
+  }
+
   fn handle_syntax(&mut self, syntax: &str) {
     if let Some(syntax) = syntax.strip_prefix('*')
       && let Some(first_dot) = syntax.find('.')
@@ -280,28 +334,17 @@ impl WorkerPlugin {
     {
       let pattern = &syntax[0..first_dot];
       let members = &syntax[first_dot + 1..];
-      if let Some(value) = self.pattern_syntax.get_mut(pattern) {
-        value.insert(members.to_string());
-      } else {
-        self.pattern_syntax.insert(
-          pattern.to_string(),
-          FxHashSet::from_iter([members.to_string()]),
-        );
-      }
+      self.insert_pattern_syntax(pattern, members);
     } else if let Some(syntax) = syntax.strip_suffix("()") {
-      self.call_syntax.insert(syntax.to_string());
-    } else if let Ok(((ids, is_call), source)) = worker_from(syntax) {
+      insert_unique_syntax(&mut self.call_syntax, syntax);
+    } else if let Some(((ids, is_call), source)) = worker_from(syntax) {
       if is_call {
-        self
-          .from_call_syntax
-          .insert((ids.to_string(), source.to_string()));
+        insert_unique_from_syntax(&mut self.from_call_syntax, ids, source);
       } else {
-        self
-          .from_new_syntax
-          .insert((ids.to_string(), source.to_string()));
+        insert_unique_from_syntax(&mut self.from_new_syntax, ids, source);
       }
     } else {
-      self.new_syntax.insert(syntax.to_string());
+      insert_unique_syntax(&mut self.new_syntax, syntax);
     }
   }
 }
@@ -315,7 +358,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = decl.name.as_ident()
-      && self.pattern_syntax.contains_key(ident.sym.as_str())
+      && self.has_pattern_syntax(ident.sym.as_str())
     {
       parser.tag_variable(
         ident.sym.clone(),
@@ -330,7 +373,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   }
 
   fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
-    if self.pattern_syntax.contains_key(for_name) {
+    if self.has_pattern_syntax(for_name) {
       parser.tag_variable(
         ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
@@ -359,9 +402,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
-    if let Some(value) = self.pattern_syntax.get(data.key.as_str())
-      && value.contains(&members.iter().map(|id| id.as_str()).join("."))
-    {
+    if self.matches_pattern_members(data.key.as_str(), members) {
       return handle_worker(parser, &call_expr.args, call_expr.span).map(
         |(parsed_path, parsed_options, first_arg, need_new_url)| {
           add_dependencies(
@@ -396,11 +437,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-      let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
-      if self
-        .from_call_syntax
-        .contains(&(ids, settings.source.to_string()))
-      {
+      if self.contains_from_syntax(
+        &self.from_call_syntax,
+        &settings.ids,
+        settings.source.as_str(),
+      ) {
         return handle_worker(parser, &call_expr.args, call_expr.span).map(
           |(parsed_path, parsed_options, first_arg, need_new_url)| {
             add_dependencies(
@@ -423,7 +464,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       }
       return None;
     }
-    if !self.call_syntax.contains(for_name) {
+    if !contains_syntax(&self.call_syntax, for_name) {
       return None;
     }
     handle_worker(parser, &call_expr.args, call_expr.span).map(
@@ -458,11 +499,11 @@ impl JavascriptParserPlugin for WorkerPlugin {
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
-      let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
-      if self
-        .from_new_syntax
-        .contains(&(ids, settings.source.to_string()))
-      {
+      if self.contains_from_syntax(
+        &self.from_new_syntax,
+        &settings.ids,
+        settings.source.as_str(),
+      ) {
         return new_expr
           .args
           .as_ref()
@@ -487,7 +528,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       }
       return None;
     }
-    if !self.new_syntax.contains(for_name) {
+    if !contains_syntax(&self.new_syntax, for_name) {
       return None;
     }
     new_expr
@@ -514,38 +555,73 @@ impl JavascriptParserPlugin for WorkerPlugin {
   }
 }
 
-fn worker_from(mut input: &str) -> winnow::ModalResult<((&str, bool), &str)> {
-  use winnow::{ascii, combinator::separated_pair, prelude::*, stream::AsChar, token};
+fn insert_unique_syntax<const N: usize>(entries: &mut SmallVec<[Box<str>; N]>, value: &str) {
+  if !contains_syntax(entries, value) {
+    entries.push(value.into());
+  }
+}
 
-  let ident_and_call = token::take_while(1.., |c: char| !c.is_space()).map(|ident: &str| {
+fn contains_syntax(entries: &[Box<str>], value: &str) -> bool {
+  entries.iter().any(|entry| entry.as_ref() == value)
+}
+
+fn insert_unique_from_syntax(entries: &mut FromSyntaxEntries, ids: &str, source: &str) {
+  if !entries
+    .iter()
+    .any(|(entry_ids, entry_source)| entry_ids.as_ref() == ids && entry_source.as_ref() == source)
+  {
+    entries.push((ids.into(), source.into()));
+  }
+}
+
+fn dotted_members_match<'a>(candidate: &str, mut members: impl Iterator<Item = &'a str>) -> bool {
+  for candidate_member in candidate.split('.') {
+    let Some(member) = members.next() else {
+      return false;
+    };
+    if candidate_member != member {
+      return false;
+    }
+  }
+  members.next().is_none()
+}
+
+fn worker_from(input: &str) -> Option<((&str, bool), &str)> {
+  let ident_end = input.find(char::is_whitespace)?;
+  if ident_end == 0 {
+    return None;
+  }
+
+  let ident = &input[..ident_end];
+  let mut rest = input[ident_end..].trim_start_matches(char::is_whitespace);
+  rest = rest.strip_prefix("from")?;
+
+  let source = rest.trim_start_matches(char::is_whitespace);
+  if source.len() == rest.len() || source.is_empty() {
+    return None;
+  }
+
+  Some(
     ident
       .strip_suffix("()")
-      .map_or((ident, false), |ident| (ident, true))
-  });
-
-  let mut parser = separated_pair(
-    ident_and_call,
-    (ascii::multispace1, "from", ascii::multispace1),
-    token::take_while(1.., |_| true),
-  );
-
-  parser.parse_next(&mut input)
+      .map_or(((ident, false), source), |ident| ((ident, true), source)),
+  )
 }
 
 #[test]
 fn test_worker_from() {
   assert_eq!(
-    worker_from("Worker from worker_threads").ok(),
+    worker_from("Worker from worker_threads"),
     Some((("Worker", false), "worker_threads"))
   );
 
   assert_eq!(
-    worker_from("worker() from worker_threads").ok(),
+    worker_from("worker() from worker_threads"),
     Some((("worker", true), "worker_threads"))
   );
 
   assert_eq!(
-    worker_from("()() from worker_threads").ok(),
+    worker_from("()() from worker_threads"),
     Some((("()", true), "worker_threads"))
   );
 }

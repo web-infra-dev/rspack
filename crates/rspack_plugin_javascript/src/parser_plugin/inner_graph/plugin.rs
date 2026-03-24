@@ -163,7 +163,7 @@ impl InnerGraphPlugin {
         let mut set_is_true = false;
         let mut is_terminal = true;
         let already_processed = processed.entry(key.clone()).or_default();
-        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
+        let next_value = if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
           for name in names.iter() {
             already_processed.insert(name.clone());
           }
@@ -198,19 +198,21 @@ impl InnerGraphPlugin {
               }
             }
           }
-          if set_is_true {
-            state
-              .inner_graph
-              .insert(key.clone(), InnerGraphMapValue::True);
+          Some(if set_is_true {
+            InnerGraphMapValue::True
           } else if new_set.is_empty() {
-            state
-              .inner_graph
-              .insert(key.clone(), InnerGraphMapValue::Nil);
+            InnerGraphMapValue::Nil
           } else {
-            state
-              .inner_graph
-              .insert(key.clone(), InnerGraphMapValue::Set(new_set));
-          }
+            InnerGraphMapValue::Set(new_set)
+          })
+        } else {
+          None
+        };
+
+        if let Some(next_value) = next_value
+          && let Some(value) = state.inner_graph.get_mut(key)
+        {
+          *value = next_value;
         }
 
         if is_terminal {
@@ -220,23 +222,24 @@ impl InnerGraphPlugin {
             let global_value = state.inner_graph.get(&TopLevelSymbol::global()).cloned();
             if let Some(global_value) = global_value {
               for (key, value) in state.inner_graph.iter_mut() {
-                if !key.is_global() && value != &InnerGraphMapValue::True {
-                  if global_value == InnerGraphMapValue::True {
+                if key.is_global() || value == &InnerGraphMapValue::True {
+                  continue;
+                }
+                match (&global_value, value) {
+                  (InnerGraphMapValue::True, value) => {
                     *value = InnerGraphMapValue::True;
-                  } else {
-                    let mut new_set = match value {
-                      InnerGraphMapValue::Set(set) => std::mem::take(set),
-                      InnerGraphMapValue::True => unreachable!(),
-                      InnerGraphMapValue::Nil => HashSet::default(),
-                    };
-                    let extend_value = match global_value.clone() {
-                      InnerGraphMapValue::Set(set) => set,
-                      InnerGraphMapValue::True => unreachable!(),
-                      InnerGraphMapValue::Nil => HashSet::default(),
-                    };
-                    new_set.extend(extend_value);
-                    *value = InnerGraphMapValue::Set(new_set);
                   }
+                  (InnerGraphMapValue::Set(global_set), InnerGraphMapValue::Set(set)) => {
+                    set.extend(global_set.iter().cloned());
+                  }
+                  (InnerGraphMapValue::Set(global_set), value @ InnerGraphMapValue::Nil) => {
+                    *value = InnerGraphMapValue::Set(global_set.clone());
+                  }
+                  (InnerGraphMapValue::Nil, value @ InnerGraphMapValue::Nil) => {
+                    *value = InnerGraphMapValue::Set(HashSet::default());
+                  }
+                  (InnerGraphMapValue::Nil, InnerGraphMapValue::Set(_)) => {}
+                  (_, InnerGraphMapValue::True) => unreachable!(),
                 }
               }
             }
