@@ -1268,9 +1268,8 @@ export class Entries implements Map<string, EntryData> {
   }
 
   getOrInsert(key: string, defaultValue: EntryData): EntryData {
-    const value = this.get(key);
-    if (value !== undefined) {
-      return value;
+    if (this.has(key)) {
+      return this.get(key)!;
     }
 
     this.set(key, defaultValue);
@@ -1281,9 +1280,8 @@ export class Entries implements Map<string, EntryData> {
     key: string,
     callback: (key: string) => EntryData,
   ): EntryData {
-    const value = this.get(key);
-    if (value !== undefined) {
-      return value;
+    if (this.has(key)) {
+      return this.get(key)!;
     }
 
     this.set(key, callback(key));
