@@ -119,16 +119,7 @@ wasmparser          = { version = "0.222.0", default-features = false }
 winnow              = { version = "0.7.15", default-features = false, features = ["std", "simd"] }
 xxhash-rust         = { version = "0.8.15", default-features = false }
 
-allocative = { package = "rspack-allocative", version = "0.3.5", default-features = false, features = [
-  "camino",
-  "dashmap",
-  "hashbrown",
-  "indexmap",
-  "tokio",
-  "once_cell",
-  "ustr",
-  "atomic_refcell",
-] }
+allocative = { package = "rspack-allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "hashbrown", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
 
 # Pinned
 napi        = { version = "3.8.3", default-features = false }
@@ -156,14 +147,9 @@ swc_experimental_ecma_parser   = { version = "0.6.1", default-features = false }
 swc_experimental_ecma_semantic = { version = "0.6.1", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
-tracy-client = { version = "=0.18.4", default-features = false, features = [
-  "enable",
-  "sampling",
-  "demangle",
-  "system-tracing",
-] }
-wasi-common = { version = "35.0.0", default-features = false }
-wasmtime = { version = "35.0.0", default-features = false }
+tracy-client  = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
+wasi-common   = { version = "35.0.0", default-features = false }
+wasmtime      = { version = "35.0.0", default-features = false }
 
 
 # all rspack workspace dependencies
