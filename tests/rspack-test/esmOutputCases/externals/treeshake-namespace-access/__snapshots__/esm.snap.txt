@@ -1,12 +1,11 @@
 ```mjs title=main.mjs
-import { readFile } from "fs";
-
+import * as __rspack_external_fs from "fs";
 // fs
 
 // ./index.js
 
 
-const unused = readFile;
+const unused = __rspack_external_fs.readFile;
 
 /* export default */ const index = ("main");
 

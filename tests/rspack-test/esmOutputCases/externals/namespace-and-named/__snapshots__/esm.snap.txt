@@ -1,6 +1,5 @@
 ```mjs title=main.mjs
-import { readFile, readFileSync } from "fs";
-
+import * as __rspack_external_fs from "fs";
 // fs
 
 // ./index.js
@@ -8,8 +7,8 @@ import { readFile, readFileSync } from "fs";
 
 
 it("should keep namespace and named external imports aligned", () => {
-  expect(readFile).toBe(readFile);
-  expect(readFileSync).toBe(readFileSync);
+  expect(__rspack_external_fs.readFile).toBe(__rspack_external_fs.readFile);
+  expect(__rspack_external_fs.readFileSync).toBe(__rspack_external_fs.readFileSync);
 });
 
 
