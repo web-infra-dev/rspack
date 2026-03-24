@@ -1,0 +1,16 @@
+```mjs title=main.mjs
+import { readFile, readFileSync } from "fs";
+
+// fs
+
+// ./index.js
+
+
+
+it("should keep namespace and named external imports aligned", () => {
+  expect(readFile).toBe(readFile);
+  expect(readFileSync).toBe(readFileSync);
+});
+
+
+```

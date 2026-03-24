@@ -1,0 +1,110 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./bar.js
+var bar_namespaceObject = {};
+__webpack_require__.r(bar_namespaceObject);
+__webpack_require__.d(bar_namespaceObject, { 
+  bar: () => (bar) });
+
+
+// NAMESPACE OBJECT: ./foo.js
+var foo_namespaceObject = {};
+__webpack_require__.r(foo_namespaceObject);
+__webpack_require__.d(foo_namespaceObject, { 
+  $: () => (foo),
+  $$$: () => (foo),
+  A: () => (foo),
+  AA: () => (foo),
+  Z: () => (foo),
+  ZZZ: () => (foo),
+  ___: () => (foo),
+  aa: () => (foo),
+  "default": () => (foo_0),
+  foo: () => (foo),
+  namespace: () => (bar_namespaceObject),
+  z: () => (foo),
+  "ö": () => (foo),
+  "ø": () => (foo),
+  "ς": () => (foo) });
+
+
+// ./bar.js
+const bar = "foo";
+
+// ./foo.js
+const foo = "bar";
+
+
+
+
+
+
+/* export default */ const foo_0 = (foo);
+
+
+
+
+
+
+
+
+
+
+// ./index.js
+
+
+it("should expose namespace keys in spec order", () => {
+  expect(Object.getOwnPropertyNames(foo_namespaceObject)).toEqual([
+    "$",
+    "$$$",
+    "A",
+    "AA",
+    "Z",
+    "ZZZ",
+    "___",
+    "aa",
+    "default",
+    "foo",
+    "namespace",
+    "z",
+    "ö",
+    "ø",
+    "ς",
+  ]);
+});
+
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

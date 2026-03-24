@@ -1,0 +1,26 @@
+export * from "fs";
+
+const readFile = 42;
+const a = "defined";
+let b;
+var c;
+
+const reassign = () => {
+  b = "defined";
+  c = "defined";
+};
+
+export { a, b, c, readFile, reassign };
+
+it("should allow local exports to override star reexports from externals", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.readFile).toBe(42);
+  expect(typeof mod.readFileSync).toBe("function");
+  expect(mod.a).toBe("defined");
+  expect(mod.b).toBeUndefined();
+  expect(mod.c).toBeUndefined();
+  mod.reassign();
+  expect(mod.b).toBe("defined");
+  expect(mod.c).toBe("defined");
+});
