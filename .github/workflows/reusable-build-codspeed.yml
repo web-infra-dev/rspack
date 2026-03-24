@@ -42,8 +42,6 @@ jobs:
         run: cargo codegen
 
       - name: Build Benchmark
-        env:
-          RUSTFLAGS: '--cfg codspeed'
         run: cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Upload Artifact
