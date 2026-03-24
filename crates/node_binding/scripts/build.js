@@ -202,15 +202,22 @@ async function build() {
 }
 
 function validateTypeDeclarations(envs) {
-	const result = spawnSync(
-		process.platform === "win32" ? "pnpm.cmd" : "pnpm",
-		["exec", "tsc", "-p", "tsconfig.type-test.json"],
-		{
-			cwd: path.resolve(__dirname, ".."),
-			stdio: "inherit",
-			env: envs,
-		}
-	);
+	const options = {
+		cwd: path.resolve(__dirname, ".."),
+		stdio: "inherit",
+		env: envs,
+	};
+	const result = process.platform === "win32"
+		? spawnSync(
+			process.env.ComSpec || "cmd.exe",
+			["/d", "/s", "/c", "pnpm exec tsc -p tsconfig.type-test.json"],
+			options
+		)
+		: spawnSync(
+			"pnpm",
+			["exec", "tsc", "-p", "tsconfig.type-test.json"],
+			options
+		);
 
 	if (result.error) {
 		throw result.error;
