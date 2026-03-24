@@ -78,7 +78,7 @@ jobs:
       - name: Install tapo
         run: cargo install taplo-cli --locked
       - name: Run toml format check
-        run: taplo format --check '.cargo/*.toml' './crates/**/Cargo.toml' './Cargo.toml'
+        run: taplo format --check '.cargo/*.toml' 'crates/**/Cargo.toml' 'Cargo.toml'
 
   rust_unused_dependencies:
     needs: [check-changed]
