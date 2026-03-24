@@ -34,7 +34,7 @@ Rspack will automatically split chunks based on these conditions:
 When trying to fulfill the last two conditions, bigger chunks are preferred.
 
 :::tip
-The built-in default is `chunks: 'async'`, but for most production applications you should first try:
+The default value is `chunks: 'async'`, but for most production applications it is recommended to start with:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -46,7 +46,7 @@ export default {
 };
 ```
 
-while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. Rspack's runtime still loads only the chunks reachable from the current entry/runtime.
+while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. Rspack's runtime still loads only the chunks reachable from the current entry or runtime.
 :::
 
 ## Options
@@ -587,4 +587,4 @@ No. Tree shaking decides what code is kept. `splitChunks` only decides how kept 
 
 Yes, potentially. This caveat is about extracted CSS, not JavaScript execution order.
 
-In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [built-in support for CSS](/guide/tech/css#built-in-support-for-css), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin).
+In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [Built-in CSS support](/guide/tech/css#built-in-css-support), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin).

@@ -32,7 +32,7 @@ Rspack 将根据以下条件自动拆分 chunk：
 - 当加载初始化页面时，并发请求的最大数量小于或等于 30
 
 :::tip
-内建默认值是 `chunks: 'async'`，但对大多数生产环境应用，建议优先尝试：
+默认情况下，`chunks` 的值为 `async`，但对大多数生产环境应用，建议优先使用：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -44,7 +44,7 @@ export default {
 };
 ```
 
-同时保留默认 cacheGroups。这样通常可以同时对 initial chunk 和 async chunk 去重，并且不会改变 JavaScript 的执行语义。Rspack runtime 仍然只会加载当前入口/runtime 实际可达的 chunk。
+同时保留默认的 cacheGroups 配置。这样通常可以同时对 initial chunk 和 async chunk 去重，并且不会改变 JavaScript 的执行语义。Rspack runtime 仍然只会加载当前入口或 runtime 实际可达的 chunk。
 :::
 
 ## 配置
@@ -581,4 +581,4 @@ cacheGroup: {
 
 有可能。
 
-在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类 extracted CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)。
+在 `mini-css-extract-plugin`、Rspack 的[内置 CSS 支持](/guide/tech/css#内置-css-支持)这类抽取式 CSS 场景里，splitChunks 改变 chunk group 后，最终 CSS 顺序也可能随之变化。可以参考 [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12)。如果 CSS 顺序是主要诉求，也建议同时参考 [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)。
