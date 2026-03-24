@@ -59,6 +59,15 @@ jobs:
       target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}
       ref: ${{ inputs.ref }}
+  codspeed-walltime:
+    name: Codspeed-build-walltime
+    if: inputs.bench
+    uses: ./.github/workflows/reusable-build-codspeed.yml
+    with:
+      measurement: 'walltime'
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.ref }}
 
   bench:
     uses: ./.github/workflows/reusable-build-bench.yml
