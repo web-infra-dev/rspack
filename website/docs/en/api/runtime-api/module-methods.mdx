@@ -332,29 +332,24 @@ For example, the value of `filter` cannot be a variable, nor can it be the value
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
 :::tip
-`require.ensure()` is specific to rspack/webpack and superseded by `import()`.
+We recommend using the more standard `import()` instead of `require.ensure()`.
 :::
 
-Split out the given `dependencies` to a separate bundle that will be loaded asynchronously. When using CommonJS module syntax, this is the only way to dynamically load `dependencies`. Meaning, this code can be run within execution, only loading the dependencies if certain conditions are met.
-
-:::warning
-This feature relies on [Promise](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise) internally. If you use `require.ensure` with older browsers, remember to shim Promise using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
-:::
+Split the given `dependencies` into a separate bundle and load them asynchronously.
 
 - **Type:**
 
 ```ts
 function requireEnsure(
   /**
-   * An array of strings declaring all modules required for the code in the callback to execute.
+   * List of modules that need to be loaded asynchronously
    */
   dependencies: String[],
   /**
-   * A function that webpack will execute once the dependencies are loaded.
-   * An implementation of the require function is sent as a parameter to this function.
-   * The function body can use this to further require() modules it needs for execution
+   * Called once all modules in dependencies have been loaded.
+   * You can still use require() inside this function to load modules.
    */
-  callback: function(require),
+  callback: function(),
   /**
    * A function that is executed when webpack fails to load the dependencies.
    */
@@ -368,13 +363,20 @@ function requireEnsure(
 ): Context;
 ```
 
+:::warning
+
+- This feature relies on [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) internally. If you use `require.ensure` in older browsers, remember to shim `Promise` using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
+- As in Webpack, the callback can also accept a parameter named `require` (and it must be named `require`). This parameter behaves the same as the CommonJS global `require`, but we recommend using the global `require` directly instead, because loaders may rename the callback parameter and break dependency analysis.
+
+:::
+
 - **Example:**
 
 ```ts
 var a = require('normal-dep');
 
 if (module.hot) {
-  require.ensure(['b'], function (require) {
+  require.ensure(['b'], function () {
     var c = require('c');
 
     // Do something special...
