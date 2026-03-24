@@ -75,7 +75,7 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - name: Install tapo
+      - name: Install taplo
         run: cargo install taplo-cli --locked
       - name: Run toml format check
         run: taplo format --check
