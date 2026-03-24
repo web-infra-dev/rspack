@@ -67,6 +67,9 @@ importers:
       '@napi-rs/wasm-runtime':
         specifier: 1.1.1
         version: 1.1.1
+      '@types/node':
+        specifier: ^20.19.37
+        version: 20.19.37
       emnapi:
         specifier: 1.8.1
         version: 1.8.1(node-addon-api@7.1.1)
