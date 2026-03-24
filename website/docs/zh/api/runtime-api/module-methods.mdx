@@ -365,7 +365,7 @@ function requireEnsure(
 :::warning
 
 - 该特性内部依赖于 [Promise](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise)。 如果你在旧的浏览器上使用 `require.ensure`， 最好加入 polyfill [es6-promise](https://github.com/stefanpenner/es6-promise) 或 [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)。
-- 和 Webpack 一样，callback 函数也可以接收一个名为 require 的参数（且必须名为 require），该 require 参数和 cjs 的 require 全局变量一致，但我们建议直接使用全局的 require 来加载模块而不是该 require 参数，因为 loader 可能会将其重命名导致依赖分析失败。
+- 和 webpack 一样，callback 函数也可以接收一个名为 require 的参数（且必须名为 require），该 require 参数和 cjs 的 require 全局变量一致，但我们建议直接使用全局的 require 来加载模块而不是该 require 参数，因为 loader 可能会将其重命名导致依赖分析失败。
 
 :::
 

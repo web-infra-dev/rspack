@@ -366,7 +366,7 @@ function requireEnsure(
 :::warning
 
 - This feature relies on [Promise](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise) internally. If you use `require.ensure` in older browsers, remember to shim `Promise` using a polyfill such as [es6-promise](https://github.com/stefanpenner/es6-promise) or [promise-polyfill](https://github.com/taylorhakes/promise-polyfill).
-- As in Webpack, the callback can also accept a parameter named `require` (and it must be named `require`). This parameter behaves the same as the CommonJS global `require`, but we recommend using the global `require` directly instead, because loaders may rename the callback parameter and break dependency analysis.
+- As in webpack, the callback can also accept a parameter named `require` (and it must be named `require`). This parameter behaves the same as the CommonJS global `require`, but we recommend using the global `require` directly instead, because loaders may rename the callback parameter and break dependency analysis.
 
 :::
 
