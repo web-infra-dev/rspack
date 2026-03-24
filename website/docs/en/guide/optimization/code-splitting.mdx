@@ -106,6 +106,22 @@ export default {
 
 After rebuilding, you will find that `shared.js` has been extracted separately, and there is an additional Chunk in the output that contains only `shared.js`.
 
+If `shared.js` still appears duplicated after lowering `minSize`, check `splitChunks.minSizeReduction`, `splitChunks.minChunks`, and request limits such as `maxAsyncRequests` / `maxInitialRequests` before reaching for `enforce`.
+
+For most production applications, a good baseline is:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+    },
+  },
+};
+```
+
+while keeping the default cache groups. This usually deduplicates both initial and async chunks while still allowing the runtime to fetch only the chunks reachable from the current page.
+
 ### Force the splitting of certain modules
 
 We can use [`optimization.splitChunks.cacheGroups.{cacheGroup}.name`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupname) to force specific modules to be grouped into the same chunk, for example, with the following configuration:
@@ -127,7 +143,11 @@ export default {
 
 With the above configuration, all files that include the `some-lib` directory in their path can be extracted into a single Chunk named `lib`. If the modules in `some-lib` are rarely changed, this Chunk will consistently hit the user's browser cache, thus a well-considered configuration like this can increase the cache hit rate.
 
-However, separating `some-lib` into an independent Chunk can also have downsides. Suppose a Chunk only depends on a very small file within `some-lib`, but since all files of `some-lib` are split into a single Chunk, this Chunk has to rely on the entire `some-lib` Chunk, resulting in a larger load volume. Therefore, when using cacheGroups.\{cacheGroup\}.name, careful consideration is needed.
+However, separating `some-lib` into an independent Chunk can also have downsides. Suppose a Chunk only depends on a very small file within `some-lib`, but since all files of `some-lib` are split into a single Chunk, this Chunk has to rely on the entire `some-lib` Chunk, resulting in a larger load volume. Therefore, when using `cacheGroups.{cacheGroup}.name`, careful consideration is needed.
+
+More importantly, `name` is not just a filename choice. A fixed `name` can force different split candidates to be merged into the same shared chunk, which may cause a route to fetch modules from unrelated dependency chains. For most projects, avoid adding `name` unless you intentionally want one shared asset and accept the tradeoff.
+
+This tradeoff is about chunk grouping and network fetch boundaries. It does not change JavaScript execution order, and it is unrelated to tree shaking. CSS is a separate caveat: in extracted CSS flows, splitChunks can affect final CSS order. See the [SplitChunksPlugin documentation](/plugins/webpack/split-chunks-plugin#faq) for details.
 
 Here is an example showing the effect of the `name` configuration of cacheGroup.
 
