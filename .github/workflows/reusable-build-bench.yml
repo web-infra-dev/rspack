@@ -103,8 +103,8 @@ jobs:
           RAYON_NUM_THREADS: 1
         with:
           mode: 'memory'
-          # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
-          run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
+          # Prepare benchcases because bench:rust expects them even in memory mode.
+          run: pnpm run bench:prepare && pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
       - name: Run benchmark (walltime)
         if: inputs.measurement == 'walltime'
@@ -112,6 +112,6 @@ jobs:
         timeout-minutes: 30
         with:
           mode: 'walltime'
-          # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
-          run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
+          # Prepare benchcases before running the Rust walltime benchmarks directly.
+          run: pnpm run bench:prepare && pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
