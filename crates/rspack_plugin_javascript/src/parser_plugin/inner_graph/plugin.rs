@@ -2,7 +2,8 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use rspack_core::UsedByExports;
 use rspack_util::SpanExt;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::{Mark, Span, Spanned, SyntaxContext},
@@ -51,9 +52,61 @@ impl InnerGraphMapSetValue {
   }
 }
 
+#[derive(Default, Clone, Debug)]
+pub struct InnerGraphSet(SmallVec<[InnerGraphMapSetValue; 4]>);
+
+impl InnerGraphSet {
+  pub fn with_capacity(capacity: usize) -> Self {
+    Self(SmallVec::with_capacity(capacity))
+  }
+
+  pub fn with_item(value: InnerGraphMapSetValue) -> Self {
+    let mut set = Self::with_capacity(1);
+    set.insert(value);
+    set
+  }
+
+  pub fn insert(&mut self, value: InnerGraphMapSetValue) -> bool {
+    if self.0.contains(&value) {
+      return false;
+    }
+    self.0.push(value);
+    true
+  }
+
+  pub fn contains(&self, value: &InnerGraphMapSetValue) -> bool {
+    self.0.contains(value)
+  }
+
+  pub fn extend<I>(&mut self, values: I)
+  where
+    I: IntoIterator<Item = InnerGraphMapSetValue>,
+  {
+    for value in values {
+      self.insert(value);
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.0.is_empty()
+  }
+
+  pub fn iter(&self) -> std::slice::Iter<'_, InnerGraphMapSetValue> {
+    self.0.iter()
+  }
+}
+
+impl PartialEq for InnerGraphSet {
+  fn eq(&self, other: &Self) -> bool {
+    self.0.len() == other.0.len() && self.0.iter().all(|value| other.contains(value))
+  }
+}
+
+impl Eq for InnerGraphSet {}
+
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
 pub enum InnerGraphMapValue {
-  Set(HashSet<InnerGraphMapSetValue>),
+  Set(InnerGraphSet),
   True,
   #[default]
   Nil,
@@ -150,24 +203,29 @@ impl InnerGraphPlugin {
       return;
     }
     let state: &mut super::state::InnerGraphState = &mut parser.inner_graph;
-    let mut non_terminal: HashSet<TopLevelSymbol> = state.inner_graph.keys().cloned().collect();
-    let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
+    let mut non_terminal: Vec<TopLevelSymbol> = state.inner_graph.keys().cloned().collect();
+    let mut processed =
+      HashMap::with_capacity_and_hasher(state.inner_graph.len(), Default::default());
 
     while !non_terminal.is_empty() {
-      let mut keys_to_remove = vec![];
-      for key in non_terminal.iter() {
-        let mut new_set = HashSet::default();
+      let mut remaining = Vec::with_capacity(non_terminal.len());
+      for key in non_terminal.drain(..) {
         // Using enum to manipulate original is pretty hard, so I use an extra variable to
         // flagging the new set has changed to boolean `true`
         // you could refer https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/InnerGraph.js#L150
-        let mut set_is_true = false;
         let mut is_terminal = true;
-        let already_processed = processed.entry(key.clone()).or_default();
-        let next_value = if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
+        let next_value = if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(&key) {
+          let mut new_set = InnerGraphSet::with_capacity(names.iter().len());
+          let mut set_is_true = false;
+          let already_processed = processed
+            .entry(key.clone())
+            .or_insert_with(|| InnerGraphSet::with_capacity(names.iter().len()));
+
           for name in names.iter() {
             already_processed.insert(name.clone());
           }
-          for name in names {
+
+          for name in names.iter() {
             match name {
               InnerGraphMapSetValue::Str(v) => {
                 new_set.insert(InnerGraphMapSetValue::Str(v.clone()));
@@ -180,15 +238,16 @@ impl InnerGraphPlugin {
                     break;
                   }
                   Some(InnerGraphMapValue::Set(item_value)) => {
-                    for i in item_value {
-                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == key) {
+                    for i in item_value.iter() {
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == &key) {
                         continue;
                       }
                       if already_processed.contains(i) {
                         continue;
                       }
-                      new_set.insert(i.clone());
-                      if matches!(i, InnerGraphMapSetValue::TopLevel(_)) {
+                      if new_set.insert(i.clone())
+                        && matches!(i, InnerGraphMapSetValue::TopLevel(_))
+                      {
                         is_terminal = false;
                       }
                     }
@@ -210,16 +269,15 @@ impl InnerGraphPlugin {
         };
 
         if let Some(next_value) = next_value
-          && let Some(value) = state.inner_graph.get_mut(key)
+          && let Some(value) = state.inner_graph.get_mut(&key)
         {
           *value = next_value;
         }
 
         if is_terminal {
-          keys_to_remove.push(key.clone());
           // We use `""` to represent global_key
           if key.is_global() {
-            let global_value = state.inner_graph.get(&TopLevelSymbol::global()).cloned();
+            let global_value = state.inner_graph.get(&key).cloned();
             if let Some(global_value) = global_value {
               for (key, value) in state.inner_graph.iter_mut() {
                 if key.is_global() || value == &InnerGraphMapValue::True {
@@ -236,7 +294,7 @@ impl InnerGraphPlugin {
                     *value = InnerGraphMapValue::Set(global_set.clone());
                   }
                   (InnerGraphMapValue::Nil, value @ InnerGraphMapValue::Nil) => {
-                    *value = InnerGraphMapValue::Set(HashSet::default());
+                    *value = InnerGraphMapValue::Set(InnerGraphSet::default());
                   }
                   (InnerGraphMapValue::Nil, InnerGraphMapValue::Set(_)) => {}
                   (_, InnerGraphMapValue::True) => unreachable!(),
@@ -244,15 +302,15 @@ impl InnerGraphPlugin {
               }
             }
           }
+        } else {
+          remaining.push(key);
         }
       }
-      // Work around for rustc borrow rules
-      for k in keys_to_remove {
-        non_terminal.remove(&k);
-      }
+      non_terminal = remaining;
     }
 
-    let mut finalized = vec![];
+    let total_usage_callbacks = state.usage_map.values().map(Vec::len).sum();
+    let mut finalized = Vec::with_capacity(total_usage_callbacks);
     for (symbol, cbs) in state.usage_map.drain() {
       let usage = state.inner_graph.get(&symbol);
       let used_by_exports = if let Some(usage) = usage {
@@ -267,8 +325,21 @@ impl InnerGraphPlugin {
       } else {
         UsedByExports::Bool(false)
       };
-      for cb in cbs {
-        finalized.push((cb, used_by_exports.clone()));
+
+      let cbs_len = cbs.len();
+      let mut used_by_exports = Some(used_by_exports);
+      for (index, cb) in cbs.into_iter().enumerate() {
+        let used_by_exports = if index + 1 == cbs_len {
+          used_by_exports
+            .take()
+            .expect("last callback should keep the original used_by_exports")
+        } else {
+          used_by_exports
+            .as_ref()
+            .expect("used_by_exports should still be available")
+            .clone()
+        };
+        finalized.push((cb, used_by_exports));
       }
     }
 
@@ -349,6 +420,31 @@ impl InnerGraphPlugin {
       VariableInfoFlags::NORMAL,
     );
     symbol
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use swc_core::atoms::Atom;
+
+  use super::{InnerGraphMapSetValue, InnerGraphSet, TopLevelSymbol};
+
+  #[test]
+  fn inner_graph_set_preserves_set_semantics() {
+    let symbol = TopLevelSymbol::new(Atom::from("symbol"));
+    let first = InnerGraphMapSetValue::Str(Atom::from("a"));
+    let second = InnerGraphMapSetValue::TopLevel(symbol);
+
+    let mut left = InnerGraphSet::default();
+    assert!(left.insert(first.clone()));
+    assert!(left.insert(second.clone()));
+    assert!(!left.insert(first.clone()));
+
+    let mut right = InnerGraphSet::default();
+    assert!(right.insert(second));
+    assert!(right.insert(first));
+
+    assert_eq!(left, right);
   }
 }
 
