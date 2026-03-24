@@ -519,6 +519,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
   }
 }
 
+#[inline(never)]
 fn is_pure_call_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -583,6 +584,7 @@ fn is_pure_call_expr(
   })
 }
 
+#[inline(never)]
 fn is_pure_call_args(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1000,6 +1002,7 @@ fn is_side_effects_free_param(pat: &Pat) -> bool {
   matches!(pat, Pat::Ident(_))
 }
 
+#[inline(never)]
 fn is_side_effects_free_var_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1029,6 +1032,7 @@ fn is_side_effects_free_var_decl(
   true
 }
 
+#[inline(never)]
 fn is_side_effects_free_block_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1083,6 +1087,7 @@ fn is_side_effects_free_block_stmt(
   true
 }
 
+#[inline(never)]
 fn is_side_effects_free_function_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1109,6 +1114,7 @@ fn is_side_effects_free_function_body(
   })
 }
 
+#[inline(never)]
 fn is_side_effects_free_arrow_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1162,6 +1168,7 @@ pub fn is_pure_function<'a>(
   true
 }
 
+#[inline(never)]
 pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1226,6 +1233,7 @@ pub fn is_pure_expression<'a>(
   )
 }
 
+#[inline(never)]
 pub fn is_pure_class_member<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1296,6 +1304,7 @@ pub fn is_pure_class_member<'a>(
   true
 }
 
+#[inline(never)]
 pub fn is_pure_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1331,6 +1340,7 @@ pub fn is_pure_decl(
   }
 }
 
+#[inline(never)]
 pub fn is_pure_class(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
@@ -1430,6 +1440,7 @@ pub fn is_pure_class(
   true
 }
 
+#[inline(never)]
 fn is_pure_var_decl<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
