@@ -27,7 +27,7 @@ permissions:
 
 jobs:
   bench:
-    name: ${{ inputs.measurement == 'walltime' && 'Bench-walltime' || 'Bench' }}
+    name: 'Bench ${{ inputs.measurement }}'
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -59,10 +59,10 @@ jobs:
       - name: Show restored binding
         run: ls -lah crates/node_binding/*.node
 
-      - name: Download simulation benches
+      - name: Download benches
         uses: ./.github/actions/artifact/download
         with:
-          name: codspeed-simulation-${{ inputs.target }}
+          name: codspeed-${{inputs.measurement}}-${{ inputs.target }}
           path: target/codspeed/
 
       - name: Show Codspeed
