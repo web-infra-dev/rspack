@@ -7,7 +7,7 @@ use rspack_core::{
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin, PrefetchExportsInfoMode, RayonConsumer, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget, SideEffectsDoOptimize,
   SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
@@ -179,107 +179,75 @@ async fn finish_modules(
     .collect();
 
   let module_graph = compilation.get_module_graph();
+  let mut modules_with_impurities = Vec::new();
+  for module_identifier in &modules {
+    let Some(module) = module_graph.module_by_identifier(module_identifier) else {
+      continue;
+    };
 
-  let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
+    // if already has side effects by another statement, skip
+    if module.build_meta().side_effect_free == Some(false) {
+      continue;
+    }
 
-  let modules_with_impurities = modules
-    .par_iter()
-    .filter_map(|module_identifier| {
-      let module = module_graph.module_by_identifier(module_identifier)?;
+    // if user set side effect free, skip
+    if module
+      .factory_meta()
+      .and_then(|factory_meta| factory_meta.side_effect_free)
+      == Some(true)
+    {
+      continue;
+    }
 
-      // if already has side effects by another statement, skip
-      if module.build_meta().side_effect_free == Some(false) {
-        return None;
-      }
+    let build_info = module.build_info();
+    if build_info.deferred_pure_checks.is_empty() {
+      continue;
+    }
 
-      // if user set side effect free, skip
-      if module
-        .factory_meta()
-        .and_then(|factory_meta| factory_meta.side_effect_free)
-        == Some(true)
-      {
-        return None;
-      }
+    // find the first deferred pure check that resolves to an impure target
+    let impure_check = build_info
+      .deferred_pure_checks
+      .iter()
+      .find(|deferred_check| {
+        let Some(ref_module) =
+          module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
+        else {
+          return true;
+        };
 
-      let build_info = module.build_info();
-      if build_info.deferred_pure_checks.is_empty() {
-        return None;
-      }
+        let target_exports_info = exports_info_artifact
+          .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+        let target_export_info =
+          target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
 
-      // find the first deferred pure check that resolves to an impure target
-      let impure_check = build_info
-        .deferred_pure_checks
-        .iter()
-        .find(|deferred_check| {
-          // find the ref target
-          let Some(ref_module) =
-            module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
-          else {
-            return true;
-          };
+        let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
+          &target_export_info,
+          module_graph,
+          exports_info_artifact,
+          Rc::new(|_| true),
+          &mut Default::default(),
+        ) && let Some(export) = &target.export
+          && let Some(atom) = export.first()
+        {
+          (target.module, atom.clone())
+        } else {
+          (*ref_module, deferred_check.atom.clone())
+        };
 
-          let target_exports_info = exports_info_artifact
-            .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
-          let target_export_info =
-            target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
+        let ref_module = module_graph
+          .module_by_identifier(&ref_module_id)
+          .expect("should have module");
 
-          let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
-            &target_export_info,
-            module_graph,
-            exports_info_artifact,
-            Rc::new(|_| true),
-            &mut Default::default(),
-          ) && let Some(export) = &target.export
-            && let Some(atom) = export.first()
-          {
-            (target.module, atom.clone())
-          } else {
-            (*ref_module, deferred_check.atom.clone())
-          };
+        let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
+          return true;
+        };
+        !side_effects_free.contains(&atom)
+      });
 
-          let ref_module = module_graph
-            .module_by_identifier(&ref_module_id)
-            .expect("should have module");
-
-          let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
-            return true;
-          };
-          !side_effects_free.contains(&atom)
-        });
-
-      if let Some(impure_check) = impure_check {
-        let short_id = module.readable_identifier(&compilation.options.context);
-        let source = module
-          .source()
-          .map(|source| source.source().into_string_lossy().to_string());
-        let msg = source.as_deref().map(|s| {
-          // Calculate line:column from byte offset
-          let start = impure_check.start as usize;
-          let before = &s[..start.min(s.len())];
-          let line = before.chars().filter(|c| *c == '\n').count() + 1;
-          let col = before.len() - before.rfind('\n').map_or(0, |p| p + 1);
-          format!("{line}:{col}")
-        });
-        let atom = &impure_check.atom;
-
-        let reason = format!(
-          "Call `{atom}` with side_effects in source code at {short_id}{}",
-          if let Some(msg) = msg {
-            format!(":{msg}")
-          } else {
-            String::new()
-          }
-        );
-
-        Some((*module_identifier, reason))
-      } else {
-        logger.log(format!(
-          "{module_identifier} is sideEffectsFree as its all function calls are pure",
-        ));
-        None
-      }
-    })
-    .collect::<Vec<_>>();
+    if impure_check.is_some() {
+      modules_with_impurities.push(*module_identifier);
+    }
+  }
 
   // SAFETY: We need mutable access to update module build_meta and optimization bailout.
   // The hook provides &Compilation but we need to set side_effect_free = false on modules.
@@ -287,7 +255,7 @@ async fn finish_modules(
   let compilation_mut = unsafe { &mut *(compilation as *const Compilation as *mut Compilation) };
   let module_graph_mut = compilation_mut.get_module_graph_mut();
 
-  for (module_id, reason) in modules_with_impurities {
+  for module_id in modules_with_impurities {
     let module = module_graph_mut
       .module_by_identifier_mut(&module_id)
       .expect("should have module");
@@ -295,7 +263,9 @@ async fn finish_modules(
 
     module_graph_mut
       .get_optimization_bailout_mut(&module_id)
-      .push(rspack_core::OptimizationBailoutItem::Message(reason));
+      .push(rspack_core::OptimizationBailoutItem::Message(String::from(
+        "Call with side effects",
+      )));
   }
 
   Ok(())
@@ -338,7 +308,7 @@ async fn optimize_dependencies(
   }
 
   let inner_start = logger.time("prepare connections");
-  let modules: IdentifierSet = if !self.analyze_side_effects_free
+  let modules: Vec<_> = if !self.analyze_side_effects_free
     && let Some(mutations) = compilation
       .incremental
       .mutations_read(IncrementalPasses::OPTIMIZE_DEPENDENCIES)
@@ -399,14 +369,18 @@ async fn optimize_dependencies(
       module_graph.modules_len()
     ));
 
+    let mut modules = modules.into_iter().collect::<Vec<_>>();
+    modules.sort_unstable();
     modules
   } else {
-    module_graph.modules_keys().copied().collect()
+    let mut modules = module_graph.modules_keys().copied().collect::<Vec<_>>();
+    modules.sort_unstable();
+    modules
   };
   logger.time_end(inner_start);
 
   let inner_start = logger.time("find optimizable connections");
-  modules
+  let mut optimized_connections = modules
     .par_iter()
     .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map(|module| {
@@ -425,16 +399,22 @@ async fn optimize_dependencies(
         ),
       )
     })
-    .consume(|(dep_id, can_optimize)| {
-      if let Some(do_optimize) = can_optimize {
-        side_effects_optimize_artifact.insert(dep_id, do_optimize);
-      } else {
-        side_effects_optimize_artifact.remove(&dep_id);
-      }
-    });
+    .collect::<Vec<_>>();
+  optimized_connections.sort_unstable_by_key(|(dep_id, _)| *dep_id);
+  for (dep_id, can_optimize) in optimized_connections {
+    if let Some(do_optimize) = can_optimize {
+      side_effects_optimize_artifact.insert(dep_id, do_optimize);
+    } else {
+      side_effects_optimize_artifact.remove(&dep_id);
+    }
+  }
   logger.time_end(inner_start);
 
-  let mut do_optimizes = side_effects_optimize_artifact.clone();
+  let mut do_optimizes = side_effects_optimize_artifact
+    .iter()
+    .map(|(dependency, do_optimize)| (*dependency, do_optimize.clone()))
+    .collect::<Vec<_>>();
+  do_optimizes.sort_unstable_by_key(|(dependency, _)| *dependency);
 
   let inner_start = logger.time("do optimize connections");
   let mut do_optimized_count = 0;
@@ -465,6 +445,7 @@ async fn optimize_dependencies(
         .map(|i| (connection.dependency_id, i))
       })
       .collect();
+    do_optimizes.sort_unstable_by_key(|(dependency, _)| *dependency);
   }
   logger.time_end(inner_start);
 
