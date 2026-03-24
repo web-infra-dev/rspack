@@ -16,7 +16,7 @@ macro_rules! define_symbols {
     pub(super) fn export_symbols(mut exports: ::napi::bindgen_prelude::Object, env: ::napi::Env) -> ::napi::Result<()> {
       use napi::bindgen_prelude::JsObjectValue;
       $(
-        let symbol = ::rspack_napi::OneShotRef::new(env.raw(), env.create_symbol(Some($name))?)?;
+        let symbol = ::rspack_napi::OneShotRef::new(env.raw(), env.symbol_for($name)?)?;
         exports.set_named_property($name, &symbol)?;
         $cell.with(|once_cell| {
           once_cell.get_or_init(move || symbol);

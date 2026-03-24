@@ -418,7 +418,7 @@ export async function runLoaders(
             options.layer,
             options.publicPath,
             options.baseUri,
-            context._module.identifier(),
+            context._module.identifier() ?? "",
             loaderContext.context,
             finalCallback(reject, resolve),
           );
@@ -429,7 +429,7 @@ export async function runLoaders(
       options.layer,
       options.publicPath,
       options.baseUri,
-      context._module.identifier(),
+      context._module.identifier() ?? "",
       loaderContext.context,
       finalCallback(
         (err) => callback(err),

@@ -30,7 +30,7 @@ rspack_core  = { workspace = true }
 rspack_error = { workspace = true }
 rspack_napi  = { workspace = true }
 
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi7", "compat-mode"] }
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi9", "compat-mode"] }
 napi-derive = { workspace = true, features = ["compat-mode"] }
 
 [build-dependencies]
