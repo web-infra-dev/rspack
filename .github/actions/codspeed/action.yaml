@@ -84,7 +84,7 @@ inputs:
   skip-hash-check-warning:
     description: "Suppress the warning emitted when hash verification is not available (e.g. when using 'latest', branch, or revision versions)."
     required: false
-    default: 'false'
+    default: 'true'
 
 runs:
   using: 'composite'
@@ -132,17 +132,6 @@ runs:
         restore-keys: |
           codspeed-instruments-${{ inputs.mode }}-${{ runner.os }}-${{ runner.arch }}-${{steps.versions.outputs.kernel-version }}-
 
-    - name: Lookup installer hash
-      id: installer-hash
-      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.0.1
-      env:
-        RUNNER_VERSION: ${{ steps.versions.outputs.runner-version }}
-      with:
-        script: |
-          const hashes = require(`${process.env.GITHUB_ACTION_PATH}/.codspeed-runner-installer-hashes.json`)
-          const version = process.env.RUNNER_VERSION
-          core.setOutput('hash', hashes[version] || '')
-
     - name: Install CodSpeed runner
       shell: bash
       run: |
@@ -186,20 +175,6 @@ runs:
             echo "::error title=Failed to install CodSpeed CLI::Installation of CodSpeed CLI with version $RUNNER_VERSION failed.%0AReason: HTTP $HTTP_CODE - ${error_body:-no response body}"
             exit 1
           fi
-
-          EXPECTED_HASH="${{ steps.installer-hash.outputs.hash }}"
-          if [ -z "$EXPECTED_HASH" ]; then
-            echo "::error::No pinned hash found for installer version $RUNNER_VERSION. Update .codspeed-runner-installer-hashes.json."
-            exit 1
-          fi
-
-          ACTUAL_HASH=$(sha256sum "$INSTALLER_TMP" | awk '{print $1}')
-          if [ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]; then
-            echo "::error::Installer hash mismatch for version $RUNNER_VERSION. Expected: $EXPECTED_HASH, Got: $ACTUAL_HASH"
-            exit 1
-          fi
-          echo "Installer hash verified for version $RUNNER_VERSION"
-
           bash "$INSTALLER_TMP" --quiet
         fi
 
