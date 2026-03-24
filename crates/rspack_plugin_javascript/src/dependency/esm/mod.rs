@@ -51,9 +51,39 @@ pub fn create_resource_identifier_for_esm_dependency(
   request: &str,
   attributes: Option<&ImportAttributes>,
 ) -> ResourceIdentifier {
-  let mut ident = format!("{}|{}", DependencyCategory::Esm, &request);
+  let category = DependencyCategory::Esm.as_str();
+  let attributes = attributes.map(json_stringify);
+  let mut ident = String::with_capacity(
+    category.len() + 1 + request.len() + attributes.as_deref().map_or(0, str::len),
+  );
+  ident.push_str(category);
+  ident.push('|');
+  ident.push_str(request);
   if let Some(attributes) = attributes {
-    ident += &json_stringify(&attributes);
+    ident.push_str(&attributes);
   }
   ident.into()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn creates_resource_identifier_without_attributes() {
+    let ident = create_resource_identifier_for_esm_dependency("./dep", None);
+
+    assert_eq!(ident.as_str(), "esm|./dep");
+  }
+
+  #[test]
+  fn creates_resource_identifier_with_attributes() {
+    let attributes = ImportAttributes::from_iter([("type".to_string(), "json".to_string())]);
+    let ident = create_resource_identifier_for_esm_dependency("./dep", Some(&attributes));
+
+    assert_eq!(
+      ident.as_str(),
+      format!("esm|./dep{}", json_stringify(&attributes))
+    );
+  }
 }

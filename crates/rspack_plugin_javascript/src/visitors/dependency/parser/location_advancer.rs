@@ -1,4 +1,3 @@
-use memchr;
 use rspack_core::{DependencyLocation, DependencyRange, RealDependencyLocation, SourcePosition};
 
 /// Advances source positions incrementally to compute dependency locations efficiently.
@@ -9,6 +8,7 @@ pub struct DependencyLocationAdvancer {
   last_range: Option<DependencyRange>,
   last_location: Option<DependencyLocation>,
   last_start_pos: Option<SourcePosition>,
+  last_end_pos: Option<SourcePosition>,
 }
 
 impl DependencyLocationAdvancer {
@@ -17,39 +17,41 @@ impl DependencyLocationAdvancer {
   }
 
   /// Advance a source position from one byte offset to another, counting newlines and UTF-16 columns.
-  /// Optimized with ASCII fast-paths and SIMD reverse searching.
+  /// Optimized as a single UTF-8 byte scan that derives UTF-16 columns from leading bytes.
   fn advance_pos(
     source: &str,
     from_off: usize,
     from_pos: SourcePosition,
     to_off: usize,
   ) -> Option<SourcePosition> {
-    if to_off < from_off || to_off > source.len() {
+    if to_off < from_off {
       return None;
     }
 
-    let segment = &source[from_off..to_off];
-    let bytes = segment.as_bytes();
+    let bytes = source.get(from_off..to_off)?.as_bytes();
+    let mut line = from_pos.line;
+    let mut column = from_pos.column;
 
-    let (newline_count, last_newline_idx) = memchr::memchr_iter(b'\n', bytes)
-      .enumerate()
-      .last()
-      .map_or((0, None), |(count, idx)| (count + 1, Some(idx)));
-
-    if let Some(last_idx) = last_newline_idx {
-      let line = from_pos
-        .line
-        .checked_add(u32::try_from(newline_count).ok()?)?;
-      let after_newline = &segment[last_idx + 1..];
-      let column = u32::try_from(after_newline.encode_utf16().count() + 1).ok()?; // 1-based column
-      Some(SourcePosition { line, column })
-    } else {
-      let column_advance = u32::try_from(segment.encode_utf16().count()).ok()?;
-      Some(SourcePosition {
-        line: from_pos.line,
-        column: from_pos.column.checked_add(column_advance)?,
-      })
+    for &byte in bytes {
+      match byte {
+        b'\n' => {
+          line = line.checked_add(1)?;
+          column = 1;
+        }
+        0x00..=0x7F => {
+          column = column.checked_add(1)?;
+        }
+        0x80..=0xBF => {}
+        0xC0..=0xEF => {
+          column = column.checked_add(1)?;
+        }
+        _ => {
+          column = column.checked_add(2)?;
+        }
+      }
     }
+
+    Some(SourcePosition { line, column })
   }
 
   /// Compute dependency location for a range, using cached results for incremental calculation.
@@ -67,8 +69,13 @@ impl DependencyLocationAdvancer {
     }
 
     // Determine the base point for calculation
-    let (base_offset, base_pos) = if let (Some(last_range), Some(last_start_pos)) =
-      (self.last_range, self.last_start_pos)
+    let (base_offset, base_pos) = if let (Some(last_range), Some(last_end_pos)) =
+      (self.last_range, self.last_end_pos)
+      && start >= last_range.end as usize
+    {
+      // Most dependency ranges are discovered in source order, so resume from the last end when possible.
+      (last_range.end as usize, last_end_pos)
+    } else if let (Some(last_range), Some(last_start_pos)) = (self.last_range, self.last_start_pos)
       && start >= last_range.start as usize
     {
       // Incremental path: Use the previously cached position
@@ -78,35 +85,21 @@ impl DependencyLocationAdvancer {
       (0, SourcePosition { line: 1, column: 1 })
     };
 
-    // Uniformly use advance_pos for both incremental and fallback calculations
-    let result = (|| {
-      let start_pos = Self::advance_pos(source, base_offset, base_pos, start)?;
-      let end_pos = Self::advance_pos(source, start, start_pos, end)?;
+    // Uniformly use advance_pos for both incremental and fallback calculations.
+    let start_pos = Self::advance_pos(source, base_offset, base_pos, start)?;
+    let end_pos = Self::advance_pos(source, start, start_pos, end)?;
+    let loc = if start_pos.line == end_pos.line && start_pos.column == end_pos.column {
+      DependencyLocation::Real(RealDependencyLocation::new(start_pos, None))
+    } else {
+      DependencyLocation::Real(RealDependencyLocation::new(start_pos, Some(end_pos)))
+    };
 
-      // Uniformly construct the Location return value
-      if start_pos.line == end_pos.line && start_pos.column == end_pos.column {
-        Some(DependencyLocation::Real(RealDependencyLocation::new(
-          start_pos, None,
-        )))
-      } else {
-        Some(DependencyLocation::Real(RealDependencyLocation::new(
-          start_pos,
-          Some(end_pos),
-        )))
-      }
-    })();
+    self.last_range = Some(range);
+    self.last_location = Some(loc.clone());
+    self.last_start_pos = Some(start_pos);
+    self.last_end_pos = Some(end_pos);
 
-    // Update cache
-    if let Some(loc) = &result {
-      self.last_range = Some(range);
-      self.last_location = Some(loc.clone());
-
-      if let DependencyLocation::Real(real_loc) = loc {
-        self.last_start_pos = Some(real_loc.start);
-      }
-    }
-
-    result
+    Some(loc)
   }
 }
 
