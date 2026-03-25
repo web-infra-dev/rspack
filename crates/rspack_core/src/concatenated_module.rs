@@ -26,7 +26,7 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
+  common::{FileName, Spanned, SyntaxContext, comments::SingleThreadedComments},
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
@@ -34,7 +34,6 @@ use swc_experimental_ecma_ast::{
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
-use swc_node_comments::SwcComments;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
@@ -2500,7 +2499,7 @@ impl ConcatenatedModule {
         ))),
         source_code.into_string_lossy().into_owned(),
       );
-      let comments = SwcComments::default();
+      let comments = SingleThreadedComments::default();
       let mut module_info = concatenation_scope.current_module;
 
       let jsx = module

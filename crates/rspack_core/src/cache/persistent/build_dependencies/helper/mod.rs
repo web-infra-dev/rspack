@@ -101,30 +101,34 @@ impl Helper {
         return None;
       }
     };
-    let mut visitor = DependencyVisitor::default();
-    let javascript_compiler = JavaScriptCompiler::new();
-    let ast = match javascript_compiler.parse(
-      FileName::Custom(String::new()),
-      source,
-      EsVersion::EsNext,
-      syntax,
-      IsModule::Unknown,
-      None,
-    ) {
-      Ok(ast) => ast,
-      Err(err) => {
-        self.warnings.push(formatdoc!(
-          r#"
+
+    let visitor = {
+      let mut visitor = DependencyVisitor::default();
+      let javascript_compiler = JavaScriptCompiler::new();
+      let ast = match javascript_compiler.parse(
+        FileName::Custom(String::new()),
+        source,
+        EsVersion::EsNext,
+        syntax,
+        IsModule::Unknown,
+        None,
+      ) {
+        Ok(ast) => ast,
+        Err(err) => {
+          self.warnings.push(formatdoc!(
+            r#"
             BuildDependencies: can't parse {file}.
             - {err:?}
           "#,
-        ));
-        return None;
-      }
+          ));
+          return None;
+        }
+      };
+      ast.visit(|program, _| {
+        program.visit_with(&mut visitor);
+      });
+      visitor
     };
-    ast.visit(|program, _| {
-      program.visit_with(&mut visitor);
-    });
 
     let mut result = HashSet::default();
     let dirname = file.parent().expect("can not get parent dir");
