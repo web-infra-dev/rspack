@@ -126,6 +126,12 @@ impl<'de> Deserialize<'de> for DetectSyntax {
   where
     D: Deserializer<'de>,
   {
+    fn invalid_detect_syntax<E: serde::de::Error>(received: impl std::fmt::Debug) -> E {
+      E::custom(format!(
+        "`detectSyntax` only supports `false` or \"auto\", but received {received:?}"
+      ))
+    }
+
     #[derive(Deserialize)]
     #[serde(untagged)]
     enum RawDetectSyntax {
@@ -136,12 +142,8 @@ impl<'de> Deserialize<'de> for DetectSyntax {
     match RawDetectSyntax::deserialize(deserializer)? {
       RawDetectSyntax::Bool(false) => Ok(DetectSyntax::Disabled),
       RawDetectSyntax::String(value) if value == "auto" => Ok(DetectSyntax::Auto),
-      RawDetectSyntax::Bool(true) => Err(serde::de::Error::custom(
-        "`detectSyntax` only supports `false` or \"auto\"",
-      )),
-      RawDetectSyntax::String(_) => Err(serde::de::Error::custom(
-        "`detectSyntax` only supports `false` or \"auto\"",
-      )),
+      RawDetectSyntax::Bool(value) => Err(invalid_detect_syntax(value)),
+      RawDetectSyntax::String(value) => Err(invalid_detect_syntax(value)),
     }
   }
 }
@@ -704,7 +706,19 @@ mod tests {
     assert!(
       err
         .to_string()
-        .contains("`detectSyntax` only supports `false` or \"auto\"")
+        .contains("`detectSyntax` only supports `false` or \"auto\", but received true")
+    );
+  }
+
+  #[test]
+  fn test_detect_syntax_rejects_invalid_string() {
+    let err = SwcCompilerOptionsWithAdditional::try_from(r#"{ "detectSyntax": "Auto" }"#)
+      .expect_err("detectSyntax=Auto should be rejected");
+
+    assert!(
+      err
+        .to_string()
+        .contains("`detectSyntax` only supports `false` or \"auto\", but received \"Auto\"")
     );
   }
 }
