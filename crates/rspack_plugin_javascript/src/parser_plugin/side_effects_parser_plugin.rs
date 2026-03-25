@@ -502,15 +502,20 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
             .get(parser.definitions, &Atom::from(atom.clone()))
             .is_none()
           {
-            not_defined.push(atom.clone());
+            not_defined.push(Atom::from(atom.clone()));
           }
         }
       }
 
       if !not_defined.is_empty() {
+        let not_defined_set: FxHashSet<_> = not_defined.iter().cloned().collect();
+        if let Some(side_effects_free) = parser.build_info.side_effects_free.as_mut() {
+          side_effects_free.retain(|atom| !not_defined_set.contains(atom));
+        }
+
         let resource = parser.resource_data.resource();
         parser.add_warning(
-          rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[*].sideEffectsFree`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
+          rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[*].parser.sideEffectsFree`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
         );
       }
     }

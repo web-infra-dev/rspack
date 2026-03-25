@@ -2890,6 +2890,11 @@ export type Experiments = {
    * @default false
    */
   deferImport?: boolean;
+  /**
+   * Enable advanced tree shaking for no-side-effects function analysis.
+   * @default false
+   */
+  advancedTreeShaking?: boolean;
 };
 //#endregion
 
