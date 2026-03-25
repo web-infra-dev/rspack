@@ -95,6 +95,7 @@ jobs:
           mode: 'simulation'
           run: pnpm run bench:ci
           token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.12.1
 
       - name: Run benchmark (memory)
         if: inputs.measurement == 'memory'
@@ -116,3 +117,4 @@ jobs:
           # Prepare benchcases before running the Rust walltime benchmarks directly.
           run: pnpm run bench:prepare && pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.12.1
