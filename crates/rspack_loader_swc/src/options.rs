@@ -151,38 +151,46 @@ impl<'de> Deserialize<'de> for DetectSyntax {
 #[serde(rename_all = "camelCase", default)]
 pub(crate) struct RawJscConfig {
   #[serde(default)]
-  parser: Option<Value>,
+  #[serde(rename = "parser")]
+  raw_parser: Option<Value>,
   #[serde(flatten)]
-  other: Map<String, Value>,
+  other_fields: Map<String, Value>,
 }
 
 impl RawJscConfig {
-  fn resolve(
-    &self,
-    detect_syntax: DetectSyntax,
-    resource_path: &Path,
-  ) -> Result<JscConfig, serde_json::Error> {
-    let mut object = self.other.clone();
-    let parser = self.resolved_parser(detect_syntax, resource_path);
+  fn has_explicit_syntax(&self) -> bool {
+    matches!(
+      &self.raw_parser,
+      Some(Value::Object(parser)) if parser.contains_key("syntax")
+    )
+  }
 
+  fn parse(&self) -> Result<JscConfig, serde_json::Error> {
+    self.parse_with_resolved_parser(self.raw_parser.clone())
+  }
+
+  fn parse_for_resource(&self, resource_path: &Path) -> Result<JscConfig, serde_json::Error> {
+    self.parse_with_resolved_parser(self.parser_for_resource(resource_path))
+  }
+
+  fn parse_with_resolved_parser(
+    &self,
+    parser: Option<Value>,
+  ) -> Result<JscConfig, serde_json::Error> {
+    let mut object: Map<String, Value> = self.other_fields.clone();
     if let Some(parser) = parser {
       object.insert("parser".into(), parser);
     }
-
     serde_json::from_value(Value::Object(object))
   }
 
-  fn resolved_parser(&self, detect_syntax: DetectSyntax, resource_path: &Path) -> Option<Value> {
-    if !detect_syntax.is_auto() {
-      return self.parser.clone();
-    }
-
+  fn parser_for_resource(&self, resource_path: &Path) -> Option<Value> {
     let inferred_parser = inferred_parser_from_extension(resource_path);
     let Some(inferred_parser) = inferred_parser else {
-      return self.parser.clone();
+      return self.raw_parser.clone();
     };
 
-    match self.parser.clone() {
+    match self.raw_parser.clone() {
       Some(Value::Object(parser)) if parser.contains_key("syntax") => Some(Value::Object(parser)),
       Some(Value::Object(parser)) => {
         let mut merged = inferred_parser;
@@ -283,8 +291,7 @@ pub struct SwcLoaderJsOptions {
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
   pub(crate) swc_options: Options,
-  pub(crate) raw_jsc: RawJscConfig,
-  pub(crate) detect_syntax: DetectSyntax,
+  pub(crate) resource_specific_jsc: Option<RawJscConfig>,
   pub(crate) transform_import: Option<Vec<ImportOptions>>,
   pub(crate) rspack_experiments: RspackExperiments,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
@@ -295,8 +302,15 @@ impl SwcCompilerOptionsWithAdditional {
     &self.raw_options
   }
 
-  pub(crate) fn resolve_jsc(&self, resource_path: &Path) -> Result<JscConfig, serde_json::Error> {
-    self.raw_jsc.resolve(self.detect_syntax, resource_path)
+  pub(crate) fn parse_resource_specific_jsc(
+    &self,
+    resource_path: &Path,
+  ) -> Result<Option<JscConfig>, serde_json::Error> {
+    self
+      .resource_specific_jsc
+      .as_ref()
+      .map(|jsc| jsc.parse_for_resource(resource_path))
+      .transpose()
   }
 }
 
@@ -337,6 +351,14 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       source_map_ignore_list,
       detect_syntax,
     } = option;
+
+    let needs_resource_specific_jsc = detect_syntax.is_auto() && !jsc.has_explicit_syntax();
+    let parsed_jsc = if needs_resource_specific_jsc {
+      JscConfig::default()
+    } else {
+      jsc.parse()?
+    };
+
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
       source_maps = source_map
@@ -353,7 +375,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           env,
           test,
           exclude,
-          jsc: JscConfig::default(),
+          jsc: parsed_jsc,
           module,
           minify,
           input_source_map,
@@ -368,8 +390,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
         swcrc: false,
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
-      raw_jsc: jsc,
-      detect_syntax,
+      resource_specific_jsc: needs_resource_specific_jsc.then_some(jsc),
       transform_import: transform_import.map(|i| i.into_iter().map(|v| v.into()).collect()),
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
       collect_typescript_info: collect_type_script_info.map(|v| v.into()),
@@ -447,8 +468,9 @@ mod tests {
       .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
 
     let jsc = swc_options_with_additional
-      .resolve_jsc(Path::new("/project/index.tsx"))
-      .expect("should resolve jsc config for tsx file");
+      .parse_resource_specific_jsc(Path::new("/project/index.tsx"))
+      .expect("should resolve jsc config for tsx file")
+      .expect("should require resource-specific jsc resolution");
 
     match jsc.syntax.expect("syntax should be inferred") {
       swc_core::ecma::parser::Syntax::Typescript(ts) => {
@@ -474,15 +496,44 @@ mod tests {
       .try_into()
       .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
 
-    let jsc = swc_options_with_additional
-      .resolve_jsc(Path::new("/project/index.tsx"))
-      .expect("should resolve jsc config without overriding explicit syntax");
+    assert!(swc_options_with_additional.resource_specific_jsc.is_none());
+    let jsc = &swc_options_with_additional.swc_options.config.jsc;
 
     match jsc.syntax.expect("syntax should remain explicit") {
       swc_core::ecma::parser::Syntax::Es(es) => {
         assert!(!es.jsx);
       }
       _ => panic!("expected ecmascript syntax"),
+    }
+  }
+
+  #[test]
+  fn test_preparse_jsc_when_resource_specific_resolution_is_not_needed() {
+    let raw_options = r#"{
+      "detectSyntax": false,
+      "jsc": {
+        "parser": {
+          "syntax": "typescript",
+          "tsx": true
+        }
+      }
+    }"#;
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    assert!(swc_options_with_additional.resource_specific_jsc.is_none());
+    match swc_options_with_additional
+      .swc_options
+      .config
+      .jsc
+      .syntax
+      .expect("syntax should be parsed at loader creation")
+    {
+      swc_core::ecma::parser::Syntax::Typescript(ts) => {
+        assert!(ts.tsx);
+      }
+      _ => panic!("expected typescript syntax"),
     }
   }
 }

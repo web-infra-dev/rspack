@@ -68,13 +68,16 @@ impl SwcLoader {
 
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
-      swc_options.config.jsc = self
+      if let Some(resource_specific_jsc) = self
         .options_with_additional
-        .resolve_jsc(resource_path.as_std_path())
+        .parse_resource_specific_jsc(resource_path.as_std_path())
         .to_rspack_result_with_detail(
           self.options_with_additional.raw_options(),
           "failed to parse builtin:swc-loader options",
-        )?;
+        )?
+      {
+        swc_options.config.jsc = resource_specific_jsc;
+      }
 
       if swc_options.config.jsc.transform.as_ref().is_some() {
         let mut transform = TransformConfig::default();
