@@ -495,6 +495,7 @@ impl EsmLibraryPlugin {
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
+                    && ext.get_external_type().starts_with("module")
                   {
                     let request = ext.get_request().primary().to_string();
                     let import_binding = concate_modules_map
@@ -793,6 +794,30 @@ var {} = {{}};
       }
     }
 
+    let mut preallocated_external_names: IdentifierMap<Atom> = IdentifierMap::default();
+    let non_module_external_requests = chunk_link
+      .decl_modules
+      .iter()
+      .filter_map(|external_module| {
+        let external = module_graph
+          .module_by_identifier(external_module)
+          .and_then(|m| m.as_external_module())?;
+        if external.get_external_type().starts_with("module") {
+          return None;
+        }
+
+        let existing_name = match &concate_modules_map[external_module] {
+          ModuleInfo::External(info) => info.name.clone(),
+          _ => None,
+        };
+
+        Some((
+          external.get_request().primary().to_string(),
+          (*external_module, existing_name),
+        ))
+      })
+      .collect::<FxHashMap<_, _>>();
+
     // deconflict top level symbols
     for id in chunk_link
       .hoisted_modules
@@ -821,7 +846,35 @@ var {} = {{}};
               .or_default();
 
             if let Some(ns_import) = &imported_atoms.namespace {
-              if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
+              if let Some((external_module, existing_name)) =
+                non_module_external_requests.get(source)
+              {
+                let external_name = if let Some(name) = existing_name {
+                  name.clone()
+                } else if let Some(name) = preallocated_external_names.get(external_module) {
+                  name.clone()
+                } else {
+                  let readable_identifier = get_cached_readable_identifier(
+                    external_module,
+                    module_graph,
+                    &compilation.module_static_cache,
+                    context,
+                  );
+                  let name = find_new_name(
+                    "",
+                    &all_used_names,
+                    &escaped_identifiers[&readable_identifier],
+                  );
+                  preallocated_external_names.insert(*external_module, name.clone());
+                  name
+                };
+                all_used_names.insert(external_name.clone());
+
+                // Non-module externals must stay on the require/init-fragment path and should
+                // not materialize a parallel raw namespace import.
+                total_imported_atoms.ns_import = None;
+                internal_names.insert(ns_import.clone(), external_name);
+              } else if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
                 internal_names.insert(ns_import.clone(), internal_ns_import.clone());
               } else {
                 let new_name = if all_used_names.contains(ns_import) {
@@ -834,10 +887,10 @@ var {} = {{}};
                     &[],
                   )
                 } else {
-                  all_used_names.insert(ns_import.clone());
                   ns_import.clone()
                 };
 
+                all_used_names.insert(new_name.clone());
                 internal_names.insert(ns_import.clone(), new_name.clone());
                 total_imported_atoms.ns_import = Some(new_name);
               }
@@ -1094,25 +1147,30 @@ var {} = {{}};
       };
 
       if info.name.is_none() {
-        let readable_identifier = get_cached_readable_identifier(
-          external_module,
-          module_graph,
-          &compilation.module_static_cache,
-          context,
-        );
+        let name = if let Some(name) = preallocated_external_names.get(external_module) {
+          name.clone()
+        } else {
+          let readable_identifier = get_cached_readable_identifier(
+            external_module,
+            module_graph,
+            &compilation.module_static_cache,
+            context,
+          );
 
-        let name = find_new_name(
-          "",
-          &external_used_names,
-          &escaped_identifiers[&readable_identifier],
-        );
+          find_new_name(
+            "",
+            &external_used_names,
+            &escaped_identifiers[&readable_identifier],
+          )
+        };
         external_used_names.insert(name.clone());
         all_used_names.insert(name.clone());
         info.name = Some(name);
       }
     }
 
-    chunk_link.used_names = external_used_names;
+    all_used_names.extend(external_used_names);
+    chunk_link.used_names = all_used_names;
   }
 
   async fn analyze_module(
