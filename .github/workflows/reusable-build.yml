@@ -86,7 +86,7 @@ jobs:
     with:
       measurement: 'memory'
       target: ${{ inputs.target }}
-      runner: ${{ inputs.bench-runner || inputs.runner }}
+      runner: ubuntu-22.04
       ref: ${{ inputs.ref }}
 
   bench-walltime:
@@ -96,5 +96,5 @@ jobs:
     with:
       measurement: 'walltime'
       target: ${{ inputs.target }}
-      runner: ${{ inputs.bench-runner || inputs.runner }}
+      runner: ubuntu-22.04
       ref: ${{ inputs.ref }}

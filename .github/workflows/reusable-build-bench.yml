@@ -28,7 +28,7 @@ permissions:
 jobs:
   bench:
     name: 'Bench ${{ inputs.measurement }}'
-    runs-on: ubuntu-22.04
+    runs-on: ${{ inputs.runner }}
     defaults:
       run:
         shell: bash
