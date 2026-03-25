@@ -3,12 +3,14 @@ use std::{
   time::{Duration, Instant},
 };
 
+use camino::{Utf8Path, Utf8PathBuf};
 use regex::Regex;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
+  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, ResolveContext, ResolveOptionsWithDependencyType, ResolveResult,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
@@ -31,9 +33,9 @@ use crate::{
   },
   import_dependency::ImportDependencyTemplate,
   mock_method_dependency::MockMethodDependencyTemplate,
-  mock_module_id_dependency::MockModuleIdDependencyTemplate,
+  mock_module_id_dependency::{MockModuleIdDependency, MockModuleIdDependencyTemplate},
   module_path_name_dependency::ModulePathNameDependencyTemplate,
-  parser_plugin::RstestParserPlugin,
+  parser_plugin::{MOCK_TARGET_REQUEST_PREFIX, RstestParserPlugin},
   url_dependency::RstestUrlDependencyTemplate,
 };
 
@@ -63,6 +65,104 @@ pub struct RstestPlugin {
 impl RstestPlugin {
   pub fn new(options: RstestPluginOptions) -> Self {
     Self::new_inner(options)
+  }
+
+  fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
+    let stripped = value.strip_prefix("node:").unwrap_or(value);
+    let path_buf = Utf8PathBuf::from(stripped);
+
+    if stripped.starts_with('.') {
+      path_buf.parent().map_or_else(
+        || Utf8PathBuf::from("__mocks__").join(&path_buf),
+        |p| {
+          p.join("__mocks__")
+            .join(path_buf.file_name().unwrap_or_default())
+        },
+      )
+    } else {
+      Utf8PathBuf::from(&self.options.manual_mock_root).join(&path_buf)
+    }
+  }
+
+  fn synthetic_mock_dep(data: &ModuleFactoryCreateData) -> bool {
+    data.request.starts_with(MOCK_TARGET_REQUEST_PREFIX)
+  }
+
+  fn resolve_directory_mock_target(
+    &self,
+    request: &Utf8Path,
+    context: &Utf8Path,
+    resolved_path: &Utf8Path,
+    main_files: impl Iterator<Item = String>,
+  ) -> Option<Utf8PathBuf> {
+    let requested_path =
+      Utf8PathBuf::from_path_buf(context.join(request).as_std_path().to_path_buf()).ok()?;
+    let resolved_parent = resolved_path.parent()?;
+    if resolved_parent != requested_path {
+      return None;
+    }
+
+    let resolved_stem = resolved_path.file_stem()?;
+    main_files
+      .into_iter()
+      .find(|main_file| main_file == resolved_stem)
+      .map(|main_file| request.join("__mocks__").join(main_file))
+  }
+
+  async fn resolve_mock_request(&self, data: &mut ModuleFactoryCreateData) {
+    let Some(dep) = data.dependencies.first() else {
+      return;
+    };
+    let request = data
+      .request
+      .strip_prefix(MOCK_TARGET_REQUEST_PREFIX)
+      .unwrap_or(&data.request)
+      .to_string();
+    let stripped = request.strip_prefix("node:").unwrap_or(&request);
+    let default_target = self.calc_default_mocked_target(&request);
+
+    if !stripped.starts_with('.') {
+      data.request = default_target.to_string();
+      return;
+    }
+
+    let dep = ResolveOptionsWithDependencyType {
+      resolve_options: data
+        .resolve_options
+        .clone()
+        .map(|options| Box::new(Arc::unwrap_or_clone(options))),
+      resolve_to_context: false,
+      dependency_category: *dep.category(),
+    };
+    let resolver = data.resolver_factory.get(dep);
+    let mut resolve_context = ResolveContext::default();
+
+    let resolved_directory_target = match resolver
+      .resolve_with_context(data.context.as_ref(), stripped, &mut resolve_context)
+      .await
+    {
+      Ok(ResolveResult::Resource(resource)) => self.resolve_directory_mock_target(
+        Utf8Path::new(stripped),
+        data.context.as_ref(),
+        &resource.path,
+        resolver.options().main_files().cloned(),
+      ),
+      _ => None,
+    };
+
+    data.add_file_dependencies(resolve_context.file_dependencies);
+    data.add_missing_dependencies(resolve_context.missing_dependencies);
+    let resolved_request = resolved_directory_target
+      .unwrap_or(default_target)
+      .to_string();
+    if let Some(dep) = data
+      .dependencies
+      .first_mut()
+      .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
+    {
+      dep.set_request(resolved_request.clone());
+    }
+    data.request = resolved_request;
   }
 
   fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {
@@ -102,6 +202,15 @@ impl RstestPlugin {
 
     replace.boxed()
   }
+}
+
+#[plugin_hook(NormalModuleFactoryBeforeResolve for RstestPlugin)]
+async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+  if Self::synthetic_mock_dep(data) {
+    self.resolve_mock_request(data).await;
+  }
+
+  Ok(None)
 }
 
 #[plugin_hook(NormalModuleFactoryParser for RstestPlugin)]
@@ -300,6 +409,11 @@ impl Plugin for RstestPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+
+    ctx
+      .normal_module_factory_hooks
+      .before_resolve
+      .tap(nmf_before_resolve::new(self));
 
     ctx
       .compiler_hooks

@@ -214,6 +214,13 @@ module.exports = [
 	rstestEntry("./globals/importActual.js"),
 	rstestEntry("./globals-false/importActual.js", { globals: false }),
 	{
+		...rstestEntry("./mainFilesManualMock.js"),
+		resolve: {
+			mainFiles: ["main"]
+		}
+	},
+	rstestEntry("./filePrecedenceManualMock.js"),
+	{
 		...rstestEntry("./hoisted.js"),
 		externals: {
 			"@rstest/core": "global @rstest/core"

@@ -1,4 +1,4 @@
-use camino::{Utf8Path, Utf8PathBuf};
+use camino::Utf8PathBuf;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, ImportAttributes, ImportPhase,
 };
@@ -29,6 +29,7 @@ const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
 const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
 const IMPORT_META_FILENAME: &str = "import.meta.filename";
+pub(crate) const MOCK_TARGET_REQUEST_PREFIX: &str = "\0rstest_mock_target:\0";
 
 #[derive(PartialEq)]
 enum ModulePathType {
@@ -193,22 +194,15 @@ impl RstestParserPlugin {
     None
   }
 
-  fn calc_mocked_target(&self, value: &str, resource_path: Option<&Utf8Path>) -> Utf8PathBuf {
+  fn calc_mocked_target(&self, value: &str) -> Utf8PathBuf {
     // node:foo will be mocked to `__mocks__/foo`.
     let stripped = value.strip_prefix("node:").unwrap_or(value);
     let path_buf = Utf8PathBuf::from(stripped);
     let is_relative_request = stripped.starts_with('.'); // TODO: consider alias?
 
     if is_relative_request {
-      if let Some(resource_dir) = resource_path.and_then(Utf8Path::parent) {
-        let resolved_request = resource_dir.join(&path_buf);
-        // `./foo` -> `./foo/index.*` should look for `./foo/__mocks__/index.*`.
-        if resolved_request.is_dir() {
-          return path_buf.join("__mocks__").join("index");
-        }
-      }
-
-      // For non-directory relative requests, keep using sibling `__mocks__`.
+      // Keep using sibling `__mocks__` by default. Directory-entry mocks are
+      // rewritten later in NMF with the actual resolver result.
       path_buf.parent().map_or_else(
         || Utf8PathBuf::from("__mocks__").join(&path_buf),
         |p| {
@@ -281,14 +275,36 @@ impl RstestParserPlugin {
             parser.handle_top_level_await();
           }
 
-          if let Some(mocked_target) = self
-            .calc_mocked_target(&lit_str, parser.resource_data.path())
-            .as_std_path()
-            .to_str()
-          {
-            let dep = MockModuleIdDependency::new(
-              lit_str.clone(),
-              first_arg.span().into(),
+          let dep = MockModuleIdDependency::new(
+            lit_str.clone(),
+            first_arg.span().into(),
+            false,
+            true,
+            if is_esm {
+              rspack_core::DependencyCategory::Esm
+            } else {
+              rspack_core::DependencyCategory::CommonJS
+            },
+            if has_b { Some(", ".to_string()) } else { None },
+          );
+          parser.add_dependency(Box::new(dep));
+
+          parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
+            call_expr.span(),
+            call_expr.callee.span(),
+            lit_str.clone(),
+            hoist,
+            method,
+          )));
+
+          if has_b {
+            let second_arg = Span::new(
+              first_arg.span().hi() + swc_core::common::BytePos(0),
+              first_arg.span().hi() + swc_core::common::BytePos(0),
+            );
+            parser.add_dependency(Box::new(MockModuleIdDependency::new(
+              format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
+              second_arg.into(),
               false,
               true,
               if is_esm {
@@ -296,36 +312,8 @@ impl RstestParserPlugin {
               } else {
                 rspack_core::DependencyCategory::CommonJS
               },
-              if has_b { Some(", ".to_string()) } else { None },
-            );
-            parser.add_dependency(Box::new(dep));
-
-            parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-              call_expr.span(),
-              call_expr.callee.span(),
-              lit_str,
-              hoist,
-              method,
+              None,
             )));
-
-            if has_b {
-              let second_arg = Span::new(
-                first_arg.span().hi() + swc_core::common::BytePos(0),
-                first_arg.span().hi() + swc_core::common::BytePos(0),
-              );
-              parser.add_dependency(Box::new(MockModuleIdDependency::new(
-                mocked_target.to_string(),
-                second_arg.into(),
-                false,
-                true,
-                if is_esm {
-                  rspack_core::DependencyCategory::Esm
-                } else {
-                  rspack_core::DependencyCategory::CommonJS
-                },
-                None,
-              )));
-            }
           }
         }
       }
@@ -476,7 +464,7 @@ impl RstestParserPlugin {
         if let Some(lit) = first_arg.expr.as_lit() {
           if let Some(lit) = lit.as_str() {
             if let Some(mocked_target) = self
-              .calc_mocked_target(&lit.value.to_string_lossy(), parser.resource_data.path())
+              .calc_mocked_target(&lit.value.to_string_lossy())
               .as_std_path()
               .to_str()
             {
