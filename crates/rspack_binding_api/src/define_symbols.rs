@@ -17,7 +17,7 @@ macro_rules! define_symbols {
       use napi::bindgen_prelude::JsObjectValue;
       $(
         let symbol = ::rspack_napi::OneShotRef::new(env.raw(), env.symbol_for($name)?)?;
-        exports.set_named_property($name, &symbol)?;
+        exports.set_named_property(stringify!($cell), &symbol)?;
         $cell.with(|once_cell| {
           once_cell.get_or_init(move || symbol);
         });
