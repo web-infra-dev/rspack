@@ -1,0 +1,22 @@
+```mjs title=main.mjs
+// ./foo.js
+function yar() {
+  return "yar?";
+}
+
+// ./index.js
+
+
+const value = yar();
+
+/* export default */ const index = (value);
+
+it("should preserve namespace member access with whitespace around the dot", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toBe("yar?");
+});
+
+export default index;
+
+```

@@ -1,0 +1,30 @@
+```mjs title=main.mjs
+// ./main.js
+it("should support namespace imports from sibling entry chunks", async () => {
+  const other = await import(/* webpackIgnore: true */ "./other.mjs");
+
+  expect(other.default).toBe(42);
+});
+
+
+```
+
+```mjs title=other.mjs
+import { p } from "./shared.mjs";
+
+// ./other.js
+
+
+/* export default */ const other = (p);
+
+export default other;
+
+```
+
+```mjs title=shared.mjs
+// ./shared.js
+const p = 42;
+
+export { p };
+
+```

@@ -1,0 +1,66 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./other.js
+var other_namespaceObject = {};
+__webpack_require__.r(other_namespaceObject);
+__webpack_require__.d(other_namespaceObject, { 
+  bar: () => (bar),
+  foo: () => (foo),
+  other: () => (other_namespaceObject) });
+
+
+// ./other.js
+const foo = 1;
+const bar = 2;
+
+
+
+
+
+// ./index.js
+
+
+it("should support modules that re-export their own namespace", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.other.foo).toBe(1);
+  expect(mod.other.bar).toBe(2);
+  expect(mod.other.other.foo).toBe(1);
+});
+
+export { other_namespaceObject as other };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

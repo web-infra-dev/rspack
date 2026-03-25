@@ -493,6 +493,13 @@ impl ExternalModule {
               .exports_info_artifact
               .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
             let used_exports = exports_info.get_used_exports(runtime);
+            let namespace_used_by_named_exports = matches!(
+              &used_exports,
+              UsedExports::UsedNames(atoms)
+                if atoms
+                  .iter()
+                  .any(|atom| exports_info.get_read_only_export_info(atom).ns_access())
+            );
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {
               format!(
@@ -590,7 +597,7 @@ impl ExternalModule {
                 );
               }
               UsedExports::UsedNames(atoms) => {
-                if !safe_to_optimize {
+                if !safe_to_optimize || namespace_used_by_named_exports {
                   chunk_init_fragments.push(
                     NormalInitFragment::new(
                       format!(

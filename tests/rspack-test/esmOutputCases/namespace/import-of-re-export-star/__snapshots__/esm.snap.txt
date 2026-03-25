@@ -1,0 +1,14 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+const value = 234;
+
+it("should consume a namespace from a star re-export without capturing the object", () => {
+  expect((/* inlined export .foo */123)).toBe(123);
+  expect((/* inlined export .foo */123)).toBe(123);
+  expect(value).toBe(234);
+});
+
+
+```

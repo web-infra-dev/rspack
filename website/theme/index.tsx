@@ -73,6 +73,5 @@ const Search = () => {
   );
 };
 
-export { Layout, HomeLayout, Search };
-
 export * from '@rspress/core/theme-original';
+export { HomeLayout, Layout, Search };

@@ -7,79 +7,64 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-anymap = { workspace = true }
-async-recursion = { workspace = true }
-async-trait = { workspace = true }
-bitflags = { workspace = true }
-cow-utils = { workspace = true }
-dashmap = { workspace = true, features = ["rayon"] }
-derive_more = { workspace = true, features = ["debug"] }
-dyn-clone = { workspace = true }
-either = { workspace = true }
-futures = { workspace = true }
-hashlink = { workspace = true }
-heck = { workspace = true }
-hex = { workspace = true }
-indexmap = { workspace = true, features = ["rayon"] }
-indoc = { workspace = true }
-itertools = { workspace = true }
-json = { workspace = true }
-mime_guess = { workspace = true }
-napi = { workspace = true, optional = true }
-num-bigint = { workspace = true }
-once_cell = { workspace = true }
-paste = { workspace = true }
-rayon = { workspace = true }
-regex = { workspace = true }
-rkyv = { workspace = true, optional = true }
-rspack_cacheable = { workspace = true }
-rspack_collections = { workspace = true }
-rspack_dojang = { workspace = true }
-rspack_error = { workspace = true }
-rspack_fs = { workspace = true }
-rspack_futures = { workspace = true }
-rspack_hash = { workspace = true }
-rspack_hook = { workspace = true }
+anymap                     = { workspace = true }
+async-recursion            = { workspace = true }
+async-trait                = { workspace = true }
+bitflags                   = { workspace = true }
+cow-utils                  = { workspace = true }
+dashmap                    = { workspace = true, features = ["rayon"] }
+derive_more                = { workspace = true, features = ["debug"] }
+dyn-clone                  = { workspace = true }
+either                     = { workspace = true }
+futures                    = { workspace = true }
+hashlink                   = { workspace = true }
+heck                       = { workspace = true }
+hex                        = { workspace = true }
+indexmap                   = { workspace = true, features = ["rayon"] }
+indoc                      = { workspace = true }
+itertools                  = { workspace = true }
+json                       = { workspace = true }
+mime_guess                 = { workspace = true }
+napi                       = { workspace = true, optional = true }
+num-bigint                 = { workspace = true }
+once_cell                  = { workspace = true }
+paste                      = { workspace = true }
+rayon                      = { workspace = true }
+regex                      = { workspace = true }
+rkyv                       = { workspace = true, optional = true }
+rspack_cacheable           = { workspace = true }
+rspack_collections         = { workspace = true }
+rspack_dojang              = { workspace = true }
+rspack_error               = { workspace = true }
+rspack_fs                  = { workspace = true }
+rspack_futures             = { workspace = true }
+rspack_hash                = { workspace = true }
+rspack_hook                = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
-rspack_loader_runner = { workspace = true }
-rspack_location = { workspace = true }
-rspack_macros = { workspace = true }
-rspack_napi = { workspace = true, optional = true }
-rspack_paths = { workspace = true }
-rspack_regex = { workspace = true }
-rspack_resolver = { workspace = true }
-rspack_sources = { workspace = true }
-rspack_storage = { workspace = true }
-rspack_tasks = { workspace = true }
-rspack_util = { workspace = true }
-rspack_workspace = { workspace = true }
-rustc-hash = { workspace = true }
-scopeguard = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-sugar_path = { workspace = true }
-swc_core = { workspace = true, features = [
-  "__ecma",
-  "__visit",
-  "__utils",
-  "__ecma_transforms",
-  "ecma_ast",
-  "ecma_parser",
-  "ecma_codegen",
-  "ecma_quote",
-  "common_concurrent",
-  "swc_ecma_ast",
-  "ecma_transforms_react",
-  "ecma_transforms_module",
-  "swc_ecma_codegen",
-  "swc_ecma_visit",
-] }
-swc_node_comments = { workspace = true }
-tokio = { workspace = true, features = ["rt", "macros"] }
-tracing = { workspace = true }
-urlencoding = { workspace = true }
-ustr = { workspace = true }
-winnow = { workspace = true }
+rspack_loader_runner       = { workspace = true }
+rspack_location            = { workspace = true }
+rspack_macros              = { workspace = true }
+rspack_napi                = { workspace = true, optional = true }
+rspack_paths               = { workspace = true }
+rspack_regex               = { workspace = true }
+rspack_resolver            = { workspace = true }
+rspack_sources             = { workspace = true }
+rspack_storage             = { workspace = true }
+rspack_tasks               = { workspace = true }
+rspack_util                = { workspace = true }
+rspack_workspace           = { workspace = true }
+rustc-hash                 = { workspace = true }
+scopeguard                 = { workspace = true }
+serde                      = { workspace = true }
+serde_json                 = { workspace = true }
+sugar_path                 = { workspace = true }
+swc_core                   = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "ecma_ast", "ecma_parser", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "swc_ecma_codegen", "swc_ecma_visit"] }
+swc_node_comments          = { workspace = true }
+tokio                      = { workspace = true, features = ["rt", "macros"] }
+tracing                    = { workspace = true }
+urlencoding                = { workspace = true }
+ustr                       = { workspace = true }
+winnow                     = { workspace = true }
 
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }

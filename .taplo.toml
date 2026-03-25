@@ -1,7 +1,8 @@
-include = ["Cargo.toml", "crates/*/*.toml", "xtask/**/*.toml"]
+include = ["Cargo.toml", "crates/*/*.toml", "xtask/**/*.toml", ".taplo.toml"]
 
 # https://taplo.tamasfe.dev/configuration/formatter-options.html
 [formatting]
-align_entries = true
-column_width  = 120
-reorder_keys  = true
+align_entries     = true
+array_auto_expand = false
+column_width      = 120
+reorder_keys      = true

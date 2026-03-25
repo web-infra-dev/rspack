@@ -19,6 +19,11 @@ Rspack has a built-in configuration for `SplitChunksPlugin` that works well for 
 
 By default it only affects on-demand chunks, because changing initial chunks would affect the script tags the HTML file should include to run the project.
 
+Rspack ships with two default cache groups:
+
+- `default`: extract modules shared by at least 2 chunks.
+- `defaultVendors`: extract modules from `node_modules`.
+
 Rspack will automatically split chunks based on these conditions:
 
 - New chunk can be shared OR modules are from the node_modules folder
@@ -27,6 +32,22 @@ Rspack will automatically split chunks based on these conditions:
 - Maximum number of parallel requests at initial page load would be lower or equal to 30
 
 When trying to fulfill the last two conditions, bigger chunks are preferred.
+
+:::tip
+The default value is `chunks: 'async'`, but for most production applications it is recommended to start with:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+    },
+  },
+};
+```
+
+while keeping the default cache groups. This usually deduplicates both initial and async chunks without changing JavaScript execution semantics. Rspack's runtime still loads only the chunks reachable from the current entry or runtime.
+:::
 
 ## Options
 
@@ -120,6 +141,8 @@ This option controls which chunks should be selected for code splitting. When a 
 - `async`: Only split async chunks.
 
 Generally, setting it to `all` can help reduce duplicate modules being bundled, as it means chunks can be shared between initial chunks and async chunks.
+
+For most production applications, `chunks: 'all'` is the recommended starting point. What often hurts the result is not `chunks: 'all'` itself, but broad manual cache groups combined with a fixed [`name`](#splitchunksname).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -275,6 +298,8 @@ The calculation rule for this parameter is: splitting will only occur when the t
 
 Assuming the following scenario, suppose there is a 40KB module that is referenced by 2 chunks, and we set `minSizeReduction: 100`. If we were to split this module, each parent chunk would be reduced by 40KB, resulting in a total reduction of `40KB × 2 = 80KB`. As this is less than 100KB, the split will not be triggered.
 
+If a module still appears duplicated after lowering `minSize`, check `minSizeReduction` before assuming splitChunks is not working.
+
 ```js title="rspack.config.mjs"
 export default {
   //...
@@ -292,6 +317,8 @@ export default {
 
 Using `maxSize` (either globally `optimization.splitChunks.maxSize` per cache group `optimization.splitChunks.cacheGroups[x].maxSize` or for the fallback cache group `optimization.splitChunks.fallbackCacheGroup.maxSize`) tells Rspack to try to split chunks bigger than `maxSize` bytes into smaller parts. Parts will be at least `minSize` (next to `maxSize`) in size.
 The algorithm is deterministic and changes to the modules will only have local effects. So that it is usable when using long term caching and doesn't require records. `maxSize` is only a hint and could be violated when modules are bigger than `maxSize` or splitting would violate `minSize`.
+
+Rspack groups modules for `maxSize` using deterministic path-derived keys, so modules with similar paths tend to stay together. In practice, prefer `maxSize` when the problem is "this shared chunk is too large". It is usually a better fit than forcing a broad fixed [`name`](#splitchunksname).
 
 When the chunk has a name already, each part will get a new name derived from that name. Depending on the value of `optimization.splitChunks.hidePathInfo` it will add a key derived from the first module name or a hash of it.
 
@@ -348,6 +375,10 @@ Also available for each cacheGroup: `splitChunks.cacheGroups.{cacheGroup}.name`.
 The name of the split chunk. Providing `false` will keep the same name of the chunks so it doesn't change names unnecessarily. It is the recommended value for production builds.
 
 Providing a string allows you to use a custom name. Specifying a string will merge all common modules and vendors into a single chunk. This might lead to bigger initial downloads and slow down page loads.
+
+`name` is not only a filename customization. It also changes grouping behavior: when different chunk combinations hit the same cache group and resolve to the same name, Rspack will merge them into the same named split chunk candidate. This can improve cache hit rate, but it can also force a page to fetch modules from unrelated dependency chains.
+
+If your goal is only to hint chunk identity or filenames, prefer [`splitChunks.cacheGroups.{cacheGroup}.idHint`](#splitchunkscachegroupscachegroupidhint) and leave `name` unset.
 
 If the `splitChunks.name` matches an [entry point](/config/entry) name, the entry point will be removed.
 
@@ -433,6 +464,8 @@ chunk baz
         \
       chunk shared-2 (exports only value2)
 ```
+
+This option only changes how splitChunks groups modules across runtimes. It does not replace tree shaking and does not decide whether unused exports are removed.
 
 ### splitChunks.defaultSizeTypes
 
@@ -527,3 +560,31 @@ If the setting of reuseExistingChunk is set to `false`, then the module B in chu
 - **Types:** `string | RegExp`
 
 Allows to assign modules to a cache group by module type.
+
+## FAQ
+
+### Why are modules still duplicated?
+
+Common reasons include:
+
+- the shared candidate is too small to satisfy [`splitChunks.minSize`](#splitchunksminsize)
+- the split does not satisfy [`splitChunks.minSizeReduction`](#splitchunksminsizereduction)
+- the candidate does not satisfy [`splitChunks.minChunks`](#splitchunksminchunks)
+- [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) or [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) rejects the split
+- `chunks`, `test`, or custom cache groups do not actually select the same chunk combination
+
+Very small duplicates are often intentional. Extracting them into an extra chunk can be worse than keeping them duplicated.
+
+### Does splitChunks affect JavaScript execution order?
+
+No. `splitChunks` changes chunk topology, but JavaScript loading and execution order are still guaranteed by the runtime dependency graph.
+
+### Does splitChunks affect tree shaking?
+
+No. Tree shaking decides what code is kept. `splitChunks` only decides how kept modules are partitioned into chunks.
+
+### Can splitChunks affect CSS order?
+
+Yes, potentially. This caveat is about extracted CSS, not JavaScript execution order.
+
+In extracted CSS flows such as `mini-css-extract-plugin` or Rspack's [Built-in CSS support](/guide/tech/css#built-in-css-support), changing chunk groups with splitChunks can also change final CSS order. See [Deep dive into webpack CSS order issue](https://github.com/orgs/web-infra-dev/discussions/12) for background. If CSS order is the primary concern, also review [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin).

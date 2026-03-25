@@ -1,0 +1,21 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+// fs
+
+// ./index.js
+
+
+const unused = __rspack_external_fs.readFile;
+
+/* export default */ const index = ("main");
+
+it("should not count external namespace property access as a side effect", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(unused).toBeDefined();
+  expect(mod.default).toBe("main");
+});
+
+export default index;
+
+```
