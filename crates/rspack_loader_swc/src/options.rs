@@ -152,8 +152,7 @@ impl<'de> Deserialize<'de> for DetectSyntax {
 #[serde(rename_all = "camelCase", default)]
 pub(crate) struct RawJscConfig {
   #[serde(default)]
-  #[serde(rename = "parser")]
-  raw_parser: Option<Value>,
+  parser: Option<Value>,
   #[serde(flatten)]
   other_fields: Map<String, Value>,
 }
@@ -161,34 +160,28 @@ pub(crate) struct RawJscConfig {
 impl RawJscConfig {
   fn has_explicit_syntax(&self) -> bool {
     matches!(
-      &self.raw_parser,
+      &self.parser,
       Some(Value::Object(parser)) if parser.contains_key("syntax")
     )
   }
 
+  // Parse `jsc` as-is, including the original `parser` value.
   fn parse(&self) -> Result<JscConfig, serde_json::Error> {
-    self.parse_with_parser_value(self.raw_parser.clone())
+    let mut object: Map<String, Value> = self.other_fields.clone();
+    if let Some(parser) = self.parser.clone() {
+      object.insert("parser".into(), parser);
+    }
+    serde_json::from_value(Value::Object(object))
   }
 
+  // Parse `jsc` after resolving the parser for a specific resource kind.
   fn parse_for_syntax_kind(
     &self,
     syntax_kind: Option<KnownSyntaxKind>,
   ) -> Result<JscConfig, serde_json::Error> {
-    let mut jsc = self.parse_without_parser()?;
-    jsc.syntax = resolve_parser_syntax_for_kind(syntax_kind, &self.raw_parser)?;
+    let mut jsc: JscConfig = serde_json::from_value(Value::Object(self.other_fields.clone()))?;
+    jsc.syntax = resolve_parser_syntax_for_kind(syntax_kind, &self.parser)?;
     Ok(jsc)
-  }
-
-  fn parse_without_parser(&self) -> Result<JscConfig, serde_json::Error> {
-    serde_json::from_value(Value::Object(self.other_fields.clone()))
-  }
-
-  fn parse_with_parser_value(&self, parser: Option<Value>) -> Result<JscConfig, serde_json::Error> {
-    let mut object: Map<String, Value> = self.other_fields.clone();
-    if let Some(parser) = parser {
-      object.insert("parser".into(), parser);
-    }
-    serde_json::from_value(Value::Object(object))
   }
 }
 
@@ -218,9 +211,9 @@ impl KnownSyntaxKind {
 // because SWC skips that field in serde.
 fn resolve_parser_syntax_for_kind(
   syntax_kind: Option<KnownSyntaxKind>,
-  raw_parser: &Option<Value>,
+  parser: &Option<Value>,
 ) -> Result<Option<swc_core::ecma::parser::Syntax>, serde_json::Error> {
-  let mut parser = match raw_parser.clone() {
+  let mut parser_map = match parser.clone() {
     Some(Value::Object(parser)) => parser,
     Some(parser) => return serde_json::from_value(parser).map(Some),
     None => Map::default(),
@@ -228,31 +221,31 @@ fn resolve_parser_syntax_for_kind(
 
   match syntax_kind {
     Some(KnownSyntaxKind::JsLike) => {
-      parser
+      parser_map
         .entry("syntax")
         .or_insert(Value::String("ecmascript".into()));
-      parser.entry("jsx").or_insert(Value::Bool(true));
+      parser_map.entry("jsx").or_insert(Value::Bool(true));
     }
     Some(KnownSyntaxKind::Ts | KnownSyntaxKind::MtsCts) => {
-      parser
+      parser_map
         .entry("syntax")
         .or_insert(Value::String("typescript".into()));
-      parser.entry("tsx").or_insert(Value::Bool(false));
+      parser_map.entry("tsx").or_insert(Value::Bool(false));
     }
     Some(KnownSyntaxKind::Tsx) => {
-      parser
+      parser_map
         .entry("syntax")
         .or_insert(Value::String("typescript".into()));
-      parser.entry("tsx").or_insert(Value::Bool(true));
+      parser_map.entry("tsx").or_insert(Value::Bool(true));
     }
     None => {}
   }
 
-  if parser.is_empty() {
+  if parser_map.is_empty() {
     return Ok(None);
   }
 
-  let mut syntax = serde_json::from_value(Value::Object(parser))?;
+  let mut syntax = serde_json::from_value(Value::Object(parser_map))?;
   if matches!(syntax_kind, Some(KnownSyntaxKind::MtsCts))
     && let swc_core::ecma::parser::Syntax::Typescript(ts) = &mut syntax
   {
