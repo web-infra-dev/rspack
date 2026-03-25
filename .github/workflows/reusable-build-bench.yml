@@ -108,6 +108,7 @@ jobs:
           # Prepare benchcases because bench:rust expects them even in memory mode.
           run: pnpm run bench:prepare && pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.12.1
       - name: Run benchmark (walltime)
         if: inputs.measurement == 'walltime'
         uses: ./.github/actions/codspeed
