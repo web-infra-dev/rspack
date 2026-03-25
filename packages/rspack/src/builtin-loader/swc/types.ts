@@ -22,7 +22,7 @@ export type SwcLoaderOptions = Config & {
   /**
    * When set to `"auto"`, `builtin:swc-loader` infers `jsc.parser` from the resource extension.
    * This is useful when one rule needs to handle mixed module types such as `.js`, `.jsx`, `.ts`, and `.tsx`.
-   * @default `false`.
+   * @default false
    */
   detectSyntax?: false | 'auto';
   isModule?: boolean | 'unknown';
