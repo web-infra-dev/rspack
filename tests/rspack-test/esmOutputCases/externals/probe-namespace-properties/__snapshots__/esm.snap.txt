@@ -1,0 +1,19 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./index.js
+
+
+it("should allow probing external namespace properties", () => {
+  const presentKey = ["read", "File"].join("");
+  const missingKey = ["not", "There"].join("");
+
+  expect(__rspack_external_fs["default"]).toBeDefined();
+  expect(Reflect.get(__rspack_external_fs, presentKey)).toBeDefined();
+  expect(Reflect.get(__rspack_external_fs, missingKey)).toBeUndefined();
+});
+
+
+```

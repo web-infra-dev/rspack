@@ -1,0 +1,15 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+
+
+it("should export and resolve internal namespaces as names", () => {
+  expect((/* inlined export .foo */"foo1")).toBe((/* inlined export .foo */"foo1"));
+  expect((/* inlined export .bar */"bar1")).toBe((/* inlined export .bar */"bar1"));
+  expect((/* inlined export .foo */"foo2")).toBe((/* inlined export .foo */"foo2"));
+  expect((/* inlined export .bar */"bar2")).toBe((/* inlined export .bar */"bar2"));
+});
+
+
+```

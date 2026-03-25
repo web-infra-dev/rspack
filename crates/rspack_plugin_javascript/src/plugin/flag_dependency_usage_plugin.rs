@@ -424,11 +424,14 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       }
 
       for used_export_info in used_exports {
-        let (used_exports, can_mangle, can_inline) = match used_export_info {
-          ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
-          ExtendedReferencedExport::Export(export) => {
-            (export.name, export.can_mangle, export.can_inline)
-          }
+        let (used_exports, can_mangle, can_inline, ns_access) = match used_export_info {
+          ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true, false),
+          ExtendedReferencedExport::Export(export) => (
+            export.name,
+            export.can_mangle,
+            export.can_inline,
+            export.ns_access,
+          ),
         };
         if used_exports.is_empty() {
           let flag = mgm_exports_info
@@ -451,6 +454,9 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               .as_data_mut(self.exports_info_artifact)
               .ensure_export_info(&used_export)
               .as_data_mut(self.exports_info_artifact);
+            if ns_access {
+              export_info.set_ns_access(true);
+            }
             if !can_mangle {
               export_info.set_can_mangle_use(Some(false));
             }
@@ -641,6 +647,7 @@ fn merge_referenced_exports(
                     name: std::mem::take(&mut export.name),
                     can_mangle: export.can_mangle && old_item.can_mangle,
                     can_inline: export.can_inline && old_item.can_inline,
+                    ns_access: export.ns_access || old_item.ns_access,
                   }));
                 }
               }
@@ -783,11 +790,14 @@ fn process_referenced_module_without_nested(
     }
 
     for used_export_info in used_exports {
-      let (used_exports, can_mangle, can_inline) = match used_export_info {
-        ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true),
-        ExtendedReferencedExport::Export(export) => {
-          (export.name, export.can_mangle, export.can_inline)
-        }
+      let (used_exports, can_mangle, can_inline, ns_access) = match used_export_info {
+        ExtendedReferencedExport::Array(used_exports) => (used_exports, true, true, false),
+        ExtendedReferencedExport::Export(export) => (
+          export.name,
+          export.can_mangle,
+          export.can_inline,
+          export.ns_access,
+        ),
       };
       if used_exports.is_empty() {
         let flag = exports_info.set_used_in_unknown_way(runtime.as_ref());
@@ -802,6 +812,9 @@ fn process_referenced_module_without_nested(
       } else {
         let used_export = &used_exports[0];
         let export_info = exports_info.ensure_owned_export_info(used_export);
+        if ns_access {
+          export_info.set_ns_access(true);
+        }
         if !can_mangle {
           export_info.set_can_mangle_use(Some(false));
         }

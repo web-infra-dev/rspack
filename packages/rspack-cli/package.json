@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.0.0-beta.7",
+  "version": "2.0.0-beta.8",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -46,7 +46,7 @@
     "execa": "^5.1.1",
     "pirates": "^4.0.7",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   },
   "peerDependencies": {
     "@rspack/core": "^2.0.0-0",

@@ -75,6 +75,7 @@ pub struct ExportInfoData {
   has_use_in_runtime_info: bool,
   global_used: Option<UsageState>,
   used_in_runtime: Option<ustr::UstrMap<UsageState>>,
+  ns_access: bool,
 }
 
 impl ExportInfoData {
@@ -88,6 +89,7 @@ impl ExportInfoData {
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
     let has_use_in_runtime_info =
       init_from.is_some_and(|init_from| init_from.has_use_in_runtime_info);
+    let ns_access = init_from.is_some_and(|init_from| init_from.ns_access);
 
     let provided = init_from.and_then(|init_from| init_from.provided);
     let terminal_binding = init_from.is_some_and(|init_from| init_from.terminal_binding);
@@ -145,6 +147,7 @@ impl ExportInfoData {
       can_inline_provide: None,
       // only specific export info can be inlined, so other_export_info.can_inline_use is always None
       can_inline_use: None,
+      ns_access,
     }
   }
 
@@ -235,6 +238,10 @@ impl ExportInfoData {
     self.used_in_runtime.get_or_insert_default()
   }
 
+  pub fn ns_access(&self) -> bool {
+    self.ns_access
+  }
+
   pub fn set_provided(&mut self, value: Option<ExportProvided>) {
     self.provided = value;
   }
@@ -285,6 +292,10 @@ impl ExportInfoData {
 
   pub fn set_has_use_in_runtime_info(&mut self, value: bool) {
     self.has_use_in_runtime_info = value;
+  }
+
+  pub fn set_ns_access(&mut self, value: bool) {
+    self.ns_access = value;
   }
 
   pub fn as_hash_key(&self) -> ExportInfoHashKey {

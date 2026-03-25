@@ -2,11 +2,11 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
-  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, InitFragmentKey,
-  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_imports,
-  render_init_fragments,
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataFilename, Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment,
+  InitFragmentKey, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template, get_undo_path,
+  render_imports, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -69,14 +69,12 @@ fn normalize_raw_import_source(source: &str) -> Cow<'_, str> {
 }
 
 impl EsmLibraryPlugin {
-  pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+  fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
-    let Some(group) = chunk.groups().iter().next() else {
-      return chunk_ukey;
-    };
+    let group = chunk.groups().iter().next()?;
     let group = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
@@ -90,8 +88,7 @@ impl EsmLibraryPlugin {
       }
 
       if group.kind.is_entrypoint() {
-        return group
-          .get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+        return Some(group);
       }
 
       stack.extend(group.parents_iterable().map(|group| {
@@ -102,7 +99,18 @@ impl EsmLibraryPlugin {
       }));
     }
 
-    chunk_ukey
+    None
+  }
+
+  pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+    Self::get_entrypoint(chunk_ukey, compilation).map_or(chunk_ukey, |group| {
+      group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
+  }
+
+  pub(crate) fn get_entry_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+    Self::get_entrypoint(chunk_ukey, compilation)
+      .map_or(chunk_ukey, ChunkGroup::get_entrypoint_chunk)
   }
 
   pub(crate) async fn render_chunk(
@@ -222,9 +230,15 @@ impl EsmLibraryPlugin {
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-      asset_info
-        .extras
-        .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
+      let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
+      let entry_chunk = Self::get_entry_chunk(*chunk_ukey, compilation);
+      let is_separate_runtime_chunk = runtime_chunk == *chunk_ukey && runtime_chunk != entry_chunk;
+
+      if is_separate_runtime_chunk {
+        asset_info
+          .extras
+          .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
+      }
       // render chunk needs to render *all* runtimes in the whole tree
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);

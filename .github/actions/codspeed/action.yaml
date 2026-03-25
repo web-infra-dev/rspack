@@ -8,7 +8,7 @@ author: 'Arthur Pastel'
 inputs:
   run:
     description: 'The command to run the benchmarks'
-    required: true
+    required: false
 
   mode:
     description: |
@@ -73,46 +73,161 @@ inputs:
     required: false
     default: 'false'
 
+  go-runner-version:
+    description: 'The version of the go-runner to use (e.g., 1.0.0, 1.0.0-beta.1). If not specified, the latest version will be installed'
+    required: false
+
+  config:
+    description: 'Path to a CodSpeed configuration file (codspeed.yml). If not specified, the runner will look for a codspeed.yml file in the repository root.'
+    required: false
+
+  skip-hash-check-warning:
+    description: "Suppress the warning emitted when hash verification is not available (e.g. when using 'latest', branch, or revision versions)."
+    required: false
+    default: 'true'
+
 runs:
   using: 'composite'
   steps:
-    - shell: bash
+    - name: Determine runner and kernel version
+      id: versions
+      shell: bash
+      run: |
+        RUNNER_VERSION="${{ inputs.runner-version }}"
+        if [ -z "$RUNNER_VERSION" ]; then
+          RUNNER_VERSION=$(cat $GITHUB_ACTION_PATH/.codspeed-runner-version)
+        fi
+        # Strip 'v' prefix if present to normalize version format
+        RUNNER_VERSION="${RUNNER_VERSION#v}"
+
+        # Detect version type (priority: latest > version number > branch/rev prefixes)
+        if [ "$RUNNER_VERSION" = "latest" ]; then
+          VERSION_TYPE="latest"
+        elif echo "$RUNNER_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+'; then
+          VERSION_TYPE="release"
+        elif echo "$RUNNER_VERSION" | grep -q '^branch:'; then
+          VERSION_TYPE="branch"
+          RUNNER_VERSION=$(echo "$RUNNER_VERSION" | sed 's/^branch://')
+        elif echo "$RUNNER_VERSION" | grep -q '^rev:'; then
+          VERSION_TYPE="rev"
+          RUNNER_VERSION=$(echo "$RUNNER_VERSION" | sed 's/^rev://')
+        else
+          # Default to release version
+          VERSION_TYPE="release"
+        fi
+
+        echo "runner-version=$RUNNER_VERSION" >> $GITHUB_OUTPUT
+        echo "version-type=$VERSION_TYPE" >> $GITHUB_OUTPUT
+
+        # Get kernel version for cache key
+        KERNEL_VERSION=$(uname -r)
+        echo "kernel-version=$KERNEL_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Cache CodSpeed instruments
+      if: inputs.cache-instruments == 'true'
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ inputs.instruments-cache-dir }}
+        key: codspeed-instruments-${{ inputs.mode }}-${{ runner.os }}-${{ runner.arch }}-${{steps.versions.outputs.kernel-version }}-${{ steps.versions.outputs.runner-version }}
+        restore-keys: |
+          codspeed-instruments-${{ inputs.mode }}-${{ runner.os }}-${{ runner.arch }}-${{steps.versions.outputs.kernel-version }}-
+
+    - name: Install CodSpeed runner
+      shell: bash
+      run: |
+        RUNNER_VERSION="${{ steps.versions.outputs.runner-version }}"
+        VERSION_TYPE="${{ steps.versions.outputs.version-type }}"
+
+        SKIP_HASH_CHECK_WARNING="${{ inputs.skip-hash-check-warning }}"
+
+        if [ "$VERSION_TYPE" = "latest" ]; then
+          if [ "$SKIP_HASH_CHECK_WARNING" != "true" ]; then
+            echo "::warning::Hash verification is not available when using 'latest' version. Consider pinning a specific version for supply chain security."
+          fi
+          curl -fsSL https://codspeed.io/install.sh | bash -s -- --quiet
+        elif [ "$VERSION_TYPE" = "branch" ]; then
+          # Install from specific branch using cargo
+          if [ "$SKIP_HASH_CHECK_WARNING" != "true" ]; then
+            echo "::warning::Hash verification is not available when installing from a branch."
+          fi
+          source $HOME/.cargo/env
+          cargo install --locked --git https://github.com/CPunisher/runner --branch "$RUNNER_VERSION" codspeed-runner
+        elif [ "$VERSION_TYPE" = "rev" ]; then
+          # Install from specific commit/rev using cargo
+          if [ "$SKIP_HASH_CHECK_WARNING" != "true" ]; then
+            echo "::warning::Hash verification is not available when installing from a revision."
+          fi
+          source $HOME/.cargo/env
+          cargo install --locked --git https://github.com/CPunisher/runner --rev "$RUNNER_VERSION" codspeed-runner
+        else
+          # Release version - download to temp file and verify hash
+          INSTALLER_URL="https://github.com/CPunisher/runner/releases/download/v$RUNNER_VERSION/codspeed-runner-installer.sh"
+          INSTALLER_TMP=$(mktemp)
+          trap "rm -f $INSTALLER_TMP" EXIT
+
+          CURL_ERR=$(mktemp)
+          if ! HTTP_CODE=$(curl -sSL -o "$INSTALLER_TMP" -w "%{http_code}" "$INSTALLER_URL" 2>"$CURL_ERR"); then
+            echo "::error title=Failed to install CodSpeed CLI::Installation of CodSpeed CLI with version $RUNNER_VERSION failed.%0AReason: $(cat "$CURL_ERR")"
+            exit 1
+          fi
+          if [ "$HTTP_CODE" -ge 400 ]; then
+            error_body=$(cat "$INSTALLER_TMP")
+            echo "::error title=Failed to install CodSpeed CLI::Installation of CodSpeed CLI with version $RUNNER_VERSION failed.%0AReason: HTTP $HTTP_CODE - ${error_body:-no response body}"
+            exit 1
+          fi
+          bash "$INSTALLER_TMP" --quiet
+        fi
+
+    - name: Run the benchmarks
+      shell: bash
+      env:
+        GH_MATRIX: '${{ toJson(matrix) }}'
+        GH_STRATEGY: '${{ toJson(strategy) }}'
+        # This is needed to properly handle quotes and multiline commands in the 'run' input properly, rather than doing `RUN_INPUT_RUN=${{ inputs.run }}` in the script
+        CODSPEED_INPUT_RUN: ${{ inputs.run }}
       run: |
         # Validate required inputs
         # (custom message for smoother v4 migration)
         if [ -z "${{ inputs.mode }}" ]; then
-          echo "::error title=Missing required input 'mode'::The 'mode' input is required as of CodSpeed Action v4. Please explicitly set 'mode' to 'simulation', 'walltime', or 'memory'. Before, this variable was automatically set to instrumentation on every runner except for CodSpeed macro runners where it was set to walltime by default. See https://codspeed.io/docs/instruments for details."
+          echo "::error title=Missing required input 'mode'::The 'mode' input is required as of CodSpeed Action v4. Please explicitly set 'mode' to 'simulation' or 'walltime'. Before, this variable was automatically set to instrumentation on every runner except for CodSpeed macro runners where it was set to walltime by default. See https://codspeed.io/docs/instruments for details."
           exit 1
         fi
 
-        # We can use official runner if it supports config valgrind flags in the future: https://github.com/CodSpeedHQ/runner/pull/92
-        cargo install --force --git https://github.com/CPunisher/runner.git --rev c9c78a30e08fe1df68f743ae9017273397a866a2 codspeed-runner
-
-        # Get the runner arguments
-        RUNNER_ARGS=""
+        # Build the runner arguments array
+        RUNNER_ARGS=()
         if [ -n "${{ inputs.token }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --token ${{ inputs.token }}"
+          RUNNER_ARGS+=(--token "${{ inputs.token }}")
         fi
         if [ -n "${{ inputs.working-directory }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --working-directory=${{ inputs.working-directory }}"
+          RUNNER_ARGS+=(--working-directory="${{ inputs.working-directory }}")
         fi
         if [ -n "${{ inputs.upload-url }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --upload-url=${{ inputs.upload-url }}"
+          RUNNER_ARGS+=(--upload-url="${{ inputs.upload-url }}")
         fi
         if [ -n "${{ inputs.mode }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --mode=${{ inputs.mode }}"
+          RUNNER_ARGS+=(--mode="${{ inputs.mode }}")
         fi
         if [ -n "${{ inputs.instruments }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --instruments=${{ inputs.instruments }}"
+          RUNNER_ARGS+=(--instruments="${{ inputs.instruments }}")
         fi
         if [ -n "${{ inputs.mongo-uri-env-name }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --mongo-uri-env-name=${{ inputs.mongo-uri-env-name }}"
+          RUNNER_ARGS+=(--mongo-uri-env-name="${{ inputs.mongo-uri-env-name }}")
         fi
         if [ "${{ inputs.cache-instruments }}" = "true" ] && [ -n "${{ inputs.instruments-cache-dir }}" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --setup-cache-dir=${{ inputs.instruments-cache-dir }}"
+          RUNNER_ARGS+=(--setup-cache-dir="${{ inputs.instruments-cache-dir }}")
         fi
         if [ "${{ inputs.allow-empty }}" = "true" ]; then
-          RUNNER_ARGS="$RUNNER_ARGS --allow-empty"
+          RUNNER_ARGS+=(--allow-empty)
+        fi
+        if [ -n "${{ inputs.go-runner-version }}" ]; then
+          RUNNER_ARGS+=(--go-runner-version="${{ inputs.go-runner-version }}")
+        fi
+        if [ -n "${{ inputs.config }}" ]; then
+          RUNNER_ARGS+=(--config="${{ inputs.config }}")
+        fi
+
+        if [ -n "$CODSPEED_INPUT_RUN" ]; then
+          RUNNER_ARGS+=(-- "$CODSPEED_INPUT_RUN")
         fi
 
         # Run the benchmarks

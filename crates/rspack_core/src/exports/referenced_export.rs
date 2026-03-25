@@ -42,6 +42,7 @@ pub struct ReferencedExport {
   pub name: Vec<Atom>,
   pub can_mangle: bool,
   pub can_inline: bool,
+  pub ns_access: bool,
 }
 
 impl ReferencedExport {
@@ -50,6 +51,7 @@ impl ReferencedExport {
       name,
       can_mangle,
       can_inline,
+      ns_access: false,
     }
   }
 }
@@ -60,6 +62,7 @@ impl Default for ReferencedExport {
       name: vec![],
       can_mangle: true,
       can_inline: true,
+      ns_access: false,
     }
   }
 }
