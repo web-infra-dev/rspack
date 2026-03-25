@@ -21,6 +21,7 @@ it("should combine a named external re-export with an imported external namespac
   expect(typeof mod.fsNs.readFile).toBe("function");
 });
 
-export { __rspack_external_fs as fsNs, sep };
+export { sep };
+export * as fsNs from "fs";
 
 ```
