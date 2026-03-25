@@ -31,9 +31,9 @@ use crate::{
 };
 
 define_symbols! {
-  MODULE_IDENTIFIER_SYMBOL => "MODULE_IDENTIFIER_SYMBOL",
-  MODULE_BUILD_INFO_SYMBOL => "MODULE_BUILD_INFO_SYMBOL",
-  COMPILATION_HOOKS_MAP_SYMBOL => "COMPILATION_HOOKS_MAP_SYMBOL",
+  MODULE_IDENTIFIER_SYMBOL => "rspack.module.identifier",
+  MODULE_BUILD_INFO_SYMBOL => "rspack.module.buildInfo",
+  COMPILATION_HOOKS_MAP_SYMBOL => "rspack.compilation.hooksMap",
 }
 
 #[napi(object)]
