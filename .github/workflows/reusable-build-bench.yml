@@ -109,7 +109,7 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
       - name: Run benchmark (walltime)
         if: inputs.measurement == 'walltime'
-        uses: CodSpeedHQ/action@v4
+        uses: ./.github/actions/codspeed
         timeout-minutes: 30
         with:
           mode: 'walltime'
