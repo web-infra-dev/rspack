@@ -179,7 +179,6 @@ mod test {
   use super::{DB, HashMap, Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_db() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/".into());
     let db = DB::new(fs);

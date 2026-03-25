@@ -4,7 +4,6 @@ use rspack_cacheable::{
 };
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn test_cacheable_dyn_macro() {
   struct Context;
   impl CacheableContext for Context {
@@ -80,7 +79,6 @@ fn test_cacheable_dyn_macro() {
 }
 
 #[test]
-#[cfg_attr(miri, ignore)]
 fn test_cacheable_dyn_macro_with_generics() {
   struct Context;
   impl CacheableContext for Context {

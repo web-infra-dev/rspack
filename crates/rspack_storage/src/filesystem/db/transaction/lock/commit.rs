@@ -101,7 +101,6 @@ mod tests {
   use super::{CommitLock, Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_commit_lock() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
     fs.ensure_exist().await?;

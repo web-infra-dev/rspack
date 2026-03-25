@@ -63,7 +63,6 @@ mod tests {
   use super::TaskQueue;
 
   #[test]
-  #[cfg_attr(miri, ignore)]
   fn test_add_task_to_queue() {
     let rt = tokio::runtime::Runtime::new().unwrap();
 

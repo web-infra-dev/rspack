@@ -118,7 +118,6 @@ mod test {
   use super::{Pack, PackId, Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_pack() -> Result<()> {
     let pack_id = PackId::new(10);
     let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());

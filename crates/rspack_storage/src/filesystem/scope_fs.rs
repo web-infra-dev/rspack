@@ -167,7 +167,6 @@ mod tests {
   use super::{Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_read_and_write() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/".into());
     assert!(fs.read("/a.txt").await.is_err());
@@ -178,7 +177,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_stream_read_and_write() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/".into());
     assert!(fs.read("/a.txt").await.is_err());
@@ -195,7 +193,6 @@ mod tests {
   }
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_move_to() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/".into());
     fs.write("a.txt", "1".as_bytes()).await?;

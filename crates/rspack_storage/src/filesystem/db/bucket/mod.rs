@@ -236,7 +236,6 @@ mod test {
   use super::{Bucket, Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_bucket() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
 

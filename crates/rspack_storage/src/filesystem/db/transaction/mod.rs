@@ -138,7 +138,6 @@ impl Transaction {
 mod test {
   use super::{Result, ScopeFileSystem, Transaction};
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_smoke() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/".into());
     fs.ensure_exist().await?;

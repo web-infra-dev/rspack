@@ -198,18 +198,14 @@ jobs:
           pnpm --filter @rspack/binding... 	            \
                --filter @rspack/binding-darwin-arm64... \
                --filter @rspack/core...                 \
-               --filter @rspack/dev-server...           \
                --filter @rspack/test-tools...           \
-               --filter @rspack/tracing...              \
               exec sh -c 'jq ".publishConfig.provenance = false" package.json > package.json.tmp && mv package.json.tmp package.json'
 
           pnpm publish --no-git-checks --provenance=false --access public --registry=http://localhost:4873 \
                --filter @rspack/binding... 	            \
                --filter @rspack/binding-darwin-arm64... \
                --filter @rspack/core...                 \
-               --filter @rspack/dev-server...           \
-               --filter @rspack/test-tools...           \
-               --filter @rspack/tracing... 
+               --filter @rspack/test-tools...
 
           cd ../..
           pwd

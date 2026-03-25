@@ -133,7 +133,6 @@ mod test {
   use super::{super::Pack, Meta, Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_meta() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
     fs.ensure_exist().await?;

@@ -123,7 +123,6 @@ mod test {
   use super::{Meta, Result, ScopeFileSystem};
 
   #[tokio::test]
-  #[cfg_attr(miri, ignore)]
   async fn test_meta() -> Result<()> {
     let fs = ScopeFileSystem::new_memory_fs("/test_meta".into());
     fs.ensure_exist().await?;
