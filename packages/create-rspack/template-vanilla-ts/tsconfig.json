@@ -7,13 +7,11 @@
     "useDefineForClassFields": true,
 
     /* modules */
-    "module": "ESNext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
 
     /* type checking */
-    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
