@@ -15,6 +15,6 @@ it("should re-export an imported external namespace", async () => {
   expect(typeof mod.ext.readFileSync).toBe("function");
 });
 
-export { __rspack_external_fs as ext };
+export * as ext from "fs";
 
 ```

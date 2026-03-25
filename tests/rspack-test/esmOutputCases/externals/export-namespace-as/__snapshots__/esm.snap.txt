@@ -13,6 +13,6 @@ it("should export an external module namespace with export-star-as syntax", asyn
   expect(typeof mod.out.readFileSync).toBe("function");
 });
 
-export { __rspack_external_fs as out };
+export * as out from "fs";
 
 ```

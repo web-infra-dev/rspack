@@ -560,17 +560,14 @@ impl EsmLibraryPlugin {
                           .values()
                           .any(|atom| atom == &symbol_binding.symbol);
 
-                      let local_name = if already_bound {
-                        let new_name = find_new_name(
-                          symbol_binding.symbol.as_str(),
-                          &chunk_link.used_names,
-                          &[],
-                        );
-                        chunk_link.used_names.insert(new_name.clone());
-                        new_name
+                      let local_name = if already_bound
+                        || chunk_link.used_names.contains(&symbol_binding.symbol)
+                      {
+                        find_new_name(symbol_binding.symbol.as_str(), &chunk_link.used_names, &[])
                       } else {
                         symbol_binding.symbol.clone()
                       };
+                      chunk_link.used_names.insert(local_name.clone());
 
                       match import_binding {
                         ExternalImportBinding::Default => {
@@ -824,7 +821,26 @@ var {} = {{}};
               .or_default();
 
             if let Some(ns_import) = &imported_atoms.namespace {
-              total_imported_atoms.ns_import = Some(ns_import.clone());
+              if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
+                internal_names.insert(ns_import.clone(), internal_ns_import.clone());
+              } else {
+                let new_name = if all_used_names.contains(ns_import) {
+                  find_new_name(
+                    escaped_names
+                      .get(ns_import)
+                      .expect("should have escaped name")
+                      .as_ref(),
+                    &all_used_names,
+                    &[],
+                  )
+                } else {
+                  all_used_names.insert(ns_import.clone());
+                  ns_import.clone()
+                };
+
+                internal_names.insert(ns_import.clone(), new_name.clone());
+                total_imported_atoms.ns_import = Some(new_name);
+              }
             }
 
             for atom in &imported_atoms.specifiers {
@@ -918,7 +934,7 @@ var {} = {{}};
           && namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
           && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
         {
-          let name =
+          let name: Atom =
             Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
           all_used_names.insert(name.clone());
           concate_info
@@ -997,10 +1013,69 @@ var {} = {{}};
 
     // Build a targeted set for external module name deconfliction:
     // Start from chunk_link.used_names (cross-chunk accumulated names) and add
-    // import binding names from raw_import_stmts. We do NOT use all_used_names here
-    // because it contains binding_to_ref keys (e.g., `cjs`, `foo`) that will be
-    // replaced during rendering and should not block external module names.
+    // names that will actually be emitted at the chunk top level. We intentionally
+    // avoid using all_used_names directly because it also contains transient
+    // binding_to_ref keys (e.g. `cjs`, `foo`) that are rewritten during rendering
+    // and should not block external module names.
     let mut external_used_names = chunk_link.used_names.clone();
+    for module in chunk_link
+      .hoisted_modules
+      .iter()
+      .chain(chunk_link.decl_modules.iter())
+    {
+      match &concate_modules_map[module] {
+        ModuleInfo::Concatenated(info) => {
+          if let Some(name) = &info.namespace_object_name {
+            external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object_used
+            && let Some(name) = &info.interop_namespace_object_name
+          {
+            external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object2_used
+            && let Some(name) = &info.interop_namespace_object2_name
+          {
+            external_used_names.insert(name.clone());
+          }
+          if info.interop_default_access_used
+            && let Some(name) = &info.interop_default_access_name
+          {
+            external_used_names.insert(name.clone());
+          }
+        }
+        ModuleInfo::External(info) => {
+          if let Some(name) = &info.name {
+            external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object_used
+            && let Some(name) = &info.interop_namespace_object_name
+          {
+            external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object2_used
+            && let Some(name) = &info.interop_namespace_object2_name
+          {
+            external_used_names.insert(name.clone());
+          }
+          if info.interop_default_access_used
+            && let Some(name) = &info.interop_default_access_name
+          {
+            external_used_names.insert(name.clone());
+          }
+          if info.deferred
+            && let Some(name) = &info.deferred_name
+          {
+            external_used_names.insert(name.clone());
+          }
+          if info.deferred_namespace_object_used
+            && let Some(name) = &info.deferred_namespace_object_name
+          {
+            external_used_names.insert(name.clone());
+          }
+        }
+      }
+    }
     for import_spec in chunk_link.raw_import_stmts.values() {
       if let Some(ns) = &import_spec.ns_import {
         external_used_names.insert(ns.clone());
@@ -1032,11 +1107,12 @@ var {} = {{}};
           &escaped_identifiers[&readable_identifier],
         );
         external_used_names.insert(name.clone());
+        all_used_names.insert(name.clone());
         info.name = Some(name);
       }
     }
 
-    chunk_link.used_names = all_used_names;
+    chunk_link.used_names = external_used_names;
   }
 
   async fn analyze_module(
@@ -2458,15 +2534,24 @@ var {} = {{}};
       }
 
       let mut removed_import_stmts = vec![];
+      let mut converted_namespace_imports = vec![];
       for (key, specifiers) in &chunk_link.raw_import_stmts {
+        let RawImportSource::Source(key) = key else {
+          continue;
+        };
+
+        if key.1.is_none()
+          && let Some(ns_local) = &specifiers.ns_import
+          && !all_chunk_used_symbols.contains(ns_local)
+          && all_chunk_exported_symbols.contains_key(ns_local)
+        {
+          converted_namespace_imports.push((key.clone(), ns_local.clone()));
+        }
+
         if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
           // import 'externals'
           continue;
         }
-
-        let RawImportSource::Source(key) = key else {
-          continue;
-        };
 
         if key.1.is_some() {
           // TODO: optimize import attributes
@@ -2493,6 +2578,32 @@ var {} = {{}};
         }) {
           // remove the import statement
           removed_import_stmts.push((key.clone(), locals));
+        }
+      }
+
+      for (key, ns_local) in converted_namespace_imports {
+        let Some(import_spec) = chunk_link
+          .raw_import_stmts
+          .get(&RawImportSource::Source(key.clone()))
+        else {
+          continue;
+        };
+        if import_spec.ns_import.as_ref() != Some(&ns_local) {
+          continue;
+        }
+
+        let chunk_exports = exports
+          .get_mut(&chunk_link.chunk)
+          .expect("should have exports");
+        let Some(export_names) = chunk_exports.exports.remove(&ns_local) else {
+          continue;
+        };
+        for export_name in export_names {
+          chunk_link
+            .raw_star_exports
+            .entry(key.0.clone())
+            .or_default()
+            .insert(export_name);
         }
       }
 

@@ -1,0 +1,57 @@
+```mjs title=fs.mjs
+// fs?a6ed
+const external_fs_namespaceObject = import("fs").then(function(module) { return module; });
+var readFile = external_fs_namespaceObject.readFile;
+var readFileSync = external_fs_namespaceObject.readFileSync;
+export { readFile, readFileSync };
+export * from "fs";
+
+```
+
+```mjs title=main.mjs
+import * as __rspack_external_path from "path";
+
+// fs?bba3
+
+// ./named.js
+
+
+// path?6f35
+
+// ./path-ns.js
+
+
+const joinFn = Reflect.get(__rspack_external_path, "join");
+
+
+
+// ./index.js
+
+
+
+it("should deconflict concatenated namespace imports that match generated module-import names", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const fs = await import("fs");
+  const path = await import("path");
+
+  expect(mod.readFile).toBe(fs.readFile);
+  expect(mod.readFileSync).toBe(fs.readFileSync);
+  expect(mod.pathNs.sep).toBe(path.sep);
+  expect(mod.pathNs.join).toBe(path.join);
+  expect(mod.joinFn).toBe(path.join);
+});
+
+export { __rspack_external_path as pathNs, joinFn };
+export { readFile, readFileSync } from "fs";
+
+```
+
+```mjs title=path.mjs
+// path?3687
+const external_path_namespaceObject = import("path").then(function(module) { return module; });
+var join = external_path_namespaceObject.join;
+var sep = external_path_namespaceObject.sep;
+export { join, sep };
+export * from "path";
+
+```
