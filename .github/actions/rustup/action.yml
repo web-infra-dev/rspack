@@ -53,8 +53,7 @@ runs:
           -c cargo \
           -c rust-std \
           -c clippy \
-          -c rustfmt \
-          -c miri
+          -c rustfmt
 
     - name: Save rustup cache
       uses: ./.github/actions/cache/save
