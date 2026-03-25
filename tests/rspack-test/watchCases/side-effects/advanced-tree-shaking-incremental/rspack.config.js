@@ -5,6 +5,10 @@ module.exports = {
 	output: {
 		pathinfo: true
 	},
+	stats: {
+		optimizationBailout: true,
+		orphanModules: true
+	},
 	optimization: {
 		minimize: false,
 		sideEffects: true,

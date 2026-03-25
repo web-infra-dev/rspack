@@ -21,7 +21,7 @@ async function recreateCompiler(context) {
 module.exports = {
   description: "should recover pure modules after persistent cache rebuild",
   options(context) {
-    const sourceDir = context.getSource(CASE_DIR);
+    const sourceDir = path.resolve(__dirname, "../fixtures", CASE_DIR);
     const workDir = context.getDist(WORK_DIR);
     fs.rmSync(workDir, { recursive: true, force: true });
     fs.cpSync(sourceDir, workDir, { recursive: true });
