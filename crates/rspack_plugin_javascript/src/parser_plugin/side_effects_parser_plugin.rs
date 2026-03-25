@@ -508,9 +508,10 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
       }
 
       if !not_defined.is_empty() {
-        let not_defined_set: FxHashSet<_> = not_defined.iter().cloned().collect();
         if let Some(side_effects_free) = parser.build_info.side_effects_free.as_mut() {
-          side_effects_free.retain(|atom| !not_defined_set.contains(atom));
+          for atom in &not_defined {
+            side_effects_free.remove(atom);
+          }
         }
 
         let resource = parser.resource_data.resource();
