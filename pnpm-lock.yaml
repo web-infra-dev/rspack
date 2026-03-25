@@ -816,8 +816,8 @@ importers:
         specifier: ^9.7.13
         version: 9.7.13(react@19.2.4)(vue@3.5.30(typescript@5.9.3))
       mermaid:
-        specifier: ^11.12.3
-        version: 11.12.3
+        specifier: ^11.13.0
+        version: 11.13.0
       react:
         specifier: ^19.2.4
         version: 19.2.4
@@ -2183,8 +2183,8 @@ packages:
       '@types/react': '>=16'
       react: '>=16'
 
-  '@mermaid-js/parser@1.0.0':
-    resolution: {integrity: sha512-vvK0Hi/VWndxoh03Mmz6wa1KDriSPjS2XMZL/1l19HFwygiObEEoEwSDxOqyLzzAI6J2PU3261JjTMTO7x+BPw==}
+  '@mermaid-js/parser@1.0.1':
+    resolution: {integrity: sha512-opmV19kN1JsK0T6HhhokHpcVkqKpF+x2pPDKKM2ThHtZAB5F4PROopk0amuVYK5qMrIA4erzpNm8gmPNJgMDxQ==}
 
   '@module-federation/error-codes@2.1.0':
     resolution: {integrity: sha512-W+uCmPsFuV+15E1S7JUB1AeUDBFqKjJ2hImXdBNYx7T1CGM6awS/veooXqNoP7iM/kwKjtpTQPIeccWLrq76Mg==}
@@ -3568,6 +3568,9 @@ packages:
     peerDependencies:
       react: '>=18.3.1'
 
+  '@upsetjs/venn.js@2.0.0':
+    resolution: {integrity: sha512-WbBhLrooyePuQ1VZxrJjtLvTc4NVfpOyKx0sKqioq9bX1C1m7Jgykkn8gLrtwumBioXIqam8DLxp88Adbue6Hw==}
+
   '@vercel/ncc@0.38.4':
     resolution: {integrity: sha512-8LwjnlP39s08C08J5NstzriPvW1SP8Zfpp1BvC2sI35kPeZnHfxVkCwu4/+Wodgnd60UtT1n8K8zw+Mp7J9JmQ==}
     hasBin: true
@@ -4543,8 +4546,8 @@ packages:
     resolution: {integrity: sha512-MOqHvMWF9/9MX6nza0KgvFH4HpMU0EF5uUDXqX/BtxtU8NfB0QzRtJ8Oe/6SuS4kbhyzVJwjd97EA4PKrzJ8bw==}
     engines: {node: '>=0.12'}
 
-  dagre-d3-es@7.0.13:
-    resolution: {integrity: sha512-efEhnxpSuwpYOKRm/L5KbqoZmNNukHa/Flty4Wp62JRvgH2ojwVgPgdYyr4twpieZnyRDdIH7PY2mopX26+j2Q==}
+  dagre-d3-es@7.0.14:
+    resolution: {integrity: sha512-P4rFMVq9ESWqmOgK+dlXvOtLwYg0i7u0HBGJER0LZDJT2VHIPAMZ/riPxqJceWMStH5+E61QxFra9kIS3AqdMg==}
 
   data-urls@5.0.0:
     resolution: {integrity: sha512-ZYP5VBHshaDAiVZxjbRVcFJpc+4xGgT0bK3vzy1HLN8jTO975HEbuYzZJcHoQEY5K1a0z8YayJkyVETa08eNTg==}
@@ -5902,8 +5905,8 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
-  mermaid@11.12.3:
-    resolution: {integrity: sha512-wN5ZSgJQIC+CHJut9xaKWsknLxaFBwCPwPkGTSUYrTiHORWvpT8RxGk849HPnpUAQ+/9BPRqYb80jTpearrHzQ==}
+  mermaid@11.13.0:
+    resolution: {integrity: sha512-fEnci+Immw6lKMFI8sqzjlATTyjLkRa6axrEgLV2yHTfv8r+h1wjFbV6xeRtd4rUV1cS4EpR9rwp3Rci7TRWDw==}
 
   micromark-core-commonmark@2.0.3:
     resolution: {integrity: sha512-RDBrHEMSxVFLg6xvnXmb1Ayr2WzLAWjeSATAoxwKYJV94TeNavgoIdA0a9ytzDSVzBy2YKFK+emCPOEibLeCrg==}
@@ -9255,7 +9258,7 @@ snapshots:
       '@types/react': 19.2.14
       react: 19.2.4
 
-  '@mermaid-js/parser@1.0.0':
+  '@mermaid-js/parser@1.0.1':
     dependencies:
       langium: 4.2.1
 
@@ -10722,6 +10725,11 @@ snapshots:
       react: 19.2.4
       unhead: 2.1.12
 
+  '@upsetjs/venn.js@2.0.0':
+    optionalDependencies:
+      d3-selection: 3.0.0
+      d3-transition: 3.0.1(d3-selection@3.0.0)
+
   '@vercel/ncc@0.38.4': {}
 
   '@vitest/expect@3.2.4':
@@ -11876,7 +11884,7 @@ snapshots:
       es5-ext: 0.10.64
       type: 2.7.3
 
-  dagre-d3-es@7.0.13:
+  dagre-d3-es@7.0.14:
     dependencies:
       d3: 7.9.0
       lodash-es: 4.17.23
@@ -13507,18 +13515,19 @@ snapshots:
 
   merge2@1.4.1: {}
 
-  mermaid@11.12.3:
+  mermaid@11.13.0:
     dependencies:
       '@braintree/sanitize-url': 7.1.2
       '@iconify/utils': 3.1.0
-      '@mermaid-js/parser': 1.0.0
+      '@mermaid-js/parser': 1.0.1
       '@types/d3': 7.4.3
+      '@upsetjs/venn.js': 2.0.0
       cytoscape: 3.33.1
       cytoscape-cose-bilkent: 4.1.0(cytoscape@3.33.1)
       cytoscape-fcose: 2.2.0(cytoscape@3.33.1)
       d3: 7.9.0
       d3-sankey: 0.12.3
-      dagre-d3-es: 7.0.13
+      dagre-d3-es: 7.0.14
       dayjs: 1.11.19
       dompurify: 3.3.2
       katex: 0.16.38
