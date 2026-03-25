@@ -165,64 +165,157 @@ impl RawJscConfig {
   }
 
   fn parse(&self) -> Result<JscConfig, serde_json::Error> {
-    self.parse_with_resolved_parser(self.raw_parser.clone())
+    self.parse_with_parser_value(self.raw_parser.clone())
   }
 
-  fn parse_for_resource(&self, resource_path: &Utf8Path) -> Result<JscConfig, serde_json::Error> {
-    self.parse_with_resolved_parser(self.parser_for_resource(resource_path))
-  }
-
-  fn parse_with_resolved_parser(
+  fn parse_for_syntax_kind(
     &self,
-    parser: Option<Value>,
+    syntax_kind: Option<KnownSyntaxKind>,
   ) -> Result<JscConfig, serde_json::Error> {
+    let mut jsc = self.parse_without_parser()?;
+    jsc.syntax = resolve_parser_syntax_for_kind(syntax_kind, &self.raw_parser)?;
+    Ok(jsc)
+  }
+
+  fn parse_without_parser(&self) -> Result<JscConfig, serde_json::Error> {
+    serde_json::from_value(Value::Object(self.other_fields.clone()))
+  }
+
+  fn parse_with_parser_value(&self, parser: Option<Value>) -> Result<JscConfig, serde_json::Error> {
     let mut object: Map<String, Value> = self.other_fields.clone();
     if let Some(parser) = parser {
       object.insert("parser".into(), parser);
     }
     serde_json::from_value(Value::Object(object))
   }
+}
 
-  fn parser_for_resource(&self, resource_path: &Utf8Path) -> Option<Value> {
-    let inferred_parser = inferred_parser_from_extension(resource_path);
-    let Some(inferred_parser) = inferred_parser else {
-      return self.raw_parser.clone();
-    };
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum KnownSyntaxKind {
+  JsLike,
+  Ts,
+  Tsx,
+  MtsCts,
+}
 
-    match self.raw_parser.clone() {
-      Some(Value::Object(parser)) if parser.contains_key("syntax") => Some(Value::Object(parser)),
-      Some(Value::Object(parser)) => {
-        let mut merged = inferred_parser;
-        merged.extend(parser);
-        Some(Value::Object(merged))
-      }
-      Some(parser) => Some(parser),
-      None => Some(Value::Object(inferred_parser)),
+impl KnownSyntaxKind {
+  fn from_resource_path(resource_path: &Utf8Path) -> Option<Self> {
+    match resource_path.extension() {
+      Some("js" | "jsx" | "mjs" | "cjs") => Some(Self::JsLike),
+      Some("ts") => Some(Self::Ts),
+      Some("tsx") => Some(Self::Tsx),
+      Some("mts" | "cts") => Some(Self::MtsCts),
+      _ => None,
     }
   }
 }
 
-fn inferred_parser_from_extension(resource_path: &Utf8Path) -> Option<Map<String, Value>> {
-  let extension = resource_path.extension()?;
-  let mut parser = Map::default();
+// Resource-specific parser inference still starts from raw JSON so user-supplied
+// parser fields can override inferred defaults. The `.mts/.cts`
+// `disallow_ambiguous_jsx_like` guard must be applied after deserialization
+// because SWC skips that field in serde.
+fn resolve_parser_syntax_for_kind(
+  syntax_kind: Option<KnownSyntaxKind>,
+  raw_parser: &Option<Value>,
+) -> Result<Option<swc_core::ecma::parser::Syntax>, serde_json::Error> {
+  let mut parser = match raw_parser.clone() {
+    Some(Value::Object(parser)) => parser,
+    Some(parser) => return serde_json::from_value(parser).map(Some),
+    None => Map::default(),
+  };
 
-  match extension {
-    "js" | "jsx" | "mjs" | "cjs" => {
-      parser.insert("syntax".into(), Value::String("ecmascript".into()));
-      parser.insert("jsx".into(), Value::Bool(true));
-      Some(parser)
+  match syntax_kind {
+    Some(KnownSyntaxKind::JsLike) => {
+      parser
+        .entry("syntax")
+        .or_insert(Value::String("ecmascript".into()));
+      parser.entry("jsx").or_insert(Value::Bool(true));
     }
-    "ts" | "mts" | "cts" => {
-      parser.insert("syntax".into(), Value::String("typescript".into()));
-      parser.insert("tsx".into(), Value::Bool(false));
-      Some(parser)
+    Some(KnownSyntaxKind::Ts | KnownSyntaxKind::MtsCts) => {
+      parser
+        .entry("syntax")
+        .or_insert(Value::String("typescript".into()));
+      parser.entry("tsx").or_insert(Value::Bool(false));
     }
-    "tsx" => {
-      parser.insert("syntax".into(), Value::String("typescript".into()));
-      parser.insert("tsx".into(), Value::Bool(true));
-      Some(parser)
+    Some(KnownSyntaxKind::Tsx) => {
+      parser
+        .entry("syntax")
+        .or_insert(Value::String("typescript".into()));
+      parser.entry("tsx").or_insert(Value::Bool(true));
     }
-    _ => None,
+    None => {}
+  }
+
+  if parser.is_empty() {
+    return Ok(None);
+  }
+
+  let mut syntax = serde_json::from_value(Value::Object(parser))?;
+  if matches!(syntax_kind, Some(KnownSyntaxKind::MtsCts))
+    && let swc_core::ecma::parser::Syntax::Typescript(ts) = &mut syntax
+  {
+    ts.disallow_ambiguous_jsx_like = true;
+  }
+
+  Ok(Some(syntax))
+}
+
+#[derive(Debug, Default)]
+struct ResourceSpecificJscCache {
+  js_like: std::sync::OnceLock<JscConfig>,
+  ts: std::sync::OnceLock<JscConfig>,
+  tsx: std::sync::OnceLock<JscConfig>,
+  mts_cts: std::sync::OnceLock<JscConfig>,
+}
+
+impl ResourceSpecificJscCache {
+  fn get(&self, kind: KnownSyntaxKind) -> Option<&JscConfig> {
+    self.cell(kind).get()
+  }
+
+  fn set(&self, kind: KnownSyntaxKind, jsc: JscConfig) {
+    let _ = self.cell(kind).set(jsc);
+  }
+
+  fn cell(&self, kind: KnownSyntaxKind) -> &std::sync::OnceLock<JscConfig> {
+    match kind {
+      KnownSyntaxKind::JsLike => &self.js_like,
+      KnownSyntaxKind::Ts => &self.ts,
+      KnownSyntaxKind::Tsx => &self.tsx,
+      KnownSyntaxKind::MtsCts => &self.mts_cts,
+    }
+  }
+}
+
+#[derive(Debug)]
+pub(crate) struct ResourceSpecificJscResolver {
+  raw_jsc: RawJscConfig,
+  cache: ResourceSpecificJscCache,
+}
+
+impl ResourceSpecificJscResolver {
+  fn new(raw_jsc: RawJscConfig) -> Self {
+    Self {
+      raw_jsc,
+      cache: ResourceSpecificJscCache::default(),
+    }
+  }
+
+  fn parse_for_resource(&self, resource_path: &Utf8Path) -> Result<JscConfig, serde_json::Error> {
+    // Only cache the small set of known extension groups. Unknown extensions
+    // stay lazy so invalid parser configs still fail only when that resource is
+    // actually parsed.
+    let Some(kind) = KnownSyntaxKind::from_resource_path(resource_path) else {
+      return self.raw_jsc.parse_for_syntax_kind(None);
+    };
+
+    if let Some(jsc) = self.cache.get(kind) {
+      return Ok(jsc.clone());
+    }
+
+    let jsc = self.raw_jsc.parse_for_syntax_kind(Some(kind))?;
+    self.cache.set(kind, jsc.clone());
+    Ok(jsc)
   }
 }
 
@@ -290,7 +383,7 @@ pub struct SwcLoaderJsOptions {
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
   pub(crate) swc_options: Options,
-  pub(crate) resource_specific_jsc: Option<RawJscConfig>,
+  pub(crate) resource_specific_jsc: Option<ResourceSpecificJscResolver>,
   pub(crate) transform_import: Option<Vec<ImportOptions>>,
   pub(crate) rspack_experiments: RspackExperiments,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
@@ -308,7 +401,7 @@ impl SwcCompilerOptionsWithAdditional {
     self
       .resource_specific_jsc
       .as_ref()
-      .map(|jsc| jsc.parse_for_resource(resource_path))
+      .map(|resolver| resolver.parse_for_resource(resource_path))
       .transpose()
   }
 }
@@ -389,7 +482,8 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
         swcrc: false,
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
-      resource_specific_jsc: needs_resource_specific_jsc.then_some(jsc),
+      resource_specific_jsc: needs_resource_specific_jsc
+        .then(|| ResourceSpecificJscResolver::new(jsc)),
       transform_import: transform_import.map(|i| i.into_iter().map(|v| v.into()).collect()),
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
       collect_typescript_info: collect_type_script_info.map(|v| v.into()),
@@ -478,6 +572,72 @@ mod tests {
       }
       _ => panic!("expected typescript syntax"),
     }
+  }
+
+  #[test]
+  fn test_detect_syntax_auto_preserves_mts_cts_ambiguous_jsx_guard() {
+    let raw_options = r#"{
+      "detectSyntax": "auto",
+      "jsc": {
+        "parser": {
+          "decorators": true
+        }
+      }
+    }"#;
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    let jsc = swc_options_with_additional
+      .parse_resource_specific_jsc(Utf8Path::new("/project/index.mts"))
+      .expect("should resolve jsc config for mts file")
+      .expect("should require resource-specific jsc resolution");
+
+    match jsc.syntax.expect("syntax should be inferred") {
+      swc_core::ecma::parser::Syntax::Typescript(ts) => {
+        assert!(!ts.tsx);
+        assert!(ts.decorators);
+        assert!(ts.disallow_ambiguous_jsx_like);
+      }
+      _ => panic!("expected typescript syntax"),
+    }
+  }
+
+  #[test]
+  fn test_detect_syntax_auto_caches_known_extension_variants() {
+    let raw_options = r#"{
+      "detectSyntax": "auto",
+      "jsc": {
+        "parser": {
+          "decorators": true
+        }
+      }
+    }"#;
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    let resolver = swc_options_with_additional
+      .resource_specific_jsc
+      .as_ref()
+      .expect("should require resource-specific jsc resolution");
+    assert!(resolver.cache.get(KnownSyntaxKind::Tsx).is_none());
+
+    let first = swc_options_with_additional
+      .parse_resource_specific_jsc(Utf8Path::new("/project/index.tsx"))
+      .expect("should resolve jsc config for tsx file")
+      .expect("should require resource-specific jsc resolution");
+    let cached = resolver
+      .cache
+      .get(KnownSyntaxKind::Tsx)
+      .expect("tsx variant should be cached after first use");
+    let second = swc_options_with_additional
+      .parse_resource_specific_jsc(Utf8Path::new("/project/other.tsx"))
+      .expect("should reuse cached jsc config for tsx file")
+      .expect("should require resource-specific jsc resolution");
+
+    assert_eq!(cached.syntax, first.syntax);
+    assert_eq!(first.syntax, second.syntax);
   }
 
   #[test]
