@@ -38,7 +38,7 @@
     "bundle-loader": "^0.5.6",
     "coffee-loader": "^1.0.1",
     "coffeescript": "^2.7.0",
-    "core-js": "3.48.0",
+    "core-js": "3.49.0",
     "css-loader": "^7.1.4",
     "date-fns": "^4.1.0",
     "es5-ext": "^0.10.64",
