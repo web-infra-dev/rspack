@@ -70,7 +70,7 @@ impl SwcLoader {
       let mut swc_options = self.options_with_additional.swc_options.clone();
       if let Some(resource_specific_jsc) = self
         .options_with_additional
-        .parse_resource_specific_jsc(resource_path.as_std_path())
+        .parse_resource_specific_jsc(&resource_path)
         .to_rspack_result_with_detail(
           self.options_with_additional.raw_options(),
           "failed to parse builtin:swc-loader options",

@@ -1,9 +1,8 @@
-use std::path::Path;
-
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
+use rspack_paths::Utf8Path;
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::{Map, Value};
@@ -169,7 +168,7 @@ impl RawJscConfig {
     self.parse_with_resolved_parser(self.raw_parser.clone())
   }
 
-  fn parse_for_resource(&self, resource_path: &Path) -> Result<JscConfig, serde_json::Error> {
+  fn parse_for_resource(&self, resource_path: &Utf8Path) -> Result<JscConfig, serde_json::Error> {
     self.parse_with_resolved_parser(self.parser_for_resource(resource_path))
   }
 
@@ -184,7 +183,7 @@ impl RawJscConfig {
     serde_json::from_value(Value::Object(object))
   }
 
-  fn parser_for_resource(&self, resource_path: &Path) -> Option<Value> {
+  fn parser_for_resource(&self, resource_path: &Utf8Path) -> Option<Value> {
     let inferred_parser = inferred_parser_from_extension(resource_path);
     let Some(inferred_parser) = inferred_parser else {
       return self.raw_parser.clone();
@@ -203,8 +202,8 @@ impl RawJscConfig {
   }
 }
 
-fn inferred_parser_from_extension(resource_path: &Path) -> Option<Map<String, Value>> {
-  let extension = resource_path.extension().and_then(|ext| ext.to_str())?;
+fn inferred_parser_from_extension(resource_path: &Utf8Path) -> Option<Map<String, Value>> {
+  let extension = resource_path.extension()?;
   let mut parser = Map::default();
 
   match extension {
@@ -304,7 +303,7 @@ impl SwcCompilerOptionsWithAdditional {
 
   pub(crate) fn parse_resource_specific_jsc(
     &self,
-    resource_path: &Path,
+    resource_path: &Utf8Path,
   ) -> Result<Option<JscConfig>, serde_json::Error> {
     self
       .resource_specific_jsc
@@ -468,7 +467,7 @@ mod tests {
       .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
 
     let jsc = swc_options_with_additional
-      .parse_resource_specific_jsc(Path::new("/project/index.tsx"))
+      .parse_resource_specific_jsc(Utf8Path::new("/project/index.tsx"))
       .expect("should resolve jsc config for tsx file")
       .expect("should require resource-specific jsc resolution");
 
