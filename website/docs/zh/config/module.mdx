@@ -1646,6 +1646,32 @@ export default {
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
 
+### module.parser.javascript.importMetaResolve
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+让 JavaScript 解析器能够解析 `import.meta.resolve()` 语法。
+
+目前 `import.meta.resolve("./module")` 打包后的行为和 [`require.resolve("./module")`](/api/runtime-api/module-methods#requireresolve) 类似，会将模块打包进最终的 bundle 中，并且返回该模块的模块 ID。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMetaResolve: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
+:::
+
 ### module.parser["javascript/auto"]
 
 `javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#moduleparserjavascript)相同。
