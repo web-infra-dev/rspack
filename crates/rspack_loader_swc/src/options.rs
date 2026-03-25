@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use rspack_paths::Utf8Path;
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer};
 use serde_json::{Map, Value};
 use swc_config::{file_pattern::FilePattern, types::BoolConfig};
 use swc_core::base::config::{
@@ -146,7 +146,7 @@ impl<'de> Deserialize<'de> for DetectSyntax {
   }
 }
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub(crate) struct RawJscConfig {
   #[serde(default)]
@@ -534,5 +534,17 @@ mod tests {
       }
       _ => panic!("expected typescript syntax"),
     }
+  }
+
+  #[test]
+  fn test_detect_syntax_rejects_true() {
+    let err = SwcCompilerOptionsWithAdditional::try_from(r#"{ "detectSyntax": true }"#)
+      .expect_err("detectSyntax=true should be rejected");
+
+    assert!(
+      err
+        .to_string()
+        .contains("`detectSyntax` only supports `false` or \"auto\"")
+    );
   }
 }
