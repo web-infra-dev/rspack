@@ -1,0 +1,38 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./bar.js
+var bar_namespaceObject = {};
+__webpack_require__.r(bar_namespaceObject);
+
+
+// ./bar.js
+const x = 123;
+
+// ./index.js
+
+
+it("should render a missing property from a module with an invalid named re-export without capturing the namespace object", () => {
+  expect(bar_namespaceObject.foo).toBeUndefined();
+});
+
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```

@@ -400,6 +400,7 @@ impl EsmLibraryPlugin {
     ));
 
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
+    let mut namespace_re_export_star_cache = IdentifierMap::default();
     for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
       let mut visited = FxHashSet::default();
 
@@ -595,8 +596,63 @@ impl EsmLibraryPlugin {
               ));
             }
           }
-          // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1539
           let name = namespace_name.expect("should have name_space_name");
+          let star_re_export_binding = Self::resolve_single_star_re_export_target(
+            *module_info_id,
+            module_graph,
+            &compilation.module_graph_cache_artifact,
+            &compilation.exports_info_artifact,
+            &mut namespace_re_export_star_cache,
+          )
+          .and_then(|target_module| {
+            let target_strict_esm_module = module_graph
+              .module_by_identifier(&target_module)
+              .expect("should have target module")
+              .build_meta()
+              .strict_esm_module;
+
+            Self::get_binding(
+              None,
+              module_graph,
+              &compilation.module_graph_cache_artifact,
+              &compilation.exports_info_artifact,
+              &target_module,
+              vec![],
+              &mut concate_modules_map,
+              &mut needed_namespace_objects,
+              false,
+              false,
+              target_strict_esm_module,
+              None,
+              &mut Default::default(),
+              &mut chunk_link.required,
+              &mut chunk_link.used_names,
+            )
+          });
+          let star_re_export_getters = if let Some(binding) = star_re_export_binding {
+            let star_exports_base = format!("{name}_starExports");
+            let star_exports_name =
+              find_new_name(star_exports_base.as_str(), &chunk_link.used_names, &[]);
+            chunk_link.used_names.insert(star_exports_name.clone());
+
+            format!(
+              r#"var {} = {};
+Object.keys({}).forEach(function(key) {{
+  if (key !== "default" && key !== "__esModule") {{
+    {}({}, {{ [key]: function() {{ return {}[key]; }} }});
+  }}
+}});
+"#,
+              star_exports_name,
+              binding.render(),
+              star_exports_name,
+              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+              name,
+              star_exports_name
+            )
+          } else {
+            String::new()
+          };
           let define_getters = if !ns_obj.is_empty() {
             format!(
               "{}({}, {{ {} }});\n",
@@ -608,23 +664,39 @@ impl EsmLibraryPlugin {
             String::new()
           };
 
-          let module_info = concate_modules_map[module_info_id].as_concatenated_mut();
-
-          namespace_object_sources.insert(
-            *module_info_id,
-            format!(
-              r#"// NAMESPACE OBJECT: {}
+          let namespace_object_source =
+            if !define_getters.is_empty() || !star_re_export_getters.is_empty() {
+              format!(
+                r#"// NAMESPACE OBJECT: {}
+var {} = {{}};
+{}({});
+{}{}
+"#,
+                module_readable_identifier,
+                name,
+                runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+                name,
+                define_getters,
+                star_re_export_getters
+              )
+            } else {
+              format!(
+                r#"// NAMESPACE OBJECT: {}
 var {} = {{}};
 {}({});
 {}
 "#,
-              module_readable_identifier,
-              name,
-              runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-              name,
-              define_getters
-            ),
-          );
+                module_readable_identifier,
+                name,
+                runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+                name,
+                define_getters
+              )
+            };
+
+          let module_info = concate_modules_map[module_info_id].as_concatenated_mut();
+
+          namespace_object_sources.insert(*module_info_id, namespace_object_source);
 
           module_info
             .runtime_requirements
@@ -1355,6 +1427,36 @@ var {} = {{}};
     }
 
     exports
+  }
+
+  fn resolve_single_star_re_export_target(
+    module_id: ModuleIdentifier,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
+  ) -> Option<ModuleIdentifier> {
+    let mut star_target = None;
+    for export in Self::resolve_re_export_star_from_unknown(
+      module_id,
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      false,
+      cache,
+    ) {
+      let Either::Right(module_id) = export else {
+        continue;
+      };
+
+      match star_target {
+        Some(existing) if existing != module_id => return None,
+        Some(_) => {}
+        None => star_target = Some(module_id),
+      }
+    }
+
+    star_target
   }
 
   #[allow(clippy::too_many_arguments)]
