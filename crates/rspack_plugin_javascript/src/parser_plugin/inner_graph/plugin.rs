@@ -228,7 +228,7 @@ impl InnerGraphParserPlugin {
         let range = specifier_dep.range()?;
         Some((
           (BytePos(range.start), BytePos(range.end)),
-          (*dep.id(), specifier_dep.name().clone()),
+          (*dep.id(), specifier_dep.imported_name().clone()),
         ))
       })
       .collect();

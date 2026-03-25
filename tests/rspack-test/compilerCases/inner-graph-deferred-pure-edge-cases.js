@@ -30,6 +30,12 @@ module.exports = {
 						}
 					},
 					{
+						test: /dep-default-export\.js$/,
+						parser: {
+							sideEffectsFree: ["default"]
+						}
+					},
+					{
 						test: /dep-reexport\.js$/,
 						parser: {
 							sideEffectsFree: ["pureReexport"]
@@ -85,6 +91,8 @@ module.exports = {
 		const output = context.getValue("output");
 
 		expect(output).not.toContain("direct-simple-marker");
+		expect(output).not.toContain("direct-alias-marker");
+		expect(output).not.toContain("default-alias-marker");
 		expect(output).not.toContain("reexport-alias-marker");
 		expect(output).not.toContain("star-reexport-marker");
 		expect(output).toContain("all-pure-a-marker");

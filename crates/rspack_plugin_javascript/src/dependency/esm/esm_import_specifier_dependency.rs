@@ -112,6 +112,10 @@ impl ESMImportSpecifierDependency {
     &self.name
   }
 
+  pub fn imported_name(&self) -> &Atom {
+    self.ids.first().unwrap_or(&self.name)
+  }
+
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,
