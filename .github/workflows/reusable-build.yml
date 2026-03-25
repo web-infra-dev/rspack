@@ -81,12 +81,13 @@ jobs:
 
   bench-memory:
     uses: ./.github/workflows/reusable-build-bench.yml
-    if: inputs.bench
+    ## temporarily disable memory benchmark since github runner has limited concurrency
+    if: false
     needs: [build, codspeed]
     with:
       measurement: 'memory'
       target: ${{ inputs.target }}
-      runner: ubuntu-22.04
+      runner: ${{ inputs.bench-runner || inputs.runner }}
       ref: ${{ inputs.ref }}
 
   bench-walltime:
@@ -96,5 +97,5 @@ jobs:
     with:
       measurement: 'walltime'
       target: ${{ inputs.target }}
-      runner: ubuntu-22.04
+      runner: ${{ inputs.bench-runner || inputs.runner }}
       ref: ${{ inputs.ref }}
