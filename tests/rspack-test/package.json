@@ -15,7 +15,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
-    "@module-federation/runtime-tools": "2.1.0",
+    "@module-federation/runtime-tools": "2.2.3",
     "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
