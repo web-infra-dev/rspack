@@ -69,12 +69,22 @@ jobs:
       runner: ${{ inputs.runner }}
       ref: ${{ inputs.ref }}
 
-  bench:
+  bench-simulation:
     uses: ./.github/workflows/reusable-build-bench.yml
     if: inputs.bench
     needs: [build, codspeed]
     with:
       measurement: 'simulation'
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.bench-runner || inputs.runner }}
+      ref: ${{ inputs.ref }}
+
+  bench-memory:
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: inputs.bench
+    needs: [build, codspeed]
+    with:
+      measurement: 'memory'
       target: ${{ inputs.target }}
       runner: ${{ inputs.bench-runner || inputs.runner }}
       ref: ${{ inputs.ref }}

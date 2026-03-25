@@ -62,13 +62,14 @@ jobs:
       - name: Download benches
         uses: ./.github/actions/artifact/download
         with:
-          name: codspeed-${{inputs.measurement}}-${{ inputs.target }}
+          # reuse the same artifact name for both walltime and simulation since they share the same benchmark binaries, just in different paths.
+          name: codspeed-${{ inputs.measurement == 'walltime' && 'walltime' || 'simulation' }}-${{ inputs.target }}
           path: target/codspeed/
 
       - name: Show Codspeed
         run: |
           ls -Rl target/codspeed/
-          if [ "${{ inputs.measurement }}" = "simulation" ]; then
+          if [ "${{ inputs.measurement }}" != "walltime" ]; then
             chmod +x target/codspeed/analysis/rspack_benchmark/benches
           fi
           if [ "${{ inputs.measurement }}" = "walltime" ]; then
@@ -96,7 +97,7 @@ jobs:
           token: ${{ secrets.CODSPEED_TOKEN }}
 
       - name: Run benchmark (memory)
-        if: inputs.measurement == 'simulation'
+        if: inputs.measurement == 'memory'
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
         env:
