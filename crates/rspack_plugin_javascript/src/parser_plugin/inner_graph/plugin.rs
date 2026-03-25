@@ -221,12 +221,15 @@ impl InnerGraphParserPlugin {
       return;
     }
 
-    let dep_by_span: HashMap<(BytePos, BytePos), DependencyId> = dependencies
+    let dep_by_span: HashMap<(BytePos, BytePos), (DependencyId, Atom)> = dependencies
       .iter()
       .filter_map(|dep| {
         let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
         let range = specifier_dep.range()?;
-        Some(((BytePos(range.start), BytePos(range.end)), *dep.id()))
+        Some((
+          (BytePos(range.start), BytePos(range.end)),
+          (*dep.id(), specifier_dep.name().clone()),
+        ))
       })
       .collect();
 
@@ -235,11 +238,13 @@ impl InnerGraphParserPlugin {
 
     for (symbol, symbol_data) in &state.symbol_map {
       let mut deferred_pure_checks = Vec::new();
-      for (name, span) in &symbol_data.depend_on_pure {
-        if let Some(dep_id) = dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi()))) {
+      for (_name, span) in &symbol_data.depend_on_pure {
+        if let Some((dep_id, import_name)) =
+          dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi())))
+        {
           deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
             dep_id: *dep_id,
-            atom: name.clone(),
+            atom: import_name.clone(),
           });
         } else {
           always_used_symbols.push(*symbol);
