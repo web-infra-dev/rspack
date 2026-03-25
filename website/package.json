@@ -16,7 +16,7 @@
     "@rstack-dev/doc-ui": "1.12.5",
     "axios": "^1.13.6",
     "markdown-to-jsx": "^9.7.13",
-    "mermaid": "^11.12.3",
+    "mermaid": "^11.13.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "semver": "^7.7.4",
