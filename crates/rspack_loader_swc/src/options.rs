@@ -243,7 +243,7 @@ pub struct SwcLoaderJsOptions {
   pub exclude: Option<FileMatcher>,
 
   #[serde(default)]
-  jsc: RawJscConfig,
+  pub jsc: RawJscConfig,
 
   #[serde(default)]
   pub module: Option<ModuleConfig>,
