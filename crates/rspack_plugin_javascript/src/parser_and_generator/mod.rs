@@ -8,9 +8,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, InnerGraphState, Module, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  ModuleArgument, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals,
-  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  GenerateContext, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -30,6 +30,7 @@ use swc_core::{
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
+  parser_plugin::InnerGraphParserPlugin,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
 
@@ -94,8 +95,6 @@ impl ParserRuntimeRequirementsData {
 pub struct JavaScriptParserAndGenerator {
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
-  #[cacheable(with=Skip)]
-  pub inner_graph: InnerGraphState,
 }
 
 impl std::fmt::Debug for JavaScriptParserAndGenerator {
@@ -287,12 +286,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
-      dependencies,
+      mut dependencies,
       blocks,
       presentational_dependencies,
       mut warning_diagnostics,
       mut side_effects_item,
-      inner_graph,
+      mut inner_graph,
     } = match ast.visit(|program, _| {
       scan_dependencies(
         &source_string,
@@ -319,7 +318,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return default_with_diagnostics(source, diagnostics);
       }
     };
-    self.inner_graph = inner_graph;
+    InnerGraphParserPlugin::finalize_dependency_usage(&mut inner_graph, &mut dependencies);
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 

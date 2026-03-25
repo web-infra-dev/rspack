@@ -4,10 +4,11 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, ConnectionState, Dependency,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedByExports, filter_runtime,
+  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
 };
 use rspack_util::ext::DynHash;
+
+use crate::runtime_condition_used_by_exports;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -33,25 +34,12 @@ impl PureExpressionDependency {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> RuntimeCondition {
-    match self.used_by_exports {
-      Some(UsedByExports::Bool(true)) => RuntimeCondition::Boolean(true),
-      Some(UsedByExports::Bool(false)) => RuntimeCondition::Boolean(false),
-      Some(UsedByExports::Set(ref set)) => {
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_prefetched_exports_info(&self.module_identifier, PrefetchExportsInfoMode::Default);
-        filter_runtime(runtime, |cur_runtime| {
-          set.iter().any(|id| {
-            exports_info.get_used(std::slice::from_ref(id), cur_runtime) != UsageState::Unused
-          })
-        })
-      }
-      None => {
-        // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/PureExpressionDependency.js#L32-L33
-        // after check usedExports is not false, webpack ensure that usedExports is a set
-        RuntimeCondition::Boolean(true)
-      }
-    }
+    runtime_condition_used_by_exports(
+      compilation,
+      &self.module_identifier,
+      runtime,
+      self.used_by_exports.as_ref(),
+    )
   }
 
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {

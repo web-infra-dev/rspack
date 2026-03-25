@@ -11,8 +11,8 @@ use rspack_core::{
   ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports, UsedByExportsCondition,
+  UsedName, create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify_str;
@@ -711,17 +711,22 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");
     match dependency.used_by_exports.as_ref() {
-      Some(UsedByExports::Bool(false)) => false,
-      None | Some(UsedByExports::Bool(true)) => {
-        connection_active_inline_value_for_esm_import_specifier(
-          dependency,
-          connection,
-          runtime,
-          module_graph,
-          exports_info_artifact,
-        )
+      Some(used_by_exports)
+        if matches!(
+          used_by_exports.condition,
+          UsedByExportsCondition::Bool(false)
+        ) && used_by_exports.deferred_pure_checks.is_empty() =>
+      {
+        false
       }
-      Some(UsedByExports::Set(_)) => {
+      None => connection_active_inline_value_for_esm_import_specifier(
+        dependency,
+        connection,
+        runtime,
+        module_graph,
+        exports_info_artifact,
+      ),
+      Some(_) => {
         connection_active_used_by_exports(
           connection,
           runtime,

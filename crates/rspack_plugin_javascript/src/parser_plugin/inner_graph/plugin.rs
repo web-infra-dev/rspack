@@ -1,12 +1,13 @@
 use rspack_core::{
-  Dependency, DependencyRange, InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue,
-  InnerGraphState, InnerGraphUsageOperation, TopLevelSymbol, UsedByExports,
+  BoxDependency, Dependency, DependencyId, DependencyRange, InnerGraphMapSetValue,
+  InnerGraphMapUsage, InnerGraphMapValue, InnerGraphState, InnerGraphUsageOperation,
+  TopLevelSymbol, UsedByExports, UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
-  common::{Mark, Span, Spanned, SyntaxContext},
+  common::{BytePos, Mark, Span, Spanned, SyntaxContext},
   ecma::ast::{
     AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat, VarDeclarator,
   },
@@ -14,7 +15,7 @@ use swc_core::{
 
 use crate::{
   ClassExt,
-  dependency::PureExpressionDependency,
+  dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{
     is_pure_class, is_pure_class_member, is_pure_expression, is_pure_function,
@@ -84,6 +85,7 @@ impl InnerGraphParserPlugin {
 
   pub fn infer_dependency_usage(
     state: &mut InnerGraphState,
+    deferred_pure_checks_by_symbol: &HashMap<TopLevelSymbol, Vec<UsedByExportsDeferredPureCheck>>,
   ) -> Vec<(InnerGraphUsageOperation, UsedByExports)> {
     let mut non_terminal = state.inner_graph.keys().copied().collect::<HashSet<_>>();
     let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
@@ -182,6 +184,10 @@ impl InnerGraphParserPlugin {
 
     let mut finalized = vec![];
     for (symbol, cbs) in state.usage_map.drain() {
+      let deferred_pure_checks = deferred_pure_checks_by_symbol
+        .get(&symbol)
+        .cloned()
+        .unwrap_or_default();
       let usage = state.inner_graph.get(&symbol);
       let used_by_exports = if let Some(usage) = usage {
         match usage {
@@ -190,20 +196,104 @@ impl InnerGraphParserPlugin {
               .iter()
               .map(|item| item.to_atom(&state.symbol_map))
               .collect::<HashSet<_>>();
-            UsedByExports::Set(finalized_set)
+            UsedByExports::set(finalized_set)
           }
-          InnerGraphMapValue::True => UsedByExports::Bool(true),
-          InnerGraphMapValue::Nil => UsedByExports::Bool(false),
+          InnerGraphMapValue::True => UsedByExports::bool(true),
+          InnerGraphMapValue::Nil => UsedByExports::bool(false),
         }
       } else {
-        UsedByExports::Bool(false)
-      };
+        UsedByExports::bool(false)
+      }
+      .with_deferred_pure_checks(deferred_pure_checks);
       for cb in cbs {
         finalized.push((cb, used_by_exports.clone()));
       }
     }
 
     finalized
+  }
+
+  pub fn finalize_dependency_usage(
+    state: &mut InnerGraphState,
+    dependencies: &mut [BoxDependency],
+  ) {
+    if !state.is_enabled() {
+      return;
+    }
+
+    let dep_by_span: HashMap<(BytePos, BytePos), DependencyId> = dependencies
+      .iter()
+      .filter_map(|dep| {
+        let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
+        let range = specifier_dep.range()?;
+        Some(((BytePos(range.start), BytePos(range.end)), *dep.id()))
+      })
+      .collect();
+
+    let mut deferred_pure_checks_by_symbol = HashMap::default();
+    let mut always_used_symbols = Vec::new();
+
+    for (symbol, symbol_data) in &state.symbol_map {
+      let mut deferred_pure_checks = Vec::new();
+      for (name, span) in &symbol_data.depend_on_pure {
+        if let Some(dep_id) = dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi()))) {
+          deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
+            dep_id: *dep_id,
+            atom: name.clone(),
+          });
+        } else {
+          always_used_symbols.push(*symbol);
+          deferred_pure_checks.clear();
+          break;
+        }
+      }
+
+      if !deferred_pure_checks.is_empty() {
+        deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
+      }
+    }
+
+    for symbol in always_used_symbols {
+      state.inner_graph.insert(symbol, InnerGraphMapValue::True);
+      deferred_pure_checks_by_symbol.remove(&symbol);
+    }
+
+    let dep_by_id: HashMap<DependencyId, usize> = dependencies
+      .iter()
+      .enumerate()
+      .map(|(idx, dep)| (*dep.id(), idx))
+      .collect();
+
+    for (operation, used_by_exports) in
+      Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
+    {
+      let dep_id = match operation {
+        InnerGraphUsageOperation::PureExpression(dep_id)
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_id)
+        | InnerGraphUsageOperation::URLDependency(dep_id) => dep_id,
+      };
+      let Some(dep_idx) = dep_by_id.get(&dep_id).copied() else {
+        continue;
+      };
+      let dep = &mut dependencies[dep_idx];
+      match operation {
+        InnerGraphUsageOperation::PureExpression(_) => {
+          if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+        InnerGraphUsageOperation::ESMImportSpecifier(_) => {
+          if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+        InnerGraphUsageOperation::URLDependency(_) => {
+          if let Some(dep) = dep.downcast_mut::<URLDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+      }
+    }
   }
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {

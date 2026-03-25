@@ -553,20 +553,38 @@ fn is_pure_call_expr(
   } else if analyze_side_effects_free
     && let Some(Expr::Ident(ident)) = callee.as_expr().map(|expr| expr.as_ref())
   {
-    if parser
-      .build_info
-      .side_effects_free
-      .as_ref()
-      .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
-    {
-      return is_pure_call_args(
-        parser,
-        analyze_side_effects_free,
-        call_expr,
-        unresolved_ctxt,
-        comments,
-        callees,
-      );
+    match resolve_explicit_side_effects_free_callee(
+      parser,
+      &ident.sym,
+      callee.span(),
+      callees.is_none(),
+    ) {
+      ExplicitSideEffectsFreeCallee::Direct => {
+        return is_pure_call_args(
+          parser,
+          analyze_side_effects_free,
+          call_expr,
+          unresolved_ctxt,
+          comments,
+          callees,
+        );
+      }
+      ExplicitSideEffectsFreeCallee::Deferred => {
+        let Some(callees) = callees else {
+          return false;
+        };
+        callees.push((ident.sym.clone(), callee.span()));
+        return is_pure_call_args(
+          parser,
+          analyze_side_effects_free,
+          call_expr,
+          unresolved_ctxt,
+          comments,
+          Some(callees),
+        );
+      }
+      ExplicitSideEffectsFreeCallee::Invalid => return false,
+      ExplicitSideEffectsFreeCallee::NotMarked => {}
     }
 
     if let Some(callees) = callees.as_deref_mut() {
@@ -615,6 +633,40 @@ fn is_pure_call_args(
     }
   }
   true
+}
+
+enum ExplicitSideEffectsFreeCallee {
+  Direct,
+  Deferred,
+  Invalid,
+  NotMarked,
+}
+
+fn resolve_explicit_side_effects_free_callee(
+  parser: &mut JavascriptParser,
+  ident: &Atom,
+  span: Span,
+  allow_unresolved_marked: bool,
+) -> ExplicitSideEffectsFreeCallee {
+  let is_marked = parser
+    .build_info
+    .side_effects_free
+    .as_ref()
+    .is_some_and(|side_effects_free| side_effects_free.contains(ident));
+
+  if !is_marked {
+    return ExplicitSideEffectsFreeCallee::NotMarked;
+  }
+
+  if try_extract_deferred_check(parser, ident.clone(), span).is_some() {
+    return ExplicitSideEffectsFreeCallee::Deferred;
+  }
+
+  if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {
+    return ExplicitSideEffectsFreeCallee::Direct;
+  }
+
+  ExplicitSideEffectsFreeCallee::Invalid
 }
 
 fn try_extract_deferred_check(
