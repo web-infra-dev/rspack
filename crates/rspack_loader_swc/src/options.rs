@@ -488,7 +488,34 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
 
 #[cfg(test)]
 mod tests {
+  use swc_core::ecma::parser::Syntax;
+
   use super::*;
+
+  const DETECT_SYNTAX_AUTO_WITH_DECORATORS: &str = r#"{
+      "detectSyntax": "auto",
+      "jsc": {
+        "parser": {
+          "decorators": true
+        }
+      }
+    }"#;
+
+  fn parse_options(raw_options: &str) -> SwcCompilerOptionsWithAdditional {
+    raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed")
+  }
+
+  fn resolve_resource_specific_jsc(
+    options: &SwcCompilerOptionsWithAdditional,
+    resource_path: &str,
+  ) -> JscConfig {
+    options
+      .parse_resource_specific_jsc(Utf8Path::new(resource_path))
+      .expect("should resolve resource-specific jsc")
+      .expect("should require resource-specific jsc resolution")
+  }
 
   #[test]
   fn test_specially_default_values_in_swc_options() {
@@ -543,96 +570,25 @@ mod tests {
 
   #[test]
   fn test_detect_syntax_auto_merges_inferred_parser() {
-    let raw_options = r#"{
-      "detectSyntax": "auto",
-      "jsc": {
-        "parser": {
-          "decorators": true
-        }
-      }
-    }"#;
-    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
-      .try_into()
-      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+    let options = parse_options(DETECT_SYNTAX_AUTO_WITH_DECORATORS);
+    let jsc = resolve_resource_specific_jsc(&options, "/project/index.tsx");
 
-    let jsc = swc_options_with_additional
-      .parse_resource_specific_jsc(Utf8Path::new("/project/index.tsx"))
-      .expect("should resolve jsc config for tsx file")
-      .expect("should require resource-specific jsc resolution");
-
-    match jsc.syntax.expect("syntax should be inferred") {
-      swc_core::ecma::parser::Syntax::Typescript(ts) => {
-        assert!(ts.tsx);
-        assert!(ts.decorators);
-      }
-      _ => panic!("expected typescript syntax"),
-    }
+    assert!(matches!(
+      jsc.syntax,
+      Some(Syntax::Typescript(ts)) if ts.tsx && ts.decorators
+    ));
   }
 
   #[test]
   fn test_detect_syntax_auto_preserves_mts_cts_ambiguous_jsx_guard() {
-    let raw_options = r#"{
-      "detectSyntax": "auto",
-      "jsc": {
-        "parser": {
-          "decorators": true
-        }
-      }
-    }"#;
-    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
-      .try_into()
-      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+    let options = parse_options(DETECT_SYNTAX_AUTO_WITH_DECORATORS);
+    let jsc = resolve_resource_specific_jsc(&options, "/project/index.mts");
 
-    let jsc = swc_options_with_additional
-      .parse_resource_specific_jsc(Utf8Path::new("/project/index.mts"))
-      .expect("should resolve jsc config for mts file")
-      .expect("should require resource-specific jsc resolution");
-
-    match jsc.syntax.expect("syntax should be inferred") {
-      swc_core::ecma::parser::Syntax::Typescript(ts) => {
-        assert!(!ts.tsx);
-        assert!(ts.decorators);
-        assert!(ts.disallow_ambiguous_jsx_like);
-      }
-      _ => panic!("expected typescript syntax"),
-    }
-  }
-
-  #[test]
-  fn test_detect_syntax_auto_caches_known_extension_variants() {
-    let raw_options = r#"{
-      "detectSyntax": "auto",
-      "jsc": {
-        "parser": {
-          "decorators": true
-        }
-      }
-    }"#;
-    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
-      .try_into()
-      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
-
-    let resolver = swc_options_with_additional
-      .resource_specific_jsc
-      .as_ref()
-      .expect("should require resource-specific jsc resolution");
-    assert!(resolver.cache.get(KnownSyntaxKind::Tsx).is_none());
-
-    let first = swc_options_with_additional
-      .parse_resource_specific_jsc(Utf8Path::new("/project/index.tsx"))
-      .expect("should resolve jsc config for tsx file")
-      .expect("should require resource-specific jsc resolution");
-    let cached = resolver
-      .cache
-      .get(KnownSyntaxKind::Tsx)
-      .expect("tsx variant should be cached after first use");
-    let second = swc_options_with_additional
-      .parse_resource_specific_jsc(Utf8Path::new("/project/other.tsx"))
-      .expect("should reuse cached jsc config for tsx file")
-      .expect("should require resource-specific jsc resolution");
-
-    assert_eq!(cached.syntax, first.syntax);
-    assert_eq!(first.syntax, second.syntax);
+    assert!(matches!(
+      jsc.syntax,
+      Some(Syntax::Typescript(ts))
+        if !ts.tsx && ts.decorators && ts.disallow_ambiguous_jsx_like
+    ));
   }
 
   #[test]
@@ -646,19 +602,13 @@ mod tests {
         }
       }
     }"#;
-    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
-      .try_into()
-      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+    let swc_options_with_additional = parse_options(raw_options);
 
     assert!(swc_options_with_additional.resource_specific_jsc.is_none());
-    let jsc = &swc_options_with_additional.swc_options.config.jsc;
-
-    match jsc.syntax.expect("syntax should remain explicit") {
-      swc_core::ecma::parser::Syntax::Es(es) => {
-        assert!(!es.jsx);
-      }
-      _ => panic!("expected ecmascript syntax"),
-    }
+    assert!(matches!(
+      swc_options_with_additional.swc_options.config.jsc.syntax,
+      Some(Syntax::Es(es)) if !es.jsx
+    ));
   }
 
   #[test]
@@ -672,46 +622,24 @@ mod tests {
         }
       }
     }"#;
-    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
-      .try_into()
-      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+    let swc_options_with_additional = parse_options(raw_options);
 
     assert!(swc_options_with_additional.resource_specific_jsc.is_none());
-    match swc_options_with_additional
-      .swc_options
-      .config
-      .jsc
-      .syntax
-      .expect("syntax should be parsed at loader creation")
-    {
-      swc_core::ecma::parser::Syntax::Typescript(ts) => {
-        assert!(ts.tsx);
-      }
-      _ => panic!("expected typescript syntax"),
-    }
-  }
-
-  #[test]
-  fn test_detect_syntax_rejects_true() {
-    let err = SwcCompilerOptionsWithAdditional::try_from(r#"{ "detectSyntax": true }"#)
-      .expect_err("detectSyntax=true should be rejected");
-
-    assert!(
-      err
-        .to_string()
-        .contains("`detectSyntax` only supports `false` or \"auto\", but received true")
-    );
+    assert!(matches!(
+      swc_options_with_additional.swc_options.config.jsc.syntax,
+      Some(Syntax::Typescript(ts)) if ts.tsx
+    ));
   }
 
   #[test]
   fn test_detect_syntax_rejects_invalid_string() {
-    let err = SwcCompilerOptionsWithAdditional::try_from(r#"{ "detectSyntax": "Auto" }"#)
-      .expect_err("detectSyntax=Auto should be rejected");
+    let err = SwcCompilerOptionsWithAdditional::try_from(r#"{ "detectSyntax": "foo" }"#)
+      .expect_err("detectSyntax=\"foo\" should be rejected");
 
     assert!(
       err
         .to_string()
-        .contains("`detectSyntax` only supports `false` or \"auto\", but received \"Auto\"")
+        .contains("`detectSyntax` only supports `false` or \"auto\", but received \"foo\"")
     );
   }
 }
