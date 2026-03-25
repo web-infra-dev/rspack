@@ -1,5 +1,5 @@
 module.exports = {
-	externals: {
-		fs: "node-commonjs fs"
-	}
+  externals: {
+    fs: "node-commonjs fs",
+  },
 };

@@ -9,6 +9,8 @@ const external_fs_namespaceObject = __rspack_createRequire_require("fs");
 // path
 const external_path_namespaceObject = __rspack_createRequire_require("path");
 // ./path-ns.js
+// Intentionally use an fs-shaped local name for the path namespace to cover
+// cross-module external name deconfliction.
 
 
 const joinFn = Reflect.get(external_path_namespaceObject, "join");
