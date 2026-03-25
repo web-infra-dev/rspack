@@ -113,6 +113,7 @@ impl RstestPlugin {
     let Some(dep) = data.dependencies.first() else {
       return;
     };
+    let dependency_category = *dep.category();
     let request = data
       .request
       .strip_prefix(MOCK_TARGET_REQUEST_PREFIX)
@@ -122,7 +123,15 @@ impl RstestPlugin {
     let default_target = self.calc_default_mocked_target(&request);
 
     if !stripped.starts_with('.') {
-      data.request = default_target.to_string();
+      let resolved_request = default_target.to_string();
+      if let Some(dep) = data
+        .dependencies
+        .first_mut()
+        .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
+      {
+        dep.set_request(resolved_request.clone());
+      }
+      data.request = resolved_request;
       return;
     }
 
@@ -132,7 +141,7 @@ impl RstestPlugin {
         .clone()
         .map(|options| Box::new(Arc::unwrap_or_clone(options))),
       resolve_to_context: false,
-      dependency_category: *dep.category(),
+      dependency_category,
     };
     let resolver = data.resolver_factory.get(dep);
     let mut resolve_context = ResolveContext::default();
