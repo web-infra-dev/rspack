@@ -14,7 +14,6 @@ on:
         options:
           - '-'
           - modernjs
-          # - nx
           - rspress
           - rsbuild
           - rslib
@@ -22,7 +21,6 @@ on:
           - rsdoctor
           - examples
           - devserver
-          - nuxt
           - plugin
           - lynx-stack
           - rsbuild-rsc-plugin
@@ -116,7 +114,6 @@ jobs:
             const suiteName = `${{ github.event_name == 'workflow_dispatch' && inputs.suite || '-' }}`
             let suites = [
               "modernjs",
-              // "nx",
               "rspress",
               "rslib",
               "rstest",
@@ -124,7 +121,6 @@ jobs:
               "rsdoctor",
               "examples",
               "devserver",
-              "nuxt",
               "plugin",
               "lynx-stack",
               "rsbuild-rsc-plugin",
