@@ -11,4 +11,4 @@ export const memfs: typeof Memfs = __memfs;
 const { readFileSync, readdirSync, lstat, existsSync, readdir, watch } = fs;
 
 export default fs;
-export { readFileSync, readdirSync, lstat, existsSync, readdir, watch };
+export { existsSync, lstat, readdir, readdirSync, readFileSync, watch };
