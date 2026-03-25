@@ -235,6 +235,40 @@ export default {
 
 The following is an introduction to some SWC configurations and Rspack specific configurations. Please refer to the [SWC Configurations](https://swc.rs/docs/configuration/swcrc) for the complete options.
 
+### detectSyntax
+
+- Type: `false | "auto"`
+- Default: `false`
+
+When set to `"auto"`, `builtin:swc-loader` infers `jsc.parser` from the resource extension. This is useful when one rule needs to handle mixed module types such as `.js`, `.jsx`, `.ts`, and `.tsx`.
+
+Inference rules:
+
+- `.js`, `.jsx`, `.mjs`, `.cjs` -> `{ syntax: "ecmascript", jsx: true }`
+- `.ts`, `.mts`, `.cts` -> `{ syntax: "typescript", tsx: false }`
+- `.tsx` -> `{ syntax: "typescript", tsx: true }`
+- Other extensions -> no inference
+
+> If `jsc.parser.syntax` is explicitly provided, `detectSyntax` does not infer syntax.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### jsc.experimental.plugins
 
 <ApiMeta stability={Stability.Experimental} />

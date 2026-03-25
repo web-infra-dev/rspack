@@ -1,9 +1,12 @@
+use std::path::Path;
+
 use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsRefStrConverter},
 };
 use rspack_swc_plugin_import::{ImportOptions, RawImportOptions};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{Map, Value};
 use swc_config::{file_pattern::FilePattern, types::BoolConfig};
 use swc_core::base::config::{
   Config, ErrorConfig, FileMatcher, InputSourceMap, IsModule, JscConfig, ModuleConfig, Options,
@@ -106,6 +109,116 @@ impl From<RawCollectTypeScriptInfoOptions> for CollectTypeScriptInfoOptions {
   }
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum DetectSyntax {
+  #[default]
+  Disabled,
+  Auto,
+}
+
+impl DetectSyntax {
+  fn is_auto(self) -> bool {
+    matches!(self, Self::Auto)
+  }
+}
+
+impl<'de> Deserialize<'de> for DetectSyntax {
+  fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+  where
+    D: Deserializer<'de>,
+  {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum RawDetectSyntax {
+      Bool(bool),
+      String(String),
+    }
+
+    match RawDetectSyntax::deserialize(deserializer)? {
+      RawDetectSyntax::Bool(false) => Ok(DetectSyntax::Disabled),
+      RawDetectSyntax::String(value) if value == "auto" => Ok(DetectSyntax::Auto),
+      RawDetectSyntax::Bool(true) => Err(serde::de::Error::custom(
+        "`detectSyntax` only supports `false` or \"auto\"",
+      )),
+      RawDetectSyntax::String(_) => Err(serde::de::Error::custom(
+        "`detectSyntax` only supports `false` or \"auto\"",
+      )),
+    }
+  }
+}
+
+#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", default)]
+pub(crate) struct RawJscConfig {
+  #[serde(default)]
+  parser: Option<Value>,
+  #[serde(flatten)]
+  other: Map<String, Value>,
+}
+
+impl RawJscConfig {
+  fn resolve(
+    &self,
+    detect_syntax: DetectSyntax,
+    resource_path: &Path,
+  ) -> Result<JscConfig, serde_json::Error> {
+    let mut object = self.other.clone();
+    let parser = self.resolved_parser(detect_syntax, resource_path);
+
+    if let Some(parser) = parser {
+      object.insert("parser".into(), parser);
+    }
+
+    serde_json::from_value(Value::Object(object))
+  }
+
+  fn resolved_parser(&self, detect_syntax: DetectSyntax, resource_path: &Path) -> Option<Value> {
+    if !detect_syntax.is_auto() {
+      return self.parser.clone();
+    }
+
+    let inferred_parser = inferred_parser_from_extension(resource_path);
+    let Some(inferred_parser) = inferred_parser else {
+      return self.parser.clone();
+    };
+
+    match self.parser.clone() {
+      Some(Value::Object(parser)) if parser.contains_key("syntax") => Some(Value::Object(parser)),
+      Some(Value::Object(parser)) => {
+        let mut merged = inferred_parser;
+        merged.extend(parser);
+        Some(Value::Object(merged))
+      }
+      Some(parser) => Some(parser),
+      None => Some(Value::Object(inferred_parser)),
+    }
+  }
+}
+
+fn inferred_parser_from_extension(resource_path: &Path) -> Option<Map<String, Value>> {
+  let extension = resource_path.extension().and_then(|ext| ext.to_str())?;
+  let mut parser = Map::default();
+
+  match extension {
+    "js" | "jsx" | "mjs" | "cjs" => {
+      parser.insert("syntax".into(), Value::String("ecmascript".into()));
+      parser.insert("jsx".into(), Value::Bool(true));
+      Some(parser)
+    }
+    "ts" | "mts" | "cts" => {
+      parser.insert("syntax".into(), Value::String("typescript".into()));
+      parser.insert("tsx".into(), Value::Bool(false));
+      Some(parser)
+    }
+    "tsx" => {
+      parser.insert("syntax".into(), Value::String("typescript".into()));
+      parser.insert("tsx".into(), Value::Bool(true));
+      Some(parser)
+    }
+    _ => None,
+  }
+}
+
 #[derive(Debug, Default, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct SwcLoaderJsOptions {
@@ -123,7 +236,7 @@ pub struct SwcLoaderJsOptions {
   pub exclude: Option<FileMatcher>,
 
   #[serde(default)]
-  pub jsc: JscConfig,
+  jsc: RawJscConfig,
 
   #[serde(default)]
   pub module: Option<ModuleConfig>,
@@ -160,6 +273,9 @@ pub struct SwcLoaderJsOptions {
 
   #[serde(default)]
   pub rspack_experiments: Option<RawRspackExperiments>,
+
+  #[serde(default)]
+  detect_syntax: DetectSyntax,
 }
 
 #[cacheable(with=AsRefStr)]
@@ -167,9 +283,21 @@ pub struct SwcLoaderJsOptions {
 pub(crate) struct SwcCompilerOptionsWithAdditional {
   raw_options: String,
   pub(crate) swc_options: Options,
+  pub(crate) raw_jsc: RawJscConfig,
+  pub(crate) detect_syntax: DetectSyntax,
   pub(crate) transform_import: Option<Vec<ImportOptions>>,
   pub(crate) rspack_experiments: RspackExperiments,
   pub(crate) collect_typescript_info: Option<CollectTypeScriptInfoOptions>,
+}
+
+impl SwcCompilerOptionsWithAdditional {
+  pub(crate) fn raw_options(&self) -> &str {
+    &self.raw_options
+  }
+
+  pub(crate) fn resolve_jsc(&self, resource_path: &Path) -> Result<JscConfig, serde_json::Error> {
+    self.raw_jsc.resolve(self.detect_syntax, resource_path)
+  }
 }
 
 impl AsRefStrConverter for SwcCompilerOptionsWithAdditional {
@@ -207,6 +335,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
       transform_import,
       rspack_experiments,
       source_map_ignore_list,
+      detect_syntax,
     } = option;
     let mut source_maps: Option<SourceMapsConfig> = source_maps;
     if source_maps.is_none() && source_map.is_some() {
@@ -224,7 +353,7 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
           env,
           test,
           exclude,
-          jsc,
+          jsc: JscConfig::default(),
           module,
           minify,
           input_source_map,
@@ -239,6 +368,8 @@ impl TryFrom<&str> for SwcCompilerOptionsWithAdditional {
         swcrc: false,
         ..serde_json::from_value(serde_json::Value::Object(Default::default()))?
       },
+      raw_jsc: jsc,
+      detect_syntax,
       transform_import: transform_import.map(|i| i.into_iter().map(|v| v.into()).collect()),
       rspack_experiments: rspack_experiments.unwrap_or_default().into(),
       collect_typescript_info: collect_type_script_info.map(|v| v.into()),
@@ -299,5 +430,59 @@ mod tests {
       !swc_options_from_rspack.env_name.is_empty(),
       "SwcCompilerOptionsWithAdditional should receive a default value of env_name"
     )
+  }
+
+  #[test]
+  fn test_detect_syntax_auto_merges_inferred_parser() {
+    let raw_options = r#"{
+      "detectSyntax": "auto",
+      "jsc": {
+        "parser": {
+          "decorators": true
+        }
+      }
+    }"#;
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    let jsc = swc_options_with_additional
+      .resolve_jsc(Path::new("/project/index.tsx"))
+      .expect("should resolve jsc config for tsx file");
+
+    match jsc.syntax.expect("syntax should be inferred") {
+      swc_core::ecma::parser::Syntax::Typescript(ts) => {
+        assert!(ts.tsx);
+        assert!(ts.decorators);
+      }
+      _ => panic!("expected typescript syntax"),
+    }
+  }
+
+  #[test]
+  fn test_detect_syntax_auto_preserves_explicit_parser_syntax() {
+    let raw_options = r#"{
+      "detectSyntax": "auto",
+      "jsc": {
+        "parser": {
+          "syntax": "ecmascript",
+          "jsx": false
+        }
+      }
+    }"#;
+    let swc_options_with_additional: SwcCompilerOptionsWithAdditional = raw_options
+      .try_into()
+      .expect("Parse SwcCompilerOptionsWithAdditional from JSON string failed");
+
+    let jsc = swc_options_with_additional
+      .resolve_jsc(Path::new("/project/index.tsx"))
+      .expect("should resolve jsc config without overriding explicit syntax");
+
+    match jsc.syntax.expect("syntax should remain explicit") {
+      swc_core::ecma::parser::Syntax::Es(es) => {
+        assert!(!es.jsx);
+      }
+      _ => panic!("expected ecmascript syntax"),
+    }
   }
 }

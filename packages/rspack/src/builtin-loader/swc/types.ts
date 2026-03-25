@@ -19,6 +19,12 @@ export type SwcLoaderEsParserConfig = EsParserConfig;
 export type SwcLoaderTsParserConfig = TsParserConfig;
 export type SwcLoaderTransformConfig = TransformConfig;
 export type SwcLoaderOptions = Config & {
+  /**
+   * When set to `"auto"`, `builtin:swc-loader` infers `jsc.parser` from the resource extension.
+   * This is useful when one rule needs to handle mixed module types such as `.js`, `.jsx`, `.ts`, and `.tsx`.
+   * @default `false`.
+   */
+  detectSyntax?: false | 'auto';
   isModule?: boolean | 'unknown';
   /**
    * Collects information from TypeScript's AST for consumption by subsequent Rspack processes,

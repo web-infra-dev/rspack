@@ -235,6 +235,40 @@ export default {
 
 下面是部分 SWC 配置以及 Rspack 特有配置的介绍，完整选项请参考 [SWC 配置](https://swc.rs/docs/configuration/swcrc)。
 
+### detectSyntax
+
+- 类型：`false | "auto"`
+- 默认值：`false`
+
+当设置为 `"auto"` 时，`builtin:swc-loader` 会根据资源文件扩展名推断 `jsc.parser`。当一条规则需要同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等多种模块类型时，这个选项尤其有用。
+
+推断规则：
+
+- `.js`、`.jsx`、`.mjs`、`.cjs` -> `{ syntax: "ecmascript", jsx: true }`
+- `.ts`、`.mts`、`.cts` -> `{ syntax: "typescript", tsx: false }`
+- `.tsx` -> `{ syntax: "typescript", tsx: true }`
+- 其他扩展名 -> 不做推断
+
+> 如果显式设置了 `jsc.parser.syntax`，`detectSyntax` 不会再推断语法。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.[cm]?[jt]sx?$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### jsc.experimental.plugins
 
 <ApiMeta stability={Stability.Experimental} />
