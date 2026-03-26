@@ -1,18 +1,16 @@
-"use strict";
-
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "production",
+	mode: "development",
+	target: "web",
 	entry: {
 		main: "./index.js"
 	},
 	output: {
 		module: true,
-		library: { type: "module" },
-		chunkFormat: "module",
 		chunkLoading: "import",
+		chunkFormat: "module",
 		filename: "[name].mjs",
-		chunkFilename: "[name].chunk.mjs"
+		chunkFilename: "[name].chunk.js"
 	},
 	optimization: {
 		runtimeChunk: true,

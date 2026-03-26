@@ -297,7 +297,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
-        let cache_bust = if compilation.options.mode.is_development() {
+        let cache_bust = if compilation.options.mode.is_development()
+          && compilation.platform.is_node()
+        {
           let mut chunk_hash_map = String::from("{");
           let mut first = true;
           for referenced_chunk_ukey in chunk

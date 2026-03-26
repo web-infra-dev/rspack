@@ -15,13 +15,19 @@ it("should not include development cache bust in production", () => {
 });
 
 it("should still load dynamic import", async () => {
+	const mod = await import("./chunk");
+	expect(mod.default).toBe(42);
+
 	const runtimeChunk = __STATS__.chunks.find(chunk =>
 		chunk.names.includes("runtime~main")
 	);
 	expect(runtimeChunk).toBeDefined();
 
-	const isOnlyRuntimeAndMain = __STATS__.chunks.every(chunk =>
-		chunk.names.includes("runtime~main") || chunk.names.includes("main")
-	);
-	expect(isOnlyRuntimeAndMain).toBe(true);
+	const hasAsyncChunk = __STATS__.chunks.some(chunk => {
+		if (chunk.names.includes("runtime~main") || chunk.names.includes("main")) {
+			return false;
+		}
+		return chunk.files.some(file => file.endsWith(".mjs"));
+	});
+	expect(hasAsyncChunk).toBe(true);
 });
