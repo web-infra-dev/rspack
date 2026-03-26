@@ -59,12 +59,43 @@ jobs:
       target: ${{ inputs.target }}
       runner: ${{ inputs.runner }}
       ref: ${{ inputs.ref }}
+  codspeed-walltime:
+    name: Codspeed-build-walltime
+    # temporarily disable walltime benchmark before we have a metal runner available
+    if: false
+    uses: ./.github/workflows/reusable-build-codspeed.yml
+    with:
+      measurement: 'walltime'
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.runner }}
+      ref: ${{ inputs.ref }}
 
-  bench:
+  bench-simulation:
     uses: ./.github/workflows/reusable-build-bench.yml
     if: inputs.bench
     needs: [build, codspeed]
     with:
+      measurement: 'simulation'
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.bench-runner || inputs.runner }}
+      ref: ${{ inputs.ref }}
+
+  bench-memory:
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: inputs.bench
+    needs: [build, codspeed]
+    with:
+      measurement: 'memory'
+      target: ${{ inputs.target }}
+      runner: ${{ inputs.bench-runner || inputs.runner }}
+      ref: ${{ inputs.ref }}
+
+  bench-walltime:
+    uses: ./.github/workflows/reusable-build-bench.yml
+    if: false
+    needs: [build, codspeed-walltime]
+    with:
+      measurement: 'walltime'
       target: ${{ inputs.target }}
       runner: ${{ inputs.bench-runner || inputs.runner }}
       ref: ${{ inputs.ref }}

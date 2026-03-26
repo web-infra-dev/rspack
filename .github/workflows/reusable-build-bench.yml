@@ -3,6 +3,10 @@ name: Reusable Release
 on:
   workflow_call:
     inputs:
+      measurement:
+        required: false
+        type: string
+        default: 'simulation'
       target:
         required: true
         type: string
@@ -23,8 +27,8 @@ permissions:
 
 jobs:
   bench:
-    name: Bench
-    runs-on: ubuntu-22.04
+    name: 'Bench ${{ inputs.measurement }}'
+    runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
         shell: bash
@@ -58,13 +62,19 @@ jobs:
       - name: Download benches
         uses: ./.github/actions/artifact/download
         with:
-          name: codspeed-${{ inputs.target }}
-          path: target/codspeed/analysis/
+          # reuse the same artifact name for both walltime and simulation since they share the same benchmark binaries, just in different paths.
+          name: codspeed-${{ inputs.measurement == 'walltime' && 'walltime' || 'simulation' }}-${{ inputs.target }}
+          path: target/codspeed/
 
       - name: Show Codspeed
         run: |
           ls -Rl target/codspeed/
-          chmod +x target/codspeed/analysis/rspack_benchmark/benches
+          if [ "${{ inputs.measurement }}" != "walltime" ]; then
+            chmod +x target/codspeed/analysis/rspack_benchmark/benches
+          fi
+          if [ "${{ inputs.measurement }}" = "walltime" ]; then
+            chmod +x target/codspeed/walltime/rspack_benchmark/benches
+          fi
 
       - name: Pnpm Setup
         timeout-minutes: 5
@@ -76,6 +86,7 @@ jobs:
       - name: Build JS
         run: pnpm run build:js
       - name: Run benchmark (simulation)
+        if: inputs.measurement == 'simulation'
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
         env:
@@ -87,13 +98,24 @@ jobs:
           runner-version: 4.12.1
 
       - name: Run benchmark (memory)
+        if: inputs.measurement == 'memory'
         uses: ./.github/actions/codspeed
         timeout-minutes: 30
         env:
           RAYON_NUM_THREADS: 1
         with:
           mode: 'memory'
-          # cargo-codspeed only supports simulation/walltime, so memory runs JS benches only.
-          run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
+          # Prepare benchcases because bench:rust expects them even in memory mode.
+          run: pnpm run bench:prepare && pnpm run bench:rust
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.12.1
+      - name: Run benchmark (walltime)
+        if: inputs.measurement == 'walltime'
+        uses: ./.github/actions/codspeed
+        timeout-minutes: 30
+        with:
+          mode: 'walltime'
+          # Prepare benchcases before running the Rust walltime benchmarks directly.
+          run: pnpm run bench:prepare && pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.12.1
