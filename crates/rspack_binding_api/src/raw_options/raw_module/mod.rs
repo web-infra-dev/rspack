@@ -318,7 +318,6 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_meta_resolve: Option<bool>,
-  pub defer_import: Option<bool>,
   pub side_effects_free: Option<Vec<String>>,
 }
 
