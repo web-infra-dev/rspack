@@ -9,12 +9,16 @@ on:
       runner: # Runner labels
         required: true
         type: string
+      measurement: # Extra measurement args for cargo codspeed build, e.g. "-m simulation -m walltime"
+        required: false
+        type: string
+        default: 'simulation'
       ref: # Git reference to checkout
         required: false
         type: string
 jobs:
   codspeed:
-    name: Codspeed-build
+    name: Codspeed-build-${{ inputs.measurement }}
     runs-on: ${{  fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' ) }}
     steps:
       - name: Checkout
@@ -38,13 +42,12 @@ jobs:
         run: cargo codegen
 
       - name: Build Benchmark
-        env:
-          RUSTFLAGS: '--cfg codspeed'
-        run: cargo codspeed build --profile codspeed -p rspack_benchmark --features codspeed
+        run: cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Upload Artifact
         uses: ./.github/actions/artifact/upload
         with:
-          name: codspeed-${{ inputs.target }}
+          name: codspeed-${{ inputs.measurement }}-${{ inputs.target }}
           path: |
             target/codspeed/analysis/**/
+            target/codspeed/walltime/**/
