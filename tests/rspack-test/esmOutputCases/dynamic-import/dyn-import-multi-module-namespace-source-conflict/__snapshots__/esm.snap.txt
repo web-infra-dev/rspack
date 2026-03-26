@@ -31,6 +31,7 @@ import * as __rspack_external_path from "path";
 
 
 
-export { __rspack_external_fs as fsNs, __rspack_external_path as pathNs };
+export * as fsNs from "fs";
+export * as pathNs from "path";
 
 ```

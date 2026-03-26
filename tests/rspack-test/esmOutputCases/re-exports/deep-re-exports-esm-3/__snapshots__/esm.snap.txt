@@ -43,6 +43,8 @@ it('should re-export esm correctly', async () => {
 	expect(typeof fs.readFile).toBe('function')
 })
 
-export { __rspack_external_fs as fs, __rspack_external_path as path, lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib, lib_local as lib4 };
+export { lib2_lib2 as lib2, lib3_lib3 as lib3, lib_lib as lib, lib_local as lib4 };
+export * as fs from "fs";
+export * as path from "path";
 
 ```

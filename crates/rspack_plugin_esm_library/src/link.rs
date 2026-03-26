@@ -1019,6 +1019,7 @@ var {} = {{}};
     // binding_to_ref keys (e.g. `cjs`, `foo`) that are rewritten during rendering
     // and should not block external module names.
     let mut external_used_names = chunk_link.used_names.clone();
+    let mut emitted_external_used_names = FxHashSet::default();
     for module in chunk_link
       .hoisted_modules
       .iter()
@@ -1046,33 +1047,55 @@ var {} = {{}};
           }
         }
         ModuleInfo::External(info) => {
+          let is_real_external = module_graph
+            .module_by_identifier(module)
+            .and_then(|module| module.as_external_module())
+            .is_some();
           if let Some(name) = &info.name {
             external_used_names.insert(name.clone());
+            if is_real_external {
+              emitted_external_used_names.insert(name.clone());
+            }
           }
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
             external_used_names.insert(name.clone());
+            if is_real_external {
+              emitted_external_used_names.insert(name.clone());
+            }
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
             external_used_names.insert(name.clone());
+            if is_real_external {
+              emitted_external_used_names.insert(name.clone());
+            }
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
             external_used_names.insert(name.clone());
+            if is_real_external {
+              emitted_external_used_names.insert(name.clone());
+            }
           }
           if info.deferred
             && let Some(name) = &info.deferred_name
           {
             external_used_names.insert(name.clone());
+            if is_real_external {
+              emitted_external_used_names.insert(name.clone());
+            }
           }
           if info.deferred_namespace_object_used
             && let Some(name) = &info.deferred_namespace_object_name
           {
             external_used_names.insert(name.clone());
+            if is_real_external {
+              emitted_external_used_names.insert(name.clone());
+            }
           }
         }
       }
@@ -1080,12 +1103,15 @@ var {} = {{}};
     for import_spec in chunk_link.raw_import_stmts.values() {
       if let Some(ns) = &import_spec.ns_import {
         external_used_names.insert(ns.clone());
+        emitted_external_used_names.insert(ns.clone());
       }
       for atom in import_spec.atoms.values() {
         external_used_names.insert(atom.clone());
+        emitted_external_used_names.insert(atom.clone());
       }
       if let Some(default_import) = &import_spec.default_import {
         external_used_names.insert(default_import.clone());
+        emitted_external_used_names.insert(default_import.clone());
       }
     }
 
@@ -1093,6 +1119,10 @@ var {} = {{}};
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
       };
+      let is_real_external = module_graph
+        .module_by_identifier(external_module)
+        .and_then(|module| module.as_external_module())
+        .is_some();
 
       if info.name.is_none() {
         let readable_identifier = get_cached_readable_identifier(
@@ -1108,13 +1138,16 @@ var {} = {{}};
           &escaped_identifiers[&readable_identifier],
         );
         external_used_names.insert(name.clone());
-        all_used_names.insert(name.clone());
+        if is_real_external {
+          emitted_external_used_names.insert(name.clone());
+          all_used_names.insert(name.clone());
+        }
         info.name = Some(name);
       }
     }
 
-    all_used_names.extend(external_used_names);
     chunk_link.used_names = all_used_names;
+    chunk_link.used_names.extend(emitted_external_used_names);
   }
 
   async fn analyze_module(
@@ -2506,6 +2539,27 @@ var {} = {{}};
     ```
     */
     for chunk_link in link.values_mut() {
+      let mut module_external_requests = FxHashSet::default();
+      let mut non_module_external_requests = FxHashSet::default();
+      for module_id in chunk_link
+        .hoisted_modules
+        .iter()
+        .chain(chunk_link.decl_modules.iter())
+      {
+        let Some(external_module) = module_graph
+          .module_by_identifier(module_id)
+          .and_then(|module| module.as_external_module())
+        else {
+          continue;
+        };
+        let request = external_module.get_request().primary().to_string();
+        if external_module.get_external_type().starts_with("module") {
+          module_external_requests.insert(request);
+        } else {
+          non_module_external_requests.insert(request);
+        }
+      }
+
       let all_chunk_used_symbols = chunk_link
         .refs
         .iter()
@@ -2543,6 +2597,8 @@ var {} = {{}};
         };
 
         if key.1.is_none()
+          && module_external_requests.contains(&key.0)
+          && !non_module_external_requests.contains(&key.0)
           && let Some(ns_local) = &specifiers.ns_import
           && !all_chunk_used_symbols.contains(ns_local)
           && all_chunk_exported_symbols.contains_key(ns_local)

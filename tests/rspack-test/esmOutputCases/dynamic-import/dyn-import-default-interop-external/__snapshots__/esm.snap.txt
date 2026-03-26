@@ -23,7 +23,8 @@ import * as __rspack_external_fs from "fs";
 
 var default_0 = __rspack_external_fs["default"];
 var readFile = __rspack_external_fs.readFile;
-export { __rspack_external_fs as ns, readFile };
+export { readFile };
+export * as ns from "fs";
 export default default_0;
 
 ```
