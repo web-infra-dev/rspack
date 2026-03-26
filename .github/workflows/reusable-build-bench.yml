@@ -28,7 +28,7 @@ permissions:
 jobs:
   bench:
     name: 'Bench ${{ inputs.measurement }}'
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
         shell: bash
