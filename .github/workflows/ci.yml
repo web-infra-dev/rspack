@@ -64,6 +64,7 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
       bench: true
+      bench-runner: '"rspack-ubuntu-22.04-physical-large"'
       test-runner: '"ubuntu-22.04"'
 
   test-windows:
