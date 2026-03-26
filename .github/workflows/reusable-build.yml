@@ -61,7 +61,8 @@ jobs:
       ref: ${{ inputs.ref }}
   codspeed-walltime:
     name: Codspeed-build-walltime
-    if: inputs.bench
+    # temporarily disable walltime benchmark before we have a metal runner available
+    if: false
     uses: ./.github/workflows/reusable-build-codspeed.yml
     with:
       measurement: 'walltime'
@@ -81,7 +82,6 @@ jobs:
 
   bench-memory:
     uses: ./.github/workflows/reusable-build-bench.yml
-    ## temporarily disable memory benchmark since github runner has limited concurrency
     if: inputs.bench
     needs: [build, codspeed]
     with:
@@ -92,7 +92,7 @@ jobs:
 
   bench-walltime:
     uses: ./.github/workflows/reusable-build-bench.yml
-    if: inputs.bench
+    if: false
     needs: [build, codspeed-walltime]
     with:
       measurement: 'walltime'
