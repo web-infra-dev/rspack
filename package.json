@@ -31,9 +31,8 @@
     "format-ci:toml": "taplo format --check",
     "format:toml": "taplo format",
     "lint:js": "pnpm run lint-ci:js --write",
-    "lint-ci:js": "biome check --diagnostic-level=warn --no-errors-on-unmatched --max-diagnostics=none --error-on-warnings",
+    "lint-ci:js": "rslint",
     "lint:rs": "cargo check --workspace --all-targets --locked",
-    "lint:type": "rslint",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
     "build:binding:debug": "pnpm --filter @rspack/binding run build:debug",
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",
@@ -53,7 +52,6 @@
     "pnpm": "10.26.2"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.8",
     "@rslint/core": "0.3.2",
     "@rstest/core": "^0.9.4",
     "@taplo/cli": "^0.7.0",
