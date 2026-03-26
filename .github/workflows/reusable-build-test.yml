@@ -41,7 +41,7 @@ jobs:
           node-version: 22
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Calculate Node Bin Path
         id: calculate-node-bin-path
@@ -120,9 +120,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '20' }}
+        run: pnpm i
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu

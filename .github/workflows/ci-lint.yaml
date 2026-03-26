@@ -23,7 +23,7 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Lint js
         run: pnpm run lint-ci:js
