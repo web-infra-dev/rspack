@@ -48,6 +48,8 @@ pub struct ParserRuntimeRequirementsData {
   pub exports: String,
   pub require: String,
   pub require_regex: &'static LazyLock<Regex>,
+  pub module_cache: String,
+  pub entry_module_id: String,
 }
 
 static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -62,11 +64,17 @@ impl ParserRuntimeRequirementsData {
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
     let exports_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::EXPORTS);
+    let module_cache_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE_CACHE);
+    let entry_module_id_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::ENTRY_MODULE_ID);
     Self {
       require_regex: &LEGACY_REQUIRE_REGEX,
       module: module_name,
       exports: exports_name,
       require: require_name,
+      module_cache: module_cache_name,
+      entry_module_id: entry_module_id_name,
     }
   }
 }
