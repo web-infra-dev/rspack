@@ -1,11 +1,10 @@
-const path = require("path");
-const HtmlPlugin = require("html-webpack-plugin");
+const HtmlRspackPlugin = require("html-rspack-plugin");
 const { rspack } = require("@rspack/core");
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
 	plugins: [
-		new HtmlPlugin({
+		new HtmlRspackPlugin({
 			template: "./document.ejs"
 		}),
 		new rspack.DefinePlugin({
