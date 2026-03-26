@@ -798,6 +798,6 @@ export default {
 
 The `@module-federation/runtime-tools` package has been changed from `dependencies` to optional `peerDependencies` (declared via `peerDependencies` + `peerDependenciesMeta.optional`). If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), ensure that this package is explicitly installed in your project.
 
-## Removed `module.unsafeCache`
+### Removed `module.unsafeCache`
 
 `module.unsafeCache` was previously a performance optimization option. Because it conflicts with Rspack's Incremental Build and Persistent Cache mechanisms, it has been officially removed.
