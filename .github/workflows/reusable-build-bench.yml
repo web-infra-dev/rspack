@@ -106,6 +106,7 @@ jobs:
         with:
           mode: 'memory'
           # Prepare benchcases because bench:rust expects them even in memory mode.
+          # add some comment
           run: pnpm run bench:prepare && pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.12.1
