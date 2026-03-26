@@ -163,7 +163,6 @@ function copyRspackBrowserRuntimePlugin(): RsbuildPlugin {
           path.resolve(bindingDir, 'rspack.wasi-browser.js'),
         );
         const workerUrl =
-          // biome-ignore lint/suspicious/noTemplateCurlyInString: we need to escape "${}"
           "${new URL('./wasi-worker-browser.mjs', import.meta.url)}";
         const modifiedRuntimeCode = runtimeCode
           .toString()

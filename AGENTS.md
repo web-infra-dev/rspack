@@ -50,7 +50,7 @@ Before running tests after code changes:
 
 ## Code quality
 
-- **Linting**: `pnpm run lint:js` (Biome), `pnpm run lint:rs` (cargo check), `pnpm run lint:type` (Rslint)
+- **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check)
 - **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
 - **Rust gate**: After modifying Rust code, ensure both `cargo fmt --all --check` and `cargo lint` pass before commit/PR
 - **Style**: snake_case for Rust, camelCase for JS/TS
