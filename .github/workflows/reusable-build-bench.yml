@@ -81,7 +81,7 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Build JS
         run: pnpm run build:js
