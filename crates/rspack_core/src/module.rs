@@ -33,8 +33,8 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExternalModule, GetTargetResult, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
-  NormalModule, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  RuntimeTemplate, SelfModule, SharedPluginDriver, SourceType,
+  NormalModule, OptimizationBailoutItem, PrefetchExportsInfoMode, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, RuntimeTemplate, SelfModule, SharedPluginDriver, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -200,7 +200,7 @@ pub struct BuildResult {
   /// Whether the result is cacheable, i.e shared between builds.
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub optimization_bailouts: Vec<String>,
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
 #[cacheable]

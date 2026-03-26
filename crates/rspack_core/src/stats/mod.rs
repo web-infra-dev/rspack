@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use either::Either;
 use itertools::Itertools;
 use rayon::iter::{
@@ -16,8 +18,8 @@ pub use r#struct::*;
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkUkey,
   Compilation, LogType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType, UsedExports,
-  compilation::build_module_graph::ExecutedRuntimeModule,
+  OptimizationBailoutItem, PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType,
+  UsedExports, compilation::build_module_graph::ExecutedRuntimeModule,
 };
 
 #[derive(Debug, Clone)]
@@ -1077,7 +1079,16 @@ impl Stats<'_> {
     }
 
     if options.optimization_bailout {
-      stats.optimization_bailout = Some(&mgm.optimization_bailout);
+      stats.optimization_bailout = Some(
+        mgm
+          .optimization_bailout
+          .iter()
+          .map(|b| match b {
+            OptimizationBailoutItem::Message(msg) => Cow::Borrowed(msg.as_str()),
+            b => Cow::Owned(b.to_string()),
+          })
+          .collect(),
+      );
     }
 
     // 'depth' is used for sorting in the JavaScript side, so it should always be computed.
