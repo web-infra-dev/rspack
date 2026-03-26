@@ -238,7 +238,7 @@ fn sync_factorize_dependencies(
       }
       for dependency in &mut dependencies {
         // write factorize_info to dependencies[0] and set success factorize_info to others
-        *dependency_factorize_info_mut(dependency) = std::mem::take(factorize_info);
+        write_factorize_info(dependency, factorize_info);
       }
       let module_graph = artifact.get_module_graph_mut();
       for dependency in dependencies {
@@ -253,32 +253,26 @@ fn sync_factorize_dependencies(
       for dependency_id in &dependency_ids {
         artifact.affected_dependencies.mark_as_add(dependency_id);
       }
-      *dependency_factorize_info_mut(&mut first_dependency) = std::mem::take(factorize_info);
+      write_factorize_info(&mut first_dependency, factorize_info);
       let module_graph = artifact.get_module_graph_mut();
       module_graph.add_dependency(first_dependency);
       for dependency_id in dependency_ids.iter().skip(1) {
-        *dependency_factorize_info_mut(module_graph.dependency_by_id_mut(dependency_id)) =
-          std::mem::take(factorize_info);
+        write_factorize_info(
+          module_graph.dependency_by_id_mut(dependency_id),
+          factorize_info,
+        );
       }
       dependency_ids
     }
   }
 }
 
-fn dependency_factorize_info_mut(dependency: &mut BoxDependency) -> &mut FactorizeInfo {
-  if dependency.as_context_dependency().is_some() {
-    return dependency
-      .as_context_dependency_mut()
-      .expect("context dependency expected")
-      .factorize_info_mut();
+fn write_factorize_info(dependency: &mut BoxDependency, factorize_info: &mut FactorizeInfo) {
+  if let Some(dependency) = dependency.as_context_dependency_mut() {
+    *dependency.factorize_info_mut() = std::mem::take(factorize_info);
+  } else if let Some(dependency) = dependency.as_module_dependency_mut() {
+    *dependency.factorize_info_mut() = std::mem::take(factorize_info);
+  } else {
+    unreachable!("only module dependency and context dependency can factorize")
   }
-
-  if dependency.as_module_dependency().is_some() {
-    return dependency
-      .as_module_dependency_mut()
-      .expect("module dependency expected")
-      .factorize_info_mut();
-  }
-
-  unreachable!("only module dependency and context dependency can factorize")
 }
