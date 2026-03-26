@@ -328,6 +328,7 @@ pub struct JavascriptParserOptions {
   pub commonjs_magic_comments: Option<bool>,
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
+  pub import_meta_resolve: Option<bool>,
 }
 
 #[cacheable]

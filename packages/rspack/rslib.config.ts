@@ -160,7 +160,13 @@ const codmodPlugin: RsbuildPlugin = {
         require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
         'utf-8',
       );
-      const root = parse(Lang.JavaScript, dist).root();
+      // Remove the redundant `import * as index_js_namespaceObject from "../compiled/webpack-sources/index.js";`
+      // TODO: Remove this hack after we fix this bug
+      const normalizedDist = dist.replace(
+        'import * as index_js_namespaceObject from "../compiled/webpack-sources/index.js";\n',
+        '',
+      );
+      const root = parse(Lang.JavaScript, normalizedDist).root();
       const edits = [...replaceBinding(root)];
 
       fs.writeFileSync(
@@ -171,7 +177,11 @@ const codmodPlugin: RsbuildPlugin = {
   },
 };
 
-// Remove `export { rspack as 'module.exports' };` to avoid parsing errors with TypeScript < 5.6.2
+/*
+ * Remove `export { rspack as 'module.exports' }` to:
+ * 1. avoid parse errors in TypeScript < 5.6.2.
+ * 2. prevent namespace imports from degrading under `moduleResolution: 'NodeNext'`, which can break `Rspack.*` type access.
+ */
 const removeDtsExportPlugin: RsbuildPlugin = {
   name: 'remove-dts-export',
   setup(api) {
@@ -180,8 +190,8 @@ const removeDtsExportPlugin: RsbuildPlugin = {
       if (fs.existsSync(dtsPath)) {
         const content = await fs.promises.readFile(dtsPath, 'utf-8');
         const newContent = content.replace(
-          "export { rspack as 'module.exports' };",
-          '',
+          "export { rspack, rspack as 'module.exports' };",
+          'export { rspack };',
         );
         await fs.promises.writeFile(dtsPath, newContent);
       }

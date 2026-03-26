@@ -19,14 +19,13 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{BytePos, input::SourceFileInput},
+  common::{BytePos, comments::SingleThreadedComments, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
     transforms::base::fixer::paren_remover,
   },
 };
-use swc_node_comments::SwcComments;
 
 use crate::{
   BoxJavascriptParserPlugin,
@@ -206,7 +205,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let source = remove_bom(source);
     let source_string = source.source().into_string_lossy();
 
-    let comments = SwcComments::default();
+    let comments = SingleThreadedComments::default();
     let target = ast::EsVersion::EsNext;
 
     let jsx = module_parser_options

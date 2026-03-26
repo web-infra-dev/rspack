@@ -141,7 +141,6 @@ swc_ecma_minifier   = { version = "47.0.0", default-features = false }
 swc_error_reporters = { version = "21.0.0", default-features = false }
 swc_html            = { version = "31.0.0", default-features = false }
 swc_html_minifier   = { version = "47.0.0", default-features = false }
-swc_node_comments   = { version = "19.0.0", default-features = false }
 swc_plugin_runner   = { version = "25.0.0", default-features = false }
 
 swc_experimental_ecma_ast      = { version = "0.6.1", default-features = false }

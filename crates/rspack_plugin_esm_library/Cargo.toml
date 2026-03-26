@@ -37,7 +37,6 @@ swc_core                       = { workspace = true, features = ["swc_ecma_trans
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }
-swc_node_comments              = { workspace = true }
 tokio                          = { workspace = true }
 tracing                        = { workspace = true }
 

@@ -1218,6 +1218,12 @@ export type JavascriptParserOptions = {
    * @default false
    */
   deferImport?: boolean;
+
+  /**
+   * Whether to enable import.meta.resolve().
+   * @default false
+   */
+  importMetaResolve?: boolean;
 };
 
 export type JsonParserOptions = {
