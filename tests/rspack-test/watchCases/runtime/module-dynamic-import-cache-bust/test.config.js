@@ -10,8 +10,9 @@ module.exports = {
 	},
 	checkStats() {
 		const source = fs.readFileSync(path.join(outputPath, "runtime~main.mjs"), "utf-8");
-		expect(source).toContain("Date.now");
 		expect(source).toContain("?t=");
+		expect(source).toContain("chunkId");
+		expect(source).not.toContain("Date.now");
 		return true;
 	}
 };

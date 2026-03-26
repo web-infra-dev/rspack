@@ -11,7 +11,7 @@ it("should not include development cache bust in production", () => {
 	expect(runtimeAsset).toBeDefined();
 
 	const source = fs.readFileSync(path.join(__dirname, runtimeAsset), "utf-8");
-	expect(source).not.toContain('?t=" + Date.now()');
+	expect(source).not.toContain("?t=");
 });
 
 it("should still load dynamic import", async () => {

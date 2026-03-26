@@ -298,7 +298,49 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
         let cache_bust = if compilation.options.mode.is_development() {
-          " + \"?t=\" + Date.now()".to_string()
+          let mut chunk_hash_map = String::from("{");
+          let mut first = true;
+          for referenced_chunk_ukey in chunk
+            .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+            .iter()
+          {
+            if !chunk_has_js(referenced_chunk_ukey, compilation) {
+              continue;
+            }
+
+            let referenced_chunk = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .expect_get(referenced_chunk_ukey);
+
+            let Some(chunk_id) = referenced_chunk.id() else {
+              continue;
+            };
+
+            let chunk_hash = referenced_chunk
+              .rendered_hash(
+                &compilation.chunk_hashes_artifact,
+                compilation.options.output.hash_digest_length,
+              )
+              .or_else(|| compilation.get_hash())
+              .unwrap_or("dev");
+
+            if !first {
+              chunk_hash_map.push(',');
+            }
+            first = false;
+            chunk_hash_map.push_str(&rspack_util::json_stringify_str(chunk_id.as_str()));
+            chunk_hash_map.push(':');
+            chunk_hash_map.push_str(&rspack_util::json_stringify_str(chunk_hash));
+          }
+          chunk_hash_map.push('}');
+
+          let fallback_hash =
+            rspack_util::json_stringify_str(compilation.get_hash().unwrap_or("dev"));
+          format!(
+            " + \"?t=\" + ({}[chunkId] || {})",
+            chunk_hash_map, fallback_hash
+          )
         } else {
           String::new()
         };
