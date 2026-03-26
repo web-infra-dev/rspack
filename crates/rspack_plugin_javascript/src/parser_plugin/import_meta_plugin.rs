@@ -77,10 +77,9 @@ impl ImportMetaPlugin {
     param: &eval::BasicEvaluatedExpression,
   ) {
     if param.is_string() {
-      let (start, end) = param.range();
       parser.add_dependency(Box::new(ImportMetaResolveDependency::new(
         param.string().clone(),
-        (start, end - 1).into(),
+        param.range().into(),
         parser.in_try,
       )));
     }
@@ -91,7 +90,7 @@ impl ImportMetaPlugin {
 impl JavascriptParserPlugin for ImportMetaPlugin {
   fn evaluate_typeof<'a>(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
@@ -100,7 +99,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       evaluated = Some("object".to_string());
     } else if for_name == expr_name::IMPORT_META_URL {
       evaluated = Some("string".to_string());
-    } else if for_name == expr_name::IMPORT_META_RESOLVE {
+    } else if parser.javascript_options.import_meta_resolve == Some(true)
+      && for_name == expr_name::IMPORT_META_RESOLVE
+    {
       evaluated = Some("function".to_string());
     } else if for_name == expr_name::IMPORT_META_VERSION {
       evaluated = Some("number".to_string())
@@ -132,6 +133,16 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     } else if for_name == expr_name::IMPORT_META_URL {
       Some(eval::evaluate_to_string(
         self.import_meta_url(parser),
+        start,
+        end,
+      ))
+    } else if parser.javascript_options.import_meta_resolve == Some(true)
+      && for_name == expr_name::IMPORT_META_RESOLVE
+    {
+      Some(eval::evaluate_to_identifier(
+        expr_name::IMPORT_META_RESOLVE.into(),
+        expr_name::IMPORT_META_RESOLVE.into(),
+        Some(true),
         start,
         end,
       ))
@@ -199,7 +210,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         )));
         Some(true)
       }
-      expr_name::IMPORT_META_RESOLVE => {
+      expr_name::IMPORT_META_RESOLVE
+        if parser.javascript_options.import_meta_resolve == Some(true) =>
+      {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           unary_expr.span().into(),
           "'function'".into(),
@@ -328,7 +341,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     call_expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_RESOLVE {
+    if parser.javascript_options.import_meta_resolve == Some(true)
+      && for_name == expr_name::IMPORT_META_RESOLVE
+    {
       self.process_import_meta_resolve(parser, call_expr);
       return Some(true);
     }

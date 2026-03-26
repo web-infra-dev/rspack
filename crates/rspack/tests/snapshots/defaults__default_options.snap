@@ -1657,6 +1657,7 @@ CompilerOptions {
                                 false,
                             ),
                             defer_import: None,
+                            import_meta_resolve: None,
                         },
                     ),
                 },

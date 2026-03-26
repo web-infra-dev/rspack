@@ -254,6 +254,7 @@ module.exports = {
 			        exprContextCritical: true,
 			        importDynamic: true,
 			        importMeta: true,
+			        importMetaResolve: false,
 			        jsx: false,
 			        requireAlias: false,
 			        requireAsExpression: true,

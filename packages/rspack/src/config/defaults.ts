@@ -278,6 +278,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
+  D(parserOptions, 'importMetaResolve', false);
 };
 
 const applyCssGeneratorOptionsDefaults = (
