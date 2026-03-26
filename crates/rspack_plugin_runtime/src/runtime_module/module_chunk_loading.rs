@@ -337,10 +337,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
           let fallback_hash =
             rspack_util::json_stringify_str(compilation.get_hash().unwrap_or("dev"));
-          format!(
-            " + \"?t=\" + ({}[chunkId] || {})",
-            chunk_hash_map, fallback_hash
-          )
+          format!(" + \"?t=\" + ({chunk_hash_map}[chunkId] || {fallback_hash})")
         } else {
           String::new()
         };
