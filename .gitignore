@@ -200,3 +200,4 @@ rstack-examples/
 
 # rstest event report files
 /*-report.txt
+.worktree

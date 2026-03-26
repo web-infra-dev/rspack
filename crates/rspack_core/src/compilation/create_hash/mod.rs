@@ -385,6 +385,25 @@ pub async fn create_hash(
   }
   logger.time_end(start);
 
+  fn source_type_sort_key(source_type: &SourceType) -> (u8, Option<&str>) {
+    match source_type {
+      SourceType::JavaScript => (0, None),
+      SourceType::Css => (1, None),
+      SourceType::CssUrl => (2, None),
+      SourceType::Wasm => (3, None),
+      SourceType::Asset => (4, None),
+      SourceType::Expose => (5, None),
+      SourceType::Remote => (6, None),
+      SourceType::ShareInit => (7, None),
+      SourceType::ConsumeShared => (8, None),
+      SourceType::ShareContainerShared => (9, None),
+      SourceType::Custom(name) => (10, Some(name.as_str())),
+      SourceType::Unknown => (11, None),
+      SourceType::CssImport => (12, None),
+      SourceType::Runtime => (13, None),
+    }
+  }
+
   // create full hash
   compilation
     .build_chunk_graph_artifact
@@ -398,8 +417,9 @@ pub async fn create_hash(
       if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
         content_hashes
           .iter()
-          .sorted_unstable_by_key(|(source_type, _)| source_type.to_string())
-          .for_each(|(_, content_hash)| {
+          .sorted_unstable_by_key(|(source_type, _)| source_type_sort_key(source_type))
+          .for_each(|(source_type, content_hash)| {
+            source_type.hash(&mut compilation_hasher);
             content_hash.hash(&mut compilation_hasher);
           });
       }
