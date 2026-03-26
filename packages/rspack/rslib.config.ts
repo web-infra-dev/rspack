@@ -160,13 +160,7 @@ const codmodPlugin: RsbuildPlugin = {
         require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
         'utf-8',
       );
-      // Remove the redundant `import * as index_js_namespaceObject from "../compiled/webpack-sources/index.js";`
-      // TODO: Remove this hack after we fix this bug
-      const normalizedDist = dist.replace(
-        'import * as index_js_namespaceObject from "../compiled/webpack-sources/index.js";\n',
-        '',
-      );
-      const root = parse(Lang.JavaScript, normalizedDist).root();
+      const root = parse(Lang.JavaScript, dist).root();
       const edits = [...replaceBinding(root)];
 
       fs.writeFileSync(
