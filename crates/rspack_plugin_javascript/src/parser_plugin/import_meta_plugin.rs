@@ -39,7 +39,7 @@ impl ImportMetaPlugin {
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
     )));
     format!(
-      "{}[{}] === {}",
+      "({}[{}] === {})",
       parser.parser_runtime_requirements.module_cache,
       parser.parser_runtime_requirements.entry_module_id,
       parser.parser_runtime_requirements.module
@@ -180,7 +180,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       if let Some(ident) = member.prop.as_ident() {
         // - Skip `dirname` and `filename` - they are handled by NodeStuffPlugin
         //   and may have runtime values when node.__dirname/node.__filename is false
-        // - Skip `main` - it will generate dynamic code: `moduleCache[entryModuleId] === module.id`
+        // - Skip `main` - it will generate dynamic code: `moduleCache[entryModuleId] === module`
         if ident.sym == "dirname" || ident.sym == "filename" || ident.sym == "main" {
           return None;
         }
