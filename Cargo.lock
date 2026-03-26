@@ -3977,7 +3977,6 @@ dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
- "swc_node_comments",
  "tokio",
  "tracing",
  "urlencoding",
@@ -4090,7 +4089,6 @@ dependencies = [
  "swc_core",
  "swc_ecma_minifier",
  "swc_error_reporters",
- "swc_node_comments",
  "url",
 ]
 
@@ -4522,7 +4520,6 @@ dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
- "swc_node_comments",
  "tokio",
  "tracing",
 ]
@@ -4665,7 +4662,6 @@ dependencies = [
  "smallvec",
  "sugar_path",
  "swc_core",
- "swc_node_comments",
  "tokio",
  "tracing",
  "url",

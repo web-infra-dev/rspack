@@ -48,7 +48,7 @@ use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
+  common::{FileName, Spanned, SyntaxContext, comments::SingleThreadedComments},
   ecma::transforms::base::resolver,
 };
 use tokio::sync::RwLock;
@@ -1131,7 +1131,7 @@ var {} = {{}};
                 Arc::new(FileName::Custom(m.identifier().to_string())),
                 code.source().into_string_lossy().into_owned(),
               );
-              let comments = swc_node_comments::SwcComments::default();
+              let comments = SingleThreadedComments::default();
               let mut errors = vec![];
 
               if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(

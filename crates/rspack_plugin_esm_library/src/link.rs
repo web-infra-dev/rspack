@@ -27,11 +27,10 @@ use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::common::SyntaxContext;
+use swc_core::common::{SyntaxContext, comments::SingleThreadedComments};
 use swc_experimental_ecma_ast::{Ast, EsVersion, StringAllocator};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
-use swc_node_comments::SwcComments;
 
 use crate::{
   EsmLibraryPlugin,
@@ -1186,7 +1185,7 @@ var {} = {{}};
                   .source()
                   .into_string_lossy()
                   .into_owned();
-                let comments = SwcComments::default();
+                let comments = SingleThreadedComments::default();
                 let mut ast = Ast::new(source_str.len(), StringAllocator::default());
                 let lexer = swc_experimental_ecma_parser::Lexer::new(
                   Syntax::Es(EsSyntax {
