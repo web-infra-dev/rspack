@@ -9,11 +9,11 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
-  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory,
-  SourceType, get_css_chunk_filename_template,
+  CompilationChunkHash, CompilationContentHash, CompilationId, CompilationParams,
+  CompilationRenderManifest, CompilationRuntimeRequirementInTree, CompilerCompilation,
+  DependencyType, ManifestAssetType, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
+  Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  SelfModuleFactory, SourceType, get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -365,6 +365,49 @@ async fn runtime_requirements_in_tree(
   Ok(None)
 }
 
+#[plugin_hook(CompilationChunkHash for CssPlugin)]
+async fn chunk_hash(
+  &self,
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  hasher: &mut RspackHash,
+) -> Result<()> {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let module_graph = compilation.get_module_graph();
+  let css_import_modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::CssImport, module_graph);
+  let css_modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
+  let (ordered_modules, _) =
+    Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
+
+  ordered_modules
+    .iter()
+    .map(|m| {
+      (
+        compilation
+          .code_generation_results
+          .get_hash(&m.identifier(), Some(chunk.runtime())),
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier()),
+      )
+    })
+    .for_each(|(current, id)| {
+      if let Some(current) = current {
+        current.hash(hasher);
+        id.hash(hasher);
+      }
+    });
+
+  Ok(())
+}
+
 #[plugin_hook(CompilationContentHash for CssPlugin)]
 async fn content_hash(
   &self,
@@ -507,6 +550,7 @@ impl Plugin for CssPlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
+    ctx.compilation_hooks.chunk_hash.tap(chunk_hash::new(self));
     ctx
       .compilation_hooks
       .content_hash
