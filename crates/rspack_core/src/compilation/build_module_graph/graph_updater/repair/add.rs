@@ -17,6 +17,12 @@ pub struct AddTask {
   pub from_unlazy: bool,
 }
 
+impl AddTask {
+  pub fn primary_dependency_id(&self) -> DependencyId {
+    *self.dependency_ids.first().expect("dependency id expected")
+  }
+}
+
 #[async_trait::async_trait]
 impl Task<TaskContext> for AddTask {
   fn get_task_type(&self) -> TaskType {

@@ -53,7 +53,7 @@ impl Task<ExecutorTaskContext> for OverwriteTask {
 
     // add task
     if let Some(add_task) = origin_task.as_any().downcast_ref::<AddTask>() {
-      let dep_id = add_task.dependency_ids[0];
+      let dep_id = add_task.primary_dependency_id();
       let original_module_identifier = add_task.original_module_identifier;
       let target_module_identifier = add_task.module.identifier();
 

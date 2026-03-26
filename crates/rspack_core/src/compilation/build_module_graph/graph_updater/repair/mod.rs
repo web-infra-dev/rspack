@@ -61,10 +61,12 @@ impl FactorizeDependencies {
   ) -> Self {
     match dependency_ids {
       Some(dependency_ids) => {
-        let first_dependency = dependencies
-          .into_iter()
-          .next()
-          .expect("dependency expected");
+        let mut dependencies = dependencies.into_iter();
+        let first_dependency = dependencies.next().expect("dependency expected");
+        assert!(
+          dependencies.next().is_none(),
+          "deferred dependencies should only contain the first dependency"
+        );
         Self::Deferred {
           first_dependency,
           dependency_ids,
