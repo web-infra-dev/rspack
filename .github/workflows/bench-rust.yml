@@ -39,8 +39,8 @@ jobs:
         timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup
 
-      - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+      - name: Prepare benchmark cases
+        run: pnpm run bench:prepare
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -58,9 +58,6 @@ jobs:
 
       - name: Run Cargo codegen
         run: cargo codegen
-
-      - name: Prepare benchmark cases
-        run: pnpm run bench:prepare
 
       - name: Build benchmark (simulation,memory)
         run: cargo codspeed build -m simulation,memory --profile codspeed -p rspack_benchmark --features codspeed
