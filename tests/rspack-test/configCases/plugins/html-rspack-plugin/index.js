@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-it("html-webpack-plugin + html-loader", () => {
+it("html-rspack-plugin + html-loader", () => {
 	const pugDist = fs.readFileSync(
 		path.resolve(__dirname, "pug-index.html"),
 		"utf-8"

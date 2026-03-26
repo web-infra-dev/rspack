@@ -1,10 +1,10 @@
 const path = require("path");
-const HtmlPlugin = require("html-webpack-plugin");
+const HtmlRspackPlugin = require("html-rspack-plugin");
 
 module.exports = [
 	{
 		plugins: [
-			new HtmlPlugin({
+			new HtmlRspackPlugin({
 				filename: "html-index.html",
 				template: "html-loader!" + path.join(__dirname, "template.html")
 			})
@@ -12,7 +12,7 @@ module.exports = [
 	},
 	{
 		plugins: [
-			new HtmlPlugin({
+			new HtmlRspackPlugin({
 				filename: "pug-index.html",
 				template:
 					"@webdiscus/pug-loader!" + path.join(__dirname, "template.pug")
