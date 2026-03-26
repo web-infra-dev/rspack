@@ -27,9 +27,9 @@ runs:
       uses: ./.github/actions/cache/restore
       with:
         path: ${{ steps.store-path.outputs.STORE_PATH }}
-        key: node-cache-${{ runner.os }}-pnpm-full-${{ hashFiles('pnpm-lock.yaml') }}
+        key: pnpm-cache-full-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
         restore-keys: |
-          node-cache-${{ runner.os }}-pnpm-full-
+          pnpm-cache-full-${{ runner.os }}-
 
     - name: Install dependencies
       shell: bash
