@@ -239,6 +239,27 @@ impl NameAllocator {
   }
 }
 
+#[derive(Debug)]
+enum TopLevelBindingSourceEdit {
+  Insert {
+    pos: u32,
+    content: String,
+  },
+  Replace {
+    low: u32,
+    high: u32,
+    content: String,
+  },
+}
+
+#[derive(Debug)]
+struct TopLevelBindingAssignment {
+  module: ModuleIdentifier,
+  internal_names: Vec<(Atom, Atom)>,
+  top_level_declarations: Vec<Atom>,
+  source_edits: Vec<TopLevelBindingSourceEdit>,
+}
+
 #[derive(Debug, Clone)]
 pub enum ConcatenationEntry {
   Concatenated(ConcatenationEntryConcatenated),
@@ -1132,7 +1153,143 @@ impl Module for ConcatenatedModule {
       escaped_identifiers.insert(identifier, parts);
     }
 
+    let mut top_level_name_counts: HashMap<Atom, usize> = HashMap::default();
+    let mut all_top_level_names: HashSet<Atom> = HashSet::default();
+    let mut reserved_namespace_export_names: HashSet<Atom> = HashSet::default();
+    for info in module_to_info_map.values() {
+      let ModuleInfo::Concatenated(info) = info else {
+        continue;
+      };
+      for (id, _) in info.binding_to_ref.iter() {
+        if id.1 != info.module_ctxt {
+          continue;
+        }
+        all_top_level_names.insert(id.0.clone());
+        *top_level_name_counts.entry(id.0.clone()).or_default() += 1;
+      }
+      if let Some(namespace_export_symbol) = info.namespace_export_symbol.as_ref()
+        && namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
+        && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
+      {
+        reserved_namespace_export_names.insert(Atom::from(
+          namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string(),
+        ));
+      }
+    }
+
+    let mut top_level_global_used_names = all_used_names.clone();
+    top_level_global_used_names.extend(reserved_namespace_export_names.iter().cloned());
+    let top_level_global_used_names = Arc::new(top_level_global_used_names);
+    let mut generated_top_level_blocked_names = top_level_global_used_names.as_ref().clone();
+    generated_top_level_blocked_names.extend(all_top_level_names);
+    let generated_top_level_blocked_names = Arc::new(generated_top_level_blocked_names);
+    let top_level_name_counts = Arc::new(top_level_name_counts);
+
+    let top_level_binding_assignments = module_to_info_map
+      .par_values()
+      .filter_map(|info| {
+        let ModuleInfo::Concatenated(info) = info else {
+          return None;
+        };
+        let module_index_prefix: Atom = Atom::from(format!("m{}", info.index));
+        let mut local_used_names: HashSet<Atom> = HashSet::default();
+        let mut internal_names = Vec::new();
+        let mut top_level_declarations = Vec::new();
+        let mut source_edits = Vec::new();
+
+        for (id, refs) in info.binding_to_ref.iter() {
+          let name = &id.0;
+          let ctxt = id.1;
+          if ctxt != info.module_ctxt {
+            continue;
+          }
+
+          let keep_original = top_level_name_counts.get(name).copied().unwrap_or_default() <= 1
+            && !top_level_global_used_names.contains(name)
+            && !local_used_names.contains(name);
+
+          let final_name = if keep_original {
+            local_used_names.insert(name.clone());
+            name.clone()
+          } else {
+            let escaped_name = escaped_names
+              .get(name)
+              .expect("should have escaped name")
+              .clone();
+            find_new_name_with_scopes(
+              escaped_name.as_ref(),
+              generated_top_level_blocked_names.as_ref(),
+              &mut local_used_names,
+              std::slice::from_ref(&module_index_prefix),
+            )
+          };
+
+          internal_names.push((name.clone(), final_name.clone()));
+          top_level_declarations.push(final_name.clone());
+
+          if final_name == *name {
+            continue;
+          }
+
+          for identifier in refs {
+            let span = identifier.id.span();
+            let low = span.real_lo();
+            let high = span.real_hi();
+            if identifier.shorthand {
+              source_edits.push(TopLevelBindingSourceEdit::Insert {
+                pos: high,
+                content: format!(": {final_name}"),
+              });
+              continue;
+            }
+            source_edits.push(TopLevelBindingSourceEdit::Replace {
+              low,
+              high,
+              content: final_name.to_string(),
+            });
+          }
+        }
+
+        Some(TopLevelBindingAssignment {
+          module: info.module,
+          internal_names,
+          top_level_declarations,
+          source_edits,
+        })
+      })
+      .collect::<Vec<_>>();
+
+    for assignment in top_level_binding_assignments {
+      let info = module_to_info_map
+        .get_mut(&assignment.module)
+        .and_then(|info| info.try_as_concatenated_mut())
+        .expect("should have concatenated module info");
+      let source = info.source.as_mut().expect("should have source");
+      for (name, internal_name) in assignment.internal_names {
+        info.internal_names.insert(name, internal_name);
+      }
+      for declaration in assignment.top_level_declarations {
+        top_level_declarations.insert(declaration);
+      }
+      for edit in assignment.source_edits {
+        match edit {
+          TopLevelBindingSourceEdit::Insert { pos, content } => {
+            source.insert(pos, content, None);
+          }
+          TopLevelBindingSourceEdit::Replace { low, high, content } => {
+            source.replace(low, high, content, None);
+          }
+        }
+      }
+    }
+
     let mut name_allocator = NameAllocator::new(all_used_names);
+    for name in top_level_declarations.iter().cloned() {
+      name_allocator.insert(name);
+    }
+    for name in reserved_namespace_export_names.iter().cloned() {
+      name_allocator.insert(name);
+    }
 
     for info in module_to_info_map.values_mut() {
       // Get used names in the scope
@@ -1151,50 +1308,6 @@ impl Module for ConcatenatedModule {
       match info {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
-          // Iterate over variables in moduleScope
-          for (id, refs) in info.binding_to_ref.iter() {
-            let name = &id.0;
-            let ctxt = id.1;
-            if ctxt != info.module_ctxt {
-              continue;
-            }
-            // Check if the name is already used
-            if name_allocator.contains(name) {
-              // Find a new name and update references
-              let new_name = name_allocator.find_new_name(
-                escaped_names
-                  .get(name)
-                  .expect("should have escaped name")
-                  .as_ref(),
-                escaped_identifiers
-                  .get(&readable_identifier)
-                  .expect("should have escaped identifier"),
-              );
-              info.internal_names.insert(name.clone(), new_name.clone());
-              top_level_declarations.insert(new_name.clone());
-
-              // Update source
-              let source = info.source.as_mut().expect("should have source");
-
-              for identifier in refs {
-                let span = identifier.id.span();
-                let low = span.real_lo();
-                let high = span.real_hi();
-                if identifier.shorthand {
-                  source.insert(high, format!(": {new_name}"), None);
-                  continue;
-                }
-
-                source.replace(low, high, new_name.to_string(), None);
-              }
-            } else {
-              // Handle the case when the name is not already used
-              name_allocator.insert(name.clone());
-              info.internal_names.insert(name.clone(), name.clone());
-              top_level_declarations.insert(name.clone());
-            }
-          }
-
           // Iterate over imported symbols
           if let Some(import_map) = &info.import_map {
             for ((source, attr), imported) in import_map {
@@ -3329,6 +3442,68 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[A
     // Same as above: `base` is already escaped, appending '_' and a number still yields a valid identifier.
     let candidate: Atom = Atom::from(numbered.as_str());
     if !used_names.contains(&candidate) {
+      return candidate;
+    }
+
+    i += 1;
+  }
+}
+
+fn find_new_name_with_scopes(
+  old_name: &str,
+  global_used_names: &HashSet<Atom>,
+  local_used_names: &mut HashSet<Atom>,
+  extra_info: &[Atom],
+) -> Atom {
+  let mut name = old_name.to_string();
+
+  for info_part in extra_info {
+    let info_str = info_part.as_ref();
+    let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
+    new_name.push_str(info_str);
+    if !name.is_empty() {
+      if name.starts_with('_') || info_str.ends_with('_') {
+        new_name.push_str(&name);
+      } else {
+        new_name.push('_');
+        new_name.push_str(&name);
+      }
+    }
+    name = new_name;
+
+    let escaped = to_identifier_with_escaped(name.clone());
+    let candidate: Atom = escaped.into();
+    if !candidate.is_empty()
+      && !global_used_names.contains(&candidate)
+      && !local_used_names.contains(&candidate)
+    {
+      local_used_names.insert(candidate.clone());
+      return candidate;
+    }
+  }
+
+  let base: Atom = to_identifier_with_escaped(name).into();
+  if !base.is_empty() && !global_used_names.contains(&base) && !local_used_names.contains(&base) {
+    local_used_names.insert(base.clone());
+    return base;
+  }
+
+  let mut i = 0;
+  let mut i_buffer = itoa::Buffer::new();
+
+  let mut base_with_underscore = String::with_capacity(base.len() + 1);
+  base_with_underscore.push_str(base.as_ref());
+  base_with_underscore.push('_');
+
+  let mut numbered = String::with_capacity(base_with_underscore.len() + 8);
+  loop {
+    numbered.clear();
+    numbered.push_str(&base_with_underscore);
+    numbered.push_str(i_buffer.format(i));
+
+    let candidate: Atom = Atom::from(numbered.as_str());
+    if !global_used_names.contains(&candidate) && !local_used_names.contains(&candidate) {
+      local_used_names.insert(candidate.clone());
       return candidate;
     }
 

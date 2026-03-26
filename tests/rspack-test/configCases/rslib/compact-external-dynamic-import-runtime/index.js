@@ -7,8 +7,8 @@ it("compactExternalModuleDynamicImport should preserve dynamic import of externa
 
 	expect(initialChunk).toContain('module.exports = require("lit-alias")');
 	expect(initialChunk).toContain('module.exports = require("svelte-alias")');
-	expect(initialChunk).toContain('const external_react_alias_namespaceObject = require("react-alias")');
-	expect(initialChunk).toContain('const external_angular_alias_namespaceObject = require("angular-alias")');
+	expect(initialChunk).toMatch(/const m\d+_namespaceObject = require\("react-alias"\)/);
+	expect(initialChunk).toMatch(/const m\d+_namespaceObject = require\("angular-alias"\)/);
 	expect(initialChunk).toContain('const reactNs = await import("react-alias")');
 	expect(initialChunk).toContain('const vueNs = await import("vue-alias")');
 	expect(initialChunk).toContain('const jqueryNs = await import("jquery-alias", { with: {"type":"url"} })');
