@@ -22,6 +22,7 @@ use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource, dependency::ESMExportImportedSpecifierDependency,
 };
+use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -293,6 +294,20 @@ impl EsmLibraryPlugin {
       })
       .collect();
 
+    let runtime_chunks_exporting_require_via_runtime_module = link
+      .keys()
+      .copied()
+      .filter(|chunk_ukey| {
+        should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation)
+      })
+      .collect::<FxHashSet<_>>();
+
+    for runtime_chunk in &runtime_chunks_exporting_require_via_runtime_module {
+      link
+        .get_mut_unwrap(runtime_chunk)
+        .exports_require_via_runtime_module = true;
+    }
+
     let (escaped_name_entries, escaped_identifier_entries) = concate_modules_map
       .par_values()
       .map(|info| {
@@ -393,6 +408,7 @@ impl EsmLibraryPlugin {
     diagnostics.extend(self.link_imports_and_exports(
       compilation,
       &mut link,
+      &runtime_chunks_exporting_require_via_runtime_module,
       &mut concate_modules_map,
       &mut needed_namespace_objects_by_ukey,
       &escaped_identifiers,
@@ -1807,6 +1823,7 @@ var {} = {{}};
     &self,
     compilation: &Compilation,
     link: &mut FxHashMap<ChunkUkey, ChunkLinkContext>,
+    runtime_chunks_exporting_require_via_runtime_module: &FxHashSet<ChunkUkey>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
@@ -2142,13 +2159,15 @@ var {} = {{}};
           let require_symbol: Atom = runtime_template
             .render_runtime_globals(&RuntimeGlobals::REQUIRE)
             .into();
-          Self::add_chunk_export(
-            runtime_chunk,
-            require_symbol.clone(),
-            require_symbol.clone(),
-            &mut exports,
-            true,
-          );
+          if !runtime_chunks_exporting_require_via_runtime_module.contains(&runtime_chunk) {
+            Self::add_chunk_export(
+              runtime_chunk,
+              require_symbol.clone(),
+              require_symbol.clone(),
+              &mut exports,
+              true,
+            );
+          }
           chunk_link.raw_import_stmts.insert(
             RawImportSource::Chunk(runtime_chunk),
             ImportSpec {
