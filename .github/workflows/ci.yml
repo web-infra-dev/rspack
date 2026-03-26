@@ -53,21 +53,28 @@ jobs:
             document_changed:
               - "website/**"
 
-  test-linux:
-    name: Test Linux
+  build-linux:
+    name: Build Linux
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: x86_64-unknown-linux-gnu
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test: true
-      test-runner: '"ubuntu-22.04"'
+
+  test-linux:
+    name: Test Linux
+    needs: [check-changed, build-linux]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: '"ubuntu-22.04"'
 
   bench-binding:
     name: Bench Binding
-    needs: [test-linux]
+    needs: [check-changed, build-linux]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/bench-binding.yml
     with:
@@ -174,6 +181,7 @@ jobs:
     needs:
       [
         check-codspeed,
+        build-linux,
         test-linux,
         test-windows,
         test-mac,
@@ -190,13 +198,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: No check to Run test
