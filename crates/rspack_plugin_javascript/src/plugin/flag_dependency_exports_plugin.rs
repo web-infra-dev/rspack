@@ -173,7 +173,7 @@ impl<'a> FlagDependencyExportsState<'a> {
             target_exports_info_cache: &mut target_exports_info_cache,
           };
           for (dep_id, exports_spec) in exports_specs {
-            let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
+            let (is_changed, changed_dependencies) = process_exports_spec_without_nested_inner(
               &mut merge_ctx,
               dep_id,
               &exports_spec,
@@ -412,7 +412,25 @@ pub fn process_exports_spec(
 /// which will be used to backtrack when target exports info is changed
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-fn process_exports_spec_without_nested(
+pub fn process_exports_spec_without_nested(
+  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_id: &ModuleIdentifier,
+  dep_id: DependencyId,
+  export_desc: &ExportsSpec,
+  exports_info: &mut ExportsInfoData,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut target_exports_info_cache = TargetExportsInfoCache::default();
+  let mut ctx = NonNestedMergeContext {
+    mg,
+    exports_info_artifact,
+    module_id,
+    target_exports_info_cache: &mut target_exports_info_cache,
+  };
+  process_exports_spec_without_nested_inner(&mut ctx, dep_id, export_desc, exports_info)
+}
+
+fn process_exports_spec_without_nested_inner(
   ctx: &mut NonNestedMergeContext<'_>,
   dep_id: DependencyId,
   export_desc: &ExportsSpec,
@@ -446,7 +464,7 @@ fn process_exports_spec_without_nested(
     }
     ExportsOfExportsSpec::NoExports => {}
     ExportsOfExportsSpec::Names(ele) => {
-      let (merge_changed, merge_dependencies) = merge_exports_without_nested(
+      let (merge_changed, merge_dependencies) = merge_exports_without_nested_inner(
         ctx,
         exports_info,
         ele,
@@ -522,7 +540,26 @@ impl<'a> ParsedExportSpec<'a> {
 ///
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-fn merge_exports_without_nested(
+pub fn merge_exports_without_nested(
+  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_id: &ModuleIdentifier,
+  exports_info: &mut ExportsInfoData,
+  exports: &[ExportNameOrSpec],
+  global_export_info: DefaultExportInfo,
+  dep_id: DependencyId,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  let mut target_exports_info_cache = TargetExportsInfoCache::default();
+  let mut ctx = NonNestedMergeContext {
+    mg,
+    exports_info_artifact,
+    module_id,
+    target_exports_info_cache: &mut target_exports_info_cache,
+  };
+  merge_exports_without_nested_inner(&mut ctx, exports_info, exports, global_export_info, dep_id)
+}
+
+fn merge_exports_without_nested_inner(
   ctx: &mut NonNestedMergeContext<'_>,
   exports_info: &mut ExportsInfoData,
   exports: &[ExportNameOrSpec],
