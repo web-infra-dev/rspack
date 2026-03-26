@@ -11,9 +11,10 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      ArrowExpr, AssignExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr,
-      ExprOrSpread, Function, ImportSpecifier, ModuleDecl, ModuleItem, Pat, Program, PropName,
-      SimpleAssignTarget, Stmt, UpdateExpr, VarDecl, VarDeclKind, VarDeclOrExpr,
+      ArrowExpr, AssignExpr, AssignTarget, AssignTargetPat, BlockStmt, BlockStmtOrExpr, Class,
+      ClassMember, Decl, Expr, ExprOrSpread, Function, ImportSpecifier, ModuleDecl, ModuleItem,
+      Pat, Program, PropName, SimpleAssignTarget, Stmt, UpdateExpr, VarDecl, VarDeclKind,
+      VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
@@ -199,8 +200,14 @@ impl Visit for TopLevelMutationCollector {
   fn visit_arrow_expr(&mut self, _node: &ArrowExpr) {}
 
   fn visit_assign_expr(&mut self, node: &AssignExpr) {
-    if let Some(SimpleAssignTarget::Ident(ident)) = node.left.as_simple() {
-      self.mutated_bindings.insert(ident.sym.clone());
+    match &node.left {
+      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)) => {
+        self.mutated_bindings.insert(ident.sym.clone());
+      }
+      AssignTarget::Pat(pat) => {
+        collect_assign_target_binding_names(pat, &mut self.mutated_bindings);
+      }
+      _ => {}
     }
     node.right.visit_with(self);
   }
@@ -216,6 +223,32 @@ fn collect_top_level_mutated_bindings(program: &Program) -> FxHashSet<Atom> {
   let mut collector = TopLevelMutationCollector::default();
   program.visit_with(&mut collector);
   collector.mutated_bindings
+}
+
+fn collect_assign_target_binding_names(pat: &AssignTargetPat, bindings: &mut FxHashSet<Atom>) {
+  match pat {
+    AssignTargetPat::Array(array) => {
+      for elem in array.elems.iter().flatten() {
+        collect_pat_binding_names(elem, bindings);
+      }
+    }
+    AssignTargetPat::Object(object) => {
+      for prop in &object.props {
+        match prop {
+          swc_core::ecma::ast::ObjectPatProp::KeyValue(key_value) => {
+            collect_pat_binding_names(&key_value.value, bindings);
+          }
+          swc_core::ecma::ast::ObjectPatProp::Assign(assign) => {
+            bindings.insert(assign.key.sym.clone());
+          }
+          swc_core::ecma::ast::ObjectPatProp::Rest(rest) => {
+            collect_pat_binding_names(&rest.arg, bindings);
+          }
+        }
+      }
+    }
+    AssignTargetPat::Invalid(_) => {}
+  }
 }
 
 fn collect_pat_binding_names(pat: &Pat, bindings: &mut FxHashSet<Atom>) {
