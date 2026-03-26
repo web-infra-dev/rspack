@@ -925,8 +925,40 @@ impl DataRef<'_> {
 }
 
 impl RuleSetCondition {
+  fn try_match_sync(&self, data: DataRef<'_>) -> Option<bool> {
+    match self {
+      Self::String(s) => Some(
+        data
+          .as_str()
+          .map(|data| data.starts_with(s))
+          .unwrap_or_default(),
+      ),
+      Self::Regexp(r) => Some(data.as_str().map(|data| r.test(data)).unwrap_or_default()),
+      Self::Logical(g) => g.try_match_sync(data),
+      Self::Array(list) => {
+        for condition in list {
+          match condition.try_match_sync(data) {
+            Some(true) => return Some(true),
+            Some(false) => continue,
+            None => return None,
+          }
+        }
+        Some(false)
+      }
+      Self::Func(_) => None,
+    }
+  }
+
+  #[inline]
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    if let Some(matched) = self.try_match_sync(data) {
+      return Ok(matched);
+    }
+    self.try_match_slow(data).await
+  }
+
   #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
+  async fn try_match_slow(&self, data: DataRef<'async_recursion>) -> Result<bool> {
     match self {
       Self::String(s) => Ok(
         data
@@ -941,8 +973,26 @@ impl RuleSetCondition {
     }
   }
 
-  #[async_recursion]
+  fn match_when_empty_sync(&self) -> Option<bool> {
+    match self {
+      RuleSetCondition::String(s) => Some(s.is_empty()),
+      RuleSetCondition::Regexp(rspack_regex) => Some(rspack_regex.test("")),
+      RuleSetCondition::Logical(logical) => logical.match_when_empty_sync(),
+      RuleSetCondition::Array(_) => Some(false),
+      RuleSetCondition::Func(_) => None,
+    }
+  }
+
+  #[inline]
   async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(matched) = self.match_when_empty_sync() {
+      return Ok(matched);
+    }
+    self.match_when_empty_slow().await
+  }
+
+  #[async_recursion]
+  async fn match_when_empty_slow(&self) -> Result<bool> {
     let res = match self {
       RuleSetCondition::String(s) => s.is_empty(),
       RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
@@ -975,6 +1025,12 @@ impl RuleSetConditionWithEmpty {
   }
 
   pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(matched) = self.match_when_empty.get().copied() {
+      return Ok(matched);
+    }
+    if let Some(matched) = self.condition.match_when_empty_sync() {
+      return Ok(matched);
+    }
     self
       .match_when_empty
       .get_or_try_init(|| async { self.condition.match_when_empty().await })
@@ -997,8 +1053,42 @@ pub struct RuleSetLogicalConditions {
 }
 
 impl RuleSetLogicalConditions {
+  fn try_match_sync(&self, data: DataRef<'_>) -> Option<bool> {
+    if let Some(and) = &self.and {
+      for condition in and {
+        match condition.try_match_sync(data) {
+          Some(false) => return Some(false),
+          Some(true) => continue,
+          None => return None,
+        }
+      }
+    }
+    if let Some(or) = &self.or {
+      for condition in or {
+        match condition.try_match_sync(data) {
+          Some(true) => return Some(true),
+          Some(false) => continue,
+          None => return None,
+        }
+      }
+      return Some(false);
+    }
+    if let Some(not) = &self.not {
+      return not.try_match_sync(data).map(|matched| !matched);
+    }
+    Some(true)
+  }
+
+  #[inline]
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    if let Some(matched) = self.try_match_sync(data) {
+      return Ok(matched);
+    }
+    self.try_match_slow(data).await
+  }
+
   #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
+  async fn try_match_slow(&self, data: DataRef<'async_recursion>) -> Result<bool> {
     if let Some(and) = &self.and
       && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
     {
@@ -1017,7 +1107,54 @@ impl RuleSetLogicalConditions {
     Ok(true)
   }
 
+  fn match_when_empty_sync(&self) -> Option<bool> {
+    let mut has_condition = false;
+    let mut match_when_empty = true;
+
+    if let Some(and) = &self.and {
+      has_condition = true;
+      for condition in and {
+        match condition.match_when_empty_sync() {
+          Some(false) => return Some(false),
+          Some(true) => continue,
+          None => return None,
+        }
+      }
+    }
+
+    if let Some(or) = &self.or {
+      has_condition = true;
+      let mut matched = false;
+      for condition in or {
+        match condition.match_when_empty_sync() {
+          Some(true) => {
+            matched = true;
+            break;
+          }
+          Some(false) => continue,
+          None => return None,
+        }
+      }
+      match_when_empty &= matched;
+    }
+
+    if let Some(not) = &self.not {
+      has_condition = true;
+      match_when_empty &= !not.match_when_empty_sync()?;
+    }
+
+    Some(has_condition && match_when_empty)
+  }
+
+  #[inline]
   pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(matched) = self.match_when_empty_sync() {
+      return Ok(matched);
+    }
+    self.match_when_empty_slow().await
+  }
+
+  async fn match_when_empty_slow(&self) -> Result<bool> {
     let mut has_condition = false;
     let mut match_when_empty = true;
     if let Some(and) = &self.and {
@@ -1190,4 +1327,70 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+  };
+
+  use futures::FutureExt;
+
+  use super::RuleSetCondition;
+
+  #[tokio::test]
+  async fn short_circuits_sync_array_conditions_before_async_fallback() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let condition = RuleSetCondition::Array(vec![
+      RuleSetCondition::String("/project/src".into()),
+      RuleSetCondition::Func(Box::new({
+        let calls = Arc::clone(&calls);
+        move |_| {
+          let calls = Arc::clone(&calls);
+          async move {
+            calls.fetch_add(1, Ordering::SeqCst);
+            Ok(false)
+          }
+          .boxed()
+        }
+      })),
+    ]);
+
+    let matched = condition
+      .try_match("/project/src/index.js".into())
+      .await
+      .expect("condition should match");
+
+    assert!(matched);
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+  }
+
+  #[tokio::test]
+  async fn falls_back_to_async_function_conditions_when_sync_checks_miss() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let condition = RuleSetCondition::Array(vec![
+      RuleSetCondition::String("/project/dist".into()),
+      RuleSetCondition::Func(Box::new({
+        let calls = Arc::clone(&calls);
+        move |_| {
+          let calls = Arc::clone(&calls);
+          async move {
+            calls.fetch_add(1, Ordering::SeqCst);
+            Ok(true)
+          }
+          .boxed()
+        }
+      })),
+    ]);
+
+    let matched = condition
+      .try_match("/project/src/index.js".into())
+      .await
+      .expect("condition should match through async fallback");
+
+    assert!(matched);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+  }
 }
