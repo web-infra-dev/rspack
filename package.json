@@ -30,7 +30,7 @@
     "format-ci:js": "prettier . --check && heading-case",
     "format-ci:toml": "taplo format --check",
     "format:toml": "taplo format",
-    "lint:js": "pnpm run lint-ci:js --write",
+    "lint:js": "rslint --fix",
     "lint-ci:js": "rslint",
     "lint:rs": "cargo check --workspace --all-targets --locked",
     "build:binding:dev": "pnpm --filter @rspack/binding run build:dev",
