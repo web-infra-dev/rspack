@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::*;
-use crate::{cache::Cache, logger::Logger, pass::PassExt};
+use crate::{OptimizationBailoutItem, cache::Cache, logger::Logger, pass::PassExt};
 
 pub struct FinishModulesPhasePass;
 
@@ -56,13 +56,13 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
 
 #[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
 pub async fn finish_modules_inner(
-  compilation: &Compilation,
+  compilation: &mut Compilation,
   dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
   async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<Vec<Diagnostic>> {
-  let build_module_graph_artifact = &compilation.build_module_graph_artifact;
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
+    let build_module_graph_artifact = &compilation.build_module_graph_artifact;
     mutations.extend(
       build_module_graph_artifact
         .affected_dependencies
@@ -106,6 +106,8 @@ pub async fn finish_modules_inner(
     .call(compilation, async_modules_artifact, exports_info_artifact)
     .await?;
 
+  apply_side_effects_state_artifact(compilation);
+
   // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
   compilation.module_graph_cache_artifact.freeze();
   // Collect dependencies diagnostics at here to make sure:
@@ -119,7 +121,7 @@ pub async fn finish_modules_inner(
   compilation.module_graph_cache_artifact.unfreeze();
 
   // take make diagnostics
-  let diagnostics = build_module_graph_artifact.diagnostics();
+  let diagnostics = compilation.build_module_graph_artifact.diagnostics();
   all_diagnostics.extend(diagnostics);
   Ok(all_diagnostics)
 }
@@ -214,4 +216,71 @@ fn collect_dependencies_diagnostics(
     dependencies_diagnostics
   };
   all_modules_diagnostics.into_values().flatten().collect()
+}
+
+fn apply_side_effects_state_artifact(compilation: &mut Compilation) {
+  let side_effects_states: Vec<_> = {
+    let mut side_effects_state_artifact = compilation
+      .side_effects_state_artifact
+      .write()
+      .expect("should lock side effects state artifact");
+    std::mem::take(&mut *side_effects_state_artifact)
+      .into_iter()
+      .collect()
+  };
+
+  if side_effects_states.is_empty() {
+    return;
+  }
+
+  let module_graph = compilation.get_module_graph_mut();
+  for (module_id, state) in side_effects_states {
+    let Some(module) = module_graph.module_by_identifier_mut(&module_id) else {
+      continue;
+    };
+    module.build_meta_mut().side_effect_free = Some(state.side_effect_free);
+
+    let bailouts = module_graph.get_optimization_bailout_mut(&module_id);
+    bailouts.retain(|item| {
+      !state
+        .optimization_bailouts_to_remove
+        .iter()
+        .any(|target| optimization_bailout_item_eq(item, target))
+    });
+    for item in state.optimization_bailouts_to_add {
+      if bailouts
+        .iter()
+        .any(|existing| optimization_bailout_item_eq(existing, &item))
+      {
+        continue;
+      }
+      bailouts.push(item);
+    }
+  }
+}
+
+fn optimization_bailout_item_eq(
+  left: &OptimizationBailoutItem,
+  right: &OptimizationBailoutItem,
+) -> bool {
+  match (left, right) {
+    (OptimizationBailoutItem::Message(left), OptimizationBailoutItem::Message(right)) => {
+      left == right
+    }
+    (
+      OptimizationBailoutItem::SideEffects {
+        node_type: left_node_type,
+        loc: left_loc,
+        short_id: left_short_id,
+      },
+      OptimizationBailoutItem::SideEffects {
+        node_type: right_node_type,
+        loc: right_loc,
+        short_id: right_short_id,
+      },
+    ) => {
+      left_node_type == right_node_type && left_loc == right_loc && left_short_id == right_short_id
+    }
+    _ => false,
+  }
 }

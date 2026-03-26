@@ -9,6 +9,7 @@ use rspack_core::{
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
   OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
   SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
+  SideEffectsState,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -243,27 +244,28 @@ async fn finish_modules(
     deferred_side_effect_states.push((*module_identifier, impure_check.is_some()));
   }
 
-  // SAFETY: We need mutable access to update module build_meta and optimization bailout.
-  // The hook provides &Compilation but we need to set side_effect_free = false on modules.
-  #[allow(invalid_reference_casting)]
-  let compilation_mut = unsafe { &mut *(compilation as *const Compilation as *mut Compilation) };
-  let module_graph_mut = compilation_mut.get_module_graph_mut();
-
+  let mut side_effects_state_artifact = compilation
+    .side_effects_state_artifact
+    .write()
+    .expect("should lock side effects state artifact");
+  side_effects_state_artifact.clear();
   for (module_id, has_impure_deferred_check) in deferred_side_effect_states {
-    let module = module_graph_mut
-      .module_by_identifier_mut(&module_id)
-      .expect("should have module");
-    module.build_meta_mut().side_effect_free = Some(!has_impure_deferred_check);
-
-    let bailouts = module_graph_mut.get_optimization_bailout_mut(&module_id);
-    bailouts.retain(
-      |item| !matches!(item, OptimizationBailoutItem::Message(msg) if msg == CALL_WITH_SIDE_EFFECTS_BAILOUT),
+    side_effects_state_artifact.insert(
+      module_id,
+      SideEffectsState {
+        side_effect_free: !has_impure_deferred_check,
+        optimization_bailouts_to_add: if has_impure_deferred_check {
+          vec![OptimizationBailoutItem::Message(String::from(
+            CALL_WITH_SIDE_EFFECTS_BAILOUT,
+          ))]
+        } else {
+          Vec::new()
+        },
+        optimization_bailouts_to_remove: vec![OptimizationBailoutItem::Message(String::from(
+          CALL_WITH_SIDE_EFFECTS_BAILOUT,
+        ))],
+      },
     );
-    if has_impure_deferred_check {
-      bailouts.push(OptimizationBailoutItem::Message(String::from(
-        CALL_WITH_SIDE_EFFECTS_BAILOUT,
-      )));
-    }
   }
 
   Ok(())
