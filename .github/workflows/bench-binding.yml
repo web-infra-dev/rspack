@@ -1,0 +1,62 @@
+name: Bench Binding
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+
+permissions:
+  # Allow commenting on issues
+  issues: write
+
+jobs:
+  bench:
+    name: 'Bench Binding'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Show restored binding
+        run: ls -lah crates/node_binding/*.node
+
+      - name: Pnpm Setup
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Pnpm Install
+        uses: ./.github/actions/pnpm/install-dependencies
+
+      - name: Build JS
+        run: pnpm run build:js
+
+      - name: Run benchmark binding
+        uses: ./.github/actions/codspeed
+        timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
+        with:
+          mode: 'simulation'
+          run: pnpm --filter bench run bench
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.12.1

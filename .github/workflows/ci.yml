@@ -63,9 +63,25 @@ jobs:
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: true
-      bench: true
-      bench-runner: '"ubuntu-22.04"'
       test-runner: '"ubuntu-22.04"'
+
+  bench-binding:
+    name: Bench Binding
+    needs: [test-linux]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/bench-binding.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: '"ubuntu-22.04"'
+
+  bench-rust:
+    name: Rust Bench
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/bench-rust.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: '"ubuntu-22.04"'
 
   test-windows:
     name: Test Windows
@@ -105,7 +121,7 @@ jobs:
 
   check-codspeed:
     name: Check Bench Result
-    needs: [test-linux]
+    needs: [bench-binding, bench-rust]
     runs-on: ubuntu-24.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

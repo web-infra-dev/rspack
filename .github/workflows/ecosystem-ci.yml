@@ -63,7 +63,6 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"' }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       test: false
-      bench: false
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
