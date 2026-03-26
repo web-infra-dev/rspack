@@ -82,7 +82,7 @@ jobs:
   bench-memory:
     uses: ./.github/workflows/reusable-build-bench.yml
     ## temporarily disable memory benchmark since github runner has limited concurrency
-    if: false
+    if: inputs.bench
     needs: [build, codspeed]
     with:
       measurement: 'memory'
