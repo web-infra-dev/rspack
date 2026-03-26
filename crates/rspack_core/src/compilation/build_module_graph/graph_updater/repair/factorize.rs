@@ -266,12 +266,18 @@ fn sync_factorize_dependencies(
 }
 
 fn dependency_factorize_info_mut(dependency: &mut BoxDependency) -> &mut FactorizeInfo {
-  if let Some(dependency) = dependency.as_context_dependency_mut() {
-    return dependency.factorize_info_mut();
+  if dependency.as_context_dependency().is_some() {
+    return dependency
+      .as_context_dependency_mut()
+      .expect("context dependency expected")
+      .factorize_info_mut();
   }
 
-  if let Some(dependency) = dependency.as_module_dependency_mut() {
-    return dependency.factorize_info_mut();
+  if dependency.as_module_dependency().is_some() {
+    return dependency
+      .as_module_dependency_mut()
+      .expect("module dependency expected")
+      .factorize_info_mut();
   }
 
   unreachable!("only module dependency and context dependency can factorize")
