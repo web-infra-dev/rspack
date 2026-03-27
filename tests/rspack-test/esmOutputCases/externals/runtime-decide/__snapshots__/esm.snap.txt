@@ -47,7 +47,7 @@ module.exports = __rspack_external_fs;
 },
 });
 // ./index.js
-const runtime_decide_0 = __webpack_require__("./runtime-decide.js");
+const runtime_decide = __webpack_require__("./runtime-decide.js");
 
 
 
@@ -58,7 +58,7 @@ it('should have correct exports as its exports is decided at runtime', async () 
   const { resolve: nodeResolve } = await import(/* webpackIgnore: true */ 'path');
 
   expect(resolve).toBe(nodeResolve)
-  expect(runtime_decide_0.readFile()).toBe(42)
+  expect(runtime_decide.readFile()).toBe(42)
 })
 
 

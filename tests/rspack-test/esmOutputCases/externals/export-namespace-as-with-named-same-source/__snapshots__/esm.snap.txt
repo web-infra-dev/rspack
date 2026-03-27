@@ -16,7 +16,6 @@ it("should combine export-star-as and named exports for the same external source
 
 var readFile = __rspack_external_fs.readFile;
 var readFileSync = __rspack_external_fs.readFileSync;
-export { readFile, readFileSync };
-export * as fsNs from "fs";
+export { __rspack_external_fs as fsNs, readFile, readFileSync };
 
 ```

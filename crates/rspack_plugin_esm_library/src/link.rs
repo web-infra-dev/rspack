@@ -155,6 +155,20 @@ impl EsmLibraryPlugin {
     }
   }
 
+  fn assign_external_candidate_name(
+    readable_identifier: &str,
+    candidate_used_names: &mut FxHashSet<Atom>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+  ) -> Atom {
+    let name = find_new_name(
+      "",
+      candidate_used_names,
+      &escaped_identifiers[readable_identifier],
+    );
+    candidate_used_names.insert(name.clone());
+    name
+  }
+
   fn strict_export_chunk(&self, chunk: ChunkUkey) -> bool {
     self.strict_export_chunks.borrow().contains(&chunk)
   }
@@ -1162,7 +1176,7 @@ var {} = {{}};
     // avoid using all_used_names directly because it also contains transient
     // binding_to_ref keys (e.g. `cjs`, `foo`) that are rewritten during rendering
     // and should not block external module names.
-    let mut external_used_names = chunk_link.used_names.clone();
+    let mut emitted_external_used_names = chunk_link.used_names.clone();
     for module in chunk_link
       .hoisted_modules
       .iter()
@@ -1171,68 +1185,66 @@ var {} = {{}};
       match &concate_modules_map[module] {
         ModuleInfo::Concatenated(info) => {
           if let Some(name) = &info.namespace_object_name {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
         }
         ModuleInfo::External(info) => {
-          if let Some(name) = &info.name {
-            external_used_names.insert(name.clone());
-          }
           if info.interop_namespace_object_used
             && let Some(name) = &info.interop_namespace_object_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.interop_namespace_object2_used
             && let Some(name) = &info.interop_namespace_object2_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.interop_default_access_used
             && let Some(name) = &info.interop_default_access_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.deferred
             && let Some(name) = &info.deferred_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
           if info.deferred_namespace_object_used
             && let Some(name) = &info.deferred_namespace_object_name
           {
-            external_used_names.insert(name.clone());
+            emitted_external_used_names.insert(name.clone());
           }
         }
       }
     }
     for import_spec in chunk_link.raw_import_stmts.values() {
       if let Some(ns) = &import_spec.ns_import {
-        external_used_names.insert(ns.clone());
+        emitted_external_used_names.insert(ns.clone());
       }
       for atom in import_spec.atoms.values() {
-        external_used_names.insert(atom.clone());
+        emitted_external_used_names.insert(atom.clone());
       }
       if let Some(default_import) = &import_spec.default_import {
-        external_used_names.insert(default_import.clone());
+        emitted_external_used_names.insert(default_import.clone());
       }
     }
 
+    let mut external_candidate_used_names = emitted_external_used_names.clone();
     for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
@@ -1246,18 +1258,16 @@ var {} = {{}};
           context,
         );
 
-        let name = find_new_name(
-          "",
-          &external_used_names,
-          &escaped_identifiers[&readable_identifier],
+        let name = Self::assign_external_candidate_name(
+          &readable_identifier,
+          &mut external_candidate_used_names,
+          escaped_identifiers,
         );
-        external_used_names.insert(name.clone());
-        all_used_names.insert(name.clone());
         info.name = Some(name);
       }
     }
 
-    all_used_names.extend(external_used_names);
+    all_used_names.extend(emitted_external_used_names);
     chunk_link.used_names = all_used_names;
   }
 
@@ -2704,19 +2714,10 @@ var {} = {{}};
       }
 
       let mut removed_import_stmts = vec![];
-      let mut converted_namespace_imports = vec![];
       for (key, specifiers) in &chunk_link.raw_import_stmts {
         let RawImportSource::Source(key) = key else {
           continue;
         };
-
-        if key.1.is_none()
-          && let Some(ns_local) = &specifiers.ns_import
-          && !all_chunk_used_symbols.contains(ns_local)
-          && all_chunk_exported_symbols.contains_key(ns_local)
-        {
-          converted_namespace_imports.push((key.clone(), ns_local.clone()));
-        }
 
         if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
           // import 'externals'
@@ -2748,32 +2749,6 @@ var {} = {{}};
         }) {
           // remove the import statement
           removed_import_stmts.push((key.clone(), locals));
-        }
-      }
-
-      for (key, ns_local) in converted_namespace_imports {
-        let Some(import_spec) = chunk_link
-          .raw_import_stmts
-          .get(&RawImportSource::Source(key.clone()))
-        else {
-          continue;
-        };
-        if import_spec.ns_import.as_ref() != Some(&ns_local) {
-          continue;
-        }
-
-        let chunk_exports = exports
-          .get_mut(&chunk_link.chunk)
-          .expect("should have exports");
-        let Some(export_names) = chunk_exports.exports.remove(&ns_local) else {
-          continue;
-        };
-        for export_name in export_names {
-          chunk_link
-            .raw_star_exports
-            .entry(key.0.clone())
-            .or_default()
-            .insert(export_name);
         }
       }
 
@@ -3475,5 +3450,42 @@ mod tests {
     );
 
     assert!(chunk_used_names.is_empty());
+  }
+
+  #[test]
+  fn external_candidate_name_does_not_claim_chunk_top_level_name() {
+    let module = ModuleIdentifier::from("test_module");
+    let mut candidate_used_names = FxHashSet::default();
+    let mut chunk_used_names = FxHashSet::default();
+    let mut required = Default::default();
+    let escaped_identifiers =
+      FxHashMap::from_iter([("./lib.js".to_string(), vec![Atom::from("lib")])]);
+
+    let candidate = EsmLibraryPlugin::assign_external_candidate_name(
+      "./lib.js",
+      &mut candidate_used_names,
+      &escaped_identifiers,
+    );
+
+    assert_eq!(candidate.as_ref(), "lib");
+    assert!(candidate_used_names.contains(&candidate));
+    assert!(!chunk_used_names.contains(&candidate));
+
+    let required_info = EsmLibraryPlugin::add_require(
+      module,
+      None,
+      Some(candidate.clone()),
+      &mut chunk_used_names,
+      &mut required,
+    );
+
+    assert_eq!(
+      required_info
+        .required_symbol
+        .as_ref()
+        .expect("should keep candidate"),
+      &candidate
+    );
+    assert!(chunk_used_names.contains(&candidate));
   }
 }

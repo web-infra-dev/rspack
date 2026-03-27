@@ -1,7 +1,7 @@
 ```mjs title=main.mjs
-import * as __rspack_external_fs from "fs";
 import { __webpack_require__ } from "./runtime.mjs";
 
+import * as __rspack_external_fs from "fs";
 __webpack_require__.add({
 "fs?94de"
 /*!*********************!*\
@@ -40,13 +40,13 @@ exports.g = fs.readFileSync
 
 
 // ./index.js
-const cjs_consumer_0 = __webpack_require__("./cjs-consumer.cjs");
+const cjs_consumer = __webpack_require__("./cjs-consumer.cjs");
 
 
 
 it('should not have duplicate import identifiers from mixed scope-hoisting', () => {
 	expect(__rspack_external_fs).toBeDefined()
-	expect(cjs_consumer_0.g).toBeDefined()
+	expect(cjs_consumer.g).toBeDefined()
 })
 
 
