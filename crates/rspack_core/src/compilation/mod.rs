@@ -54,8 +54,13 @@ use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
+use rspack_util::{
+  fx_hash::{FxDashMap, FxIndexMap},
+  itoa,
+  tracing_preset::TRACING_BENCH_TARGET,
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use tokio::sync::OnceCell;
 use tracing::instrument;
 use ustr::Ustr;
 
@@ -128,6 +133,9 @@ define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
+
+type ModuleRuntimeHashCacheKey = (ModuleIdentifier, Option<String>);
+type ModuleRuntimeHashCacheCell = Arc<OnceCell<Result<RspackHashDigest>>>;
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -274,6 +282,7 @@ pub struct Compilation {
   pub value_cache_versions: ValueCacheVersions,
 
   import_var_map: IdentifierDashMap<RuntimeKeyMap<ImportVarMap>>,
+  module_runtime_hash_cache: FxDashMap<ModuleRuntimeHashCacheKey, ModuleRuntimeHashCacheCell>,
 
   // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
@@ -402,6 +411,7 @@ impl Compilation {
       value_cache_versions: ValueCacheVersions::default(),
 
       import_var_map: IdentifierDashMap::default(),
+      module_runtime_hash_cache: FxDashMap::default(),
 
       module_executor,
       in_finish_make: AtomicBool::new(false),
@@ -605,6 +615,38 @@ impl Compilation {
         import_var
       }
     }
+  }
+
+  pub async fn get_module_runtime_hash(
+    &self,
+    module_identifier: ModuleIdentifier,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Result<RspackHashDigest> {
+    let key = (
+      module_identifier,
+      runtime.map(|r| get_runtime_key(r).clone()),
+    );
+    let cell = self
+      .module_runtime_hash_cache
+      .entry(key)
+      .or_insert_with(|| Arc::new(OnceCell::new()))
+      .clone();
+
+    let digest = cell
+      .get_or_init(|| async move {
+        let module = self
+          .get_module_graph()
+          .module_by_identifier(&module_identifier)
+          .expect("should have module");
+        module.get_runtime_hash(self, runtime).await
+      })
+      .await;
+
+    digest.clone()
+  }
+
+  pub fn clear_module_runtime_hash_cache(&self) {
+    self.module_runtime_hash_cache.clear();
   }
 
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {

@@ -124,22 +124,20 @@ pub async fn create_module_hashes(
   compilation: &mut Compilation,
   modules: IdentifierSet,
 ) -> Result<()> {
-  let mg = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let compilation_ref = &*compilation;
 
   let results = rspack_futures::scope::<_, Result<_>>(|token| {
     for module_identifier in modules {
-      let s = unsafe { token.used((compilation_ref, &mg, chunk_graph, chunk_by_ukey)) };
+      let s = unsafe { token.used((compilation_ref, chunk_graph, chunk_by_ukey)) };
       s.spawn(
-        move |(compilation, mg, chunk_graph, chunk_by_ukey)| async move {
+        move |(compilation, chunk_graph, chunk_by_ukey)| async move {
           let mut hashes = RuntimeSpecMap::new();
-          let module = mg
-            .module_by_identifier(&module_identifier)
-            .expect("should have module");
           for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
-            let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+            let hash = compilation
+              .get_module_runtime_hash(module_identifier, Some(runtime))
+              .await?;
             hashes.set(runtime.clone(), hash);
           }
           Ok((module_identifier, hashes))
@@ -160,5 +158,6 @@ pub async fn create_module_hashes(
       mutations.add(Mutation::ModuleSetHashes { module });
     }
   }
+  compilation.clear_module_runtime_hash_cache();
   Ok(())
 }

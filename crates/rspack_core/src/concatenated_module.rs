@@ -2134,39 +2134,22 @@ impl Module for ConcatenatedModule {
       &compilation.exports_info_artifact,
     );
 
-    let hashes = rspack_futures::scope::<_, Result<_>>(|token| {
-      concatenation_entries.into_iter().for_each(|job| {
-        let s = unsafe { token.used((job, compilation, generation_runtime)) };
-
-        s.spawn(|(job, compilation, generation_runtime)| async move {
-          match job {
-            ConcatenationEntry::Concatenated(e) => {
-              let digest = compilation
-                .get_module_graph()
-                .module_by_identifier(&e.module)
-                .expect("should have module")
-                .get_runtime_hash(compilation, generation_runtime)
-                .await?;
-              Ok(Some(digest.encoded().to_string()))
-            }
-            ConcatenationEntry::External(e) => Ok(
-              ChunkGraph::get_module_id(
-                &compilation.module_ids_artifact,
-                e.module(compilation.get_module_graph()),
-              )
-              .map(|id| id.to_string()),
-            ),
-          }
-        })
-      })
-    })
-    .await
-    .into_iter()
-    .map(|res| res.to_rspack_result())
-    .collect::<Result<Vec<_>>>()?;
-
-    for hash in hashes {
-      (hash?).dyn_hash(&mut hasher);
+    for entry in concatenation_entries {
+      match entry {
+        ConcatenationEntry::Concatenated(e) => {
+          let digest = compilation
+            .get_module_runtime_hash(e.module, generation_runtime)
+            .await?;
+          digest.dyn_hash(&mut hasher);
+        }
+        ConcatenationEntry::External(e) => {
+          ChunkGraph::get_module_id(
+            &compilation.module_ids_artifact,
+            e.module(compilation.get_module_graph()),
+          )
+          .dyn_hash(&mut hasher);
+        }
+      }
     }
 
     module_update_hash(self, &mut hasher, compilation, generation_runtime);
