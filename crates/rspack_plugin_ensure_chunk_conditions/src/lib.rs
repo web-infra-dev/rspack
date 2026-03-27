@@ -1,8 +1,21 @@
-use rspack_core::{Compilation, CompilationOptimizeChunks, Logger, Plugin};
+use rspack_core::{ChunkGroupUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tracing::info;
+
+type ParentChunkGroupsCache = HashMap<ChunkGroupUkey, Vec<ChunkGroupUkey>>;
+
+fn get_parent_chunk_groups(
+  chunk_group_key: ChunkGroupUkey,
+  chunk_group: &rspack_core::ChunkGroup,
+  parent_chunk_groups_cache: &mut ParentChunkGroupsCache,
+) -> Vec<ChunkGroupUkey> {
+  parent_chunk_groups_cache
+    .entry(chunk_group_key)
+    .or_insert_with(|| chunk_group.parents_iterable().copied().collect())
+    .clone()
+}
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -40,6 +53,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     });
 
   let mut target_module_chunks = HashMap::default();
+  let mut parent_chunk_groups_cache = ParentChunkGroupsCache::default();
   let mut visited_chunk_group_keys = HashSet::default();
 
   // The following algorithm has high risk of performance problem, cause it's complexity is N(adjust_chunk_number) * N(adjust_module_number) * N(chunk_group_number) * N(chunk_in_chunk_group_number)
@@ -51,6 +65,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   for (module_id, chunk_keys) in &source_module_chunks {
     adjust_module_size += 1;
     let mut target_chunks = HashSet::default();
+    let module = compilation
+      .get_module_graph()
+      .module_by_identifier(module_id)
+      .expect("should have module");
     for chunk_key in chunk_keys {
       adjust_chunk_size += 1;
       if let Some(chunk) = compilation
@@ -58,26 +76,21 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         .chunk_by_ukey
         .get(chunk_key)
       {
-        let mut chunk_group_keys = chunk.groups().iter().collect::<Vec<_>>();
+        let mut chunk_group_keys = chunk.groups().iter().copied().collect::<Vec<_>>();
         visited_chunk_group_keys.clear();
         'out: while let Some(chunk_group_key) = chunk_group_keys.pop() {
-          if visited_chunk_group_keys.contains(chunk_group_key) {
+          if !visited_chunk_group_keys.insert(chunk_group_key) {
             continue;
           }
-          visited_chunk_group_keys.insert(chunk_group_key);
           if let Some(chunk_group) = compilation
             .build_chunk_graph_artifact
             .chunk_group_by_ukey
-            .get(chunk_group_key)
+            .get(&chunk_group_key)
           {
             adjust_chunk_group_size += 1;
             for chunk in &chunk_group.chunks {
               adjust_chunk_in_chunk_group_size += 1;
-              if let Some(module) = compilation
-                .get_module_graph()
-                .module_by_identifier(module_id)
-                && matches!(module.chunk_condition(chunk, compilation), Some(true))
-              {
+              if matches!(module.chunk_condition(chunk, compilation), Some(true)) {
                 target_chunks.insert(*chunk);
                 continue 'out;
               }
@@ -88,9 +101,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
                 module_id
               ));
             }
-            let parent_chunks = chunk_group.parents_iterable();
-
-            chunk_group_keys.extend(parent_chunks);
+            chunk_group_keys.extend(get_parent_chunk_groups(
+              chunk_group_key,
+              chunk_group,
+              &mut parent_chunk_groups_cache,
+            ));
           }
         }
       }
