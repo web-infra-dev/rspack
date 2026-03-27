@@ -417,6 +417,12 @@ pub async fn create_hash(
       if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
         content_hashes
           .iter()
+          .filter(|(source_type, _)| {
+            matches!(
+              source_type,
+              SourceType::Css | SourceType::CssImport | SourceType::CssUrl
+            )
+          })
           .sorted_unstable_by_key(|(source_type, _)| source_type_sort_key(source_type))
           .for_each(|(source_type, content_hash)| {
             source_type.hash(&mut compilation_hasher);
