@@ -1,6 +1,11 @@
 #![allow(clippy::unwrap_used)]
 
-use std::{cell::RefCell, collections::HashMap, hash::Hash, sync::Arc};
+use std::{
+  cell::{Cell, RefCell},
+  collections::HashMap,
+  hash::Hash,
+  sync::Arc,
+};
 
 use criterion::{BatchSize, black_box, criterion_group};
 use rspack::builder::Builder as _;
@@ -65,14 +70,18 @@ fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Run
   });
 
   assert_no_compilation_errors(&compiler.compilation, "flag_dependency_exports setup");
-  compiler.compilation.exports_info_artifact.checkpoint();
-
   let compiler = RefCell::new(compiler);
+  let should_reset = Cell::new(false);
   c.bench_function("rust@flag_dependency_exports", |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
-        compiler.compilation.exports_info_artifact.reset();
+        if should_reset.get() {
+          compiler.compilation.exports_info_artifact.reset();
+        } else {
+          should_reset.set(true);
+        }
+        compiler.compilation.exports_info_artifact.checkpoint();
         compiler.compilation.async_modules_artifact = AsyncModulesArtifact::default().into();
       },
       |_| {
@@ -107,24 +116,28 @@ fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runti
   });
 
   assert_no_compilation_errors(&compiler.compilation, "flag_dependency_usage setup");
-  compiler
-    .compilation
-    .build_module_graph_artifact
-    .get_module_graph_mut()
-    .checkpoint();
-  compiler.compilation.exports_info_artifact.checkpoint();
-
   let compiler = RefCell::new(compiler);
+  let should_reset = Cell::new(false);
   c.bench_function("rust@flag_dependency_usage", |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
+        if should_reset.get() {
+          compiler
+            .compilation
+            .build_module_graph_artifact
+            .get_module_graph_mut()
+            .reset();
+          compiler.compilation.exports_info_artifact.reset();
+        } else {
+          should_reset.set(true);
+        }
         compiler
           .compilation
           .build_module_graph_artifact
           .get_module_graph_mut()
-          .reset();
-        compiler.compilation.exports_info_artifact.reset();
+          .checkpoint();
+        compiler.compilation.exports_info_artifact.checkpoint();
         compiler.compilation.side_effects_optimize_artifact =
           SideEffectsOptimizeArtifact::default().into();
       },
@@ -330,15 +343,25 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
     .chunk_by_ukey = initial_chunk_by_ukey.clone();
 
   let compiler = RefCell::new(compiler);
+  let should_reset = Cell::new(false);
   c.bench_function("rust@create_concatenate_module", |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
+        if should_reset.get() {
+          compiler
+            .compilation
+            .build_module_graph_artifact
+            .get_module_graph_mut()
+            .reset();
+        } else {
+          should_reset.set(true);
+        }
         compiler
           .compilation
           .build_module_graph_artifact
           .get_module_graph_mut()
-          .reset();
+          .checkpoint();
         compiler.compilation.build_chunk_graph_artifact.chunk_graph = initial_chunk_graph.clone();
         compiler
           .compilation
@@ -411,7 +434,7 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
     .cache(CacheOptions::Disabled)
     .entry("main", "/src/dynamic-0.js")
     .input_filesystem(fs.clone())
-    .output_filesystem(fs.clone())
+    .output_filesystem(fs)
     .optimization(
       Optimization::builder()
         .provided_exports(true)
@@ -432,7 +455,7 @@ fn create_concatenate_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
     .cache(CacheOptions::Disabled)
     .entry("main", "/src/index.js")
     .input_filesystem(fs.clone())
-    .output_filesystem(fs.clone())
+    .output_filesystem(fs)
     .optimization(
       Optimization::builder()
         .provided_exports(true)
