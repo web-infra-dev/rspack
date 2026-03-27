@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: nscloud-ubuntu-24.04-amd64-1x2
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
