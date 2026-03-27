@@ -3364,6 +3364,54 @@ mod tests {
   }
 
   #[test]
+  fn module_external_namespace_init_fragment_prefers_decl_before_hoisted() {
+    let decl_namespace_import = Atom::from("__rspack_external_decl");
+    let hoisted_namespace_import = Atom::from("__rspack_external_hoisted");
+    let decl_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_decl from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let hoisted_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_hoisted from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let mut chunk_used_names = FxHashSet::default();
+    let mut namespace_imports = FxHashMap::default();
+
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &decl_init_fragments,
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &hoisted_init_fragments,
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+
+    assert_eq!(chunk_used_names.len(), 1);
+    assert!(chunk_used_names.contains(&decl_namespace_import));
+    assert!(!chunk_used_names.contains(&hoisted_namespace_import));
+    assert_eq!(
+      namespace_imports.get(&RawImportSource::Source((
+        "../compiled/webpack-sources/index.js".into(),
+        None,
+      ))),
+      Some(&decl_namespace_import)
+    );
+  }
+
+  #[test]
   fn module_external_namespace_init_fragment_claims_chunk_top_level_name() {
     let module = ModuleIdentifier::from("test_module");
     let namespace_import = Atom::from("index_js_namespaceObject");
