@@ -43,7 +43,9 @@ impl ImportMetaPlugin {
       "({}[{}] === {})",
       parser.parser_runtime_requirements.module_cache,
       parser.parser_runtime_requirements.entry_module_id,
-      parser.parser_runtime_requirements.module
+      parser
+        .parser_runtime_requirements
+        .module_argument(&parser.build_info.module_argument)
     )
   }
 

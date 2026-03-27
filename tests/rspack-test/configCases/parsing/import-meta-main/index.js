@@ -1,4 +1,4 @@
-import { main } from "./module.js";
+import { main, module } from "./module.js";
 
 it("should handle import.meta.main", async () => {
 	expect(import.meta.main).toBe(true);
@@ -13,4 +13,5 @@ it("should handle import.meta.main", async () => {
 	expect(myMain).toBe(true);
 
 	expect(main).toBe(false);
+	expect(module).toBe(0);
 });
