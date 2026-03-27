@@ -13,6 +13,7 @@ version.workspace       = true
 
 [lib]
 crate-type = ["cdylib"]
+test = false
 
 
 [package.metadata.cargo-shear]

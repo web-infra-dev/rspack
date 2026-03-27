@@ -26,3 +26,7 @@ ignored = ["tracing"]
 
 [lints]
 workspace = true
+
+[lib]
+test = false
+doctest = false

@@ -34,3 +34,7 @@ xxhash-rust             = { workspace = true, features = ["const_xxh64"] }
 
 [lints]
 workspace = true
+
+[lib]
+test = false
+doctest = false

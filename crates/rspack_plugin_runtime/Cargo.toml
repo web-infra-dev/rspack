@@ -33,3 +33,6 @@ ignored = ["tracing", "tokio"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
