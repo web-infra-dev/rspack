@@ -34,7 +34,8 @@ impl ImportMetaPlugin {
     "5".to_string()
   }
 
-  fn import_meta_main_expr(&self, parser: &mut JavascriptParser) -> String {
+  fn import_meta_main(&self, parser: &mut JavascriptParser) -> String {
+    parser.build_info.module_concatenation_bailout = Some("import.meta.main".into());
     parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
     )));
@@ -295,7 +296,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           } else if prop.id == "webpack" {
             content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else if prop.id == "main" {
-            content.push(format!("main: {}", self.import_meta_main_expr(parser)));
+            content.push(format!("main: {}", self.import_meta_main(parser)));
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
@@ -359,7 +360,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       Some(true)
     } else if for_name == expr_name::IMPORT_META_MAIN {
       // import.meta.main
-      let content = self.import_meta_main_expr(parser);
+      let content = self.import_meta_main(parser);
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         member_expr.span().into(),
         content.into(),
