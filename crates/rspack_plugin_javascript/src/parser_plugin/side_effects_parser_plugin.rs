@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
 };
@@ -803,7 +805,7 @@ fn is_pure_call_expr(
       ExplicitSideEffectsFreeCallee::NotMarked => {}
     }
 
-    if let Some(callees) = callees.as_deref_mut() {
+    if let Some(callees) = callees {
       callees.push((ident.sym.clone(), callee.span()));
       return is_pure_call_args(
         parser,
@@ -928,6 +930,7 @@ fn try_extract_deferred_check(
 
 fn is_pure_new_expr(
   parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
   expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
@@ -946,6 +949,7 @@ fn is_pure_new_expr(
   } else {
     are_pure_args(
       parser,
+      analyze_side_effects_free,
       new_expr.args.as_deref().unwrap_or(&[]),
       unresolved_ctxt,
       comments,
@@ -965,6 +969,7 @@ fn has_pure_comment(comments: Option<&dyn Comments>, pos: BytePos) -> bool {
 
 fn are_pure_args<'a>(
   parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
   args: &'a [ExprOrSpread],
   unresolved_ctxt: SyntaxContext,
   comments: Option<&'a dyn Comments>,
@@ -973,7 +978,14 @@ fn are_pure_args<'a>(
     if arg.spread.is_some() {
       false
     } else {
-      is_pure_expression(parser, &arg.expr, unresolved_ctxt, comments)
+      is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        &arg.expr,
+        unresolved_ctxt,
+        comments,
+        None,
+      )
     }
   })
 }
@@ -1476,7 +1488,13 @@ pub fn is_pure_expression<'a>(
         comments,
         callees,
       ),
-      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments),
+      Expr::New(_) => is_pure_new_expr(
+        parser,
+        analyze_side_effects_free,
+        expr,
+        unresolved_ctxt,
+        comments,
+      ),
       Expr::Paren(_) => unreachable!(),
       Expr::Seq(seq_expr) => {
         for expr in &seq_expr.exprs {

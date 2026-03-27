@@ -10,7 +10,8 @@ use rspack_core::{
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, SourceType,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -104,6 +105,12 @@ pub struct RuntimeIdentifierCache<T> {
   runtime_map: HashMap<RuntimeSpec, IdentifierMap<T>>,
 }
 
+struct ModuleGraphArtifacts<'a> {
+  mg_cache: &'a ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &'a SideEffectsStateArtifact,
+  exports_info_artifact: &'a ExportsInfoArtifact,
+}
+
 impl<T> RuntimeIdentifierCache<T> {
   fn insert(&mut self, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, value: T) {
     if let Some(runtime) = runtime {
@@ -178,10 +185,9 @@ impl ModuleConcatenationPlugin {
       .map(|reason| reason.clone())
   }
 
-  pub fn get_imports(
+  fn get_imports(
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
+    artifacts: &ModuleGraphArtifacts,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
@@ -212,11 +218,23 @@ impl ModuleConcatenationPlugin {
           false
         } else {
           // can't determine, need to check
-          con.is_target_active(mg, Some(runtime), mg_cache, exports_info_artifact)
+          con.is_target_active(
+            mg,
+            Some(runtime),
+            artifacts.mg_cache,
+            artifacts.side_effects_state_artifact,
+            artifacts.exports_info_artifact,
+          )
         }
       } else {
         // no runtime, need to check
-        con.is_target_active(mg, None, mg_cache, exports_info_artifact)
+        con.is_target_active(
+          mg,
+          None,
+          artifacts.mg_cache,
+          artifacts.side_effects_state_artifact,
+          artifacts.exports_info_artifact,
+        )
       };
 
       if !is_target_active {
@@ -269,6 +287,16 @@ impl ModuleConcatenationPlugin {
     let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
+    let side_effects_state_artifact = compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact
+      .read()
+      .expect("should lock side effects state artifact");
+    let module_graph_artifacts = ModuleGraphArtifacts {
+      mg_cache: module_graph_cache,
+      side_effects_state_artifact: &side_effects_state_artifact,
+      exports_info_artifact: &compilation.exports_info_artifact,
+    };
 
     let incoming_modules = if let Some(incomings) = success_cache.get(module_id, runtime) {
       statistics.cache_hit += 1;
@@ -347,8 +375,7 @@ impl ModuleConcatenationPlugin {
               active_incomings,
               cached_module_runtime,
               module_graph,
-              module_graph_cache,
-              &compilation.exports_info_artifact,
+              &module_graph_artifacts,
             )
           });
 
@@ -416,8 +443,7 @@ impl ModuleConcatenationPlugin {
               active_incomings,
               cached_module_runtime,
               module_graph,
-              module_graph_cache,
-              &compilation.exports_info_artifact,
+              &module_graph_artifacts,
             )
           })
           .collect();
@@ -534,6 +560,11 @@ impl ModuleConcatenationPlugin {
                 module_graph,
                 runtime,
                 module_graph_cache,
+                &compilation
+                  .build_module_graph_artifact
+                  .side_effects_state_artifact
+                  .read()
+                  .expect("should lock side effects state artifact"),
                 &compilation.exports_info_artifact,
               )
             });
@@ -635,8 +666,7 @@ impl ModuleConcatenationPlugin {
 
     for imp in Self::get_imports(
       module_graph,
-      module_graph_cache,
-      &compilation.exports_info_artifact,
+      &module_graph_artifacts,
       *module_id,
       runtime,
       imports_cache,
@@ -700,6 +730,11 @@ impl ModuleConcatenationPlugin {
       side_effect_connection_state: box_module.get_side_effects_connection_state(
         module_graph,
         &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact
+          .read()
+          .expect("should lock side effects state artifact"),
         &mut IdentifierSet::default(),
         &mut IdentifierMap::default(),
       ),
@@ -1127,6 +1162,11 @@ impl ModuleConcatenationPlugin {
                   module_graph,
                   Some(&runtime),
                   module_graph_cache,
+                  &compilation
+                    .build_module_graph_artifact
+                    .side_effects_state_artifact
+                    .read()
+                    .expect("should lock side effects state artifact"),
                   &compilation.exports_info_artifact,
                 ),
               ),
@@ -1169,6 +1209,11 @@ impl ModuleConcatenationPlugin {
               module_graph,
               Some(&runtime),
               module_graph_cache,
+              &compilation
+                .build_module_graph_artifact
+                .side_effects_state_artifact
+                .read()
+                .expect("should lock side effects state artifact"),
               &compilation.exports_info_artifact,
             ),
           );
@@ -1223,16 +1268,27 @@ impl ModuleConcatenationPlugin {
       let mut success_cache = RuntimeIdentifierCache::default();
       let mut candidates_visited = IdentifierSet::default();
       let mut candidates = VecDeque::new();
+      let imports = {
+        let side_effects_state_artifact = compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact
+          .read()
+          .expect("should lock side effects state artifact");
+        let module_graph_artifacts = ModuleGraphArtifacts {
+          mg_cache: module_graph_cache,
+          side_effects_state_artifact: &side_effects_state_artifact,
+          exports_info_artifact: &compilation.exports_info_artifact,
+        };
 
-      let imports = Self::get_imports(
-        module_graph,
-        module_graph_cache,
-        &compilation.exports_info_artifact,
-        *current_root,
-        active_runtime.as_ref(),
-        &mut imports_cache,
-        &modules_without_runtime_cache,
-      );
+        Self::get_imports(
+          module_graph,
+          &module_graph_artifacts,
+          *current_root,
+          active_runtime.as_ref(),
+          &mut imports_cache,
+          &modules_without_runtime_cache,
+        )
+      };
       for import in imports {
         candidates.push_back(import);
       }
@@ -1542,6 +1598,11 @@ async fn create_concatenated_module(
     side_effect_connection_state: box_module.get_side_effects_connection_state(
       module_graph,
       &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact
+        .read()
+        .expect("should lock side effects state artifact"),
       &mut IdentifierSet::default(),
       &mut IdentifierMap::default(),
     ),
@@ -1767,8 +1828,7 @@ fn is_connection_active_in_runtime(
   cached_active_incomings: &HashMap<DependencyId, bool>,
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
-  mg_cache: &ModuleGraphCacheArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
+  artifacts: &ModuleGraphArtifacts,
 ) -> bool {
   if let (Some(cached_active), Some(runtime)) = (
     cached_active_incomings.get(&connection.dependency_id),
@@ -1787,5 +1847,11 @@ fn is_connection_active_in_runtime(
     }
   }
 
-  connection.is_active(mg, runtime, mg_cache, exports_info_artifact)
+  connection.is_active(
+    mg,
+    runtime,
+    artifacts.mg_cache,
+    artifacts.side_effects_state_artifact,
+    artifacts.exports_info_artifact,
+  )
 }

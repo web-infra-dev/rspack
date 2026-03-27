@@ -12,12 +12,12 @@ use rspack_core::{
   ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
   ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, collect_ident, escape_name_atom_ref,
-  find_new_name, find_target, get_cached_readable_identifier, get_js_chunk_filename_template,
-  get_module_directives, get_module_hashbang, property_access, property_name,
-  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
-  to_normal_comment,
+  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
+  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
+  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -746,6 +746,11 @@ impl EsmLibraryPlugin {
             *module_info_id,
             module_graph,
             &compilation.module_graph_cache_artifact,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact
+              .read()
+              .expect("should lock side effects state artifact"),
             &compilation.exports_info_artifact,
             &mut namespace_re_export_star_cache,
           )
@@ -1644,6 +1649,7 @@ var {} = {{}};
     module_id: ModuleIdentifier,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     collect_own_exports: bool,
     cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
@@ -1687,6 +1693,7 @@ var {} = {{}};
         module_graph,
         None,
         module_graph_cache,
+        side_effects_state_artifact,
         exports_info_artifact,
       ) {
         continue;
@@ -1709,6 +1716,7 @@ var {} = {{}};
             *ref_module,
             module_graph,
             module_graph_cache,
+            side_effects_state_artifact,
             exports_info_artifact,
             true,
             cache,
@@ -1728,6 +1736,7 @@ var {} = {{}};
     module_id: ModuleIdentifier,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
   ) -> Option<ModuleIdentifier> {
@@ -1736,6 +1745,7 @@ var {} = {{}};
       module_id,
       module_graph,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
       false,
       cache,
@@ -1866,6 +1876,11 @@ var {} = {{}};
       entry_module,
       module_graph,
       &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact
+        .read()
+        .expect("should lock side effects state artifact"),
       &compilation.exports_info_artifact,
       // When filter_unused is true, own exports are already collected and filtered
       // by usage above — only collect `export *` targets here.
@@ -2501,6 +2516,11 @@ var {} = {{}};
                 module_graph,
                 None,
                 &compilation.module_graph_cache_artifact,
+                &compilation
+                  .build_module_graph_artifact
+                  .side_effects_state_artifact
+                  .read()
+                  .expect("should lock side effects state artifact"),
                 &compilation.exports_info_artifact,
               )
             {
@@ -2513,6 +2533,11 @@ var {} = {{}};
             module_graph,
             None,
             &compilation.module_graph_cache_artifact,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact
+              .read()
+              .expect("should lock side effects state artifact"),
             &compilation.exports_info_artifact,
           ) {
             continue;
@@ -2695,6 +2720,11 @@ var {} = {{}};
             module_graph,
             None,
             &compilation.module_graph_cache_artifact,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact
+              .read()
+              .expect("should lock side effects state artifact"),
             &compilation.exports_info_artifact,
           ) {
             continue;

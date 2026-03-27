@@ -23,6 +23,7 @@ fn assign_named_chunk_ids(
   context: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &rspack_core::SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
   delimiter: &str,
   used_ids: &mut ChunkIdMap<ChunkUkey>,
@@ -40,6 +41,7 @@ fn assign_named_chunk_ids(
         delimiter,
         module_graph,
         module_graph_cache,
+        side_effects_state_artifact,
         named_chunk_ids_artifact,
         exports_info_artifact,
       );
@@ -89,6 +91,7 @@ fn assign_named_chunk_ids(
         delimiter,
         module_graph,
         module_graph_cache,
+        side_effects_state_artifact,
         named_chunk_ids_artifact,
         exports_info_artifact,
       );
@@ -278,6 +281,11 @@ async fn chunk_ids(
     context,
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact
+      .read()
+      .expect("should lock side effects state artifact"),
     &compilation.exports_info_artifact,
     &self.delimiter,
     &mut used_ids,

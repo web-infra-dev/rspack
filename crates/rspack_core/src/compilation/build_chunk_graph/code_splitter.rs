@@ -23,7 +23,7 @@ use crate::{
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
   DependencyId, DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact,
   GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeSpec, SyntheticDependencyLocation, assign_depths,
+  RuntimeSpec, SideEffectsStateArtifact, SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
@@ -296,6 +296,7 @@ fn get_active_state_of_connections(
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> ConnectionState {
   let mut iter = connections.iter();
@@ -307,6 +308,7 @@ fn get_active_state_of_connections(
       module_graph,
       runtime,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     );
   if merged.is_true() {
@@ -321,6 +323,7 @@ fn get_active_state_of_connections(
           module_graph,
           runtime,
           module_graph_cache,
+          side_effects_state_artifact,
           exports_info_artifact,
         );
     if merged.is_true() {
@@ -1976,6 +1979,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let module_graph = compilation.get_module_graph();
         let module_graph_cache = &compilation.module_graph_cache_artifact;
         let exports_info_artifact = &compilation.exports_info_artifact;
+        let side_effects_state_artifact = compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact
+          .read()
+          .expect("should lock side effects state artifact");
 
         let mut queue_actions = Vec::new();
         let mut modules_to_skip = Vec::new();
@@ -1986,6 +1994,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             Some(&runtime),
             module_graph,
             module_graph_cache,
+            &side_effects_state_artifact,
             exports_info_artifact,
           );
           if active_state.is_false() {
@@ -2458,6 +2467,11 @@ fn extract_block_modules(
       runtime.as_deref(),
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact
+        .read()
+        .expect("should lock side effects state artifact"),
       &compilation.exports_info_artifact,
     );
     modules.push((*module_identifier, active_state, connections.clone()));

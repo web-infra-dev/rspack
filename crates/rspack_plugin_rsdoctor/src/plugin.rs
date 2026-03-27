@@ -409,6 +409,11 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     &module_ukey_map,
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact
+      .read()
+      .expect("should lock side effects state artifact"),
     &compilation.exports_info_artifact,
     &module_ukey_to_info,
   );

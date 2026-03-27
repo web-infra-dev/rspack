@@ -4,7 +4,8 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, ConnectionState, Dependency,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeCondition, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports,
+  RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedByExports,
 };
 use rspack_util::ext::DynHash;
 
@@ -61,6 +62,7 @@ impl Dependency for PureExpressionDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {

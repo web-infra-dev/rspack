@@ -13,6 +13,7 @@ use rspack_core::{
   ParserOptions, Plugin, ResolveContext, ResolveOptionsWithDependencyType, ResolveResult,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
+  module_declared_side_effect_free,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -397,16 +398,28 @@ async fn optimize_dependencies(
       .collect()
   };
 
+  let mut updated_mocked_module_ids = IdentifierSet::default();
   let module_graph = build_module_graph_artifact.get_module_graph_mut();
   for module_id in mocked_module_ids {
     if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
-      && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+      && module_declared_side_effect_free(module.as_ref()) == Some(true)
     {
       module.set_factory_meta(FactoryMeta {
         side_effect_free: Some(false),
       });
+      updated_mocked_module_ids.insert(module_id);
     }
   }
+
+  if updated_mocked_module_ids.is_empty() {
+    return Ok(None);
+  }
+
+  build_module_graph_artifact
+    .side_effects_state_artifact
+    .write()
+    .expect("should lock side effects state artifact")
+    .bump_version();
 
   Ok(None)
 }

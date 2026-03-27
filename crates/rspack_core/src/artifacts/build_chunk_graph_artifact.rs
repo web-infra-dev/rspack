@@ -103,12 +103,18 @@ impl BuildChunkGraphArtifact {
           });
 
         'outer: for (m, connections) in active_modules {
+          let side_effects_state_artifact = this_compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact
+            .read()
+            .expect("should lock side effects state artifact");
           for conn in connections {
             if conn
               .active_state(
                 module_graph,
                 None,
                 module_graph_cache,
+                &side_effects_state_artifact,
                 &this_compilation.exports_info_artifact,
               )
               .is_not_false()

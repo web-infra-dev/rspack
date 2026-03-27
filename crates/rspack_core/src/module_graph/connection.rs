@@ -4,7 +4,7 @@ use rspack_cacheable::cacheable;
 
 use crate::{
   DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeSpec,
+  RuntimeSpec, SideEffectsStateArtifact,
 };
 
 #[cacheable]
@@ -63,13 +63,20 @@ impl ModuleGraphConnection {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     if !self.conditional {
       return self.active;
     }
     module_graph
-      .get_condition_state(self, runtime, module_graph_cache, exports_info_artifact)
+      .get_condition_state(
+        self,
+        runtime,
+        module_graph_cache,
+        side_effects_state_artifact,
+        exports_info_artifact,
+      )
       .is_not_false()
   }
 
@@ -78,12 +85,19 @@ impl ModuleGraphConnection {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     if !self.conditional {
       return self.active;
     }
-    module_graph.is_connection_active(self, runtime, module_graph_cache, exports_info_artifact)
+    module_graph.is_connection_active(
+      self,
+      runtime,
+      module_graph_cache,
+      side_effects_state_artifact,
+      exports_info_artifact,
+    )
   }
 
   pub fn active_state(
@@ -91,13 +105,20 @@ impl ModuleGraphConnection {
     module_graph: &ModuleGraph,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     if !self.conditional {
       return ConnectionState::Active(self.active);
     }
 
-    module_graph.get_condition_state(self, runtime, module_graph_cache, exports_info_artifact)
+    module_graph.get_condition_state(
+      self,
+      runtime,
+      module_graph_cache,
+      side_effects_state_artifact,
+      exports_info_artifact,
+    )
   }
 
   pub fn module_identifier(&self) -> &ModuleIdentifier {

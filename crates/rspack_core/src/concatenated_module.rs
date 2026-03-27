@@ -48,9 +48,9 @@ use crate::{
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
-  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState,
-  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
-  get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime,
+  find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES,
@@ -968,6 +968,11 @@ impl Module for ConcatenatedModule {
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       runtime,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact
+        .read()
+        .expect("should lock side effects state artifact"),
       &compilation.imported_by_defer_modules_artifact,
       &compilation.exports_info_artifact,
     );
@@ -2018,6 +2023,11 @@ impl Module for ConcatenatedModule {
       runtime,
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact
+        .read()
+        .expect("should lock side effects state artifact"),
       &compilation.exports_info_artifact,
     );
 
@@ -2104,6 +2114,7 @@ impl Module for ConcatenatedModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -2125,6 +2136,12 @@ impl Diagnosable for ConcatenatedModule {
   }
 }
 
+struct ConcatenationArtifacts<'a> {
+  mg_cache: &'a ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &'a SideEffectsStateArtifact,
+  exports_info_artifact: &'a ExportsInfoArtifact,
+}
+
 impl ConcatenatedModule {
   // TODO: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
@@ -2132,14 +2149,20 @@ impl ConcatenatedModule {
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     imported_by_defer_modules_artifact: &ImportedByDeferModulesArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> (
     Vec<(ModuleIdentifier, MergedConcatenatedImport)>,
     IdentifierIndexMap<ModuleInfo>,
   ) {
-    let ordered_concatenation_list =
-      self.create_concatenation_list(runtime, mg, mg_cache, exports_info_artifact);
+    let ordered_concatenation_list = self.create_concatenation_list(
+      runtime,
+      mg,
+      mg_cache,
+      side_effects_state_artifact,
+      exports_info_artifact,
+    );
     let mut list = vec![];
     let mut map = IdentifierIndexMap::default();
     for (i, concatenation_entry) in ordered_concatenation_list.into_iter().enumerate() {
@@ -2179,8 +2202,14 @@ impl ConcatenatedModule {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ConcatenationEntry> {
+    let artifacts = ConcatenationArtifacts {
+      mg_cache,
+      side_effects_state_artifact,
+      exports_info_artifact,
+    };
     mg_cache.cached_concatenated_module_entries(
       (self.id, runtime.map(|r| get_runtime_key(r).clone())),
       || {
@@ -2200,14 +2229,8 @@ impl ConcatenatedModule {
         let imports_map = module_set
           .par_iter()
           .map(|module| {
-            let imports = self.get_concatenated_imports(
-              module,
-              &root_module,
-              runtime,
-              mg,
-              mg_cache,
-              exports_info_artifact,
-            );
+            let imports =
+              self.get_concatenated_imports(module, &root_module, runtime, mg, &artifacts);
             (*module, imports)
           })
           .collect::<IdentifierMap<_>>();
@@ -2351,8 +2374,7 @@ impl ConcatenatedModule {
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
+    artifacts: &ConcatenationArtifacts,
   ) -> Vec<ConcatenatedImport> {
     #[derive(Debug)]
     struct ConcatenatedModuleImportInfo<'a> {
@@ -2393,8 +2415,9 @@ impl ConcatenatedModule {
           && connection.is_target_active(
             mg,
             self.runtime.as_ref(),
-            mg_cache,
-            exports_info_artifact,
+            artifacts.mg_cache,
+            artifacts.side_effects_state_artifact,
+            artifacts.exports_info_artifact,
           ))
         {
           return None;
@@ -2427,9 +2450,13 @@ impl ConcatenatedModule {
     let mut references_map: IdentifierIndexMap<ConcatenatedImport> = IdentifierIndexMap::default();
     for reference in references {
       let runtime_condition = filter_runtime(runtime, |r| {
-        reference
-          .connection
-          .is_target_active(mg, r, mg_cache, exports_info_artifact)
+        reference.connection.is_target_active(
+          mg,
+          r,
+          artifacts.mg_cache,
+          artifacts.side_effects_state_artifact,
+          artifacts.exports_info_artifact,
+        )
       });
       if matches!(runtime_condition, RuntimeCondition::Boolean(false)) {
         continue;

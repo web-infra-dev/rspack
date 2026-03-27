@@ -31,7 +31,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   mem,
   sync::{
-    Arc, RwLock,
+    Arc,
     atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
@@ -74,8 +74,7 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
-  StealCell, ValueCacheVersions,
+  SideEffectsOptimizeArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -231,8 +230,6 @@ pub struct Compilation {
   pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
-  // overlay state computed during finish_modules for deferred side-effects analysis
-  pub side_effects_state_artifact: RwLock<SideEffectsStateArtifact>,
   // artifact for module_ids
   pub module_ids_artifact: StealCell<ModuleIdsArtifact>,
   // artifact for named_chunk_ids
@@ -369,7 +366,6 @@ impl Compilation {
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
       exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
-      side_effects_state_artifact: RwLock::new(Default::default()),
       module_ids_artifact: StealCell::new(Default::default()),
       named_chunk_ids_artifact: StealCell::new(Default::default()),
       code_generation_results: Default::default(),

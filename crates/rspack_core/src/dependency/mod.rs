@@ -46,7 +46,8 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
   ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, create_exports_object_referenced,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
+  create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone)]
@@ -137,6 +138,7 @@ pub trait DependencyConditionFn: Sync + Send {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
 
@@ -146,6 +148,7 @@ pub trait DependencyConditionFn: Sync + Send {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     self
@@ -154,6 +157,7 @@ pub trait DependencyConditionFn: Sync + Send {
         runtime,
         module_graph,
         module_graph_cache,
+        side_effects_state_artifact,
         exports_info_artifact,
       )
       .is_true()
@@ -174,6 +178,7 @@ impl DependencyCondition {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     self.0.get_connection_state(
@@ -181,6 +186,7 @@ impl DependencyCondition {
       runtime,
       mg,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
   }
@@ -191,6 +197,7 @@ impl DependencyCondition {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     self.0.is_connection_active(
@@ -198,6 +205,7 @@ impl DependencyCondition {
       runtime,
       mg,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
   }

@@ -72,6 +72,11 @@ async fn chunk_ids(
           chunk_graph,
           module_graph,
           module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact
+            .read()
+            .expect("should lock side effects state artifact"),
           &context,
           &compilation.exports_info_artifact,
         ),

@@ -220,12 +220,14 @@ fn collect_dependencies_diagnostics(
 
 fn apply_side_effects_state_artifact(compilation: &mut Compilation) {
   let side_effects_states: Vec<_> = {
-    let mut side_effects_state_artifact = compilation
+    let side_effects_state_artifact = compilation
+      .build_module_graph_artifact
       .side_effects_state_artifact
-      .write()
+      .read()
       .expect("should lock side effects state artifact");
-    std::mem::take(&mut *side_effects_state_artifact)
-      .into_iter()
+    side_effects_state_artifact
+      .iter()
+      .map(|(module_id, state)| (*module_id, state.clone()))
       .collect()
   };
 
@@ -235,10 +237,9 @@ fn apply_side_effects_state_artifact(compilation: &mut Compilation) {
 
   let module_graph = compilation.get_module_graph_mut();
   for (module_id, state) in side_effects_states {
-    let Some(module) = module_graph.module_by_identifier_mut(&module_id) else {
+    if module_graph.module_by_identifier(&module_id).is_none() {
       continue;
-    };
-    module.build_meta_mut().side_effect_free = Some(state.side_effect_free);
+    }
 
     let bailouts = module_graph.get_optimization_bailout_mut(&module_id);
     bailouts.retain(|item| {

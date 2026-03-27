@@ -1,4 +1,4 @@
-use std::hash::BuildHasherDefault;
+use std::{hash::BuildHasherDefault, sync::RwLock};
 
 use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
@@ -6,6 +6,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
+  SideEffectsStateArtifact,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
@@ -49,6 +50,7 @@ pub struct BuildModuleGraphArtifact {
   pub state: BuildModuleGraphArtifactState,
   /// Module graph data
   pub module_graph: ModuleGraph,
+  pub side_effects_state_artifact: RwLock<SideEffectsStateArtifact>,
   pub module_to_lazy_make: ModuleToLazyMake,
 
   // statistical data, which can be regenerated from module_graph_partial and used as index.
@@ -77,6 +79,7 @@ impl BuildModuleGraphArtifact {
       issuer_update_modules: Default::default(),
       state: BuildModuleGraphArtifactState::Uninitialized,
       module_graph: Default::default(),
+      side_effects_state_artifact: RwLock::new(Default::default()),
       module_to_lazy_make: Default::default(),
       make_failed_module: Default::default(),
       make_failed_dependencies: Default::default(),
@@ -225,6 +228,7 @@ impl BuildModuleGraphArtifact {
   pub fn reset_temporary_data(&mut self) {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
+    self.side_effects_state_artifact = RwLock::new(Default::default());
 
     self.file_dependencies.reset_incremental_info();
     self.context_dependencies.reset_incremental_info();
@@ -246,6 +250,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
       new.get_module_graph_mut().reset();
+      new.side_effects_state_artifact = RwLock::new(Default::default());
     }
   }
 }

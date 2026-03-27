@@ -5,7 +5,7 @@ use rspack_core::{
   CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest, Filename,
   LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
   LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SourceType,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -134,10 +134,16 @@ async fn render(
   let externals = modules.clone();
 
   if self.optional_amd_external_as_global {
+    let side_effects_state_artifact = compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact
+      .read()
+      .expect("should lock side effects state artifact");
     for module in &externals {
       if module_graph.is_optional(
         &module.id,
         module_graph_cache,
+        &side_effects_state_artifact,
         &compilation.exports_info_artifact,
       ) {
         optional_externals.push(*module);
@@ -197,18 +203,27 @@ async fn render(
   };
 
   let factory = if names.commonjs.is_some() || names.root.is_some() {
-    let commonjs_code = format!(
-      "{}
-      exports[{}] = factory({});\n",
-      get_auxiliary_comment("commonjs", auxiliary_comment),
-      name,
+    let commonjs_externals = {
+      let side_effects_state_artifact = compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact
+        .read()
+        .expect("should lock side effects state artifact");
       externals_require_array(
         "commonjs",
         &externals,
         module_graph,
         module_graph_cache,
+        &side_effects_state_artifact,
         &compilation.exports_info_artifact,
-      )?,
+      )?
+    };
+    let commonjs_code = format!(
+      "{}
+      exports[{}] = factory({});\n",
+      get_auxiliary_comment("commonjs", auxiliary_comment),
+      name,
+      commonjs_externals,
     );
     let root_code = format!(
       "{}
@@ -240,15 +255,24 @@ async fn render(
     let value = if externals.is_empty() {
       "var a = factory();\n".to_string()
     } else {
-      format!(
-        "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
+      let commonjs_externals = {
+        let side_effects_state_artifact = compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact
+          .read()
+          .expect("should lock side effects state artifact");
         externals_require_array(
           "commonjs",
           &externals,
           module_graph,
           module_graph_cache,
+          &side_effects_state_artifact,
           &compilation.exports_info_artifact,
-        )?,
+        )?
+      };
+      format!(
+        "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
+        commonjs_externals,
         externals_root_array(&externals)?
       )
     };
@@ -264,19 +288,28 @@ async fn render(
   source.add(RawStringSource::from(
     "(function webpackUniversalModuleDefinition(root, factory) {\n",
   ));
+  let commonjs2_externals = {
+    let side_effects_state_artifact = compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact
+      .read()
+      .expect("should lock side effects state artifact");
+    externals_require_array(
+      "commonjs2",
+      &externals,
+      module_graph,
+      module_graph_cache,
+      &side_effects_state_artifact,
+      &compilation.exports_info_artifact,
+    )?
+  };
   source.add(RawStringSource::from(format!(
     r#"{}
       if(typeof exports === 'object' && typeof module === 'object') {{
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array(
-      "commonjs2",
-      &externals,
-      module_graph,
-      module_graph_cache,
-      &compilation.exports_info_artifact,
-    )?
+    commonjs2_externals
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -374,6 +407,7 @@ fn externals_require_array(
   externals: &[&ExternalModule],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Result<String> {
   Ok(
@@ -392,7 +426,12 @@ fn externals_require_array(
         } else {
           format!("require({primary})")
         };
-        if module_graph.is_optional(&m.id, module_graph_cache, exports_info_artifact) {
+        if module_graph.is_optional(
+          &m.id,
+          module_graph_cache,
+          side_effects_state_artifact,
+          exports_info_artifact,
+        ) {
           expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
         }
         Ok(expr)

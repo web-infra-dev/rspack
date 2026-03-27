@@ -187,73 +187,73 @@ async fn finish_modules(
       continue;
     };
 
-    // if user set side effect free, skip
-    if module
-      .factory_meta()
-      .and_then(|factory_meta| factory_meta.side_effect_free)
-      == Some(true)
-    {
-      continue;
-    }
-
     let build_info = module.build_info();
-    if build_info.deferred_pure_checks.is_empty() {
+    if !self.analyze_side_effects_free || build_info.deferred_pure_checks.is_empty() {
       continue;
     }
 
-    // find the first deferred pure check that resolves to an impure target
-    let impure_check = build_info
-      .deferred_pure_checks
-      .iter()
-      .find(|deferred_check| {
-        let Some(ref_module) =
-          module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
-        else {
-          return true;
-        };
+    let baseline_side_effect_free = module.build_meta().side_effect_free.unwrap_or(false);
 
-        let target_exports_info = exports_info_artifact
-          .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
-        let target_export_info =
-          target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
+    let has_impure_deferred_check =
+      // find the first deferred pure check that resolves to an impure target
+      build_info
+        .deferred_pure_checks
+        .iter()
+        .any(|deferred_check| {
+          let Some(ref_module) =
+            module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
+          else {
+            return true;
+          };
 
-        let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
-          &target_export_info,
-          module_graph,
-          exports_info_artifact,
-          Rc::new(|_| true),
-          &mut Default::default(),
-        ) && let Some(export) = &target.export
-          && let Some(atom) = export.first()
-        {
-          (target.module, atom.clone())
-        } else {
-          (*ref_module, deferred_check.atom.clone())
-        };
+          let target_exports_info = exports_info_artifact
+            .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+          let target_export_info =
+            target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
 
-        let ref_module = module_graph
-          .module_by_identifier(&ref_module_id)
-          .expect("should have module");
+          let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
+            &target_export_info,
+            module_graph,
+            exports_info_artifact,
+            Rc::new(|_| true),
+            &mut Default::default(),
+          ) && let Some(export) = &target.export
+            && let Some(atom) = export.first()
+          {
+            (target.module, atom.clone())
+          } else {
+            (*ref_module, deferred_check.atom.clone())
+          };
 
-        let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
-          return true;
-        };
-        !side_effects_free.contains(&atom)
-      });
+          let ref_module = module_graph
+            .module_by_identifier(&ref_module_id)
+            .expect("should have module");
 
-    deferred_side_effect_states.push((*module_identifier, impure_check.is_some()));
+          let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
+            return true;
+          };
+          !side_effects_free.contains(&atom)
+        });
+
+    deferred_side_effect_states.push((
+      *module_identifier,
+      baseline_side_effect_free && !has_impure_deferred_check,
+      has_impure_deferred_check,
+    ));
   }
 
   let mut side_effects_state_artifact = compilation
+    .build_module_graph_artifact
     .side_effects_state_artifact
     .write()
     .expect("should lock side effects state artifact");
+  side_effects_state_artifact.bump_version();
   side_effects_state_artifact.clear();
-  for (module_id, has_impure_deferred_check) in deferred_side_effect_states {
+  for (module_id, side_effect_free, has_impure_deferred_check) in deferred_side_effect_states {
     side_effects_state_artifact.insert(
       module_id,
       SideEffectsState {
-        side_effect_free: !has_impure_deferred_check,
+        side_effect_free,
         optimization_bailouts_to_add: if has_impure_deferred_check {
           vec![OptimizationBailoutItem::Message(String::from(
             CALL_WITH_SIDE_EFFECTS_BAILOUT,
@@ -284,6 +284,11 @@ async fn optimize_dependencies(
   let start = logger.time("update connections");
 
   let module_graph = build_module_graph_artifact.get_module_graph();
+  let side_effects_state_artifact = build_module_graph_artifact
+    .side_effects_state_artifact
+    .read()
+    .expect("should lock side effects state artifact")
+    .clone();
 
   let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
     .modules_par()
@@ -293,6 +298,7 @@ async fn optimize_dependencies(
         module.get_side_effects_connection_state(
           module_graph,
           &compilation.module_graph_cache_artifact,
+          &side_effects_state_artifact,
           &mut Default::default(),
           &mut Default::default(),
         ),
@@ -598,12 +604,10 @@ impl Plugin for SideEffectsFlagPlugin {
       .module
       .tap(nmf_module::new(self));
 
-    if self.analyze_side_effects_free {
-      ctx
-        .compilation_hooks
-        .finish_modules
-        .tap(finish_modules::new(self));
-    }
+    ctx
+      .compilation_hooks
+      .finish_modules
+      .tap(finish_modules::new(self));
 
     ctx
       .compilation_hooks

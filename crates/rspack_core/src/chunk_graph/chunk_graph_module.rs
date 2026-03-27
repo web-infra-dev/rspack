@@ -325,6 +325,11 @@ impl ChunkGraph {
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
+    let side_effects_state_artifact = compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact
+      .read()
+      .expect("should lock side effects state artifact");
     self
       .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
       .hash(&mut hasher);
@@ -340,8 +345,13 @@ impl ChunkGraph {
         if visited_modules.contains(module_identifier) {
           return None;
         }
-        let active_state =
-          connection.active_state(mg, runtime, mg_cache, &compilation.exports_info_artifact);
+        let active_state = connection.active_state(
+          mg,
+          runtime,
+          mg_cache,
+          &side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        );
         if active_state.is_false() {
           return None;
         }
@@ -354,6 +364,7 @@ impl ChunkGraph {
               mg,
               runtime.as_ref(),
               mg_cache,
+              &side_effects_state_artifact,
               &compilation.exports_info_artifact,
             );
             active_state.hash(&mut hasher);

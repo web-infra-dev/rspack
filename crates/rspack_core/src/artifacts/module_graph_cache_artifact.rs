@@ -110,7 +110,7 @@ impl ModuleGraphCacheArtifactInner {
 
   pub fn cached_get_side_effects_connection_state<F: FnOnce() -> ConnectionState>(
     &self,
-    key: ModuleIdentifier,
+    key: GetSideEffectsConnectionStateKey,
     f: F,
   ) -> ConnectionState {
     if !self.freezed.load(Ordering::Acquire) {
@@ -219,13 +219,18 @@ pub(super) mod concatenated_module_entries {
 }
 
 pub(super) mod get_side_effects_connection_state {
-  use rspack_collections::IdentifierDashMap;
+  use std::hash::BuildHasherDefault;
+
+  use dashmap::DashMap;
+  use rustc_hash::FxHasher;
 
   use crate::{ConnectionState, ModuleIdentifier};
 
+  pub type GetSideEffectsConnectionStateKey = (ModuleIdentifier, u64, u64);
+
   #[derive(Debug, Default)]
   pub struct GetSideEffectsConnectionStateCache {
-    cache: IdentifierDashMap<ConnectionState>,
+    cache: DashMap<GetSideEffectsConnectionStateKey, ConnectionState, BuildHasherDefault<FxHasher>>,
   }
 
   impl GetSideEffectsConnectionStateCache {
@@ -233,11 +238,11 @@ pub(super) mod get_side_effects_connection_state {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
+    pub fn get(&self, key: &GetSideEffectsConnectionStateKey) -> Option<ConnectionState> {
       self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
+    pub fn set(&self, key: GetSideEffectsConnectionStateKey, value: ConnectionState) {
       self.cache.insert(key, value);
     }
   }

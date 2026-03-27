@@ -11,8 +11,9 @@ use rspack_core::{
   ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports, UsedByExportsCondition,
-  UsedName, create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports,
+  UsedByExportsCondition, UsedName, create_exports_object_referenced, get_exports_type,
+  property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify_str;
@@ -207,6 +208,7 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -600,6 +602,11 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         module_graph,
         runtime,
         &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact
+          .read()
+          .expect("should lock side effects state artifact"),
         &compilation.exports_info_artifact,
       )
       && !is_export_inlined(
@@ -712,6 +719,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let dependency = module_graph.dependency_by_id(&connection.dependency_id);
@@ -758,6 +766,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     ConnectionState::Active(self.is_connection_active(
@@ -765,6 +774,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
       runtime,
       module_graph,
       _module_graph_cache,
+      _side_effects_state_artifact,
       exports_info_artifact,
     ))
   }

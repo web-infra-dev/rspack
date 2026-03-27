@@ -15,8 +15,9 @@ use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SourceType, dependencies_block::AsyncDependenciesBlockIdentifier,
-  impl_module_meta_info, module_update_hash,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
+  module_declared_side_effect_free, module_update_hash,
 };
 
 #[impl_source_map_config]
@@ -157,10 +158,11 @@ impl Module for RawModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
+    if let Some(side_effect_free) = module_declared_side_effect_free(self) {
       return ConnectionState::Active(!side_effect_free);
     }
     ConnectionState::Active(true)
