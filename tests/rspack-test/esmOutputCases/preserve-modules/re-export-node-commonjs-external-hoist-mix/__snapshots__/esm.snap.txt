@@ -13,6 +13,7 @@ module.exports = __rspack_createRequire_require("fs");
 
 },
 });
+export {};
 
 ```
 
@@ -62,6 +63,7 @@ it('should preserve node-commonjs externals reexports for hoisted and wrapped mo
 	expect(wrapped.readFileWrapped).toBe(fs.readFile)
 })
 
+export {};
 
 ```
 

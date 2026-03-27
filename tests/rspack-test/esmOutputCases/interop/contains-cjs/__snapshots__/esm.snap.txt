@@ -43,6 +43,7 @@ it('should have correct import', () => {
 
 // ./index.js
 
+export {};
 
 ```
 

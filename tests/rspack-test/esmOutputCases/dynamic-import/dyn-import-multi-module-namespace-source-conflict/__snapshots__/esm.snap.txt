@@ -10,6 +10,7 @@ it("should avoid namespace binding collisions across different external sources"
 	expect(modB.pathNs.resolve).toBeDefined();
 });
 
+export {};
 
 ```
 

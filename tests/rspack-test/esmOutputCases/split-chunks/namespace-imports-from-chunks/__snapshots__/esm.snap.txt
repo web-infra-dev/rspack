@@ -6,6 +6,7 @@ it("should support namespace imports from sibling entry chunks", async () => {
   expect(other.default).toBe(42);
 });
 
+export {};
 
 ```
 

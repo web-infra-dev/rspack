@@ -37,6 +37,7 @@ it('should have correct order', () => {
 	expect(globalThis.testValue).toBe('bar')
 })
 
+export {};
 
 ```
 

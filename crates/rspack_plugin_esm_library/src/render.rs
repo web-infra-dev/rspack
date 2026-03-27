@@ -617,6 +617,8 @@ var {} = {{}};
       }
     }
 
+    // Keep side-effect-only Node chunks explicitly in ESM form.
+    // We only emit `export {};` when the chunk would otherwise render no export syntax at all.
     let should_render_empty_export = compilation.platform.is_node()
       && export_specifiers.is_empty()
       && chunk_link.raw_star_exports.is_empty()

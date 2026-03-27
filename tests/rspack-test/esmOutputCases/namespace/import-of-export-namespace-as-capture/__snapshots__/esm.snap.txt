@@ -21,6 +21,7 @@ it("should keep an export-star-as namespace object when captured by the importer
   expect(value).toBe(234);
 });
 
+export {};
 
 ```
 

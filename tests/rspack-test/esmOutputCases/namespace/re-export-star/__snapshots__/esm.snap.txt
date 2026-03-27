@@ -29,6 +29,7 @@ it('should import star export', () => {
 	expect(foo2).toBe(2)
 })
 
+export {};
 
 ```
 

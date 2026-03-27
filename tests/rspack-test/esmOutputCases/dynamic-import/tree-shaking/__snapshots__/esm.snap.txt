@@ -16,5 +16,6 @@ it('should have no other exports', async () => {
   expect(value()).toBe(42)
   expect(Reflect.ownKeys(ns).length).toBe(1)
 })
+export {};
 
 ```

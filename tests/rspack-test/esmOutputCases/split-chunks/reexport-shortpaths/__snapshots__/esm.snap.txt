@@ -4,6 +4,7 @@ import "./dep2_js.mjs";
 // ./dep1.js
 
 
+export {};
 
 ```
 

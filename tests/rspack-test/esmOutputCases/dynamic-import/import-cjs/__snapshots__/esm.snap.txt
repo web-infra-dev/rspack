@@ -48,6 +48,7 @@ it('should support dynamic import', async () => {
 
 
 
+export {};
 
 ```
 

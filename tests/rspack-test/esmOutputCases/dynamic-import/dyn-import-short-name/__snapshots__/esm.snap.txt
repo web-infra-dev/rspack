@@ -23,5 +23,6 @@ it('should assign short names to dynamic import chunks', async () => {
 	expect(lib.value).toBe(2)
 })
 
+export {};
 
 ```
