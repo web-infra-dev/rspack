@@ -15,7 +15,6 @@ use rspack_plugin_javascript::{
   dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
-use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -291,15 +290,10 @@ var {} = {{}};
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already.
-      // Only export __webpack_require__ from pure runtime chunks.
-      // Entry-with-runtime chunks use it internally but nothing imports from them.
+      // Link already decides whether `__webpack_require__` is exported via a runtime module.
+      // Only pure runtime chunks without that runtime-module export should emit a direct export.
       if is_pure_runtime_chunk
-        && !compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_runtime_modules_iterable(chunk_ukey)
-          .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
+        && !chunk_link.exports_require_via_runtime_module
         && effective_tree_requirements
           .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
