@@ -152,11 +152,10 @@ impl ConcatenationScope {
 
   pub fn get_or_create_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
     if self.current_module.invalidate_scope_snapshot {
-      return Atom::from(preferred_name);
+      return preferred_name.into();
     }
     self.current_module.invalidate_scope_snapshot = true;
-    let preferred_name = Atom::from(preferred_name);
-    preferred_name
+    preferred_name.into()
   }
 
   fn build_module_reference(

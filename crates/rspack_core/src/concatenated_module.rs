@@ -961,10 +961,10 @@ impl ConcatenatedModule {
     fragments: Option<&crate::RenderedInitFragments>,
   ) -> String {
     let source = source.source().into_string_lossy().into_owned();
-    if let Some(fragments) = fragments {
-      if !fragments.start.is_empty() || !fragments.end.is_empty() {
-        return format!("{}{}{}", fragments.start, source, fragments.end);
-      }
+    if let Some(fragments) = fragments
+      && (!fragments.start.is_empty() || !fragments.end.is_empty())
+    {
+      return format!("{}{}{}", fragments.start, source, fragments.end);
     }
     source
   }
@@ -2971,7 +2971,7 @@ impl ConcatenatedModule {
       let result_source = if can_use_scope_snapshot {
         if let Some(snapshot) = scope_snapshot {
           Self::populate_info_from_snapshot(snapshot, &mut module_info);
-          module_info.rendered_init_fragments = rendered_init_fragments.clone();
+          module_info.rendered_init_fragments = rendered_init_fragments;
           module_info.internal_source = Some(rendered_source.clone());
           ReplaceSource::new(rendered_source.clone())
         } else {

@@ -468,12 +468,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let rendered_fragments = render_init_fragments_to_strings(init_fragments, generate_context)?;
       if is_concatenated_codegen && can_use_scope_snapshot_codegen {
         if !rendered_fragments.is_empty() {
+          let rspack_core::RenderedInitFragments { start, end } = rendered_fragments;
           generate_context
             .data
-            .insert(CodeGenerationDataRenderedInitFragments::new(
-              rendered_fragments.start.clone(),
-              rendered_fragments.end.clone(),
-            ));
+            .insert(CodeGenerationDataRenderedInitFragments::new(start, end));
         }
         generate_context.concatenation_scope = concatenation_scope;
         return Ok(source.boxed());
