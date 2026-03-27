@@ -170,8 +170,8 @@ jobs:
         run: |
           pnpm --filter @rspack/binding build:release:browser
           npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
-          mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
+          mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
 
       - name: Build wasm32-wasip1-threads(release-wasi) with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
@@ -195,4 +195,3 @@ jobs:
             crates/node_binding/*.d.ts
             crates/node_binding/rspack.wasm32-wasi.wasm
             crates/node_binding/rspack.wasm32-wasi.debug.wasm
-            crates/node_binding/rspack.browser.wasm
