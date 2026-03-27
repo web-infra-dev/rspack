@@ -68,11 +68,15 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: wasm32-wasip1-threads
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            browser: true
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{inputs.commit || github.sha}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
+      browser: ${{ matrix.array.browser }}
       profile: ${{inputs.profile || 'release'}}
       test: ${{inputs.test || false}}
 

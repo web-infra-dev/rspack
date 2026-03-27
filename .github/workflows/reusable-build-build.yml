@@ -16,6 +16,9 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      browser:
+        required: false
+        type: boolean
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
@@ -151,26 +154,32 @@ jobs:
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # WASM
-      # Also build browser wasm because they can share most of building cache.
-      # Note that we should build browser wasm first because there's a renaming stage
+      - name: Build browser wasm32-wasip1-threads with linux
+        if: ${{ inputs.browser && inputs.profile != 'release' }}
+        run: |
+          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
+
       - name: Build wasm32-wasip1-threads with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
       # WASM Release (use profile = release-wasi) + wasm-opt
+      - name: Build browser wasm32-wasip1-threads(release-wasi) with linux
+        if: ${{ inputs.browser && inputs.profile == 'release' }}
+        run: |
+          pnpm --filter @rspack/binding build:release:browser
+          npm install -g binaryen
+          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
+          mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
+
       - name: Build wasm32-wasip1-threads(release-wasi) with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         run: |
-          pnpm --filter @rspack/binding build:release:browser
           pnpm --filter @rspack/binding build:release:wasm
-
           npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm & wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
-          wait
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
-          mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Diff artifact
         run: |

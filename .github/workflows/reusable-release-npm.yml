@@ -66,10 +66,14 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: wasm32-wasip1-threads
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: wasm32-wasip1-threads
+            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            browser: true
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
+      browser: ${{ matrix.array.browser }}
       test: ${{ inputs.test }}
       profile: 'release'
 
