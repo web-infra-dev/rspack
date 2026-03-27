@@ -19,6 +19,7 @@ use rustc_hash::FxHashMap as HashMap;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
 type NonNestedTask = (Option<RuntimeSpec>, bool, Vec<ExtendedReferencedExport>);
 type ReferencedExportKey = Vec<Atom>;
+const REFERENCED_EXPORT_MAP_PROMOTION_THRESHOLD: usize = 4;
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
@@ -28,8 +29,18 @@ enum ModuleOrAsyncDependenciesBlock {
 
 #[derive(Debug, Clone)]
 enum ProcessModuleReferencedExports {
-  Map(HashMap<ReferencedExportKey, ExtendedReferencedExport>),
+  Map(HashMap<ReferencedExportKey, MergedReferencedExport>),
   ExtendRef(Vec<ExtendedReferencedExport>),
+}
+
+#[derive(Debug, Clone, Copy)]
+enum MergedReferencedExport {
+  Array,
+  Export {
+    can_mangle: bool,
+    can_inline: bool,
+    ns_access: bool,
+  },
 }
 #[allow(unused)]
 pub struct FlagDependencyUsagePluginProxy<'a> {
@@ -353,7 +364,10 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           (
             module_id,
             match referenced_exports {
-              ProcessModuleReferencedExports::Map(map) => map.into_values().collect::<Vec<_>>(),
+              ProcessModuleReferencedExports::Map(map) => map
+                .into_iter()
+                .map(|(name, merged_export)| merged_export.into_extended_referenced_export(name))
+                .collect::<Vec<_>>(),
               ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
             },
           )
@@ -620,55 +634,130 @@ fn merge_referenced_exports(
         map
       }
       ProcessModuleReferencedExports::ExtendRef(ref_items) => {
+        if ref_items.len() + referenced_exports.len() <= REFERENCED_EXPORT_MAP_PROMOTION_THRESHOLD {
+          let mut merged_ref_items = ref_items;
+          for item in referenced_exports {
+            merge_referenced_export_into_vec(&mut merged_ref_items, item);
+          }
+          return Some(ProcessModuleReferencedExports::ExtendRef(merged_ref_items));
+        }
+
         let mut map = HashMap::with_capacity_and_hasher(
           ref_items.len() + referenced_exports.len(),
           Default::default(),
         );
         for item in ref_items {
-          map.insert(referenced_export_key(&item), item);
+          insert_merged_referenced_export(&mut map, item);
         }
         map
       }
     };
 
-    for mut item in referenced_exports {
-      let key = referenced_export_key(&item);
-      match item {
-        ExtendedReferencedExport::Array(_) => {
-          exports_map.entry(key).or_insert(item);
-        }
-        ExtendedReferencedExport::Export(ref mut export) => match exports_map.entry(key) {
-          Entry::Occupied(mut occ) => {
-            let old_item = occ.get();
-            match old_item {
-              ExtendedReferencedExport::Array(_) => {
-                occ.insert(item);
-              }
-              ExtendedReferencedExport::Export(old_item) => {
-                occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
-                  name: std::mem::take(&mut export.name),
-                  can_mangle: export.can_mangle && old_item.can_mangle,
-                  can_inline: export.can_inline && old_item.can_inline,
-                  ns_access: export.ns_access || old_item.ns_access,
-                }));
-              }
-            }
-          }
-          Entry::Vacant(vac) => {
-            vac.insert(item);
-          }
-        },
-      }
+    for item in referenced_exports {
+      insert_merged_referenced_export(&mut exports_map, item);
     }
     return Some(ProcessModuleReferencedExports::Map(exports_map));
   }
   None
 }
 
-fn referenced_export_key(item: &ExtendedReferencedExport) -> ReferencedExportKey {
+impl MergedReferencedExport {
+  fn into_extended_referenced_export(self, name: ReferencedExportKey) -> ExtendedReferencedExport {
+    match self {
+      Self::Array => ExtendedReferencedExport::Array(name),
+      Self::Export {
+        can_mangle,
+        can_inline,
+        ns_access,
+      } => ExtendedReferencedExport::Export(ReferencedExport {
+        name,
+        can_mangle,
+        can_inline,
+        ns_access,
+      }),
+    }
+  }
+}
+
+fn merge_referenced_export_into_vec(
+  merged_ref_items: &mut Vec<ExtendedReferencedExport>,
+  item: ExtendedReferencedExport,
+) {
   match item {
-    ExtendedReferencedExport::Array(arr) => arr.clone(),
-    ExtendedReferencedExport::Export(export) => export.name.clone(),
+    ExtendedReferencedExport::Array(arr) => {
+      if !merged_ref_items
+        .iter()
+        .any(|existing| referenced_export_path(existing) == arr.as_slice())
+      {
+        merged_ref_items.push(ExtendedReferencedExport::Array(arr));
+      }
+    }
+    ExtendedReferencedExport::Export(export) => {
+      if let Some(existing) = merged_ref_items
+        .iter_mut()
+        .find(|existing| referenced_export_path(existing) == export.name.as_slice())
+      {
+        match existing {
+          ExtendedReferencedExport::Array(_) => {
+            *existing = ExtendedReferencedExport::Export(export);
+          }
+          ExtendedReferencedExport::Export(existing_export) => {
+            existing_export.can_mangle &= export.can_mangle;
+            existing_export.can_inline &= export.can_inline;
+            existing_export.ns_access |= export.ns_access;
+          }
+        }
+      } else {
+        merged_ref_items.push(ExtendedReferencedExport::Export(export));
+      }
+    }
+  }
+}
+
+fn insert_merged_referenced_export(
+  exports_map: &mut HashMap<ReferencedExportKey, MergedReferencedExport>,
+  item: ExtendedReferencedExport,
+) {
+  match item {
+    ExtendedReferencedExport::Array(arr) => {
+      exports_map
+        .entry(arr)
+        .or_insert(MergedReferencedExport::Array);
+    }
+    ExtendedReferencedExport::Export(export) => match exports_map.entry(export.name) {
+      Entry::Occupied(mut occ) => match occ.get_mut() {
+        MergedReferencedExport::Array => {
+          occ.insert(MergedReferencedExport::Export {
+            can_mangle: export.can_mangle,
+            can_inline: export.can_inline,
+            ns_access: export.ns_access,
+          });
+        }
+        MergedReferencedExport::Export {
+          can_mangle,
+          can_inline,
+          ns_access,
+        } => {
+          *can_mangle &= export.can_mangle;
+          *can_inline &= export.can_inline;
+          *ns_access |= export.ns_access;
+        }
+      },
+      Entry::Vacant(vac) => {
+        vac.insert(MergedReferencedExport::Export {
+          can_mangle: export.can_mangle,
+          can_inline: export.can_inline,
+          ns_access: export.ns_access,
+        });
+      }
+    },
+  }
+}
+
+fn referenced_export_path(item: &ExtendedReferencedExport) -> &[Atom] {
+  match item {
+    ExtendedReferencedExport::Array(arr) => arr.as_slice(),
+    ExtendedReferencedExport::Export(export) => export.name.as_slice(),
   }
 }
 
@@ -864,4 +953,108 @@ fn process_referenced_module_without_nested(
     }
   }
   queue
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn export(
+    names: &[&str],
+    can_mangle: bool,
+    can_inline: bool,
+    ns_access: bool,
+  ) -> ReferencedExport {
+    ReferencedExport {
+      name: atoms(names),
+      can_mangle,
+      can_inline,
+      ns_access,
+    }
+  }
+
+  fn atoms(names: &[&str]) -> Vec<Atom> {
+    names.iter().map(|name| Atom::from(*name)).collect()
+  }
+
+  fn flatten_referenced_exports(
+    referenced_exports: ProcessModuleReferencedExports,
+  ) -> Vec<ExtendedReferencedExport> {
+    match referenced_exports {
+      ProcessModuleReferencedExports::Map(map) => map
+        .into_iter()
+        .map(|(name, merged_export)| merged_export.into_extended_referenced_export(name))
+        .collect(),
+      ProcessModuleReferencedExports::ExtendRef(exports) => exports,
+    }
+  }
+
+  #[test]
+  fn keeps_small_merges_in_vec_and_merges_export_flags() {
+    let merged = merge_referenced_exports(
+      Some(ProcessModuleReferencedExports::ExtendRef(vec![
+        ExtendedReferencedExport::Array(atoms(&["foo"])),
+      ])),
+      vec![ExtendedReferencedExport::Export(export(
+        &["foo"],
+        false,
+        true,
+        true,
+      ))],
+    )
+    .expect("should merge referenced exports");
+
+    assert!(matches!(
+      merged,
+      ProcessModuleReferencedExports::ExtendRef(_)
+    ));
+
+    let flattened = flatten_referenced_exports(merged);
+    assert_eq!(flattened.len(), 1);
+    match &flattened[0] {
+      ExtendedReferencedExport::Export(export) => {
+        assert_eq!(export.name, atoms(&["foo"]));
+        assert!(!export.can_mangle);
+        assert!(export.can_inline);
+        assert!(export.ns_access);
+      }
+      other => panic!("expected merged export, got {other:?}"),
+    }
+  }
+
+  #[test]
+  fn promotes_large_merges_to_map_without_duplicating_paths() {
+    let merged = merge_referenced_exports(
+      Some(ProcessModuleReferencedExports::ExtendRef(vec![
+        ExtendedReferencedExport::Array(atoms(&["a"])),
+        ExtendedReferencedExport::Array(atoms(&["b"])),
+        ExtendedReferencedExport::Array(atoms(&["c"])),
+        ExtendedReferencedExport::Array(atoms(&["d"])),
+      ])),
+      vec![ExtendedReferencedExport::Export(export(
+        &["a"],
+        false,
+        false,
+        true,
+      ))],
+    )
+    .expect("should merge referenced exports");
+
+    assert!(matches!(merged, ProcessModuleReferencedExports::Map(_)));
+
+    let flattened = flatten_referenced_exports(merged);
+    let merged_a = flattened
+      .iter()
+      .find(|item| referenced_export_path(item) == atoms(&["a"]).as_slice())
+      .expect("should find merged export");
+
+    match merged_a {
+      ExtendedReferencedExport::Export(export) => {
+        assert!(!export.can_mangle);
+        assert!(!export.can_inline);
+        assert!(export.ns_access);
+      }
+      other => panic!("expected merged export, got {other:?}"),
+    }
+  }
 }
