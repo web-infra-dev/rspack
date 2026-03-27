@@ -80,13 +80,11 @@ fn is_pure_call_expr(
   expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
-  force_pure_flag: bool,
 ) -> bool {
   let Expr::Call(call_expr) = expr else {
     unreachable!();
   };
-  let pure_flag = force_pure_flag
-    || has_pure_comment(comments, expr.span().lo)
+  let pure_flag = has_pure_comment(comments, expr.span().lo)
     || has_pure_comment(comments, call_expr.callee.span().lo);
   if !pure_flag {
     !expr.may_have_side_effects(ExprCtx {
@@ -105,12 +103,11 @@ fn is_pure_new_expr(
   expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
-  force_pure_flag: bool,
 ) -> bool {
   let Expr::New(new_expr) = expr else {
     unreachable!();
   };
-  let pure_flag = force_pure_flag || has_pure_comment(comments, expr.span().lo);
+  let pure_flag = has_pure_comment(comments, expr.span().lo);
   if !pure_flag {
     !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
@@ -128,27 +125,6 @@ fn is_pure_new_expr(
   }
 }
 
-fn is_pure_paren_expr(
-  parser: &mut JavascriptParser,
-  expr: &Expr,
-  unresolved_ctxt: SyntaxContext,
-  comments: Option<&dyn Comments>,
-) -> bool {
-  let Expr::Paren(paren_expr) = expr else {
-    unreachable!();
-  };
-  if has_pure_comment(comments, expr.span().lo) {
-    let expr = strip_parens(&paren_expr.expr);
-    match expr {
-      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments, true),
-      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments, true),
-      _ => false,
-    }
-  } else {
-    is_pure_expression(parser, &paren_expr.expr, unresolved_ctxt, comments)
-  }
-}
-
 fn has_pure_comment(comments: Option<&dyn Comments>, pos: BytePos) -> bool {
   comments
     .and_then(|comments| comments.get_leading(pos))
@@ -157,13 +133,6 @@ fn has_pure_comment(comments: Option<&dyn Comments>, pos: BytePos) -> bool {
         .iter()
         .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(&comment.text))
     })
-}
-
-fn strip_parens(mut expr: &Expr) -> &Expr {
-  while let Expr::Paren(paren_expr) = expr {
-    expr = &paren_expr.expr;
-  }
-  expr
 }
 
 fn are_pure_args<'a>(
@@ -427,9 +396,8 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
-      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments, false),
-      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments, false),
-      Expr::Paren(_) => is_pure_paren_expr(parser, expr, unresolved_ctxt, comments),
+      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments),
+      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments),
       Expr::Seq(seq_expr) => seq_expr
         .exprs
         .iter()

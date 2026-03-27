@@ -12,8 +12,6 @@ function createSet() {
 const marker = 1;
 
 let directNew = /*#__PURE__*/ (/* unused pure expression or super */ null && (new Set()));
-let wrappedNew = /*#__PURE__*/ ((/* unused pure expression or super */ null && (new Set())));
-let wrappedCall = /*#__PURE__*/ ((/* unused pure expression or super */ null && (createSet())));
 let extraTextNew = /* #__PURE__ additional text */ (/* unused pure expression or super */ null && (new Set()));
 let atPureNew = /* @__PURE__ additional text */ (/* unused pure expression or super */ null && (new Set()));
 let notPureComment = /* note: keep webpack-compatible #__PURE__ syntax here */ createSet();
