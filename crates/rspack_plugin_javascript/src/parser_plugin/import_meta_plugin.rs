@@ -1,5 +1,8 @@
 use itertools::Itertools;
-use rspack_core::{ConstDependency, DependencyRange, ImportMeta, property_access};
+use rspack_core::{
+  ConstDependency, DependencyRange, ImportMeta, RuntimeGlobals, RuntimeRequirementsDependency,
+  property_access,
+};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
@@ -29,6 +32,21 @@ impl ImportMetaPlugin {
 
   fn import_meta_version(&self) -> String {
     "5".to_string()
+  }
+
+  fn import_meta_main(&self, parser: &mut JavascriptParser) -> String {
+    parser.build_info.module_concatenation_bailout = Some("import.meta.main".into());
+    parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
+    )));
+    format!(
+      "({}[{}] === {})",
+      parser.parser_runtime_requirements.module_cache,
+      parser.parser_runtime_requirements.entry_module_id,
+      parser
+        .parser_runtime_requirements
+        .module_argument(&parser.build_info.module_argument)
+    )
   }
 
   fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
@@ -105,6 +123,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       evaluated = Some("function".to_string());
     } else if for_name == expr_name::IMPORT_META_VERSION {
       evaluated = Some("number".to_string())
+    } else if for_name == expr_name::IMPORT_META_MAIN {
+      evaluated = Some("boolean".to_string())
     } else if let Some(member_expr) = expr.arg.as_member()
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
       && meta_expr
@@ -161,9 +181,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       && meta_prop.kind == MetaPropKind::ImportMeta
     {
       if let Some(ident) = member.prop.as_ident() {
-        // Skip `dirname` and `filename` - they are handled by NodeStuffPlugin
-        // and may have runtime values when node.__dirname/node.__filename is false
-        if ident.sym == "dirname" || ident.sym == "filename" {
+        // - Skip `dirname` and `filename` - they are handled by NodeStuffPlugin
+        //   and may have runtime values when node.__dirname/node.__filename is false
+        // - Skip `main` - it will generate dynamic code: `moduleCache[entryModuleId] === module`
+        if ident.sym == "dirname" || ident.sym == "filename" || ident.sym == "main" {
           return None;
         }
         return Some(eval::evaluate_to_undefined(
@@ -176,7 +197,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       {
         // Check for computed properties like import.meta["dirname"]
         if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
-          && (str_lit.value == "dirname" || str_lit.value == "filename")
+          && (str_lit.value == "dirname" || str_lit.value == "filename" || str_lit.value == "main")
         {
           return None;
         }
@@ -226,6 +247,13 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         )));
         Some(true)
       }
+      expr_name::IMPORT_META_MAIN => {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          unary_expr.span().into(),
+          "'boolean'".into(),
+        )));
+        Some(true)
+      }
       _ => None,
     }
   }
@@ -269,6 +297,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             content.push(format!(r#"url: "{}""#, self.import_meta_url(parser)))
           } else if prop.id == "webpack" {
             content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
+          } else if prop.id == "main" {
+            content.push(format!("main: {}", self.import_meta_main(parser)));
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
@@ -328,6 +358,14 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         member_expr.span().into(),
         self.import_meta_version().into(),
+      )));
+      Some(true)
+    } else if for_name == expr_name::IMPORT_META_MAIN {
+      // import.meta.main
+      let content = self.import_meta_main(parser);
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        member_expr.span().into(),
+        content.into(),
       )));
       Some(true)
     } else {
