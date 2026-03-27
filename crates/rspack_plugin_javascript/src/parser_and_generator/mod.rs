@@ -13,7 +13,7 @@ use rspack_core::{
   ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals,
   RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom, render_init_fragments_to_strings,
+  remove_bom, render_init_fragments, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
@@ -405,7 +405,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
-      let (concatenation_scope, is_concatenated_codegen) = {
+      let (concatenation_scope, is_concatenated_codegen, can_use_scope_snapshot_codegen) = {
         let mut context = TemplateContext {
           compilation,
           module,
@@ -448,10 +448,25 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
           .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
         let concatenation_scope = context.concatenation_scope.take();
         let is_concatenated_codegen = concatenation_scope.is_some();
-        (concatenation_scope, is_concatenated_codegen)
+        let can_use_scope_snapshot_codegen = concatenation_scope.as_ref().is_some_and(|scope| {
+          let module_info = &scope.current_module;
+          !module_info.invalidate_scope_snapshot
+            && module_info.added_scope_idents.is_empty()
+            && module_info.generated_top_level_symbols.is_empty()
+            && module_info.module_reference_placeholders.is_empty()
+        });
+        (
+          concatenation_scope,
+          is_concatenated_codegen,
+          can_use_scope_snapshot_codegen,
+        )
       };
+      if is_concatenated_codegen && !can_use_scope_snapshot_codegen {
+        generate_context.concatenation_scope = concatenation_scope;
+        return render_init_fragments(source.boxed(), init_fragments, generate_context);
+      }
       let rendered_fragments = render_init_fragments_to_strings(init_fragments, generate_context)?;
-      if is_concatenated_codegen {
+      if is_concatenated_codegen && can_use_scope_snapshot_codegen {
         if !rendered_fragments.is_empty() {
           generate_context
             .data

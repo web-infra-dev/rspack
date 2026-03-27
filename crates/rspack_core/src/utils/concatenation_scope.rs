@@ -125,6 +125,9 @@ impl ConcatenationScope {
   }
 
   pub fn remove_original_range(&mut self, range: DependencyRange) {
+    if self.current_module.invalidate_scope_snapshot {
+      return;
+    }
     self.current_module.removed_original_ranges.push(range);
   }
 
@@ -133,6 +136,9 @@ impl ConcatenationScope {
   }
 
   pub fn add_scope_ident(&mut self, symbol: Atom, range: DependencyRange) {
+    if self.current_module.invalidate_scope_snapshot {
+      return;
+    }
     self
       .current_module
       .added_scope_idents
@@ -145,38 +151,19 @@ impl ConcatenationScope {
   }
 
   pub fn get_or_create_generated_top_level_symbol(&mut self, preferred_name: &str) -> Atom {
-    let preferred_name = Atom::from(preferred_name);
-    if let Some(existing) = self
-      .current_module
-      .generated_top_level_symbols
-      .iter()
-      .find(|symbol| symbol.preferred_name == preferred_name)
-    {
-      return existing.placeholder.clone();
+    if self.current_module.invalidate_scope_snapshot {
+      return Atom::from(preferred_name);
     }
-
-    let placeholder = if preferred_name == DEFAULT_EXPORT {
-      preferred_name.clone()
-    } else {
-      Atom::from(format!(
-        "__rspack_symbol_{}__",
-        self.current_module.generated_top_level_symbols.len()
-      ))
-    };
-    self
-      .current_module
-      .generated_top_level_symbols
-      .push(crate::GeneratedTopLevelSymbol {
-        preferred_name,
-        placeholder: placeholder.clone(),
-      });
-    placeholder
+    self.current_module.invalidate_scope_snapshot = true;
+    let preferred_name = Atom::from(preferred_name);
+    preferred_name
   }
 
   fn build_module_reference(
     &mut self,
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
+    track_placeholder: bool,
   ) -> (String, ModuleReferenceOptions) {
     let info = self
       .modules_map
@@ -212,10 +199,12 @@ impl ConcatenationScope {
     let module_ref = format!(
       "__rspack_module_ref{index_str}_{export_data}{call_flag}{direct_import_flag}{deferred_import_flag}{asi_safe_flag}__._"
     );
-    self
-      .current_module
-      .module_reference_placeholders
-      .push(module_ref.clone());
+    if track_placeholder {
+      self
+        .current_module
+        .module_reference_placeholders
+        .push(module_ref.clone());
+    }
     (module_ref, options.clone())
   }
 
@@ -224,9 +213,8 @@ impl ConcatenationScope {
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
-    let (module_ref, options) = self.build_module_reference(module, options);
-    let entry = self.refs.entry(*module).or_default();
-    entry.insert(module_ref.clone(), options);
+    self.current_module.invalidate_scope_snapshot = true;
+    let (module_ref, _) = self.build_module_reference(module, options, false);
     module_ref
   }
 
@@ -235,7 +223,7 @@ impl ConcatenationScope {
     module: &ModuleIdentifier,
     options: &ModuleReferenceOptions,
   ) -> String {
-    let (module_ref, _) = self.build_module_reference(module, options);
+    let (module_ref, _) = self.build_module_reference(module, options, false);
     module_ref
   }
 

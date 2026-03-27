@@ -850,11 +850,29 @@ impl ConcatenatedModule {
       return source;
     }
     let mut replacements = replacements.to_vec();
-    replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
-    for (placeholder, value) in replacements {
-      source = source.replace(&placeholder, &value);
+    replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()).then_with(|| a.0.cmp(&b.0)));
+    replacements.dedup_by(|a, b| a.0 == b.0);
+    let mut output = String::with_capacity(source.len());
+    let mut cursor = 0;
+    while let Some(offset) = source[cursor..].find("__rspack_") {
+      let start = cursor + offset;
+      output.push_str(&source[cursor..start]);
+      if let Some((placeholder, value)) = replacements
+        .iter()
+        .find(|(placeholder, _)| source[start..].starts_with(placeholder.as_str()))
+      {
+        output.push_str(value);
+        cursor = start + placeholder.len();
+      } else {
+        output.push_str("__rspack_");
+        cursor = start + "__rspack_".len();
+      }
     }
-    source
+    if cursor == 0 {
+      return source;
+    }
+    output.push_str(&source[cursor..]);
+    output
   }
 
   fn apply_placeholder_replacements_to_source(
@@ -869,10 +887,18 @@ impl ConcatenatedModule {
     replacements.dedup_by(|a, b| a.0 == b.0);
 
     let original_source = source.source().into_string_lossy().into_owned();
-    for (placeholder, value) in replacements {
-      for (start, _) in original_source.match_indices(placeholder.as_str()) {
+    let mut cursor = 0;
+    while let Some(offset) = original_source[cursor..].find("__rspack_") {
+      let start = cursor + offset;
+      if let Some((placeholder, value)) = replacements
+        .iter()
+        .find(|(placeholder, _)| original_source[start..].starts_with(placeholder.as_str()))
+      {
         let end = start + placeholder.len();
         source.replace(start as u32, end as u32, value.clone(), None);
+        cursor = end;
+      } else {
+        cursor = start + "__rspack_".len();
       }
     }
   }
@@ -2940,7 +2966,6 @@ impl ConcatenatedModule {
         && module_info.added_scope_idents.is_empty()
         && module_info.generated_top_level_symbols.is_empty()
         && module_info.module_reference_placeholders.is_empty()
-        && module_info.removed_original_ranges.is_empty()
         && rendered_init_fragments.is_none();
 
       let result_source = if can_use_scope_snapshot {
