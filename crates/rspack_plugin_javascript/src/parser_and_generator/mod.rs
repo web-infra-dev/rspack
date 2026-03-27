@@ -7,12 +7,11 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
-  ChunkGraph, CodeGenerationDataConcatenationSource, CodeGenerationDataRenderedInitFragments,
-  CollectedTypeScriptInfo, Compilation, ConcatenationScopeSnapshot, DependenciesBlock,
-  DependencyId, DependencyTemplateType, DependencyType, GenerateContext, IdentCollector, Module,
-  ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem, SourceType,
-  TemplateContext, TemplateReplaceSource,
+  ChunkGraph, CodeGenerationDataRenderedInitFragments, CollectedTypeScriptInfo, Compilation,
+  ConcatenationScopeSnapshot, DependenciesBlock, DependencyId, DependencyTemplateType,
+  DependencyType, GenerateContext, IdentCollector, Module, ModuleArgument, ModuleCodeTemplate,
+  ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals,
+  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments_to_strings,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -306,18 +305,17 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     });
 
+    let should_collect_concatenation_scope_snapshot =
+      compiler_options.optimization.concatenate_modules && matches!(module_type, ModuleType::JsEsm);
     let mut global_ctxt = SyntaxContext::empty();
     let mut module_ctxt = SyntaxContext::empty();
-    let mut collector = IdentCollector::default();
+    let mut collector = should_collect_concatenation_scope_snapshot.then(IdentCollector::default);
     ast.visit(|program, context| {
       global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
       module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-      program.visit_with(&mut collector);
-    });
-    build_info.concatenation_scope_snapshot = Some(ConcatenationScopeSnapshot {
-      module_ctxt,
-      global_ctxt,
-      idents: collector.ids,
+      if let Some(collector) = collector.as_mut() {
+        program.visit_with(collector);
+      }
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;
@@ -357,6 +355,18 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
+
+    build_info.concatenation_scope_snapshot = collector
+      .map(|collector| collector.ids)
+      .filter(|_| {
+        matches!(build_meta.exports_type, BuildMetaExportsType::Namespace)
+          && build_info.module_concatenation_bailout.is_none()
+      })
+      .map(|idents| ConcatenationScopeSnapshot {
+        module_ctxt,
+        global_ctxt,
+        idents,
+      });
 
     if compiler_options.optimization.side_effects.is_true() {
       build_meta.side_effect_free = Some(side_effects_item.is_none());
@@ -442,9 +452,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       };
       let rendered_fragments = render_init_fragments_to_strings(init_fragments, generate_context)?;
       if is_concatenated_codegen {
-        generate_context
-          .data
-          .insert(CodeGenerationDataConcatenationSource::new(source.clone()));
         if !rendered_fragments.is_empty() {
           generate_context
             .data
@@ -453,6 +460,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
               rendered_fragments.end.clone(),
             ));
         }
+        generate_context.concatenation_scope = concatenation_scope;
+        return Ok(source.boxed());
       }
       generate_context.concatenation_scope = concatenation_scope;
       let mut concat_source = ConcatSource::default();

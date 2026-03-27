@@ -7,7 +7,6 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use cow_utils::CowUtils;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::As};
@@ -18,7 +17,8 @@ use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspac
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
+  BoxSource, CachedSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, ReplaceSource,
+  Source, SourceExt,
 };
 use rspack_util::{
   SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
@@ -40,19 +40,19 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataConcatenationSource, CodeGenerationDataRenderedInitFragments,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConcatenationScopeSnapshot, ConditionalInitFragment, ConnectionState,
-  Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyRange,
-  DependencyType, ExportInfoHashKey, ExportProvided, ExportsArgument, ExportsInfoArtifact,
-  ExportsInfoGetter, ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, PrefetchExportsInfoMode, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  CodeGenerationDataRenderedInitFragments, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConcatenationScopeSnapshot,
+  ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM,
+  DependenciesBlock, DependencyId, DependencyRange, DependencyType, ExportInfoHashKey,
+  ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter, ExportsType,
+  FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
+  Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime, find_target,
+  get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES,
@@ -652,6 +652,9 @@ impl ConcatenatedModule {
   }
 
   fn is_ident_removed(ident: &ConcatenatedModuleIdent, removed_ranges: &[DependencyRange]) -> bool {
+    if removed_ranges.is_empty() {
+      return false;
+    }
     let span = ident.id.span();
     let low = span.real_lo();
     let high = span.real_hi();
@@ -843,10 +846,13 @@ impl ConcatenatedModule {
     mut source: String,
     replacements: &[(String, String)],
   ) -> String {
+    if replacements.is_empty() {
+      return source;
+    }
     let mut replacements = replacements.to_vec();
     replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()));
     for (placeholder, value) in replacements {
-      source = source.cow_replace(&placeholder, &value).into_owned();
+      source = source.replace(&placeholder, &value);
     }
     source
   }
@@ -855,6 +861,9 @@ impl ConcatenatedModule {
     source: &mut ReplaceSource,
     replacements: &[(String, String)],
   ) {
+    if replacements.is_empty() {
+      return;
+    }
     let mut replacements = replacements.to_vec();
     replacements.sort_by(|a, b| b.0.len().cmp(&a.0.len()).then_with(|| a.0.cmp(&b.0)));
     replacements.dedup_by(|a, b| a.0 == b.0);
@@ -886,9 +895,20 @@ impl ConcatenatedModule {
     );
 
     let source = info.source.take().expect("should have source");
-    let mut rendered_source = ReplaceSource::new(source);
-    Self::apply_placeholder_replacements_to_source(&mut rendered_source, &replacements);
-    let rendered_source: BoxSource = rendered_source.boxed();
+    let rendered_source: BoxSource = if source
+      .map(&ObjectPool::default(), &MapOptions::default())
+      .is_some()
+    {
+      let mut rendered_source = ReplaceSource::new(source);
+      Self::apply_placeholder_replacements_to_source(&mut rendered_source, &replacements);
+      rendered_source.boxed()
+    } else {
+      RawStringSource::from(Self::apply_placeholder_replacements(
+        source.source().into_string_lossy().into_owned(),
+        &replacements,
+      ))
+      .boxed()
+    };
 
     if let Some(fragments) = info.rendered_init_fragments.take() {
       ConcatSource::new([
@@ -908,6 +928,19 @@ impl ConcatenatedModule {
     } else {
       rendered_source
     }
+  }
+
+  fn render_generated_source_with_fragments(
+    source: &BoxSource,
+    fragments: Option<&crate::RenderedInitFragments>,
+  ) -> String {
+    let source = source.source().into_string_lossy().into_owned();
+    if let Some(fragments) = fragments {
+      if !fragments.start.is_empty() || !fragments.end.is_empty() {
+        return format!("{}{}{}", fragments.start, source, fragments.end);
+      }
+    }
+    source
   }
 
   pub fn new(
@@ -1772,13 +1805,13 @@ impl Module for ConcatenatedModule {
           .expect("should have module");
         let build_meta = module.build_meta();
         let mut refs = vec![];
-        for reference in info.module_reference_placeholders.iter() {
-          let match_result =
-            ConcatenationScope::match_module_reference(reference.trim_end_matches("._"));
+        for reference in info.global_scope_ident.iter() {
+          let match_result = ConcatenationScope::match_module_reference(reference.id.sym.as_str());
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
+            let span = reference.id.span();
             refs.push((
-              reference.clone(),
+              ModuleReferenceReplacementTarget::Span(span.real_lo(), span.real_hi() + 2),
               referenced_info_id,
               match_info
                 .ids
@@ -1793,10 +1826,33 @@ impl Module for ConcatenatedModule {
             ));
           }
         }
+        if refs.is_empty() {
+          for reference in info.module_reference_placeholders.iter() {
+            let match_result =
+              ConcatenationScope::match_module_reference(reference.trim_end_matches("._"));
+            if let Some(match_info) = match_result {
+              let referenced_info_id = &references_info[match_info.index].0;
+              refs.push((
+                ModuleReferenceReplacementTarget::Placeholder(reference.clone()),
+                referenced_info_id,
+                match_info
+                  .ids
+                  .into_iter()
+                  .map(|item| Atom::from(item.as_str()))
+                  .collect::<Vec<_>>(),
+                match_info.call,
+                !match_info.direct_import,
+                match_info.deferred_import,
+                build_meta.strict_esm_module,
+                match_info.asi_safe,
+              ));
+            }
+          }
+        }
 
         let mut changes = vec![];
         for (
-          reference_placeholder,
+          reference_target,
           referenced_info_id,
           export_name,
           call,
@@ -1822,7 +1878,7 @@ impl Module for ConcatenatedModule {
             asi_safe,
             &context,
           );
-          changes.push((reference_placeholder, final_name));
+          changes.push((reference_target, final_name));
         }
         Some((info.module, changes))
       })
@@ -1832,12 +1888,24 @@ impl Module for ConcatenatedModule {
       IdentifierMap::default();
 
     for (module_info_id, module_changes) in changes.iter_mut() {
-      for (placeholder, name_result) in mem::take(module_changes) {
+      for (target, name_result) in mem::take(module_changes) {
         name_result.apply_to_info(&mut module_to_info_map, &mut needed_namespace_objects);
-        module_reference_replacements
-          .entry(*module_info_id)
-          .or_default()
-          .push((placeholder, name_result.name));
+        match target {
+          ModuleReferenceReplacementTarget::Placeholder(placeholder) => {
+            module_reference_replacements
+              .entry(*module_info_id)
+              .or_default()
+              .push((placeholder, name_result.name));
+          }
+          ModuleReferenceReplacementTarget::Span(low, high) => {
+            let info = module_to_info_map
+              .get_mut(module_info_id)
+              .and_then(|info| info.try_as_concatenated_mut())
+              .expect("should have concatenate module info");
+            let source = info.source.as_mut().expect("should have source");
+            source.replace(low, high, name_result.name, None);
+          }
+        }
       }
     }
 
@@ -2860,27 +2928,33 @@ impl ConcatenatedModule {
         .expect("should have javascript source");
       let mut module_info = concatenation_scope.current_module;
       let scope_snapshot = module.build_info().concatenation_scope_snapshot.as_ref();
-      let unrendered_source = codegen_res
+      let rendered_init_fragments = codegen_res
         .data
-        .get::<CodeGenerationDataConcatenationSource>()
-        .map(|data| data.inner().clone());
-      let rendered_source_code = rendered_source.source().into_string_lossy().into_owned();
+        .get::<CodeGenerationDataRenderedInitFragments>()
+        .map(|fragments| crate::RenderedInitFragments {
+          start: fragments.start().to_string(),
+          end: fragments.end().to_string(),
+        })
+        .filter(|fragments| !fragments.start.is_empty() || !fragments.end.is_empty());
+      let can_use_scope_snapshot = !module_info.invalidate_scope_snapshot
+        && module_info.added_scope_idents.is_empty()
+        && module_info.generated_top_level_symbols.is_empty()
+        && module_info.module_reference_placeholders.is_empty()
+        && module_info.removed_original_ranges.is_empty()
+        && rendered_init_fragments.is_none();
 
-      let result_source = if !module_info.invalidate_scope_snapshot {
-        if let (Some(snapshot), Some(unrendered_source)) = (scope_snapshot, unrendered_source) {
+      let result_source = if can_use_scope_snapshot {
+        if let Some(snapshot) = scope_snapshot {
           Self::populate_info_from_snapshot(snapshot, &mut module_info);
-          module_info.rendered_init_fragments = codegen_res
-            .data
-            .get::<CodeGenerationDataRenderedInitFragments>()
-            .map(|fragments| crate::RenderedInitFragments {
-              start: fragments.start().to_string(),
-              end: fragments.end().to_string(),
-            })
-            .filter(|fragments| !fragments.start.is_empty() || !fragments.end.is_empty());
-          module_info.internal_source = Some(unrendered_source.clone().boxed());
-          unrendered_source
+          module_info.rendered_init_fragments = rendered_init_fragments.clone();
+          module_info.internal_source = Some(rendered_source.clone());
+          ReplaceSource::new(rendered_source.clone())
         } else {
           module_info.removed_original_ranges.clear();
+          let rendered_source_code = Self::render_generated_source_with_fragments(
+            &rendered_source,
+            rendered_init_fragments.as_ref(),
+          );
           self.populate_info_from_generated_source(
             compilation,
             module.as_ref(),
@@ -2888,11 +2962,16 @@ impl ConcatenatedModule {
             &mut module_info,
           )?;
           module_info.rendered_init_fragments = None;
-          module_info.internal_source = Some(rendered_source.clone());
-          ReplaceSource::new(rendered_source.clone())
+          module_info.internal_source =
+            Some(RawStringSource::from(rendered_source_code.clone()).boxed());
+          ReplaceSource::new(RawStringSource::from(rendered_source_code))
         }
       } else {
         module_info.removed_original_ranges.clear();
+        let rendered_source_code = Self::render_generated_source_with_fragments(
+          &rendered_source,
+          rendered_init_fragments.as_ref(),
+        );
         self.populate_info_from_generated_source(
           compilation,
           module.as_ref(),
@@ -2900,8 +2979,9 @@ impl ConcatenatedModule {
           &mut module_info,
         )?;
         module_info.rendered_init_fragments = None;
-        module_info.internal_source = Some(rendered_source.clone());
-        ReplaceSource::new(rendered_source.clone())
+        module_info.internal_source =
+          Some(RawStringSource::from(rendered_source_code.clone()).boxed());
+        ReplaceSource::new(RawStringSource::from(rendered_source_code))
       };
 
       module_info.has_ast = true;
@@ -3667,6 +3747,12 @@ struct FinalBindingResult {
   interop_default_access_used: Option<bool>,
   deferred_namespace_object_used: Option<bool>,
   needed_namespace_object: Option<ModuleIdentifier>,
+}
+
+#[derive(Debug)]
+enum ModuleReferenceReplacementTarget {
+  Placeholder(String),
+  Span(u32, u32),
 }
 
 impl FinalBindingResult {
