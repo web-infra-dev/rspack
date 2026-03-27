@@ -3,12 +3,13 @@ use std::sync::LazyLock;
 use rspack_core::{DependencyRange, SideEffectsBailoutItemWithSpan};
 use swc_core::{
   common::{
-    Mark, Spanned, SyntaxContext,
+    BytePos, Mark, Spanned, SyntaxContext,
     comments::{CommentKind, Comments},
   },
   ecma::{
     ast::{
-      Class, ClassMember, Decl, Expr, Function, ModuleDecl, Pat, PropName, VarDecl, VarDeclOrExpr,
+      Class, ClassMember, Decl, Expr, ExprOrSpread, Function, ModuleDecl, Pat, PropName, VarDecl,
+      VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
   },
@@ -19,8 +20,9 @@ use crate::{
   visitors::{JavascriptParser, Statement, VariableDeclaration},
 };
 
-static PURE_COMMENTS: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new("^\\s*(#|@)__PURE__\\s*$").expect("Should create the regex"));
+static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
+  regex::Regex::new("(?s)^\\s*(#|@)__PURE__(?:\\s|$)").expect("Should create the regex")
+});
 
 pub struct SideEffectsParserPlugin {
   unresolve_ctxt: SyntaxContext,
@@ -78,21 +80,14 @@ fn is_pure_call_expr(
   expr: &Expr,
   unresolved_ctxt: SyntaxContext,
   comments: Option<&dyn Comments>,
+  force_pure_flag: bool,
 ) -> bool {
   let Expr::Call(call_expr) = expr else {
     unreachable!();
   };
-  let callee = &call_expr.callee;
-  let pure_flag = comments
-    .and_then(|comments| {
-      if let Some(comment_list) = comments.get_leading(callee.span().lo) {
-        return Some(comment_list.iter().any(|comment| {
-          comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(&comment.text)
-        }));
-      }
-      None
-    })
-    .unwrap_or(false);
+  let pure_flag = force_pure_flag
+    || has_pure_comment(comments, expr.span().lo)
+    || has_pure_comment(comments, call_expr.callee.span().lo);
   if !pure_flag {
     !expr.may_have_side_effects(ExprCtx {
       unresolved_ctxt,
@@ -101,14 +96,89 @@ fn is_pure_call_expr(
       remaining_depth: 4,
     })
   } else {
-    call_expr.args.iter().all(|arg| {
-      if arg.spread.is_some() {
-        false
-      } else {
-        is_pure_expression(parser, &arg.expr, unresolved_ctxt, comments)
-      }
-    })
+    are_pure_args(parser, &call_expr.args, unresolved_ctxt, comments)
   }
+}
+
+fn is_pure_new_expr(
+  parser: &mut JavascriptParser,
+  expr: &Expr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+  force_pure_flag: bool,
+) -> bool {
+  let Expr::New(new_expr) = expr else {
+    unreachable!();
+  };
+  let pure_flag = force_pure_flag || has_pure_comment(comments, expr.span().lo);
+  if !pure_flag {
+    !expr.may_have_side_effects(ExprCtx {
+      unresolved_ctxt,
+      in_strict: false,
+      is_unresolved_ref_safe: false,
+      remaining_depth: 4,
+    })
+  } else {
+    are_pure_args(
+      parser,
+      new_expr.args.as_deref().unwrap_or(&[]),
+      unresolved_ctxt,
+      comments,
+    )
+  }
+}
+
+fn is_pure_paren_expr(
+  parser: &mut JavascriptParser,
+  expr: &Expr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+) -> bool {
+  let Expr::Paren(paren_expr) = expr else {
+    unreachable!();
+  };
+  if has_pure_comment(comments, expr.span().lo) {
+    let expr = strip_parens(&paren_expr.expr);
+    match expr {
+      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments, true),
+      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments, true),
+      _ => false,
+    }
+  } else {
+    is_pure_expression(parser, &paren_expr.expr, unresolved_ctxt, comments)
+  }
+}
+
+fn has_pure_comment(comments: Option<&dyn Comments>, pos: BytePos) -> bool {
+  comments
+    .and_then(|comments| comments.get_leading(pos))
+    .is_some_and(|comment_list| {
+      comment_list
+        .iter()
+        .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(&comment.text))
+    })
+}
+
+fn strip_parens(mut expr: &Expr) -> &Expr {
+  while let Expr::Paren(paren_expr) = expr {
+    expr = &paren_expr.expr;
+  }
+  expr
+}
+
+fn are_pure_args<'a>(
+  parser: &mut JavascriptParser,
+  args: &'a [ExprOrSpread],
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
+) -> bool {
+  args.iter().all(|arg| {
+    if arg.spread.is_some() {
+      false
+    } else {
+      is_pure_expression(parser, &arg.expr, unresolved_ctxt, comments)
+    }
+  })
 }
 
 impl SideEffectsParserPlugin {
@@ -357,8 +427,9 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
-      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments),
-      Expr::Paren(_) => unreachable!(),
+      Expr::Call(_) => is_pure_call_expr(parser, expr, unresolved_ctxt, comments, false),
+      Expr::New(_) => is_pure_new_expr(parser, expr, unresolved_ctxt, comments, false),
+      Expr::Paren(_) => is_pure_paren_expr(parser, expr, unresolved_ctxt, comments),
       Expr::Seq(seq_expr) => seq_expr
         .exprs
         .iter()
