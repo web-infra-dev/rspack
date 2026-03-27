@@ -167,11 +167,13 @@ jobs:
         with:
           name: testCase-persistentCache-linux
           path: ./cache-linux
+          force-use-github-only: true
       - name: Download windows cache
         uses: ./.github/actions/artifact/download
         with:
           name: testCase-persistentCache-windows
           path: ./cache-windows
+          force-use-github-only: true
       - name: Run compare kit
         run: |
           echo "success"

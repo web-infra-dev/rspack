@@ -9,18 +9,22 @@ inputs:
   path:
     description: 'Destination path'
     required: true
+  force-use-github-only:
+    description: 'Force download from github'
+    default: false
+    required: false
 
 runs:
   using: composite
   steps:
     - name: Download artifact from github
       uses: actions/download-artifact@v4.1.7
-      if: ${{ !startsWith(runner.name, 'rspack') }}
+      if: ${{ !startsWith(runner.name, 'rspack') || inputs.force-use-github-only == 'true' }}
       with:
         name: ${{ inputs.name }}
         path: ${{ inputs.path }}
     - name: Download artifact from lynx
-      if: ${{ startsWith(runner.name, 'rspack') }}
+      if: ${{ startsWith(runner.name, 'rspack') && inputs.force-use-github-only != 'true' }}
       uses: lynx-infra/download-artifact@79d9914484f933089c2840552cf439bac85debad # https://github.com/lynx-infra/download-artifact/tree/dev
       with:
         name: ${{ inputs.name }}
