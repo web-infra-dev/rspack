@@ -1,6 +1,6 @@
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, MemberExpr, OptChainExpr},
+  ecma::ast::{MemberExpr, OptChainExpr},
 };
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
@@ -45,7 +45,11 @@ impl CallHooksName for String {
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    self.as_str().call_hooks_name(parser, hook_call)
+    if self.contains('.') {
+      hook_call(parser, self)
+    } else {
+      self.as_str().call_hooks_name(parser, hook_call)
+    }
   }
 }
 #[allow(unused_lifetimes)]
@@ -90,11 +94,8 @@ impl CallHooksName for OptChainExpr {
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    let Some(MemberExpressionInfo::Expression(expr_name)) = parser
-      .get_member_expression_info_from_expr(
-        &Expr::OptChain(self.to_owned()),
-        AllowedMemberTypes::Expression,
-      )
+    let Some(MemberExpressionInfo::Expression(expr_name)) =
+      parser.get_member_expression_info(ExprRef::OptChain(self), AllowedMemberTypes::Expression)
     else {
       return None;
     };
