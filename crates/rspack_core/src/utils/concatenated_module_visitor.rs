@@ -1,6 +1,9 @@
-use swc_core::ecma::{
-  ast::{ClassExpr, Ident, ObjectPatProp, Prop},
-  visit::{Visit, VisitWith, noop_visit_type},
+use swc_core::{
+  common::SyntaxContext,
+  ecma::{
+    ast::{ClassExpr, Ident, ObjectPatProp, Prop},
+    visit::{Visit, VisitWith, noop_visit_type},
+  },
 };
 
 #[derive(Clone, Debug)]
@@ -8,6 +11,13 @@ pub struct ConcatenatedModuleIdent {
   pub id: Ident,
   pub shorthand: bool,
   pub is_class_expr_with_ident: bool,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ConcatenationScopeSnapshot {
+  pub module_ctxt: SyntaxContext,
+  pub global_ctxt: SyntaxContext,
+  pub idents: Vec<ConcatenatedModuleIdent>,
 }
 
 #[derive(Default)]

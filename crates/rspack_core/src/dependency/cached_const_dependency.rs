@@ -66,6 +66,10 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .downcast_ref::<CachedConstDependency>()
       .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
 
+    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+      scope.invalidate_scope_snapshot();
+    }
+
     code_generatable_context.init_fragments.push(
       NormalInitFragment::new(
         format!("var {} = {};\n", dep.identifier, dep.content),

@@ -19,7 +19,7 @@ pub use self::{
   esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
   esm_export_expression_dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency,
-    ESMExportExpressionDependencyTemplate,
+    ESMExportExpressionDependencyTemplate, NamedDeclarationInfo,
   },
   esm_export_header_dependency::{ESMExportHeaderDependency, ESMExportHeaderDependencyTemplate},
   esm_export_imported_specifier_dependency::{

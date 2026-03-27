@@ -7,19 +7,21 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
-  ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeVariable,
-  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  ChunkGraph, CodeGenerationDataConcatenationSource, CodeGenerationDataRenderedInitFragments,
+  CollectedTypeScriptInfo, Compilation, ConcatenationScopeSnapshot, DependenciesBlock,
+  DependencyId, DependencyTemplateType, DependencyType, GenerateContext, IdentCollector, Module,
+  ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem, SourceType,
+  TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
-  remove_bom, render_init_fragments,
-  rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
+  remove_bom, render_init_fragments_to_strings,
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{BytePos, comments::SingleThreadedComments, input::SourceFileInput},
+  common::{BytePos, SyntaxContext, comments::SingleThreadedComments, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -40,6 +42,22 @@ fn module_type_to_is_module(value: &ModuleType) -> IsModule {
     ModuleType::JsDynamic => IsModule::Bool(false),
     _ => IsModule::Unknown,
   }
+}
+
+fn supports_concatenation_scope_snapshot(template_type: &DependencyTemplateType) -> bool {
+  matches!(
+    template_type,
+    DependencyTemplateType::Dependency(
+      DependencyType::EsmImport
+        | DependencyType::EsmImportSpecifier
+        | DependencyType::EsmExportSpecifier
+        | DependencyType::EsmExportExpression
+        | DependencyType::EsmExportImportedSpecifier
+        | DependencyType::EsmExportHeader
+    ) | DependencyTemplateType::Custom(
+      "ESMCompatibilityDependency" | "ConstDependency" | "CachedConstDependency"
+    )
+  )
 }
 
 #[derive(Debug)]
@@ -147,6 +165,12 @@ impl JavaScriptParserAndGenerator {
         .dependency_template()
         .and_then(|template_type| compilation.get_dependency_template(template_type))
       {
+        if let Some(template_type) = dependency.dependency_template()
+          && let Some(scope) = context.concatenation_scope.as_mut()
+          && !supports_concatenation_scope_snapshot(&template_type)
+        {
+          scope.invalidate_scope_snapshot();
+        }
         template.render(dependency, source, context)
       } else {
         panic!(
@@ -282,6 +306,20 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       });
     });
 
+    let mut global_ctxt = SyntaxContext::empty();
+    let mut module_ctxt = SyntaxContext::empty();
+    let mut collector = IdentCollector::default();
+    ast.visit(|program, context| {
+      global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
+      module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
+      program.visit_with(&mut collector);
+    });
+    build_info.concatenation_scope_snapshot = Some(ConcatenationScopeSnapshot {
+      module_ctxt,
+      global_ctxt,
+      idents: collector.ids,
+    });
+
     let unresolved_mark = ast.get_context().unresolved_mark;
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
@@ -357,42 +395,75 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       let mut source = ReplaceSource::new(source.clone());
       let compilation = generate_context.compilation;
       let mut init_fragments = vec![];
-      let mut context = TemplateContext {
-        compilation,
-        module,
-        init_fragments: &mut init_fragments,
-        runtime: generate_context.runtime,
-        concatenation_scope: generate_context.concatenation_scope.take(),
-        data: generate_context.data,
-        runtime_template: generate_context.runtime_template,
-      };
+      let (concatenation_scope, is_concatenated_codegen) = {
+        let mut context = TemplateContext {
+          compilation,
+          module,
+          init_fragments: &mut init_fragments,
+          runtime: generate_context.runtime,
+          concatenation_scope: generate_context.concatenation_scope.take(),
+          data: generate_context.data,
+          runtime_template: generate_context.runtime_template,
+        };
 
-      module.get_dependencies().iter().for_each(|dependency_id| {
-        self.source_dependency(compilation, dependency_id, &mut source, &mut context)
-      });
-
-      if let Some(dependencies) = module.get_presentational_dependencies() {
-        dependencies.iter().for_each(|dependency| {
-          if let Some(template) = dependency
-            .dependency_template()
-            .and_then(|template_type| compilation.get_dependency_template(template_type))
-          {
-            template.render(dependency.as_ref(), &mut source, &mut context)
-          } else {
-            panic!(
-              "Can not find dependency template of {:?}",
-              dependency.dependency_template()
-            );
-          }
+        module.get_dependencies().iter().for_each(|dependency_id| {
+          self.source_dependency(compilation, dependency_id, &mut source, &mut context)
         });
-      };
 
-      module
-        .get_blocks()
-        .iter()
-        .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
-      generate_context.concatenation_scope = context.concatenation_scope.take();
-      render_init_fragments(source.boxed(), init_fragments, generate_context)
+        if let Some(dependencies) = module.get_presentational_dependencies() {
+          dependencies.iter().for_each(|dependency| {
+            if let Some(template) = dependency
+              .dependency_template()
+              .and_then(|template_type| compilation.get_dependency_template(template_type))
+            {
+              if let Some(template_type) = dependency.dependency_template()
+                && let Some(scope) = context.concatenation_scope.as_mut()
+                && !supports_concatenation_scope_snapshot(&template_type)
+              {
+                scope.invalidate_scope_snapshot();
+              }
+              template.render(dependency.as_ref(), &mut source, &mut context)
+            } else {
+              panic!(
+                "Can not find dependency template of {:?}",
+                dependency.dependency_template()
+              );
+            }
+          });
+        };
+
+        module
+          .get_blocks()
+          .iter()
+          .for_each(|block_id| self.source_block(compilation, block_id, &mut source, &mut context));
+        let concatenation_scope = context.concatenation_scope.take();
+        let is_concatenated_codegen = concatenation_scope.is_some();
+        (concatenation_scope, is_concatenated_codegen)
+      };
+      let rendered_fragments = render_init_fragments_to_strings(init_fragments, generate_context)?;
+      if is_concatenated_codegen {
+        generate_context
+          .data
+          .insert(CodeGenerationDataConcatenationSource::new(source.clone()));
+        if !rendered_fragments.is_empty() {
+          generate_context
+            .data
+            .insert(CodeGenerationDataRenderedInitFragments::new(
+              rendered_fragments.start.clone(),
+              rendered_fragments.end.clone(),
+            ));
+        }
+      }
+      generate_context.concatenation_scope = concatenation_scope;
+      let mut concat_source = ConcatSource::default();
+      if !rendered_fragments.start.is_empty() {
+        concat_source.add(RawStringSource::from(rendered_fragments.start));
+      }
+      concat_source.add(source.boxed());
+      if !rendered_fragments.end.is_empty() {
+        concat_source.add(RawStringSource::from(rendered_fragments.end));
+      }
+      Ok(concat_source.boxed())
     } else {
       panic!(
         "Unsupported source type: {:?}",

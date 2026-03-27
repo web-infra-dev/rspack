@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec, Skip},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -39,7 +39,7 @@ use crate::{
   PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
-  value_cache_versions::ValueCacheVersions,
+  utils::ConcatenationScopeSnapshot, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -106,6 +106,8 @@ pub struct BuildInfo {
   pub json_data: Option<JsonValue>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
+  #[cacheable(with=Skip)]
+  pub concatenation_scope_snapshot: Option<ConcatenationScopeSnapshot>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -136,6 +138,7 @@ impl Default for BuildInfo {
       need_create_require: false,
       json_data: None,
       top_level_declarations: None,
+      concatenation_scope_snapshot: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,

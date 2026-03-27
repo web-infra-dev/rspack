@@ -9,15 +9,15 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType,
-  URLStaticMode, UsageState, UsedName, UsedNameItem, collect_ident, escape_name_atom_ref,
-  find_new_name, find_target, get_cached_readable_identifier, get_js_chunk_filename_template,
-  get_module_directives, get_module_hashbang, property_access, property_name,
-  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
-  to_normal_comment,
+  ConcatenationScope, ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode,
+  ExportProvided, ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult,
+  GetUsedNameParam, ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode,
+  RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, collect_ident,
+  escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
+  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
+  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -3088,6 +3088,38 @@ var {} = {{}};
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
+          if let Some(match_info) =
+            ConcatenationScope::match_module_reference(direct_export.trim_end_matches("._"))
+          {
+            let referenced_info_id = module_to_info_map
+              .values()
+              .find(|candidate| candidate.index() == match_info.index)
+              .map(|candidate| candidate.id())
+              .expect("should have referenced info for module reference export");
+            let mut referenced_export_name = match_info
+              .ids
+              .into_iter()
+              .map(|item| Atom::from(item.as_str()))
+              .collect::<Vec<_>>();
+            referenced_export_name.extend(export_name.iter().skip(1).cloned());
+            return Self::get_binding(
+              from,
+              mg,
+              mg_cache,
+              exports_info_artifact,
+              &referenced_info_id,
+              referenced_export_name,
+              module_to_info_map,
+              needed_namespace_objects,
+              match_info.call,
+              call_context,
+              module.build_meta().strict_esm_module,
+              match_info.asi_safe,
+              already_visited,
+              required,
+              all_used_names,
+            );
+          }
           if let Some(used_name) = used_name {
             match used_name {
               UsedName::Normal(used_name) => {

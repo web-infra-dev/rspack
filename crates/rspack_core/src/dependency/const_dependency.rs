@@ -53,12 +53,21 @@ impl DependencyTemplate for ConstDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<ConstDependency>()
       .expect("ConstDependencyTemplate should be used for ConstDependency");
+
+    if let Some(scope) = code_generatable_context.concatenation_scope.as_mut() {
+      let trimmed = dep.content.trim();
+      if trimmed.is_empty() || trimmed == ";" {
+        scope.remove_original_range(dep.range);
+      } else {
+        scope.invalidate_scope_snapshot();
+      }
+    }
 
     source.replace(
       dep.range.start,

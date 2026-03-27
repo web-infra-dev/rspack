@@ -26,6 +26,18 @@ pub struct InitFragmentContents {
   pub end: Option<String>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct RenderedInitFragments {
+  pub start: String,
+  pub end: String,
+}
+
+impl RenderedInitFragments {
+  pub fn is_empty(&self) -> bool {
+    self.start.is_empty() && self.end.is_empty()
+  }
+}
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
   Unique(u32),
@@ -204,11 +216,10 @@ pub enum InitFragmentStage {
 }
 
 /// InitFragment.addToSource
-pub fn render_init_fragments<C: InitFragmentRenderContext>(
-  source: BoxSource,
+pub fn render_init_fragments_to_strings<C: InitFragmentRenderContext>(
   mut fragments: Vec<Box<dyn InitFragment<C>>>,
   context: &mut C,
-) -> Result<BoxSource> {
+) -> Result<RenderedInitFragments> {
   // here use sort_by_key because need keep order equal stage fragments
   fragments.sort_by(|a, b| {
     let stage = a.stage().cmp(&b.stage());
@@ -232,24 +243,40 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
     }
   }
 
+  let mut start = String::new();
   let mut end_contents = vec![];
-  let mut concat_source = ConcatSource::default();
 
   for (key, fragments) in keyed_fragments {
     let f = key.merge_fragments(fragments);
     let contents = f.contents(context)?;
-    concat_source.add(RawStringSource::from(contents.start));
+    start.push_str(&contents.start);
     if let Some(end_content) = contents.end {
-      end_contents.push(RawStringSource::from(end_content))
+      end_contents.push(end_content)
     }
   }
 
-  concat_source.add(source);
-
+  let mut end = String::new();
   for content in end_contents.into_iter().rev() {
-    concat_source.add(content);
+    end.push_str(&content);
   }
 
+  Ok(RenderedInitFragments { start, end })
+}
+
+pub fn render_init_fragments<C: InitFragmentRenderContext>(
+  source: BoxSource,
+  fragments: Vec<Box<dyn InitFragment<C>>>,
+  context: &mut C,
+) -> Result<BoxSource> {
+  let rendered = render_init_fragments_to_strings(fragments, context)?;
+  let mut concat_source = ConcatSource::default();
+  if !rendered.start.is_empty() {
+    concat_source.add(RawStringSource::from(rendered.start));
+  }
+  concat_source.add(source);
+  if !rendered.end.is_empty() {
+    concat_source.add(RawStringSource::from(rendered.end));
+  }
   Ok(concat_source.boxed())
 }
 

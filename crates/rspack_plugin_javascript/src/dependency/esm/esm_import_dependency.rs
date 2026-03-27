@@ -178,11 +178,20 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
+  let rendered_import_var = code_generatable_context
+    .concatenation_scope
+    .as_mut()
+    .map(|scope| {
+      scope
+        .get_or_create_generated_top_level_symbol(import_var.as_str())
+        .to_string()
+    })
+    .unwrap_or(import_var);
   let content: (String, String) = runtime_template.import_statement(
     *module,
     compilation,
     module_dependency.id(),
-    &import_var,
+    &rendered_import_var,
     module_dependency.request(),
     phase,
     false,
@@ -245,7 +254,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       None,
       runtime_condition.clone(),
     )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(rendered_import_var).boxed());
     init_fragments.push(Box::new(ConditionalInitFragment::new(
       content.1,
       InitFragmentStage::StageAsyncESMImports,

@@ -16,7 +16,7 @@ use crate::{
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
-    ESMImportSideEffectDependency,
+    ESMImportSideEffectDependency, NamedDeclarationInfo,
   },
   parser_plugin::compatibility_plugin::{NESTED_IDENTIFIER_TAG, NestedRequireData},
   utils::object_properties::get_attributes,
@@ -274,10 +274,12 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
             ),
           )))
         }
-        ExportDefaultExpression::ClassDecl(c) => c
-          .ident
-          .as_ref()
-          .map(|ident| DeclarationId::Id(ident.sym.to_string())),
+        ExportDefaultExpression::ClassDecl(c) => c.ident.as_ref().map(|ident| {
+          DeclarationId::Id(NamedDeclarationInfo::new(
+            ident.sym.to_string(),
+            ident.span.into(),
+          ))
+        }),
         ExportDefaultExpression::Expr(_) => None,
       },
       parser.to_dependency_location(DependencyRange::from(expr_span)),
