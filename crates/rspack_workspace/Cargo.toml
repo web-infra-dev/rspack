@@ -14,5 +14,5 @@ version.workspace       = true
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

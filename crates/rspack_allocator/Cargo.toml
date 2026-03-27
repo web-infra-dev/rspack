@@ -24,5 +24,5 @@ mimalloc = { workspace = true, features = ["v3"] }
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

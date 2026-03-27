@@ -136,5 +136,5 @@ sftrace-setup  = { workspace = true, optional = true }
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

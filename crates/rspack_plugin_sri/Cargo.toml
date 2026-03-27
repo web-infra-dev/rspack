@@ -42,5 +42,5 @@ ignored = ["tracing", "rspack_hash", "rspack_collections"]
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

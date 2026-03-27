@@ -30,5 +30,5 @@ ignored = ["tracing", "rspack_hash", "tokio"]
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

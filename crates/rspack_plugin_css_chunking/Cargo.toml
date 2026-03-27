@@ -25,5 +25,5 @@ ignored = ["tracing", "tokio"]
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

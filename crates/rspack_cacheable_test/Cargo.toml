@@ -11,16 +11,16 @@ version.workspace = true
 workspace = true
 
 [dev-dependencies]
-camino = { workspace = true }
-dashmap = { workspace = true }
-json = { workspace = true }
-lightningcss = { workspace = true }
-once_cell = { workspace = true }
+camino           = { workspace = true }
+dashmap          = { workspace = true }
+json             = { workspace = true }
+lightningcss     = { workspace = true }
+once_cell        = { workspace = true }
 rspack_cacheable = { workspace = true }
-rspack_resolver = { workspace = true }
-rspack_sources = { workspace = true }
-rustc-hash = { workspace = true }
-serde_json = { workspace = true }
-swc_core = { workspace = true, features = ["ecma_ast"] }
-ustr = { workspace = true }
-xxhash-rust = { workspace = true, features = ["const_xxh64"] }
+rspack_resolver  = { workspace = true }
+rspack_sources   = { workspace = true }
+rustc-hash       = { workspace = true }
+serde_json       = { workspace = true }
+swc_core         = { workspace = true, features = ["ecma_ast"] }
+ustr             = { workspace = true }
+xxhash-rust      = { workspace = true, features = ["const_xxh64"] }

@@ -21,5 +21,5 @@ ustr             = { workspace = true, features = ["serde"] }
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

@@ -11,9 +11,9 @@ repository.workspace    = true
 version.workspace       = true
 
 [lib]
+doctest    = false
 proc-macro = true
-test = false
-doctest = false
+test       = false
 
 [dependencies]
 rspack_binding_builder = { workspace = true }

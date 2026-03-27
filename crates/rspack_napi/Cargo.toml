@@ -22,5 +22,5 @@ tokio          = { workspace = true, features = ["sync"] }
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false

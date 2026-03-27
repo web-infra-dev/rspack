@@ -12,19 +12,19 @@ codspeed = []
 default  = []
 
 [dependencies]
-criterion    = { workspace = true }
+criterion = { workspace = true }
 
 [dev-dependencies]
 # Make rust analyzer happy
+rspack           = { workspace = true, features = ["full"] }
 rspack_cacheable = { workspace = true }
-rspack = { workspace = true, features = ["full"] }
-rspack_core = { workspace = true }
-rspack_error = { workspace = true }
-rspack_fs = { workspace = true }
-rspack_regex = { workspace = true }
-rspack_tasks = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true }
+rspack_core      = { workspace = true }
+rspack_error     = { workspace = true }
+rspack_fs        = { workspace = true }
+rspack_regex     = { workspace = true }
+rspack_tasks     = { workspace = true }
+serde_json       = { workspace = true }
+tokio            = { workspace = true }
 
 [[bench]]
 harness = false
@@ -37,5 +37,5 @@ ignored = ["rspack_cacheable"]
 workspace = true
 
 [lib]
-test = false
 doctest = false
+test    = false
