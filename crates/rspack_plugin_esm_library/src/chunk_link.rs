@@ -288,6 +288,11 @@ pub struct ChunkLinkContext {
   pub raw_import_stmts: FxIndexMap<RawImportSource, ImportSpec>,
 
   /**
+  namespace imports already provided by module init fragments
+   */
+  pub module_external_namespace_imports: FxHashMap<RawImportSource, Atom>,
+
+  /**
   `const symbol = __webpack_require__(module_id)`
   */
   pub required: IdentifierIndexMap<ExternalInterop>,
@@ -355,6 +360,7 @@ impl ChunkLinkContext {
       used_names: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
+      module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
       exports_require_via_runtime_module: false,
     }

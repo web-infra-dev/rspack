@@ -1,0 +1,71 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// NAMESPACE OBJECT: ./exports.js
+var exports_namespaceObject = {};
+__webpack_require__.r(exports_namespaceObject);
+__webpack_require__.d(exports_namespaceObject, { 
+  sources: () => (index_js_namespaceObject) });
+
+
+// webpack-sources
+const index_js_namespaceObject = __rspack_createRequire_require("webpack-sources/lib/index.js");
+// ./exports.js
+
+
+
+
+// ./index.js
+
+
+
+it("should keep a node-commonjs external wrapper on the require path only", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const { createRequire } = await import("node:module");
+  const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-wrapper-namespace-reexport/index.js');
+  const sources = require("webpack-sources/lib/index.js");
+
+  expect(mod.sources.RawSource).toBe(sources.RawSource);
+  expect(mod.exportsNS.sources.RawSource).toBe(sources.RawSource);
+  expect(mod.exportsNS.sources.RawSource).toBe(mod.sources.RawSource);
+});
+
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+export { exports_namespaceObject as exportsNS, index_js_namespaceObject as sources };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
+
+```
