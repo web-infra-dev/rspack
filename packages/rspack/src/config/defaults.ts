@@ -905,7 +905,6 @@ const applyExternalsPresetsDefaults = (
   D(
     externalsPresets,
     'electron',
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     (targetProperties && targetProperties.electron) || isUniversal('electron'),
   );
   D(
@@ -969,18 +968,15 @@ const applyNodeDefaults = (
   if (node === false) return;
 
   F(node, 'global', () => {
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
   F(node, '__dirname', () => {
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
   F(node, '__filename', () => {
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
@@ -1112,7 +1108,6 @@ const getResolveDefaults = ({
   const tp = targetProperties;
 
   const browserField =
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
   const aliasFields = browserField ? ['browser'] : [];
   const mainFields = browserField

@@ -36,7 +36,6 @@ jobs:
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       profile: 'release'
       test: false
-      bench: false
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
@@ -104,7 +103,7 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Build JS
         run: pnpm run build:js

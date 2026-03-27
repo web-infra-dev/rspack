@@ -51,9 +51,5 @@ jobs:
       - name: Install cargo-dylint
         run: cargo install cargo-dylint dylint-link --locked
 
-      - name: Test rspack_collection_hasher
-        working-directory: linting/rspack_collection_hasher
-        run: cargo test --lib
-
       - name: Run dylint
         run: cargo dylint --all

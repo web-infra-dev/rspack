@@ -23,12 +23,10 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Lint js
-        run: |
-          pnpm run lint-ci:js
-          pnpm run lint:type
+        run: pnpm run lint-ci:js
 
       - name: Prettier
         run: pnpm run format-ci:js

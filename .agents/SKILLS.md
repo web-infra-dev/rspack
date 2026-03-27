@@ -118,7 +118,7 @@ Used for JavaScript API layer, CLI tools, and test infrastructure.
 **Linting:**
 
 - Rust: `cargo clippy`, `cargo check`
-- JavaScript/TypeScript: Biome, Rslint
+- JavaScript/TypeScript: Rslint
 - Type checking: TypeScript compiler
 
 **Formatting:**
