@@ -7,16 +7,17 @@ use std::{
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent, DependencyType,
-  ExportInfoHashKey, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsType, FindTargetResult, GetUsedNameParam, ImportSpec, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
-  PrefetchExportsInfoMode, RuntimeGlobals, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
-  get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
-  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES,
-  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
+  ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
+  ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
+  ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
+  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals, SourceType,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, collect_ident, escape_name_atom_ref,
+  find_new_name, find_target, get_cached_readable_identifier, get_js_chunk_filename_template,
+  get_module_directives, get_module_hashbang, property_access, property_name,
+  reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource, split_readable_identifier,
+  to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -59,8 +60,6 @@ impl<V> GetMut<ModuleIdentifier, V> for IdentifierIndexMap<V> {
 }
 
 static START_EXPORTS: LazyLock<Atom> = LazyLock::new(|| "*".into());
-static DEFAULT_EXPORT: LazyLock<Atom> = LazyLock::new(|| "default".into());
-
 #[derive(Default, Debug)]
 pub(crate) struct ExportsContext {
   exports: FxHashMap<Atom, FxIndexSet<Atom>>,
@@ -75,6 +74,137 @@ enum ExternalImportBinding {
 }
 
 impl EsmLibraryPlugin {
+  fn parse_module_external_namespace_import(content: &str) -> Option<(RawImportSource, Atom)> {
+    let content = content.trim_start();
+    let content = content.strip_prefix("import * as ")?;
+    let (local_name, source_clause) = content.split_once(" from ")?;
+    if local_name.is_empty() {
+      return None;
+    }
+
+    let source_clause = source_clause
+      .lines()
+      .next()
+      .map(str::trim)
+      .map(|line| line.trim_end_matches(';'))?;
+    let (source_literal, attr) =
+      if let Some((source_literal, attr)) = source_clause.split_once(" with ") {
+        (source_literal, Some(format!(" with {attr}")))
+      } else {
+        (source_clause, None)
+      };
+    let source = serde_json::from_str::<String>(source_literal).ok()?;
+    Some((RawImportSource::Source((source, attr)), local_name.into()))
+  }
+
+  fn collect_module_external_namespace_imports(
+    init_fragments: &ChunkInitFragments,
+  ) -> Vec<(RawImportSource, Atom)> {
+    Self::collect_module_external_namespace_imports_in_render_order([init_fragments])
+  }
+
+  #[cfg(test)]
+  fn reserve_module_external_namespace_import_locals(
+    init_fragments: &ChunkInitFragments,
+    used_names: &mut FxHashSet<Atom>,
+    namespace_imports: Option<&mut FxHashMap<RawImportSource, Atom>>,
+  ) {
+    Self::reserve_module_external_namespace_import_locals_in_render_order(
+      [init_fragments],
+      used_names,
+      namespace_imports,
+    );
+  }
+
+  fn collect_module_external_namespace_imports_in_render_order<'a>(
+    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
+  ) -> Vec<(RawImportSource, Atom)> {
+    let mut ordered_imports = Vec::new();
+
+    for init_fragments in init_fragment_groups {
+      for init_fragment in init_fragments {
+        if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
+          continue;
+        }
+
+        let content = if let Ok(fragment) = init_fragment
+          .clone()
+          .into_any()
+          .downcast::<ConditionalInitFragment>()
+        {
+          fragment.content().to_owned()
+        } else {
+          let Ok(contents) = init_fragment.clone().contents(&mut ChunkRenderContext {}) else {
+            continue;
+          };
+          contents.start
+        };
+
+        if let Some((source, local_name)) = Self::parse_module_external_namespace_import(&content) {
+          ordered_imports.push((
+            init_fragment.stage(),
+            init_fragment.position(),
+            ordered_imports.len(),
+            source,
+            local_name,
+          ));
+        }
+      }
+    }
+
+    ordered_imports.sort_by(|a, b| {
+      let stage = a.0.cmp(&b.0);
+      if !stage.is_eq() {
+        return stage;
+      }
+      let position = a.1.cmp(&b.1);
+      if !position.is_eq() {
+        return position;
+      }
+      a.2.cmp(&b.2)
+    });
+
+    ordered_imports
+      .into_iter()
+      .map(|(_, _, _, source, local_name)| (source, local_name))
+      .collect()
+  }
+
+  fn reserve_module_external_namespace_import_locals_in_render_order<'a>(
+    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
+    used_names: &mut FxHashSet<Atom>,
+    namespace_imports: Option<&mut FxHashMap<RawImportSource, Atom>>,
+  ) {
+    let mut namespace_imports = namespace_imports;
+    for (source, local_name) in
+      Self::collect_module_external_namespace_imports_in_render_order(init_fragment_groups)
+    {
+      if let Some(namespace_imports) = namespace_imports.as_mut() {
+        if namespace_imports.contains_key(&source) {
+          continue;
+        }
+        used_names.insert(local_name.clone());
+        namespace_imports.insert(source, local_name);
+      } else {
+        used_names.insert(local_name);
+      }
+    }
+  }
+
+  fn assign_external_candidate_name(
+    readable_identifier: &str,
+    candidate_used_names: &mut FxHashSet<Atom>,
+    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+  ) -> Atom {
+    let name = find_new_name(
+      "",
+      candidate_used_names,
+      &escaped_identifiers[readable_identifier],
+    );
+    candidate_used_names.insert(name.clone());
+    name
+  }
+
   fn strict_export_chunk(&self, chunk: ChunkUkey) -> bool {
     self.strict_export_chunks.borrow().contains(&chunk)
   }
@@ -193,36 +323,51 @@ impl EsmLibraryPlugin {
       .insert(export_name);
   }
 
-  fn get_external_import_binding(
+  fn get_external_import_source_and_binding(
     info: &rspack_core::ConcatenatedModuleInfo,
     local_name: &Atom,
-  ) -> Option<ExternalImportBinding> {
-    info.import_map.as_ref().and_then(|import_map| {
-      import_map.values().find_map(|imported_atoms| {
+  ) -> Option<(RawImportSource, ExternalImportBinding)> {
+    if let Some(import_map) = info.import_map.as_ref() {
+      for ((source, attr), imported_atoms) in import_map {
+        let raw_import_source = RawImportSource::Source((source.clone(), attr.clone()));
+
         if imported_atoms
           .namespace
           .as_ref()
           .is_some_and(|namespace| namespace == local_name)
+          || info.namespace_object_name.as_ref() == Some(local_name)
         {
-          return Some(ExternalImportBinding::Namespace);
+          return Some((raw_import_source, ExternalImportBinding::Namespace));
         }
 
-        imported_atoms.specifiers.iter().find_map(|imported_name| {
+        for imported_name in &imported_atoms.specifiers {
           let internal_name = info
             .get_internal_name(imported_name)
             .unwrap_or(imported_name);
           if internal_name != local_name {
-            return None;
+            continue;
           }
 
-          Some(if imported_name == "default" {
-            ExternalImportBinding::Default
-          } else {
-            ExternalImportBinding::Named(imported_name.clone())
-          })
-        })
-      })
-    })
+          return Some((
+            raw_import_source,
+            if imported_name == "default" {
+              ExternalImportBinding::Default
+            } else {
+              ExternalImportBinding::Named(imported_name.clone())
+            },
+          ));
+        }
+      }
+    }
+
+    if info.namespace_object_name.as_ref() == Some(local_name) {
+      return Self::collect_module_external_namespace_imports(&info.chunk_init_fragments)
+        .into_iter()
+        .next()
+        .map(|(source, _)| (source, ExternalImportBinding::Namespace));
+    }
+
+    None
   }
 
   pub(crate) async fn link(
@@ -235,10 +380,15 @@ impl EsmLibraryPlugin {
     // codegen uses self.concatenated_modules_map_for_codegen which has hold another Arc, so
     // it's safe to access concate_modules_map lock
     let mut concate_modules_map = self.concatenated_modules_map.write().await;
+    let mut external_module_init_fragments = IdentifierMap::default();
 
     // analyze every modules and collect identifiers to concate_modules_map
     self
-      .analyze_module(compilation, &mut concate_modules_map)
+      .analyze_module(
+        compilation,
+        &mut concate_modules_map,
+        &mut external_module_init_fragments,
+      )
       .await?;
 
     // initialize data for link chunks
@@ -397,6 +547,7 @@ impl EsmLibraryPlugin {
       self.deconflict_symbols(
         compilation,
         &mut concate_modules_map,
+        &external_module_init_fragments,
         chunk_link,
         &escaped_names,
         &escaped_identifiers,
@@ -510,45 +661,35 @@ impl EsmLibraryPlugin {
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
+                    && ext.get_external_type().as_str().starts_with("module")
                   {
-                    let request = ext.get_request().primary().to_string();
-                    let import_binding = concate_modules_map
+                    let Some((raw_import_source, import_binding)) = concate_modules_map
                       .get(&symbol_binding.module)
                       .and_then(|target_info| match target_info {
                         ModuleInfo::Concatenated(target_info) => {
-                          Self::get_external_import_binding(target_info, &symbol_binding.symbol)
-                            .or_else(|| {
-                              let namespace_object_name =
-                                target_info.namespace_object_name.as_ref();
-                              let default_import_name =
-                                target_info.get_internal_name(&DEFAULT_EXPORT);
-
-                              if namespace_object_name == Some(&symbol_binding.symbol) {
-                                Some(ExternalImportBinding::Namespace)
-                              } else if default_import_name == Some(&symbol_binding.symbol) {
-                                Some(ExternalImportBinding::Default)
-                              } else {
-                                None
-                              }
-                            })
+                          Self::get_external_import_source_and_binding(
+                            target_info,
+                            &symbol_binding.symbol,
+                          )
                         }
                         ModuleInfo::External(_) => None,
                       })
-                      .unwrap_or_else(|| {
-                        export_info.name().map_or_else(
-                          || ExternalImportBinding::Named(symbol_binding.symbol.clone()),
-                          |imported_name| {
-                            if imported_name == "default" {
-                              ExternalImportBinding::Default
-                            } else {
-                              ExternalImportBinding::Named(imported_name.clone())
-                            }
-                          },
-                        )
-                      });
+                    else {
+                      continue;
+                    };
+
+                    if matches!(import_binding, ExternalImportBinding::Namespace)
+                      && let Some(existing_local) = chunk_link
+                        .module_external_namespace_imports
+                        .get(&raw_import_source)
+                    {
+                      symbol_binding.symbol = existing_local.clone();
+                      continue;
+                    }
+
                     let import_spec = chunk_link
                       .raw_import_stmts
-                      .entry(RawImportSource::Source((request, None)))
+                      .entry(raw_import_source)
                       .or_default();
 
                     let existing_local = match &import_binding {
@@ -562,20 +703,7 @@ impl EsmLibraryPlugin {
                     if let Some(existing_local) = existing_local {
                       symbol_binding.symbol = existing_local.clone();
                     } else {
-                      let already_bound = import_spec
-                        .default_import
-                        .as_ref()
-                        .is_some_and(|atom| atom == &symbol_binding.symbol)
-                        || import_spec
-                          .ns_import
-                          .as_ref()
-                          .is_some_and(|atom| atom == &symbol_binding.symbol)
-                        || import_spec
-                          .atoms
-                          .values()
-                          .any(|atom| atom == &symbol_binding.symbol);
-
-                      let local_name = if already_bound {
+                      let local_name = if chunk_link.used_names.contains(&symbol_binding.symbol) {
                         let new_name = find_new_name(
                           symbol_binding.symbol.as_str(),
                           &chunk_link.used_names,
@@ -584,7 +712,9 @@ impl EsmLibraryPlugin {
                         chunk_link.used_names.insert(new_name.clone());
                         new_name
                       } else {
-                        symbol_binding.symbol.clone()
+                        let local_name = symbol_binding.symbol.clone();
+                        chunk_link.used_names.insert(local_name.clone());
+                        local_name
                       };
 
                       match import_binding {
@@ -769,6 +899,7 @@ var {} = {{}};
     &self,
     compilation: &Compilation,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
+    external_module_init_fragments: &IdentifierMap<ChunkInitFragments>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<Atom, Atom>,
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
@@ -811,6 +942,37 @@ var {} = {{}};
       }
     }
 
+    let mut module_external_init_fragment_groups = vec![&chunk_link.init_fragments];
+    for id in &chunk_link.decl_modules {
+      match &concate_modules_map[id] {
+        ModuleInfo::Concatenated(info) => {
+          module_external_init_fragment_groups.push(&info.chunk_init_fragments);
+        }
+        ModuleInfo::External(info) => {
+          if let Some(init_fragments) = external_module_init_fragments.get(&info.module) {
+            module_external_init_fragment_groups.push(init_fragments);
+          }
+        }
+      }
+    }
+    for id in &chunk_link.hoisted_modules {
+      match &concate_modules_map[id] {
+        ModuleInfo::Concatenated(info) => {
+          module_external_init_fragment_groups.push(&info.chunk_init_fragments);
+        }
+        ModuleInfo::External(info) => {
+          if let Some(init_fragments) = external_module_init_fragments.get(&info.module) {
+            module_external_init_fragment_groups.push(init_fragments);
+          }
+        }
+      }
+    }
+    Self::reserve_module_external_namespace_import_locals_in_render_order(
+      module_external_init_fragment_groups,
+      &mut all_used_names,
+      Some(&mut chunk_link.module_external_namespace_imports),
+    );
+
     // deconflict top level symbols
     for id in chunk_link
       .hoisted_modules
@@ -833,16 +995,56 @@ var {} = {{}};
         // registered import map
         if let Some(import_map) = &concate_info.import_map {
           for ((source, attr), imported_atoms) in import_map.iter() {
-            let total_imported_atoms = chunk_link
-              .raw_import_stmts
-              .entry(RawImportSource::Source((source.clone(), attr.clone())))
-              .or_default();
+            let raw_import_source = RawImportSource::Source((source.clone(), attr.clone()));
+            let existing_namespace_import = chunk_link
+              .module_external_namespace_imports
+              .get(&raw_import_source)
+              .cloned();
+            let mut total_imported_atoms = None;
+
+            if imported_atoms.namespace.is_none()
+              && imported_atoms.specifiers.is_empty()
+              && existing_namespace_import.is_none()
+            {
+              total_imported_atoms = Some(
+                chunk_link
+                  .raw_import_stmts
+                  .entry(raw_import_source.clone())
+                  .or_default(),
+              );
+            }
 
             if let Some(ns_import) = &imported_atoms.namespace {
-              total_imported_atoms.ns_import = Some(ns_import.clone());
+              if let Some(existing_local) = existing_namespace_import.as_ref() {
+                if existing_local != ns_import {
+                  internal_names.insert(ns_import.clone(), existing_local.clone());
+                }
+              } else {
+                total_imported_atoms = Some(
+                  chunk_link
+                    .raw_import_stmts
+                    .entry(raw_import_source.clone())
+                    .or_default(),
+                );
+                total_imported_atoms
+                  .as_mut()
+                  .expect("should have import spec")
+                  .ns_import = Some(ns_import.clone());
+              }
             }
 
             for atom in &imported_atoms.specifiers {
+              if total_imported_atoms.is_none() {
+                total_imported_atoms = Some(
+                  chunk_link
+                    .raw_import_stmts
+                    .entry(raw_import_source.clone())
+                    .or_default(),
+                );
+              }
+              let total_imported_atoms = total_imported_atoms
+                .as_mut()
+                .expect("should have import spec");
               // already import this symbol
               if let Some(internal_atom) = total_imported_atoms.atoms.get(atom).or_else(|| {
                 if atom == "default"
@@ -933,7 +1135,7 @@ var {} = {{}};
           && namespace_export_symbol.starts_with(NAMESPACE_OBJECT_EXPORT)
           && namespace_export_symbol.len() > NAMESPACE_OBJECT_EXPORT.len()
         {
-          let name =
+          let name: Atom =
             Atom::from(namespace_export_symbol[NAMESPACE_OBJECT_EXPORT.len()..].to_string());
           all_used_names.insert(name.clone());
           concate_info
@@ -1012,22 +1214,79 @@ var {} = {{}};
 
     // Build a targeted set for external module name deconfliction:
     // Start from chunk_link.used_names (cross-chunk accumulated names) and add
-    // import binding names from raw_import_stmts. We do NOT use all_used_names here
-    // because it contains binding_to_ref keys (e.g., `cjs`, `foo`) that will be
-    // replaced during rendering and should not block external module names.
-    let mut external_used_names = chunk_link.used_names.clone();
+    // names that will actually be emitted at the chunk top level. We intentionally
+    // avoid using all_used_names directly because it also contains transient
+    // binding_to_ref keys (e.g. `cjs`, `foo`) that are rewritten during rendering
+    // and should not block external module names.
+    let mut emitted_external_used_names = chunk_link.used_names.clone();
+    for module in chunk_link
+      .hoisted_modules
+      .iter()
+      .chain(chunk_link.decl_modules.iter())
+    {
+      match &concate_modules_map[module] {
+        ModuleInfo::Concatenated(info) => {
+          if let Some(name) = &info.namespace_object_name {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object_used
+            && let Some(name) = &info.interop_namespace_object_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object2_used
+            && let Some(name) = &info.interop_namespace_object2_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.interop_default_access_used
+            && let Some(name) = &info.interop_default_access_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+        }
+        ModuleInfo::External(info) => {
+          if info.interop_namespace_object_used
+            && let Some(name) = &info.interop_namespace_object_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.interop_namespace_object2_used
+            && let Some(name) = &info.interop_namespace_object2_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.interop_default_access_used
+            && let Some(name) = &info.interop_default_access_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.deferred
+            && let Some(name) = &info.deferred_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+          if info.deferred_namespace_object_used
+            && let Some(name) = &info.deferred_namespace_object_name
+          {
+            emitted_external_used_names.insert(name.clone());
+          }
+        }
+      }
+    }
     for import_spec in chunk_link.raw_import_stmts.values() {
       if let Some(ns) = &import_spec.ns_import {
-        external_used_names.insert(ns.clone());
+        emitted_external_used_names.insert(ns.clone());
       }
       for atom in import_spec.atoms.values() {
-        external_used_names.insert(atom.clone());
+        emitted_external_used_names.insert(atom.clone());
       }
       if let Some(default_import) = &import_spec.default_import {
-        external_used_names.insert(default_import.clone());
+        emitted_external_used_names.insert(default_import.clone());
       }
     }
 
+    let mut external_candidate_used_names = emitted_external_used_names.clone();
     for external_module in chunk_link.decl_modules.iter() {
       let ModuleInfo::External(info) = &mut concate_modules_map[external_module] else {
         unreachable!("should be un-scope-hoisted module");
@@ -1041,16 +1300,16 @@ var {} = {{}};
           context,
         );
 
-        let name = find_new_name(
-          "",
-          &external_used_names,
-          &escaped_identifiers[&readable_identifier],
+        let name = Self::assign_external_candidate_name(
+          &readable_identifier,
+          &mut external_candidate_used_names,
+          escaped_identifiers,
         );
-        external_used_names.insert(name.clone());
         info.name = Some(name);
       }
     }
 
+    all_used_names.extend(emitted_external_used_names);
     chunk_link.used_names = all_used_names;
   }
 
@@ -1058,6 +1317,7 @@ var {} = {{}};
     &self,
     compilation: &Compilation,
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
+    external_module_init_fragments: &mut IdentifierMap<ChunkInitFragments>,
   ) -> Result<()> {
     let runtime_template = compilation.runtime_template.create_runtime_code_template();
     let mut outputs = FxHashMap::<ChunkUkey, String>::default();
@@ -1113,7 +1373,10 @@ var {} = {{}};
         // SAFETY: caller will poll the futures
         let s = unsafe { token.used((compilation, m, info, &runtime_template)) };
         s.spawn(
-          async move |(compilation, id, info, runtime_template)| -> Result<ModuleInfo> {
+          async move |(compilation, id, info, runtime_template)| -> Result<(
+            ModuleInfo,
+            Option<(ModuleIdentifier, ChunkInitFragments)>,
+          )> {
             if compilation
               .build_chunk_graph_artifact
               .chunk_graph
@@ -1121,7 +1384,7 @@ var {} = {{}};
               .is_empty()
             {
               // orphan module
-              return Ok(info);
+              return Ok((info, None));
             }
 
             let chunk_ukey = Self::get_module_chunk(m, compilation)?;
@@ -1130,6 +1393,7 @@ var {} = {{}};
 
             match info {
               rspack_core::ModuleInfo::External(mut external_module_info) => {
+                let codegen_res = compilation.code_generation_results.get(&id, None);
                 let has_javascript_source = compilation
                   .code_generation_results
                   .get(&id, None)
@@ -1146,7 +1410,20 @@ var {} = {{}};
                     .runtime_requirements
                     .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
                 }
-                Ok(ModuleInfo::External(external_module_info))
+                let mut chunk_init_fragments = codegen_res
+                  .data
+                  .get::<ChunkInitFragments>()
+                  .cloned()
+                  .unwrap_or_default();
+                chunk_init_fragments.extend(codegen_res.chunk_init_fragments.clone());
+                Ok((
+                  ModuleInfo::External(external_module_info),
+                  if chunk_init_fragments.is_empty() {
+                    None
+                  } else {
+                    Some((id, chunk_init_fragments))
+                  },
+                ))
               }
               rspack_core::ModuleInfo::Concatenated(mut concate_info) => {
                 let hooks = JsPlugin::get_compilation_hooks(compilation.id());
@@ -1154,7 +1431,7 @@ var {} = {{}};
 
                 let codegen_res = compilation.code_generation_results.get(&id, None);
                 let Some(js_source) = codegen_res.get(&SourceType::JavaScript) else {
-                  return Ok(ModuleInfo::Concatenated(concate_info));
+                  return Ok((ModuleInfo::Concatenated(concate_info), None));
                 };
 
                 let mut render_source = RenderSource {
@@ -1297,7 +1574,7 @@ var {} = {{}};
                 if codegen_res.data.contains::<URLStaticMode>() {
                   concate_info.static_url_replacement = true;
                 }
-                Ok(ModuleInfo::Concatenated(concate_info))
+                Ok((ModuleInfo::Concatenated(concate_info), None))
               }
             }
           },
@@ -1308,7 +1585,10 @@ var {} = {{}};
 
     for m in map {
       let m = m.map_err(|e| rspack_error::error!(e.to_string()))?;
-      let m = m.map_err(|e| rspack_error::error!(e.to_string()))?;
+      let (m, external_fragments) = m.map_err(|e| rspack_error::error!(e.to_string()))?;
+      if let Some((id, init_fragments)) = external_fragments {
+        external_module_init_fragments.insert(id, init_fragments);
+      }
       orig_concate_modules_map.insert(m.id(), m);
     }
 
@@ -2477,14 +2757,14 @@ var {} = {{}};
 
       let mut removed_import_stmts = vec![];
       for (key, specifiers) in &chunk_link.raw_import_stmts {
+        let RawImportSource::Source(key) = key else {
+          continue;
+        };
+
         if specifiers.atoms.is_empty() && specifiers.default_import.is_none() {
           // import 'externals'
           continue;
         }
-
-        let RawImportSource::Source(key) = key else {
-          continue;
-        };
 
         if key.1.is_some() {
           // TODO: optimize import attributes
@@ -3012,10 +3292,13 @@ fn normal_render(
 
 #[cfg(test)]
 mod tests {
-  use rspack_core::{ChunkUkey, ModuleIdentifier};
-  use rspack_util::fx_hash::FxHashSet;
+  use rspack_core::{ChunkInitFragments, ChunkUkey, InitFragmentKey, ModuleIdentifier};
+  use rspack_util::{
+    atom::Atom,
+    fx_hash::{FxHashMap, FxHashSet},
+  };
 
-  use crate::EsmLibraryPlugin;
+  use crate::{EsmLibraryPlugin, chunk_link::RawImportSource};
 
   #[test]
   fn get_module_chunk_empty_chunks_returns_error() {
@@ -3054,5 +3337,255 @@ mod tests {
     let result = EsmLibraryPlugin::validate_single_chunk(m, &chunks);
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), expected_chunk);
+  }
+
+  #[test]
+  fn module_external_namespace_init_fragment_keeps_first_rendered_local() {
+    let first_namespace_import = Atom::from("__rspack_external_0");
+    let second_namespace_import = Atom::from("__rspack_external_1");
+    let init_fragments: ChunkInitFragments = vec![
+      Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_1 from \"../compiled/webpack-sources/index.js\";\n".into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        1,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      )),
+      Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_0 from \"../compiled/webpack-sources/index.js\";\n".into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      )),
+    ];
+    let mut chunk_used_names = FxHashSet::default();
+    let mut namespace_imports = FxHashMap::default();
+
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &init_fragments,
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+
+    assert_eq!(chunk_used_names.len(), 1);
+    assert!(chunk_used_names.contains(&first_namespace_import));
+    assert!(!chunk_used_names.contains(&second_namespace_import));
+    assert_eq!(
+      namespace_imports.get(&RawImportSource::Source((
+        "../compiled/webpack-sources/index.js".into(),
+        None,
+      ))),
+      Some(&first_namespace_import)
+    );
+  }
+
+  #[test]
+  fn module_external_namespace_init_fragment_prefers_decl_before_hoisted() {
+    let decl_namespace_import = Atom::from("__rspack_external_decl");
+    let hoisted_namespace_import = Atom::from("__rspack_external_hoisted");
+    let decl_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_decl from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let hoisted_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_hoisted from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let mut chunk_used_names = FxHashSet::default();
+    let mut namespace_imports = FxHashMap::default();
+
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &decl_init_fragments,
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &hoisted_init_fragments,
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+
+    assert_eq!(chunk_used_names.len(), 1);
+    assert!(chunk_used_names.contains(&decl_namespace_import));
+    assert!(!chunk_used_names.contains(&hoisted_namespace_import));
+    assert_eq!(
+      namespace_imports.get(&RawImportSource::Source((
+        "../compiled/webpack-sources/index.js".into(),
+        None,
+      ))),
+      Some(&decl_namespace_import)
+    );
+  }
+
+  #[test]
+  fn module_external_namespace_init_fragment_prefers_global_render_order() {
+    let chunk_namespace_import = Atom::from("__rspack_external_chunk");
+    let decl_namespace_import = Atom::from("__rspack_external_decl");
+    let hoisted_namespace_import = Atom::from("__rspack_external_hoisted");
+    let chunk_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_chunk from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        -1,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let decl_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_decl from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        1,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let hoisted_init_fragments: ChunkInitFragments =
+      vec![Box::new(rspack_core::NormalInitFragment::new(
+        "import * as __rspack_external_hoisted from \"../compiled/webpack-sources/index.js\";\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+        None,
+      ))];
+    let mut chunk_used_names = FxHashSet::default();
+    let mut namespace_imports = FxHashMap::default();
+
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals_in_render_order(
+      [
+        &chunk_init_fragments,
+        &decl_init_fragments,
+        &hoisted_init_fragments,
+      ],
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+
+    assert_eq!(chunk_used_names.len(), 1);
+    assert!(chunk_used_names.contains(&chunk_namespace_import));
+    assert!(!chunk_used_names.contains(&decl_namespace_import));
+    assert!(!chunk_used_names.contains(&hoisted_namespace_import));
+    assert_eq!(
+      namespace_imports.get(&RawImportSource::Source((
+        "../compiled/webpack-sources/index.js".into(),
+        None,
+      ))),
+      Some(&chunk_namespace_import)
+    );
+  }
+
+  #[test]
+  fn module_external_namespace_init_fragment_claims_chunk_top_level_name() {
+    let module = ModuleIdentifier::from("test_module");
+    let namespace_import = Atom::from("index_js_namespaceObject");
+    let init_fragments: ChunkInitFragments = vec![Box::new(rspack_core::NormalInitFragment::new(
+      "import * as index_js_namespaceObject from \"../compiled/webpack-sources/index.js\";\n"
+        .into(),
+      rspack_core::InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal("../compiled/webpack-sources/index.js".into()),
+      None,
+    ))];
+    let mut chunk_used_names = FxHashSet::default();
+    let mut namespace_imports = FxHashMap::default();
+    let mut required = Default::default();
+
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &init_fragments,
+      &mut chunk_used_names,
+      Some(&mut namespace_imports),
+    );
+
+    let required_info = EsmLibraryPlugin::add_require(
+      module,
+      None,
+      Some(namespace_import.clone()),
+      &mut chunk_used_names,
+      &mut required,
+    );
+    let required_symbol = required_info
+      .required_symbol
+      .as_ref()
+      .expect("should allocate required symbol");
+
+    assert_eq!(required_symbol.as_ref(), "index_js_namespaceObject_0");
+    assert!(chunk_used_names.contains(&namespace_import));
+    assert_eq!(
+      namespace_imports.get(&RawImportSource::Source((
+        "../compiled/webpack-sources/index.js".into(),
+        None,
+      ))),
+      Some(&namespace_import)
+    );
+  }
+
+  #[test]
+  fn module_external_non_namespace_init_fragment_does_not_claim_chunk_top_level_name() {
+    let init_fragments: ChunkInitFragments = vec![Box::new(rspack_core::NormalInitFragment::new(
+      "import { createRequire as __rspack_createRequire } from \"node:module\";\nconst __rspack_createRequire_require = __rspack_createRequire(import.meta.url);\n"
+        .into(),
+      rspack_core::InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal("node-commonjs".into()),
+      None,
+    ))];
+    let mut chunk_used_names = FxHashSet::default();
+
+    EsmLibraryPlugin::reserve_module_external_namespace_import_locals(
+      &init_fragments,
+      &mut chunk_used_names,
+      None,
+    );
+
+    assert!(chunk_used_names.is_empty());
+  }
+
+  #[test]
+  fn external_candidate_name_does_not_claim_chunk_top_level_name() {
+    let module = ModuleIdentifier::from("test_module");
+    let mut candidate_used_names = FxHashSet::default();
+    let mut chunk_used_names = FxHashSet::default();
+    let mut required = Default::default();
+    let escaped_identifiers =
+      FxHashMap::from_iter([("./lib.js".to_string(), vec![Atom::from("lib")])]);
+
+    let candidate = EsmLibraryPlugin::assign_external_candidate_name(
+      "./lib.js",
+      &mut candidate_used_names,
+      &escaped_identifiers,
+    );
+
+    assert_eq!(candidate.as_ref(), "lib");
+    assert!(candidate_used_names.contains(&candidate));
+    assert!(!chunk_used_names.contains(&candidate));
+
+    let required_info = EsmLibraryPlugin::add_require(
+      module,
+      None,
+      Some(candidate.clone()),
+      &mut chunk_used_names,
+      &mut required,
+    );
+
+    assert_eq!(
+      required_info
+        .required_symbol
+        .as_ref()
+        .expect("should keep candidate"),
+      &candidate
+    );
+    assert!(chunk_used_names.contains(&candidate));
   }
 }
