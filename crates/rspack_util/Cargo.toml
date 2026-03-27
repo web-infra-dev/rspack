@@ -49,3 +49,6 @@ plugin     = ["anyhow", "once_cell", "wasmtime", "wasi-common", "swc_plugin_runn
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

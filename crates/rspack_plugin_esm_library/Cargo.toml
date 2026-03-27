@@ -43,6 +43,9 @@ tracing                        = { workspace = true }
 [lints]
 workspace = true
 
+[lib]
+doctest = false
+
 
 [package.metadata.cargo-shear]
-ignored = ["serde", "tracing", "rspack_hash", "rspack_cacheable"]
+ignored = ["serde", "rspack_hash", "rspack_cacheable"]

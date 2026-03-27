@@ -13,9 +13,6 @@ license       = "MIT"
 repository    = "https://github.com/web-infra-dev/rspack"
 version       = "0.100.0-beta.8"
 
-[workspace.metadata.cargo-shear]
-ignored = ["swc", "rspack"]
-
 [workspace.metadata.dylint]
 libraries = [{ path = "linting/*" }]
 

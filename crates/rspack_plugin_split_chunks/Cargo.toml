@@ -27,3 +27,7 @@ tracing            = { workspace = true }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

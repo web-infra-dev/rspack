@@ -34,3 +34,7 @@ ignored = ["tokio"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false
