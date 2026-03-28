@@ -114,6 +114,23 @@ impl ClassExt for ClassMember {
 #[derive(Debug, Default)]
 pub struct SideEffectsFlagPlugin;
 
+#[derive(Debug, Clone, Copy)]
+struct SideEffectsConnectionInfo {
+  dependency_id: DependencyId,
+  original_module_identifier: Option<ModuleIdentifier>,
+  module_identifier: ModuleIdentifier,
+}
+
+impl From<&ModuleGraphConnection> for SideEffectsConnectionInfo {
+  fn from(connection: &ModuleGraphConnection) -> Self {
+    Self {
+      dependency_id: connection.dependency_id,
+      original_module_identifier: connection.original_module_identifier,
+      module_identifier: *connection.module_identifier(),
+    }
+  }
+}
+
 #[plugin_hook(NormalModuleFactoryModule for SideEffectsFlagPlugin,tracing=false)]
 async fn nmf_module(
   &self,
@@ -251,6 +268,7 @@ async fn optimize_dependencies(
     .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
     .flat_map_iter(|module| module_graph.get_incoming_connections(module))
     .map(|connection| {
+      let connection = SideEffectsConnectionInfo::from(connection);
       (
         connection.dependency_id,
         can_optimize_connection(
@@ -323,7 +341,7 @@ fn do_optimize_connection(
   do_optimize: &SideEffectsDoOptimize,
   module_graph: &mut ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
-) -> (DependencyId, ModuleIdentifier) {
+) -> SideEffectsConnectionInfo {
   module_graph.do_update_module(&dependency, &do_optimize.target_module);
   module_graph.set_dependency_extra_meta(
     dependency,
@@ -341,14 +359,17 @@ fn do_optimize_connection(
       .as_data_mut(exports_info_artifact)
       .do_move_target(dependency, target_export.clone());
   }
-  (dependency, do_optimize.target_module)
+  module_graph
+    .connection_by_dependency_id(&dependency)
+    .map(SideEffectsConnectionInfo::from)
+    .expect("should have connection after side effects optimization")
 }
 
 fn apply_optimizations<'a, I>(
   do_optimizes: I,
   module_graph: &mut ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
-) -> Vec<(DependencyId, ModuleIdentifier)>
+) -> Vec<SideEffectsConnectionInfo>
 where
   I: IntoIterator<Item = (DependencyId, &'a SideEffectsDoOptimize)>,
 {
@@ -361,15 +382,16 @@ where
 }
 
 fn collect_followup_optimizations(
-  new_connections: Vec<(DependencyId, ModuleIdentifier)>,
+  new_connections: Vec<SideEffectsConnectionInfo>,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Vec<(DependencyId, SideEffectsDoOptimize)> {
   new_connections
     .into_par_iter()
-    .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
-    .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
+    .filter(|connection| {
+      side_effects_state_map[&connection.module_identifier] == ConnectionState::Active(false)
+    })
     .filter_map(|connection| {
       can_optimize_connection(
         connection,
@@ -384,7 +406,7 @@ fn collect_followup_optimizations(
 
 #[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
 fn can_optimize_connection(
-  connection: &ModuleGraphConnection,
+  connection: SideEffectsConnectionInfo,
   side_effects_state_map: &IdentifierMap<ConnectionState>,
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -442,7 +464,7 @@ fn can_optimize_connection(
     && !ids.is_empty()
   {
     let exports_info = exports_info_artifact.get_prefetched_exports_info(
-      connection.module_identifier(),
+      &connection.module_identifier,
       PrefetchExportsInfoMode::Default,
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
