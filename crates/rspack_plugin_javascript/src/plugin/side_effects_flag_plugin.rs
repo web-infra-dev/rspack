@@ -249,11 +249,7 @@ async fn optimize_dependencies(
   modules
     .par_iter()
     .filter(|module| side_effects_state_map[module] == ConnectionState::Active(false))
-    .flat_map(|module| {
-      module_graph
-        .get_incoming_connections(module)
-        .collect::<Vec<_>>()
-    })
+    .flat_map_iter(|module| module_graph.get_incoming_connections(module))
     .map(|connection| {
       (
         connection.dependency_id,
@@ -274,37 +270,45 @@ async fn optimize_dependencies(
     });
   logger.time_end(inner_start);
 
-  let mut do_optimizes = side_effects_optimize_artifact.clone();
-
   let inner_start = logger.time("do optimize connections");
   let mut do_optimized_count = 0;
+  let module_graph = build_module_graph_artifact.get_module_graph_mut();
+  let new_connections = apply_optimizations(
+    side_effects_optimize_artifact
+      .iter()
+      .map(|(dependency, do_optimize)| (*dependency, do_optimize)),
+    module_graph,
+    exports_info_artifact,
+  );
+  do_optimized_count += side_effects_optimize_artifact.len();
+
+  let module_graph = build_module_graph_artifact.get_module_graph();
+  let mut do_optimizes = collect_followup_optimizations(
+    new_connections,
+    &side_effects_state_map,
+    module_graph,
+    exports_info_artifact,
+  );
   while !do_optimizes.is_empty() {
     do_optimized_count += do_optimizes.len();
 
     let module_graph = build_module_graph_artifact.get_module_graph_mut();
 
-    let new_connections: Vec<_> = do_optimizes
-      .into_iter()
-      .map(|(dependency, do_optimize)| {
-        do_optimize_connection(dependency, do_optimize, module_graph, exports_info_artifact)
-      })
-      .collect();
+    let new_connections = apply_optimizations(
+      do_optimizes
+        .iter()
+        .map(|(dependency, do_optimize)| (*dependency, do_optimize)),
+      module_graph,
+      exports_info_artifact,
+    );
 
     let module_graph = build_module_graph_artifact.get_module_graph();
-    do_optimizes = new_connections
-      .into_par_iter()
-      .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
-      .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
-      .filter_map(|connection| {
-        can_optimize_connection(
-          connection,
-          &side_effects_state_map,
-          module_graph,
-          exports_info_artifact,
-        )
-        .map(|i| (connection.dependency_id, i))
-      })
-      .collect();
+    do_optimizes = collect_followup_optimizations(
+      new_connections,
+      &side_effects_state_map,
+      module_graph,
+      exports_info_artifact,
+    );
   }
   logger.time_end(inner_start);
 
@@ -316,33 +320,66 @@ async fn optimize_dependencies(
 #[tracing::instrument(skip_all)]
 fn do_optimize_connection(
   dependency: DependencyId,
-  do_optimize: SideEffectsDoOptimize,
+  do_optimize: &SideEffectsDoOptimize,
   module_graph: &mut ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> (DependencyId, ModuleIdentifier) {
-  let SideEffectsDoOptimize {
-    ids,
-    target_module,
-    need_move_target,
-  } = do_optimize;
-  module_graph.do_update_module(&dependency, &target_module);
+  module_graph.do_update_module(&dependency, &do_optimize.target_module);
   module_graph.set_dependency_extra_meta(
     dependency,
     DependencyExtraMeta {
-      ids,
+      ids: do_optimize.ids.clone(),
       explanation: Some("(skipped side-effect-free modules)"),
     },
   );
   if let Some(SideEffectsDoOptimizeMoveTarget {
     export_info,
     target_export,
-  }) = need_move_target
+  }) = &do_optimize.need_move_target
   {
     export_info
       .as_data_mut(exports_info_artifact)
-      .do_move_target(dependency, target_export);
+      .do_move_target(dependency, target_export.clone());
   }
-  (dependency, target_module)
+  (dependency, do_optimize.target_module)
+}
+
+fn apply_optimizations<'a, I>(
+  do_optimizes: I,
+  module_graph: &mut ModuleGraph,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+) -> Vec<(DependencyId, ModuleIdentifier)>
+where
+  I: IntoIterator<Item = (DependencyId, &'a SideEffectsDoOptimize)>,
+{
+  do_optimizes
+    .into_iter()
+    .map(|(dependency, do_optimize)| {
+      do_optimize_connection(dependency, do_optimize, module_graph, exports_info_artifact)
+    })
+    .collect()
+}
+
+fn collect_followup_optimizations(
+  new_connections: Vec<(DependencyId, ModuleIdentifier)>,
+  side_effects_state_map: &IdentifierMap<ConnectionState>,
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> Vec<(DependencyId, SideEffectsDoOptimize)> {
+  new_connections
+    .into_par_iter()
+    .filter(|(_, module)| side_effects_state_map[module] == ConnectionState::Active(false))
+    .filter_map(|(connection, _)| module_graph.connection_by_dependency_id(&connection))
+    .filter_map(|connection| {
+      can_optimize_connection(
+        connection,
+        side_effects_state_map,
+        module_graph,
+        exports_info_artifact,
+      )
+      .map(|i| (connection.dependency_id, i))
+    })
+    .collect()
 }
 
 #[tracing::instrument("can_optimize_connection", level = "trace", skip_all)]
