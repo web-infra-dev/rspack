@@ -160,25 +160,12 @@ async function build() {
 					return;
 				}
 
-				if (!watch && !validateTypeDeclarations(envs)) {
-					if (previousDts !== undefined && previousDts !== readFileSync(dts, "utf8")) {
-						console.warn(
-							`generated ${NAPI_BINDING_DTS} failed type check, restoring the checked-in declaration file`
-						);
-						writeFileSync(dts, previousDts);
-						if (!validateTypeDeclarations(envs)) {
-							reject(
-								new Error(`restored ${NAPI_BINDING_DTS} still failed the binding type check`)
-							);
-							return;
-						}
-					} else {
+					if (!watch && !validateTypeDeclarations(envs)) {
 						reject(
 							new Error(`generated ${NAPI_BINDING_DTS} failed the binding type check`)
 						);
 						return;
 					}
-				}
 
 				// For browser wasm, we rename the artifacts to distinguish them from node wasm
 				if (process.env.RSPACK_TARGET_BROWSER) {
