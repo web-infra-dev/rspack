@@ -226,7 +226,7 @@ pub(super) mod get_side_effects_connection_state {
 
   use crate::{ConnectionState, ModuleIdentifier};
 
-  pub type GetSideEffectsConnectionStateKey = (ModuleIdentifier, u64, u64);
+  pub type GetSideEffectsConnectionStateKey = ModuleIdentifier;
 
   #[derive(Debug, Default)]
   pub struct GetSideEffectsConnectionStateCache {

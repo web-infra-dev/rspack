@@ -756,53 +756,46 @@ impl Module for NormalModule {
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
-    module_graph_cache.cached_get_side_effects_connection_state(
-      (
-        self.id(),
-        side_effects_state_artifact.generation(),
-        side_effects_state_artifact.version(),
-      ),
-      || {
-        if let Some(state) = connection_state_cache.get(&self.id) {
-          return *state;
-        }
+    module_graph_cache.cached_get_side_effects_connection_state(self.id(), || {
+      if let Some(state) = connection_state_cache.get(&self.id) {
+        return *state;
+      }
 
-        if let Some(side_effect_free) = module_declared_side_effect_free(self) {
-          return ConnectionState::Active(!side_effect_free);
-        }
+      if let Some(side_effect_free) = module_declared_side_effect_free(self) {
+        return ConnectionState::Active(!side_effect_free);
+      }
 
-        if module_analyzed_side_effect_free(self, side_effects_state_artifact) == Some(true) {
-          // use module chain instead of is_evaluating_side_effects to mut module graph
-          if module_chain.contains(&self.identifier()) {
-            return ConnectionState::CircularConnection;
-          }
-          module_chain.insert(self.identifier());
-          let mut current = ConnectionState::Active(false);
-          for dependency_id in self.get_dependencies().iter() {
-            let dependency = module_graph.dependency_by_id(dependency_id);
-            let state = dependency.get_module_evaluation_side_effects_state(
-              module_graph,
-              module_graph_cache,
-              side_effects_state_artifact,
-              module_chain,
-              connection_state_cache,
-            );
-            if matches!(state, ConnectionState::Active(true)) {
-              // TODO add optimization bailout
-              module_chain.remove(&self.identifier());
-              connection_state_cache.insert(self.id, ConnectionState::Active(true));
-              return ConnectionState::Active(true);
-            } else if !matches!(state, ConnectionState::CircularConnection) {
-              current = current + state;
-            }
-          }
-          module_chain.remove(&self.identifier());
-          connection_state_cache.insert(self.id, current);
-          return current;
+      if module_analyzed_side_effect_free(self, side_effects_state_artifact) == Some(true) {
+        // use module chain instead of is_evaluating_side_effects to mut module graph
+        if module_chain.contains(&self.identifier()) {
+          return ConnectionState::CircularConnection;
         }
-        ConnectionState::Active(true)
-      },
-    )
+        module_chain.insert(self.identifier());
+        let mut current = ConnectionState::Active(false);
+        for dependency_id in self.get_dependencies().iter() {
+          let dependency = module_graph.dependency_by_id(dependency_id);
+          let state = dependency.get_module_evaluation_side_effects_state(
+            module_graph,
+            module_graph_cache,
+            side_effects_state_artifact,
+            module_chain,
+            connection_state_cache,
+          );
+          if matches!(state, ConnectionState::Active(true)) {
+            // TODO add optimization bailout
+            module_chain.remove(&self.identifier());
+            connection_state_cache.insert(self.id, ConnectionState::Active(true));
+            return ConnectionState::Active(true);
+          } else if !matches!(state, ConnectionState::CircularConnection) {
+            current = current + state;
+          }
+        }
+        module_chain.remove(&self.identifier());
+        connection_state_cache.insert(self.id, current);
+        return current;
+      }
+      ConnectionState::Active(true)
+    })
   }
 
   fn get_concatenation_bailout_reason(

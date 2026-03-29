@@ -1,7 +1,4 @@
-use std::{
-  ops::{Deref, DerefMut},
-  sync::atomic::{AtomicU64, Ordering},
-};
+use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierMap;
 
@@ -14,23 +11,9 @@ pub struct SideEffectsState {
   pub optimization_bailouts_to_remove: Vec<OptimizationBailoutItem>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct SideEffectsStateArtifact {
-  generation: u64,
-  version: u64,
   states: IdentifierMap<SideEffectsState>,
-}
-
-static SIDE_EFFECTS_STATE_ARTIFACT_GENERATION: AtomicU64 = AtomicU64::new(1);
-
-impl Default for SideEffectsStateArtifact {
-  fn default() -> Self {
-    Self {
-      generation: SIDE_EFFECTS_STATE_ARTIFACT_GENERATION.fetch_add(1, Ordering::Relaxed),
-      version: 0,
-      states: IdentifierMap::default(),
-    }
-  }
 }
 
 impl Deref for SideEffectsStateArtifact {
@@ -49,11 +32,7 @@ impl DerefMut for SideEffectsStateArtifact {
 
 impl From<IdentifierMap<SideEffectsState>> for SideEffectsStateArtifact {
   fn from(value: IdentifierMap<SideEffectsState>) -> Self {
-    Self {
-      generation: SIDE_EFFECTS_STATE_ARTIFACT_GENERATION.fetch_add(1, Ordering::Relaxed),
-      version: 0,
-      states: value,
-    }
+    Self { states: value }
   }
 }
 
@@ -66,26 +45,12 @@ impl From<SideEffectsStateArtifact> for IdentifierMap<SideEffectsState> {
 impl FromIterator<(ModuleIdentifier, SideEffectsState)> for SideEffectsStateArtifact {
   fn from_iter<T: IntoIterator<Item = (ModuleIdentifier, SideEffectsState)>>(iter: T) -> Self {
     Self {
-      generation: SIDE_EFFECTS_STATE_ARTIFACT_GENERATION.fetch_add(1, Ordering::Relaxed),
-      version: 0,
       states: IdentifierMap::from_iter(iter),
     }
   }
 }
 
 impl SideEffectsStateArtifact {
-  pub fn generation(&self) -> u64 {
-    self.generation
-  }
-
-  pub fn bump_version(&mut self) {
-    self.version = self.version.wrapping_add(1);
-  }
-
-  pub fn version(&self) -> u64 {
-    self.version
-  }
-
   pub fn side_effect_free(&self, module_identifier: &ModuleIdentifier) -> Option<bool> {
     self
       .get(module_identifier)

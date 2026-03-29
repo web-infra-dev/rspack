@@ -247,7 +247,6 @@ async fn finish_modules(
     .side_effects_state_artifact
     .write()
     .expect("should lock side effects state artifact");
-  side_effects_state_artifact.bump_version();
   side_effects_state_artifact.clear();
   for (module_id, side_effect_free, has_impure_deferred_check) in deferred_side_effect_states {
     side_effects_state_artifact.insert(

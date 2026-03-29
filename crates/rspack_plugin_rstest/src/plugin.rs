@@ -415,12 +415,6 @@ async fn optimize_dependencies(
     return Ok(None);
   }
 
-  build_module_graph_artifact
-    .side_effects_state_artifact
-    .write()
-    .expect("should lock side effects state artifact")
-    .bump_version();
-
   Ok(None)
 }
 
