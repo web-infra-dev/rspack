@@ -1,6 +1,9 @@
+import { spawnSync } from 'node:child_process';
 import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { run } from '../../utils/test-utils';
+
+const TSC_PATH = resolve(__dirname, '../../../node_modules/typescript/bin/tsc');
 
 describe('rspack cli', () => {
   describe('should config not found', () => {
@@ -257,6 +260,26 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main monorepo file/);
     });
   });
+
+  describe('should typecheck rule loader shorthands precisely', () => {
+    const cwd = resolve(__dirname, '../../../../rspack');
+
+    it('should reject invalid loader shorthand combinations', () => {
+      const { status, stderr, stdout } = spawnSync(
+        process.execPath,
+        [TSC_PATH, '-p', 'tsconfig.type-tests.json'],
+        {
+          cwd,
+          encoding: 'utf-8',
+        },
+      );
+
+      expect(status).toBe(0);
+      expect(stderr).toBe('');
+      expect(stdout).toBe('');
+    });
+  });
+
   describe('should support loader ts-node register', () => {
     const cwd = resolve(__dirname, './ts-node-register');
     it('should load ts-node-register to support declare const enum', async () => {
