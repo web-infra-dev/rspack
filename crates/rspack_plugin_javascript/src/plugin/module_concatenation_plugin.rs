@@ -1,5 +1,5 @@
 #![allow(clippy::only_used_in_recursion)]
-use std::{borrow::Cow, collections::VecDeque, rc::Rc, sync::Arc};
+use std::{borrow::Cow, collections::VecDeque, sync::Arc};
 
 use rayon::prelude::*;
 use rspack_collections::{
@@ -929,7 +929,7 @@ impl ModuleConcatenationPlugin {
                   export_info,
                   module_graph,
                   &compilation.exports_info_artifact,
-                  Rc::new(|_| true),
+                  &|_| true,
                   &mut Default::default()
                 ),
                 Some(GetTargetResult::Target(_))

@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
@@ -20,7 +20,7 @@ pub struct UnResolvedExportInfoTarget {
   pub export: Option<Vec<Atom>>,
 }
 
-pub type ResolveFilterFnTy<'a> = Rc<dyn Fn(&ResolvedExportInfoTarget) -> bool + 'a>;
+pub type ResolveFilterFnTy<'a> = dyn Fn(&ResolvedExportInfoTarget) -> bool + 'a;
 
 #[derive(Debug)]
 pub enum GetTargetResult {
@@ -68,7 +68,7 @@ pub fn get_terminal_binding(
     export_info,
     mg,
     exports_info_artifact,
-    Rc::new(|_| true),
+    &|_| true,
     &mut Default::default(),
   ) else {
     return None;
@@ -125,10 +125,9 @@ pub fn find_target(
       .get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
     let export_info_hash_key = export_info.as_hash_key();
-    if visited.contains(&export_info_hash_key) {
+    if !visited.insert(export_info_hash_key) {
       return FindTargetResult::NoTarget;
     }
-    visited.insert(export_info_hash_key);
     let new_target = find_target(
       &export_info,
       mg,
@@ -173,17 +172,16 @@ pub fn get_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFnTy<'_>,
   already_visited: &mut HashSet<ExportInfoHashKey>,
 ) -> Option<GetTargetResult> {
   if !export_info.target_is_set() || export_info.target().is_empty() {
     return None;
   }
   let hash_key = export_info.as_hash_key();
-  if already_visited.contains(&hash_key) {
+  if !already_visited.insert(hash_key) {
     return Some(GetTargetResult::Circular);
   }
-  already_visited.insert(hash_key);
 
   let max_target = export_info.get_max_target();
   let mut values = max_target.values().map(|item| UnResolvedExportInfoTarget {
@@ -193,7 +191,7 @@ pub fn get_target(
   let target = resolve_target(
     values.next()?,
     already_visited,
-    resolve_filter.clone(),
+    resolve_filter,
     mg,
     exports_info_artifact,
   );
@@ -203,7 +201,7 @@ pub fn get_target(
       let resolved_target = resolve_target(
         val,
         already_visited,
-        resolve_filter.clone(),
+        resolve_filter,
         mg,
         exports_info_artifact,
       );
@@ -222,7 +220,7 @@ pub fn get_target(
 fn resolve_target(
   input_target: UnResolvedExportInfoTarget,
   already_visited: &mut HashSet<ExportInfoHashKey>,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFnTy<'_>,
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<GetTargetResult> {
@@ -257,7 +255,7 @@ fn resolve_target(
       &maybe_export_info,
       mg,
       exports_info_artifact,
-      resolve_filter.clone(),
+      resolve_filter,
       already_visited,
     );
 
@@ -297,7 +295,7 @@ pub fn can_move_target(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
-  resolve_filter: ResolveFilterFnTy,
+  resolve_filter: &ResolveFilterFnTy<'_>,
 ) -> Option<ResolvedExportInfoTarget> {
   let Some(GetTargetResult::Target(target)) = get_target(
     export_info,
