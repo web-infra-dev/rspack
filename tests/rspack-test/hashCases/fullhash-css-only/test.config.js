@@ -1,21 +1,31 @@
 /** @type {import('@rspack/test-tools').THashCaseConfig} */
 module.exports = {
 	validate(stats) {
-		const version0 = stats.stats[0].toJson({ assets: true });
-		const version1 = stats.stats[1].toJson({ assets: true });
-		const js0 = version0.assets.find(asset => asset.name.endsWith(".js"));
-		const js1 = version1.assets.find(asset => asset.name.endsWith(".js"));
-		const css0 = version0.assets.find(asset => asset.name.endsWith(".css"));
-		const css1 = version1.assets.find(asset => asset.name.endsWith(".css"));
+		expect(stats.stats).toHaveLength(4);
 
-		expect(js0).toBeDefined();
-		expect(js1).toBeDefined();
-		expect(css0).toBeDefined();
-		expect(css1).toBeDefined();
+		const builtin0 = stats.stats[0].toJson({ assets: true });
+		const builtin1 = stats.stats[1].toJson({ assets: true });
+		const extract0 = stats.stats[2].toJson({ assets: true });
+		const extract1 = stats.stats[3].toJson({ assets: true });
 
-		expect(js0.name).toBe(`main.${version0.hash}.js`);
-		expect(js1.name).toBe(`main.${version1.hash}.js`);
-		expect(css0.name).not.toBe(css1.name);
-		expect(version0.hash).not.toBe(version1.hash);
+		const assertHashes = (before, after) => {
+			const jsBefore = before.assets.find(asset => asset.name.endsWith(".js"));
+			const jsAfter = after.assets.find(asset => asset.name.endsWith(".js"));
+			const cssBefore = before.assets.find(asset => asset.name.endsWith(".css"));
+			const cssAfter = after.assets.find(asset => asset.name.endsWith(".css"));
+
+			expect(jsBefore).toBeDefined();
+			expect(jsAfter).toBeDefined();
+			expect(cssBefore).toBeDefined();
+			expect(cssAfter).toBeDefined();
+
+			expect(jsBefore.name).toBe(`main.${before.hash}.js`);
+			expect(jsAfter.name).toBe(`main.${after.hash}.js`);
+			expect(cssBefore.name).not.toBe(cssAfter.name);
+			expect(before.hash).not.toBe(after.hash);
+		};
+
+		assertHashes(builtin0, builtin1);
+		assertHashes(extract0, extract1);
 	}
 };
