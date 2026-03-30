@@ -140,7 +140,7 @@ struct ModuleGroupHeapEntry {
   chunks_len: usize,
   key: String,
   modules: Vec<ModuleIdentifier>,
-  size_reduce: f64,
+  size_reduce_bits: u64,
   version: u32,
 }
 
@@ -154,7 +154,7 @@ impl ModuleGroupHeapEntry {
       chunks_len,
       key: key.to_string(),
       modules: module_group.ordered_module_identifiers(),
-      size_reduce,
+      size_reduce_bits: size_reduce.to_bits(),
       version,
     }
   }
@@ -167,7 +167,7 @@ impl PartialEq for ModuleGroupHeapEntry {
       && self.chunks_len == other.chunks_len
       && self.key == other.key
       && self.modules == other.modules
-      && self.size_reduce.to_bits() == other.size_reduce.to_bits()
+      && self.size_reduce_bits == other.size_reduce_bits
   }
 }
 
@@ -184,7 +184,7 @@ impl Ord for ModuleGroupHeapEntry {
     self
       .chunks_len
       .cmp(&other.chunks_len)
-      .then_with(|| self.size_reduce.total_cmp(&other.size_reduce))
+      .then_with(|| self.size_reduce_bits.cmp(&other.size_reduce_bits))
       .then_with(|| other.cache_group_index.cmp(&self.cache_group_index))
       .then_with(|| self.modules.len().cmp(&other.modules.len()))
       .then_with(|| self.modules.cmp(&other.modules))
@@ -746,7 +746,7 @@ impl SplitChunksPlugin {
           return Some(key.to_string());
         }
 
-        module_group_queue.refresh(key, other_module_group);
+        module_group_queue.refresh(key, &other_module_group);
         None
       })
       .collect::<Vec<_>>();
@@ -758,172 +758,6 @@ impl SplitChunksPlugin {
   }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn process_chunk_combination_fast_path(
-  module_identifier: ModuleIdentifier,
-  cache_group_index: u32,
-  cache_group: &CacheGroup,
-  chunk_combination: &FxHashSet<ChunkUkey>,
-  removed_chunks: Option<&FxHashSet<ChunkUkey>>,
-  module_group_map: &mut ModuleGroupMap,
-  compilation: &Compilation,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) {
-  if chunk_combination.is_empty() {
-    return;
-  }
-
-  if chunk_combination.len() < cache_group.min_chunks as usize {
-    return;
-  }
-
-  if matches!(cache_group.chunk_filter, ChunkFilter::All) {
-    if chunk_combination
-      .iter()
-      .any(|chunk| removed_chunks.is_some_and(|removed_chunks| removed_chunks.contains(chunk)))
-    {
-      return;
-    }
-
-    merge_matched_item_into_module_group_map_with_set(
-      module_identifier,
-      cache_group_index,
-      cache_group,
-      chunk_combination,
-      module_group_map,
-      chunk_index_map,
-    );
-
-    return;
-  }
-
-  let selected_chunks = chunk_combination
-    .iter()
-    .filter(|chunk| cache_group.chunk_filter.test_internal(chunk, compilation))
-    .copied()
-    .collect::<Vec<_>>();
-
-  if selected_chunks.len() < cache_group.min_chunks as usize {
-    return;
-  }
-
-  if selected_chunks
-    .iter()
-    .any(|chunk| removed_chunks.is_some_and(|removed_chunks| removed_chunks.contains(chunk)))
-  {
-    return;
-  }
-
-  merge_matched_item_into_module_group_map_sync(
-    module_identifier,
-    cache_group_index,
-    cache_group,
-    &selected_chunks,
-    module_group_map,
-    chunk_index_map,
-  );
-}
-
-fn merge_module_group_maps(left: &mut ModuleGroupMap, right: ModuleGroupMap) {
-  for (key, module_group) in right {
-    if let Some(existing) = left.get_mut(&key) {
-      for module in module_group.modules {
-        existing.add_module(module);
-      }
-      existing.chunks.extend(module_group.chunks);
-    } else {
-      left.insert(key, module_group);
-    }
-  }
-}
-
-#[allow(clippy::too_many_arguments)]
-async fn process_chunk_combination(
-  module: &dyn Module,
-  module_identifier: ModuleIdentifier,
-  cache_group_index: u32,
-  cache_group: &CacheGroup,
-  chunk_combination: &FxHashSet<ChunkUkey>,
-  removed_chunks: Option<&FxHashSet<ChunkUkey>>,
-  module_group_map: &FxDashMap<String, ModuleGroup>,
-  compilation: &Compilation,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) -> Result<()> {
-  if chunk_combination.is_empty() {
-    return Ok(());
-  }
-
-  if chunk_combination.len() < cache_group.min_chunks as usize {
-    return Ok(());
-  }
-
-  if matches!(cache_group.chunk_filter, ChunkFilter::All) && !cache_group.name.is_fn() {
-    if chunk_combination
-      .iter()
-      .any(|chunk| removed_chunks.is_some_and(|removed_chunks| removed_chunks.contains(chunk)))
-    {
-      return Ok(());
-    }
-
-    merge_matched_item_into_module_group_map_with_set_static_name(
-      module_identifier,
-      cache_group_index,
-      cache_group,
-      chunk_combination,
-      module_group_map,
-      chunk_index_map,
-    );
-
-    return Ok(());
-  }
-
-  let selected_chunks = if cache_group.chunk_filter.is_func() {
-    join_all(chunk_combination.iter().map(|chunk| async move {
-      cache_group
-        .chunk_filter
-        .test_func(chunk, compilation)
-        .await
-        .map(|filtered| (chunk, filtered))
-    }))
-    .await
-    .into_iter()
-    .collect::<Result<Vec<_>>>()?
-    .into_iter()
-    .filter_map(|(chunk, filtered)| if filtered { Some(chunk) } else { None })
-    .copied()
-    .collect::<Vec<_>>()
-  } else {
-    chunk_combination
-      .iter()
-      .filter(|chunk| cache_group.chunk_filter.test_internal(chunk, compilation))
-      .copied()
-      .collect::<Vec<_>>()
-  };
-
-  if selected_chunks.len() < cache_group.min_chunks as usize {
-    return Ok(());
-  }
-
-  if selected_chunks
-    .iter()
-    .any(|chunk| removed_chunks.is_some_and(|removed_chunks| removed_chunks.contains(chunk)))
-  {
-    return Ok(());
-  }
-
-  merge_matched_item_into_module_group_map(
-    MatchedItem {
-      module,
-      cache_group,
-      cache_group_index,
-      selected_chunks,
-    },
-    module_group_map,
-    compilation,
-    chunk_index_map,
-  )
-  .await
-}
 async fn merge_matched_item_into_module_group_map(
   matched_item: MatchedItem<'_>,
   module_group_map: &FxDashMap<String, ModuleGroup>,
@@ -974,106 +808,4 @@ async fn merge_matched_item_into_module_group_map(
   module_group.chunks.extend(selected_chunks.iter().copied());
 
   Ok(())
-}
-
-fn merge_matched_item_into_module_group_map_sync(
-  module_identifier: ModuleIdentifier,
-  cache_group_index: u32,
-  cache_group: &CacheGroup,
-  selected_chunks: &[ChunkUkey],
-  module_group_map: &mut ModuleGroupMap,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) {
-  let chunk_name = match &cache_group.name {
-    ChunkNameGetter::String(name) => Some(name.clone()),
-    ChunkNameGetter::Disabled => None,
-    ChunkNameGetter::Fn(_) => unreachable!("parallel fast path should exclude dynamic names"),
-  };
-
-  let key = if let Some(cache_group_name) = &chunk_name {
-    let mut key = String::with_capacity(cache_group.key.len() + cache_group_name.len());
-    key.push_str(&cache_group.key);
-    key.push_str(cache_group_name);
-    key
-  } else {
-    format!(
-      "\0\0{}{:x}",
-      &cache_group.key,
-      get_key(selected_chunks.iter().copied(), chunk_index_map)
-    )
-  };
-
-  let module_group = module_group_map
-    .entry(key)
-    .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group));
-  module_group.add_module(module_identifier);
-  module_group.chunks.extend(selected_chunks.iter().copied());
-}
-
-fn merge_matched_item_into_module_group_map_with_set(
-  module_identifier: ModuleIdentifier,
-  cache_group_index: u32,
-  cache_group: &CacheGroup,
-  selected_chunks: &FxHashSet<ChunkUkey>,
-  module_group_map: &mut ModuleGroupMap,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) {
-  let chunk_name = match &cache_group.name {
-    ChunkNameGetter::String(name) => Some(name.clone()),
-    ChunkNameGetter::Disabled => None,
-    ChunkNameGetter::Fn(_) => unreachable!("parallel fast path should exclude dynamic names"),
-  };
-
-  let key = if let Some(cache_group_name) = &chunk_name {
-    let mut key = String::with_capacity(cache_group.key.len() + cache_group_name.len());
-    key.push_str(&cache_group.key);
-    key.push_str(cache_group_name);
-    key
-  } else {
-    format!(
-      "\0\0{}{:x}",
-      &cache_group.key,
-      get_key(selected_chunks.iter().copied(), chunk_index_map)
-    )
-  };
-
-  let module_group = module_group_map
-    .entry(key)
-    .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group));
-  module_group.add_module(module_identifier);
-  module_group.chunks.extend(selected_chunks.iter().copied());
-}
-
-fn merge_matched_item_into_module_group_map_with_set_static_name(
-  module_identifier: ModuleIdentifier,
-  cache_group_index: u32,
-  cache_group: &CacheGroup,
-  selected_chunks: &FxHashSet<ChunkUkey>,
-  module_group_map: &FxDashMap<String, ModuleGroup>,
-  chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-) {
-  let chunk_name = match &cache_group.name {
-    ChunkNameGetter::String(name) => Some(name.clone()),
-    ChunkNameGetter::Disabled => None,
-    ChunkNameGetter::Fn(_) => unreachable!("static-name fast path should exclude dynamic names"),
-  };
-
-  let key = if let Some(cache_group_name) = &chunk_name {
-    let mut key = String::with_capacity(cache_group.key.len() + cache_group_name.len());
-    key.push_str(&cache_group.key);
-    key.push_str(cache_group_name);
-    key
-  } else {
-    format!(
-      "\0\0{}{:x}",
-      &cache_group.key,
-      get_key(selected_chunks.iter().copied(), chunk_index_map)
-    )
-  };
-
-  let mut module_group = module_group_map
-    .entry(key)
-    .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group));
-  module_group.add_module(module_identifier);
-  module_group.chunks.extend(selected_chunks.iter().copied());
 }
