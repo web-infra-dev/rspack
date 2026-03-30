@@ -46,7 +46,7 @@
     "@ast-grep/napi": "^0.42.0",
     "@napi-rs/wasm-runtime": "1.1.2",
     "@rsbuild/plugin-node-polyfill": "^1.4.4",
-    "@rslib/core": "0.20.1",
+    "@rslib/core": "0.20.2",
     "@rspack/lite-tapable": "1.1.0",
     "@swc/types": "0.1.26",
     "@types/node": "^20.19.37",
