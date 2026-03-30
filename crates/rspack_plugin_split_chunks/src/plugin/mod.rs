@@ -16,7 +16,6 @@ use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::instrument;
 
-use self::module_group::{AffectedModuleGroupIndex, ModuleGroupQueue, ModuleGroupValidationCtx};
 use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
@@ -172,14 +171,10 @@ impl SplitChunksPlugin {
       tracing::trace!("prepared module_group_map {:#?}", module_group_map);
 
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
-      let affected_module_group_index =
-        AffectedModuleGroupIndex::from_module_group_map(&module_group_map);
-      let mut module_group_queue = ModuleGroupQueue::from_module_group_map(&module_group_map);
 
       while !module_group_map.is_empty() {
-        let (module_group_key, mut module_group) = module_group_queue
-          .pop_best(&mut module_group_map)
-          .expect("module_group_map and module_group_queue should stay in sync");
+        let (module_group_key, mut module_group) =
+          self.find_best_module_group(&mut module_group_map);
 
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
@@ -271,14 +266,10 @@ impl SplitChunksPlugin {
 
         self.remove_all_modules_from_other_module_groups(
           &module_group,
-          &affected_module_group_index,
-          &mut module_group_queue,
           &mut module_group_map,
           &used_chunks,
-          ModuleGroupValidationCtx {
-            compilation,
-            module_sizes: &module_sizes,
-          },
+          compilation,
+          &module_sizes,
         );
 
         if index != priority_len - 1 {
