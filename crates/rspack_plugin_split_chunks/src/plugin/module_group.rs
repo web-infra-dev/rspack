@@ -714,3 +714,100 @@ async fn merge_matched_item_into_module_group_map(
 
   Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::{ChunkUkey, ModuleIdentifier};
+
+  use super::*;
+  use crate::{
+    CacheGroup, CacheGroupTest, ChunkNameGetter, SplitChunkSizes, create_all_chunk_filter,
+    create_default_module_layer_filter, create_default_module_type_filter,
+  };
+
+  fn test_cache_group() -> CacheGroup {
+    CacheGroup {
+      key: "test".to_string(),
+      chunk_filter: create_all_chunk_filter(),
+      test: CacheGroupTest::Enabled,
+      r#type: create_default_module_type_filter(),
+      layer: create_default_module_layer_filter(),
+      name: ChunkNameGetter::Disabled,
+      priority: 0.0,
+      min_size: SplitChunkSizes::default(),
+      min_size_reduction: SplitChunkSizes::default(),
+      reuse_existing_chunk: false,
+      min_chunks: 1,
+      id_hint: String::new(),
+      max_initial_requests: f64::INFINITY,
+      max_async_requests: f64::INFINITY,
+      max_async_size: SplitChunkSizes::default(),
+      max_initial_size: SplitChunkSizes::default(),
+      filename: None,
+      automatic_name_delimiter: "~".to_string(),
+      used_exports: false,
+    }
+  }
+
+  fn test_module_group(
+    cache_group: &CacheGroup,
+    cache_group_index: u32,
+    chunks: &[u32],
+    modules: &[&str],
+  ) -> ModuleGroup {
+    let mut module_group = ModuleGroup::new(None, cache_group_index, cache_group);
+    module_group
+      .chunks
+      .extend(chunks.iter().copied().map(ChunkUkey::from));
+    for module in modules {
+      module_group.add_module(ModuleIdentifier::from(*module));
+    }
+    module_group
+  }
+
+  #[test]
+  fn collect_affected_keys_intersects_chunk_and_module_matches() {
+    let cache_group = test_cache_group();
+    let current_module_group = test_module_group(&cache_group, 0, &[1, 2], &["m1", "m2"]);
+    let mut module_group_map = ModuleGroupMap::default();
+    module_group_map.insert(
+      "chunk-and-module".to_string(),
+      test_module_group(&cache_group, 0, &[2], &["m2"]),
+    );
+    module_group_map.insert(
+      "chunk-only".to_string(),
+      test_module_group(&cache_group, 0, &[2], &["m3"]),
+    );
+    module_group_map.insert(
+      "module-only".to_string(),
+      test_module_group(&cache_group, 0, &[3], &["m2"]),
+    );
+
+    let index = AffectedModuleGroupIndex::from_module_group_map(&module_group_map);
+    let used_chunks = FxHashSet::from_iter([ChunkUkey::from(2)]);
+    let mut affected = index.collect_affected_keys(&current_module_group, &used_chunks);
+    affected.sort_unstable();
+
+    assert_eq!(affected, vec!["chunk-and-module"]);
+  }
+
+  #[test]
+  fn collect_affected_keys_returns_empty_when_one_side_has_no_hits() {
+    let cache_group = test_cache_group();
+    let current_module_group = test_module_group(&cache_group, 0, &[1], &["m1"]);
+    let mut module_group_map = ModuleGroupMap::default();
+    module_group_map.insert(
+      "chunk-only".to_string(),
+      test_module_group(&cache_group, 0, &[2], &["m2"]),
+    );
+
+    let index = AffectedModuleGroupIndex::from_module_group_map(&module_group_map);
+    let used_chunks = FxHashSet::from_iter([ChunkUkey::from(1)]);
+
+    assert!(
+      index
+        .collect_affected_keys(&current_module_group, &used_chunks)
+        .is_empty()
+    );
+  }
+}
