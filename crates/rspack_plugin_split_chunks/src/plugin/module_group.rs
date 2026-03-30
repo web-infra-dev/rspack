@@ -925,7 +925,7 @@ impl SplitChunksPlugin {
 #[allow(clippy::too_many_arguments)]
 fn process_chunk_combination_fast_path(
   module_identifier: ModuleIdentifier,
-  cache_group_index: usize,
+  cache_group_index: u32,
   cache_group: &CacheGroup,
   chunk_combination: &FxHashSet<ChunkUkey>,
   removed_chunks: Option<&FxHashSet<ChunkUkey>>,
@@ -1005,11 +1005,11 @@ fn merge_module_group_maps(left: &mut ModuleGroupMap, right: ModuleGroupMap) {
 async fn process_chunk_combination(
   module: &dyn Module,
   module_identifier: ModuleIdentifier,
-  cache_group_index: usize,
+  cache_group_index: u32,
   cache_group: &CacheGroup,
   chunk_combination: &FxHashSet<ChunkUkey>,
   removed_chunks: Option<&FxHashSet<ChunkUkey>>,
-  module_group_map: &DashMap<String, ModuleGroup>,
+  module_group_map: &FxDashMap<String, ModuleGroup>,
   compilation: &Compilation,
   chunk_index_map: &FxHashMap<ChunkUkey, u32>,
 ) -> Result<()> {
@@ -1143,7 +1143,7 @@ async fn merge_matched_item_into_module_group_map(
 
 fn merge_matched_item_into_module_group_map_sync(
   module_identifier: ModuleIdentifier,
-  cache_group_index: usize,
+  cache_group_index: u32,
   cache_group: &CacheGroup,
   selected_chunks: &[ChunkUkey],
   module_group_map: &mut ModuleGroupMap,
@@ -1177,7 +1177,7 @@ fn merge_matched_item_into_module_group_map_sync(
 
 fn merge_matched_item_into_module_group_map_with_set(
   module_identifier: ModuleIdentifier,
-  cache_group_index: usize,
+  cache_group_index: u32,
   cache_group: &CacheGroup,
   selected_chunks: &FxHashSet<ChunkUkey>,
   module_group_map: &mut ModuleGroupMap,
@@ -1211,10 +1211,10 @@ fn merge_matched_item_into_module_group_map_with_set(
 
 fn merge_matched_item_into_module_group_map_with_set_static_name(
   module_identifier: ModuleIdentifier,
-  cache_group_index: usize,
+  cache_group_index: u32,
   cache_group: &CacheGroup,
   selected_chunks: &FxHashSet<ChunkUkey>,
-  module_group_map: &DashMap<String, ModuleGroup>,
+  module_group_map: &FxDashMap<String, ModuleGroup>,
   chunk_index_map: &FxHashMap<ChunkUkey, u32>,
 ) {
   let chunk_name = match &cache_group.name {
