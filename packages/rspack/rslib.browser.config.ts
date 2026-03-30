@@ -81,14 +81,14 @@ export default defineConfig({
         path.resolve(bindingDir, 'napi-binding.d.ts'),
         path.resolve(bindingDir, 'binding.d.ts'),
         {
-          from: path.resolve(bindingDir, 'rspack.browser.wasm'),
+          from: path.resolve(bindingDir, 'rspack.wasm32-wasi.wasm'),
           to: 'rspack.wasm32-wasi.wasm',
           noErrorOnMissing: true,
         },
         // For CI
         {
           from: path.resolve(
-            '../../artifacts/bindings-wasm32-wasip1-threads/rspack.browser.wasm',
+            '../../artifacts/bindings-wasm32-wasip1-threads/rspack.wasm32-wasi.wasm',
           ),
           to: 'rspack.wasm32-wasi.wasm',
           noErrorOnMissing: true,
@@ -163,6 +163,7 @@ function copyRspackBrowserRuntimePlugin(): RsbuildPlugin {
           path.resolve(bindingDir, 'rspack.wasi-browser.js'),
         );
         const workerUrl =
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: this is the code injected to the runtime
           "${new URL('./wasi-worker-browser.mjs', import.meta.url)}";
         const modifiedRuntimeCode = runtimeCode
           .toString()

@@ -12,11 +12,14 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      browser:
+        required: false
+        type: boolean
 
 jobs:
   e2e:
     name: E2E Testing
-    if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
+    if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.browser
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
@@ -66,7 +69,7 @@ jobs:
 
       - name: Run e2e for @rspack/browser
         uses: ./.github/actions/docker/run
-        if: inputs.target == 'wasm32-wasip1-threads'
+        if: inputs.browser
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
@@ -82,6 +85,7 @@ jobs:
 
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
+    if: ${{ !inputs.browser }}
     timeout-minutes: 60
     strategy:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
@@ -167,7 +171,7 @@ jobs:
       ### WASM
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && !inputs.browser }}
         env:
           NODE_NO_WARNINGS: 1
           WASM: 1
