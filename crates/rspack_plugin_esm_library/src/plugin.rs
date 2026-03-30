@@ -1,6 +1,5 @@
 use std::{
   path::PathBuf,
-  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -153,7 +152,7 @@ impl EsmLibraryPlugin {
                   export_info,
                   module_graph,
                   exports_info_artifact,
-                  Rc::new(|_| true),
+                  &|_| true,
                   &mut Default::default()
                 ),
                 Some(GetTargetResult::Target(_))
@@ -353,7 +352,7 @@ async fn finish_modules(
                 export_info,
                 module_graph,
                 exports_info_artifact,
-                Rc::new(|_| true),
+                &|_| true,
                 &mut Default::default()
               ),
               Some(GetTargetResult::Target(_))

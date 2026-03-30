@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -742,7 +740,7 @@ fn find_target_exports_info(
     export_info,
     mg,
     exports_info_artifact,
-    Rc::new(|_| true),
+    &|_| true,
     &mut Default::default(),
   );
 
