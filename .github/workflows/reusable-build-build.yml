@@ -63,11 +63,13 @@ jobs:
           save-if: true
 
       - name: Setup Zig
+        if: ${{ contains(inputs.target, 'linux') }}
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
         with:
           version: '0.14.1'
 
       - name: Install cargo-zigbuild
+        if: ${{ contains(inputs.target, 'linux') }}
         uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-zigbuild
