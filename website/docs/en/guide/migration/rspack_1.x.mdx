@@ -37,7 +37,7 @@ In Node.js 20 and later, the runtime natively supports loading ESM modules via [
 
 [@rspack/dev-server](https://npmjs.com/package/@rspack/dev-server) 2.0 includes the following changes:
 
-- `@rspack/cli` no longer depends on `@rspack/dev-server` by default. When using the `rspack dev` or `rspack serve` commands, install `@rspack/dev-server` manually:
+- `@rspack/cli` no longer depends on `@rspack/dev-server` by default, since some workflows do not require a dev server. When using the `rspack dev` or `rspack serve` commands, install `@rspack/dev-server` manually:
 
 <PackageManagerTabs command="add @rspack/dev-server@beta -D" />
 
@@ -58,7 +58,9 @@ If you need to analyze bundle outputs, it is recommended to use [Rsdoctor](/guid
 
 ### Changed default value of module.parser.javascript.exportsPresence
 
-The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) changed from `warn` to `error`. If you want to keep the old behavior, explicitly set it to `auto`:
+The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
+
+If you want to restore the old behavior, you can explicitly set it to `auto`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -146,7 +148,7 @@ export default {
 
 ### Moved builtin:swc-loader's rspackExperiments.import
 
-The `rspackExperiments.import` option of `builtin:swc-loader` has moved to the top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage:
+The `rspackExperiments.import` option of `builtin:swc-loader` has been moved to the top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage:
 
 ```diff title="rspack.config.mjs"
 export default {
