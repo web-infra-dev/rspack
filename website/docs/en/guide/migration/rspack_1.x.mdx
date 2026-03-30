@@ -577,66 +577,15 @@ export default {
 };
 ```
 
-### Removed experiments.layers
-
-`experiments.layers` has been removed. The Layer feature is now stable and enabled by default, but you still need to configure `layer` in `module.rules` to enable it:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        type: 'css/auto',
-        layer: 'styles', // Place CSS modules in 'styles' layer
-      },
-      {
-        test: /\.js$/,
-        layer: 'app', // Place JS modules in 'app' layer
-      },
-    ],
-  },
-};
-```
-
-### Removed experiments.topLevelAwait
-
-`experiments.topLevelAwait` has been removed. The top-level await feature is now stable and enabled by default. Using top-level await in ESM modules now works automatically:
-
-```js title="get-config.mjs"
-// Use await directly at module top level
-const response = await fetch('https://api.example.com/config');
-const config = await response.json();
-
-export default config;
-```
-
-### Removed experiments.lazyCompilation
-
-`experiments.lazyCompilation` has been moved to the top-level [lazyCompilation](/config/lazy-compilation).
-
-`experiments.lazyCompilationMiddleware` has been moved to the top-level [lazyCompilationMiddleware](/guide/features/lazy-compilation#integrating-with-custom-server):
-
-```diff title="rspack.config.mjs"
-- const middleware = rspack.experiments.lazyCompilationMiddleware(compiler);
-+ const middleware = rspack.lazyCompilationMiddleware(compiler);
-
-const server = new DevServer(
-  {
-    port: 3000,
-    setupMiddlewares(other) {
-      return [middleware, ...other];
-    },
-  },
-  compiler,
-);
-```
-
 ### Other experimental configuration changes
 
 - `experiments.cache`: moved to the top-level [cache](/config/cache).
 - `experiments.rspackFuture`: removed; `bundlerInfo` has moved to [output.bundlerInfo](/config/output#outputbundlerinfo).
 - `experiments.incremental`: moved to the top-level [incremental](/config/incremental).
+- `experiments.layers`: removed; layers are now stable and enabled by default, but you still need to configure `layer` in `module.rules`.
+- `experiments.topLevelAwait`: removed; top-level await is now stable and enabled by default in ESM modules.
+- `experiments.lazyCompilation`: moved to the top-level [lazyCompilation](/config/lazy-compilation).
+- `experiments.lazyCompilationMiddleware`: moved to the top-level [lazyCompilationMiddleware](/guide/features/lazy-compilation#integrating-with-custom-server).
 - `experiments.lazyBarrel`: removed; the [Lazy barrel](/guide/optimization/lazy-barrel) optimization is now enabled by default.
 - `experiments.typeReexportsPresence`: removed; use [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) directly to control the behavior when re-exporting types.
 - `experiments.inlineConst`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control constant inlining optimization.

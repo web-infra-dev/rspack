@@ -577,66 +577,15 @@ export default {
 };
 ```
 
-### 移除 experiments.layers
-
-`experiments.layers` 已被移除。Layer 功能现在已稳定并默认可用，但仍需要在 `module.rules` 中配置 `layer` 以启用：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        type: 'css/auto',
-        layer: 'styles', // 将 CSS 模块放入 'styles' layer
-      },
-      {
-        test: /\.js$/,
-        layer: 'app', // 将 JS 模块放入 'app' layer
-      },
-    ],
-  },
-};
-```
-
-### 移除 experiments.topLevelAwait
-
-`experiments.topLevelAwait` 已被移除。Top-level await 功能现在已稳定并默认启用，因此在 ESM 模块中使用 top-level await 会自动生效：
-
-```js title="get-config.mjs"
-// 在模块顶层直接使用 await
-const response = await fetch('https://api.example.com/config');
-const config = await response.json();
-
-export default config;
-```
-
-### 移除 experiments.lazyCompilation
-
-`experiments.lazyCompilation` 已移动到顶层的 [lazyCompilation](/config/lazy-compilation)。
-
-`experiments.lazyCompilationMiddleware` 已移动到顶层的 [lazyCompilationMiddleware](/guide/features/lazy-compilation#与自定义的服务器集成)：
-
-```diff title="rspack.config.mjs"
-- const middleware = rspack.experiments.lazyCompilationMiddleware(compiler);
-+ const middleware = rspack.lazyCompilationMiddleware(compiler);
-
-const server = new DevServer(
-  {
-    port: 3000,
-    setupMiddlewares(other) {
-      return [middleware, ...other];
-    },
-  },
-  compiler,
-);
-```
-
 ### 其他实验性配置变更
 
 - `experiments.cache`：已移动到顶层的 [cache](/config/cache)。
 - `experiments.rspackFuture`：已被移除，其中的 `bundlerInfo` 已移动到 [output.bundlerInfo](/config/output#outputbundlerinfo)。
 - `experiments.incremental`：已移动到顶层的 [incremental](/config/incremental)。
+- `experiments.layers`：已被移除；Layer 功能现在已稳定并默认可用，但仍需要在 `module.rules` 中配置 `layer`。
+- `experiments.topLevelAwait`：已被移除；Top-level await 现在已稳定并在 ESM 模块中默认启用。
+- `experiments.lazyCompilation`：已移动到顶层的 [lazyCompilation](/config/lazy-compilation)。
+- `experiments.lazyCompilationMiddleware`：已移动到顶层的 [lazyCompilationMiddleware](/guide/features/lazy-compilation#与自定义的服务器集成)。
 - `experiments.lazyBarrel`：已被移除，[Lazy barrel](/guide/optimization/lazy-barrel) 优化现在默认启用。
 - `experiments.typeReexportsPresence`：已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) 直接控制类型重导出时的行为。
 - `experiments.inlineConst`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 控制常量内联优化。
