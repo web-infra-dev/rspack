@@ -340,22 +340,7 @@ export default {
 
 ### Removed getHooks method from some plugins
 
-The `getHooks` method on plugins has been removed. Use `getCompilationHooks` instead:
-
-```diff title="my-plugin.js"
-class MyPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
--      const hooks = compiler.HtmlRspackPlugin.getHooks(compilation);
-+      const hooks = compiler.HtmlRspackPlugin.getCompilationHooks(compilation);
-
-      hooks.beforeEmit.tap('MyPlugin', (data, cb) => {
-        // ...
-      });
-    });
-  }
-}
-```
+The `getHooks` method on some plugins has been removed. It was only a deprecated alias of `getCompilationHooks`, so migrate to `getCompilationHooks` directly.
 
 ### Adjusted HtmlRspackPlugin configuration
 

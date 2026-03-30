@@ -340,22 +340,7 @@ export default {
 
 ### 移除插件的 getHooks 方法
 
-部分插件的 `getHooks` 方法已被移除，请使用 `getCompilationHooks` 方法替代：
-
-```diff title="my-plugin.js"
-class MyPlugin {
-  apply(compiler) {
-    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
--      const hooks = compiler.HtmlRspackPlugin.getHooks(compilation);
-+      const hooks = compiler.HtmlRspackPlugin.getCompilationHooks(compilation);
-
-      hooks.beforeEmit.tap('MyPlugin', (data, cb) => {
-        // ...
-      });
-    });
-  }
-}
-```
+部分插件的 `getHooks` 方法已被移除。它只是 `getCompilationHooks` 的已废弃别名，请直接改用 `getCompilationHooks`。
 
 ### 调整 HtmlRspackPlugin 配置项
 
