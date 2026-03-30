@@ -85,7 +85,6 @@ jobs:
 
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
-    if: inputs.browser != true
     timeout-minutes: 60
     strategy:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
