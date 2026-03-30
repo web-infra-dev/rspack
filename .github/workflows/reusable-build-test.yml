@@ -85,6 +85,7 @@ jobs:
 
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
+    if: ${{ !inputs.browser }}
     timeout-minutes: 60
     strategy:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
@@ -93,7 +94,7 @@ jobs:
           inputs.target == 'wasm32-wasip1-threads'&& '[24]'
           || contains(inputs.target, 'linux') && '[20, 22, 24]'
           || '[22]') }}
-    name: Test Node ${{ matrix.node }}
+    name: ${{ !inputs.browser && format('Test Node {0}', matrix.node) || 'Test Browser (Skip)' }}
     defaults:
       run:
         shell: bash
