@@ -25,6 +25,10 @@ jobs:
   bench:
     name: 'Bench Rust'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    container:
+      image: ${{ 'rust:bookworm' }}
+      volumes:
+        - /var/run/nsc/:/var/run/nsc/
     defaults:
       run:
         shell: bash
@@ -34,6 +38,9 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Setup Namespace
+        uses: namespacelabs/nscloud-setup@df198f982fcecfb8264bea3f1274b56a61b6dfdc # v0
 
       - name: Pnpm Setup
         timeout-minutes: 5
@@ -60,7 +67,7 @@ jobs:
         run: cargo codegen
 
       - name: Build benchmark (simulation,memory)
-        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features codspeed
+        run: cargo codspeed build -m simulation,memory --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Run benchmark (simulation,memory)
         uses: ./.github/actions/codspeed
@@ -68,7 +75,7 @@ jobs:
         env:
           RAYON_NUM_THREADS: '1'
         with:
-          mode: 'simulation'
+          mode: 'simulation,memory'
           run: pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.12.1
