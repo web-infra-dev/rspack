@@ -1,10 +1,15 @@
+use std::{
+  borrow::Cow,
+  hash::{Hash, Hasher},
+};
+
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ExportInfoTargetValue, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
@@ -12,6 +17,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
+use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -33,14 +39,56 @@ struct NonNestedMergeContext<'a> {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct NormalizedExportTargetValue {
-  target_key: Option<DependencyId>,
   dependency: Option<DependencyId>,
   export: Option<Vec<Atom>>,
   priority: u8,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct ExportTargetCacheKey(Vec<NormalizedExportTargetValue>);
+impl From<&ExportInfoTargetValue> for NormalizedExportTargetValue {
+  fn from(value: &ExportInfoTargetValue) -> Self {
+    Self {
+      dependency: value.dependency,
+      export: value.export.clone(),
+      priority: value.priority,
+    }
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ExportTargetCacheKey {
+  Single {
+    target_key: Option<DependencyId>,
+    target: NormalizedExportTargetValue,
+  },
+  Multi(FxHashMap<Option<DependencyId>, NormalizedExportTargetValue>),
+}
+
+impl Hash for ExportTargetCacheKey {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    std::mem::discriminant(self).hash(state);
+    match self {
+      Self::Single { target_key, target } => {
+        target_key.hash(state);
+        target.hash(state);
+      }
+      Self::Multi(targets) => {
+        state.write_usize(targets.len());
+        let mut hash_sum = 0_u64;
+        let mut hash_xor = 0_u64;
+        for (target_key, target) in targets {
+          let mut hasher = FxHasher::default();
+          target_key.hash(&mut hasher);
+          target.hash(&mut hasher);
+          let entry_hash = hasher.finish();
+          hash_sum = hash_sum.wrapping_add(entry_hash);
+          hash_xor ^= entry_hash.rotate_left(1);
+        }
+        state.write_u64(hash_sum);
+        state.write_u64(hash_xor);
+      }
+    }
+  }
+}
 
 impl ExportTargetCacheKey {
   fn from_export_info(export_info: &ExportInfoData) -> Option<Self> {
@@ -48,18 +96,24 @@ impl ExportTargetCacheKey {
       return None;
     }
 
-    let mut targets = export_info
-      .target()
-      .iter()
-      .map(|(key, value)| NormalizedExportTargetValue {
-        target_key: *key,
-        dependency: value.dependency,
-        export: value.export.clone(),
-        priority: value.priority,
-      })
-      .collect::<Vec<_>>();
-    targets.sort_unstable_by_key(|value| value.target_key);
-    Some(Self(targets))
+    let max_target = export_info.get_max_target();
+    match max_target {
+      Cow::Borrowed(targets) if targets.len() == 1 => {
+        targets
+          .iter()
+          .next()
+          .map(|(target_key, target)| Self::Single {
+            target_key: *target_key,
+            target: target.into(),
+          })
+      }
+      _ => Some(Self::Multi(
+        max_target
+          .iter()
+          .map(|(target_key, target)| (*target_key, target.into()))
+          .collect(),
+      )),
+    }
   }
 }
 
