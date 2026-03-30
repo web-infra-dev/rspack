@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxHashMap, FxIndexMap, FxIndexSet};
+use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -21,6 +21,8 @@ struct FlagDependencyExportsState<'a> {
 }
 
 type TargetExportsInfoCache = FxHashMap<ExportTargetCacheKey, CachedTargetExportsInfo>;
+type ChangedDependency = (ModuleIdentifier, ModuleIdentifier);
+type TargetExportsInfoResult = (Option<ExportsInfo>, Option<ModuleIdentifier>);
 
 struct NonNestedMergeContext<'a> {
   mg: &'a ModuleGraph,
@@ -65,6 +67,51 @@ impl ExportTargetCacheKey {
 struct CachedTargetExportsInfo {
   exports_info: Option<ExportsInfo>,
   target_module: Option<ModuleIdentifier>,
+}
+
+/// Build a per-module merge context so repeated target resolutions can share
+/// a small cache without crossing task boundaries.
+fn with_non_nested_merge_context<T>(
+  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_id: &ModuleIdentifier,
+  f: impl FnOnce(&mut NonNestedMergeContext<'_>) -> T,
+) -> T {
+  let mut target_exports_info_cache = TargetExportsInfoCache::default();
+  let mut ctx = NonNestedMergeContext {
+    mg,
+    exports_info_artifact,
+    module_id,
+    target_exports_info_cache: &mut target_exports_info_cache,
+  };
+  f(&mut ctx)
+}
+
+/// Backtracking only needs the target module that should be revisited later.
+fn push_target_dependency(
+  dependencies: &mut Vec<ChangedDependency>,
+  module_id: ModuleIdentifier,
+  target_module: Option<ModuleIdentifier>,
+) {
+  if let Some(target_module) = target_module {
+    dependencies.push((target_module, module_id));
+  }
+}
+
+/// Export specs can declare extra module dependencies that also need to join
+/// the backtracking queue.
+fn extend_export_dependencies(
+  dependencies: &mut Vec<ChangedDependency>,
+  export_dependencies: Option<&[ModuleIdentifier]>,
+  module_id: ModuleIdentifier,
+) {
+  if let Some(export_dependencies) = export_dependencies {
+    dependencies.extend(
+      export_dependencies
+        .iter()
+        .map(|export_dep| (*export_dep, module_id)),
+    );
+  }
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
@@ -165,23 +212,23 @@ impl<'a> FlagDependencyExportsState<'a> {
             .get_exports_info_data(&module_id)
             .clone();
           let mut dependencies = Vec::with_capacity(exports_specs.len());
-          let mut target_exports_info_cache = TargetExportsInfoCache::default();
-          let mut merge_ctx = NonNestedMergeContext {
-            mg: self.mg,
-            exports_info_artifact: self.exports_info_artifact,
-            module_id: &module_id,
-            target_exports_info_cache: &mut target_exports_info_cache,
-          };
-          for (dep_id, exports_spec) in exports_specs {
-            let (is_changed, changed_dependencies) = process_exports_spec_without_nested_inner(
-              &mut merge_ctx,
-              dep_id,
-              &exports_spec,
-              &mut exports_info,
-            );
-            changed |= is_changed;
-            dependencies.extend(changed_dependencies);
-          }
+          with_non_nested_merge_context(
+            self.mg,
+            self.exports_info_artifact,
+            &module_id,
+            |merge_ctx| {
+              for (dep_id, exports_spec) in exports_specs {
+                let (is_changed, changed_dependencies) = process_exports_spec_without_nested_inner(
+                  merge_ctx,
+                  dep_id,
+                  &exports_spec,
+                  &mut exports_info,
+                );
+                changed |= is_changed;
+                dependencies.extend(changed_dependencies);
+              }
+            },
+          );
           (module_id, changed, dependencies, exports_info)
         })
         .collect::<Vec<_>>();
@@ -239,6 +286,19 @@ pub struct DefaultExportInfo<'a> {
   terminal_binding: bool,
   from: Option<&'a ModuleGraphConnection>,
   priority: Option<u8>,
+}
+
+impl<'a> DefaultExportInfo<'a> {
+  /// Capture the shared defaults once so nested and non-nested merge paths can
+  /// reuse the same parameters.
+  fn from_exports_spec(export_desc: &'a ExportsSpec) -> Self {
+    Self {
+      can_mangle: export_desc.can_mangle,
+      terminal_binding: export_desc.terminal_binding.unwrap_or(false),
+      from: export_desc.from.as_ref(),
+      priority: export_desc.priority,
+    }
+  }
 }
 
 #[plugin]
@@ -344,37 +404,29 @@ pub fn process_exports_spec(
   module_id: &ModuleIdentifier,
   dep_id: DependencyId,
   export_desc: &ExportsSpec,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+) -> (bool, Vec<ChangedDependency>) {
   let mut changed = false;
   let mut dependencies = vec![];
+  let default_export_info = DefaultExportInfo::from_exports_spec(export_desc);
+  let from_dependency = default_export_info.from.map(|_| dep_id);
   let exports = &export_desc.exports;
-  let global_can_mangle = &export_desc.can_mangle;
-  let global_from = export_desc.from.as_ref();
-  let global_priority = &export_desc.priority;
-  let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
   let export_dependencies = &export_desc.dependencies;
-  if let Some(hide_export) = &export_desc.hide_export {
-    let exports_info = exports_info_artifact.get_exports_info_data_mut(module_id);
-    for name in hide_export.iter() {
-      exports_info.ensure_export_info(name);
-    }
-    for name in hide_export.iter() {
-      exports_info
-        .named_exports_mut(name)
-        .expect("should have named export")
-        .unset_target(&dep_id);
-    }
-  }
+  unset_hidden_exports(
+    exports_info_artifact,
+    module_id,
+    export_desc.hide_export.as_ref(),
+    dep_id,
+  );
   match exports {
     ExportsOfExportsSpec::UnknownExports => {
       changed |= exports_info_artifact
         .get_exports_info_data_mut(module_id)
         .set_unknown_exports_provided(
-          global_can_mangle.unwrap_or_default(),
+          default_export_info.can_mangle.unwrap_or_default(),
           export_desc.exclude_exports.as_ref(),
-          global_from.map(|_| dep_id),
-          global_from.map(|_| dep_id),
-          *global_priority,
+          from_dependency,
+          from_dependency,
+          default_export_info.priority,
         );
     }
     ExportsOfExportsSpec::NoExports => {}
@@ -385,12 +437,7 @@ pub fn process_exports_spec(
         module_id,
         exports_info_artifact.get_exports_info(module_id),
         ele,
-        DefaultExportInfo {
-          can_mangle: *global_can_mangle,
-          terminal_binding: global_terminal_binding,
-          from: global_from,
-          priority: *global_priority,
-        },
+        default_export_info,
         dep_id,
       );
       changed |= merge_changed;
@@ -398,11 +445,11 @@ pub fn process_exports_spec(
     }
   }
 
-  if let Some(export_dependencies) = export_dependencies {
-    for export_dep in export_dependencies {
-      dependencies.push((*export_dep, *module_id));
-    }
-  }
+  extend_export_dependencies(
+    &mut dependencies,
+    export_dependencies.as_deref(),
+    *module_id,
+  );
 
   (changed, dependencies)
 }
@@ -419,15 +466,10 @@ pub fn process_exports_spec_without_nested(
   dep_id: DependencyId,
   export_desc: &ExportsSpec,
   exports_info: &mut ExportsInfoData,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
-  let mut target_exports_info_cache = TargetExportsInfoCache::default();
-  let mut ctx = NonNestedMergeContext {
-    mg,
-    exports_info_artifact,
-    module_id,
-    target_exports_info_cache: &mut target_exports_info_cache,
-  };
-  process_exports_spec_without_nested_inner(&mut ctx, dep_id, export_desc, exports_info)
+) -> (bool, Vec<ChangedDependency>) {
+  with_non_nested_merge_context(mg, exports_info_artifact, module_id, |ctx| {
+    process_exports_spec_without_nested_inner(ctx, dep_id, export_desc, exports_info)
+  })
 }
 
 fn process_exports_spec_without_nested_inner(
@@ -435,57 +477,39 @@ fn process_exports_spec_without_nested_inner(
   dep_id: DependencyId,
   export_desc: &ExportsSpec,
   exports_info: &mut ExportsInfoData,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+) -> (bool, Vec<ChangedDependency>) {
   let mut changed = false;
   let mut dependencies = vec![];
+  let default_export_info = DefaultExportInfo::from_exports_spec(export_desc);
+  let from_dependency = default_export_info.from.map(|_| dep_id);
 
   let exports = &export_desc.exports;
-  let global_can_mangle = &export_desc.can_mangle;
-  let global_from = export_desc.from.as_ref();
-  let global_priority = &export_desc.priority;
-  let global_terminal_binding = export_desc.terminal_binding.unwrap_or(false);
   let export_dependencies = &export_desc.dependencies;
-  if let Some(hide_export) = &export_desc.hide_export {
-    for name in hide_export.iter() {
-      exports_info
-        .ensure_owned_export_info(name)
-        .unset_target(&dep_id);
-    }
-  }
+  unset_owned_hidden_exports(exports_info, export_desc.hide_export.as_ref(), dep_id);
   match exports {
     ExportsOfExportsSpec::UnknownExports => {
       changed |= exports_info.set_unknown_exports_provided(
-        global_can_mangle.unwrap_or_default(),
+        default_export_info.can_mangle.unwrap_or_default(),
         export_desc.exclude_exports.as_ref(),
-        global_from.map(|_| dep_id),
-        global_from.map(|_| dep_id),
-        *global_priority,
+        from_dependency,
+        from_dependency,
+        default_export_info.priority,
       );
     }
     ExportsOfExportsSpec::NoExports => {}
     ExportsOfExportsSpec::Names(ele) => {
-      let (merge_changed, merge_dependencies) = merge_exports_without_nested_inner(
-        ctx,
-        exports_info,
-        ele,
-        DefaultExportInfo {
-          can_mangle: *global_can_mangle,
-          terminal_binding: global_terminal_binding,
-          from: global_from,
-          priority: *global_priority,
-        },
-        dep_id,
-      );
+      let (merge_changed, merge_dependencies) =
+        merge_exports_without_nested_inner(ctx, exports_info, ele, default_export_info, dep_id);
       changed |= merge_changed;
       dependencies.extend(merge_dependencies);
     }
   }
 
-  if let Some(export_dependencies) = export_dependencies {
-    for export_dep in export_dependencies {
-      dependencies.push((*export_dep, *ctx.module_id));
-    }
-  }
+  extend_export_dependencies(
+    &mut dependencies,
+    export_dependencies.as_deref(),
+    *ctx.module_id,
+  );
 
   (changed, dependencies)
 }
@@ -548,15 +572,10 @@ pub fn merge_exports_without_nested(
   exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
-  let mut target_exports_info_cache = TargetExportsInfoCache::default();
-  let mut ctx = NonNestedMergeContext {
-    mg,
-    exports_info_artifact,
-    module_id,
-    target_exports_info_cache: &mut target_exports_info_cache,
-  };
-  merge_exports_without_nested_inner(&mut ctx, exports_info, exports, global_export_info, dep_id)
+) -> (bool, Vec<ChangedDependency>) {
+  with_non_nested_merge_context(mg, exports_info_artifact, module_id, |ctx| {
+    merge_exports_without_nested_inner(ctx, exports_info, exports, global_export_info, dep_id)
+  })
 }
 
 fn merge_exports_without_nested_inner(
@@ -565,7 +584,7 @@ fn merge_exports_without_nested_inner(
   exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+) -> (bool, Vec<ChangedDependency>) {
   let mut changed = false;
   let mut dependencies = vec![];
   for export_name_or_spec in exports {
@@ -594,14 +613,13 @@ fn merge_exports_without_nested_inner(
       name,
     );
 
-    let (target_exports_info, target_dependencies) = find_target_exports_info_cached(
+    let (target_exports_info, target_module) = find_target_exports_info_cached(
       ctx.mg,
       ctx.exports_info_artifact,
       export_info,
-      ctx.module_id,
       ctx.target_exports_info_cache,
     );
-    dependencies.extend(target_dependencies);
+    push_target_dependency(&mut dependencies, *ctx.module_id, target_module);
 
     if export_info.exports_info() != target_exports_info {
       export_info.set_exports_info(target_exports_info);
@@ -622,7 +640,7 @@ pub fn merge_exports(
   exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+) -> (bool, Vec<ChangedDependency>) {
   let mut changed = false;
   let mut dependencies = vec![];
   for export_name_or_spec in exports {
@@ -672,13 +690,12 @@ pub fn merge_exports(
       name,
     );
 
-    let (target_exports_info, target_dependencies) = find_target_exports_info(
+    let (target_exports_info, target_module) = find_target_exports_info(
       mg,
       exports_info_artifact,
       export_info.as_data(exports_info_artifact),
-      module_id,
     );
-    dependencies.extend(target_dependencies);
+    push_target_dependency(&mut dependencies, *module_id, target_module);
 
     let export_info_data = export_info.as_data_mut(exports_info_artifact);
     if export_info_data.exports_info_owned()
@@ -728,6 +745,44 @@ fn set_export_base_info(
   changed
 }
 
+fn unset_hidden_exports(
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  module_id: &ModuleIdentifier,
+  hide_export: Option<&FxHashSet<Atom>>,
+  dep_id: DependencyId,
+) {
+  // The artifact-backed path has to materialize hidden exports before clearing
+  // their targets.
+  let Some(hide_export) = hide_export else {
+    return;
+  };
+  let exports_info = exports_info_artifact.get_exports_info_data_mut(module_id);
+  for name in hide_export {
+    exports_info.ensure_export_info(name);
+  }
+  for name in hide_export {
+    exports_info
+      .named_exports_mut(name)
+      .expect("should have named export")
+      .unset_target(&dep_id);
+  }
+}
+
+fn unset_owned_hidden_exports(
+  exports_info: &mut ExportsInfoData,
+  hide_export: Option<&FxHashSet<Atom>>,
+  dep_id: DependencyId,
+) {
+  // The cloned `ExportsInfoData` path can clear targets directly in place.
+  if let Some(hide_export) = hide_export {
+    for name in hide_export {
+      exports_info
+        .ensure_owned_export_info(name)
+        .unset_target(&dep_id);
+    }
+  }
+}
+
 fn merge_nested_exports(
   mg: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
@@ -736,9 +791,11 @@ fn merge_nested_exports(
   exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
-) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+) -> (bool, Vec<ChangedDependency>) {
   let mut changed = false;
   let mut dependencies = vec![];
+  // Reuse an existing nested exports info when possible; otherwise create it
+  // lazily so flat exports do not pay the allocation cost.
   let nested_exports_info = if export_info
     .as_data(exports_info_artifact)
     .exports_info_owned()
@@ -813,13 +870,9 @@ fn find_target_exports_info(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   export_info: &ExportInfoData,
-  module_id: &ModuleIdentifier,
-) -> (
-  Option<ExportsInfo>,
-  Vec<(ModuleIdentifier, ModuleIdentifier)>,
-) {
-  let mut dependencies = vec![];
-  // Recalculate target exportsInfo
+) -> TargetExportsInfoResult {
+  // Resolve the effective target module/export pair, then translate it into
+  // the nested exports info id this export should point at.
   let target = get_target(
     export_info,
     mg,
@@ -829,6 +882,7 @@ fn find_target_exports_info(
   );
 
   let mut target_exports_info = None;
+  let mut target_module = None;
   if let Some(GetTargetResult::Target(target)) = target {
     let target_module_exports_info = exports_info_artifact.get_prefetched_exports_info(
       &target.module,
@@ -841,42 +895,30 @@ fn find_target_exports_info(
     target_exports_info = target_module_exports_info
       .get_nested_exports_info(target.export.as_deref())
       .map(|data| data.id());
-
-    dependencies.push((target.module, *module_id));
+    target_module = Some(target.module);
   }
 
-  (target_exports_info, dependencies)
+  (target_exports_info, target_module)
 }
 
 fn find_target_exports_info_cached(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   export_info: &ExportInfoData,
-  module_id: &ModuleIdentifier,
   target_exports_info_cache: &mut TargetExportsInfoCache,
-) -> (
-  Option<ExportsInfo>,
-  Vec<(ModuleIdentifier, ModuleIdentifier)>,
-) {
+) -> TargetExportsInfoResult {
   let Some(cache_key) = ExportTargetCacheKey::from_export_info(export_info) else {
-    return (None, vec![]);
+    return (None, None);
   };
 
   if let Some(cached) = target_exports_info_cache.get(&cache_key) {
-    return (
-      cached.exports_info,
-      cached
-        .target_module
-        .map(|target_module| vec![(target_module, *module_id)])
-        .unwrap_or_default(),
-    );
+    return (cached.exports_info, cached.target_module);
   }
 
-  let (target_exports_info, dependencies) =
-    find_target_exports_info(mg, exports_info_artifact, export_info, module_id);
-  let target_module = dependencies
-    .first()
-    .map(|(target_module, _)| *target_module);
+  // Cache entries are scoped to one module merge task, so there is no cross-task
+  // invalidation or synchronization to worry about.
+  let (target_exports_info, target_module) =
+    find_target_exports_info(mg, exports_info_artifact, export_info);
   target_exports_info_cache.insert(
     cache_key,
     CachedTargetExportsInfo {
@@ -884,5 +926,5 @@ fn find_target_exports_info_cached(
       target_module,
     },
   );
-  (target_exports_info, dependencies)
+  (target_exports_info, target_module)
 }
