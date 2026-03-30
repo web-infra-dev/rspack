@@ -1280,15 +1280,11 @@ impl Stats<'_> {
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
       stats.cacheable = Some(module.build_info().cacheable);
-      let side_effects_state_artifact = self
-        .try_build_module_graph_artifact()
-        .expect("build module graph artifact should be available for stats")
-        .side_effects_state_artifact
-        .clone();
+      let side_effects_state_artifact = &build_module_graph_artifact.side_effects_state_artifact;
       stats.optional = Some(module_graph.is_optional(
         &identifier,
         module_graph_cache,
-        &side_effects_state_artifact,
+        side_effects_state_artifact,
         exports_info_artifact,
       ));
       stats.orphan = Some(orphan);

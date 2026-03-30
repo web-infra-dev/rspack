@@ -325,10 +325,9 @@ impl ChunkGraph {
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
-    let side_effects_state_artifact = compilation
+    let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
-      .side_effects_state_artifact
-      .clone();
+      .side_effects_state_artifact;
     self
       .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
       .hash(&mut hasher);
@@ -348,7 +347,7 @@ impl ChunkGraph {
           mg,
           runtime,
           mg_cache,
-          &side_effects_state_artifact,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         );
         if active_state.is_false() {
@@ -363,7 +362,7 @@ impl ChunkGraph {
               mg,
               runtime.as_ref(),
               mg_cache,
-              &side_effects_state_artifact,
+              side_effects_state_artifact,
               &compilation.exports_info_artifact,
             );
             active_state.hash(&mut hasher);

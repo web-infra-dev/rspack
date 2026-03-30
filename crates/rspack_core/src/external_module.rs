@@ -982,14 +982,13 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
-    let side_effects_state_artifact = compilation
+    let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
-      .side_effects_state_artifact
-      .clone();
+      .side_effects_state_artifact;
     let is_optional = compilation.get_module_graph().is_optional(
       &self.id,
       &compilation.module_graph_cache_artifact,
-      &side_effects_state_artifact,
+      side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
     is_optional.dyn_hash(&mut hasher);
