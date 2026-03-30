@@ -325,18 +325,7 @@ export default {
 
 ### 移除 WarnCaseSensitiveModulesPlugin
 
-`WarnCaseSensitiveModulesPlugin` 插件已被移除，可以使用 [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin) 插件来检测大小写敏感的模块引用问题：
-
-```diff title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
--    new rspack.WarnCaseSensitiveModulesPlugin(),
-+    new rspack.CaseSensitivePlugin(),
-  ],
-};
-```
+`WarnCaseSensitiveModulesPlugin` 已更名为 [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin)，并完整覆盖了原有功能。
 
 ### 移除插件的 getHooks 方法
 

@@ -325,18 +325,7 @@ export default {
 
 ### Removed WarnCaseSensitiveModulesPlugin
 
-The `WarnCaseSensitiveModulesPlugin` plugin has been removed. You can use the [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin) plugin to detect case-sensitive module reference issues:
-
-```diff title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [
--    new rspack.WarnCaseSensitiveModulesPlugin(),
-+    new rspack.CaseSensitivePlugin(),
-  ],
-};
-```
+`WarnCaseSensitiveModulesPlugin` has been renamed to [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin), which covers all of its functionality.
 
 ### Removed getHooks method from some plugins
 
