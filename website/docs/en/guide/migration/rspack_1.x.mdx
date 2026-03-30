@@ -120,6 +120,61 @@ export default {
 };
 ```
 
+### Removed builtin:swc-loader's rspackExperiments.collectTypeScriptInfo
+
+The `rspackExperiments.collectTypeScriptInfo` option of `builtin:swc-loader` has been removed. Use [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) to control TypeScript information collection:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          collectTypeScriptInfo: {
+            typeExports: true,
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Moved builtin:swc-loader's rspackExperiments.import
+
+The `rspackExperiments.import` option of `builtin:swc-loader` has moved to the top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage:
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+-         rspackExperiments: {
+-           import: [
+-             {
+-               libraryName: 'antd',
+-               style: true,
+-             },
+-           ],
+-         },
++         transformImport: [
++           {
++             libraryName: 'antd',
++             style: true,
++           },
++         ],
+        },
+      },
+    ],
+  },
+};
+```
+
 ### Derive loader and plugin targets from target
 
 In Rspack 2.0, the `targets` configuration for `builtin:swc-loader`, `builtin:lightningcss-loader`, and `rspack.LightningCssMinimizerRspackPlugin` now defaults to the [target](/config/target) configuration. If you need different targets, configure them in the loader or plugin options:
@@ -584,6 +639,4 @@ const server = new DevServer(
 - `experiments.inlineEnum`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) and `builtin:swc-loader`'s [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control enum inlining optimization.
 - `experiments.outputModule`: removed; use [output.module](/config/output#outputmodule) directly to output ESM artifacts.
 - `experiments.parallelLoader`: removed; loader parallelization is now stable and enabled by default, but you still need to configure [module.rules.use.parallel](/config/module-rules#rulesuseparallel) to opt in.
-- `builtin:swc-loader`'s `rspackExperiments.collectTypeScriptInfo`: removed; use [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) to control TypeScript information collection.
-- `builtin:swc-loader`'s `rspackExperiments.import`: moved to the top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage.
 - `experiments.SubResourceIntegrityPlugin`: moved to the top-level [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin).
