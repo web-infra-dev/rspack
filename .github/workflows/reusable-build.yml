@@ -39,6 +39,7 @@ jobs:
       runner: ${{ inputs.runner }}
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
+      browser: ${{ inputs.browser }}
   test:
     if: inputs.test
     needs: build
