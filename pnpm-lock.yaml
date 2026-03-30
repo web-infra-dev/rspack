@@ -58,12 +58,18 @@ importers:
 
   crates/node_binding:
     devDependencies:
+      '@emnapi/core':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@emnapi/runtime':
+        specifier: 1.9.1
+        version: 1.9.1
       '@napi-rs/cli':
         specifier: 3.6.0
-        version: 3.6.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
+        version: 3.6.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
-        version: 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@types/node':
         specifier: ^20.19.37
         version: 20.19.37
@@ -107,12 +113,18 @@ importers:
 
   crates/rspack_binding_builder_testing:
     devDependencies:
+      '@emnapi/core':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@emnapi/runtime':
+        specifier: 1.9.1
+        version: 1.9.1
       '@napi-rs/cli':
         specifier: 3.6.0
-        version: 3.6.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
+        version: 3.6.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
-        version: 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       emnapi:
         specifier: 1.9.1
         version: 1.9.1(node-addon-api@7.1.1)
@@ -197,7 +209,7 @@ importers:
     dependencies:
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
-        version: 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
 
   npm/win32-arm64-msvc: {}
 
@@ -235,7 +247,7 @@ importers:
         version: 0.42.0
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
-        version: 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.4
         version: 1.4.4(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))
@@ -295,7 +307,7 @@ importers:
     dependencies:
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
-        version: 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@rspack/lite-tapable':
         specifier: 1.1.0
         version: 1.1.0
@@ -1627,14 +1639,14 @@ packages:
       search-insights:
         optional: true
 
-  '@emnapi/core@1.8.1':
-    resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
+  '@emnapi/core@1.9.1':
+    resolution: {integrity: sha512-mukuNALVsoix/w1BJwFzwXBN/dHeejQtuVzcDsfOEsdpCumXb/E9j8w11h5S54tT1xhifGfbbSm/ICrObRb3KA==}
 
-  '@emnapi/runtime@1.8.1':
-    resolution: {integrity: sha512-mehfKSMWjjNol8659Z8KxEMrdSJDDot5SXMq00dM8BN4o+CLNXQ0xH2V7EchNHV4RmbZLmmPdEaXZc5H2FXmDg==}
+  '@emnapi/runtime@1.9.1':
+    resolution: {integrity: sha512-VYi5+ZVLhpgK4hQ0TAjiQiZ6ol0oe4mBx7mVv7IflsiEp0OWoVsp/+f9Vc1hOhE0TtkORVrI1GvzyreqpgWtkA==}
 
-  '@emnapi/wasi-threads@1.1.0':
-    resolution: {integrity: sha512-WI0DdZ8xFSbgMjR1sFsKABJ/C5OnRrjT06JXbZKexJGrDuPTzZdDYfFlsgcCXCyf+suG5QU2e/y1Wo2V/OapLQ==}
+  '@emnapi/wasi-threads@1.2.0':
+    resolution: {integrity: sha512-N10dEJNSsUx41Z6pZsXU8FjPjpBEplgH24sfkmITrBED1/U2Esum9F3lfLrMjKHHjmi557zQn7kR9R+XWXu5Rg==}
 
   '@epic-web/invariant@1.0.0':
     resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
@@ -8640,16 +8652,16 @@ snapshots:
       - '@algolia/client-search'
       - algoliasearch
 
-  '@emnapi/core@1.8.1':
+  '@emnapi/core@1.9.1':
     dependencies:
-      '@emnapi/wasi-threads': 1.1.0
+      '@emnapi/wasi-threads': 1.2.0
       tslib: 2.8.1
 
-  '@emnapi/runtime@1.8.1':
+  '@emnapi/runtime@1.9.1':
     dependencies:
       tslib: 2.8.1
 
-  '@emnapi/wasi-threads@1.1.0':
+  '@emnapi/wasi-threads@1.2.0':
     dependencies:
       tslib: 2.8.1
 
@@ -9182,11 +9194,11 @@ snapshots:
     transitivePeerDependencies:
       - node-fetch
 
-  '@napi-rs/cli@3.6.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)(@types/node@20.19.37)(node-addon-api@7.1.1)':
+  '@napi-rs/cli@3.6.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@20.19.37)(node-addon-api@7.1.1)':
     dependencies:
       '@inquirer/prompts': 8.3.2(@types/node@20.19.37)
-      '@napi-rs/cross-toolchain': 1.0.3(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
-      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/cross-toolchain': 1.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       colorette: 2.0.20
@@ -9197,7 +9209,7 @@ snapshots:
       semver: 7.7.4
       typanion: 3.14.0
     optionalDependencies:
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/runtime': 1.9.1
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
@@ -9214,10 +9226,10 @@ snapshots:
       - node-addon-api
       - supports-color
 
-  '@napi-rs/cross-toolchain@1.0.3(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/cross-toolchain@1.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/lzma': 1.4.5(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
-      '@napi-rs/tar': 1.1.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/lzma': 1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+      '@napi-rs/tar': 1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       debug: 4.4.3
     transitivePeerDependencies:
       - '@emnapi/core'
@@ -9263,9 +9275,9 @@ snapshots:
   '@napi-rs/lzma-linux-x64-musl@1.4.5':
     optional: true
 
-  '@napi-rs/lzma-wasm32-wasi@1.4.5(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/lzma-wasm32-wasi@1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -9280,7 +9292,7 @@ snapshots:
   '@napi-rs/lzma-win32-x64-msvc@1.4.5':
     optional: true
 
-  '@napi-rs/lzma@1.4.5(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/lzma@1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     optionalDependencies:
       '@napi-rs/lzma-android-arm-eabi': 1.4.5
       '@napi-rs/lzma-android-arm64': 1.4.5
@@ -9295,7 +9307,7 @@ snapshots:
       '@napi-rs/lzma-linux-s390x-gnu': 1.4.5
       '@napi-rs/lzma-linux-x64-gnu': 1.4.5
       '@napi-rs/lzma-linux-x64-musl': 1.4.5
-      '@napi-rs/lzma-wasm32-wasi': 1.4.5(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/lzma-wasm32-wasi': 1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@napi-rs/lzma-win32-arm64-msvc': 1.4.5
       '@napi-rs/lzma-win32-ia32-msvc': 1.4.5
       '@napi-rs/lzma-win32-x64-msvc': 1.4.5
@@ -9339,9 +9351,9 @@ snapshots:
   '@napi-rs/tar-linux-x64-musl@1.1.0':
     optional: true
 
-  '@napi-rs/tar-wasm32-wasi@1.1.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/tar-wasm32-wasi@1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -9356,7 +9368,7 @@ snapshots:
   '@napi-rs/tar-win32-x64-msvc@1.1.0':
     optional: true
 
-  '@napi-rs/tar@1.1.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/tar@1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     optionalDependencies:
       '@napi-rs/tar-android-arm-eabi': 1.1.0
       '@napi-rs/tar-android-arm64': 1.1.0
@@ -9370,7 +9382,7 @@ snapshots:
       '@napi-rs/tar-linux-s390x-gnu': 1.1.0
       '@napi-rs/tar-linux-x64-gnu': 1.1.0
       '@napi-rs/tar-linux-x64-musl': 1.1.0
-      '@napi-rs/tar-wasm32-wasi': 1.1.0(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/tar-wasm32-wasi': 1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@napi-rs/tar-win32-arm64-msvc': 1.1.0
       '@napi-rs/tar-win32-ia32-msvc': 1.1.0
       '@napi-rs/tar-win32-x64-msvc': 1.1.0
@@ -9380,22 +9392,22 @@ snapshots:
 
   '@napi-rs/wasm-runtime@1.0.7':
     dependencies:
-      '@emnapi/core': 1.8.1
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
     optional: true
 
   '@napi-rs/wasm-runtime@1.1.1':
     dependencies:
-      '@emnapi/core': 1.8.1
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
     optional: true
 
-  '@napi-rs/wasm-runtime@1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/wasm-runtime@1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@emnapi/core': 1.8.1
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
 
   '@napi-rs/wasm-tools-android-arm-eabi@1.0.1':
@@ -9425,9 +9437,9 @@ snapshots:
   '@napi-rs/wasm-tools-linux-x64-musl@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
     transitivePeerDependencies:
       - '@emnapi/core'
       - '@emnapi/runtime'
@@ -9442,7 +9454,7 @@ snapshots:
   '@napi-rs/wasm-tools-win32-x64-msvc@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools@1.0.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)':
+  '@napi-rs/wasm-tools@1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     optionalDependencies:
       '@napi-rs/wasm-tools-android-arm-eabi': 1.0.1
       '@napi-rs/wasm-tools-android-arm64': 1.0.1
@@ -9453,7 +9465,7 @@ snapshots:
       '@napi-rs/wasm-tools-linux-arm64-musl': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-gnu': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-musl': 1.0.1
-      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(@emnapi/core@1.8.1)(@emnapi/runtime@1.8.1)
+      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@napi-rs/wasm-tools-win32-arm64-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-ia32-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-x64-msvc': 1.0.1

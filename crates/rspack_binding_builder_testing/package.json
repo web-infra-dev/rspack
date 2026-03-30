@@ -22,6 +22,8 @@
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
   "repository": "web-infra-dev/rspack",
   "devDependencies": {
+    "@emnapi/core": "1.9.1",
+    "@emnapi/runtime": "1.9.1",
     "@napi-rs/cli": "3.6.0",
     "@napi-rs/wasm-runtime": "1.1.2",
     "emnapi": "1.9.1",
