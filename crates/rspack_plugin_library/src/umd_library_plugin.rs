@@ -141,7 +141,7 @@ async fn render(
       if module_graph.is_optional(
         &module.id,
         module_graph_cache,
-        &side_effects_state_artifact,
+        side_effects_state_artifact,
         &compilation.exports_info_artifact,
       ) {
         optional_externals.push(*module);
@@ -210,7 +210,7 @@ async fn render(
         &externals,
         module_graph,
         module_graph_cache,
-        &side_effects_state_artifact,
+        side_effects_state_artifact,
         &compilation.exports_info_artifact,
       )?
     };
@@ -260,7 +260,7 @@ async fn render(
           &externals,
           module_graph,
           module_graph_cache,
-          &side_effects_state_artifact,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         )?
       };
@@ -291,7 +291,7 @@ async fn render(
       &externals,
       module_graph,
       module_graph_cache,
-      &side_effects_state_artifact,
+      side_effects_state_artifact,
       &compilation.exports_info_artifact,
     )?
   };

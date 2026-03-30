@@ -418,7 +418,7 @@ impl ExternalModule {
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
-          &side_effects_state_artifact,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) {
           format!(
@@ -453,7 +453,7 @@ impl ExternalModule {
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
-          &side_effects_state_artifact,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) && let Some(request) = request
         {

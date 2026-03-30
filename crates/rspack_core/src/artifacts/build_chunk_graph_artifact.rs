@@ -112,7 +112,7 @@ impl BuildChunkGraphArtifact {
                 module_graph,
                 None,
                 module_graph_cache,
-                &side_effects_state_artifact,
+                side_effects_state_artifact,
                 &this_compilation.exports_info_artifact,
               )
               .is_not_false()
