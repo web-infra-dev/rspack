@@ -553,6 +553,9 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     parser: &mut JavascriptParser,
     ast: &swc_core::ecma::ast::Program,
   ) -> Option<bool> {
+    parser.build_info.side_effects_free = None;
+    parser.build_info.deferred_pure_checks.clear();
+
     // analyze if any function contains #__NO_SIDE_EFFECTS__ annotation
     // so that pure functions in current module can be marked as pure
     if self.analyze_side_effects_free {
