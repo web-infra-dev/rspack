@@ -62,14 +62,12 @@ jobs:
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
 
-      - name: Setup Zig for musl build
-        if: ${{ contains(inputs.target, 'musl') }}
+      - name: Setup Zig
         uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
         with:
           version: '0.14.1'
 
-      - name: Install cargo-zigbuild for musl build
-        if: ${{ contains(inputs.target, 'musl') }}
+      - name: Install cargo-zigbuild
         uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
         with:
           tool: cargo-zigbuild
@@ -96,13 +94,13 @@ jobs:
       # Linux
       - name: Build x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+        run: RUST_TARGET=x86_64-unknown-linux-gnu USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
 
       - name: Build aarch64-unknown-linux-gnu
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
-        run: RUST_TARGET=aarch64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        run: RUST_TARGET=aarch64-unknown-linux-gnu USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
 
