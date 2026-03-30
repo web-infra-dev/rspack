@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { readFileSync, writeFileSync } = require("node:fs");
+const { readFileSync, writeFileSync, renameSync } = require("node:fs");
 const { values, positionals } = require("node:util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
@@ -63,6 +63,10 @@ async function build() {
 		}
 		if (process.env.RUST_TARGET) {
 			args.push("--target", process.env.RUST_TARGET);
+			if (process.env.RUST_TARGET.includes("wasm32")) {
+				// Strip debug format to reduce wasm size of wasm artifacts
+				rustflags.push("-Zfmt-debug=none");
+			}
 		}
 		if (!process.env.DISABLE_PLUGIN) {
 			args.push("--no-default-features");
@@ -70,8 +74,6 @@ async function build() {
 		}
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
-			// Strip debug format to reduce wasm size of @rspack/browser
-			rustflags.push("-Zfmt-debug=none");
 		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {
@@ -144,6 +146,12 @@ async function build() {
 						// This allows users to extend NormalModule with static methods through type augmentation.
 						.replaceAll(/export\s+declare\s+class\s+NormalModule\s*\{([\s\S]*?)\}\s*(?=\n\s*(?:export|declare|class|$))/g, "")
 				);
+
+				// For browser wasm, we rename the artifacts to distinguish them from node wasm
+				if (process.env.RSPACK_TARGET_BROWSER) {
+					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
+					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
+				}
 
 				if (process.env.TRACY) {
 					// split debug symbols for tracy
