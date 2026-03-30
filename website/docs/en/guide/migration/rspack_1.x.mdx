@@ -376,48 +376,10 @@ export default {
 
 ### Adjusted LightningCssMinimizerRspackPlugin configuration
 
-The following options of [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) have been removed:
+The following [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) options have changed:
 
-#### Removed draft
-
-The `draft` option has been removed. Use the `drafts` configuration instead.
-
-```diff title="rspack.config.mjs"
-import { LightningCssMinimizerRspackPlugin } from '@rspack/core';
-
-export default {
-  optimization: {
-    minimizer: [
-      new LightningCssMinimizerRspackPlugin({
--       draft: {
--         customMedia: true,
--       },
-+       drafts: {
-+         customMedia: true,
-+       },
-      }),
-    ],
-  },
-};
-```
-
-#### Removed cssHeadDataCompression
-
-The `cssHeadDataCompression` option has been removed. You can remove this configuration directly without affecting the build result.
-
-```diff title="rspack.config.mjs"
-import { LightningCssMinimizerRspackPlugin } from '@rspack/core';
-
-export default {
-  optimization: {
-    minimizer: [
-      new LightningCssMinimizerRspackPlugin({
--       cssHeadDataCompression: true,
-      }),
-    ],
-  },
-};
-```
+- `draft`: removed; use `drafts` instead
+- `cssHeadDataCompression`: removed; delete this option directly
 
 ## Resolve behavior changes
 

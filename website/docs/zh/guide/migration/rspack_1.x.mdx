@@ -376,48 +376,10 @@ export default {
 
 ### 调整 LightningCssMinimizerRspackPlugin 配置项
 
-[LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的以下选项已被移除：
+[LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的以下选项已调整：
 
-#### 移除 draft
-
-`draft` 选项已被移除，可使用 `drafts` 配置替代。
-
-```diff title="rspack.config.mjs"
-import { LightningCssMinimizerRspackPlugin } from '@rspack/core';
-
-export default {
-  optimization: {
-    minimizer: [
-      new LightningCssMinimizerRspackPlugin({
--       draft: {
--         customMedia: true,
--       },
-+       drafts: {
-+         customMedia: true,
-+       },
-      }),
-    ],
-  },
-};
-```
-
-#### 移除 cssHeadDataCompression
-
-`cssHeadDataCompression` 选项已被移除，你可以直接移除该选项，这不会影响构建结果。
-
-```diff title="rspack.config.mjs"
-import { LightningCssMinimizerRspackPlugin } from '@rspack/core';
-
-export default {
-  optimization: {
-    minimizer: [
-      new LightningCssMinimizerRspackPlugin({
--       cssHeadDataCompression: true,
-      }),
-    ],
-  },
-};
-```
+- `draft`：已移除；改用 `drafts`
+- `cssHeadDataCompression`：已移除；可直接删除该选项
 
 ## Resolve 行为变化
 
