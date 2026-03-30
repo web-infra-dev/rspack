@@ -1,9 +1,7 @@
-use std::rc::Rc;
-
 use rspack_core::{
   Compilation, ExportsInfoArtifact, GetTargetResult, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, PrefetchExportsInfoMode, RuntimeCondition, RuntimeSpec, UsageState,
-  UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
+  ModuleIdentifier, PrefetchExportsInfoMode, ResolvedExportInfoTarget, RuntimeCondition,
+  RuntimeSpec, UsageState, UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
 };
 
 pub mod plugin;
@@ -27,12 +25,13 @@ pub(crate) fn has_impure_deferred_pure_checks(
         .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
       let target_export_info =
         target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
+      let resolve_filter = |_: &ResolvedExportInfoTarget| true;
 
       let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
         &target_export_info,
         module_graph,
         exports_info_artifact,
-        Rc::new(|_| true),
+        &resolve_filter,
         &mut Default::default(),
       ) && let Some(export) = &target.export
         && let Some(atom) = export.first()

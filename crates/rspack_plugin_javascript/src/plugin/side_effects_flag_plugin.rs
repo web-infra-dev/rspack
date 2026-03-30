@@ -211,12 +211,13 @@ async fn finish_modules(
             .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
           let target_export_info =
             target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
+          let resolve_filter = |_: &ResolvedExportInfoTarget| true;
 
           let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
             &target_export_info,
             module_graph,
             exports_info_artifact,
-            Rc::new(|_| true),
+            &resolve_filter,
             &mut Default::default(),
           ) && let Some(export) = &target.export
             && let Some(atom) = export.first()
@@ -281,8 +282,6 @@ async fn optimize_dependencies(
   let module_graph = build_module_graph_artifact.get_module_graph();
   let side_effects_state_artifact = build_module_graph_artifact
     .side_effects_state_artifact
-    .read()
-    .expect("should lock side effects state artifact")
     .clone();
 
   let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph

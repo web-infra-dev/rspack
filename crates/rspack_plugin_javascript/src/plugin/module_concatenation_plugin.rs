@@ -287,14 +287,12 @@ impl ModuleConcatenationPlugin {
     let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
-    let side_effects_state_artifact = compilation
+    let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
-      .side_effects_state_artifact
-      .read()
-      .expect("should lock side effects state artifact");
+      .side_effects_state_artifact;
     let module_graph_artifacts = ModuleGraphArtifacts {
       mg_cache: module_graph_cache,
-      side_effects_state_artifact: &side_effects_state_artifact,
+      side_effects_state_artifact,
       exports_info_artifact: &compilation.exports_info_artifact,
     };
 
@@ -562,9 +560,7 @@ impl ModuleConcatenationPlugin {
                 module_graph_cache,
                 &compilation
                   .build_module_graph_artifact
-                  .side_effects_state_artifact
-                  .read()
-                  .expect("should lock side effects state artifact"),
+                  .side_effects_state_artifact,
                 &compilation.exports_info_artifact,
               )
             });
@@ -732,9 +728,7 @@ impl ModuleConcatenationPlugin {
         &compilation.module_graph_cache_artifact,
         &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact"),
+          .side_effects_state_artifact,
         &mut IdentifierSet::default(),
         &mut IdentifierMap::default(),
       ),
@@ -1164,9 +1158,7 @@ impl ModuleConcatenationPlugin {
                   module_graph_cache,
                   &compilation
                     .build_module_graph_artifact
-                    .side_effects_state_artifact
-                    .read()
-                    .expect("should lock side effects state artifact"),
+                    .side_effects_state_artifact,
                   &compilation.exports_info_artifact,
                 ),
               ),
@@ -1211,9 +1203,7 @@ impl ModuleConcatenationPlugin {
               module_graph_cache,
               &compilation
                 .build_module_graph_artifact
-                .side_effects_state_artifact
-                .read()
-                .expect("should lock side effects state artifact"),
+                .side_effects_state_artifact,
               &compilation.exports_info_artifact,
             ),
           );
@@ -1272,8 +1262,7 @@ impl ModuleConcatenationPlugin {
         let side_effects_state_artifact = compilation
           .build_module_graph_artifact
           .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact");
+          .clone();
         let module_graph_artifacts = ModuleGraphArtifacts {
           mg_cache: module_graph_cache,
           side_effects_state_artifact: &side_effects_state_artifact,
@@ -1600,9 +1589,7 @@ async fn create_concatenated_module(
       &compilation.module_graph_cache_artifact,
       &compilation
         .build_module_graph_artifact
-        .side_effects_state_artifact
-        .read()
-        .expect("should lock side effects state artifact"),
+        .side_effects_state_artifact,
       &mut IdentifierSet::default(),
       &mut IdentifierMap::default(),
     ),

@@ -133,9 +133,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       module_graph_cache,
       &compilation
         .build_module_graph_artifact
-        .side_effects_state_artifact
-        .read()
-        .expect("should lock side effects state artifact"),
+        .side_effects_state_artifact,
       &compilation.exports_info_artifact,
     )
   } else {
@@ -172,9 +170,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
         module_graph_cache,
         &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact"),
+          .side_effects_state_artifact,
         &compilation.exports_info_artifact,
       )
     })

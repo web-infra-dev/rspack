@@ -736,9 +736,7 @@ impl ESMExportImportedSpecifierDependency {
                   &ctxt
                     .compilation
                     .build_module_graph_artifact
-                    .side_effects_state_artifact
-                    .read()
-                    .expect("should lock side effects state artifact"),
+                    .side_effects_state_artifact,
                   exports_info_artifact,
                 )
               })

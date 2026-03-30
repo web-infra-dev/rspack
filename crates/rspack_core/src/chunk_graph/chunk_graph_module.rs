@@ -328,8 +328,7 @@ impl ChunkGraph {
     let side_effects_state_artifact = compilation
       .build_module_graph_artifact
       .side_effects_state_artifact
-      .read()
-      .expect("should lock side effects state artifact");
+      .clone();
     self
       .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
       .hash(&mut hasher);

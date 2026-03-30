@@ -1982,8 +1982,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let side_effects_state_artifact = compilation
           .build_module_graph_artifact
           .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact");
+          .clone();
 
         let mut queue_actions = Vec::new();
         let mut modules_to_skip = Vec::new();
@@ -2469,9 +2468,7 @@ fn extract_block_modules(
       &compilation.module_graph_cache_artifact,
       &compilation
         .build_module_graph_artifact
-        .side_effects_state_artifact
-        .read()
-        .expect("should lock side effects state artifact"),
+        .side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
     modules.push((*module_identifier, active_state, connections.clone()));

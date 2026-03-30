@@ -748,9 +748,7 @@ impl EsmLibraryPlugin {
             &compilation.module_graph_cache_artifact,
             &compilation
               .build_module_graph_artifact
-              .side_effects_state_artifact
-              .read()
-              .expect("should lock side effects state artifact"),
+              .side_effects_state_artifact,
             &compilation.exports_info_artifact,
             &mut namespace_re_export_star_cache,
           )
@@ -1878,9 +1876,7 @@ var {} = {{}};
       &compilation.module_graph_cache_artifact,
       &compilation
         .build_module_graph_artifact
-        .side_effects_state_artifact
-        .read()
-        .expect("should lock side effects state artifact"),
+        .side_effects_state_artifact,
       &compilation.exports_info_artifact,
       // When filter_unused is true, own exports are already collected and filtered
       // by usage above — only collect `export *` targets here.
@@ -2518,9 +2514,7 @@ var {} = {{}};
                 &compilation.module_graph_cache_artifact,
                 &compilation
                   .build_module_graph_artifact
-                  .side_effects_state_artifact
-                  .read()
-                  .expect("should lock side effects state artifact"),
+                  .side_effects_state_artifact,
                 &compilation.exports_info_artifact,
               )
             {
@@ -2535,9 +2529,7 @@ var {} = {{}};
             &compilation.module_graph_cache_artifact,
             &compilation
               .build_module_graph_artifact
-              .side_effects_state_artifact
-              .read()
-              .expect("should lock side effects state artifact"),
+              .side_effects_state_artifact,
             &compilation.exports_info_artifact,
           ) {
             continue;
@@ -2722,9 +2714,7 @@ var {} = {{}};
             &compilation.module_graph_cache_artifact,
             &compilation
               .build_module_graph_artifact
-              .side_effects_state_artifact
-              .read()
-              .expect("should lock side effects state artifact"),
+              .side_effects_state_artifact,
             &compilation.exports_info_artifact,
           ) {
             continue;

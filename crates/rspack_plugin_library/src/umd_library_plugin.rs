@@ -134,11 +134,9 @@ async fn render(
   let externals = modules.clone();
 
   if self.optional_amd_external_as_global {
-    let side_effects_state_artifact = compilation
+    let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
-      .side_effects_state_artifact
-      .read()
-      .expect("should lock side effects state artifact");
+      .side_effects_state_artifact;
     for module in &externals {
       if module_graph.is_optional(
         &module.id,
@@ -204,11 +202,9 @@ async fn render(
 
   let factory = if names.commonjs.is_some() || names.root.is_some() {
     let commonjs_externals = {
-      let side_effects_state_artifact = compilation
+      let side_effects_state_artifact = &compilation
         .build_module_graph_artifact
-        .side_effects_state_artifact
-        .read()
-        .expect("should lock side effects state artifact");
+        .side_effects_state_artifact;
       externals_require_array(
         "commonjs",
         &externals,
@@ -256,11 +252,9 @@ async fn render(
       "var a = factory();\n".to_string()
     } else {
       let commonjs_externals = {
-        let side_effects_state_artifact = compilation
+        let side_effects_state_artifact = &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact");
+          .side_effects_state_artifact;
         externals_require_array(
           "commonjs",
           &externals,
@@ -289,11 +283,9 @@ async fn render(
     "(function webpackUniversalModuleDefinition(root, factory) {\n",
   ));
   let commonjs2_externals = {
-    let side_effects_state_artifact = compilation
+    let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
-      .side_effects_state_artifact
-      .read()
-      .expect("should lock side effects state artifact");
+      .side_effects_state_artifact;
     externals_require_array(
       "commonjs2",
       &externals,

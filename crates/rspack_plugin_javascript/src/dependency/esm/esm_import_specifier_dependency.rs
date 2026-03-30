@@ -604,9 +604,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         &compilation.module_graph_cache_artifact,
         &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact"),
+          .side_effects_state_artifact,
         &compilation.exports_info_artifact,
       )
       && !is_export_inlined(

@@ -412,11 +412,9 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__rspack_external_{}", to_identifier(id));
-        let side_effects_state_artifact = compilation
+        let side_effects_state_artifact = &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact");
+          .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
@@ -449,11 +447,9 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let side_effects_state_artifact = compilation
+        let side_effects_state_artifact = &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .read()
-          .expect("should lock side effects state artifact");
+          .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
@@ -741,9 +737,7 @@ if(typeof {global} !== "undefined") return resolve();
           module_graph_cache,
           &compilation
             .build_module_graph_artifact
-            .side_effects_state_artifact
-            .read()
-            .expect("should lock side effects state artifact"),
+            .side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) {
           format!(
@@ -991,8 +985,7 @@ impl Module for ExternalModule {
     let side_effects_state_artifact = compilation
       .build_module_graph_artifact
       .side_effects_state_artifact
-      .read()
-      .expect("should lock side effects state artifact");
+      .clone();
     let is_optional = compilation.get_module_graph().is_optional(
       &self.id,
       &compilation.module_graph_cache_artifact,

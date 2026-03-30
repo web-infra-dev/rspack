@@ -60,8 +60,6 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     let side_effects_state_artifact = self
       .build_module_graph_artifact
       .side_effects_state_artifact
-      .read()
-      .expect("should lock side effects state artifact")
       .clone();
     let mut module_graph = self.build_module_graph_artifact.get_module_graph_mut();
     self.exports_info_artifact.reset_all_exports_info_used();

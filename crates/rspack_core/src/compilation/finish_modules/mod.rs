@@ -40,14 +40,11 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
   let mut async_modules_artifact = compilation.async_modules_artifact.steal();
   let mut exports_info_artifact = compilation.exports_info_artifact.steal();
-  let mut side_effects_state_artifact = {
-    let mut artifact = compilation
+  let mut side_effects_state_artifact = std::mem::take(
+    &mut compilation
       .build_module_graph_artifact
-      .side_effects_state_artifact
-      .write()
-      .expect("should lock side effects state artifact");
-    std::mem::take(&mut *artifact)
-  };
+      .side_effects_state_artifact,
+  );
   let diagnostics = finish_modules_inner(
     compilation,
     &mut side_effects_state_artifact,
@@ -56,14 +53,9 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
     &mut exports_info_artifact,
   )
   .await;
-  {
-    let mut artifact = compilation
-      .build_module_graph_artifact
-      .side_effects_state_artifact
-      .write()
-      .expect("should lock side effects state artifact");
-    *artifact = side_effects_state_artifact.clone();
-  }
+  compilation
+    .build_module_graph_artifact
+    .side_effects_state_artifact = side_effects_state_artifact.clone();
   compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact.into();
   compilation.async_modules_artifact = async_modules_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();

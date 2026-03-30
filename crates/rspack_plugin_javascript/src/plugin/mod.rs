@@ -429,9 +429,7 @@ var {} = {{}};
                     module_graph_cache,
                     &compilation
                       .build_module_graph_artifact
-                      .side_effects_state_artifact
-                      .read()
-                      .expect("should lock side effects state artifact"),
+                      .side_effects_state_artifact,
                     &compilation.exports_info_artifact,
                   )
                 }) && compilation
