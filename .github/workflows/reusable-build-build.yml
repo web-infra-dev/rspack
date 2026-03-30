@@ -160,7 +160,7 @@ jobs:
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
 
       - name: Build wasm32-wasip1-threads with linux
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && !inputs.browser && inputs.profile != 'release' }}
         run: |
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
@@ -174,7 +174,7 @@ jobs:
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
 
       - name: Build wasm32-wasip1-threads(release-wasi) with linux
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && !inputs.browser && inputs.profile == 'release' }}
         run: |
           pnpm --filter @rspack/binding build:release:wasm
           npm install -g binaryen
