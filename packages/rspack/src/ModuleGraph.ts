@@ -27,8 +27,8 @@ export default class ModuleGraph {
 
   getUsedExports(
     module: Module,
-    runtime: string | string[]
-  ): boolean | Array<string> | null {
+    runtime: string | string[],
+  ): string[] | boolean | null {
     return this.#inner.getUsedExports(module, runtime);
   }
 
