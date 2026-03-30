@@ -3690,6 +3690,7 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_hash",
+ "rspack_plugin_split_chunks",
  "rspack_regex",
  "rspack_tasks",
  "rustc-hash",
