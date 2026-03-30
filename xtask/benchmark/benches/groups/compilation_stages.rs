@@ -13,15 +13,20 @@ use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
-  ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, Compiler, Mode,
-  ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, SideEffectsOptimizeArtifact,
-  UsedExportsOption, build_chunk_graph,
+  ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, Compiler, DEFAULT_DELIMITER,
+  Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, SideEffectsOptimizeArtifact,
+  SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   incremental::IncrementalOptions,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_hash::RspackHash;
+use rspack_plugin_split_chunks::{
+  CacheGroup, CacheGroupTest, ChunkNameGetter, FallbackCacheGroup, PluginOptions, SplitChunkSizes,
+  SplitChunksPlugin, create_all_chunk_filter, create_default_module_layer_filter,
+  create_default_module_type_filter,
+};
 use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashMap;
 use tokio::runtime::Builder;
@@ -31,6 +36,10 @@ use crate::groups::build_chunk_graph::prepare_large_code_splitting_case;
 const GENERAL_STAGE_NUM_MODULES: usize = 3000;
 const CONCAT_GROUPS: usize = 160;
 const CONCAT_MODULES_PER_GROUP: usize = 12;
+const SPLIT_CHUNKS_ENTRY_COUNT: usize = 48;
+const SPLIT_CHUNKS_SHARED_MODULES: usize = 192;
+const SPLIT_CHUNKS_WINDOW: usize = 20;
+const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
 
 pub fn compilation_stages_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
@@ -47,6 +56,7 @@ fn compilation_stages_benchmark_inner(c: &mut Criterion) {
   flag_dependency_exports_benchmark(c, &rt);
   flag_dependency_usage_benchmark(c, &rt);
   create_module_ids_benchmark(c, &rt);
+  split_chunks_benchmark(c, &rt);
   create_chunk_ids_benchmark(c, &rt);
   create_module_hashes_benchmark(c, &rt);
   create_chunk_hashes_benchmark(c, &rt);
@@ -184,6 +194,114 @@ fn create_module_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) 
             .unwrap();
         });
         black_box(compiler.compilation.module_ids_artifact.len());
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn split_chunks_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let mut compiler = create_split_chunks_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_split_chunks_case(SPLIT_CHUNKS_ENTRY_COUNT, SPLIT_CHUNKS_SHARED_MODULES, &fs)
+      .await;
+    prepare_for_split_chunks(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "split_chunks setup");
+
+  let initial_chunk_graph = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .clone();
+  let initial_chunk_by_ukey = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .clone();
+  let initial_chunk_group_by_ukey = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .clone();
+  let initial_entrypoints = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .entrypoints
+    .clone();
+  let initial_async_entrypoints = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .async_entrypoints
+    .clone();
+  let initial_named_chunk_groups = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .named_chunk_groups
+    .clone();
+  let initial_named_chunks = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .named_chunks
+    .clone();
+  let chunk_count_before = initial_chunk_by_ukey.len();
+
+  let restore_initial_chunk_state = |compilation: &mut Compilation| {
+    compilation.build_chunk_graph_artifact.chunk_graph = initial_chunk_graph.clone();
+    compilation.build_chunk_graph_artifact.chunk_by_ukey = initial_chunk_by_ukey.clone();
+    compilation.build_chunk_graph_artifact.chunk_group_by_ukey =
+      initial_chunk_group_by_ukey.clone();
+    compilation.build_chunk_graph_artifact.entrypoints = initial_entrypoints.clone();
+    compilation.build_chunk_graph_artifact.async_entrypoints = initial_async_entrypoints.clone();
+    compilation.build_chunk_graph_artifact.named_chunk_groups = initial_named_chunk_groups.clone();
+    compilation.build_chunk_graph_artifact.named_chunks = initial_named_chunks.clone();
+  };
+
+  rt.block_on(async {
+    run_optimize_chunks_hook(&mut compiler.compilation)
+      .await
+      .unwrap();
+  });
+
+  let chunk_count_after = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .len();
+  assert!(
+    chunk_count_after > chunk_count_before,
+    "split_chunks setup should create additional shared chunks"
+  );
+
+  restore_initial_chunk_state(&mut compiler.compilation);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@split_chunks", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_initial_chunk_state(&mut compiler.compilation);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_optimize_chunks_hook(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box(
+          compiler
+            .compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .len(),
+        );
       },
       BatchSize::PerIteration,
     );
@@ -448,6 +566,33 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
     .unwrap()
 }
 
+fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  let mut builder = Compiler::builder();
+  builder
+    .context("/")
+    .mode(Mode::Development)
+    .cache(CacheOptions::Disabled)
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs)
+    .optimization(
+      Optimization::builder()
+        .provided_exports(true)
+        .used_exports(UsedExportsOption::True)
+        .module_ids("deterministic".to_string())
+        .chunk_ids("deterministic".to_string())
+        .concatenate_modules(false),
+    )
+    .incremental(IncrementalOptions::empty_passes())
+    .plugin(Box::new(create_split_chunks_plugin()));
+  for entry_index in 0..SPLIT_CHUNKS_ENTRY_COUNT {
+    builder.entry(
+      format!("entry-{entry_index}"),
+      format!("/src/entries/entry-{entry_index}.js"),
+    );
+  }
+  builder.build().unwrap()
+}
+
 fn create_concatenate_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
   Compiler::builder()
     .context("/")
@@ -517,6 +662,16 @@ async fn prepare_for_module_ids(compiler: &mut Compiler) -> Result<()> {
   run_optimize_chunks_hook(&mut compiler.compilation).await?;
   run_optimize_tree_hook(&mut compiler.compilation).await?;
   run_optimize_chunk_modules_hook(&mut compiler.compilation).await?;
+  Ok(())
+}
+
+async fn prepare_for_split_chunks(compiler: &mut Compiler) -> Result<()> {
+  prepare_build_module_graph_phase(compiler).await?;
+  run_finish_modules_hook(&mut compiler.compilation).await?;
+  run_seal_hook(&mut compiler.compilation).await?;
+  run_optimize_dependencies_hook(&mut compiler.compilation).await?;
+  build_chunk_graph::build_chunk_graph(&mut compiler.compilation)?;
+  run_optimize_modules_hook(&mut compiler.compilation).await?;
   Ok(())
 }
 
@@ -981,6 +1136,63 @@ async fn prepare_large_concatenation_case(
     .unwrap();
 }
 
+async fn prepare_large_split_chunks_case(
+  entry_count: usize,
+  shared_modules: usize,
+  fs: &MemoryFileSystem,
+) {
+  fs.create_dir_all("/src/entries".into()).await.unwrap();
+  fs.create_dir_all("/src/shared".into()).await.unwrap();
+
+  for module_index in 0..shared_modules {
+    let code = format!("export default {module_index};");
+    fs.write(
+      format!("/src/shared/shared-{module_index}.js")
+        .as_str()
+        .into(),
+      code.as_bytes(),
+    )
+    .await
+    .unwrap();
+  }
+
+  let rotating_pool = shared_modules - SPLIT_CHUNKS_COMMON_MODULES;
+  for entry_index in 0..entry_count {
+    let mut imports = Vec::with_capacity(SPLIT_CHUNKS_WINDOW + SPLIT_CHUNKS_COMMON_MODULES);
+    let mut values = Vec::with_capacity(SPLIT_CHUNKS_WINDOW + SPLIT_CHUNKS_COMMON_MODULES);
+
+    for offset in 0..SPLIT_CHUNKS_WINDOW {
+      let module_index = (entry_index * 7 + offset) % rotating_pool;
+      imports.push(format!(
+        "import shared_{module_index} from '/src/shared/shared-{module_index}.js';"
+      ));
+      values.push(format!("shared_{module_index}"));
+    }
+
+    for offset in 0..SPLIT_CHUNKS_COMMON_MODULES {
+      let module_index = rotating_pool + offset;
+      imports.push(format!(
+        "import shared_{module_index} from '/src/shared/shared-{module_index}.js';"
+      ));
+      values.push(format!("shared_{module_index}"));
+    }
+
+    let source = format!(
+      "{}\nconsole.log({});",
+      imports.join("\n"),
+      values.join(" + ")
+    );
+    fs.write(
+      format!("/src/entries/entry-{entry_index}.js")
+        .as_str()
+        .into(),
+      source.as_bytes(),
+    )
+    .await
+    .unwrap();
+  }
+}
+
 fn count_concatenated_modules(compilation: &Compilation) -> usize {
   compilation
     .get_module_graph()
@@ -994,6 +1206,42 @@ fn assert_no_compilation_errors(compilation: &Compilation, context: &str) {
     compilation.get_errors().next().is_none(),
     "{context} should not produce compilation errors"
   );
+}
+
+fn create_split_chunks_plugin() -> SplitChunksPlugin {
+  let js_zero_sizes = SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0);
+
+  SplitChunksPlugin::new(PluginOptions {
+    cache_groups: vec![CacheGroup {
+      key: "shared-modules".to_string(),
+      chunk_filter: create_all_chunk_filter(),
+      test: CacheGroupTest::String("/src/shared/".to_string()),
+      r#type: create_default_module_type_filter(),
+      layer: create_default_module_layer_filter(),
+      name: ChunkNameGetter::Disabled,
+      priority: 0.0,
+      min_size: js_zero_sizes.clone(),
+      min_size_reduction: js_zero_sizes.clone(),
+      reuse_existing_chunk: false,
+      min_chunks: 2,
+      id_hint: "shared-modules".to_string(),
+      max_initial_requests: f64::INFINITY,
+      max_async_requests: f64::INFINITY,
+      max_async_size: SplitChunkSizes::default(),
+      max_initial_size: SplitChunkSizes::default(),
+      filename: None,
+      automatic_name_delimiter: DEFAULT_DELIMITER.to_string(),
+      used_exports: false,
+    }],
+    fallback_cache_group: FallbackCacheGroup {
+      chunks_filter: create_all_chunk_filter(),
+      min_size: js_zero_sizes,
+      max_async_size: SplitChunkSizes::default(),
+      max_initial_size: SplitChunkSizes::default(),
+      automatic_name_delimiter: DEFAULT_DELIMITER.to_string(),
+    },
+    hide_path_info: Some(true),
+  })
 }
 
 criterion_group!(compilation_stages, compilation_stages_benchmark);
