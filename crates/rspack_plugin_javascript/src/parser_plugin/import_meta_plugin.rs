@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  ConstDependency, DependencyRange, ImportMeta, RuntimeGlobals, RuntimeRequirementsDependency,
+  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
+  DependencyCategory, DependencyRange, ImportMeta, RuntimeGlobals, RuntimeRequirementsDependency,
   property_access,
 };
 use rspack_error::{Error, Severity};
@@ -13,13 +14,48 @@ use url::Url;
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::{ImportMetaResolveDependency, ImportMetaResolveHeaderDependency},
-  utils::eval,
+  dependency::{
+    ImportMetaResolveContextDependency, ImportMetaResolveDependency,
+    ImportMetaResolveHeaderDependency,
+  },
+  utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-    RootName, create_traceable_error, expr_name,
+    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
   },
 };
+
+fn create_import_meta_resolve_context_dependency(
+  parser: &mut JavascriptParser,
+  param: &BasicEvaluatedExpression,
+  range: DependencyRange,
+) -> ImportMetaResolveContextDependency {
+  let start = range.start;
+  let end = range.end;
+  let result = create_context_dependency(param, parser);
+
+  let options = ContextOptions {
+    mode: ContextMode::Sync,
+    recursive: true,
+    reg_exp: context_reg_exp(&result.reg, "", None, parser),
+    include: None,
+    exclude: None,
+    category: DependencyCategory::Esm,
+    request: format!("{}{}{}", result.context, result.query, result.fragment),
+    context: result.context,
+    namespace_object: ContextNameSpaceObject::Unset,
+    group_options: None,
+    replaces: result.replaces,
+    start,
+    end,
+    referenced_specifiers: None,
+    attributes: None,
+    phase: None,
+  };
+  let mut dep = ImportMetaResolveContextDependency::new(options, range, parser.in_try);
+  *dep.critical_mut() = result.critical;
+  dep
+}
 
 pub struct ImportMetaPlugin(pub(crate) ImportMeta);
 
@@ -81,10 +117,12 @@ impl ImportMetaPlugin {
 
     if param.is_conditional() {
       for option in param.options() {
-        self.process_import_meta_resolve_item(parser, option);
+        if !self.process_import_meta_resolve_item(parser, option) {
+          self.process_import_meta_resolve_context(parser, option);
+        }
       }
-    } else {
-      self.process_import_meta_resolve_item(parser, &param);
+    } else if !self.process_import_meta_resolve_item(parser, &param) {
+      self.process_import_meta_resolve_context(parser, &param);
     }
     parser.add_dependency(import_meta_resolve_header_dependency);
   }
@@ -93,14 +131,26 @@ impl ImportMetaPlugin {
     &self,
     parser: &mut JavascriptParser,
     param: &eval::BasicEvaluatedExpression,
-  ) {
+  ) -> bool {
     if param.is_string() {
       parser.add_dependency(Box::new(ImportMetaResolveDependency::new(
         param.string().clone(),
         param.range().into(),
         parser.in_try,
       )));
+      return true;
     }
+
+    false
+  }
+
+  fn process_import_meta_resolve_context(
+    &self,
+    parser: &mut JavascriptParser,
+    param: &BasicEvaluatedExpression,
+  ) {
+    let dep = create_import_meta_resolve_context_dependency(parser, param, param.range().into());
+    parser.add_dependency(Box::new(dep));
   }
 }
 

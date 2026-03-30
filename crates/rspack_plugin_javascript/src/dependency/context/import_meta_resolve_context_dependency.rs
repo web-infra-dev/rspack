@@ -1,6 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource
+  AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -8,7 +11,7 @@ use super::{context_dependency_template_as_id, create_resource_identifier_for_co
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct RequireResolveContextDependency {
+pub struct ImportMetaResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
@@ -18,7 +21,7 @@ pub struct RequireResolveContextDependency {
   factorize_info: FactorizeInfo,
 }
 
-impl RequireResolveContextDependency {
+impl ImportMetaResolveContextDependency {
   pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
@@ -34,17 +37,17 @@ impl RequireResolveContextDependency {
 }
 
 #[cacheable_dyn]
-impl Dependency for RequireResolveContextDependency {
+impl Dependency for ImportMetaResolveContextDependency {
   fn id(&self) -> &DependencyId {
     &self.id
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::CommonJS
+    &DependencyCategory::Esm
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::RequireResolveContext
+    &DependencyType::ImportMetaResolveContext
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -68,7 +71,7 @@ impl Dependency for RequireResolveContextDependency {
   }
 }
 
-impl ContextDependency for RequireResolveContextDependency {
+impl ContextDependency for ImportMetaResolveContextDependency {
   fn request(&self) -> &str {
     &self.options.request
   }
@@ -111,25 +114,25 @@ impl ContextDependency for RequireResolveContextDependency {
 }
 
 #[cacheable_dyn]
-impl DependencyCodeGeneration for RequireResolveContextDependency {
+impl DependencyCodeGeneration for ImportMetaResolveContextDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(RequireResolveContextDependencyTemplate::template_type())
+    Some(ImportMetaResolveContextDependencyTemplate::template_type())
   }
 }
 
-impl AsModuleDependency for RequireResolveContextDependency {}
+impl AsModuleDependency for ImportMetaResolveContextDependency {}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
-pub struct RequireResolveContextDependencyTemplate;
+pub struct ImportMetaResolveContextDependencyTemplate;
 
-impl RequireResolveContextDependencyTemplate {
+impl ImportMetaResolveContextDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
-    DependencyTemplateType::Dependency(DependencyType::RequireResolveContext)
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaResolveContext)
   }
 }
 
-impl DependencyTemplate for RequireResolveContextDependencyTemplate {
+impl DependencyTemplate for ImportMetaResolveContextDependencyTemplate {
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
@@ -138,8 +141,8 @@ impl DependencyTemplate for RequireResolveContextDependencyTemplate {
   ) {
     let dep = dep
       .as_any()
-      .downcast_ref::<RequireResolveContextDependency>()
-      .expect("RequireResolveContextDependencyTemplate should be used for RequireResolveContextDependency");
+      .downcast_ref::<ImportMetaResolveContextDependency>()
+      .expect("ImportMetaResolveContextDependencyTemplate should be used for ImportMetaResolveContextDependency");
 
     context_dependency_template_as_id(dep, source, code_generatable_context, &dep.range);
   }
