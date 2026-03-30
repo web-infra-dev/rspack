@@ -34,7 +34,7 @@
   "devDependencies": {
     "@types/node": "^20.19.37",
     "@napi-rs/cli": "3.5.1",
-    "@napi-rs/wasm-runtime": "1.1.1",
+    "@napi-rs/wasm-runtime": "1.1.2",
     "emnapi": "1.9.1",
     "typescript": "^6.0.2"
   },

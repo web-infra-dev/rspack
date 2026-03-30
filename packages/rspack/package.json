@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@ast-grep/napi": "^0.42.0",
-    "@napi-rs/wasm-runtime": "1.1.1",
+    "@napi-rs/wasm-runtime": "1.1.2",
     "@rsbuild/plugin-node-polyfill": "^1.4.4",
     "@rslib/core": "0.20.1",
     "@rspack/lite-tapable": "1.1.0",
