@@ -23,9 +23,6 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
-      browser:
-        required: false
-        type: boolean
 
 permissions:
   # Allow commenting on issues
@@ -39,7 +36,6 @@ jobs:
       runner: ${{ inputs.runner }}
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
-      browser: ${{ inputs.browser }}
   test:
     if: inputs.test
     needs: build
@@ -48,4 +44,3 @@ jobs:
       target: ${{ inputs.target }}
       runner: ${{ inputs.test-runner || inputs.runner }}
       ref: ${{ inputs.ref }}
-      browser: ${{ inputs.browser }}

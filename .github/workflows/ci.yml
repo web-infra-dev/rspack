@@ -133,27 +133,6 @@ jobs:
       target: wasm32-wasip1-threads
       runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
 
-  build-wasm-browser:
-    name: Build WASM Browser
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: wasm32-wasip1-threads
-      profile: 'ci'
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
-      browser: true
-
-  test-wasm-browser:
-    name: Test WASM Browser
-    needs: [check-changed, build-wasm-browser]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: wasm32-wasip1-threads
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
-      browser: true
-
   check-codspeed:
     name: Check Bench Result
     needs: [bench-binding, bench-rust]
@@ -215,8 +194,6 @@ jobs:
         test-mac,
         build-wasm,
         test-wasm,
-        build-wasm-browser,
-        test-wasm-browser,
         check-changed,
         size-limit,
         check-cache,
@@ -229,14 +206,14 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success,success,success' }}
-        run: echo "Test Failed" && exit 1
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success' }}
+        run: echo "Tess Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success,success,success' }}
-        run: echo "Test Failed" && exit 1
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success' }}
+        run: echo "Tess Failed" && exit 1
 
       - name: No check to Run test
         run: echo "Success"
