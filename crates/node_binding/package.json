@@ -59,7 +59,8 @@
       "browser": {
         "fs": true,
         "asyncInit": true,
-        "buffer": true
+        "buffer": true,
+        "errorEvent": true
       }
     }
   },
