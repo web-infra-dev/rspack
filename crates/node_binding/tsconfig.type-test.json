@@ -1,8 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["es2022"],
     "types": ["node"],
-    "strict": true,
     "noEmit": true
   },
   "include": ["napi-binding.d.ts", "binding.d.ts"]

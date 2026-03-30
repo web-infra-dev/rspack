@@ -9,7 +9,7 @@ use rspack_core::{
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
   OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
   SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
-  SideEffectsState,
+  SideEffectsState, SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -173,6 +173,7 @@ async fn finish_modules(
   compilation: &Compilation,
   _modules: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let modules: IdentifierSet = compilation
     .get_module_graph()
@@ -242,11 +243,6 @@ async fn finish_modules(
     ));
   }
 
-  let mut side_effects_state_artifact = compilation
-    .build_module_graph_artifact
-    .side_effects_state_artifact
-    .write()
-    .expect("should lock side effects state artifact");
   side_effects_state_artifact.clear();
   for (module_id, side_effect_free, has_impure_deferred_check) in deferred_side_effect_states {
     side_effects_state_artifact.insert(

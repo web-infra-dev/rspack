@@ -3611,11 +3611,6 @@ impl OptimizationOptionsBuilder {
         ));
     }
     let inner_graph = d!(self.inner_graph, production);
-    if inner_graph {
-      builder_context
-        .plugins
-        .push(BuiltinPluginOptions::InnerGraphPlugin);
-    }
     if !d!(self.emit_on_errors, !production) {
       builder_context
         .plugins

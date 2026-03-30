@@ -6,7 +6,7 @@ use rspack_core::{
   ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
   ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
+  PrefetchExportsInfoMode, SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -201,6 +201,7 @@ async fn finish_modules(
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let modules: IdentifierSet = if let Some(mutations) = compilation
