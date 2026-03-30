@@ -34,14 +34,7 @@ jobs:
       - name: Download bindings
         uses: ./.github/actions/artifact/download
         with:
-          name: bindings-${{ inputs.target }}
-          path: crates/node_binding/
-
-      - name: Download browser bindings
-        if: inputs.browser
-        uses: ./.github/actions/artifact/download
-        with:
-          name: browser
+          name: ${{ inputs.browser && 'browser' || format('bindings-{0}', inputs.target) }}
           path: crates/node_binding/
 
       - name: Setup Pnpm
