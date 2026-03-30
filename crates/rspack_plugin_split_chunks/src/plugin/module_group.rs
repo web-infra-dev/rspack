@@ -33,6 +33,127 @@ use crate::{
 
 type ChunksKey = u64;
 
+#[derive(Clone, Copy)]
+struct ModuleGroupBucketPosition {
+  chunk_len: usize,
+  index: usize,
+}
+
+#[derive(Default)]
+pub(crate) struct ModuleGroupChunkLenBuckets {
+  buckets: Vec<Vec<String>>,
+  positions: FxHashMap<String, ModuleGroupBucketPosition>,
+  max_chunk_len: usize,
+}
+
+impl ModuleGroupChunkLenBuckets {
+  pub(crate) fn from_module_group_map(module_group_map: &ModuleGroupMap) -> Self {
+    let mut buckets = Self::default();
+
+    for (key, module_group) in module_group_map.iter() {
+      buckets.insert(key.clone(), module_group.chunks.len());
+    }
+
+    buckets
+  }
+
+  pub(crate) fn pop_best(
+    &mut self,
+    module_group_map: &mut ModuleGroupMap,
+  ) -> Option<(String, ModuleGroup)> {
+    if self.positions.is_empty() {
+      return None;
+    }
+
+    self.trim_max_chunk_len();
+
+    let bucket = self.buckets.get(self.max_chunk_len)?;
+    let best_entry_key = bucket
+      .iter()
+      .map(|key| (key, module_group_map.get(key).expect("should have item")))
+      .min_by(|a, b| {
+        let result = compare_entries((a.0, a.1), (b.0, b.1));
+        if result < 0f64 {
+          Ordering::Greater
+        } else if result > 0f64 {
+          Ordering::Less
+        } else {
+          Ordering::Equal
+        }
+      })
+      .map(|(key, _)| key.clone())?;
+
+    self.remove(&best_entry_key);
+    let best_module_group = module_group_map
+      .swap_remove(&best_entry_key)
+      .expect("module group buckets and map should stay in sync");
+    Some((best_entry_key, best_module_group))
+  }
+
+  pub(crate) fn refresh(&mut self, key: &str, chunk_len: usize) {
+    let Some(position) = self.positions.get(key).copied() else {
+      return;
+    };
+
+    if position.chunk_len == chunk_len {
+      return;
+    }
+
+    self.remove(key);
+    self.insert(key.to_string(), chunk_len);
+  }
+
+  pub(crate) fn remove(&mut self, key: &str) {
+    let Some(position) = self.positions.remove(key) else {
+      return;
+    };
+
+    let bucket = self
+      .buckets
+      .get_mut(position.chunk_len)
+      .expect("bucket should exist");
+    let removed_key = bucket.swap_remove(position.index);
+    debug_assert_eq!(removed_key, key);
+
+    if let Some(swapped_key) = bucket.get(position.index) {
+      let swapped_position = self
+        .positions
+        .get_mut(swapped_key)
+        .expect("swapped key should exist");
+      swapped_position.index = position.index;
+    }
+
+    if position.chunk_len == self.max_chunk_len {
+      self.trim_max_chunk_len();
+    }
+  }
+
+  fn insert(&mut self, key: String, chunk_len: usize) {
+    if self.buckets.len() <= chunk_len {
+      self.buckets.resize_with(chunk_len + 1, Vec::new);
+    }
+
+    let bucket = &mut self.buckets[chunk_len];
+    let index = bucket.len();
+    bucket.push(key.clone());
+    self
+      .positions
+      .insert(key, ModuleGroupBucketPosition { chunk_len, index });
+    self.max_chunk_len = self.max_chunk_len.max(chunk_len);
+  }
+
+  fn trim_max_chunk_len(&mut self) {
+    while self.max_chunk_len > 0
+      && self
+        .buckets
+        .get(self.max_chunk_len)
+        .is_some_and(Vec::is_empty)
+    {
+      self.max_chunk_len -= 1;
+    }
+  }
+}
+
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
@@ -260,35 +381,6 @@ impl Combinator {
 }
 
 impl SplitChunksPlugin {
-  // #[tracing::instrument(skip_all)]
-  pub(crate) fn find_best_module_group(
-    &self,
-    module_group_map: &mut ModuleGroupMap,
-  ) -> (String, ModuleGroup) {
-    debug_assert!(!module_group_map.is_empty());
-
-    let best_entry_key = module_group_map
-      .keys()
-      .map(|key| (key, module_group_map.get(key).expect("should have item")))
-      .min_by(|a, b| {
-        let result = compare_entries((a.0, a.1), (b.0, b.1));
-        if result < 0f64 {
-          Ordering::Greater
-        } else if result > 0f64 {
-          Ordering::Less
-        } else {
-          Ordering::Equal
-        }
-      })
-      .map(|(key, _)| key.clone())
-      .expect("at least have one item");
-
-    let best_module_group = module_group_map
-      .swap_remove(&best_entry_key)
-      .expect("This should never happen, please file an issue");
-    (best_entry_key, best_module_group)
-  }
-
   #[allow(clippy::too_many_arguments)]
   #[instrument(name = "Compilation:SplitChunks:prepare_module_group_map",target=TRACING_BENCH_TARGET, skip_all)]
   pub(crate) async fn prepare_module_group_map(
@@ -464,13 +556,14 @@ impl SplitChunksPlugin {
   pub(crate) fn remove_all_modules_from_other_module_groups(
     &self,
     current_module_group: &ModuleGroup,
+    module_group_chunk_len_buckets: &mut ModuleGroupChunkLenBuckets,
     module_group_map: &mut ModuleGroupMap,
     used_chunks: &FxHashSet<ChunkUkey>,
     compilation: &Compilation,
     module_sizes: &ModuleSizes,
   ) {
     // remove all modules from other entries and update size
-    let keys_of_invalid_group = module_group_map
+    let bucket_updates = module_group_map
       .par_iter_mut()
       .filter_map(|(key, other_module_group)| {
         other_module_group
@@ -478,6 +571,7 @@ impl SplitChunksPlugin {
           .intersection(used_chunks)
           .next()?;
 
+        let old_chunk_len = other_module_group.chunks.len();
         let module_count = other_module_group.modules.len();
 
         let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
@@ -499,7 +593,7 @@ impl SplitChunksPlugin {
           tracing::trace!(
             "{key} is deleted for having empty modules",
           );
-          return Some(key.clone());
+          return Some(ModuleGroupBucketUpdate::Remove(key.clone()));
         }
 
         tracing::trace!("other_module_group: {other_module_group:#?}");
@@ -523,7 +617,7 @@ impl SplitChunksPlugin {
             other_module_group.chunks.len(),
             cache_group.min_chunks
           );
-          return Some(key.clone());
+          return Some(ModuleGroupBucketUpdate::Remove(key.clone()));
         }
 
         // Validate `min_size` again
@@ -533,17 +627,36 @@ impl SplitChunksPlugin {
             "{key} is deleted for violating min_size {:#?}",
             cache_group.min_size,
           );
-          return Some(key.clone());
+          return Some(ModuleGroupBucketUpdate::Remove(key.clone()));
+        }
+
+        let new_chunk_len = other_module_group.chunks.len();
+        if old_chunk_len != new_chunk_len {
+          return Some(ModuleGroupBucketUpdate::Refresh {
+            key: key.clone(),
+            chunk_len: new_chunk_len,
+          });
         }
 
         None
       })
       .collect::<Vec<_>>();
 
-    keys_of_invalid_group.into_iter().for_each(|key| {
-      module_group_map.swap_remove(&key);
+    bucket_updates.into_iter().for_each(|update| match update {
+      ModuleGroupBucketUpdate::Remove(key) => {
+        module_group_chunk_len_buckets.remove(&key);
+        module_group_map.swap_remove(&key);
+      }
+      ModuleGroupBucketUpdate::Refresh { key, chunk_len } => {
+        module_group_chunk_len_buckets.refresh(&key, chunk_len);
+      }
     });
   }
+}
+
+enum ModuleGroupBucketUpdate {
+  Remove(String),
+  Refresh { key: String, chunk_len: usize },
 }
 
 async fn merge_matched_item_into_module_group_map(
@@ -596,4 +709,130 @@ async fn merge_matched_item_into_module_group_map(
   module_group.chunks.extend(selected_chunks.iter().copied());
 
   Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+  use rustc_hash::FxHashMap;
+
+  use super::*;
+  use crate::{
+    CacheGroup, CacheGroupTest, ChunkNameGetter, SplitChunkSizes, create_all_chunk_filter,
+    create_default_module_layer_filter, create_default_module_type_filter,
+  };
+
+  fn test_cache_group() -> CacheGroup {
+    CacheGroup {
+      key: "test".to_string(),
+      chunk_filter: create_all_chunk_filter(),
+      test: CacheGroupTest::Enabled,
+      r#type: create_default_module_type_filter(),
+      layer: create_default_module_layer_filter(),
+      name: ChunkNameGetter::Disabled,
+      priority: 0.0,
+      min_size: SplitChunkSizes::default(),
+      min_size_reduction: SplitChunkSizes::default(),
+      reuse_existing_chunk: false,
+      min_chunks: 1,
+      id_hint: String::new(),
+      max_initial_requests: f64::INFINITY,
+      max_async_requests: f64::INFINITY,
+      max_async_size: SplitChunkSizes::default(),
+      max_initial_size: SplitChunkSizes::default(),
+      filename: None,
+      automatic_name_delimiter: "~".to_string(),
+      used_exports: false,
+    }
+  }
+
+  fn test_module_sizes(entries: &[(&str, f64)]) -> ModuleSizes {
+    let mut module_sizes = ModuleSizes::default();
+
+    for (identifier, size) in entries {
+      module_sizes.insert(
+        ModuleIdentifier::from(*identifier),
+        FxHashMap::from_iter([(SourceType::JavaScript, *size)]),
+      );
+    }
+
+    module_sizes
+  }
+
+  fn test_module_group(
+    cache_group: &CacheGroup,
+    module_sizes: &ModuleSizes,
+    key: &str,
+    chunk_lens: &[u32],
+    module_ids: &[&str],
+  ) -> (String, ModuleGroup) {
+    let mut module_group = ModuleGroup::new(None, 0, cache_group);
+    for module_id in module_ids {
+      module_group.add_module(ModuleIdentifier::from(*module_id));
+    }
+    module_group
+      .chunks
+      .extend(chunk_lens.iter().copied().map(ChunkUkey::from));
+    module_group.get_sizes(module_sizes);
+    (key.to_string(), module_group)
+  }
+
+  #[test]
+  fn picks_best_from_highest_chunk_len_bucket() {
+    let cache_group = test_cache_group();
+    let module_sizes = test_module_sizes(&[("a", 10.0), ("b", 100.0)]);
+    let mut module_group_map = ModuleGroupMap::default();
+
+    let (a_key, a_group) = test_module_group(&cache_group, &module_sizes, "a", &[1, 2, 3], &["a"]);
+    let (b_key, b_group) = test_module_group(&cache_group, &module_sizes, "b", &[1, 2], &["b"]);
+    module_group_map.insert(a_key, a_group);
+    module_group_map.insert(b_key, b_group);
+
+    let mut buckets = ModuleGroupChunkLenBuckets::from_module_group_map(&module_group_map);
+    let (best_key, _) = buckets.pop_best(&mut module_group_map).unwrap();
+
+    assert_eq!(best_key, "a");
+    assert_eq!(buckets.max_chunk_len, 2);
+  }
+
+  #[test]
+  fn keeps_compare_entries_behavior_within_bucket() {
+    let cache_group = test_cache_group();
+    let module_sizes = test_module_sizes(&[("a", 10.0), ("b", 20.0), ("c", 100.0)]);
+    let mut module_group_map = ModuleGroupMap::default();
+
+    let (a_key, a_group) = test_module_group(&cache_group, &module_sizes, "a", &[1, 2, 3], &["a"]);
+    let (b_key, b_group) = test_module_group(&cache_group, &module_sizes, "b", &[4, 5, 6], &["b"]);
+    let (c_key, c_group) = test_module_group(&cache_group, &module_sizes, "c", &[7, 8], &["c"]);
+    module_group_map.insert(a_key, a_group);
+    module_group_map.insert(b_key, b_group);
+    module_group_map.insert(c_key, c_group);
+
+    let mut buckets = ModuleGroupChunkLenBuckets::from_module_group_map(&module_group_map);
+    let (best_key, _) = buckets.pop_best(&mut module_group_map).unwrap();
+
+    assert_eq!(best_key, "b");
+  }
+
+  #[test]
+  fn refresh_moves_group_between_buckets() {
+    let cache_group = test_cache_group();
+    let module_sizes = test_module_sizes(&[("a", 10.0), ("b", 20.0)]);
+    let mut module_group_map = ModuleGroupMap::default();
+
+    let (a_key, a_group) = test_module_group(&cache_group, &module_sizes, "a", &[1, 2, 3], &["a"]);
+    let (b_key, b_group) = test_module_group(&cache_group, &module_sizes, "b", &[4, 5], &["b"]);
+    module_group_map.insert(a_key, a_group);
+    module_group_map.insert(b_key, b_group);
+
+    let mut buckets = ModuleGroupChunkLenBuckets::from_module_group_map(&module_group_map);
+
+    module_group_map.get_mut("a").unwrap().chunks = [ChunkUkey::from(1)].into_iter().collect();
+    buckets.refresh("a", 1);
+
+    let (best_key, _) = buckets.pop_best(&mut module_group_map).unwrap();
+
+    assert_eq!(best_key, "b");
+    assert_eq!(buckets.max_chunk_len, 1);
+  }
 }
