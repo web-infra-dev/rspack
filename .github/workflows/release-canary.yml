@@ -76,7 +76,7 @@ jobs:
       ref: ${{inputs.commit || github.sha}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      browser: ${{ matrix.array.browser }}
+      browser: ${{ matrix.array.browser || false }}
       profile: ${{inputs.profile || 'release'}}
       test: ${{inputs.test || false}}
 
