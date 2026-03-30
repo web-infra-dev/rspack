@@ -189,7 +189,7 @@ jobs:
       - name: Upload artifact
         uses: ./.github/actions/artifact/upload
         with:
-          name: ${{ inputs.browser && 'browser' || format('bindings-{0}', inputs.target) }}
+          name: bindings-${{ inputs.target }}
           path: |
             crates/node_binding/*.node
             crates/node_binding/*.d.ts
