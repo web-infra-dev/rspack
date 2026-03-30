@@ -194,6 +194,7 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
             create_module_type_filter,
           );
 
+          let has_custom_layer_filter = v.layer.is_some();
           let layer = v.layer.map_or_else(
             rspack_plugin_split_chunks::create_default_module_layer_filter,
             create_module_layer_filter,
@@ -241,6 +242,7 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
             used_exports: v
               .used_exports
               .unwrap_or_else(|| raw_opts.used_exports.unwrap_or_default()),
+            has_custom_layer_filter,
           }
         }),
     );

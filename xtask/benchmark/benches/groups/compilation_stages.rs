@@ -1232,6 +1232,7 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
       filename: None,
       automatic_name_delimiter: DEFAULT_DELIMITER.to_string(),
       used_exports: false,
+      has_custom_layer_filter: false,
     }],
     fallback_cache_group: FallbackCacheGroup {
       chunks_filter: create_all_chunk_filter(),

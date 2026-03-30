@@ -23,3 +23,9 @@ pub enum ChunkNameGetter {
   Fn(ChunkNameGetterFn),
   Disabled,
 }
+
+impl ChunkNameGetter {
+  pub fn is_fn(&self) -> bool {
+    matches!(self, Self::Fn(_))
+  }
+}
