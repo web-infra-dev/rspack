@@ -118,13 +118,46 @@ impl<'a> FlagDependencyExportsState<'a> {
             .get_exports_info_data(&module_id)
             .clone();
           let mut dependencies = Vec::with_capacity(exports_specs.len());
+          let mut pending_named_exports = PendingNamedExportsPlan::default();
           for (dep_id, exports_spec) in exports_specs {
+            if matches!(exports_spec.exports, ExportsOfExportsSpec::Names(_)) {
+              pending_named_exports.record(dep_id, &exports_spec);
+              if let Some(export_dependencies) = &exports_spec.dependencies {
+                for export_dep in export_dependencies {
+                  dependencies.push((*export_dep, module_id));
+                }
+              }
+              continue;
+            }
+
+            if !pending_named_exports.is_empty() {
+              let (is_changed, changed_dependencies) = pending_named_exports.apply(
+                self.mg,
+                self.exports_info_artifact,
+                &module_id,
+                &mut exports_info,
+              );
+              changed |= is_changed;
+              dependencies.extend(changed_dependencies);
+            }
+
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
               self.mg,
               self.exports_info_artifact,
               &module_id,
               dep_id,
               &exports_spec,
+              &mut exports_info,
+            );
+            changed |= is_changed;
+            dependencies.extend(changed_dependencies);
+          }
+
+          if !pending_named_exports.is_empty() {
+            let (is_changed, changed_dependencies) = pending_named_exports.apply(
+              self.mg,
+              self.exports_info_artifact,
+              &module_id,
               &mut exports_info,
             );
             changed |= is_changed;
@@ -467,6 +500,156 @@ impl<'a> ParsedExportSpec<'a> {
         inlinable: spec.inlinable.as_ref(),
       },
     }
+  }
+}
+
+#[derive(Debug)]
+enum PendingTargetExportName {
+  Null,
+  Value(Vec<Atom>),
+}
+
+#[derive(Debug)]
+enum PendingTargetUpdate {
+  Unset,
+  Set {
+    dependency: DependencyId,
+    export_name: PendingTargetExportName,
+    priority: Option<u8>,
+  },
+}
+
+#[derive(Debug, Default)]
+struct PendingNamedExportPlan {
+  can_mangle_false: bool,
+  terminal_binding: bool,
+  inlinable: Option<EvaluatedInlinableValue>,
+  target_updates: FxIndexMap<DependencyId, PendingTargetUpdate>,
+}
+
+#[derive(Debug, Default)]
+struct PendingNamedExportsPlan {
+  exports: FxIndexMap<Atom, PendingNamedExportPlan>,
+}
+
+impl PendingNamedExportsPlan {
+  fn is_empty(&self) -> bool {
+    self.exports.is_empty()
+  }
+
+  fn record(&mut self, dep_id: DependencyId, export_desc: &ExportsSpec) {
+    let default_export_info = DefaultExportInfo {
+      can_mangle: export_desc.can_mangle,
+      terminal_binding: export_desc.terminal_binding.unwrap_or(false),
+      from: export_desc.from.as_ref(),
+      priority: export_desc.priority,
+    };
+
+    if let Some(hide_export) = &export_desc.hide_export {
+      for name in hide_export {
+        let plan = self.exports.entry(name.clone()).or_default();
+        plan
+          .target_updates
+          .insert(dep_id, PendingTargetUpdate::Unset);
+      }
+    }
+
+    let ExportsOfExportsSpec::Names(exports) = &export_desc.exports else {
+      return;
+    };
+
+    for export_name_or_spec in exports {
+      let ParsedExportSpec {
+        name,
+        can_mangle,
+        terminal_binding,
+        from,
+        from_export,
+        priority,
+        hidden,
+        inlinable,
+        ..
+      } = ParsedExportSpec::new(export_name_or_spec, &default_export_info);
+
+      let plan = self.exports.entry(name.clone()).or_default();
+      plan.can_mangle_false |= can_mangle == Some(false);
+      plan.terminal_binding |= terminal_binding;
+      if plan.inlinable.is_none()
+        && let Some(inlinable) = inlinable
+      {
+        plan.inlinable = Some(inlinable.clone());
+      }
+
+      if let Some(from) = from {
+        let target_update = if hidden {
+          PendingTargetUpdate::Unset
+        } else {
+          let export_name = match from_export {
+            Some(Nullable::Null) => PendingTargetExportName::Null,
+            Some(Nullable::Value(exports)) => PendingTargetExportName::Value(exports.clone()),
+            None => PendingTargetExportName::Value(vec![name.clone()]),
+          };
+          PendingTargetUpdate::Set {
+            dependency: from.dependency_id,
+            export_name,
+            priority,
+          }
+        };
+        plan.target_updates.insert(dep_id, target_update);
+      }
+    }
+  }
+
+  fn apply(
+    &mut self,
+    mg: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
+    module_id: &ModuleIdentifier,
+    exports_info: &mut ExportsInfoData,
+  ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+    let exports = std::mem::take(&mut self.exports);
+    let mut changed = false;
+    let mut dependencies = vec![];
+
+    for (name, pending_export) in exports {
+      let export_info = exports_info.ensure_owned_export_info(&name);
+      changed |= set_export_base_info(
+        export_info,
+        pending_export.can_mangle_false.then_some(false),
+        pending_export.terminal_binding,
+        pending_export.inlinable.as_ref(),
+      );
+
+      for (dep_id, target_update) in pending_export.target_updates {
+        changed |= match target_update {
+          PendingTargetUpdate::Unset => export_info.unset_target(&dep_id),
+          PendingTargetUpdate::Set {
+            dependency,
+            export_name,
+            priority,
+          } => {
+            let export_name = match export_name {
+              PendingTargetExportName::Null => Nullable::Null,
+              PendingTargetExportName::Value(exports) => Nullable::Value(exports),
+            };
+            export_info.set_target(Some(dep_id), Some(dependency), Some(&export_name), priority)
+          }
+        };
+      }
+
+      let (target_exports_info, target_module) =
+        find_target_exports_info(mg, exports_info_artifact, export_info);
+      if let Some(target_module) = target_module {
+        dependencies.push((target_module, *module_id));
+      }
+
+      if export_info.exports_info() != target_exports_info {
+        export_info.set_exports_info(target_exports_info);
+        changed = true;
+      }
+    }
+
+    (changed, dependencies)
   }
 }
 
