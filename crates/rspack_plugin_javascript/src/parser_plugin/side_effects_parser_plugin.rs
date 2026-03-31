@@ -13,10 +13,9 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      ArrowExpr, AssignExpr, AssignTarget, AssignTargetPat, BlockStmt, BlockStmtOrExpr, Class,
-      ClassMember, Decl, Expr, ExprOrSpread, Function, ImportSpecifier, ModuleDecl, ModuleItem,
-      Pat, Program, PropName, SimpleAssignTarget, Stmt, UpdateExpr, VarDecl, VarDeclKind,
-      VarDeclOrExpr,
+      ArrowExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr, ExprOrSpread,
+      Function, ImportSpecifier, ModuleDecl, ModuleItem, Pat, Program, PropName, Stmt, VarDecl,
+      VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
@@ -50,49 +49,6 @@ impl SideEffectsParserPlugin {
 struct PureAnnotation<'a> {
   side_effects_free: FxHashSet<Atom>,
   parser: &'a JavascriptParser<'a>,
-}
-
-enum AutoSideEffectsFreeCandidate<'a> {
-  Function(&'a Function),
-  Arrow(&'a ArrowExpr),
-}
-
-struct AutoSideEffectsFreeBinding<'a> {
-  name: Atom,
-  export_name: Option<Atom>,
-  candidate: AutoSideEffectsFreeCandidate<'a>,
-}
-
-impl AutoSideEffectsFreeBinding<'_> {
-  fn is_side_effects_free(
-    &self,
-    parser: &mut JavascriptParser,
-    analyze_side_effects_free: bool,
-    unresolved_ctxt: SyntaxContext,
-    comments: Option<&dyn Comments>,
-  ) -> bool {
-    match self.candidate {
-      AutoSideEffectsFreeCandidate::Function(function) => is_side_effects_free_function_body(
-        parser,
-        analyze_side_effects_free,
-        function,
-        unresolved_ctxt,
-        comments,
-      ),
-      AutoSideEffectsFreeCandidate::Arrow(arrow) => is_side_effects_free_arrow_body(
-        parser,
-        analyze_side_effects_free,
-        arrow,
-        unresolved_ctxt,
-        comments,
-      ),
-    }
-  }
-}
-
-#[derive(Default)]
-struct TopLevelMutationCollector {
-  mutated_bindings: FxHashSet<Atom>,
 }
 
 fn has_no_side_effects_notation(comments: Option<&dyn Comments>, span: Span) -> bool {
@@ -196,121 +152,6 @@ impl<'a> Visit for PureAnnotation<'a> {
   }
 }
 
-impl Visit for TopLevelMutationCollector {
-  fn visit_function(&mut self, _node: &Function) {}
-
-  fn visit_arrow_expr(&mut self, _node: &ArrowExpr) {}
-
-  fn visit_assign_expr(&mut self, node: &AssignExpr) {
-    match &node.left {
-      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)) => {
-        self.mutated_bindings.insert(ident.sym.clone());
-      }
-      AssignTarget::Pat(pat) => {
-        collect_assign_target_binding_names(pat, &mut self.mutated_bindings);
-      }
-      _ => {}
-    }
-    node.right.visit_with(self);
-  }
-
-  fn visit_update_expr(&mut self, node: &UpdateExpr) {
-    if let Expr::Ident(ident) = &*node.arg {
-      self.mutated_bindings.insert(ident.sym.clone());
-    }
-  }
-}
-
-fn collect_top_level_mutated_bindings(program: &Program) -> FxHashSet<Atom> {
-  let mut collector = TopLevelMutationCollector::default();
-  program.visit_with(&mut collector);
-  collector.mutated_bindings
-}
-
-fn collect_assign_target_binding_names(pat: &AssignTargetPat, bindings: &mut FxHashSet<Atom>) {
-  match pat {
-    AssignTargetPat::Array(array) => {
-      for elem in array.elems.iter().flatten() {
-        collect_pat_binding_names(elem, bindings);
-      }
-    }
-    AssignTargetPat::Object(object) => {
-      for prop in &object.props {
-        match prop {
-          swc_core::ecma::ast::ObjectPatProp::KeyValue(key_value) => {
-            collect_pat_binding_names(&key_value.value, bindings);
-          }
-          swc_core::ecma::ast::ObjectPatProp::Assign(assign) => {
-            bindings.insert(assign.key.sym.clone());
-          }
-          swc_core::ecma::ast::ObjectPatProp::Rest(rest) => {
-            collect_pat_binding_names(&rest.arg, bindings);
-          }
-        }
-      }
-    }
-    AssignTargetPat::Invalid(_) => {}
-  }
-}
-
-fn collect_pat_binding_names(pat: &Pat, bindings: &mut FxHashSet<Atom>) {
-  match pat {
-    Pat::Ident(ident) => {
-      bindings.insert(ident.id.sym.clone());
-    }
-    Pat::Array(array) => {
-      for elem in array.elems.iter().flatten() {
-        collect_pat_binding_names(elem, bindings);
-      }
-    }
-    Pat::Assign(assign) => {
-      collect_pat_binding_names(&assign.left, bindings);
-    }
-    Pat::Object(object) => {
-      for prop in &object.props {
-        match prop {
-          swc_core::ecma::ast::ObjectPatProp::KeyValue(key_value) => {
-            collect_pat_binding_names(&key_value.value, bindings);
-          }
-          swc_core::ecma::ast::ObjectPatProp::Assign(assign) => {
-            bindings.insert(assign.key.sym.clone());
-          }
-          swc_core::ecma::ast::ObjectPatProp::Rest(rest) => {
-            collect_pat_binding_names(&rest.arg, bindings);
-          }
-        }
-      }
-    }
-    Pat::Rest(rest) => {
-      collect_pat_binding_names(&rest.arg, bindings);
-    }
-    Pat::Invalid(_) | Pat::Expr(_) => {}
-  }
-}
-
-fn collect_decl_binding_names(decl: &Decl, bindings: &mut FxHashSet<Atom>) {
-  match decl {
-    Decl::Fn(fn_decl) => {
-      bindings.insert(fn_decl.ident.sym.clone());
-    }
-    Decl::Class(class_decl) => {
-      bindings.insert(class_decl.ident.sym.clone());
-    }
-    Decl::Var(var_decl) => {
-      for declarator in &var_decl.decls {
-        collect_pat_binding_names(&declarator.name, bindings);
-      }
-    }
-    _ => {}
-  }
-}
-
-fn collect_stmt_binding_names(stmt: &Stmt, bindings: &mut FxHashSet<Atom>) {
-  if let Stmt::Decl(decl) = stmt {
-    collect_decl_binding_names(decl, bindings);
-  }
-}
-
 fn insert_module_export_name(
   name: &swc_core::ecma::ast::ModuleExportName,
   refs: &mut FxHashSet<Atom>,
@@ -327,64 +168,55 @@ fn insert_module_export_name(
   }
 }
 
-fn collect_top_level_side_effects_free_refs(program: &Program) -> FxHashSet<Atom> {
+fn function_like_var_decl_names(var_decl: &VarDecl, refs: &mut FxHashSet<Atom>) {
+  if !matches!(var_decl.kind, VarDeclKind::Const) {
+    return;
+  }
+
+  for declarator in &var_decl.decls {
+    let Some(ident) = declarator.name.as_ident() else {
+      continue;
+    };
+
+    if matches!(
+      declarator.init.as_deref(),
+      Some(Expr::Fn(_)) | Some(Expr::Arrow(_))
+    ) {
+      refs.insert(ident.sym.clone());
+    }
+  }
+}
+
+fn collect_top_level_function_like_local_refs(program: &Program) -> FxHashSet<Atom> {
   let mut refs = FxHashSet::default();
 
   match program {
     Program::Module(module) => {
       for item in &module.body {
         match item {
-          ModuleItem::Stmt(stmt) => collect_stmt_binding_names(stmt, &mut refs),
+          ModuleItem::Stmt(stmt) => {
+            if let Stmt::Decl(decl) = stmt {
+              match decl {
+                Decl::Fn(fn_decl) => {
+                  refs.insert(fn_decl.ident.sym.clone());
+                }
+                Decl::Var(var_decl) => {
+                  function_like_var_decl_names(var_decl, &mut refs);
+                }
+                _ => {}
+              }
+            }
+          }
           ModuleItem::ModuleDecl(decl) => match decl {
-            ModuleDecl::Import(import_decl) => {
-              for specifier in &import_decl.specifiers {
-                match specifier {
-                  ImportSpecifier::Named(named) => {
-                    refs.insert(named.local.sym.clone());
-                  }
-                  ImportSpecifier::Default(default) => {
-                    refs.insert(default.local.sym.clone());
-                  }
-                  ImportSpecifier::Namespace(namespace) => {
-                    refs.insert(namespace.local.sym.clone());
-                  }
-                }
+            ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
+              Decl::Fn(fn_decl) => {
+                refs.insert(fn_decl.ident.sym.clone());
               }
-            }
-            ModuleDecl::ExportDecl(export_decl) => {
-              collect_decl_binding_names(&export_decl.decl, &mut refs);
-            }
-            ModuleDecl::ExportDefaultDecl(default_decl) => match &default_decl.decl {
-              swc_core::ecma::ast::DefaultDecl::Fn(fn_expr) => {
-                if let Some(ident) = &fn_expr.ident {
-                  refs.insert(ident.sym.clone());
-                }
-                refs.insert(Atom::from("default"));
+              Decl::Var(var_decl) => {
+                function_like_var_decl_names(var_decl, &mut refs);
               }
-              swc_core::ecma::ast::DefaultDecl::Class(class_expr) => {
-                if let Some(ident) = &class_expr.ident {
-                  refs.insert(ident.sym.clone());
-                }
-                refs.insert(Atom::from("default"));
-              }
-              swc_core::ecma::ast::DefaultDecl::TsInterfaceDecl(_) => {}
+              _ => {}
             },
-            ModuleDecl::ExportDefaultExpr(_) => {
-              refs.insert(Atom::from("default"));
-            }
-            ModuleDecl::ExportNamed(named_export) => {
-              if named_export.src.is_none() {
-                for specifier in &named_export.specifiers {
-                  if let swc_core::ecma::ast::ExportSpecifier::Named(named) = specifier {
-                    if let Some(exported) = &named.exported {
-                      insert_module_export_name(exported, &mut refs);
-                    } else {
-                      insert_module_export_name(&named.orig, &mut refs);
-                    }
-                  }
-                }
-              }
-            }
             _ => {}
           },
         }
@@ -392,8 +224,87 @@ fn collect_top_level_side_effects_free_refs(program: &Program) -> FxHashSet<Atom
     }
     Program::Script(script) => {
       for stmt in &script.body {
-        collect_stmt_binding_names(stmt, &mut refs);
+        if let Stmt::Decl(decl) = stmt {
+          match decl {
+            Decl::Fn(fn_decl) => {
+              refs.insert(fn_decl.ident.sym.clone());
+            }
+            Decl::Var(var_decl) => {
+              function_like_var_decl_names(var_decl, &mut refs);
+            }
+            _ => {}
+          }
+        }
       }
+    }
+  }
+
+  refs
+}
+
+fn collect_exported_side_effects_free_refs(program: &Program) -> FxHashSet<Atom> {
+  let mut refs = FxHashSet::default();
+  let local_function_like_refs = collect_top_level_function_like_local_refs(program);
+
+  let Program::Module(module) = program else {
+    return refs;
+  };
+
+  for item in &module.body {
+    let ModuleItem::ModuleDecl(decl) = item else {
+      continue;
+    };
+
+    match decl {
+      ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
+        Decl::Fn(fn_decl) => {
+          refs.insert(fn_decl.ident.sym.clone());
+        }
+        Decl::Var(var_decl) => {
+          function_like_var_decl_names(var_decl, &mut refs);
+        }
+        _ => {}
+      },
+      ModuleDecl::ExportDefaultDecl(default_decl) => match &default_decl.decl {
+        swc_core::ecma::ast::DefaultDecl::Fn(fn_expr) => {
+          refs.insert(Atom::from("default"));
+          if let Some(ident) = &fn_expr.ident {
+            refs.insert(ident.sym.clone());
+          }
+        }
+        swc_core::ecma::ast::DefaultDecl::Class(_)
+        | swc_core::ecma::ast::DefaultDecl::TsInterfaceDecl(_) => {}
+      },
+      ModuleDecl::ExportDefaultExpr(default_expr) => {
+        if default_expr.expr.is_fn_expr() || default_expr.expr.is_arrow() {
+          refs.insert(Atom::from("default"));
+        }
+      }
+      ModuleDecl::ExportNamed(named_export) => {
+        if named_export.src.is_none() {
+          for specifier in &named_export.specifiers {
+            let swc_core::ecma::ast::ExportSpecifier::Named(named) = specifier else {
+              continue;
+            };
+
+            let orig = match &named.orig {
+              swc_core::ecma::ast::ModuleExportName::Ident(ident) => &ident.sym,
+              swc_core::ecma::ast::ModuleExportName::Str(_) => continue,
+            };
+
+            if !local_function_like_refs.contains(orig) {
+              continue;
+            }
+
+            if let Some(exported) = &named.exported {
+              insert_module_export_name(exported, &mut refs);
+            } else {
+              refs.insert(orig.clone());
+            }
+          }
+        }
+      }
+      _ => {}
     }
   }
 
@@ -404,20 +315,142 @@ fn collect_defined_configured_side_effects_free(
   program: &Program,
   configured_side_effects_free: &[String],
 ) -> FxHashSet<Atom> {
-  let top_level_refs = collect_top_level_side_effects_free_refs(program);
+  let exported_refs = collect_exported_side_effects_free_refs(program);
 
   configured_side_effects_free
     .iter()
     .filter_map(|name| {
       let atom = Atom::from(name.clone());
-      top_level_refs.contains(&atom).then_some(atom)
+      exported_refs.contains(&atom).then_some(atom)
     })
     .collect()
 }
 
-fn push_auto_side_effects_free_var_decl_candidates<'a>(
-  var_decl: &'a VarDecl,
-  candidates: &mut Vec<AutoSideEffectsFreeBinding<'a>>,
+fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(&Atom)) {
+  match decl {
+    Decl::Fn(fn_decl) => f(&fn_decl.ident.sym),
+    Decl::Class(class_decl) => f(&class_decl.ident.sym),
+    Decl::Var(var_decl) => {
+      for ident in var_decl
+        .decls
+        .iter()
+        .filter_map(|declarator| declarator.name.as_ident())
+      {
+        f(&ident.sym);
+      }
+    }
+    _ => {}
+  }
+}
+
+fn visit_module_decl_binding_names(decl: &ModuleDecl, f: &mut impl FnMut(&Atom)) {
+  match decl {
+    ModuleDecl::Import(import_decl) => {
+      for specifier in &import_decl.specifiers {
+        match specifier {
+          ImportSpecifier::Named(named) => f(&named.local.sym),
+          ImportSpecifier::Default(default) => f(&default.local.sym),
+          ImportSpecifier::Namespace(namespace) => f(&namespace.local.sym),
+        }
+      }
+    }
+    ModuleDecl::ExportDecl(export_decl) => visit_decl_binding_names(&export_decl.decl, f),
+    ModuleDecl::ExportDefaultDecl(default_decl) => match &default_decl.decl {
+      swc_core::ecma::ast::DefaultDecl::Fn(fn_expr) => {
+        if let Some(ident) = &fn_expr.ident {
+          f(&ident.sym);
+        }
+        f(&Atom::from("default"));
+      }
+      swc_core::ecma::ast::DefaultDecl::Class(class_expr) => {
+        if let Some(ident) = &class_expr.ident {
+          f(&ident.sym);
+        }
+        f(&Atom::from("default"));
+      }
+      swc_core::ecma::ast::DefaultDecl::TsInterfaceDecl(_) => {}
+    },
+    ModuleDecl::ExportDefaultExpr(_) => {
+      f(&Atom::from("default"));
+    }
+    ModuleDecl::ExportNamed(named_export) => {
+      if named_export.src.is_none() {
+        for specifier in &named_export.specifiers {
+          if let swc_core::ecma::ast::ExportSpecifier::Named(named) = specifier {
+            if let Some(exported) = &named.exported {
+              match exported {
+                swc_core::ecma::ast::ModuleExportName::Ident(ident) => f(&ident.sym),
+                swc_core::ecma::ast::ModuleExportName::Str(str) => {
+                  if let Some(atom) = str.value.as_atom() {
+                    f(atom);
+                  }
+                }
+              }
+            } else {
+              match &named.orig {
+                swc_core::ecma::ast::ModuleExportName::Ident(ident) => f(&ident.sym),
+                swc_core::ecma::ast::ModuleExportName::Str(str) => {
+                  if let Some(atom) = str.value.as_atom() {
+                    f(atom);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    _ => {}
+  }
+}
+
+fn collect_duplicate_top_level_names(program: &Program) -> FxHashSet<Atom> {
+  let mut counts = rustc_hash::FxHashMap::<Atom, usize>::default();
+  let mut count_name = |name: &Atom| {
+    *counts.entry(name.clone()).or_default() += 1;
+  };
+
+  match program {
+    Program::Module(module) => {
+      for item in &module.body {
+        match item {
+          ModuleItem::Stmt(Stmt::Decl(decl)) => visit_decl_binding_names(decl, &mut count_name),
+          ModuleItem::ModuleDecl(decl) => visit_module_decl_binding_names(decl, &mut count_name),
+          _ => {}
+        }
+      }
+    }
+    Program::Script(script) => {
+      for stmt in &script.body {
+        if let Stmt::Decl(decl) = stmt {
+          visit_decl_binding_names(decl, &mut count_name);
+        }
+      }
+    }
+  }
+
+  counts
+    .into_iter()
+    .filter_map(|(name, count)| (count > 1).then_some(name))
+    .collect()
+}
+
+fn mark_side_effects_free(parser: &mut JavascriptParser, name: &Atom, export_name: Option<&Atom>) {
+  let side_effects_free = parser.build_info.side_effects_free.get_or_insert_default();
+  side_effects_free.insert(name.clone());
+  if let Some(export_name) = export_name {
+    side_effects_free.insert(export_name.clone());
+  }
+}
+
+fn try_mark_auto_side_effects_free_var_decl(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  var_decl: &VarDecl,
+  export_name: Option<&Atom>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+  duplicate_names: &FxHashSet<Atom>,
 ) {
   if !matches!(var_decl.kind, VarDeclKind::Const) {
     return;
@@ -428,122 +461,230 @@ fn push_auto_side_effects_free_var_decl_candidates<'a>(
       continue;
     };
 
-    match declarator.init.as_deref() {
-      Some(Expr::Fn(fn_expr)) => candidates.push(AutoSideEffectsFreeBinding {
-        name: ident.sym.clone(),
-        export_name: None,
-        candidate: AutoSideEffectsFreeCandidate::Function(&fn_expr.function),
-      }),
-      Some(Expr::Arrow(arrow_expr)) => candidates.push(AutoSideEffectsFreeBinding {
-        name: ident.sym.clone(),
-        export_name: None,
-        candidate: AutoSideEffectsFreeCandidate::Arrow(arrow_expr),
-      }),
-      _ => {}
+    if parser
+      .build_info
+      .side_effects_free
+      .as_ref()
+      .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+    {
+      continue;
+    }
+
+    if duplicate_names.contains(&ident.sym) {
+      continue;
+    }
+
+    let is_side_effects_free = match declarator.init.as_deref() {
+      Some(Expr::Fn(fn_expr)) => is_side_effects_free_function_body(
+        parser,
+        analyze_side_effects_free,
+        &fn_expr.function,
+        unresolved_ctxt,
+        comments,
+      ),
+      Some(Expr::Arrow(arrow_expr)) => is_side_effects_free_arrow_body(
+        parser,
+        analyze_side_effects_free,
+        arrow_expr,
+        unresolved_ctxt,
+        comments,
+      ),
+      _ => false,
+    };
+
+    if is_side_effects_free {
+      mark_side_effects_free(parser, &ident.sym, export_name);
     }
   }
 }
 
-fn push_auto_side_effects_free_stmt_candidates<'a>(
-  stmt: &'a Stmt,
-  candidates: &mut Vec<AutoSideEffectsFreeBinding<'a>>,
+fn try_mark_auto_side_effects_free_stmt(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  stmt: &Stmt,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+  duplicate_names: &FxHashSet<Atom>,
 ) {
-  if let Stmt::Decl(decl) = stmt {
-    match decl {
-      Decl::Fn(fn_decl) => candidates.push(AutoSideEffectsFreeBinding {
-        name: fn_decl.ident.sym.clone(),
-        export_name: None,
-        candidate: AutoSideEffectsFreeCandidate::Function(&fn_decl.function),
-      }),
-      Decl::Var(var_decl) => {
-        push_auto_side_effects_free_var_decl_candidates(var_decl, candidates);
+  match stmt {
+    Stmt::Decl(Decl::Fn(fn_decl)) => {
+      if parser
+        .build_info
+        .side_effects_free
+        .as_ref()
+        .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
+        || duplicate_names.contains(&fn_decl.ident.sym)
+      {
+        return;
       }
-      _ => {}
+
+      if is_side_effects_free_function_body(
+        parser,
+        analyze_side_effects_free,
+        &fn_decl.function,
+        unresolved_ctxt,
+        comments,
+      ) {
+        mark_side_effects_free(parser, &fn_decl.ident.sym, None);
+      }
     }
+    Stmt::Decl(Decl::Var(var_decl)) => try_mark_auto_side_effects_free_var_decl(
+      parser,
+      analyze_side_effects_free,
+      var_decl,
+      None,
+      unresolved_ctxt,
+      comments,
+      duplicate_names,
+    ),
+    _ => {}
   }
 }
 
-fn push_auto_side_effects_free_module_decl_candidates<'a>(
-  decl: &'a ModuleDecl,
-  candidates: &mut Vec<AutoSideEffectsFreeBinding<'a>>,
+fn try_mark_auto_side_effects_free_module_decl(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  decl: &ModuleDecl,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+  duplicate_names: &FxHashSet<Atom>,
 ) {
   match decl {
     ModuleDecl::ExportDefaultExpr(default_expr) => {
-      if let Some(fn_expr) = default_expr.expr.as_fn_expr()
-        && let Some(ident) = &fn_expr.ident
+      let Some(fn_expr) = default_expr.expr.as_fn_expr() else {
+        return;
+      };
+      let Some(ident) = &fn_expr.ident else {
+        return;
+      };
+      let export_name = Atom::from("default");
+      if parser
+        .build_info
+        .side_effects_free
+        .as_ref()
+        .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+        || duplicate_names.contains(&ident.sym)
       {
-        candidates.push(AutoSideEffectsFreeBinding {
-          name: ident.sym.clone(),
-          export_name: Some(Atom::from("default")),
-          candidate: AutoSideEffectsFreeCandidate::Function(&fn_expr.function),
-        });
+        return;
+      }
+      if is_side_effects_free_function_body(
+        parser,
+        analyze_side_effects_free,
+        &fn_expr.function,
+        unresolved_ctxt,
+        comments,
+      ) {
+        mark_side_effects_free(parser, &ident.sym, Some(&export_name));
       }
     }
     ModuleDecl::ExportDefaultDecl(default_decl) => {
-      if let Some(fn_expr) = default_decl.decl.as_fn_expr()
-        && let Some(ident) = &fn_expr.ident
+      let Some(fn_expr) = default_decl.decl.as_fn_expr() else {
+        return;
+      };
+      let Some(ident) = &fn_expr.ident else {
+        return;
+      };
+      let export_name = Atom::from("default");
+      if parser
+        .build_info
+        .side_effects_free
+        .as_ref()
+        .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+        || duplicate_names.contains(&ident.sym)
       {
-        candidates.push(AutoSideEffectsFreeBinding {
-          name: ident.sym.clone(),
-          export_name: Some(Atom::from("default")),
-          candidate: AutoSideEffectsFreeCandidate::Function(&fn_expr.function),
-        });
+        return;
+      }
+      if is_side_effects_free_function_body(
+        parser,
+        analyze_side_effects_free,
+        &fn_expr.function,
+        unresolved_ctxt,
+        comments,
+      ) {
+        mark_side_effects_free(parser, &ident.sym, Some(&export_name));
       }
     }
     ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
-      Decl::Fn(fn_decl) => candidates.push(AutoSideEffectsFreeBinding {
-        name: fn_decl.ident.sym.clone(),
-        export_name: None,
-        candidate: AutoSideEffectsFreeCandidate::Function(&fn_decl.function),
-      }),
-      Decl::Var(var_decl) => {
-        push_auto_side_effects_free_var_decl_candidates(var_decl, candidates);
+      Decl::Fn(fn_decl) => {
+        if parser
+          .build_info
+          .side_effects_free
+          .as_ref()
+          .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
+          || duplicate_names.contains(&fn_decl.ident.sym)
+        {
+          return;
+        }
+
+        if is_side_effects_free_function_body(
+          parser,
+          analyze_side_effects_free,
+          &fn_decl.function,
+          unresolved_ctxt,
+          comments,
+        ) {
+          mark_side_effects_free(parser, &fn_decl.ident.sym, None);
+        }
       }
+      Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
+        parser,
+        analyze_side_effects_free,
+        var_decl,
+        None,
+        unresolved_ctxt,
+        comments,
+        duplicate_names,
+      ),
       _ => {}
     },
     _ => {}
   }
 }
 
-fn collect_auto_side_effects_free_candidates<'a>(
-  program: &'a Program,
-  mutated_bindings: &FxHashSet<Atom>,
-) -> Vec<AutoSideEffectsFreeBinding<'a>> {
-  let mut candidates = Vec::new();
+fn mark_auto_side_effects_free_program(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  program: &Program,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+  duplicate_names: &FxHashSet<Atom>,
+) {
   match program {
     Program::Module(module) => {
       for item in &module.body {
         match item {
-          ModuleItem::Stmt(stmt) => {
-            push_auto_side_effects_free_stmt_candidates(stmt, &mut candidates);
-          }
-          ModuleItem::ModuleDecl(decl) => {
-            push_auto_side_effects_free_module_decl_candidates(decl, &mut candidates);
-          }
+          ModuleItem::Stmt(stmt) => try_mark_auto_side_effects_free_stmt(
+            parser,
+            analyze_side_effects_free,
+            stmt,
+            unresolved_ctxt,
+            comments,
+            duplicate_names,
+          ),
+          ModuleItem::ModuleDecl(decl) => try_mark_auto_side_effects_free_module_decl(
+            parser,
+            analyze_side_effects_free,
+            decl,
+            unresolved_ctxt,
+            comments,
+            duplicate_names,
+          ),
         }
       }
     }
     Program::Script(script) => {
       for stmt in &script.body {
-        push_auto_side_effects_free_stmt_candidates(stmt, &mut candidates);
+        try_mark_auto_side_effects_free_stmt(
+          parser,
+          analyze_side_effects_free,
+          stmt,
+          unresolved_ctxt,
+          comments,
+          duplicate_names,
+        );
       }
     }
   }
-
-  let mut seen = FxHashSet::default();
-  let mut duplicates = FxHashSet::default();
-  for candidate in &candidates {
-    if !seen.insert(candidate.name.clone()) {
-      duplicates.insert(candidate.name.clone());
-    }
-  }
-
-  candidates
-    .into_iter()
-    .filter(|candidate| {
-      !duplicates.contains(&candidate.name) && !mutated_bindings.contains(&candidate.name)
-    })
-    .collect()
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -562,7 +703,8 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
       // Build the explicit/implicit sideEffectsFree set in three steps:
       // 1. collect NO_SIDE_EFFECTS annotations already present in the module,
       // 2. keep only configured names that actually exist at top level,
-      // 3. run a fixed-point auto analysis so pure local helpers can unlock later candidates.
+      // 3. run a fixed-point top-level auto analysis so local pure helpers can
+      //    unlock later candidates regardless of declaration order.
       // use a raw swc visitor so that we can find all pure functions before the parser visit the ast
       let mut pure_annotation = PureAnnotation {
         side_effects_free: FxHashSet::default(),
@@ -584,42 +726,28 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
         }
       }
 
-      let mutated_bindings = collect_top_level_mutated_bindings(ast);
-      let auto_candidates = collect_auto_side_effects_free_candidates(ast, &mutated_bindings);
-
-      let mut changed = true;
-      while changed {
-        changed = false;
-        for candidate in &auto_candidates {
-          if parser
-            .build_info
-            .side_effects_free
-            .as_ref()
-            .is_some_and(|side_effects_free| side_effects_free.contains(&candidate.name))
-          {
-            continue;
-          }
-
-          if candidate.is_side_effects_free(
-            parser,
-            self.analyze_side_effects_free,
-            self.unresolve_ctxt,
-            parser.comments,
-          ) {
-            parser
-              .build_info
-              .side_effects_free
-              .get_or_insert_default()
-              .insert(candidate.name.clone());
-            if let Some(export_name) = &candidate.export_name {
-              parser
-                .build_info
-                .side_effects_free
-                .get_or_insert_default()
-                .insert(export_name.clone());
-            }
-            changed = true;
-          }
+      let duplicate_names = collect_duplicate_top_level_names(ast);
+      loop {
+        let prev_len = parser
+          .build_info
+          .side_effects_free
+          .as_ref()
+          .map_or(0, FxHashSet::len);
+        mark_auto_side_effects_free_program(
+          parser,
+          self.analyze_side_effects_free,
+          ast,
+          self.unresolve_ctxt,
+          parser.comments,
+          &duplicate_names,
+        );
+        let next_len = parser
+          .build_info
+          .side_effects_free
+          .as_ref()
+          .map_or(0, FxHashSet::len);
+        if next_len == prev_len {
+          break;
         }
       }
     }
@@ -1299,6 +1427,15 @@ fn is_side_effects_free_param(pat: &Pat) -> bool {
   matches!(pat, Pat::Ident(_))
 }
 
+fn function_body_expr_ctx(unresolved_ctxt: SyntaxContext) -> ExprCtx {
+  ExprCtx {
+    unresolved_ctxt,
+    is_unresolved_ref_safe: true,
+    in_strict: false,
+    remaining_depth: 4,
+  }
+}
+
 #[inline(never)]
 fn is_side_effects_free_var_decl(
   parser: &mut JavascriptParser,
@@ -1329,6 +1466,68 @@ fn is_side_effects_free_var_decl(
   true
 }
 
+fn stmt_may_have_side_effects(stmt: &Stmt, unresolved_ctxt: SyntaxContext) -> bool {
+  let expr_ctx = function_body_expr_ctx(unresolved_ctxt);
+
+  match stmt {
+    Stmt::Empty(_) => false,
+    Stmt::Expr(expr_stmt) => expr_stmt.expr.may_have_side_effects(expr_ctx),
+    Stmt::Return(return_stmt) => return_stmt
+      .arg
+      .as_deref()
+      .is_some_and(|arg| arg.may_have_side_effects(expr_ctx)),
+    Stmt::Decl(Decl::Var(var_decl)) => var_decl.decls.iter().any(|declarator| {
+      declarator.name.as_ident().is_none()
+        || declarator
+          .init
+          .as_deref()
+          .is_some_and(|init| init.may_have_side_effects(expr_ctx))
+    }),
+    _ => true,
+  }
+}
+
+fn is_side_effects_free_stmt(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  stmt: &Stmt,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
+) -> bool {
+  if !stmt_may_have_side_effects(stmt, unresolved_ctxt) {
+    return true;
+  }
+
+  match stmt {
+    Stmt::Expr(expr_stmt) => is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      &expr_stmt.expr,
+      unresolved_ctxt,
+      comments,
+      None,
+    ),
+    Stmt::Return(return_stmt) => return_stmt.arg.as_deref().is_none_or(|arg| {
+      is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        arg,
+        unresolved_ctxt,
+        comments,
+        None,
+      )
+    }),
+    Stmt::Decl(Decl::Var(var_decl)) => is_side_effects_free_var_decl(
+      parser,
+      analyze_side_effects_free,
+      var_decl,
+      unresolved_ctxt,
+      comments,
+    ),
+    _ => false,
+  }
+}
+
 #[inline(never)]
 fn is_side_effects_free_block_stmt(
   parser: &mut JavascriptParser,
@@ -1338,46 +1537,14 @@ fn is_side_effects_free_block_stmt(
   comments: Option<&dyn Comments>,
 ) -> bool {
   for stmt in &block_stmt.stmts {
-    match stmt {
-      Stmt::Empty(_) => {}
-      Stmt::Expr(expr_stmt) => {
-        if !is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          &expr_stmt.expr,
-          unresolved_ctxt,
-          comments,
-          None,
-        ) {
-          return false;
-        }
-      }
-      Stmt::Return(return_stmt) => {
-        if let Some(arg) = return_stmt.arg.as_deref()
-          && !is_pure_expression(
-            parser,
-            analyze_side_effects_free,
-            arg,
-            unresolved_ctxt,
-            comments,
-            None,
-          )
-        {
-          return false;
-        }
-      }
-      Stmt::Decl(Decl::Var(var_decl)) => {
-        if !is_side_effects_free_var_decl(
-          parser,
-          analyze_side_effects_free,
-          var_decl,
-          unresolved_ctxt,
-          comments,
-        ) {
-          return false;
-        }
-      }
-      _ => return false,
+    if !is_side_effects_free_stmt(
+      parser,
+      analyze_side_effects_free,
+      stmt,
+      unresolved_ctxt,
+      comments,
+    ) {
+      return false;
     }
   }
 

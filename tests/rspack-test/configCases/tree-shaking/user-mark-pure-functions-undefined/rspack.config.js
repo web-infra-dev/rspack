@@ -14,7 +14,7 @@ module.exports = {
       {
         test: /decl\.js/,
         parser: {
-          sideEffectsFree: ['notExistFunction']
+          sideEffectsFree: ['notExistFunction', 'localOnly', 'importedOnly']
         }
       }
     ]
