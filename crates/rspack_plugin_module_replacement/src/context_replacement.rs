@@ -16,7 +16,7 @@ pub struct ContextReplacementPluginOptions {
   pub new_content_resource: Option<String>,
   pub new_content_recursive: Option<bool>,
   pub new_content_reg_exp: Option<RspackRegex>,
-  pub new_content_create_context_map: Option<HashMap<String, String>>,
+  pub new_content_create_context_map: Option<HashMap<Arc<str>, String>>,
 }
 
 #[plugin]
@@ -26,7 +26,7 @@ pub struct ContextReplacementPlugin {
   new_content_resource: Option<String>,
   new_content_recursive: Option<bool>,
   new_content_reg_exp: Option<RspackRegex>,
-  new_content_create_context_map: Option<HashMap<String, String>>,
+  new_content_create_context_map: Option<HashMap<Arc<str>, String>>,
 }
 
 impl ContextReplacementPlugin {
@@ -97,9 +97,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
             .map(|(key, value)| {
               let request = format!(
                 "{}{}{}",
-                value,
-                options.resource_query.clone(),
-                options.resource_fragment.clone(),
+                value, &options.resource_query, &options.resource_fragment,
               );
 
               let resource_identifier = ContextElementDependency::create_resource_identifier(
@@ -109,7 +107,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
               );
               ContextElementDependency {
                 id: DependencyId::new(),
-                request,
+                request: Arc::from(request),
                 user_request: key.clone(),
                 category: options.context_options.category,
                 context: options.resource.clone().into(),

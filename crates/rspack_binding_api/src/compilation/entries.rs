@@ -20,14 +20,14 @@ impl EntryOptionsDTO {
 #[napi]
 impl EntryOptionsDTO {
   #[napi(getter)]
-  pub fn name(&self) -> Either<&String, ()> {
-    self.0.name.as_ref().into()
+  pub fn name(&self) -> Either<&str, ()> {
+    self.0.name.as_ref().map(|s| s.as_ref()).into()
   }
 
   #[napi(setter)]
   pub fn set_name(&mut self, name: Either<String, ()>) {
     self.0.name = match name {
-      Either::A(s) => Some(s),
+      Either::A(s) => Some(s.into()),
       Either::B(_) => None,
     };
   }
@@ -252,7 +252,7 @@ impl JsEntries {
 
   #[napi]
   pub fn has(&self, key: String) -> bool {
-    self.compilation.entries.contains_key(&key)
+    self.compilation.entries.contains_key(key.as_str())
   }
 
   #[napi]
@@ -267,18 +267,18 @@ impl JsEntries {
         dto.entry_data.clone()
       }
     };
-    self.compilation.entries.insert(key, entry_data);
+    self.compilation.entries.insert(key.into(), entry_data);
   }
 
   #[napi]
   pub fn delete(&mut self, key: String) -> bool {
-    let r = self.compilation.entries.swap_remove(&key);
+    let r = self.compilation.entries.swap_remove(key.as_str());
     r.is_some()
   }
 
   #[napi]
   pub fn get(&'static mut self, key: String) -> Result<Either<EntryDataDTO, ()>> {
-    Ok(match self.compilation.entries.get(&key) {
+    Ok(match self.compilation.entries.get(key.as_str()) {
       Some(entry_data) => Either::A(EntryDataDTO {
         entry_data: entry_data.clone(),
         compilation: self.compilation,
@@ -288,8 +288,13 @@ impl JsEntries {
   }
 
   #[napi]
-  pub fn keys(&self) -> Vec<&String> {
-    self.compilation.entries.keys().collect()
+  pub fn keys(&self) -> Vec<&str> {
+    self
+      .compilation
+      .entries
+      .keys()
+      .map(|s| s.as_ref())
+      .collect()
   }
 
   #[napi]

@@ -18,7 +18,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct SharedContainerPluginOptions {
-  pub name: String,
+  pub name: Arc<str>,
   pub request: String,
   pub version: String,
   pub file_name: Option<Filename>,
@@ -89,7 +89,7 @@ async fn additional_tree_runtime_requirements(
     .chunk_by_ukey
     .expect_get(chunk_ukey);
   if let Some(name) = chunk.name()
-    && name == self.options.name
+    && name == self.options.name.as_ref()
   {
     runtime_modules.push(ShareContainerRuntimeModule::new(&compilation.runtime_template).boxed());
   }

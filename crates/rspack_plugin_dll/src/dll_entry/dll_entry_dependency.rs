@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, Context, Dependency, DependencyId,
@@ -14,7 +16,7 @@ pub struct DllEntryDependency {
   pub entries: Vec<String>,
 
   // TODO: The fields `name` for serialize & deserialize.
-  pub name: String,
+  pub name: Arc<str>,
 
   id: DependencyId,
 

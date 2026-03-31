@@ -5,7 +5,7 @@ mod data;
 mod options;
 mod utils;
 
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
@@ -66,7 +66,7 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
       .files()
       .iter()
       .find(|file| !file.ends_with(".css") && !is_hot_file(file))
-      .cloned()
+      .map(|s| s.to_string())
   };
 
   // Prefer the actual entry chunk if it exists.
@@ -103,7 +103,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .build_chunk_graph_artifact
     .entrypoints
     .keys()
-    .cloned()
+    .map(|s| s.to_string())
     .collect();
 
   // Build metaData
@@ -437,7 +437,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               .chunk_group_by_ukey
               .expect_get(group_ukey);
             if let Some(name) = group.name()
-              && !entry_point_names.contains(name)
+              && !entry_point_names.contains(name.as_ref())
             {
               for extra_chunk in group.chunks.iter() {
                 entry.insert(*extra_chunk);
@@ -460,7 +460,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    let mut shared_asset_files: HashSet<String> = HashSet::default();
+    let mut shared_asset_files: HashSet<Arc<str>> = HashSet::default();
     for (pkg, mut assets) in aggregated_shared_assets {
       normalize_assets_group(&mut assets);
       assets.js.r#async.clear();
@@ -478,7 +478,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         && let Some(chunk_key) = compilation
           .build_chunk_graph_artifact
           .named_chunks
-          .get(chunk_name)
+          .get::<str>(chunk_name.as_ref())
       {
         assets = Some(collect_assets_from_chunk(
           compilation,
@@ -490,7 +490,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         && let Some(chunk_key) = compilation
           .build_chunk_graph_artifact
           .named_chunks
-          .get(expose_file_key)
+          .get::<str>(expose_file_key.as_str())
       {
         assets = Some(collect_assets_from_chunk(
           compilation,

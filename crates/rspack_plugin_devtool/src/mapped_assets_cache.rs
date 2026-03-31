@@ -21,7 +21,7 @@ impl MappedAssetsCache {
     map_assets: Handle,
   ) -> Result<Vec<MappedAsset>>
   where
-    Assets: Iterator<Item = (&'a String, &'a CompilationAsset)>,
+    Assets: Iterator<Item = (&'a Arc<str>, &'a CompilationAsset)>,
     Handle: FnOnce(Vec<(String, &'a CompilationAsset)>) -> Return,
     Return: Future<Output = Result<Vec<MappedAsset>, Error>> + Send + 'a,
   {
@@ -30,14 +30,14 @@ impl MappedAssetsCache {
     let mut mapped_asstes: Vec<MappedAsset> = Vec::with_capacity(capacity);
     let mut vanilla_assets = Vec::with_capacity(capacity);
     for (filename, vanilla_asset) in assets {
-      if let Some((_, mapped_asset)) = self.0.remove(filename.as_str())
+      if let Some((_, mapped_asset)) = self.0.remove(filename.as_ref())
         && !vanilla_asset.info.version.is_empty()
         && vanilla_asset.info.version == mapped_asset.asset.1.info.version
       {
         mapped_asstes.push(mapped_asset);
         continue;
       }
-      vanilla_assets.push((filename.to_owned(), vanilla_asset));
+      vanilla_assets.push((filename.to_string(), vanilla_asset));
     }
 
     mapped_asstes.extend(map_assets(vanilla_assets).await?);

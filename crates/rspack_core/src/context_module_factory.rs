@@ -307,8 +307,8 @@ impl ContextModuleFactory {
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
           resource: resource.path,
-          resource_query: resource.query,
-          resource_fragment: resource.fragment,
+          resource_query: resource.query.to_string(),
+          resource_fragment: resource.fragment.to_string(),
           layer: data.issuer_layer.clone(),
           resolve_options: data.resolve_options.clone(),
           context_options: dependency_options,
@@ -509,7 +509,7 @@ async fn visit_dirs(
 
         dependencies.push(ContextElementDependency {
           id: DependencyId::new(),
-          request,
+          request: Arc::from(request),
           user_request: r.request.clone(),
           category: options.context_options.category,
           context: options.resource.clone().into(),
@@ -529,13 +529,16 @@ async fn visit_dirs(
 
 #[derive(Debug, Clone)]
 pub struct AlternativeRequest {
-  pub context: String,
-  pub request: String,
+  pub context: Arc<str>,
+  pub request: Arc<str>,
 }
 
 impl AlternativeRequest {
-  pub fn new(context: String, request: String) -> Self {
-    Self { context, request }
+  pub fn new(context: impl Into<Arc<str>>, request: impl Into<Arc<str>>) -> Self {
+    Self {
+      context: context.into(),
+      request: request.into(),
+    }
   }
 }
 

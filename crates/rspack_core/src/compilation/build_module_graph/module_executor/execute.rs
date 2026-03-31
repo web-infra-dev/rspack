@@ -231,7 +231,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     let mut chunk_graph = ChunkGraph::default();
 
-    let mut chunk = Chunk::new(Some("build time chunk".into()), ChunkKind::Normal);
+    let mut chunk = Chunk::new(Some("build time chunk"), ChunkKind::Normal);
 
     if let Some(name) = chunk.name() {
       let name = name.to_string();

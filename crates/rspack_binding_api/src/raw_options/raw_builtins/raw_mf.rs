@@ -42,7 +42,7 @@ impl From<RawContainerPluginOptions> for ContainerPluginOptions {
   fn from(value: RawContainerPluginOptions) -> Self {
     let share_scope = into_share_scope(value.share_scope);
     Self {
-      name: value.name,
+      name: value.name.into(),
       share_scope,
       library: value.library.into(),
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
@@ -163,7 +163,7 @@ impl From<RawCollectShareEntryPluginOptions> for CollectSharedEntryPluginOptions
         .into_iter()
         .map(|provide| {
           let (key, consume_options): (String, ConsumeOptions) = provide.into();
-          (key, std::sync::Arc::new(consume_options))
+          (key, Arc::new(consume_options))
         })
         .collect(),
       filename: value.filename,
@@ -184,7 +184,7 @@ pub struct RawSharedContainerPluginOptions {
 impl From<RawSharedContainerPluginOptions> for SharedContainerPluginOptions {
   fn from(value: RawSharedContainerPluginOptions) -> Self {
     SharedContainerPluginOptions {
-      name: value.name,
+      name: value.name.into(),
       request: value.request,
       version: value.version,
       library: value.library.into(),

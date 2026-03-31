@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use indoc::formatdoc;
 use rspack_core::{
   RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
@@ -47,7 +45,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       .and_then(|chunk| {
         chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       })
-      .and_then(|entry_options| entry_options.name.clone().map(Arc::from))
+      .and_then(|entry_options| entry_options.name.clone())
     else {
       return Ok(String::new());
     };

@@ -3,6 +3,7 @@ use std::{
   env,
   hash::Hasher,
   path::{Path, PathBuf},
+  sync::Arc,
 };
 
 use anyhow::{Context, anyhow};
@@ -49,43 +50,53 @@ impl HtmlPluginAssets {
     let mut asset_map = FxHashMap::default();
     assets.public_path = public_path.to_string();
 
-    let sorted_entry_names: Vec<&String> =
+    let sorted_entry_names: Vec<Arc<str>> =
       if matches!(config.chunks_sort_mode, HtmlChunkSortMode::Manual)
         && let Some(chunks) = &config.chunks
       {
         chunks
           .iter()
-          .filter(|&name| {
+          .filter(|name| {
             compilation
               .build_chunk_graph_artifact
               .entrypoints
-              .contains_key(name)
+              .contains_key(name.as_str())
           })
+          .map(|name| Arc::from(name.clone()))
           .collect()
       } else {
         compilation
           .build_chunk_graph_artifact
           .entrypoints
           .keys()
-          .filter(|&entry_name| {
+          .filter(|entry_name| {
             let mut included = true;
             if let Some(included_chunks) = &config.chunks {
-              included = included_chunks.iter().any(|c| c.eq(entry_name));
+              included = included_chunks
+                .iter()
+                .any(|c| c.as_str() == entry_name.as_ref());
             }
             if let Some(exclude_chunks) = &config.exclude_chunks {
-              included = included && !exclude_chunks.iter().any(|c| c.eq(entry_name));
+              included = included
+                && !exclude_chunks
+                  .iter()
+                  .any(|c| c.as_str() == entry_name.as_ref());
             }
             included
           })
+          .cloned()
           .collect()
       };
 
     let included_assets = sorted_entry_names
       .iter()
-      .map(|entry_name| compilation.entrypoint_by_name(entry_name))
+      .map(|entry_name| compilation.entrypoint_by_name(entry_name.as_ref()))
       .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
-        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        let asset = compilation
+          .assets()
+          .get(asset_name.as_ref())
+          .expect("TODO:");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {

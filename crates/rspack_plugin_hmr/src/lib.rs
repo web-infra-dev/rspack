@@ -1,6 +1,6 @@
 mod hot_module_replacement;
 
-use std::collections::hash_map;
+use std::{collections::hash_map, sync::Arc};
 
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::IdentifierSet;
@@ -84,7 +84,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   let mut updated_runtime_modules: IdentifierSet = Default::default();
-  let mut updated_chunks: HashMap<ChunkUkey, HashSet<String>> = Default::default();
+  let mut updated_chunks: HashMap<ChunkUkey, HashSet<Arc<str>>> = Default::default();
   for (identifier, old_runtime_module_hash) in &old_runtime_modules {
     if let Some(new_runtime_module_hash) = compilation.runtime_modules_hash.get(identifier) {
       // updated
@@ -215,7 +215,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
-      let mut hot_update_chunk = Chunk::new(None, ChunkKind::HotUpdate);
+      let mut hot_update_chunk = Chunk::new(None::<&str>, ChunkKind::HotUpdate);
       hot_update_chunk.set_id(chunk_id.clone());
       hot_update_chunk.set_runtime(if let Some(current_chunk) = current_chunk {
         current_chunk.runtime().clone()
@@ -301,7 +301,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       compilation.extend_diagnostics(diagnostics);
 
       for entry in manifest {
-        let filename = if entry.has_filename {
+        let filename: Arc<str> = if entry.has_filename {
           entry.filename.clone()
         } else {
           compilation
@@ -317,6 +317,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 ),
             )
             .await?
+            .into()
         };
         let asset = CompilationAsset::new(
           Some(entry.source),
@@ -332,7 +333,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .or_default()
             .insert(filename.clone());
         }
-        compilation.emit_asset(filename, asset);
+        compilation.emit_asset(filename.clone(), asset);
       }
 
       new_runtime.iter().for_each(|runtime| {

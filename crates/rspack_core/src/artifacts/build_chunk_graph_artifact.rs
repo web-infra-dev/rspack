@@ -1,4 +1,4 @@
-use std::mem;
+use std::{mem, sync::Arc};
 
 use futures::Future;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
@@ -19,10 +19,10 @@ pub struct BuildChunkGraphArtifact {
   pub chunk_by_ukey: ChunkByUkey,
   pub chunk_graph: ChunkGraph,
   pub chunk_group_by_ukey: ChunkGroupByUkey,
-  pub entrypoints: FxIndexMap<String, ChunkGroupUkey>,
+  pub entrypoints: FxIndexMap<Arc<str>, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
-  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
-  pub named_chunks: HashMap<String, ChunkUkey>,
+  pub named_chunk_groups: HashMap<Arc<str>, ChunkGroupUkey>,
+  pub named_chunks: HashMap<Arc<str>, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
 }

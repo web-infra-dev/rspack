@@ -1,4 +1,7 @@
-use std::{cell::RefCell, sync::LazyLock};
+use std::{
+  cell::RefCell,
+  sync::{Arc, LazyLock},
+};
 
 use napi::{
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
@@ -24,17 +27,17 @@ define_symbols! {
 // Record<string, Source>
 #[napi]
 pub struct Assets {
-  i: WeakBindingCell<FxHashMap<String, rspack_core::CompilationAsset>>,
+  i: WeakBindingCell<FxHashMap<Arc<str>, rspack_core::CompilationAsset>>,
 }
 
 impl Assets {
-  pub fn new(i: WeakBindingCell<FxHashMap<String, rspack_core::CompilationAsset>>) -> Self {
+  pub fn new(i: WeakBindingCell<FxHashMap<Arc<str>, rspack_core::CompilationAsset>>) -> Self {
     Self { i }
   }
 
   fn with_ref<T>(
     &self,
-    f: impl FnOnce(&FxHashMap<String, rspack_core::CompilationAsset>) -> napi::Result<T>,
+    f: impl FnOnce(&FxHashMap<Arc<str>, rspack_core::CompilationAsset>) -> napi::Result<T>,
   ) -> napi::Result<T> {
     match self.i.upgrade() {
       Some(reference) => f(reference.as_ref()),

@@ -17,7 +17,7 @@ use crate::{
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ChunkReCreation {
   Entry {
-    name: String,
+    name: Arc<str>,
     depend_on: Option<Vec<String>>,
   },
   Normal(NormalChunkRecreation),
@@ -121,18 +121,18 @@ impl CodeSplitter {
       .remove(&chunk_group_ukey)
       .expect("when we have cgi, we have chunk group");
 
-    let chunk_group_name = chunk_group.name().map(|s| s.to_string());
-    if let Some(name) = &chunk_group_name {
+    let chunk_group_name = chunk_group.name();
+    if let Some(name) = chunk_group_name {
       compilation
         .build_chunk_graph_artifact
         .named_chunk_groups
-        .remove(name);
+        .remove(name.as_ref());
       compilation
         .build_chunk_graph_artifact
         .entrypoints
-        .swap_remove(name);
-      self.named_chunk_groups.remove(name);
-      self.named_async_entrypoints.remove(name);
+        .swap_remove(name.as_ref());
+      self.named_chunk_groups.remove(name.as_ref());
+      self.named_async_entrypoints.remove(name.as_ref());
     }
 
     // remove child parent relations
@@ -284,7 +284,7 @@ impl CodeSplitter {
       && chunk_group.parents.is_empty()
     {
       edges = vec![ChunkReCreation::Entry {
-        name,
+        name: name.clone(),
         depend_on: None,
       }];
     }
@@ -573,7 +573,7 @@ impl CodeSplitter {
 
     let mut removed_entries = FxHashSet::default();
     for (name, chunk_group) in compilation.entrypoints() {
-      if !compilation.entries.contains_key(name) {
+      if !compilation.entries.contains_key(name.as_ref()) {
         removed_entries.insert(*chunk_group);
       }
     }
@@ -708,10 +708,10 @@ impl CodeSplitter {
 
       let a_depends_on_b = a_depend_on
         .as_deref()
-        .is_some_and(|deps| deps.contains(b_name));
+        .is_some_and(|deps| deps.iter().any(|s| s.as_str() == b_name.as_ref()));
       let b_depends_on_a = b_depend_on
         .as_deref()
-        .is_some_and(|deps| deps.contains(a_name));
+        .is_some_and(|deps| deps.iter().any(|s| s.as_str() == a_name.as_ref()));
 
       // If a depends on b, b must come first (a > b).
       // If b depends on a, a must come first (a < b).

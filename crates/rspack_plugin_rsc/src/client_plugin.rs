@@ -54,7 +54,7 @@ fn extend_required_chunks(
       continue;
     };
     for file in chunk.files().iter().filter(|f| f.ends_with(".js")) {
-      if let Some(asset) = compilation.assets().get(file) {
+      if let Some(asset) = compilation.assets().get(file.as_ref()) {
         let asset_info = asset.get_info();
         if asset_info.hot_module_replacement.unwrap_or(false)
           || asset_info.development.unwrap_or(false)
@@ -247,7 +247,7 @@ async fn collect_entry_js_files(
   plugin_state: &mut PluginState,
 ) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
-    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_ref()) else {
       continue;
     };
 
@@ -270,7 +270,7 @@ async fn collect_entry_js_files(
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
       .filter(|chunk_file| {
-        let Some(asset) = compilation.assets().get(chunk_file) else {
+        let Some(asset) = compilation.assets().get(chunk_file.as_ref()) else {
           return true;
         };
         // Prevent hot-module files from being included
@@ -444,7 +444,7 @@ impl RscClientPlugin {
         .module_loading
         .as_ref()
         .expect("module_loading should be initialized before recording modules");
-      let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+      let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_ref()) else {
         continue;
       };
 

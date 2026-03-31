@@ -92,9 +92,9 @@ impl Chunk {
   }
 
   #[napi(getter, js_name = "_files")]
-  pub fn files(&self) -> napi::Result<Vec<&String>> {
+  pub fn files(&self) -> napi::Result<Vec<&str>> {
     let (_, chunk) = self.as_ref()?;
-    let mut files = Vec::from_iter(chunk.files());
+    let mut files: Vec<&str> = chunk.files().iter().map(|s| s.as_ref()).collect();
     files.sort_unstable();
     Ok(files)
   }
@@ -156,9 +156,9 @@ impl Chunk {
   }
 
   #[napi(getter, js_name = "_auxiliaryFiles")]
-  pub fn auxiliary_files(&self) -> napi::Result<Vec<&String>> {
+  pub fn auxiliary_files(&self) -> napi::Result<Vec<&str>> {
     let (_, chunk) = self.as_ref()?;
-    Ok(chunk.auxiliary_files().iter().collect::<Vec<_>>())
+    Ok(chunk.auxiliary_files().iter().map(|s| s.as_ref()).collect())
   }
 }
 

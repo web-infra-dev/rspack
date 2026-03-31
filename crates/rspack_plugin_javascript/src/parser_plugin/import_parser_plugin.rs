@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
@@ -421,7 +421,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           Some(param.string().clone()),
         );
         block.set_group_options(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-          chunk_name,
+          chunk_name.map(Arc::from),
           chunk_preload,
           chunk_prefetch,
           fetch_priority,
@@ -465,7 +465,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             ContextNameSpaceObject::Bool(true)
           },
           group_options: Some(GroupOptions::ChunkGroup(ChunkGroupOptions::new(
-            chunk_name,
+            chunk_name.map(Arc::from),
             chunk_preload,
             chunk_prefetch,
             fetch_priority,

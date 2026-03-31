@@ -146,7 +146,7 @@ struct SourceMapTask {
 #[derive(Debug, Clone)]
 pub(crate) struct MappedAsset {
   pub(crate) asset: (Arc<str>, CompilationAsset),
-  pub(crate) source_map: Option<(String, CompilationAsset)>,
+  pub(crate) source_map: Option<(Arc<str>, CompilationAsset)>,
 }
 
 type TaskAndSourceNames = (
@@ -794,9 +794,10 @@ impl SourceMapDevToolPlugin {
           .content_hash_optional(content_hash_digest.as_ref().map(|digest| digest.encoded())),
         None => data,
       };
-      let source_map_filename = compilation
+      let source_map_filename: Arc<str> = compilation
         .get_asset_path(source_map_filename_config, data)
-        .await?;
+        .await?
+        .into();
 
       if let Some(current_source_mapping_url_comment) = current_source_mapping_url_comment {
         let source_map_url = if let Some(public_path) = &plugin.public_path {
@@ -808,7 +809,7 @@ impl SourceMapDevToolPlugin {
 
           let mut source_map_path = PathBuf::new();
           source_map_path.push(Component::RootDir);
-          source_map_path.extend(Path::new(&source_map_filename).components());
+          source_map_path.extend(Path::new(source_map_filename.as_ref()).components());
 
           source_map_path
             .relative(
@@ -905,7 +906,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // use to read
   let mut file_to_chunk: HashMap<&str, &Chunk> = HashMap::default();
   // use to write
-  let mut file_to_chunk_ukey: HashMap<String, ChunkUkey> = HashMap::default();
+  let mut file_to_chunk_ukey: HashMap<Arc<str>, ChunkUkey> = HashMap::default();
   for chunk in compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -959,7 +960,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let chunk_ukey = file_to_chunk_ukey.get(source_filename.as_ref());
-    compilation.emit_asset(source_filename.to_string(), source_asset);
+    compilation.emit_asset(source_filename.clone(), source_asset);
     if let Some((source_map_filename, source_map_asset)) = source_map {
       compilation.emit_asset(source_map_filename.clone(), source_map_asset);
 

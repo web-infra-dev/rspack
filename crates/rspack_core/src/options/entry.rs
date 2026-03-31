@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use rspack_util::fx_hash::FxIndexMap;
 
 use crate::{
   ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath, WasmLoading,
 };
 
-pub type Entry = FxIndexMap<String, EntryData>;
+pub type Entries = FxIndexMap<Arc<str>, EntryData>;
 
 pub type EntryItem = Vec<String>;
 

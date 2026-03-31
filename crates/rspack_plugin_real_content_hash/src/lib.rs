@@ -110,13 +110,13 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("create ordered hashes");
-  let assets_data: HashMap<&str, AssetData> = compilation
+  let assets_data: HashMap<Arc<str>, AssetData> = compilation
     .assets()
     .par_iter()
     .filter_map(|(name, asset)| {
       asset.get_source().map(|source| {
         (
-          name.as_str(),
+          name.clone(),
           AssetData::new(source.clone(), asset.get_info(), &hash_ac),
         )
       })
@@ -164,7 +164,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
         let tasks = assets_names
           .iter()
           .filter_map(|name| {
-            let data = assets_data.get(name)?;
+            let data = assets_data.get(*name)?;
             Some((hash.as_str(), *name, data))
           })
           .collect::<Vec<_>>();
@@ -241,26 +241,27 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   logger.time_end(start);
 
   let start = logger.time("collect hash updates");
-  let updates: Vec<_> = assets_data
+  let updates: Vec<(Arc<str>, BoxSource, Option<Arc<str>>)> = assets_data
     .into_par_iter()
     .filter_map(|(name, data)| {
       let new_source = data.compute_new_source(false, &hash_to_new_hash, &hash_ac);
       let mut new_name = String::with_capacity(name.len());
-      hash_ac.replace_all_with(name, &mut new_name, |_, hash, dst| {
+      hash_ac.replace_all_with(name.as_ref(), &mut new_name, |_, hash, dst| {
         let replace_to = hash_to_new_hash
           .get(hash)
           .expect("RealContentHashPlugin: should have new hash");
         dst.push_str(replace_to);
         true
       });
-      let new_name = (name != new_name).then_some(new_name);
-      Some((name.to_owned(), new_source, new_name))
+      let new_name: Option<Arc<str>> =
+        (name.as_ref() != new_name.as_str()).then_some(new_name.into());
+      Some((name.clone(), new_source, new_name))
     })
     .collect();
   logger.time_end(start);
 
   let start = logger.time("update assets");
-  let mut asset_renames = Vec::with_capacity(updates.len());
+  let mut asset_renames: Vec<(Arc<str>, Arc<str>)> = Vec::with_capacity(updates.len());
   for (name, new_source, new_name) in updates {
     compilation.update_asset(&name, |_, old_info| {
       let new_hashes: HashSet<_> = old_info
@@ -280,7 +281,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       ))
     })?;
     if let Some(new_name) = new_name {
-      asset_renames.push((name, new_name));
+      asset_renames.push((name.clone(), new_name));
     }
   }
 
@@ -380,13 +381,13 @@ impl AssetData {
 
 struct OrderedHashesBuilder<'a> {
   hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
-  assets_data: &'a HashMap<&'a str, AssetData>,
+  assets_data: &'a HashMap<Arc<str>, AssetData>,
 }
 
 impl<'a> OrderedHashesBuilder<'a> {
   pub fn new(
     hash_to_asset_names: &'a HashMap<&'a str, Vec<&'a str>>,
-    assets_data: &'a HashMap<&'a str, AssetData>,
+    assets_data: &'a HashMap<Arc<str>, AssetData>,
   ) -> Self {
     Self {
       hash_to_asset_names,
@@ -428,7 +429,7 @@ impl OrderedHashesBuilder<'_> {
       .expect("RealContentHashPlugin: should have asset_names");
     let mut hashes = HashSet::default();
     for name in asset_names {
-      if let Some(asset_hash) = self.assets_data.get(name) {
+      if let Some(asset_hash) = self.assets_data.get(*name) {
         if !asset_hash.own_hashes.contains(hash) {
           for hash in &asset_hash.own_hashes {
             hashes.insert(hash.as_str());

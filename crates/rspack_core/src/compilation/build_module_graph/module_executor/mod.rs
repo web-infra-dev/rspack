@@ -5,6 +5,8 @@ mod execute;
 mod module_tracker;
 mod overwrite;
 
+use std::sync::Arc;
+
 use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -42,7 +44,7 @@ pub struct ModuleExecutor {
   // temporary data, used by hook_after_finish_modules
   event_sender: Option<UnboundedSender<Event>>,
   stop_receiver: Option<oneshot::Receiver<ExecutorTaskContext>>,
-  module_assets: IdentifierDashMap<HashMap<String, CompilationAsset>>,
+  module_assets: IdentifierDashMap<HashMap<Arc<str>, CompilationAsset>>,
   code_generated_modules: IdentifierDashSet,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
 }
@@ -208,7 +210,7 @@ impl ModuleExecutor {
         .module_assets
         .entry(origin_module_identifier)
         .or_default()
-        .extend(assets);
+        .extend(assets.into_iter());
     }
 
     for id in code_generated_modules {

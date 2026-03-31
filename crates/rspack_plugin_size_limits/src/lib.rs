@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_core::{
@@ -46,7 +48,7 @@ impl SizeLimitsPlugin {
     let mut size = 0.0;
 
     for filename in entrypoint.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
-      let asset = compilation.assets().get(&filename);
+      let asset = compilation.assets().get(filename.as_ref());
 
       if let Some(asset) = asset {
         if !self.asset_filter(&filename, asset).await {
@@ -79,7 +81,7 @@ impl SizeLimitsPlugin {
   }
 
   fn add_assets_over_size_limit_warning(
-    detail: &[(String, f64)],
+    detail: &[(Arc<str>, f64)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -98,8 +100,9 @@ impl SizeLimitsPlugin {
     Self::add_diagnostic(hints, title, message, diagnostics);
   }
 
+  #[allow(clippy::type_complexity)]
   fn add_entrypoints_over_size_limit_warning(
-    detail: &[(&String, f64, Vec<String>)],
+    detail: &[(&Arc<str>, f64, Vec<Arc<str>>)],
     limit: f64,
     hints: &str,
     diagnostics: &mut Vec<Diagnostic>,
@@ -135,18 +138,18 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   let hints = &self.options.hints;
   let max_asset_size = self.options.max_asset_size.unwrap_or(250_000.0);
   let max_entrypoint_size = self.options.max_entrypoint_size.unwrap_or(250_000.0);
-  let mut checked_assets: HashMap<String, bool> = HashMap::default();
+  let mut checked_assets: HashMap<Arc<str>, bool> = HashMap::default();
   let mut checked_chunk_groups: HashMap<ChunkGroupUkey, bool> = HashMap::default();
 
   let mut assets_over_size_limit = vec![];
 
-  let asset_sizes = rspack_futures::scope::<_, _>(|token| {
+  let asset_sizes: Vec<Option<(Arc<str>, f64, bool)>> = rspack_futures::scope::<_, _>(|token| {
     compilation.assets().iter().for_each(|(name, asset)| {
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((&self, asset, name, max_asset_size)) };
 
       s.spawn(|(plugin, asset, name, max_asset_size)| async move {
-        if !plugin.asset_filter(name, asset).await {
+        if !plugin.asset_filter(name.as_ref(), asset).await {
           return None;
         }
 
@@ -185,7 +188,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
       let mut files = vec![];
 
       for filename in entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey) {
-        let asset = compilation.assets().get(&filename);
+        let asset = compilation.assets().get(filename.as_ref());
 
         if let Some(asset) = asset
           && self.asset_filter(&filename, asset).await
@@ -242,7 +245,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
   }
 
   for (name, asset) in compilation.assets_mut() {
-    if let Some(checked) = checked_assets.get(name) {
+    if let Some(checked) = checked_assets.get(name.as_ref()) {
       asset.info.set_is_over_size_limit(*checked)
     }
   }

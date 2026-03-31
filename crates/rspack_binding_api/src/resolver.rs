@@ -28,9 +28,9 @@ impl From<rspack_core::Resource> for ResolveRequest {
       value.description_data.map(|data| data.into_parts()).unzip();
     Self {
       path: value.path.to_string(),
-      query: value.query,
-      fragment: value.fragment,
-      description_file_data: description_file_data.map(std::sync::Arc::unwrap_or_clone),
+      query: value.query.to_string(),
+      fragment: value.fragment.to_string(),
+      description_file_data: description_file_data.map(Arc::unwrap_or_clone),
       description_file_path: description_file_path.map(|path| path.to_string_lossy().into_owned()),
       file_dependencies: vec![],
       missing_dependencies: vec![],

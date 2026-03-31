@@ -331,7 +331,7 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
 
   for file in files {
     let mut pos_map: HashMap<String, MockFlagPos> = HashMap::default();
-    let _res = compilation.update_asset(file.as_str(), |old, info| {
+    let _res = compilation.update_asset(file.as_ref(), |old, info| {
       // Only handles JavaScript.
       if info.javascript_module.is_none() {
         return Ok((old, info));

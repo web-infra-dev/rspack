@@ -10,15 +10,15 @@ fn put_split_chunk_reason(
   is_reuse_existing_chunk_with_all_modules: bool,
 ) {
   let reason = if is_reuse_existing_chunk_with_all_modules {
-    "reused as split chunk".to_string()
+    "reused as split chunk"
   } else {
-    "split chunk".to_string()
+    "split chunk"
   };
   if let Some(chunk_reason) = chunk_reason {
     chunk_reason.push(',');
-    chunk_reason.push_str(&reason);
+    chunk_reason.push_str(reason);
   } else {
-    *chunk_reason = Some(reason);
+    *chunk_reason = Some(reason.to_string());
   }
 }
 
@@ -126,7 +126,7 @@ impl SplitChunksPlugin {
       if let Some(chunk) = compilation
         .build_chunk_graph_artifact
         .named_chunks
-        .get(chunk_name)
+        .get(chunk_name.as_str())
       {
         *is_reuse_existing_chunk = true;
         *chunk

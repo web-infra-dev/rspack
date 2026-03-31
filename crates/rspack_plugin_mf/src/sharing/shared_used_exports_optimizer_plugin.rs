@@ -319,7 +319,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   ];
   for file_name in file_names {
     if let Some(file_name) = &file_name
-      && let Some(file) = compilation.assets().get(file_name)
+      && let Some(file) = compilation.assets().get(file_name.as_str())
       && let Some(source) = file.get_source()
       && let SourceValue::String(content) = source.source()
       && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)

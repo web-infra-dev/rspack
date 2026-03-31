@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::{
   Env, JsValue,
   bindgen_prelude::{
@@ -23,7 +25,7 @@ impl From<AssetInfoRelated> for rspack_core::AssetInfoRelated {
     Self {
       source_map: match i.source_map {
         Some(either) => match either {
-          Either::A(string) => Some(string),
+          Either::A(string) => Some(Arc::from(string)),
           Either::B(_) => None,
         },
         None => None,
@@ -208,7 +210,7 @@ pub struct JsAsset {
 impl From<rspack_core::AssetInfoRelated> for AssetInfoRelated {
   fn from(related: rspack_core::AssetInfoRelated) -> Self {
     Self {
-      source_map: related.source_map.map(Either::A),
+      source_map: related.source_map.map(|s| Either::A(s.to_string())),
     }
   }
 }

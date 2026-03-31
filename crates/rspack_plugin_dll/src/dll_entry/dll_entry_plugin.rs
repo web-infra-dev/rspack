@@ -11,7 +11,7 @@ use super::{dll_entry_dependency::DllEntryDependency, dll_module_factory};
 
 #[derive(Debug, Clone, Default)]
 pub struct DllEntryPluginOptions {
-  pub name: String,
+  pub name: Arc<str>,
 
   pub context: Context,
 

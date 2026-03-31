@@ -106,7 +106,7 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
-  pub assets: BindingCell<HashMap<String, CompilationAsset>>,
+  pub assets: BindingCell<HashMap<Arc<str>, CompilationAsset>>,
   pub module: bool,
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,

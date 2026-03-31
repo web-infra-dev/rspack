@@ -10,7 +10,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsOption, AsPreset},
+  with::{As, AsOption, AsPreset, AsRefStr},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -104,11 +104,14 @@ pub struct NormalModule {
   /// Context of this module
   context: Box<Context>,
   /// Request with loaders from config
-  request: String,
+  #[cacheable(with = AsRefStr)]
+  request: Arc<str>,
   /// Request intended by user (without loaders from config)
-  user_request: String,
+  #[cacheable(with = AsRefStr)]
+  user_request: Arc<str>,
   /// Request without resolving
-  raw_request: String,
+  #[cacheable(with = AsRefStr)]
+  raw_request: Arc<str>,
   /// The resolved module type of a module
   module_type: ModuleType,
   /// Layer of the module
@@ -172,9 +175,9 @@ impl NormalModule {
 
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    request: String,
-    user_request: String,
-    raw_request: String,
+    request: impl Into<Arc<str>>,
+    user_request: impl Into<Arc<str>>,
+    raw_request: impl Into<Arc<str>>,
     module_type: impl Into<ModuleType>,
     layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
@@ -188,6 +191,9 @@ impl NormalModule {
     extract_source_map: Option<bool>,
   ) -> Self {
     let module_type = module_type.into();
+    let request = request.into();
+    let user_request = user_request.into();
+    let raw_request = raw_request.into();
     let id = Self::create_id(&module_type, layer.as_ref(), &request);
     Self {
       blocks: Vec::new(),
@@ -246,8 +252,8 @@ impl NormalModule {
     &self.user_request
   }
 
-  pub fn user_request_mut(&mut self) -> &mut String {
-    &mut self.user_request
+  pub fn set_user_request(&mut self, s: impl Into<Arc<str>>) {
+    self.user_request = s.into();
   }
 
   pub fn raw_request(&self) -> &str {
@@ -379,7 +385,7 @@ impl Module for NormalModule {
     self.parsed = true;
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
-      no_parse.try_match(self.request.as_str()).await?
+      no_parse.try_match(self.request.as_ref()).await?
     } else {
       false
     };

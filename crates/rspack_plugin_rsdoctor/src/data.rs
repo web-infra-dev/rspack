@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_collections::Identifier;
 use rspack_core::{BuildMetaExportsType, DependencyType};
 use rustc_hash::FxHashSet as HashSet;
@@ -98,7 +100,7 @@ pub struct RsdoctorChunk {
 #[derive(Debug, Default)]
 pub struct RsdoctorEntrypoint {
   pub ukey: EntrypointUkey,
-  pub name: String,
+  pub name: Arc<str>,
   pub chunks: HashSet<ChunkUkey>,
 }
 

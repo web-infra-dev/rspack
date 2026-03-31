@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Debug, hash::Hash};
+use std::{cmp::Ordering, fmt::Debug, hash::Hash, sync::Arc};
 
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -57,15 +57,15 @@ pub struct Chunk {
   // - If the chunk is create by entry config, the name is the entry name
   // - The name of chunks create by dynamic import is `None` unless users use
   // magic comment like `import(/* webpackChunkName: "someChunk" * / './someModule.js')` to specify it.
-  name: Option<String>,
-  id_name_hints: HashSet<String>,
+  name: Option<Arc<str>>,
+  id_name_hints: HashSet<Arc<str>>,
   filename_template: Option<Filename>,
   css_filename_template: Option<Filename>,
   prevent_integration: bool,
   groups: HashSet<ChunkGroupUkey>,
   runtime: RuntimeSpec,
-  files: HashSet<String>,
-  auxiliary_files: HashSet<String>,
+  files: HashSet<Arc<str>>,
+  auxiliary_files: HashSet<Arc<str>>,
   chunk_reason: Option<String>,
   rendered: bool,
 }
@@ -83,8 +83,8 @@ impl Chunk {
     self.name.as_deref()
   }
 
-  pub fn set_name(&mut self, name: Option<String>) {
-    self.name = name;
+  pub fn set_name(&mut self, name: Option<impl Into<Arc<str>>>) {
+    self.name = name.map(Into::into);
   }
 
   pub fn filename_template(&self) -> Option<&Filename> {
@@ -127,12 +127,12 @@ impl Chunk {
     self.prevent_integration = prevent_integration;
   }
 
-  pub fn id_name_hints(&self) -> &HashSet<String> {
+  pub fn id_name_hints(&self) -> &HashSet<Arc<str>> {
     &self.id_name_hints
   }
 
-  pub fn add_id_name_hints(&mut self, hint: String) {
-    self.id_name_hints.insert(hint);
+  pub fn add_id_name_hints(&mut self, hint: impl Into<Arc<str>>) {
+    self.id_name_hints.insert(hint.into());
   }
 
   pub fn groups(&self) -> &HashSet<ChunkGroupUkey> {
@@ -167,24 +167,24 @@ impl Chunk {
     self.runtime = runtime;
   }
 
-  pub fn files(&self) -> &HashSet<String> {
+  pub fn files(&self) -> &HashSet<Arc<str>> {
     &self.files
   }
 
-  pub fn add_file(&mut self, file: String) {
-    self.files.insert(file);
+  pub fn add_file(&mut self, file: impl Into<Arc<str>>) {
+    self.files.insert(file.into());
   }
 
   pub fn remove_file(&mut self, file: &str) -> bool {
     self.files.remove(file)
   }
 
-  pub fn auxiliary_files(&self) -> &HashSet<String> {
+  pub fn auxiliary_files(&self) -> &HashSet<Arc<str>> {
     &self.auxiliary_files
   }
 
-  pub fn add_auxiliary_file(&mut self, auxiliary_file: String) {
-    self.auxiliary_files.insert(auxiliary_file);
+  pub fn add_auxiliary_file(&mut self, auxiliary_file: impl Into<Arc<str>>) {
+    self.auxiliary_files.insert(auxiliary_file.into());
   }
 
   pub fn remove_auxiliary_file(&mut self, auxiliary_file: &str) -> bool {
@@ -268,9 +268,9 @@ impl Chunk {
 }
 
 impl Chunk {
-  pub fn new(name: Option<String>, kind: ChunkKind) -> Self {
+  pub fn new(name: Option<impl Into<Arc<str>>>, kind: ChunkKind) -> Self {
     Self {
-      name,
+      name: name.map(Into::into),
       filename_template: None,
       css_filename_template: None,
       ukey: ChunkUkey::new(),

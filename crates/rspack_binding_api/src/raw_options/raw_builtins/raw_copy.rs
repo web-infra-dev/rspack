@@ -236,7 +236,7 @@ impl From<RawInfo> for Info {
       development: value.development,
       hot_module_replacement: value.hot_module_replacement,
       related: value.related.map(|r| Related {
-        source_map: r.source_map,
+        source_map: r.source_map.map(Into::into),
       }),
       version: value.version,
     }

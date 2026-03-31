@@ -235,7 +235,6 @@ impl RscServerPlugin {
     let mut runtime_per_entry: FxHashMap<Arc<str>, RuntimeSpec> = Default::default();
 
     for (entry_name, entry_data) in &compilation.entries {
-      let entry_name: Arc<str> = Arc::from(entry_name.clone());
       let runtime = get_entry_runtime(
         entry_name.as_ref(),
         &entry_data.options,
@@ -499,7 +498,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(ssr_entry_dependency),
         EntryOptions {
-          name: Some(entry_name.to_string()),
+          name: Some(entry_name),
           layer: Some(LAYERS_NAMES.server_side_rendering.to_string()),
           ..Default::default()
         },
@@ -555,7 +554,7 @@ impl RscServerPlugin {
       add_entry: (
         Box::new(action_entry_dep),
         EntryOptions {
-          name: Some(entry_name.to_string()),
+          name: Some(entry_name),
           layer: Some(layer),
           ..Default::default()
         },

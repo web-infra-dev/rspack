@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsOption, AsVec},
+  with::{AsCacheable, AsOption, AsRefStr, AsVec},
 };
 use rspack_util::json_stringify;
 
@@ -19,8 +21,10 @@ pub struct ContextElementDependency {
   pub id: DependencyId,
   // TODO remove this async dependency mark
   pub options: ContextOptions,
-  pub request: String,
-  pub user_request: String,
+  #[cacheable(with = AsRefStr)]
+  pub request: Arc<str>,
+  #[cacheable(with = AsRefStr)]
+  pub user_request: Arc<str>,
   pub category: DependencyCategory,
   pub context: Context,
   pub layer: Option<ModuleLayer>,

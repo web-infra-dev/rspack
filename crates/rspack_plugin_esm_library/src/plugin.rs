@@ -600,7 +600,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       let mut replace_source = ReplaceSource::new(source.clone());
       let output_path = compilation.options.output.path.as_std_path();
-      let mut self_path = output_path.join(asset_name);
+      let mut self_path = output_path.join(asset_name.as_ref());
 
       // only use the path, pop filename
       self_path.pop();
@@ -633,7 +633,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .iter()
           .filter(|f| {
             // find ref asset info
-            let Some(asset) = compilation.assets().get(*f) else {
+            let Some(asset) = compilation.assets().get(f.as_ref()) else {
               return false;
             };
             asset.get_info().javascript_module.unwrap_or_default()
@@ -651,7 +651,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             chunk_id
           ));
         }
-        let chunk_path = output_path.join(js_files.first().expect("have at least one file"));
+        let chunk_path =
+          output_path.join(js_files.first().expect("have at least one file").as_ref());
         let relative = chunk_path.relative(self_path.as_path());
         let relative = relative
           .to_slash()

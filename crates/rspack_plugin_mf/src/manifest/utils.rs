@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_core::{Compilation, ModuleGraph, ModuleIdentifier};
 use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -37,7 +37,7 @@ pub fn ensure_configured_remotes(
 pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> HashSet<String> {
   let mut entry_files = HashSet::default();
   for (name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
-    if name == container_name {
+    if name.as_ref() == container_name {
       continue;
     }
     let entrypoint = compilation
@@ -51,7 +51,7 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
         .get(chunk_ukey)
       {
         for file in chunk.files() {
-          entry_files.insert(file.clone());
+          entry_files.insert(file.to_string());
         }
         for async_chunk_ukey in
           chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -63,13 +63,13 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
           {
             let mut should_filter = false;
             if let Some(chunk_name) = async_chunk.name()
-              && chunk_name.contains(name)
+              && chunk_name.contains(name.as_ref())
             {
               should_filter = true;
             }
             if !should_filter {
               for file in async_chunk.files() {
-                if file.contains(name) {
+                if file.contains(name.as_ref()) {
                   should_filter = true;
                   break;
                 }
@@ -77,7 +77,7 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
             }
             if should_filter {
               for file in async_chunk.files() {
-                entry_files.insert(file.clone());
+                entry_files.insert(file.to_string());
               }
             }
           }
@@ -92,7 +92,7 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
       .get(&runtime_chunk_ukey)
     {
       for file in chunk.files() {
-        entry_files.insert(file.clone());
+        entry_files.insert(file.to_string());
       }
     }
   }
@@ -102,11 +102,11 @@ pub fn collect_entry_files(compilation: &Compilation, container_name: &str) -> H
 pub fn filter_assets(
   assets: &mut StatsAssetsGroup,
   entry_files: &HashSet<String>,
-  shared_asset_files: &HashSet<String>,
+  shared_asset_files: &HashSet<Arc<str>>,
   remove_shared: bool,
 ) {
   let filter_fn =
-    |asset: &String| !entry_files.contains(asset) || shared_asset_files.contains(asset);
+    |asset: &Arc<str>| !entry_files.contains(asset.as_ref()) || shared_asset_files.contains(asset);
 
   assets.js.sync.retain(filter_fn);
   assets.js.r#async.retain(filter_fn);
@@ -114,7 +114,7 @@ pub fn filter_assets(
   assets.css.r#async.retain(filter_fn);
 
   if remove_shared {
-    let filter_shared = |asset: &String| !shared_asset_files.contains(asset);
+    let filter_shared = |asset: &Arc<str>| !shared_asset_files.contains(asset);
     assets.js.sync.retain(filter_shared);
     assets.js.r#async.retain(filter_shared);
     assets.css.sync.retain(filter_shared);

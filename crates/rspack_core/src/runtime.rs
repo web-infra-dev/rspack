@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::hash_map, fmt::Debug, ops::Deref};
+use std::{cmp::Ordering, collections::hash_map, fmt::Debug, ops::Deref, sync::Arc};
 
 use rspack_cacheable::{
   cacheable,
@@ -105,8 +105,8 @@ impl RuntimeSpec {
   }
 
   pub fn from_entry_options(options: &EntryOptions) -> Option<Self> {
-    let r = match &options.runtime {
-      Some(EntryRuntime::String(s)) => Some(s.to_owned()),
+    let r: Option<Arc<str>> = match &options.runtime {
+      Some(EntryRuntime::String(s)) => Some(s.as_str().into()),
       _ => options.name.clone(),
     };
     r.map(|r| Self::from_iter([r.into()]))

@@ -585,9 +585,9 @@ module.exports = "data:,";
       module
     } else {
       NormalModule::new(
-        create_data.request.clone(),
-        create_data.user_request.clone(),
-        create_data.raw_request.clone(),
+        create_data.request.as_str(),
+        create_data.user_request.as_str(),
+        create_data.raw_request.as_str(),
         resolved_module_type,
         resolved_module_layer,
         resolved_parser_and_generator,

@@ -137,11 +137,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .assets_mut()
     .par_iter_mut()
     .filter(|(filename, original)| {
-      if !CSS_ASSET_REGEXP.is_match(filename) {
+      if !CSS_ASSET_REGEXP.is_match(filename.as_ref()) {
         return false;
       }
 
-      let is_matched = match_object(&condition_object, filename);
+      let is_matched = match_object(&condition_object, filename.as_ref());
 
       if !is_matched || original.get_info().minimized.unwrap_or(false) {
         return false;
@@ -174,7 +174,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .map(|input_source_map| -> Result<_> {
             let mut sm =
               parcel_sourcemap::SourceMap::new(input_source_map.source_root().unwrap_or("/"));
-            sm.add_source(filename);
+            sm.add_source(filename.as_ref());
             sm.set_source_content(0, &input).to_rspack_result()?;
             Ok(sm)
           })
@@ -184,7 +184,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           let mut stylesheet = StyleSheet::parse(
             &input,
             ParserOptions {
-              filename: filename.clone(),
+              filename: filename.to_string(),
               css_modules: None,
               source_index: 0,
               error_recovery: minimizer_options.error_recovery,
@@ -261,7 +261,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let minimized_source = if let Some(mut source_map) = source_map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: result.code,
-            name: filename,
+            name: filename.to_string(),
             source_map: SourceMap::from_json(
               &source_map
                 .to_json(None)

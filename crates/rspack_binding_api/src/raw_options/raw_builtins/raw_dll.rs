@@ -27,7 +27,7 @@ impl From<RawDllEntryPluginOptions> for DllEntryPluginOptions {
     } = value;
 
     Self {
-      name,
+      name: name.into(),
       context: context.into(),
       entries,
     }

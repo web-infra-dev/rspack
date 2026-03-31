@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -11,9 +13,9 @@ pub struct StatsAssetsGroup {
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct AssetsSplit {
   #[serde(default)]
-  pub sync: Vec<String>,
+  pub sync: Vec<Arc<str>>,
   #[serde(default)]
-  pub r#async: Vec<String>,
+  pub r#async: Vec<Arc<str>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]

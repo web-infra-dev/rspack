@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::{Env, bindgen_prelude::ToNapiValue, sys::napi_env};
 use rspack_core::BindingCell;
 
@@ -57,7 +59,7 @@ impl rspack_core::NapiAllocator for NapiAllocatorImpl {
   fn allocate_assets(
     &self,
     env: napi_env,
-    val: &BindingCell<rustc_hash::FxHashMap<String, rspack_core::CompilationAsset>>,
+    val: &BindingCell<rustc_hash::FxHashMap<Arc<str>, rspack_core::CompilationAsset>>,
   ) -> napi::Result<napi::sys::napi_value> {
     let assets = Assets::new(val.downgrade());
     unsafe { ToNapiValue::to_napi_value(env, assets) }

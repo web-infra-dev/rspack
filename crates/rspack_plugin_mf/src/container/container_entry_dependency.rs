@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
@@ -10,7 +12,7 @@ use crate::{ExposeOptions, ShareScope};
 #[derive(Debug, Clone)]
 pub struct ContainerEntryDependency {
   id: DependencyId,
-  pub name: String,
+  pub name: Arc<str>,
   pub exposes: Vec<(String, ExposeOptions)>,
   pub share_scope: ShareScope,
   pub request: Option<String>,
@@ -23,7 +25,7 @@ pub struct ContainerEntryDependency {
 
 impl ContainerEntryDependency {
   pub fn new(
-    name: String,
+    name: Arc<str>,
     exposes: Vec<(String, ExposeOptions)>,
     share_scope: ShareScope,
     enhanced: bool,
@@ -43,7 +45,7 @@ impl ContainerEntryDependency {
     }
   }
 
-  pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
+  pub fn new_share_container_entry(name: Arc<str>, request: String, version: String) -> Self {
     let resource_identifier = format!("share-container-entry-{}", &name).into();
     Self {
       id: DependencyId::new(),
