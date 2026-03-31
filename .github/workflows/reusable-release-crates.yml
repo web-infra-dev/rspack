@@ -27,6 +27,7 @@ jobs:
     name: Release Crates
     permissions:
       contents: write
+      id-token: write
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"') }}
     needs: [rust_tests]
     if: ${{ github.event_name == 'workflow_dispatch' }}
