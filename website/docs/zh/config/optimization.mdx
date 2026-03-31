@@ -330,7 +330,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="'natural' | 'named' | 'deterministic'"
+  type="'natural' | 'named' | 'deterministic' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -341,11 +341,12 @@ export default {
 
 支持以下字符串值：
 
-| 选项            | 描述                                                                         |
-| --------------- | ---------------------------------------------------------------------------- |
-| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                  |
-| `named`         | 使用有意义、方便调试的内容当作模块 id。                                      |
-| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。 |
+| 选项            | 描述                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| `natural`       | 根据模块加载的顺序使用自增数字作为模块 id。                                                                   |
+| `named`         | 使用有意义、方便调试的内容当作模块 id。                                                                       |
+| `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。                                  |
+| `hashed`        | 使用模块标识符的哈希值作为模块 id。等同于使用默认选项（md4、base64、4 字符）的 `HashedModuleIdsPlugin` 插件。 |
 
 ```js title="rspack.config.mjs"
 export default {
