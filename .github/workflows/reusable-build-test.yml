@@ -166,7 +166,7 @@ jobs:
 
       - name: Debug WASM
         if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        uses: .github/actions/debugger
+        uses: ./.github/actions/debugger
 
       ### WASM
       - name: Test WASM
