@@ -8,7 +8,7 @@ use std::{
   mem::{ManuallyDrop, MaybeUninit},
 };
 
-pub use iterator_consumer::{FutureConsumer, RayonConsumer, RayonFutureConsumer};
+pub use iterator_consumer::{FutureConsumer, RayonConsumer};
 pub use scope::scope;
 
 /// par_iter then collect into vec

@@ -38,7 +38,7 @@ pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
 pub use memory_gc::MemoryGCStorage;
-pub use rspack_parallel::{FutureConsumer, RayonConsumer, RayonFutureConsumer};
+pub use rspack_parallel::{FutureConsumer, RayonConsumer};
 pub use steal_cell::StealCell;
 
 pub use self::{
