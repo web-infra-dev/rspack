@@ -1,20 +1,17 @@
-use std::hash::{Hash, Hasher};
-
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportInfoHashKey, ExportInfoTargetValue, ExportNameOrSpec, ExportProvided, ExportsInfo,
-  ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxHashMap, FxIndexMap, FxIndexSet};
-use rustc_hash::FxHasher;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -23,109 +20,10 @@ struct FlagDependencyExportsState<'a> {
   exports_info_artifact: &'a mut ExportsInfoArtifact,
 }
 
-type TargetExportsInfoCache = FxHashMap<ExportTargetCacheKey, CachedTargetExportsInfo>;
-
 struct NonNestedMergeContext<'a> {
   mg: &'a ModuleGraph,
   exports_info_artifact: &'a ExportsInfoArtifact,
   module_id: &'a ModuleIdentifier,
-  target_exports_info_cache: &'a mut TargetExportsInfoCache,
-}
-
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct NormalizedExportTargetValue {
-  dependency: Option<DependencyId>,
-  export: Option<Vec<Atom>>,
-  priority: u8,
-}
-
-impl From<&ExportInfoTargetValue> for NormalizedExportTargetValue {
-  fn from(value: &ExportInfoTargetValue) -> Self {
-    Self {
-      dependency: value.dependency,
-      export: value.export.clone(),
-      priority: value.priority,
-    }
-  }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-enum NormalizedExportTargets {
-  Single {
-    target_key: Option<DependencyId>,
-    target: NormalizedExportTargetValue,
-  },
-  Multi(FxHashMap<Option<DependencyId>, NormalizedExportTargetValue>),
-}
-
-impl Hash for NormalizedExportTargets {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    std::mem::discriminant(self).hash(state);
-    match self {
-      Self::Single { target_key, target } => {
-        target_key.hash(state);
-        target.hash(state);
-      }
-      Self::Multi(targets) => {
-        state.write_usize(targets.len());
-        let mut hash_sum = 0_u64;
-        let mut hash_xor = 0_u64;
-        for (target_key, target) in targets {
-          let mut hasher = FxHasher::default();
-          target_key.hash(&mut hasher);
-          target.hash(&mut hasher);
-          let entry_hash = hasher.finish();
-          hash_sum = hash_sum.wrapping_add(entry_hash);
-          hash_xor ^= entry_hash.rotate_left(1);
-        }
-        state.write_u64(hash_sum);
-        state.write_u64(hash_xor);
-      }
-    }
-  }
-}
-
-#[derive(Debug, Hash, PartialEq, Eq)]
-struct ExportTargetCacheKey {
-  export_info: ExportInfoHashKey,
-  targets: NormalizedExportTargets,
-}
-
-impl ExportTargetCacheKey {
-  fn from_export_info(export_info: &ExportInfoData) -> Option<Self> {
-    if !export_info.target_is_set() || export_info.target().is_empty() {
-      return None;
-    }
-
-    let max_target = export_info.get_max_target();
-    let targets = if max_target.len() == 1 {
-      let (target_key, target) = max_target
-        .iter()
-        .next()
-        .expect("should have target when target is set");
-      NormalizedExportTargets::Single {
-        target_key: *target_key,
-        target: target.into(),
-      }
-    } else {
-      NormalizedExportTargets::Multi(
-        max_target
-          .iter()
-          .map(|(target_key, target)| (*target_key, target.into()))
-          .collect(),
-      )
-    };
-    Some(Self {
-      export_info: export_info.as_hash_key(),
-      targets,
-    })
-  }
-}
-
-#[derive(Debug, Clone)]
-struct CachedTargetExportsInfo {
-  exports_info: Option<ExportsInfo>,
-  target_module: Option<ModuleIdentifier>,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
@@ -226,12 +124,10 @@ impl<'a> FlagDependencyExportsState<'a> {
             .get_exports_info_data(&module_id)
             .clone();
           let mut dependencies = Vec::with_capacity(exports_specs.len());
-          let mut target_exports_info_cache = TargetExportsInfoCache::default();
           let mut merge_ctx = NonNestedMergeContext {
             mg: self.mg,
             exports_info_artifact: self.exports_info_artifact,
             module_id: &module_id,
-            target_exports_info_cache: &mut target_exports_info_cache,
           };
           for (dep_id, exports_spec) in exports_specs {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
@@ -618,12 +514,8 @@ fn merge_exports_without_nested(
       name,
     );
 
-    let (target_exports_info, target_module) = find_target_exports_info_cached(
-      ctx.mg,
-      ctx.exports_info_artifact,
-      export_info,
-      ctx.target_exports_info_cache,
-    );
+    let (target_exports_info, target_module) =
+      find_target_exports_info(ctx.mg, ctx.exports_info_artifact, export_info);
     if let Some(target_module) = target_module {
       dependencies.push((target_module, *ctx.module_id));
     }
@@ -866,31 +758,5 @@ fn find_target_exports_info(
     target_module = Some(target.module);
   }
 
-  (target_exports_info, target_module)
-}
-
-fn find_target_exports_info_cached(
-  mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
-  export_info: &ExportInfoData,
-  target_exports_info_cache: &mut TargetExportsInfoCache,
-) -> (Option<ExportsInfo>, Option<ModuleIdentifier>) {
-  let Some(cache_key) = ExportTargetCacheKey::from_export_info(export_info) else {
-    return (None, None);
-  };
-
-  if let Some(cached) = target_exports_info_cache.get(&cache_key) {
-    return (cached.exports_info, cached.target_module);
-  }
-
-  let (target_exports_info, target_module) =
-    find_target_exports_info(mg, exports_info_artifact, export_info);
-  target_exports_info_cache.insert(
-    cache_key,
-    CachedTargetExportsInfo {
-      exports_info: target_exports_info,
-      target_module,
-    },
-  );
   (target_exports_info, target_module)
 }
