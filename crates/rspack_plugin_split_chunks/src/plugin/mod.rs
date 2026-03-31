@@ -20,10 +20,10 @@ use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
   get_module_sizes,
-  module_group::{IndexedCacheGroup, ModuleGroup},
+  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey},
 };
 
-type ModuleGroupMap = FxIndexMap<String, ModuleGroup>;
+type ModuleGroupMap = FxIndexMap<ModuleGroupKey, ModuleGroup>;
 
 #[derive(Debug)]
 pub struct PluginOptions {

@@ -4,7 +4,9 @@ use rspack_core::{ModuleIdentifier, SourceType};
 
 use super::ModuleGroupMap;
 use crate::{
-  CacheGroup, SplitChunkSizes, SplitChunksPlugin, common::ModuleSizes, module_group::ModuleGroup,
+  CacheGroup, SplitChunkSizes, SplitChunksPlugin,
+  common::ModuleSizes,
+  module_group::{ModuleGroup, ModuleGroupKey},
 };
 
 pub trait ModulesContainer {
@@ -42,7 +44,7 @@ impl ModulesContainer for ModuleGroup {
 
 /// Return `true` if the `ModuleGroup` become empty.
 pub(crate) fn remove_min_size_violating_modules(
-  module_group_key: &str,
+  module_group_key: &ModuleGroupKey,
   module_group: &mut ModuleGroup,
   cache_group: &CacheGroup,
   module_sizes: &ModuleSizes,
