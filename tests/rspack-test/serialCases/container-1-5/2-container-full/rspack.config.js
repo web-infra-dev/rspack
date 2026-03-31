@@ -20,15 +20,15 @@ module.exports = {
 			},
 			exposes: ["./Self"],
 			shared: {
-				"mocked-react": "mocked-react",
+				"@rspack/mocked-react": "@rspack/mocked-react",
 				"old-react": {
 					import: false,
-					shareKey: "mocked-react",
+					shareKey: "@rspack/mocked-react",
 					requiredVersion: "^2"
 				},
 				"old-react-singleton": {
 					import: false,
-					shareKey: "mocked-react",
+					shareKey: "@rspack/mocked-react",
 					requiredVersion: "^2",
 					singleton: true
 				}
