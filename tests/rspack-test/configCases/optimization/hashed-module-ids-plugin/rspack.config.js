@@ -4,5 +4,5 @@ module.exports = {
 	optimization: {
 		moduleIds: false
 	},
-	plugins: [new webpack.HashedModuleIdsPlugin()]
+	plugins: [new webpack.ids.HashedModuleIdsPlugin()]
 };

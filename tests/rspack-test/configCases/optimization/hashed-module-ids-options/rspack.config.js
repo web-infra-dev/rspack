@@ -6,7 +6,7 @@ module.exports = [
 			moduleIds: false
 		},
 		plugins: [
-			new webpack.HashedModuleIdsPlugin({
+			new webpack.ids.HashedModuleIdsPlugin({
 				hashFunction: "md4",
 				hashDigest: "hex",
 				hashDigestLength: 8

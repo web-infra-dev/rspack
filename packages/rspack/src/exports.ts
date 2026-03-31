@@ -111,7 +111,6 @@ export {
   DynamicEntryPlugin,
   EntryPlugin,
   ExternalsPlugin,
-  HashedModuleIdsPlugin,
   HotModuleReplacementPlugin,
   IgnorePlugin,
   type IgnorePluginOptions,
@@ -176,6 +175,14 @@ interface Electron {
 }
 
 export const electron: Electron = { ElectronTargetPlugin };
+
+import { HashedModuleIdsPlugin } from './builtin-plugin';
+
+interface Ids {
+  HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
+}
+
+export const ids: Ids = { HashedModuleIdsPlugin };
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 
