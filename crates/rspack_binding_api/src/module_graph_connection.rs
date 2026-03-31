@@ -1,8 +1,8 @@
 use std::{cell::RefCell, ptr::NonNull};
 
-use napi::bindgen_prelude::ToNapiValue;
+use napi::bindgen_prelude::{FromNapiValue, ToNapiValue};
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, ConnectionState, DependencyId, ModuleGraph, internal};
+use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph, internal};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
@@ -88,47 +88,22 @@ impl ModuleGraphConnection {
     }
   }
 
-  #[napi(ts_args_type = "runtime: string | string[] | undefined")]
-  pub fn get_active_state(
-    &self,
-    runtime: Option<napi::Either<String, Vec<String>>>,
-  ) -> napi::Result<napi::Either<bool, String>> {
-    let (compilation, module_graph) = self.as_ref()?;
-    if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
-      let runtime_spec = runtime.and_then(|r| {
-        let mut set = ustr::UstrSet::default();
-        match r {
-          napi::Either::A(s) => {
-            set.insert(s.into());
-          }
-          napi::Either::B(vec) => {
-            set.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
-          }
-        }
-        Some(rspack_core::RuntimeSpec::new(set))
-      });
-      let module_graph_cache = compilation
-        .module_graph_cache_artifact
-        .try_read()
-        .map(|r| r as &rspack_core::ModuleGraphCacheArtifact);
-      let default_cache = Default::default();
-      let cache = module_graph_cache.unwrap_or(&default_cache);
-      let state = connection.active_state(
-        module_graph,
-        runtime_spec.as_ref(),
-        cache,
-        &compilation.exports_info_artifact,
-      );
-      Ok(match state {
-        ConnectionState::Active(active) => napi::Either::A(active),
-        ConnectionState::CircularConnection => napi::Either::B("circular".to_string()),
-        ConnectionState::TransitiveOnly => napi::Either::B("transitive-only".to_string()),
+}
+
+pub struct ModuleGraphConnectionRef {
+  pub(crate) dependency_id: DependencyId,
+}
+
+impl FromNapiValue for ModuleGraphConnectionRef {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    unsafe {
+      let connection = <&ModuleGraphConnection>::from_napi_value(env, napi_val)?;
+      Ok(Self {
+        dependency_id: connection.dependency_id,
       })
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
-        self.dependency_id
-      )))
     }
   }
 }

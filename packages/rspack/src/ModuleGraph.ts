@@ -5,10 +5,11 @@ import type {
 } from '@rspack/binding';
 import { ExportsInfo } from './ExportsInfo';
 import type { Module } from './Module';
-
-// Side-effect import: patches ModuleGraphConnection.prototype.getActiveState
-// to return Symbols instead of strings for non-boolean states.
-import './ModuleGraphConnection';
+import {
+  CIRCULAR_CONNECTION,
+  type ConnectionState,
+  TRANSITIVE_ONLY,
+} from './ModuleGraphConnection';
 
 export default class ModuleGraph {
   static __from_binding(binding: JsModuleGraph) {
@@ -70,5 +71,22 @@ export default class ModuleGraph {
 
   getOutgoingConnectionsInOrder(module: Module): ModuleGraphConnection[] {
     return this.#inner.getOutgoingConnectionsInOrder(module);
+  }
+
+  getActiveState(
+    connection: ModuleGraphConnection,
+    runtime: string | string[] | undefined,
+  ): ConnectionState {
+    const state = this.#inner.getActiveState(connection, runtime);
+    if (typeof state === 'boolean') {
+      return state;
+    }
+    if (state === 'transitive-only') {
+      return TRANSITIVE_ONLY;
+    }
+    if (state === 'circular') {
+      return CIRCULAR_CONNECTION;
+    }
+    return state as never;
   }
 }

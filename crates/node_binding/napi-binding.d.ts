@@ -415,6 +415,7 @@ export declare class JsModuleGraph {
   getParentModule(dependency: Dependency): Module | null
   getParentBlockIndex(dependency: Dependency): number
   isAsync(module: Module): boolean
+  getActiveState(connection: ModuleGraphConnection, runtime: string | string[] | undefined): boolean | string
 }
 
 export declare class JsResolver {
@@ -452,7 +453,6 @@ export declare class ModuleGraphConnection {
   get module(): Module | null
   get resolvedModule(): Module | null
   get originModule(): Module | null
-  getActiveState(runtime: string | string[] | undefined): boolean | string | symbol
 }
 
 export declare class NativeWatcher {
