@@ -1,9 +1,7 @@
 use rspack_collections::IdentifierMap;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, ModuleIdentifier,
-};
+use crate::{AsyncDependenciesBlockIdentifier, ChunkGroupUkey, ChunkUkey, ModuleIdentifier};
 
 pub mod chunk_graph_chunk;
 pub mod chunk_graph_module;
