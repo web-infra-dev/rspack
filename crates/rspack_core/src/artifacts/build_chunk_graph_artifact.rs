@@ -191,6 +191,14 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values_mut()
+  {
+    chunk.set_rendered(false);
+  }
+
   if !compilation.incremental.enabled() {
     task(compilation).await?;
     return Ok(());
