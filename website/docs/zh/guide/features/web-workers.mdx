@@ -32,26 +32,24 @@ new Worker(new URL('./worker.js', import.meta.url), {
 选择该语法的原因在于其具备良好的标准兼容性，它基于标准的 ECMAScript 模块规范，即使在没有构建工具的环境中也能正常运行。例如，它可以直接在支持 ES modules 的现代浏览器中执行。
 :::
 
-### 限制
-
-1. 由于 Rspack 依赖静态分析来识别 worker 的使用，因此它有以下两个限制：
-  - `new Worker` 以及其他类似 worker 的 API 通常也可以接受 URL 的字符串表示，但 Rspack 只支持传入 URL 对象。实际使用中，你必须传入 `new URL('./worker.js', import.meta.url)`。
-  - Rspack 无法静态分析 `new Worker` 中使用的变量。例如，以下代码将不起作用：
-
-    ```js
-    const url = new URL('./path/to/worker.js', import.meta.url);
-    const worker = new Worker(url);
-    ```
-
-2. `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释目前仍不支持。
-
-:::
-
 使用示例可参考：
 
 - [examples/worker](https://github.com/rstackjs/rstack-examples/tree/main/rspack/worker)
 - [examples/monaco-editor-js](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-js)
 - [examples/monaco-editor-ts-react](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
+
+### 限制
+
+1. 由于 Rspack 依赖静态分析来识别 worker 的使用，因此它有以下两个限制：
+   - `new Worker` 以及其他类似 worker 的 API 通常也可以接受 URL 的字符串表示，但 Rspack 只支持传入 URL 对象。实际使用中，你必须传入 `new URL('./worker.js', import.meta.url)`。
+   - Rspack 无法静态分析 `new Worker` 中使用的变量。例如，以下代码将不起作用：
+
+     ```js
+     const url = new URL('./path/to/worker.js', import.meta.url);
+     const worker = new Worker(url);
+     ```
+
+2. `/* webpackEntryOptions: { filename: "workers/[name].js" } */` 魔法注释目前仍不支持。
 
 ## 内置语法
 
@@ -77,9 +75,11 @@ const worker = new Worker(new URL('./node-worker.js', import.meta.url));
 - `navigator.serviceWorker.register()`：用于注册 Service Worker，详见 [ServiceWorkerContainer](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)。
 
 ```js
-navigator.serviceWorker.register(new URL('./sw.js', import.meta.url)).then((registration) => {
-  console.log('Service worker registration succeeded:', registration);
-});
+navigator.serviceWorker
+  .register(new URL('./sw.js', import.meta.url))
+  .then((registration) => {
+    console.log('Service worker registration succeeded:', registration);
+  });
 ```
 
 ## 自定义语法
@@ -156,7 +156,9 @@ export default {
   ```js
   const worker = new Worker(new URL('./worker.js', import.meta.url));
 
-  const sharedWorker = new SharedWorker(new URL('./shared-worker.js', import.meta.url));
+  const sharedWorker = new SharedWorker(
+    new URL('./shared-worker.js', import.meta.url),
+  );
   ```
 
 - 内置调用语法：`navigator.serviceWorker.register()`
@@ -201,11 +203,17 @@ export default {
   ```
 
   ```js
-  await CSS.paintWorklet.addModule(new URL('./paint-worklet.js', import.meta.url));
+  await CSS.paintWorklet.addModule(
+    new URL('./paint-worklet.js', import.meta.url),
+  );
 
-  await CSS.layoutWorklet.addModule(new URL('./layout-worklet.js', import.meta.url));
+  await CSS.layoutWorklet.addModule(
+    new URL('./layout-worklet.js', import.meta.url),
+  );
 
-  await CSS?.animationWorklet?.addModule(new URL('./animation-worklet.js', import.meta.url));
+  await CSS?.animationWorklet?.addModule(
+    new URL('./animation-worklet.js', import.meta.url),
+  );
   ```
 
 - AudioWorklet
@@ -217,10 +225,7 @@ export default {
     module: {
       parser: {
         javascript: {
-          worker: [
-            '*audioContext.audioWorklet.addModule()',
-            '...',
-          ],
+          worker: ['*audioContext.audioWorklet.addModule()', '...'],
         },
       },
     },
@@ -230,7 +235,9 @@ export default {
   ```js
   const audioContext = new AudioContext();
 
-  await audioContext.audioWorklet.addModule(new URL('./noise-processor.js', import.meta.url));
+  await audioContext.audioWorklet.addModule(
+    new URL('./noise-processor.js', import.meta.url),
+  );
   ```
 
 - 从第三方包导入 worker
@@ -256,13 +263,17 @@ export default {
   ```js
   import Worker from 'web-worker';
 
-  const browserWorker = new Worker(new URL('./browser-worker.js', import.meta.url));
+  const browserWorker = new Worker(
+    new URL('./browser-worker.js', import.meta.url),
+  );
   ```
 
   ```js
   import { createWorker } from '@myorg/worker';
 
-  const helperWorker = createWorker(new URL('./helper-worker.js', import.meta.url));
+  const helperWorker = createWorker(
+    new URL('./helper-worker.js', import.meta.url),
+  );
   ```
 
 ## worker-loader
