@@ -95,7 +95,7 @@ jobs:
 
       # Linux
       - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         uses: ./.github/actions/docker/linux-build
         with:
           image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
