@@ -94,11 +94,13 @@ jobs:
           tool-cache: false
 
       # Linux
-      - name: Build x86_64-unknown-linux-gnu
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
-        env:
-          TARGET_CC: clang
+      - name: Build x86_64-unknown-linux-gnu in Docker
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker }}
+        uses: ./.github/actions/docker/linux-build
+        with:
+          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+          target: ${{ inputs.target }}
+          profile: ${{ inputs.profile }}
 
       - name: Build aarch64-unknown-linux-gnu
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
