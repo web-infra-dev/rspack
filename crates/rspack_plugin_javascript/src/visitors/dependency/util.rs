@@ -28,6 +28,7 @@ pub mod expr_name {
   pub const IMPORT_META_URL: &str = "import.meta.url";
   pub const IMPORT_META_RESOLVE: &str = "import.meta.resolve";
   pub const IMPORT_META_VERSION: &str = "import.meta.webpack";
+  pub const IMPORT_META_MAIN: &str = "import.meta.main";
   pub const IMPORT_META_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_HOT_DECLINE: &str = "import.meta.webpackHot.decline";

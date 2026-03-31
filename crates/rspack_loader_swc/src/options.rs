@@ -191,6 +191,7 @@ enum KnownSyntaxKind {
   Ts,
   Tsx,
   MtsCts,
+  Unknown,
 }
 
 impl KnownSyntaxKind {
@@ -238,6 +239,12 @@ fn resolve_parser_syntax_for_kind(
         .or_insert(Value::String("typescript".into()));
       parser_map.entry("tsx").or_insert(Value::Bool(true));
     }
+    Some(KnownSyntaxKind::Unknown) => {
+      parser_map
+        .entry("syntax")
+        .or_insert(Value::String("typescript".into()));
+      parser_map.entry("tsx").or_insert(Value::Bool(true));
+    }
     None => {}
   }
 
@@ -261,6 +268,7 @@ struct ResourceSpecificJscCache {
   ts: std::sync::OnceLock<JscConfig>,
   tsx: std::sync::OnceLock<JscConfig>,
   mts_cts: std::sync::OnceLock<JscConfig>,
+  unknown: std::sync::OnceLock<JscConfig>,
 }
 
 impl ResourceSpecificJscCache {
@@ -278,6 +286,7 @@ impl ResourceSpecificJscCache {
       KnownSyntaxKind::Ts => &self.ts,
       KnownSyntaxKind::Tsx => &self.tsx,
       KnownSyntaxKind::MtsCts => &self.mts_cts,
+      KnownSyntaxKind::Unknown => &self.unknown,
     }
   }
 }
@@ -297,12 +306,11 @@ impl ResourceSpecificJscResolver {
   }
 
   fn parse_for_resource(&self, resource_path: &Utf8Path) -> Result<JscConfig, serde_json::Error> {
-    // Only cache the small set of known extension groups. Unknown extensions
-    // stay lazy so invalid parser configs still fail only when that resource is
-    // actually parsed.
-    let Some(kind) = KnownSyntaxKind::from_resource_path(resource_path) else {
-      return self.raw_jsc.parse_for_syntax_kind(None);
-    };
+    // Known extensions keep exact inference. Unknown resources fall back to a
+    // TSX-capable parser so virtual modules and scheme-based resources can
+    // still be compiled under `detectSyntax: "auto"`.
+    let kind =
+      KnownSyntaxKind::from_resource_path(resource_path).unwrap_or(KnownSyntaxKind::Unknown);
 
     if let Some(jsc) = self.cache.get(kind) {
       return Ok(jsc.clone());
@@ -641,5 +649,26 @@ mod tests {
         .to_string()
         .contains("`detectSyntax` only supports `false` or \"auto\", but received \"foo\"")
     );
+  }
+
+  #[test]
+  fn test_detect_syntax_auto_falls_back_to_typescript_tsx_for_unknown_resources() {
+    let raw_options = r#"{
+      "detectSyntax": "auto",
+      "jsc": {
+        "externalHelpers": true,
+        "parser": {
+          "decorators": true
+        }
+      }
+    }"#;
+    let options = parse_options(raw_options);
+    let jsc = resolve_resource_specific_jsc(&options, "/project/virtual-module");
+
+    assert!(matches!(
+      jsc.syntax,
+      Some(Syntax::Typescript(ts)) if ts.tsx && ts.decorators
+    ));
+    assert!(jsc.external_helpers.into_bool());
   }
 }

@@ -1203,7 +1203,29 @@ impl Module for ConcatenatedModule {
               let total_imported_atoms = entry.or_default();
 
               if let Some(ns_import) = &imported.namespace {
-                total_imported_atoms.ns_import = Some(ns_import.clone());
+                if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
+                  info
+                    .internal_names
+                    .insert(ns_import.clone(), internal_ns_import.clone());
+                } else {
+                  let new_name = if name_allocator.contains(ns_import) {
+                    name_allocator.find_new_name(
+                      escaped_names
+                        .get(ns_import)
+                        .expect("should have escaped name")
+                        .as_ref(),
+                      &[],
+                    )
+                  } else {
+                    name_allocator.insert(ns_import.clone());
+                    ns_import.clone()
+                  };
+
+                  info
+                    .internal_names
+                    .insert(ns_import.clone(), new_name.clone());
+                  total_imported_atoms.ns_import = Some(new_name);
+                }
               }
 
               for atom in specifiers {

@@ -4,9 +4,9 @@ use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataFilename, Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment,
-  InitFragmentKey, ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template, get_undo_path,
-  render_imports, render_init_fragments,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_imports,
+  render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -15,7 +15,6 @@ use rspack_plugin_javascript::{
   dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
-use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -291,15 +290,10 @@ var {} = {{}};
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already.
-      // Only export __webpack_require__ from pure runtime chunks.
-      // Entry-with-runtime chunks use it internally but nothing imports from them.
+      // Link already decides whether `__webpack_require__` is exported via a runtime module.
+      // Only pure runtime chunks without that runtime-module export should emit a direct export.
       if is_pure_runtime_chunk
-        && !compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_runtime_modules_iterable(chunk_ukey)
-          .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
+        && !chunk_link.exports_require_via_runtime_module
         && effective_tree_requirements
           .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
@@ -562,49 +556,6 @@ var {} = {{}};
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
       import_source.add(RawStringSource::from_static("\n"));
-    }
-
-    // Deduplicate: remove init fragments for external modules whose namespace
-    // import is already provided by raw_import_stmts.
-    // This prevents duplicate `import * as X from "source"` when the same external
-    // module is referenced by both scope-hoisted and non-scope-hoisted modules.
-    // We only drop the fragment when raw_import_stmts already includes a namespace
-    // import (`ns_import`) for the same source+attributes, because a namespace
-    // binding (`__rspack_external_<id>`) is what the non-scope-hoisted module body
-    // references. Named-only imports would not provide that binding.
-    {
-      let ns_import_sources: FxHashSet<String> = chunk_link
-        .raw_import_stmts
-        .iter()
-        .filter_map(|(source, spec)| {
-          spec.ns_import.as_ref()?;
-          match source {
-            RawImportSource::Source((s, attr)) => {
-              // Reconstruct the key format used by module_external_fragment_key:
-              // "source" or "source|json_attrs"
-              let key = if let Some(attr_str) = attr {
-                // attr_str has format " with {json}" - strip the " with " prefix
-                let json_part = attr_str.strip_prefix(" with ").unwrap_or(attr_str);
-                format!("{s}|{json_part}")
-              } else {
-                s.clone()
-              };
-              Some(key)
-            }
-            _ => None,
-          }
-        })
-        .collect();
-
-      if !ns_import_sources.is_empty() {
-        chunk_init_fragments.retain(|frag| {
-          if let InitFragmentKey::ModuleExternal(key) = frag.key() {
-            !ns_import_sources.contains(key)
-          } else {
-            true
-          }
-        });
-      }
     }
 
     // render init fragments

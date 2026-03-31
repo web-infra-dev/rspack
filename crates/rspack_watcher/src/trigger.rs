@@ -48,7 +48,7 @@ impl<'a> DependencyFinder<'a> {
     }
 
     // Recursively add all parent directories that are registered as directories or missing.
-    self.recursiron_directories(path, &mut paths);
+    self.recurse_parent_directories(path, &mut paths);
 
     paths
   }
@@ -68,14 +68,14 @@ impl<'a> DependencyFinder<'a> {
   }
 
   /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recursiron_directories(&self, path: &ArcPath, paths: &mut Vec<(ArcPath, FsEventKind)>) {
+  fn recurse_parent_directories(&self, path: &ArcPath, paths: &mut Vec<(ArcPath, FsEventKind)>) {
     match path.parent() {
       Some(parent) => {
         if self.contains_directory(&ArcPath::from(parent)) {
           // For parent directory, it always FsEventKind::Change its recursive children no matter what kind is
           paths.push((ArcPath::from(parent), FsEventKind::Change));
         }
-        self.recursiron_directories(&ArcPath::from(parent), paths);
+        self.recurse_parent_directories(&ArcPath::from(parent), paths);
       }
       None => {
         // Reached the root directory, stop recursion

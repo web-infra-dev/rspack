@@ -60,7 +60,7 @@ jobs:
         run: cargo codegen
 
       - name: Build benchmark (simulation,memory)
-        run: cargo codspeed build -m simulation,memory --profile codspeed -p rspack_benchmark --features codspeed
+        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Run benchmark (simulation,memory)
         uses: ./.github/actions/codspeed
@@ -68,7 +68,7 @@ jobs:
         env:
           RAYON_NUM_THREADS: '1'
         with:
-          mode: 'simulation,memory'
+          mode: 'simulation'
           run: pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.12.1

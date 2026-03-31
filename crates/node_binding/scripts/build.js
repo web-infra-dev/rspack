@@ -70,8 +70,6 @@ async function build() {
 		}
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
-			// Strip debug format to reduce wasm size of @rspack/browser
-			rustflags.push("-Zfmt-debug=none");
 		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {

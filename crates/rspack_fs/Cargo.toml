@@ -22,3 +22,6 @@ tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

@@ -1,0 +1,23 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./index.js
+
+
+
+
+
+it("should re-export an imported external namespace alongside named exports from the same source", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.fsNs.readFile).toBe(mod.readFile);
+  expect(mod.fsNs.readFileSync).toBe(mod.readFileSync);
+});
+
+var readFile = __rspack_external_fs.readFile;
+var readFileSync = __rspack_external_fs.readFileSync;
+export { __rspack_external_fs as fsNs, readFile, readFileSync };
+
+```

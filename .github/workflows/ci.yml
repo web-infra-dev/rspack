@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: nscloud-ubuntu-24.04-amd64-1x2
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
+      runner: '"nscloud-ubuntu-24.04-amd64-4x16;container.privileged=true;container.host-pid-namespace=true"'
 
   test-windows:
     name: Test Windows
@@ -114,17 +114,24 @@ jobs:
       test-runner: ${{ '"macos-latest"' }}
       test: true
 
-  test-wasm:
-    name: Test WASM
+  build-wasm:
+    name: Build WASM
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test-runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test: true
+      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
+
+  test-wasm:
+    name: Test WASM
+    needs: [check-changed, build-wasm]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      target: wasm32-wasip1-threads
+      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
 
   check-codspeed:
     name: Check Bench Result
@@ -160,13 +167,13 @@ jobs:
         with:
           name: testCase-persistentCache-linux
           path: ./cache-linux
-          force-use-github: true
+          force-use-github-only: true
       - name: Download windows cache
         uses: ./.github/actions/artifact/download
         with:
           name: testCase-persistentCache-windows
           path: ./cache-windows
-          force-use-github: true
+          force-use-github-only: true
       - name: Run compare kit
         run: |
           echo "success"
@@ -185,6 +192,7 @@ jobs:
         test-linux,
         test-windows,
         test-mac,
+        build-wasm,
         test-wasm,
         check-changed,
         size-limit,
@@ -198,13 +206,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: No check to Run test

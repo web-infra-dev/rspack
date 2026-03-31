@@ -11,7 +11,7 @@ on:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: nscloud-ubuntu-24.04-amd64-1x2
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -104,7 +104,7 @@ jobs:
           cargo xtask deny-ext
 
       - uses: cargo-bins/cargo-binstall@80aaafe04903087c333980fa2686259ddd34b2d9 # v1.16.6
-      - run: cargo binstall --no-confirm cargo-shear@1.1.12 --force
+      - run: cargo binstall --no-confirm cargo-shear@1.11.2 --force
       - run: cargo shear
 
   rust_test:

@@ -7,7 +7,9 @@ name              = "rspack_napi_macros"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 [lib]
+doctest    = false
 proc-macro = true
+test       = false
 
 [dependencies]
 proc-macro2 = { workspace = true }
