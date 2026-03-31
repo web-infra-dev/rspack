@@ -17,6 +17,7 @@
     "@babel/preset-react": "^7.28.5",
     "@module-federation/runtime-tools": "2.2.3",
     "@rspack/binding-testing": "workspace:*",
+    "@rspack/mocked-react": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-preact-refresh": "1.1.5",

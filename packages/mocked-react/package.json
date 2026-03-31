@@ -1,0 +1,8 @@
+{
+  "name": "@rspack/mocked-react",
+  "version": "2.1.0",
+  "description": "Mocked React for Rspack internal testing",
+  "main": "index.js",
+  "license": "MIT",
+  "private": true
+}

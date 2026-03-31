@@ -221,6 +221,8 @@ importers:
         specifier: ^6.0.2
         version: 6.0.2
 
+  packages/mocked-react: {}
+
   packages/rspack:
     dependencies:
       '@module-federation/runtime-tools':
@@ -608,6 +610,9 @@ importers:
       '@rspack/core':
         specifier: workspace:*
         version: link:../../packages/rspack
+      '@rspack/mocked-react':
+        specifier: workspace:*
+        version: link:../../packages/mocked-react
       '@rspack/plugin-preact-refresh':
         specifier: 1.1.5
         version: 1.1.5(@prefresh/core@1.5.9(preact@10.29.0))(@prefresh/utils@1.2.1)
