@@ -119,6 +119,7 @@ The following rules explain the custom syntax:
   - `'foo.bar()'` will match `foo.bar(new URL("./worker.js", import.meta.url))`.
 - Use `*` to match a root object by its exact variable name. Unlike plain member syntax, the root object here is a declared variable rather than a free variable.
   - `'*foo.bar()'` will match `const foo = new WorkletContext(); foo.bar(new URL("./processor.js", import.meta.url))`.
+  - For now, `*`-prefixed syntax supports only call syntax; constructor syntax such as `'*foo.bar'` is not supported.
 - Use `from` to match an imported binding from an exact ESM source.
   - `'Foo from pkg'` will match `import { Foo } from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`.
   - `'default from pkg'` will match `import Foo from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`.

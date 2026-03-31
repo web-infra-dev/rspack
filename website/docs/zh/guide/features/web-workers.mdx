@@ -119,6 +119,7 @@ export default {
   - `'foo.bar()'` 会匹配 `foo.bar(new URL("./worker.js", import.meta.url))`。
 - 可以使用 `*` 按变量名精确匹配根对象。和普通成员语法不同，这里的根对象是一个已声明变量，而不是自由变量。
   - `'*foo.bar()'` 会匹配 `const foo = new WorkletContext(); foo.bar(new URL("./processor.js", import.meta.url))`。
+  - 目前仅支持调用语法，构造器语法如 `'*foo.bar'` 暂不支持。
 - 可以使用 `from` 来匹配来自某个精确 ESM source 的导入绑定。
   - `'Foo from pkg'` 会匹配 `import { Foo } from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`。
   - `'default from pkg'` 会匹配 `import Foo from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`。
