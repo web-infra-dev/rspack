@@ -415,7 +415,6 @@ export declare class JsModuleGraph {
   getParentModule(dependency: Dependency): Module | null
   getParentBlockIndex(dependency: Dependency): number
   isAsync(module: Module): boolean
-  getActiveState(connection: ModuleGraphConnection, runtime: string | string[] | undefined): boolean | string
 }
 
 export declare class JsResolver {
@@ -448,11 +447,16 @@ export declare class Module {
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
+export declare const CIRCULAR_CONNECTION: unique symbol
+export declare const TRANSITIVE_ONLY: unique symbol
+export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION | typeof TRANSITIVE_ONLY
+
 export declare class ModuleGraphConnection {
   get dependency(): Dependency
   get module(): Module | null
   get resolvedModule(): Module | null
   get originModule(): Module | null
+  getActiveState(runtime: string | string[] | undefined): ConnectionState
 }
 
 export declare class NativeWatcher {

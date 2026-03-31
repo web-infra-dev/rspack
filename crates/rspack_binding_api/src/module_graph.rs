@@ -2,13 +2,13 @@ use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString, bindgen_prelude::Array};
 use napi_derive::napi;
-use rspack_core::{Compilation, ConnectionState, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
+use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
 
 use crate::{
   dependencies::DependencyObject,
   exports_info::JsExportsInfo,
   module::{ModuleObject, ModuleObjectRef},
-  module_graph_connection::{ModuleGraphConnectionRef, ModuleGraphConnectionWrapper},
+  module_graph_connection::ModuleGraphConnectionWrapper,
 };
 
 #[napi]
@@ -271,50 +271,4 @@ impl JsModuleGraph {
     ))
   }
 
-  #[napi(
-    ts_args_type = "connection: ModuleGraphConnection, runtime: string | string[] | undefined"
-  )]
-  pub fn get_active_state(
-    &self,
-    connection: ModuleGraphConnectionRef,
-    runtime: Option<Either<String, Vec<String>>>,
-  ) -> napi::Result<Either<bool, String>> {
-    let (compilation, module_graph) = self.as_ref()?;
-    if let Some(conn) = module_graph.connection_by_dependency_id(&connection.dependency_id) {
-      let runtime_spec = runtime.and_then(|r| {
-        let mut set = ustr::UstrSet::default();
-        match r {
-          Either::A(s) => {
-            set.insert(s.into());
-          }
-          Either::B(vec) => {
-            set.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
-          }
-        }
-        Some(RuntimeSpec::new(set))
-      });
-      let module_graph_cache = compilation
-        .module_graph_cache_artifact
-        .try_read()
-        .map(|r| r as &rspack_core::ModuleGraphCacheArtifact);
-      let default_cache = Default::default();
-      let cache = module_graph_cache.unwrap_or(&default_cache);
-      let state = conn.active_state(
-        module_graph,
-        runtime_spec.as_ref(),
-        cache,
-        &compilation.exports_info_artifact,
-      );
-      Ok(match state {
-        ConnectionState::Active(active) => Either::A(active),
-        ConnectionState::CircularConnection => Either::B("circular".to_string()),
-        ConnectionState::TransitiveOnly => Either::B("transitive-only".to_string()),
-      })
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
-        connection.dependency_id
-      )))
-    }
-  }
 }
