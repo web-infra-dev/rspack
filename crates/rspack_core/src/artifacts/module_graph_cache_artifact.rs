@@ -6,6 +6,7 @@ use std::sync::{
 use concatenated_module_entries::*;
 pub use determine_export_assignments::DetermineExportAssignmentsKey;
 use determine_export_assignments::*;
+use get_condition_state::*;
 use get_exports_type::*;
 use get_mode::*;
 use get_side_effects_connection_state::*;
@@ -27,6 +28,7 @@ pub struct ModuleGraphCacheArtifactInner {
   /// But in rust I think it's better to use a bool flag to avoid memory reallocation.
   freezed: AtomicBool,
   get_mode_cache: GetModeCache,
+  get_condition_state_cache: GetConditionStateCache,
   determine_export_assignments_cache: DetermineExportAssignmentsCache,
   get_exports_type_cache: GetExportsTypeCache,
   get_side_effects_connection_state_cache: GetSideEffectsConnectionStateCache,
@@ -37,6 +39,7 @@ pub struct ModuleGraphCacheArtifactInner {
 impl ModuleGraphCacheArtifactInner {
   pub fn freeze(&self) {
     self.get_mode_cache.freeze();
+    self.get_condition_state_cache.freeze();
     self.determine_export_assignments_cache.freeze();
     self.get_exports_type_cache.freeze();
     self.get_side_effects_connection_state_cache.freeze();
@@ -82,6 +85,25 @@ impl ModuleGraphCacheArtifactInner {
       None => {
         let value = f();
         self.get_mode_cache.set(key, value.clone());
+        value
+      }
+    }
+  }
+
+  pub fn cached_get_condition_state<F: FnOnce() -> ConnectionState>(
+    &self,
+    key: GetConditionStateCacheKey,
+    f: F,
+  ) -> ConnectionState {
+    if !self.freezed.load(Ordering::Acquire) {
+      return f();
+    }
+
+    match self.get_condition_state_cache.get(&key) {
+      Some(value) => value,
+      None => {
+        let value = f();
+        self.get_condition_state_cache.set(key, value);
         value
       }
     }
@@ -303,6 +325,36 @@ pub(super) mod get_mode {
     }
 
     pub fn set(&self, key: GetModeCacheKey, value: ExportMode) {
+      self
+        .cache
+        .write()
+        .expect("should get lock")
+        .insert(key, value);
+    }
+  }
+}
+
+pub(super) mod get_condition_state {
+  use super::*;
+
+  pub type GetConditionStateCacheKey = (DependencyId, Option<RuntimeKey>);
+
+  #[derive(Debug, Default)]
+  pub struct GetConditionStateCache {
+    cache: RwLock<HashMap<GetConditionStateCacheKey, ConnectionState>>,
+  }
+
+  impl GetConditionStateCache {
+    pub fn freeze(&self) {
+      self.cache.write().expect("should get lock").clear();
+    }
+
+    pub fn get(&self, key: &GetConditionStateCacheKey) -> Option<ConnectionState> {
+      let inner = self.cache.read().expect("should get lock");
+      inner.get(key).copied()
+    }
+
+    pub fn set(&self, key: GetConditionStateCacheKey, value: ConnectionState) {
       self
         .cache
         .write()

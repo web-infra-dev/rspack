@@ -14,7 +14,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem, get_runtime_key,
 };
 mod module;
 pub use module::*;
@@ -1009,17 +1009,25 @@ impl ModuleGraph {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    let condition = self
-      .inner
-      .connection_to_condition
-      .get(&connection.dependency_id)
-      .expect("should have condition");
-    condition.get_connection_state(
-      connection,
-      runtime,
-      self,
-      module_graph_cache,
-      exports_info_artifact,
+    module_graph_cache.cached_get_condition_state(
+      (
+        connection.dependency_id,
+        runtime.map(get_runtime_key).cloned(),
+      ),
+      || {
+        let condition = self
+          .inner
+          .connection_to_condition
+          .get(&connection.dependency_id)
+          .expect("should have condition");
+        condition.get_connection_state(
+          connection,
+          runtime,
+          self,
+          module_graph_cache,
+          exports_info_artifact,
+        )
+      },
     )
   }
 
