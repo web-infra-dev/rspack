@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt};
 
 use derive_more::Debug;
 use itertools::Itertools;
@@ -27,6 +27,39 @@ impl<'a> IndexedCacheGroup<'a> {
 
   pub fn compare_by_index(&self, other: &Self) -> Ordering {
     self.cache_group_index.cmp(&other.cache_group_index)
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub(crate) enum ModuleGroupKey {
+  Named {
+    cache_group_index: u32,
+    chunk_name: String,
+  },
+  Anonymous {
+    cache_group_index: u32,
+    chunks_key: u64,
+  },
+}
+
+impl fmt::Display for ModuleGroupKey {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Named {
+        cache_group_index,
+        chunk_name,
+      } => write!(
+        f,
+        "named(cache_group_index={cache_group_index}, chunk_name={chunk_name})"
+      ),
+      Self::Anonymous {
+        cache_group_index,
+        chunks_key,
+      } => write!(
+        f,
+        "anonymous(cache_group_index={cache_group_index}, chunks_key={chunks_key:x})"
+      ),
+    }
   }
 }
 
@@ -167,8 +200,8 @@ impl ModuleGroup {
 }
 
 pub(crate) fn compare_entries(
-  (a_key, a): (&String, &ModuleGroup),
-  (b_key, b): (&String, &ModuleGroup),
+  (a_key, a): (&ModuleGroupKey, &ModuleGroup),
+  (b_key, b): (&ModuleGroupKey, &ModuleGroup),
 ) -> f64 {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
@@ -228,5 +261,9 @@ pub(crate) fn compare_entries(
     }
   }
 
-  a_key.cmp(b_key) as i32 as f64
+  match a_key.cmp(b_key) {
+    Ordering::Less => -1.0,
+    Ordering::Equal => 0.0,
+    Ordering::Greater => 1.0,
+  }
 }
