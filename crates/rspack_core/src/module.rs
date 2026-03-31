@@ -3,7 +3,6 @@ use std::{
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
   hash::Hash,
-  rc::Rc,
   sync::Arc,
 };
 
@@ -492,7 +491,7 @@ fn get_exports_type_impl(
               export_info,
               mg,
               exports_info_artifact,
-              Rc::new(|_| true),
+              &|_| true,
               &mut Default::default(),
             ) else {
               return ExportsType::Dynamic;

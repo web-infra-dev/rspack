@@ -2,6 +2,7 @@ mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;
 mod import_meta_context_dependency;
+mod import_meta_resolve_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
 mod url_context_dependency;
@@ -15,6 +16,9 @@ pub use common_js_require_context_dependency::{
 pub use import_context_dependency::{ImportContextDependency, ImportContextDependencyTemplate};
 pub use import_meta_context_dependency::{
   ImportMetaContextDependency, ImportMetaContextDependencyTemplate,
+};
+pub use import_meta_resolve_context_dependency::{
+  ImportMetaResolveContextDependency, ImportMetaResolveContextDependencyTemplate,
 };
 use itertools::Itertools;
 pub use require_context_dependency::{RequireContextDependency, RequireContextDependencyTemplate};

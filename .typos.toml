@@ -13,7 +13,6 @@ extend-exclude = [
   "**/CHANGELOG.md",
   "GOVERNANCE.md",
   "pnpm-lock.yaml",
-  "biome.jsonc",
   "scripts/test/diff.cjs",
   "scripts/test/binary-path.cjs",
 ]

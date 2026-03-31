@@ -23,3 +23,6 @@ unicode-width = { workspace = true }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

@@ -5,8 +5,6 @@ license           = "MIT"
 name              = "rspack_allocator"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[dependencies]
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 sftrace-setup = { workspace = true, optional = true }
@@ -22,8 +20,9 @@ mimalloc = { workspace = true, features = ["v3"] }
 [target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dependencies]
 mimalloc = { workspace = true, features = ["v3"] }
 
-[package.metadata.cargo-shear]
-ignored = ["tracy-client-sys"]
-
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

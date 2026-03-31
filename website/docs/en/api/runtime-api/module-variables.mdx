@@ -4,7 +4,7 @@ description: 'This section covers all variables available in code compiled with 
 
 import WebpackLicense from '@components/WebpackLicense';
 import Columns from '@components/Columns';
-import { ApiMeta } from '@components/ApiMeta';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/api/module-variables/" />
 
@@ -130,6 +130,20 @@ typeof import.meta.url
 ```
 
 </Columns>
+
+### import.meta.resolve
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+Like [`require.resolve()`](/api/runtime-api/module-methods#requireresolve), this includes the module in the final bundle and returns the module ID.
+
+```ts
+import.meta.resolve(dependency: string);
+```
+
+:::warning
+`import.meta.resolve()` is currently experimental. To use it, you must enable [`module.parser.javascript.importMetaResolve`](/config/module#moduleparserjavascriptimportmetaresolve). Rspack also plans to [align this API with the standard behavior](https://github.com/openjs-foundation/bundler-collab-space/issues/8) in the future, so its behavior may change. Use it with caution.
+:::
 
 ### import.meta.webpackContext
 

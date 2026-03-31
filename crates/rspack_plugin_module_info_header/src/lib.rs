@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash, rc::Rc};
+use std::{borrow::Cow, hash::Hash};
 
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
@@ -74,7 +74,7 @@ fn print_exports_info_to_source<F>(
       export_info,
       module_graph,
       exports_info_artifact,
-      Rc::new(|_| true),
+      &|_| true,
       &mut Default::default(),
     ) {
       Some(GetTargetResult::Target(resolve_target)) => {
@@ -125,7 +125,7 @@ fn print_exports_info_to_source<F>(
       other_exports_info,
       module_graph,
       exports_info_artifact,
-      Rc::new(|_| true),
+      &|_| true,
       &mut Default::default(),
     );
     if matches!(target, Some(GetTargetResult::Target(_)))
