@@ -1,0 +1,44 @@
+```mjs title=main.mjs
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// fs
+const external_fs_namespaceObject = __rspack_createRequire_require("fs");
+// ./named.js
+
+
+// path
+const external_path_namespaceObject = __rspack_createRequire_require("path");
+// ./path-ns.js
+// Intentionally use an fs-shaped local name for the path namespace to trigger
+// a cross-module external-name collision.
+
+
+const joinFn = Reflect.get(external_path_namespaceObject, "join");
+
+
+
+// ./index.js
+
+
+
+it("should deconflict concatenated namespace imports that match generated node-commonjs names", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const { createRequire } = await import("node:module");
+  const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-namespace-name-collision-across-modules/index.js');
+  const fs = require("fs");
+  const path = require("path");
+
+  expect(mod.readFile).toBe(fs.readFile);
+  expect(mod.readFileSync).toBe(fs.readFileSync);
+  expect(mod.pathNs.sep).toBe(path.sep);
+  expect(mod.pathNs.join).toBe(path.join);
+  expect(mod.joinFn).toBe(path.join);
+});
+
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+var readFile = external_fs_namespaceObject.readFile;
+var readFileSync = external_fs_namespaceObject.readFileSync;
+export { external_path_namespaceObject as pathNs, joinFn, readFile, readFileSync };
+
+```

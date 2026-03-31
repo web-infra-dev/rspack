@@ -50,11 +50,10 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies
-        uses: ./.github/actions/pnpm/install-binding-dependencies
-        with:
-          # binding dependencies so small that we don't need to cache them
-          # a fresh new installation takes about 5s
-          save-if: false
+        run: |
+          cd ./crates/node_binding
+          pnpm i --ignore-workspace --no-lockfile
+          cd ../../
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -97,7 +96,7 @@ jobs:
       # Linux
       - name: Build x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+        run: RUST_TARGET=x86_64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
 
