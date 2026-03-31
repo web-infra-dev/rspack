@@ -32,7 +32,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 选择该语法的原因在于其具备良好的标准兼容性，它基于标准的 ECMAScript 模块规范，即使在没有构建工具的环境中也能正常运行。例如，它可以直接在支持 ES modules 的现代浏览器中执行。
 :::
 
-:::warning
+### 限制
 
 1. 由于 Rspack 依赖静态分析来识别 worker 的使用，因此它有以下两个限制：
   - `new Worker` 以及其他类似 worker 的 API 通常也可以接受 URL 的字符串表示，但 Rspack 只支持传入 URL 对象。实际使用中，你必须传入 `new URL('./worker.js', import.meta.url)`。
@@ -92,22 +92,22 @@ navigator.serviceWorker.register(new URL('./sw.js', import.meta.url)).then((regi
 
 内置语法也是通过同一套机制实现的。`'...'` 这个占位符可以展开为以下条目：
 
-  ```js title="rspack.config.mjs"
-  export default {
-    module: {
-      parser: {
-        javascript: {
-          worker: [
-            'Worker',
-            'SharedWorker',
-            'navigator.serviceWorker.register()',
-            'Worker from worker_threads',
-          ],
-        },
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          'Worker',
+          'SharedWorker',
+          'navigator.serviceWorker.register()',
+          'Worker from worker_threads',
+        ],
       },
     },
-  };
-  ```
+  },
+};
+```
 
 下面这些规则说明了自定义语法的含义：
 
@@ -118,7 +118,6 @@ navigator.serviceWorker.register(new URL('./sw.js', import.meta.url)).then((regi
   - `'foo.bar'` 会匹配 `new foo.bar(new URL("./worker.js", import.meta.url))`。
   - `'foo.bar()'` 会匹配 `foo.bar(new URL("./worker.js", import.meta.url))`。
 - 可以使用 `*` 按变量名精确匹配根对象。和普通成员语法不同，这里的根对象是一个已声明变量，而不是自由变量。
-  - `'*foo.bar'` 会匹配 `const foo = new WorkletContext(); new foo.bar(new URL("./processor.js", import.meta.url))`。
   - `'*foo.bar()'` 会匹配 `const foo = new WorkletContext(); foo.bar(new URL("./processor.js", import.meta.url))`。
 - 可以使用 `from` 来匹配来自某个精确 ESM source 的导入绑定。
   - `'Foo from pkg'` 会匹配 `import { Foo } from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`。

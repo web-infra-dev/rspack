@@ -32,7 +32,7 @@ new Worker(new URL('./worker.js', import.meta.url), {
 This syntax was chosen for its strong standards compliance. It's built on the standard ECMAScript module specification, which means it works seamlessly even without build tools. For example, it runs natively in modern browsers with ES module support.
 :::
 
-:::warning
+### Limitations
 
 1. Because Rspack relies on static analysis to identify worker usage, it has the following two limitations:
   - `new Worker` and other worker-like APIs can usually also accept a string representation of a URL, but Rspack only supports passing a URL object. In practice, you must pass `new URL('./worker.js', import.meta.url)`.
@@ -92,22 +92,22 @@ Use [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptwor
 
 The built-in syntax is implemented using the same mechanism. The `'...'` placeholder can be expanded to the following entries:
 
-  ```js title="rspack.config.mjs"
-  export default {
-    module: {
-      parser: {
-        javascript: {
-          worker: [
-            'Worker',
-            'SharedWorker',
-            'navigator.serviceWorker.register()',
-            'Worker from worker_threads',
-          ],
-        },
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          'Worker',
+          'SharedWorker',
+          'navigator.serviceWorker.register()',
+          'Worker from worker_threads',
+        ],
       },
     },
-  };
-  ```
+  },
+};
+```
 
 The following rules explain the custom syntax:
 
@@ -118,7 +118,6 @@ The following rules explain the custom syntax:
   - `'foo.bar'` will match `new foo.bar(new URL("./worker.js", import.meta.url))`.
   - `'foo.bar()'` will match `foo.bar(new URL("./worker.js", import.meta.url))`.
 - Use `*` to match a root object by its exact variable name. Unlike plain member syntax, the root object here is a declared variable rather than a free variable.
-  - `'*foo.bar'` will match `const foo = new WorkletContext(); new foo.bar(new URL("./processor.js", import.meta.url))`.
   - `'*foo.bar()'` will match `const foo = new WorkletContext(); foo.bar(new URL("./processor.js", import.meta.url))`.
 - Use `from` to match an imported binding from an exact ESM source.
   - `'Foo from pkg'` will match `import { Foo } from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`.
