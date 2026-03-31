@@ -22,7 +22,7 @@ permissions:
   issues: write
 
 jobs:
-  bench:
+  bench-rust:
     name: 'Bench Rust'
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
