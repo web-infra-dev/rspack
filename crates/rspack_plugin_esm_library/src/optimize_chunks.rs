@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
@@ -303,6 +303,15 @@ pub(crate) fn analyze_dyn_import_targets(
         continue;
       }
       let target = conn.module_identifier();
+      // Skip orphan modules — they are not in any chunk (e.g. tree-shaken or worker entries)
+      if compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*target)
+        .is_empty()
+      {
+        continue;
+      }
       all_dyn_targets.insert(*target);
 
       if !concatenated_modules.contains(target) {
@@ -343,7 +352,13 @@ pub(crate) fn analyze_dyn_import_targets(
       continue;
     }
 
-    let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+    let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+        continue;
+      }
+    };
     let chunk_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -391,7 +406,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
@@ -450,7 +471,13 @@ pub(crate) fn analyze_dyn_import_targets(
       if module.as_external_module().is_some() {
         continue;
       }
-      let chunk_ukey = EsmLibraryPlugin::get_module_chunk(*module_id, compilation);
+      let chunk_ukey = match EsmLibraryPlugin::get_module_chunk(*module_id, compilation) {
+        Ok(c) => c,
+        Err(e) => {
+          tracing::warn!(error = %e, "failed to resolve module chunk during optimize_chunks");
+          continue;
+        }
+      };
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
@@ -479,24 +506,68 @@ pub(crate) fn analyze_dyn_import_targets(
 
 /// Compute a short name from a module identifier.
 ///
-/// Rules:
-/// - If the filename stem is "index", use the parent directory name
-/// - Otherwise, use the filename stem (without extension)
+/// Identifiers may carry a module-type prefix (`css|…`), trailing metadata
+/// separated by `|`, or a `?query` suffix.  These are stripped first so that
+/// only the clean file path is used for name derivation.
+///
+/// Rules (applied to the cleaned path):
+/// - If the filename stem is "index" and the path is inside `node_modules`,
+///   use the package name (the segment right after `node_modules/`,
+///   or `@scope/pkg` for scoped packages).
+/// - If the filename stem is "index" otherwise, use the parent directory name.
+/// - Otherwise, use the filename stem (without extension).
 ///
 /// Examples:
-/// - `node_modules/lib/index.js` → `lib`
-/// - `/path/to/src/index.js` → `src`
+/// - `node_modules/lib/dist/index.js` → `lib`
+/// - `node_modules/@scope/pkg/dist/index.js` → `@scope/pkg`
 /// - `/path/to/src/app.js` → `app`
+/// - `css|./node_modules/lib/dist/index.css|0||||}` → `lib`
+/// - `/path/to/src/index.js?query=1` → `src`
 fn short_name_from_identifier(identifier: &str) -> Option<String> {
-  let path = Path::new(identifier);
-  let stem = path.file_stem()?.to_str()?;
-  if stem == "index" {
-    let parent = path.parent()?;
-    let dir_name = parent.file_name()?.to_str()?;
-    Some(dir_name.to_string())
+  // Strip ?query suffix.
+  let s = identifier
+    .split_once('?')
+    .map_or(identifier, |(path, _)| path);
+
+  // Strip module-type prefix and trailing metadata.
+  // e.g. "css|./path/to/file.css|0||||}" → "./path/to/file.css"
+  let s = if let Some((_, rest)) = s.split_once('|') {
+    rest.split('|').next().unwrap_or(rest)
   } else {
-    Some(stem.to_string())
+    s
+  };
+
+  // Normalize Windows backslashes to forward slashes so that all subsequent
+  // string operations work uniformly regardless of platform.
+  use cow_utils::CowUtils;
+  let s = s.cow_replace('\\', "/");
+  let s = s.as_ref();
+
+  let last_slash = s.rfind('/');
+  let filename = last_slash.map_or(s, |p| &s[p + 1..]);
+  let stem = filename.rsplit_once('.').map_or(filename, |(name, _)| name);
+
+  if stem != "index" {
+    return Some(stem.to_owned());
   }
+
+  // For index files inside node_modules, extract the package name.
+  if let Some(nm_pos) = s.rfind("node_modules/") {
+    let after_nm = &s[nm_pos + "node_modules/".len()..];
+    let pkg_end = if after_nm.starts_with('@') {
+      // Scoped package (@scope/pkg): find the second '/'.
+      let first = after_nm.find('/')?;
+      first + 1 + after_nm[first + 1..].find('/')?
+    } else {
+      after_nm.find('/')?
+    };
+    return Some(after_nm[..pkg_end].to_owned());
+  }
+
+  // Fallback: parent directory name.
+  let dir = &s[..last_slash?];
+  let start = dir.rfind('/').map_or(0, |p| p + 1);
+  Some(dir[start..].to_owned())
 }
 
 /// For unnamed dynamic-import chunks with exactly one root module,
@@ -610,5 +681,133 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
       .build_chunk_graph_artifact
       .named_chunks
       .insert(name, chunk_ukey);
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::short_name_from_identifier;
+
+  #[test]
+  fn short_name_non_index_file() {
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/app.js"),
+      Some("app".into())
+    );
+  }
+
+  #[test]
+  fn short_name_index_uses_parent_dir() {
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/index.js"),
+      Some("src".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_flat() {
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/index.js"),
+      Some("lib".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_nested() {
+    // The main bug: node_modules/lib/dist/index.js should return "lib", not "dist"
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/dist/index.js"),
+      Some("lib".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("/abs/path/node_modules/my-pkg/lib/index.js"),
+      Some("my-pkg".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_scoped() {
+    assert_eq!(
+      short_name_from_identifier("node_modules/@scope/pkg/dist/index.js"),
+      Some("@scope/pkg".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("/abs/node_modules/@org/lib/src/index.js"),
+      Some("@org/lib".into())
+    );
+  }
+
+  #[test]
+  fn short_name_node_modules_non_index() {
+    // Non-index files in node_modules should use the stem, not the package name
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/dist/utils.js"),
+      Some("utils".into())
+    );
+  }
+
+  #[test]
+  fn short_name_strips_query() {
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/app.js?query=1"),
+      Some("app".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("/path/to/src/index.js?v=2&hash=abc"),
+      Some("src".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("node_modules/lib/dist/index.js?query"),
+      Some("lib".into())
+    );
+  }
+
+  #[test]
+  fn short_name_strips_module_type_prefix() {
+    assert_eq!(
+      short_name_from_identifier("css|./src/style.css|0||||}"),
+      Some("style".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("css|./node_modules/lib/dist/index.css|0||||}"),
+      Some("lib".into())
+    );
+    assert_eq!(
+      short_name_from_identifier("css|./node_modules/@scope/pkg/dist/index.css|0||||}"),
+      Some("@scope/pkg".into())
+    );
+    // type prefix without trailing metadata
+    assert_eq!(
+      short_name_from_identifier("css-module|./src/app.module.css"),
+      Some("app.module".into())
+    );
+  }
+
+  #[test]
+  fn short_name_strips_both_prefix_and_query() {
+    assert_eq!(
+      short_name_from_identifier("css|./src/style.css?inline|0||||}"),
+      Some("style".into())
+    );
+  }
+
+  #[test]
+  fn short_name_windows_backslash_paths() {
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\src\app.js"),
+      Some("app".into())
+    );
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\src\index.js"),
+      Some("src".into())
+    );
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\node_modules\lib\dist\index.js"),
+      Some("lib".into())
+    );
+    assert_eq!(
+      short_name_from_identifier(r"C:\repo\node_modules\@scope\pkg\dist\index.js"),
+      Some("@scope/pkg".into())
+    );
   }
 }

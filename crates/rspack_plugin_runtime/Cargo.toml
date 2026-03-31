@@ -12,7 +12,6 @@ async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
 derive_more              = { workspace = true, features = ["debug"] }
 futures                  = { workspace = true }
-indexmap                 = { workspace = true }
 itertools                = { workspace = true }
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
@@ -34,3 +33,6 @@ ignored = ["tracing", "tokio"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

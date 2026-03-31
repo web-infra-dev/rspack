@@ -60,7 +60,7 @@ impl From<JsRspackSeverity> for Severity {
 }
 
 define_symbols! {
-  RUST_ERROR_SYMBOL => "RUST_ERROR_SYMBOL"
+  RUST_ERROR_SYMBOL => "rspack.error.rust"
 }
 
 #[derive(Debug)]

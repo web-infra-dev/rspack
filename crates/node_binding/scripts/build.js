@@ -5,7 +5,7 @@ const { values, positionals } = require("node:util").parseArgs({
 	options: {
 		profile: {
 			type: "string"
-		}
+		},
 	},
 	strict: true,
 	allowPositionals: true
@@ -55,6 +55,9 @@ async function build() {
 		if (watch) {
 			args.push("--watch");
 		}
+		if (process.env.USE_NAPI_CROSS) {
+			args.push("--use-napi-cross");
+		}
 		if (process.env.USE_ZIG) {
 			args.push("--cross-compile");
 		}
@@ -67,8 +70,6 @@ async function build() {
 		}
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
-			// Strip debug format to reduce wasm size of @rspack/browser
-			rustflags.push("-Zfmt-debug=none");
 		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {

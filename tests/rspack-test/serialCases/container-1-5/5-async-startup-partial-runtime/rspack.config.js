@@ -38,7 +38,7 @@ const common = {
 /** @type {ConstructorParameters<typeof ModuleFederationPlugin>[0]} */
 const commonMF = {
 	runtime: false,
-	shared: ['mocked-react']
+	shared: ['@rspack/mocked-react']
 };
 
 /** @type {import('@rspack/core').Configuration[]} */

@@ -185,7 +185,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.import[{}].customName\".\nReason: {}",
+              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].customName\".\nReason: {}",
               index,
               &e.to_string()
             ))
@@ -202,7 +202,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.import[{}].customStyleName\".\nReason: {}",
+              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].customStyleName\".\nReason: {}",
               index,
               &e.to_string()
             ))
@@ -219,7 +219,7 @@ pub fn plugin_import(
         Err(e) => {
           HANDLER.with(|handler| {
             handler.err(&format!(
-              "[builtin:swc-loader] Failed to parse option \"rspackExperiments.import[{}].style\".\nReason: {}",
+              "[builtin:swc-loader] Failed to parse option \"transformImport[{}].style\".\nReason: {}",
               index,
               &e.to_string()
             ))
@@ -293,7 +293,7 @@ impl ImportPlugin<'_> {
       HANDLER.with(|handler| {
         handler.err(&format!(
           "[builtin:swc-loader] Failed to parse option \
-       \"rspackExperiments.import[i].customName\".\nReason: {err}"
+       \"transformImport[i].customName\".\nReason: {err}"
         ));
       });
       None
@@ -319,7 +319,7 @@ impl ImportPlugin<'_> {
               HANDLER.with(|handler| {
                 handler.err(&format!(
                   "[builtin:swc-loader] Failed to parse option \
-                  \"rspackExperiments.import[i].customStyleName\".\nReason: {err}"
+                  \"transformImport[i].customStyleName\".\nReason: {err}"
                 ));
               });
               None
@@ -346,7 +346,7 @@ impl ImportPlugin<'_> {
                 HANDLER.with(|handler| {
                   handler.err(&format!(
                     "[builtin:swc-loader] Failed to parse option \
-                     \"rspackExperiments.import[i].style\".\nReason: {err}"
+                     \"transformImport[i].style\".\nReason: {err}"
                   ));
                 });
                 None

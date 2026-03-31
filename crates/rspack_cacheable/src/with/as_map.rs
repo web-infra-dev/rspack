@@ -130,10 +130,11 @@ where
   }
 }
 
-// for FxHashMap
-impl<K, V> AsMapConverter for rustc_hash::FxHashMap<K, V>
+// for HashMap
+impl<K, V, S> AsMapConverter for std::collections::HashMap<K, V, S>
 where
   K: std::cmp::Eq + std::hash::Hash,
+  S: core::hash::BuildHasher + Default,
 {
   type Key = K;
   type Value = V;
@@ -144,7 +145,7 @@ where
     self.iter()
   }
   fn from(data: impl Iterator<Item = Result<(Self::Key, Self::Value)>>) -> Result<Self> {
-    data.collect::<Result<rustc_hash::FxHashMap<K, V>>>()
+    data.collect::<Result<std::collections::HashMap<K, V, S>>>()
   }
 }
 

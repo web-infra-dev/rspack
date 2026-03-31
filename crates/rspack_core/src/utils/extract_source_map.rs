@@ -3,7 +3,7 @@
   Author Natsu @xiaoxiaojx
 */
 
-use std::{borrow::Cow, collections::HashSet, path::PathBuf, sync::Arc};
+use std::{borrow::Cow, path::PathBuf, sync::Arc};
 
 use cow_utils::CowUtils;
 use futures::stream::{FuturesOrdered, StreamExt};
@@ -13,13 +13,14 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
 use rspack_util::{base64, node_path::NodePath};
+use rustc_hash::FxHashSet;
 
 /// Source map extractor result
 #[derive(Debug, Clone)]
 pub struct ExtractSourceMapResult {
   pub source: String,
   pub source_map: Option<SourceMap>,
-  pub file_dependencies: Option<HashSet<PathBuf>>,
+  pub file_dependencies: Option<FxHashSet<PathBuf>>,
 }
 
 /// Source mapping URL information
@@ -276,7 +277,7 @@ pub async fn extract_source_map(
         file_dependencies: if source_url.is_empty() {
           None
         } else {
-          let mut set = HashSet::new();
+          let mut set = FxHashSet::default();
           set.insert(PathBuf::from(source_url));
           Some(set)
         },
@@ -298,7 +299,7 @@ pub async fn extract_source_map(
   let mut file_dependencies = if source_url.is_empty() {
     None
   } else {
-    let mut set = HashSet::new();
+    let mut set = FxHashSet::default();
     set.insert(PathBuf::from(&source_url));
     Some(set)
   };
@@ -343,7 +344,7 @@ pub async fn extract_source_map(
       if let Some(ref mut deps) = file_dependencies {
         deps.insert(PathBuf::from(&source_url_result));
       } else {
-        let mut set = HashSet::new();
+        let mut set = FxHashSet::default();
         set.insert(PathBuf::from(&source_url_result));
         file_dependencies = Some(set);
       }

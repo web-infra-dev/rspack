@@ -1,10 +1,9 @@
 use std::mem;
 
 use futures::Future;
-use indexmap::IndexMap;
 use rspack_collections::{IdentifierIndexMap, IdentifierMap};
 use rspack_error::Result;
-use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
+use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::FxHashMap as HashMap;
 use tracing::instrument;
 
@@ -20,7 +19,7 @@ pub struct BuildChunkGraphArtifact {
   pub chunk_by_ukey: ChunkByUkey,
   pub chunk_graph: ChunkGraph,
   pub chunk_group_by_ukey: ChunkGroupByUkey,
-  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
+  pub entrypoints: FxIndexMap<String, ChunkGroupUkey>,
   pub async_entrypoints: Vec<ChunkGroupUkey>,
   pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub named_chunks: HashMap<String, ChunkUkey>,
@@ -192,6 +191,14 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values_mut()
+  {
+    chunk.set_rendered(false);
+  }
+
   if !compilation.incremental.enabled() {
     task(compilation).await?;
     return Ok(());

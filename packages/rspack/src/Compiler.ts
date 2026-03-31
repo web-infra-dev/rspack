@@ -824,8 +824,12 @@ class Compiler {
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
       this.cache.shutdown(() => {
-        this.#instance?.close();
-        callback();
+        const closePromise = this.#instance?.close();
+        if (closePromise) {
+          closePromise.then(() => callback(), callback);
+        } else {
+          callback();
+        }
       });
     });
   }

@@ -16,6 +16,7 @@ rspack_fs                = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_asset      = { workspace = true }
+rspack_plugin_externals  = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 
@@ -30,3 +31,7 @@ ignored = ["tracing"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

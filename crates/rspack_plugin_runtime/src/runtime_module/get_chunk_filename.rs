@@ -1,9 +1,7 @@
 use std::{cmp::Ordering, fmt};
 
-use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, get_filename_without_hash_length,
@@ -285,7 +283,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       None
     };
 
-    let mut static_urls = IndexMap::new();
+    let mut static_urls = FxIndexMap::default();
     for (filename_template, chunk_ukey) in
       chunk_filenames
         .iter()

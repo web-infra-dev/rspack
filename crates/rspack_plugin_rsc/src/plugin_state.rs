@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use once_cell::sync::Lazy;
 use rspack_cacheable::with::{AsPreset, AsVec};
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
-use rspack_util::{atom::Atom, fx_hash::FxIndexSet};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxDashMap, FxIndexSet},
+};
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
@@ -28,11 +30,11 @@ pub struct ClientModuleImport {
 pub struct EntryState {
   pub injected_client_entries: Vec<ClientModuleImport>,
   pub client_modules: FxHashMap<String, ManifestExport>,
+  /// Server entry resource -> CSS import paths.
+  pub css_imports_per_server_entry: FxHashMap<String, FxIndexSet<String>>,
   /// Dependency path -> action id/name pairs.
   pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
-  /// Server entry resource -> CSS import paths.
-  pub entry_css_imports: FxHashMap<String, FxIndexSet<String>>,
   /// Server entry resource -> CSS chunk file paths.
   pub entry_css_files: FxHashMap<String, FxIndexSet<String>>,
   pub entry_js_files: FxIndexSet<String>,
@@ -54,4 +56,4 @@ impl PluginState {
   }
 }
 
-pub static PLUGIN_STATES: Lazy<DashMap<CompilerId, PluginState>> = Lazy::new(Default::default);
+pub static PLUGIN_STATES: Lazy<FxDashMap<CompilerId, PluginState>> = Lazy::new(Default::default);

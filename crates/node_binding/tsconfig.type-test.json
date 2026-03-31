@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "strict": true,
+    "types": ["node"],
     "noEmit": true
   },
   "include": ["napi-binding.d.ts", "binding.d.ts"]

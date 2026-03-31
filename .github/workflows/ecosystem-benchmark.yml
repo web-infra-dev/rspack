@@ -36,8 +36,6 @@ jobs:
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       profile: 'release'
       test: false
-      bench: false
-      prefer_docker: false
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
@@ -95,7 +93,7 @@ jobs:
         with:
           name: bindings-x86_64-unknown-linux-gnu
           path: crates/node_binding/
-          force-use-github: true
+          force-use-github-only: true
 
       - name: Show restored binding
         shell: bash
@@ -105,14 +103,13 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Build JS
         run: pnpm run build:js
 
-      - name: Run rspack-ecosystem-benchmark
+      - name: Run rspack-ecosystem-benchmark bench
         timeout-minutes: 40
-        id: run-benchmark
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -121,9 +118,19 @@ jobs:
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
-          result=$(node bin/cli.js compare --base main --current current)
-          echo "$result"
-          echo "diff-result=${result//$'\n'/'@@'}" >> $GITHUB_OUTPUT
+
+      - name: Get HEAD SHA
+        id: get-sha
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Compare benchmark results
+        id: run-benchmark
+        uses: ./.github/actions/benchmark/compare
+        with:
+          event-name: ${{ github.event_name }}
+          commit-sha: ${{ steps.get-sha.outputs.sha }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload benchmark result
         if: github.event_name == 'push'

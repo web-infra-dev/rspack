@@ -13,22 +13,22 @@
     "sort-projects-words": "node ./sortProjectWords.js"
   },
   "dependencies": {
-    "@rstack-dev/doc-ui": "1.12.4",
+    "@rstack-dev/doc-ui": "1.12.5",
     "axios": "^1.13.6",
-    "markdown-to-jsx": "^9.7.9",
-    "mermaid": "^11.12.3",
+    "markdown-to-jsx": "^9.7.13",
+    "mermaid": "^11.13.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "semver": "^7.7.4",
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
-    "@rsbuild/plugin-sass": "^1.5.0",
-    "@rspress/core": "^2.0.5",
-    "@rspress/plugin-algolia": "^2.0.5",
-    "@rspress/plugin-client-redirects": "^2.0.5",
-    "@rspress/plugin-rss": "^2.0.5",
-    "@rspress/plugin-sitemap": "^2.0.5",
+    "@rsbuild/plugin-sass": "^1.5.1",
+    "@rspress/core": "^2.0.6",
+    "@rspress/plugin-algolia": "^2.0.6",
+    "@rspress/plugin-client-redirects": "^2.0.6",
+    "@rspress/plugin-rss": "^2.0.6",
+    "@rspress/plugin-sitemap": "^2.0.6",
     "@shikijs/transformers": "^3.23.0",
     "@types/node": "^20.19.37",
     "@types/react": "^19.2.14",
@@ -39,6 +39,6 @@
     "rsbuild-plugin-google-analytics": "1.0.5",
     "rsbuild-plugin-open-graph": "1.1.2",
     "rspress-plugin-font-open-sans": "1.0.3",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.2"
   }
 }

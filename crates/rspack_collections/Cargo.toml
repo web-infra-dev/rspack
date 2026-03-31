@@ -13,11 +13,13 @@ allocative       = { workspace = true, optional = true }
 dashmap          = { workspace = true }
 hashlink         = { workspace = true }
 indexmap         = { workspace = true }
-rayon            = { workspace = true }
 rspack_cacheable = { workspace = true }
-rustc-hash       = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
 ustr             = { workspace = true, features = ["serde"] }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

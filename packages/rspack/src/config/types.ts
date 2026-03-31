@@ -830,8 +830,6 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
-  /** Path to PnP manifest file */
-  pnpManifest?: string | false;
 };
 
 /** Used to configure the Rspack module resolution */
@@ -1220,6 +1218,12 @@ export type JavascriptParserOptions = {
    * @default false
    */
   deferImport?: boolean;
+
+  /**
+   * Whether to enable import.meta.resolve().
+   * @default false
+   */
+  importMetaResolve?: boolean;
 };
 
 export type JsonParserOptions = {
@@ -2584,9 +2588,6 @@ export type Optimization = {
    * @default false
    */
   runtimeChunk?: OptimizationRuntimeChunk;
-
-  /** Detect and remove modules from chunks these modules are already included in all parents. */
-  removeAvailableModules?: boolean;
 
   /**
    * Remove empty chunks generated in the compilation.

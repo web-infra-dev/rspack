@@ -29,11 +29,13 @@ pub struct ESMSpecifierData {
   pub name: Atom,
   pub source: Atom,
   pub ids: AtomMembers,
+  pub namespace_import: bool,
   pub source_order: i32,
   pub phase: ImportPhase,
   pub attributes: Option<ImportAttributes>,
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   fn import(
     &self,
@@ -100,6 +102,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
         name: name.clone(),
         source: source.clone(),
         ids: id.into_iter().cloned().collect(),
+        namespace_import: id.is_none(),
         source_order: parser.last_esm_import_order,
         phase,
         attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
@@ -148,6 +151,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       ids.into_vec(),
       parser.in_tagged_template_tag,
       direct_import,
+      settings.namespace_import,
       ExportPresenceMode::None,
       None,
       settings.phase,
@@ -214,6 +218,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.ids.into_vec(),
       parser.in_tagged_template_tag,
       true,
+      settings.namespace_import && referenced_properties_in_destructuring.is_some(),
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       referenced_properties_in_destructuring,
       settings.phase,
@@ -264,6 +269,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
+    let ns_access = settings.namespace_import && !ids.is_empty();
     let mut dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -274,6 +280,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       ids.into_vec(),
       true,
       direct_import,
+      ns_access,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       // we don't need to pass destructuring properties here, since this is a call expr,
       // pass destructuring properties here won't help for tree shaking.
@@ -328,6 +335,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     };
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
+    let ns_access = settings.namespace_import && !ids.is_empty();
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&member_expr.span())
@@ -342,6 +350,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       ids.into_vec(),
       false,
       false, // x.xx()
+      ns_access,
       ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
       referenced_properties_in_destructuring,
       settings.phase,

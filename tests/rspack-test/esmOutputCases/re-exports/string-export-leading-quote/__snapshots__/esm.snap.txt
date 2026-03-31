@@ -1,0 +1,26 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+function a() {
+  return "a";
+}
+
+function b() {
+  return "b";
+}
+
+
+
+it("should support string export names that start with a quote", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod["'x"]).toBe(1);
+  expect(mod["'a"]()).toBe("a");
+  expect(mod["'b"]()).toBe("b");
+});
+
+var index_x = (/* inlined export .x */1);
+export { a as "'a", b as "'b", index_x as "'x" };
+
+```

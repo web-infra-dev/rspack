@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use cow_utils::CowUtils;
-use indexmap::IndexMap;
+use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::extract_hash_pattern;
@@ -13,7 +13,7 @@ use crate::{
 pub fn get_entry_runtime(
   name: &str,
   options: &EntryOptions,
-  entries: &IndexMap<String, EntryData>,
+  entries: &FxIndexMap<String, EntryData>,
 ) -> RuntimeSpec {
   if let Some(depend_on) = &options.depend_on {
     let mut result: RuntimeSpec = Default::default();

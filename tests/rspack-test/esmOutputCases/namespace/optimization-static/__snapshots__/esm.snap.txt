@@ -1,0 +1,20 @@
+```mjs title=main.mjs
+// ./quux.js
+function a() {
+  return "a";
+}
+
+// ./index.js
+
+
+/* export default */ const index = (a());
+
+it("should optimize static namespace lookup chains", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toBe("a");
+});
+
+export default index;
+
+```

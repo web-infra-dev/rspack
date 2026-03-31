@@ -1,14 +1,16 @@
 use std::{
-  collections::HashSet,
   sync::{Arc, LazyLock},
   time::{Duration, Instant},
 };
 
+use camino::{Utf8Path, Utf8PathBuf};
 use regex::Regex;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleIdentifier,
-  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
+  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
+  ParserOptions, Plugin, ResolveContext, ResolveOptionsWithDependencyType, ResolveResult,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
@@ -21,7 +23,7 @@ use rspack_plugin_javascript::{
 use rustc_hash::FxHashMap as HashMap;
 
 static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED)_(.*?):(.*?) \*\/")
+  Regex::new(r"\/\* RSTEST:(MOCK|UNMOCK|MOCKREQUIRE|HOISTED):([^:]+):(.*?):(HOIST_START|HOIST_END|PLACEHOLDER) \*\/")
     .expect("should initialize rstest flag regex")
 });
 
@@ -31,9 +33,9 @@ use crate::{
   },
   import_dependency::ImportDependencyTemplate,
   mock_method_dependency::MockMethodDependencyTemplate,
-  mock_module_id_dependency::MockModuleIdDependencyTemplate,
+  mock_module_id_dependency::{MockModuleIdDependency, MockModuleIdDependencyTemplate},
   module_path_name_dependency::ModulePathNameDependencyTemplate,
-  parser_plugin::RstestParserPlugin,
+  parser_plugin::{MOCK_TARGET_REQUEST_PREFIX, RstestParserPlugin},
   url_dependency::RstestUrlDependencyTemplate,
 };
 
@@ -65,31 +67,137 @@ impl RstestPlugin {
     Self::new_inner(options)
   }
 
+  fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
+    let stripped = value.strip_prefix("node:").unwrap_or(value);
+    let path_buf = Utf8PathBuf::from(stripped);
+
+    if stripped.starts_with('.') {
+      path_buf.parent().map_or_else(
+        || Utf8PathBuf::from("__mocks__").join(&path_buf),
+        |p| {
+          p.join("__mocks__")
+            .join(path_buf.file_name().unwrap_or_default())
+        },
+      )
+    } else {
+      Utf8PathBuf::from(&self.options.manual_mock_root).join(&path_buf)
+    }
+  }
+
+  fn synthetic_mock_dep(data: &ModuleFactoryCreateData) -> bool {
+    data.request.starts_with(MOCK_TARGET_REQUEST_PREFIX)
+  }
+
+  fn resolve_directory_mock_target(
+    &self,
+    request: &Utf8Path,
+    context: &Utf8Path,
+    resolved_path: &Utf8Path,
+    main_files: impl Iterator<Item = String>,
+  ) -> Option<Utf8PathBuf> {
+    let requested_path =
+      Utf8PathBuf::from_path_buf(context.join(request).as_std_path().to_path_buf()).ok()?;
+    let resolved_parent = resolved_path.parent()?;
+    if resolved_parent != requested_path {
+      return None;
+    }
+
+    let resolved_stem = resolved_path.file_stem()?;
+    main_files
+      .into_iter()
+      .find(|main_file| main_file == resolved_stem)
+      .map(|main_file| request.join("__mocks__").join(main_file))
+  }
+
+  async fn resolve_mock_request(&self, data: &mut ModuleFactoryCreateData) {
+    let Some(dep) = data.dependencies.first() else {
+      return;
+    };
+    let dependency_category = *dep.category();
+    let request = data
+      .request
+      .strip_prefix(MOCK_TARGET_REQUEST_PREFIX)
+      .unwrap_or(&data.request)
+      .to_string();
+    let stripped = request.strip_prefix("node:").unwrap_or(&request);
+    let default_target = self.calc_default_mocked_target(&request);
+
+    if !stripped.starts_with('.') {
+      let resolved_request = default_target.to_string();
+      if let Some(dep) = data
+        .dependencies
+        .first_mut()
+        .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
+      {
+        dep.set_request(resolved_request.clone());
+      }
+      data.request = resolved_request;
+      return;
+    }
+
+    let dep = ResolveOptionsWithDependencyType {
+      resolve_options: data
+        .resolve_options
+        .clone()
+        .map(|options| Box::new(Arc::unwrap_or_clone(options))),
+      resolve_to_context: false,
+      dependency_category,
+    };
+    let resolver = data.resolver_factory.get(dep);
+    let mut resolve_context = ResolveContext::default();
+
+    let resolved_directory_target = match resolver
+      .resolve_with_context(data.context.as_ref(), stripped, &mut resolve_context)
+      .await
+    {
+      Ok(ResolveResult::Resource(resource)) => self.resolve_directory_mock_target(
+        Utf8Path::new(stripped),
+        data.context.as_ref(),
+        &resource.path,
+        resolver.options().main_files().cloned(),
+      ),
+      _ => None,
+    };
+
+    data.add_file_dependencies(resolve_context.file_dependencies);
+    data.add_missing_dependencies(resolve_context.missing_dependencies);
+    let resolved_request = resolved_directory_target
+      .unwrap_or(default_target)
+      .to_string();
+    if let Some(dep) = data
+      .dependencies
+      .first_mut()
+      .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
+    {
+      dep.set_request(resolved_request.clone());
+    }
+    data.request = resolved_request;
+  }
+
   fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {
     let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
 
-    for (mocked_id, pos) in replace_map {
-      if let (
-        Some(content_start),
-        Some(content_end),
-        Some(placeholder_start),
-        Some(placeholder_end),
-        Some(content_with_flag_start),
-        Some(content_with_flag_end),
-      ) = (
-        pos.content_start,
-        pos.content_end,
-        pos.placeholder_start,
-        pos.placeholder_end,
-        pos.content_with_flag_start,
-        pos.content_with_flag_end,
-      ) {
+    for pos in replace_map.values() {
+      if let (Some(placeholder_start), Some(placeholder_end)) =
+        (pos.placeholder_start, pos.placeholder_end)
+        && let (
+          Some(content_start),
+          Some(content_end),
+          Some(content_with_flag_start),
+          Some(content_with_flag_end),
+        ) = (
+          pos.content_start,
+          pos.content_end,
+          pos.content_with_flag_start,
+          pos.content_with_flag_end,
+        )
+      {
         let content = &old.source().into_string_lossy()[content_start..content_end];
         replace.replace(
           placeholder_start as u32,
           placeholder_end as u32 + 1, // consider the trailing semicolon
-          format! {"// [Rstest mock hoist] \"{mocked_id}\"\n{content};\n\n"},
+          format! {"// [Rstest mock hoist] \"{}\"\n{content};\n\n", pos.request},
           None,
         );
         replace.replace_static(
@@ -103,6 +211,15 @@ impl RstestPlugin {
 
     replace.boxed()
   }
+}
+
+#[plugin_hook(NormalModuleFactoryBeforeResolve for RstestPlugin)]
+async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
+  if Self::synthetic_mock_dep(data) {
+    self.resolve_mock_request(data).await;
+  }
+
+  Ok(None)
 }
 
 #[plugin_hook(NormalModuleFactoryParser for RstestPlugin)]
@@ -187,8 +304,9 @@ async fn compilation_stage_9999(
   Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct MockFlagPos {
+  request: String,
   content_start: Option<usize>,
   content_with_flag_start: Option<usize>,
   content_end: Option<usize>,
@@ -223,20 +341,14 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
       let captures: Vec<_> = RSTEST_FLAG_RE.captures_iter(&content).collect();
 
       for c in captures {
-        let [Some(full), Some(t), Some(request)] = [c.get(0), c.get(2), c.get(3)] else {
+        let [Some(full), Some(hoist_id), Some(request), Some(t)] =
+          [c.get(0), c.get(2), c.get(3), c.get(4)]
+        else {
           continue;
         };
 
-        let entry = pos_map
-          .entry(request.as_str().to_string())
-          .or_insert_with(|| MockFlagPos {
-            content_start: None,
-            content_end: None,
-            content_with_flag_start: None,
-            content_with_flag_end: None,
-            placeholder_start: None,
-            placeholder_end: None,
-          });
+        let entry = pos_map.entry(hoist_id.as_str().to_string()).or_default();
+        entry.request = request.as_str().to_string();
 
         if t.as_str() == "HOIST_START" {
           entry.content_with_flag_start = Some(full.start());
@@ -272,7 +384,7 @@ async fn optimize_dependencies(
   _exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  let mocked_module_ids: HashSet<ModuleIdentifier> = {
+  let mocked_module_ids: IdentifierSet = {
     let module_graph = build_module_graph_artifact.get_module_graph();
     module_graph
       .dependencies()
@@ -306,6 +418,11 @@ impl Plugin for RstestPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+
+    ctx
+      .normal_module_factory_hooks
+      .before_resolve
+      .tap(nmf_before_resolve::new(self));
 
     ctx
       .compiler_hooks

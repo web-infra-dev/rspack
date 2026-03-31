@@ -254,6 +254,7 @@ module.exports = {
 			        exprContextCritical: true,
 			        importDynamic: true,
 			        importMeta: true,
+			        importMetaResolve: false,
 			        jsx: false,
 			        requireAlias: false,
 			        requireAsExpression: true,
@@ -307,7 +308,6 @@ module.exports = {
 			    nodeEnv: false,
 			    providedExports: true,
 			    realContentHash: false,
-			    removeAvailableModules: true,
 			    removeEmptyChunks: true,
 			    runtimeChunk: false,
 			    sideEffects: flag,
@@ -462,7 +462,6 @@ module.exports = {
 			      },
 			      css-import: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],

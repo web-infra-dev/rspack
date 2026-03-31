@@ -20,15 +20,13 @@ const config = {
 					{
 						loader: "builtin:swc-loader",
 						options: {
-							rspackExperiments: {
-								import: [
-									{
-										libraryName: "aaaaa",
-										libraryDirectory: "es",
-										style: "css"
-									}
-								]
-							}
+							transformImport: [
+								{
+									libraryName: "aaaaa",
+									libraryDirectory: "es",
+									style: "css"
+								}
+							]
 						}
 					}
 				]

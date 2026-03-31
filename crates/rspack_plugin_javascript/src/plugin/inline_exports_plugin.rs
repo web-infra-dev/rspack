@@ -27,18 +27,26 @@ pub fn is_export_inlined(
   ids: &[Atom],
   runtime: Option<&RuntimeSpec>,
 ) -> bool {
-  let used_name = if ids.is_empty() {
-    let exports_info_used = exports_info_artifact.get_prefetched_exports_info_used(module, runtime);
-    ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithoutNames(&exports_info_used),
-      runtime,
-      ids,
-    )
-  } else {
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
-    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids)
-  };
+  if ids.is_empty() {
+    return false;
+  }
+
+  if ids.len() == 1 {
+    let export_name = &ids[0];
+    let exports_info = exports_info_artifact.get_exports_info_data(module);
+    let export_info = exports_info
+      .named_exports(export_name)
+      .unwrap_or_else(|| exports_info.other_exports_info());
+    return matches!(
+      export_info.get_used_name(Some(export_name), runtime),
+      Some(UsedNameItem::Inlined(_))
+    );
+  }
+
+  let exports_info =
+    exports_info_artifact.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
+  let used_name =
+    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids);
   matches!(used_name, Some(UsedName::Inlined(_)))
 }
 
@@ -49,11 +57,14 @@ pub fn connection_active_inline_value_for_esm_import_specifier(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
+  let ids = dependency.get_ids(mg);
+  if ids.is_empty() {
+    return true;
+  }
   if !inline_enabled(dependency.id(), mg) {
     return true;
   }
   let module = connection.module_identifier();
-  let ids = dependency.get_ids(mg);
   !is_export_inlined(exports_info_artifact, module, ids, runtime)
 }
 

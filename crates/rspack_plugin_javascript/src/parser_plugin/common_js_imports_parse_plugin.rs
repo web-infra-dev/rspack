@@ -23,8 +23,9 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind, context_reg_exp,
-    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
+    CallHooksName, JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
+    context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    get_non_optional_part,
   },
 };
 
@@ -195,19 +196,31 @@ fn create_require_resolve_context_dependency(
   RequireResolveContextDependency::new(options, range, parser.in_try)
 }
 
-fn is_require_call_expr(call: &CallExpr) -> bool {
-  if let Some(callee) = call.callee.as_expr() {
-    if let Some(ident) = callee.as_ident() {
-      return ident.sym == expr_name::REQUIRE;
-    }
-    if let Some(member) = callee.as_member()
-      && let Some(obj) = member.obj.as_ident()
-      && obj.sym == expr_name::MODULE
-      && let Some(prop) = member.prop.as_ident()
-    {
-      return prop.sym == expr_name::REQUIRE;
-    }
+pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExpr) -> bool {
+  if call.args.len() != 1 {
+    return false;
   }
+  let Some(callee) = call.callee.as_expr() else {
+    return false;
+  };
+
+  if let Some(ident) = callee.as_ident() {
+    return ident
+      .sym
+      .call_hooks_name(parser, |_, for_name| {
+        (for_name == expr_name::REQUIRE).then_some(true)
+      })
+      .unwrap_or_default();
+  }
+
+  if let Some(member) = callee.as_member() {
+    return member
+      .call_hooks_name(parser, |_, for_name| {
+        (for_name == expr_name::MODULE_REQUIRE).then_some(true)
+      })
+      .unwrap_or_default();
+  }
+
   false
 }
 
@@ -602,14 +615,24 @@ impl CommonJsImportsParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &Expr,
   ) -> Option<bool> {
-    let call = expr.as_call()?;
-    if is_require_call_expr(call) {
+    if let Some(call) = expr.as_call()
+      && is_require_call_expr(parser, call)
+    {
+      return Some(true);
+    }
+    if let Some(ident) = expr.as_ident()
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
+      && let Some(info) = name_info.info
+      && let Some(name) = info.name.clone()
+      && parser.get_tag_data(&name, COMMONJS_REQUIRE_TAG).is_some()
+    {
       return Some(true);
     }
     None
@@ -625,7 +648,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && let Some(init) = &declarator.init
       && let Some(call) = init.as_call()
       && let Some(binding) = declarator.name.as_ident()
-      && is_require_call_expr(call)
+      && is_require_call_expr(parser, call)
     {
       parser.define_variable(binding.id.sym.clone());
       tag_commonjs_require_referenced(parser, call, binding.id.sym.clone());
@@ -877,13 +900,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     member_expr: &MemberExpr,
-    _callee_members: &[Atom],
+    callee_members: &[Atom],
     call_expr: &CallExpr,
     members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
-    if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
+    if callee_members.is_empty()
+      && (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && let Some(dep) = self.chain_handler(parser, member_expr, call_expr, members, false)
     {
       parser.add_dependency(Box::new(dep));
@@ -896,13 +920,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
-    _callee_members: &[Atom],
+    callee_members: &[Atom],
     inner_call_expr: &CallExpr,
     members: &[Atom],
     _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
-    if (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
+    if callee_members.is_empty()
+      && (for_name == expr_name::REQUIRE || for_name == expr_name::MODULE_REQUIRE)
       && let Some(callee) = call_expr.callee.as_expr()
       && let Some(member) = callee.as_member()
       && let Some(dep) = self.chain_handler(parser, member, inner_call_expr, members, true)

@@ -43,8 +43,6 @@ jobs:
       target: x86_64-unknown-linux-gnu
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: false
-      bench: false
-      prefer_docker: false
       ref: ${{ github.event.pull_request.head.sha }}
 
   diff-projects:
@@ -74,7 +72,7 @@ jobs:
           node-version: 24
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Build JS
         run: pnpm run build:js
@@ -91,7 +89,7 @@ jobs:
           npm pkg set "devDependencies.@rspack/core=link:../rspack/packages/rspack"
           npm pkg set "devDependencies.@rspack/cli=link:../rspack/packages/rspack-cli"
           # Use --no-frozen-lockfile to allow updating lockfile after modifying package.json
-          pnpm install --no-frozen-lockfile
+          pnpm i --no-frozen-lockfile
 
       - name: Build cases
         working-directory: ../build-tools-performance

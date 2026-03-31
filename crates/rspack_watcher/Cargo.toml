@@ -25,3 +25,6 @@ tempfile = "3.23.0"
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

@@ -92,7 +92,13 @@ pub async fn preserve_modules(
     else {
       continue;
     };
-    let chunk = EsmLibraryPlugin::get_module_chunk(module_id, compilation);
+    let chunk = match EsmLibraryPlugin::get_module_chunk(module_id, compilation) {
+      Ok(c) => c,
+      Err(e) => {
+        errors.push(e.into());
+        continue;
+      }
+    };
     let old_chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -124,6 +130,28 @@ pub async fn preserve_modules(
         format!("{base}{new_extension}").into()
       } else {
         file_path.to_string_lossy().to_string().into()
+      };
+
+      let entry_name = if let Some(entry_names) = entry_name_for_module.get(&module_id) {
+        if entry_names.len() > 1 {
+          errors.push(
+            rspack_error::error!(
+              "{} is used in multiple entries: [{}], this is not allowed in preserveModules",
+              module_id,
+              entry_names
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+            )
+            .into(),
+          );
+          continue;
+        }
+
+        entry_names.iter().next().cloned()
+      } else {
+        None
       };
 
       if compilation
@@ -168,33 +196,13 @@ pub async fn preserve_modules(
         .chunk_graph
         .connect_chunk_and_module(new_chunk_ukey, module_id);
 
-      if let Some(entry_names) = entry_name_for_module.get(&module_id) {
-        if entry_names.len() > 1 {
-          errors.push(
-            rspack_error::error!(
-              "{} is used in multiple entries: [{}], this is not allowed in preserveModules",
-              module_id,
-              entry_names
-                .iter()
-                .map(|s| s.as_str())
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-            .into(),
-          );
-        }
-
+      if let Some(entry_name) = entry_name {
         compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .disconnect_chunk_and_entry_module(&chunk, module_id);
 
-        let entrypoint = compilation.entrypoint_by_name_mut(
-          entry_names
-            .iter()
-            .next()
-            .expect("entry_names should not be empty"),
-        );
+        let entrypoint = compilation.entrypoint_by_name_mut(&entry_name);
         let ukey = entrypoint.ukey;
         entrypoint.set_entrypoint_chunk(new_chunk_ukey);
 

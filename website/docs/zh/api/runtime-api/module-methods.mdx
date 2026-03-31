@@ -1,3 +1,7 @@
+---
+description: '当使用 Rspack 打包应用程序时，你可以选择多种模块语法风格，包括 ES modules 和 CommonJS。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta } from '@components/ApiMeta';
 
@@ -327,29 +331,24 @@ Rspack 在编译时，会通过静态分析来解析 `require.context` 的参数
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
 :::tip
-`require.ensure()` 基本已经被 `import()` 取代.
+建议使用更符合标准的 `import()` 来替代 `require.ensure()`。
 :::
 
-将给定 `dependencies` 单独打包，并异步加载。当使用 CommonJS 语法的时候，这是唯一动态加载依赖的方式。同时，这个 API 也可以用于运行时，只有在满足某些条件时才会加载依赖。
-
-:::warning
-该特性内部依赖于 [Promise](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise)。 如果你在旧的浏览器上使用 `require.ensure`， 最好加入 polyfill [es6-promise](https://github.com/stefanpenner/es6-promise) 或 [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)。
-:::
+将给定 `dependencies` 单独打包，并异步加载这些依赖。
 
 - **Type:**
 
 ```ts
 function requireEnsure(
   /**
-   * callback 执行需要的模块列表
+   * 需要异步加载的模块列表
    */
   dependencies: String[],
   /**
    * 当 dependencies 中的模块都加载完毕时，这个函数就会被执行。
-   * require 函数将作为第一个参数传入该函数。
    * 在这个函数中也可以进一步使用 require() 来加载模块。
    */
-  callback: function(require),
+  callback: function(),
   /**
    * 当加载依赖失败的时候执行的函数
    */
@@ -363,13 +362,20 @@ function requireEnsure(
 ): Context;
 ```
 
+:::warning
+
+- 该特性内部依赖于 [Promise](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Promise)。 如果你在旧的浏览器上使用 `require.ensure`， 最好加入 polyfill [es6-promise](https://github.com/stefanpenner/es6-promise) 或 [promise-polyfill](https://github.com/taylorhakes/promise-polyfill)。
+- 和 webpack 一样，callback 函数也可以接收一个名为 require 的参数（且必须名为 require），该 require 参数和 cjs 的 require 全局变量一致，但我们建议直接使用全局的 require 来加载模块而不是该 require 参数，因为 loader 可能会将其重命名导致依赖分析失败。
+
+:::
+
 - **Example:**
 
 ```ts
 var a = require('normal-dep');
 
 if (module.hot) {
-  require.ensure(['b'], function (require) {
+  require.ensure(['b'], function () {
     var c = require('c');
 
     // Do something special...

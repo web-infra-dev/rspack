@@ -280,7 +280,7 @@ impl BuilderContext {
 
       // Output plugins
       BuiltinPluginOptions::EnableLibraryPlugin(library_type) => {
-        rspack_plugin_library::enable_library_plugin(library_type, &mut plugins)
+        rspack_plugin_library::enable_library_plugin(library_type, None, None, &mut plugins)
       }
       // BuiltinPluginOptions::SplitChunksPlugin => {
       // plugins.push(rspack_plugin_split_chunks::SplitChunksPlugin::default().boxed())

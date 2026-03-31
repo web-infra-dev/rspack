@@ -11,6 +11,7 @@ version.workspace = true
 camino                   = { workspace = true }
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
+rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
 rspack_hook              = { workspace = true }
@@ -25,3 +26,7 @@ ignored = ["tracing"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

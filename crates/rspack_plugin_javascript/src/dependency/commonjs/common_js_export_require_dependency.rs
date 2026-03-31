@@ -197,6 +197,10 @@ impl CommonJsExportRequireDependency {
     mg.get_dep_meta_if_existing(&self.id)
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
+
+  fn is_all_exported_by_module_exports(&self) -> bool {
+    self.base.is_module_exports() && self.names.is_empty()
+  }
 }
 
 #[cacheable_dyn]
@@ -261,7 +265,8 @@ impl Dependency for CommonJsExportRequireDependency {
                   name: name.to_owned(),
                   from: Some(from.to_owned()),
                   export: Some(Nullable::Value(export)),
-                  can_mangle: Some(false),
+                  // `module.exports = require("./m")` can't be mangled
+                  can_mangle: Some(!self.is_all_exported_by_module_exports()),
                   ..Default::default()
                 })
               })
@@ -278,7 +283,8 @@ impl Dependency for CommonJsExportRequireDependency {
           } else {
             None
           },
-          can_mangle: Some(false),
+          // `module.exports = require("./m")` can't be mangled
+          can_mangle: Some(!self.is_all_exported_by_module_exports()),
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
@@ -313,8 +319,10 @@ impl Dependency for CommonJsExportRequireDependency {
       } else {
         vec![ExtendedReferencedExport::Export(ReferencedExport {
           name: ids.to_vec(),
-          can_mangle: false,
+          // `module.exports = require("./m")` can't be mangled
+          can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
+          ns_access: false,
         })]
       }
     };
@@ -376,8 +384,10 @@ impl Dependency for CommonJsExportRequireDependency {
       .map(|name| {
         ExtendedReferencedExport::Export(ReferencedExport {
           name: name.into_iter().map(|i| i.to_owned()).collect_vec(),
-          can_mangle: false,
+          // `module.exports = require("./m")` can't be mangled
+          can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
+          ns_access: false,
         })
       })
       .collect_vec()

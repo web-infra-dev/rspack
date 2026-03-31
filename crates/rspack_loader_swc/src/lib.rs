@@ -13,7 +13,7 @@ pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
-use rspack_error::{Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 #[cfg(allocative)]
@@ -68,6 +68,17 @@ impl SwcLoader {
 
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
+      if let Some(resource_specific_jsc) = self
+        .options_with_additional
+        .parse_resource_specific_jsc(&resource_path)
+        .to_rspack_result_with_detail(
+          self.options_with_additional.raw_options(),
+          "failed to parse builtin:swc-loader options",
+        )?
+      {
+        swc_options.config.jsc = resource_specific_jsc;
+      }
+
       if swc_options.config.jsc.transform.as_ref().is_some() {
         let mut transform = TransformConfig::default();
         transform.react.development =
@@ -165,7 +176,10 @@ impl SwcLoader {
           } else {
             swc_core::common::pass::Either::Right(noop_pass())
           },
-          transformer::transform(&self.options_with_additional.rspack_experiments),
+          transformer::transform(
+            &self.options_with_additional.transform_import,
+            &self.options_with_additional.rspack_experiments,
+          ),
         )
       },
     )?;

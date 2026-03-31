@@ -25,7 +25,10 @@ use super::{
 };
 use crate::{
   parser_plugin::{JavascriptParserPlugin, is_logic_op},
-  visitors::{ExportedVariableInfo, ExprRef, VariableDeclaration},
+  visitors::{
+    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration,
+    dependency::parser::ExtractedMemberExpressionChainData, get_non_optional_part,
+  },
 };
 
 fn warp_ident_to_pat(ident: Ident) -> Pat {
@@ -863,7 +866,6 @@ impl JavascriptParser<'_> {
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
     let drive = self.plugin_drive.clone();
-    // println!("{:#?}", expr);
     if let Some(expr_info) =
       self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
     {
@@ -924,6 +926,18 @@ impl JavascriptParser<'_> {
         }
       }
     }
+
+    // (await import(...)).a.b
+    if let Some((call, members)) = self.extract_await_import_member(expr)
+      && self
+        .plugin_drive
+        .clone()
+        .import_call(self, call, None, Some((&members, false)))
+        .unwrap_or_default()
+    {
+      return;
+    }
+
     self.member_expr_in_optional_chain = false;
     self.walk_expression(&expr.obj);
     if let MemberProp::Computed(computed) = &expr.prop {
@@ -1173,20 +1187,29 @@ impl JavascriptParser<'_> {
             {
               return;
             }
+            // import(...).then(...)
             if let Some(call) = member.obj.as_call()
               && call.callee.is_import()
               && let Some(prop) = member.prop.as_ident()
               && prop.sym == "then"
-            {
-              // import(…).then(…)
-              if self
+              && self
                 .plugin_drive
                 .clone()
-                .import_call(self, call, Some(expr))
+                .import_call(self, call, Some(expr), None)
                 .unwrap_or_default()
-              {
-                return;
-              }
+            {
+              return;
+            }
+            // (await import(...)).a.b()
+            if let Some((call, members)) = self.extract_await_import_member(member)
+              && self
+                .plugin_drive
+                .clone()
+                .import_call(self, call, None, Some((&members, true)))
+                .unwrap_or_default()
+            {
+              self.walk_expr_or_spread(&expr.args);
+              return;
             }
           }
           let evaluated_callee = self.evaluate_expression(callee);
@@ -1249,7 +1272,7 @@ impl JavascriptParser<'_> {
         if self
           .plugin_drive
           .clone()
-          .import_call(self, expr, None)
+          .import_call(self, expr, None, None)
           .unwrap_or_default()
         {
           return;
@@ -1262,6 +1285,36 @@ impl JavascriptParser<'_> {
         self.walk_expr_or_spread(&expr.args);
       }
     }
+  }
+
+  fn extract_await_import_member<'a>(
+    &mut self,
+    expr: &'a MemberExpr,
+  ) -> Option<(&'a CallExpr, AtomMembers)> {
+    let ExtractedMemberExpressionChainData {
+      object,
+      mut members,
+      mut members_optionals,
+      ..
+    } = self.extract_member_expression_chain(ExprRef::Member(expr));
+    let ExprRef::Await(await_expr) = object else {
+      return None;
+    };
+    let call = await_expr.arg.as_call()?;
+    if !call.callee.is_import() {
+      return None;
+    }
+    // call hook if it's top-level await
+    if self.is_top_level_scope() {
+      self
+        .plugin_drive
+        .clone()
+        .top_level_await_expr(self, await_expr);
+    }
+    members.reverse();
+    members_optionals.reverse();
+    let members = get_non_optional_part(&members, &members_optionals);
+    Some((call, members.into()))
   }
 
   pub fn walk_expr_or_spread(&mut self, args: &[ExprOrSpread]) {

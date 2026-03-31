@@ -22,10 +22,9 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
-    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    get_non_optional_part, parse_order_string,
+    ContextModuleScanResult, JavascriptParser, Statement, TagInfoData, TopLevelScope,
+    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
+    create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -123,6 +122,7 @@ struct ImportTagData {
 
 pub struct ImportParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ImportParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
@@ -134,13 +134,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     {
       return Some(true);
     }
-    if let MemberExpressionInfo::Expression(info) =
-      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
-      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
-      && parser
-        .get_tag_data(&name.clone(), DYNAMIC_IMPORT_TAG)
-        .is_some()
+    if let Some(ident) = expr.as_ident()
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
+      && let Some(info) = name_info.info
+      && let Some(name) = info.name.clone()
+      && parser.get_tag_data(&name, DYNAMIC_IMPORT_TAG).is_some()
     {
       return Some(true);
     }
@@ -264,6 +262,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser: &mut JavascriptParser,
     node: &CallExpr,
     import_then: Option<&CallExpr>,
+    referenced_in_members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     // Skip unreachable dynamic imports that are placed after a terminating
     // statement like `return` / `throw` (non top-level). This relies on
@@ -324,7 +323,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&import_call_span);
-    let referenced_in_member = parser
+    let referenced_in_variable = parser
       .dynamic_import_references
       .get_import(&import_call_span);
     let referenced_fulfilled_ns_obj =
@@ -337,10 +336,26 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       });
       exports = Some(refs);
     }
+    if let Some((referenced_in_members, is_call)) = referenced_in_members {
+      let referenced = if is_call {
+        ReferencedSpecifier::new_call(
+          referenced_in_members.to_vec(),
+          parser
+            .javascript_options
+            .strict_this_context_on_imports
+            .unwrap_or(false)
+            && !referenced_in_members.is_empty(),
+        )
+      } else {
+        ReferencedSpecifier::new(referenced_in_members.to_vec())
+      };
+      exports = Some(vec![referenced]);
+    }
 
     let is_statical = referenced_in_destructuring.is_some()
-      || referenced_in_member.is_some()
-      || referenced_fulfilled_ns_obj.is_some();
+      || referenced_in_variable.is_some()
+      || referenced_fulfilled_ns_obj.is_some()
+      || referenced_in_members.is_some();
     if is_statical && has_exports_magic_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),

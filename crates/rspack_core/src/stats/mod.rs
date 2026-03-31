@@ -11,7 +11,7 @@ use rayon::iter::{
   IntoParallelIterator, IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelBridge,
   ParallelIterator,
 };
-use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Display, Result, StringDisplayer};
 use rspack_hash::RspackHashDigest;
 use rustc_hash::{FxHashMap as HashMap, FxHasher};
@@ -486,6 +486,13 @@ impl Stats<'_> {
       return Ok(f(vec![]));
     };
     let module_graph = build_module_graph_artifact.get_module_graph();
+    let mut concatenated_modules = IdentifierSet::default();
+    for (_, m) in module_graph.modules() {
+      let Some(m) = m.as_concatenated_module() else {
+        continue;
+      };
+      concatenated_modules.extend(m.get_modules().iter().map(|inner_module| inner_module.id));
+    }
 
     let mut modules: Vec<StatsModule> = module_graph
       .modules()
@@ -500,6 +507,7 @@ impl Stats<'_> {
           module_ids_artifact,
           module,
           false,
+          concatenated_modules.contains(&module.identifier()),
           None,
           None,
           options,
@@ -534,6 +542,7 @@ impl Stats<'_> {
             module_ids_artifact,
             module,
             true,
+            false,
             None,
             None,
             options,
@@ -637,6 +646,7 @@ impl Stats<'_> {
                 build_module_graph_artifact_for_module_graph,
                 module_ids_artifact,
                 m,
+                false,
                 false,
                 Some(&root_modules),
                 Some(c.runtime()),
@@ -1134,6 +1144,7 @@ impl Stats<'_> {
     module_ids_artifact: &'a ModuleIdsArtifact,
     module: &'a BoxModule,
     executed: bool,
+    concatenated: bool,
     root_modules: Option<&IdentifierSet>,
     runtime: Option<&RuntimeSpec>,
     options: &ExtendedStatsOptions,
@@ -1213,7 +1224,7 @@ impl Stats<'_> {
 
     // module$visible
     if stats.built || stats.code_generated || options.cached_modules {
-      let orphan = if executed {
+      let orphan = if executed || concatenated {
         true
       } else {
         self
@@ -1476,6 +1487,7 @@ impl Stats<'_> {
             module_ids_artifact,
             module,
             executed,
+            true,
             root_modules,
             runtime,
             options,

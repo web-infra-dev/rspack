@@ -61,6 +61,7 @@ impl ProvideParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ProvideParserPlugin {
   fn can_rename(&self, _parser: &mut JavascriptParser, str: &str) -> Option<bool> {
     self.names.contains(str).then_some(true)

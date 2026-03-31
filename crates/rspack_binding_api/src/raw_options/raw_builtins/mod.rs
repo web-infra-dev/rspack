@@ -64,7 +64,8 @@ use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
-  ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin, node_target_plugin,
+  ExternalsPlugin, electron_target_plugin, esm_node_target_plugin, http_externals_rspack_plugin,
+  node_target_plugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
 use rspack_plugin_html::HtmlRspackPlugin;
@@ -140,7 +141,8 @@ use crate::{
   raw_options::{
     RawDynamicEntryPluginOptions, RawEvalDevToolModulePluginOptions, RawExternalItemWrapper,
     RawExternalsPluginOptions, RawHttpExternalsRspackPluginOptions, RawSplitChunksOptions,
-    SourceMapDevToolPluginOptions, raw_builtins::raw_esm_lib::RawEsmLibraryPlugin,
+    SourceMapDevToolPluginOptions,
+    raw_builtins::raw_esm_lib::{RawEnableLibraryPluginOptions, RawEsmLibraryPlugin},
   },
   rslib::RawRslibPluginOptions,
 };
@@ -159,6 +161,7 @@ pub enum BuiltinPluginName {
   DynamicEntryPlugin,
   ExternalsPlugin,
   NodeTargetPlugin,
+  EsmNodeTargetPlugin,
   ElectronTargetPlugin,
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
@@ -400,6 +403,9 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(plugin);
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
+      BuiltinPluginName::EsmNodeTargetPlugin => {
+        plugins.push(esm_node_target_plugin());
+      }
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
@@ -411,9 +417,14 @@ impl<'a> BuiltinPlugin<'a> {
         enable_chunk_loading_plugin(chunk_loading_type.as_str().into(), plugins);
       }
       BuiltinPluginName::EnableLibraryPlugin => {
-        let library_type = downcast_into::<String>(self.options)
+        let options = downcast_into::<RawEnableLibraryPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        enable_library_plugin(library_type, plugins);
+        enable_library_plugin(
+          options.library_type,
+          options.preserve_modules.as_deref().map(Into::into),
+          options.split_chunks.map(Into::into),
+          plugins,
+        );
       }
       BuiltinPluginName::EnableWasmLoadingPlugin => {
         let wasm_loading_type = downcast_into::<String>(self.options)

@@ -1,0 +1,36 @@
+```mjs title=main.mjs
+// ./index.js
+it("should avoid namespace binding collisions across different external sources", async () => {
+	const modA = await import("./shared.mjs");
+	const modB = await import("./shared.mjs");
+
+	expect(modA.fsNs).toBeDefined();
+	expect(modA.fsNs.readFile).toBeDefined();
+	expect(modB.pathNs).toBeDefined();
+	expect(modB.pathNs.resolve).toBeDefined();
+});
+
+
+```
+
+```mjs title=shared.mjs
+import * as __rspack_external_fs from "fs";
+import * as __rspack_external_path from "path";
+
+// fs
+
+// ./a.js
+
+
+
+
+// path
+
+// ./b.js
+
+
+
+
+export { __rspack_external_fs as fsNs, __rspack_external_path as pathNs };
+
+```

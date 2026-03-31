@@ -16,11 +16,6 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
-      prefer_docker:
-        required: false
-        default: true
-        type: boolean
-        description: 'Prefer docker build'
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
@@ -55,11 +50,10 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Install Binding Dependencies
-        uses: ./.github/actions/pnpm/install-binding-dependencies
-        with:
-          # binding dependencies so small that we don't need to cache them
-          # a fresh new installation takes about 5s
-          save-if: false
+        run: |
+          cd ./crates/node_binding
+          pnpm i --ignore-workspace --no-lockfile
+          cd ../../
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
@@ -67,6 +61,18 @@ jobs:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
+
+      - name: Setup Zig for musl build
+        if: ${{ contains(inputs.target, 'musl') }}
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29
+        with:
+          version: '0.14.1'
+
+      - name: Install cargo-zigbuild for musl build
+        if: ${{ contains(inputs.target, 'musl') }}
+        uses: taiki-e/install-action@dfcb1ee29051d97c8d0f2d437199570008fd5612 # v2
+        with:
+          tool: cargo-zigbuild
 
       # setup rust target for native runner
       - name: Setup Rust Target
@@ -88,69 +94,29 @@ jobs:
           tool-cache: false
 
       # Linux
-      - name: Build x86_64-unknown-linux-gnu native
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && !inputs.prefer_docker }}
-        run: |
-          rustup target add x86_64-unknown-linux-gnu
-          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+      - name: Build x86_64-unknown-linux-gnu
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        run: RUST_TARGET=x86_64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
-      - name: Build x86_64-unknown-linux-gnu in Docker
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.prefer_docker }}
-        uses: ./.github/actions/docker/linux-build
-        with:
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
-          target: ${{ inputs.target }}
-          profile: ${{ inputs.profile }}
-
-      # runner these build in docker since we don't have github runner machine for it
-      - name: Build aarch64-unknown-linux-gnu in Docker
+      - name: Build aarch64-unknown-linux-gnu
         if: ${{ inputs.target == 'aarch64-unknown-linux-gnu' }}
-        uses: ./.github/actions/docker/linux-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
-          profile: ${{ inputs.profile }}
-          pre: |
-            export CC_aarch64_unknown_linux_gnu=clang
+        run: RUST_TARGET=aarch64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
-      - name: Build x86_64-unknown-linux-musl in Docker
+      - name: Build x86_64-unknown-linux-musl
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker/linux-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          profile: ${{ inputs.profile }}
-          pre: |
-            # set apk repositories to stable release branch
-            rm /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
-            apk update
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
-            # llvm19-dev is used to install llvm-config
-            # clang19-static is used to install libclang.a
-            apk add llvm19-dev clang19-static
+        run: RUST_TARGET=x86_64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
-      - name: Build aarch64-unknown-linux-musl in Docker
+      - name: Build aarch64-unknown-linux-musl
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
-        uses: ./.github/actions/docker/linux-build
-        with:
-          target: ${{ inputs.target }}
-          image: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-          profile: ${{ inputs.profile }}
-          pre: |
-            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=aarch64-linux-musl-gcc
-            # set apk repositories to stable release branch
-            rm /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/main" >> /etc/apk/repositories
-            echo "https://dl-cdn.alpinelinux.org/alpine/v3.21/community" >> /etc/apk/repositories
-            apk update
-            # musl will enable clang-sys static linking
-            # https://github.com/KyleMayes/clang-sys?tab=readme-ov-file#static
-            # llvm19-dev is used to install llvm-config
-            # clang19-static is used to install libclang.a
-            apk add llvm19-dev clang19-static
+        run: RUST_TARGET=aarch64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
 
       # Windows
       - name: Build i686-pc-windows-msvc
@@ -187,14 +153,14 @@ jobs:
       # WASM
       # Also build browser wasm because they can share most of building cache.
       # Note that we should build browser wasm first because there's a renaming stage
-      - name: Build wasm32-wasip1-threads with linux in Docker
+      - name: Build wasm32-wasip1-threads with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
 
       # WASM Release (use profile = release-wasi) + wasm-opt
-      - name: Build wasm32-wasip1-threads(release-wasi) with linux in Docker
+      - name: Build wasm32-wasip1-threads(release-wasi) with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         run: |
           pnpm --filter @rspack/binding build:release:browser

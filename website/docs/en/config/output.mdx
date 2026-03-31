@@ -1,3 +1,7 @@
+---
+description: 'The top-level output key contains a set of options instructing Rspack on how and where it should output your bundles, assets, and anything else you bundle...'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import { Tabs, Tab } from '@theme';
@@ -758,7 +762,6 @@ Let's take a look at an example.
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   entry: './src/index.js',
   output: {
     library: 'MyLibrary',
@@ -789,7 +792,6 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
 
    ```js title="rspack.config.mjs"
    export default {
-     // …
      entry: ['./src/a.js', './src/b.js'], // only exports in b.js will be exposed
      output: {
        library: 'MyLibrary',
@@ -801,7 +803,6 @@ In the above example, we're passing a single entry file to `entry`, however, Rsp
 
    ```js title="rspack.config.mjs"
    export default {
-     // …
      entry: {
        a: './src/a.js',
        b: './src/b.js',
@@ -836,7 +837,6 @@ Note that the value of `amdContainer` **must be** set as a global variable.
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       amdContainer: 'window["clientContainer"]',
@@ -860,7 +860,6 @@ Specify a name for the library.
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -887,7 +886,6 @@ These options assign the return value of the entry point (e.g. whatever the entr
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -910,7 +908,6 @@ MyLibrary.doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -932,7 +929,6 @@ Be aware that if `MyLibrary` isn't defined earlier your library will be set in g
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -968,7 +964,6 @@ These options assign the return value of the entry point (e.g. whatever the entr
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -992,7 +987,6 @@ MyLibrary.doSomething(); // if `this` is window
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1014,7 +1008,6 @@ window.MyLibrary.doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1036,7 +1029,6 @@ global.MyLibrary.doSomething();
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1066,7 +1058,6 @@ These options will result in a bundle that comes with a complete header to ensur
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // do not specify a `name` here
@@ -1082,7 +1073,6 @@ Output ES modules.
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // do not specify a `name` here
@@ -1098,7 +1088,6 @@ This configuration generates tree-shakable and code-splitting available output f
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // note there's no `name` here
@@ -1126,7 +1115,6 @@ Wondering the difference between CommonJS and CommonJS2 is? While they are simil
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       // note there's no `name` here
@@ -1148,8 +1136,6 @@ Output:
 
 ```js
 function doSomething() {}
-
-// …
 
 exports.doSomething = __webpack_exports__.doSomething;
 ```
@@ -1360,7 +1346,6 @@ System.register(
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   output: {
     library: {
       name: 'MyLibrary',
@@ -1437,7 +1422,6 @@ To insert the same comment for each `umd` type, set `auxiliaryComment` to a stri
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   mode: 'development',
   output: {
     library: {
@@ -1471,7 +1455,6 @@ For fine-grained control, pass an object:
 
 ```js title="rspack.config.mjs"
 export default {
-  // …
   mode: 'development',
   output: {
     library: {

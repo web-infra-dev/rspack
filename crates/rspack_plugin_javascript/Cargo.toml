@@ -7,59 +7,46 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-anymap = { workspace = true }
-async-trait = { workspace = true }
-bitflags = { workspace = true }
-cow-utils = { workspace = true }
-either = { workspace = true }
-fast-glob = { workspace = true }
-indexmap = { workspace = true }
-itertools = { workspace = true }
-memchr = { workspace = true }
-num-bigint = { workspace = true }
-once_cell = { workspace = true }
-rayon = { workspace = true }
-regex = { workspace = true }
-regress = { workspace = true, features = ["pattern"] }
-rspack_cacheable = { workspace = true }
-rspack_collections = { workspace = true }
-rspack_core = { workspace = true }
-rspack_error = { workspace = true }
-rspack_futures = { workspace = true }
-rspack_hash = { workspace = true }
-rspack_hook = { workspace = true }
-rspack_ids = { workspace = true }
+anymap                     = { workspace = true }
+async-trait                = { workspace = true }
+bitflags                   = { workspace = true }
+cow-utils                  = { workspace = true }
+either                     = { workspace = true }
+fast-glob                  = { workspace = true }
+indexmap                   = { workspace = true }
+itertools                  = { workspace = true }
+memchr                     = { workspace = true }
+num-bigint                 = { workspace = true }
+once_cell                  = { workspace = true }
+rayon                      = { workspace = true }
+regex                      = { workspace = true }
+regress                    = { workspace = true, features = ["pattern"] }
+rspack_cacheable           = { workspace = true }
+rspack_collections         = { workspace = true }
+rspack_core                = { workspace = true }
+rspack_error               = { workspace = true }
+rspack_futures             = { workspace = true }
+rspack_hash                = { workspace = true }
+rspack_hook                = { workspace = true }
+rspack_ids                 = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
-rspack_paths = { workspace = true }
-rspack_regex = { workspace = true }
-rspack_util = { workspace = true }
-rustc-hash = { workspace = true }
-serde_json = { workspace = true }
-smallvec = { workspace = true }
-slotmap = { workspace = true }
-sugar_path = { workspace = true }
-swc_core = { workspace = true, features = [
-  "__parser",
-  "__utils",
-  "common_sourcemap",
-  "ecma_parser_unstable",
-  "ecma_preset_env",
-  "ecma_transforms_optimization",
-  "ecma_transforms_module",
-  "ecma_transforms_compat",
-  "ecma_transforms_typescript",
-  "base",
-  "base_module",
-  "ecma_quote",
-] }
-swc_node_comments = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
-tracing = { workspace = true }
-url = { workspace = true }
-winnow = { workspace = true }
-
-[package.metadata.cargo-shear]
-ignored = ["tracing"]
+rspack_macros              = { workspace = true }
+rspack_paths               = { workspace = true }
+rspack_regex               = { workspace = true }
+rspack_util                = { workspace = true }
+rustc-hash                 = { workspace = true }
+serde_json                 = { workspace = true }
+slotmap                    = { workspace = true }
+smallvec                   = { workspace = true }
+sugar_path                 = { workspace = true }
+swc_core                   = { workspace = true, features = ["__parser", "__utils", "common_sourcemap", "ecma_parser_unstable", "ecma_preset_env", "ecma_transforms_optimization", "ecma_transforms_module", "ecma_transforms_compat", "ecma_transforms_typescript", "base", "base_module", "ecma_quote"] }
+tokio                      = { workspace = true, features = ["sync"] }
+tracing                    = { workspace = true }
+url                        = { workspace = true }
+winnow                     = { workspace = true }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

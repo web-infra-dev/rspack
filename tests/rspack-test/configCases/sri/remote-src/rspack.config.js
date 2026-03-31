@@ -1,5 +1,5 @@
-const { SubresourceIntegrityPlugin, HtmlRspackPlugin } = require("@rspack/core");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { SubresourceIntegrityPlugin, HtmlRspackPlugin: BuiltinHtmlRspackPlugin } = require("@rspack/core");
+const HtmlRspackPlugin = require("html-rspack-plugin");
 const fs = require("fs");
 const path = require("path");
 
@@ -11,13 +11,13 @@ module.exports = (_, { testPath }) => ([{
   },
   plugins: [
     new SubresourceIntegrityPlugin(),
-    new HtmlRspackPlugin({
+    new BuiltinHtmlRspackPlugin({
       filename: "index.html",
     }),
     {
       apply(compiler) {
         compiler.hooks.compilation.tap('TestPlugin', (compilation) => {
-          HtmlRspackPlugin.getCompilationHooks(compilation).beforeAssetTagGeneration.tap('SubresourceIntegrityPlugin', (data) => {
+          BuiltinHtmlRspackPlugin.getCompilationHooks(compilation).beforeAssetTagGeneration.tap('SubresourceIntegrityPlugin', (data) => {
             data.assets.js.push("http://localhost:3000/index.js");
           });
         });
@@ -40,15 +40,15 @@ module.exports = (_, { testPath }) => ([{
   },
   plugins: [
     new SubresourceIntegrityPlugin({
-      htmlPlugin: require.resolve("html-webpack-plugin"),
+      htmlPlugin: require.resolve("html-rspack-plugin"),
     }),
-    new HtmlWebpackPlugin({
+    new HtmlRspackPlugin({
       filename: "index1.html",
     }),
     {
       apply(compiler) {
         compiler.hooks.compilation.tap('TestPlugin', (compilation) => {
-          HtmlWebpackPlugin.getCompilationHooks(compilation).beforeAssetTagGeneration.tap('SubresourceIntegrityPlugin', (data) => {
+          HtmlRspackPlugin.getCompilationHooks(compilation).beforeAssetTagGeneration.tap('SubresourceIntegrityPlugin', (data) => {
             data.assets.js.push("http://localhost:3000/index.js");
           });
         });
@@ -58,8 +58,8 @@ module.exports = (_, { testPath }) => ([{
       apply(compiler) {
         compiler.hooks.done.tap('TestPlugin', () => {
           const htmlContent = fs.readFileSync(path.resolve(testPath, "index1.html"), "utf-8");
-          expect(htmlContent).toMatch(/<script defer="defer" src="bundle1.js" integrity=".+" crossorigin="anonymous">/);
-          expect(htmlContent).toMatch(/<script defer="defer" src="http:\/\/localhost:3000\/index\.js">/);
+          expect(htmlContent).toMatch(/<script defer src="bundle1\.js" integrity=".+" crossorigin="anonymous">/);
+          expect(htmlContent).toMatch(/<script defer src="http:\/\/localhost:3000\/index\.js">/);
         });
       }
     }

@@ -119,6 +119,8 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
   }
 };
 
+__webpack_require__.rstest_do_mock_require = __webpack_require__.rstest_do_mock;
+
 __webpack_require__.rstest_hoisted = (fn) => {
   return fn();
 };
@@ -187,9 +189,14 @@ module.exports = [
 	rstestEntry("./doMock.js"),
 	rstestEntry("./mockFactory.js"),
 	rstestEntry("./manualMock.js"),
+	rstestEntry("./builtinManualMock.js"),
+	rstestEntry("./nodeModulesManualMock.js"),
+	rstestEntry("./directoryManualMock.js"),
 	rstestEntry("./importActual.js"),
 	rstestEntry("./importActualHoisted.js"),
 	rstestEntry("./requireActual.js"),
+	rstestEntry("./doMockRequire.js"),
+	rstestEntry("./unmockRequire.js"),
 	{
 		entry: "./test.js",
 		target: "node",
@@ -208,6 +215,13 @@ module.exports = [
 	rstestEntry("./reExportTripleDoMockedModule.js"),
 	rstestEntry("./globals/importActual.js"),
 	rstestEntry("./globals-false/importActual.js", { globals: false }),
+	{
+		...rstestEntry("./mainFilesManualMock.js"),
+		resolve: {
+			mainFiles: ["main"]
+		}
+	},
+	rstestEntry("./filePrecedenceManualMock.js"),
 	{
 		...rstestEntry("./hoisted.js"),
 		externals: {

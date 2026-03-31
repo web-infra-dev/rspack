@@ -14,7 +14,6 @@ on:
         options:
           - '-'
           - modernjs
-          # - nx
           - rspress
           - rsbuild
           - rslib
@@ -22,9 +21,9 @@ on:
           - rsdoctor
           - examples
           - devserver
-          - nuxt
           - plugin
           - lynx-stack
+          - rsbuild-rsc-plugin
       suiteRef:
         description: 'suite ref to use'
         required: true
@@ -64,8 +63,6 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"' }}
       ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
       test: false
-      bench: false
-      prefer_docker: false
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
@@ -116,7 +113,6 @@ jobs:
             const suiteName = `${{ github.event_name == 'workflow_dispatch' && inputs.suite || '-' }}`
             let suites = [
               "modernjs",
-              // "nx",
               "rspress",
               "rslib",
               "rstest",
@@ -124,9 +120,9 @@ jobs:
               "rsdoctor",
               "examples",
               "devserver",
-              "nuxt",
               "plugin",
               "lynx-stack",
+              "rsbuild-rsc-plugin",
             ]
             if (suiteName !== "-") {
               suites = suites.filter(suite => suite === suiteName)
@@ -171,7 +167,7 @@ jobs:
           node-version: '22'
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Build JS
         run: pnpm run build:js
@@ -197,18 +193,14 @@ jobs:
           pnpm --filter @rspack/binding... 	            \
                --filter @rspack/binding-darwin-arm64... \
                --filter @rspack/core...                 \
-               --filter @rspack/dev-server...           \
                --filter @rspack/test-tools...           \
-               --filter @rspack/tracing...              \
               exec sh -c 'jq ".publishConfig.provenance = false" package.json > package.json.tmp && mv package.json.tmp package.json'
 
           pnpm publish --no-git-checks --provenance=false --access public --registry=http://localhost:4873 \
                --filter @rspack/binding... 	            \
                --filter @rspack/binding-darwin-arm64... \
                --filter @rspack/core...                 \
-               --filter @rspack/dev-server...           \
-               --filter @rspack/test-tools...           \
-               --filter @rspack/tracing... 
+               --filter @rspack/test-tools...
 
           cd ../..
           pwd

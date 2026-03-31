@@ -1,6 +1,10 @@
+---
+description: '本节涵盖了使用 Rspack 编译代码时所有可用的变量。模块将能够通过 module 和其他变量访问来自编译过程的特定数据。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 import Columns from '@components/Columns';
-import { ApiMeta } from '@components/ApiMeta';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.docschina.org/api/module-variables/" />
 
@@ -126,6 +130,20 @@ typeof import.meta.url
 ```
 
 </Columns>
+
+### import.meta.resolve
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+类似 [`require.resolve()`](/api/runtime-api/module-methods#requireresolve) 获取模块的 ID，会将模块打包进最终的 bundle 中，并返回模块的模块 ID。
+
+```ts
+import.meta.resolve(dependency: string);
+```
+
+:::warning
+`import.meta.resolve()` 目前仍是实验性功能，需要通过 [`module.parser.javascript.importMetaResolve`](/config/module#moduleparserjavascriptimportmetaresolve) 开启，未来会优先[对齐标准实现](https://github.com/openjs-foundation/bundler-collab-space/issues/8)，因此该 API 行为可能会发生变化，请谨慎使用。
+:::
 
 ### import.meta.webpackContext
 

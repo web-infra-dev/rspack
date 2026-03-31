@@ -6,8 +6,11 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::runtime_module::{
-  ExportRequireRuntimeModule, ModuleChunkLoadingRuntimeModule, is_enabled_for_chunk,
+use crate::{
+  runtime_module::{
+    ExportRequireRuntimeModule, ModuleChunkLoadingRuntimeModule, is_enabled_for_chunk,
+  },
+  should_export_webpack_require_for_module_chunk_loading,
 };
 
 #[plugin]
@@ -22,17 +25,7 @@ async fn additional_tree_runtime_requirements(
   runtime_requirements: &mut RuntimeGlobals,
   _additional_runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
-  let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
-  if is_enabled_for_chunk
-    && compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .has_chunk_entry_dependent_chunks(
-        chunk_ukey,
-        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      )
-  {
+  if should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation) {
     runtime_requirements.insert(RuntimeGlobals::ASYNC_STARTUP);
   }
   Ok(())
@@ -49,14 +42,7 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
-  if compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .has_chunk_entry_dependent_chunks(
-      chunk_ukey,
-      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-    )
-  {
+  if should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation) {
     runtime_requirements_mut.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
   }
 

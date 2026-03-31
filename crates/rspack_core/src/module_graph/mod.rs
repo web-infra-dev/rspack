@@ -1023,6 +1023,27 @@ impl ModuleGraph {
     )
   }
 
+  pub fn is_connection_active(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    let condition = self
+      .inner
+      .connection_to_condition
+      .get(&connection.dependency_id)
+      .expect("should have condition");
+    condition.is_connection_active(
+      connection,
+      runtime,
+      self,
+      module_graph_cache,
+      exports_info_artifact,
+    )
+  }
+
   // todo remove it after module_graph_partial remove all of dependency_id_to_*
   pub fn cache_recovery_connection(&mut self, connection: ModuleGraphConnection) {
     let condition = self

@@ -18,7 +18,7 @@ use rspack_plugin_devtool::{
 };
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::fx_hash::{FxDashMap, FxHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -128,8 +128,8 @@ pub struct RsdoctorPluginSourceMapFeature {
 
 #[derive(Default, Debug)]
 pub struct RsdoctorPluginOptions {
-  pub module_graph_features: std::collections::HashSet<RsdoctorPluginModuleGraphFeature>,
-  pub chunk_graph_features: std::collections::HashSet<RsdoctorPluginChunkGraphFeature>,
+  pub module_graph_features: FxHashSet<RsdoctorPluginModuleGraphFeature>,
+  pub chunk_graph_features: FxHashSet<RsdoctorPluginChunkGraphFeature>,
   pub source_map_features: RsdoctorPluginSourceMapFeature,
 }
 

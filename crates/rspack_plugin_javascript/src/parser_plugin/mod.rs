@@ -34,7 +34,10 @@ pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
 pub mod side_effects_parser_plugin;
 
-pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
+pub use self::r#trait::{
+  BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,
+  JavascriptParserPluginHooks,
+};
 pub(crate) use self::{
   amd::{
     AMDDefineDependencyParserPlugin, AMDParserPlugin, AMDRequireDependenciesBlockParserPlugin,

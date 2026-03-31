@@ -22,7 +22,6 @@ rspack_util              = { workspace = true }
 
 async-trait = { workspace = true }
 camino      = { workspace = true }
-hashlink    = { workspace = true }
 itertools   = { workspace = true }
 regex       = { workspace = true }
 rustc-hash  = { workspace = true }
@@ -32,7 +31,11 @@ tokio       = { workspace = true, features = ["rt"] }
 tracing     = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_hash"]
+ignored = ["tracing"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

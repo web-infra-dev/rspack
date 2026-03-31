@@ -39,7 +39,7 @@ if (__nodeFs.existsSync(__wasmDebugFilePath)) {
   __wasmFilePath = __wasmDebugFilePath
 } else if (!__nodeFs.existsSync(__wasmFilePath)) {
   try {
-    __wasmFilePath = __nodePath.resolve('@rspack/binding-wasm32-wasi')
+    __wasmFilePath = require.resolve('@rspack/binding-wasm32-wasi/rspack.wasm32-wasi.wasm')
   } catch {
     throw new Error('Cannot find rspack.wasm32-wasi.wasm file, and @rspack/binding-wasm32-wasi package is not installed.')
   }

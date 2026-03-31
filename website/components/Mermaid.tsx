@@ -44,7 +44,6 @@ export default function Mermaid({
     }
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: safe
   useEffect(() => {
     renderMermaid2SVG();
   }, [children]);
@@ -53,7 +52,6 @@ export default function Mermaid({
       {renderError || !svg ? null : (
         <div style={style} className="rspack-mermaid rp-not-doc">
           <h3>{title}</h3>
-          {/* biome-ignore lint/security/noDangerouslySetInnerHtml: safe */}
           <div dangerouslySetInnerHTML={{ __html: svg }} />
         </div>
       )}

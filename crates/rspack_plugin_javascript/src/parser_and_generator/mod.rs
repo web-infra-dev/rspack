@@ -8,9 +8,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
   ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
-  GenerateContext, Module, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, RuntimeGlobals, SideEffectsBailoutItem, SourceType, TemplateContext,
-  TemplateReplaceSource,
+  GenerateContext, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -19,14 +19,13 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{BytePos, input::SourceFileInput},
+  common::{BytePos, comments::SingleThreadedComments, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
     transforms::base::fixer::paren_remover,
   },
 };
-use swc_node_comments::SwcComments;
 
 use crate::{
   BoxJavascriptParserPlugin,
@@ -46,9 +45,12 @@ fn module_type_to_is_module(value: &ModuleType) -> IsModule {
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
   pub module: String,
+  pub rspack_module: String,
   pub exports: String,
   pub require: String,
   pub require_regex: &'static LazyLock<Regex>,
+  pub module_cache: String,
+  pub entry_module_id: String,
 }
 
 static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -63,11 +65,26 @@ impl ParserRuntimeRequirementsData {
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE);
     let exports_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::EXPORTS);
+    let module_cache_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE_CACHE);
+    let entry_module_id_name =
+      runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::ENTRY_MODULE_ID);
+    let rspack_module_name = runtime_template.render_runtime_variable(&RuntimeVariable::Module);
     Self {
       require_regex: &LEGACY_REQUIRE_REGEX,
       module: module_name,
+      rspack_module: rspack_module_name,
       exports: exports_name,
       require: require_name,
+      module_cache: module_cache_name,
+      entry_module_id: entry_module_id_name,
+    }
+  }
+
+  pub fn module_argument(&self, module_argument: &ModuleArgument) -> String {
+    match module_argument {
+      ModuleArgument::Module => self.module.clone(),
+      ModuleArgument::RspackModule => self.rspack_module.clone(),
     }
   }
 }
@@ -206,7 +223,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let source = remove_bom(source);
     let source_string = source.source().into_string_lossy();
 
-    let comments = SwcComments::default();
+    let comments = SingleThreadedComments::default();
     let target = ast::EsVersion::EsNext;
 
     let jsx = module_parser_options

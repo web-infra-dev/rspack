@@ -1535,9 +1535,24 @@ fn determine_export_assignments(
 ) -> (Vec<Atom>, Vec<usize>) {
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyExportImportedSpecifierDependency.js#L109
   // js `Set` keep the insertion order, use `IndexSet` to align there behavior
-  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> = IndexSet::default();
-  let mut dependency_indices =
-    Vec::with_capacity(dependencies.len() + usize::from(additional_dependency.is_some()));
+  let total_deps = dependencies.len() + usize::from(additional_dependency.is_some());
+
+  // Pre-compute capacity: sum up export counts across all dependencies to avoid rehashing
+  let estimated_capacity: usize = dependencies
+    .iter()
+    .chain(additional_dependency.iter())
+    .filter_map(|dep| module_graph.module_identifier_by_dependency_id(dep))
+    .map(|mid| {
+      exports_info_artifact
+        .get_exports_info_data(mid)
+        .exports()
+        .len()
+    })
+    .sum();
+
+  let mut names: IndexSet<Atom, BuildHasherDefault<FxHasher>> =
+    IndexSet::with_capacity_and_hasher(estimated_capacity, Default::default());
+  let mut dependency_indices = Vec::with_capacity(total_deps);
 
   for dependency in dependencies.iter().chain(additional_dependency.iter()) {
     if let Some(module_identifier) = module_graph.module_identifier_by_dependency_id(dependency) {

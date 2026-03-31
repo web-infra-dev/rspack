@@ -1,6 +1,5 @@
 use std::{
   path::PathBuf,
-  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -20,8 +19,8 @@ use rspack_core::{
   ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, get_target,
-  is_esm_dep_like,
+  REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -153,7 +152,7 @@ impl EsmLibraryPlugin {
                   export_info,
                   module_graph,
                   exports_info_artifact,
-                  Rc::new(|_| true),
+                  &|_| true,
                   &mut Default::default()
                 ),
                 Some(GetTargetResult::Target(_))
@@ -353,7 +352,7 @@ async fn finish_modules(
                 export_info,
                 module_graph,
                 exports_info_artifact,
-                Rc::new(|_| true),
+                &|_| true,
                 &mut Default::default()
               ),
               Some(GetTargetResult::Target(_))
@@ -521,7 +520,15 @@ async fn additional_chunk_runtime_requirements(
     }
   }
 
-  if !runtime_requirements.is_empty() {
+  // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
+  // that live on the __webpack_require__ object (same check the runtime plugin
+  // uses in handle_scope_globals). This avoids pulling in an empty
+  // `var __webpack_require__ = {};` for chunks whose only requirements are
+  // unrelated to the require scope (e.g. STARTUP_NO_DEFAULT added at tree level).
+  if runtime_requirements
+    .iter()
+    .any(|r| REQUIRE_SCOPE_GLOBALS.contains(r))
+  {
     runtime_requirements.insert(RuntimeGlobals::REQUIRE_SCOPE);
   }
 

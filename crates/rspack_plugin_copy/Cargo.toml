@@ -5,8 +5,8 @@ license           = "MIT"
 name              = "rspack_plugin_copy"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
+
 [dependencies]
-dashmap      = { workspace = true }
 derive_more  = { workspace = true, features = ["debug"] }
 futures      = { workspace = true }
 glob         = { workspace = true }
@@ -17,6 +17,7 @@ rspack_error = { workspace = true }
 rspack_hash  = { workspace = true }
 rspack_hook  = { workspace = true }
 rspack_paths = { workspace = true }
+rspack_util  = { workspace = true }
 rustc-hash   = { workspace = true }
 sugar_path   = { workspace = true }
 tracing      = { workspace = true }
@@ -26,3 +27,6 @@ ignored = ["tracing"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
