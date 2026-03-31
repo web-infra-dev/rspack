@@ -4,7 +4,7 @@ mod transaction;
 
 use std::{collections::hash_map::Entry, sync::Arc};
 
-use futures::future::try_join_all;
+use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Mutex;
 
@@ -108,11 +108,14 @@ impl DB {
           })
           .collect();
 
-        let results = try_join_all(pending_buckets.into_iter().map(
-          |(bucket_name, cached_bucket, changes)| {
+        let mut all_files_to_add = Vec::new();
+        let mut all_files_to_remove = Vec::new();
+        pending_buckets
+          .into_iter()
+          .map(|(bucket_name, cached_bucket, changes)| {
             let readable_fs = transaction.readable_fs().child_fs(&bucket_name);
             let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
-            tokio::spawn(async move {
+            async move {
               // Initialize bucket if not already cached (runs in parallel across buckets)
               let mut bucket = if let Some(bucket) = cached_bucket {
                 bucket
@@ -123,29 +126,23 @@ impl DB {
                 .save(Some(writable_fs), changes, max_pack_size)
                 .await?;
               Ok::<_, Error>((bucket_name, bucket, affacted_files))
-            })
-          },
-        ))
-        .await?
-        .into_iter()
-        .collect::<Result<Vec<_>>>()?;
-
-        let mut all_files_to_add = Vec::new();
-        let mut all_files_to_remove = Vec::new();
-        for (bucket_name, bucket, affacted_files) in results {
-          let (added_pack, removed_pack) = affacted_files;
-          buckets.insert(bucket_name.clone(), bucket);
-          all_files_to_add.extend(
-            added_pack
-              .into_iter()
-              .map(|file| format!("{bucket_name}/{file}")),
-          );
-          all_files_to_remove.extend(
-            removed_pack
-              .into_iter()
-              .map(|file| format!("{bucket_name}/{file}")),
-          );
-        }
+            }
+          })
+          .try_fut_consume(|(bucket_name, bucket, affacted_files)| {
+            let (added_pack, removed_pack) = affacted_files;
+            buckets.insert(bucket_name.clone(), bucket);
+            all_files_to_add.extend(
+              added_pack
+                .into_iter()
+                .map(|file| format!("{bucket_name}/{file}")),
+            );
+            all_files_to_remove.extend(
+              removed_pack
+                .into_iter()
+                .map(|file| format!("{bucket_name}/{file}")),
+            );
+          })
+          .await?;
 
         // Atomically commit all changes
         transaction
