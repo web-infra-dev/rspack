@@ -452,6 +452,9 @@ export declare class ModuleGraphConnection {
   get module(): Module | null
   get resolvedModule(): Module | null
   get originModule(): Module | null
+  get active(): boolean
+  get conditional(): boolean
+  getActiveState(runtime: string | string[] | undefined): string
 }
 
 export declare class NativeWatcher {

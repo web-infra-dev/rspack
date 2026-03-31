@@ -104,6 +104,10 @@ impl ModuleGraphConnection {
     &self.module_identifier
   }
 
+  pub fn is_conditional(&self) -> bool {
+    self.conditional
+  }
+
   /// used for set module identifier after clone the [ModuleGraphConnection]
   pub fn set_module_identifier(&mut self, mi: ModuleIdentifier) {
     self.module_identifier = mi;
