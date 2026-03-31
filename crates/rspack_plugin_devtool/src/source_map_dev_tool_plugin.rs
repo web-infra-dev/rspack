@@ -291,7 +291,7 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
-  /// Compute source maps and source names concurrently via `rspack_futures::scope`.
+  /// Compute source maps and source names concurrently via `rspack_parallel::scope`.
   /// Returns collected tasks and the reference-to-source-name mapping.
   async fn collect_tasks(
     &self,
@@ -314,7 +314,7 @@ impl SourceMapDevToolPlugin {
 
     let results: Vec<Result<Option<TaskAndSourceNames>>> = match &self.module_filename_template {
       ModuleFilenameTemplate::String(template) => {
-        rspack_futures::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
+        rspack_parallel::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
           for (asset_filename, asset) in compilation_assets {
             let is_match = if need_match {
               match_object(&condition_object, &asset_filename)
@@ -415,7 +415,7 @@ impl SourceMapDevToolPlugin {
         .collect::<Vec<_>>()
       }
       ModuleFilenameTemplate::Fn(f) => {
-        rspack_futures::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
+        rspack_parallel::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
           for (asset_filename, asset) in compilation_assets {
             let is_match = if need_match {
               match_object(&condition_object, &asset_filename)
@@ -618,7 +618,7 @@ impl SourceMapDevToolPlugin {
     reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
     tasks: Vec<SourceMapTask>,
   ) -> Result<Vec<MappedAsset>> {
-    let mapped_assets = rspack_futures::scope::<_, Result<_>>(|token| {
+    let mapped_assets = rspack_parallel::scope::<_, Result<_>>(|token| {
       tasks.into_iter().for_each(
         |SourceMapTask {
            asset_filename,
