@@ -329,25 +329,29 @@ impl SplitChunksPlugin {
             return Ok(());
           }
 
-          if let Some(removed_chunks) = removed_module_chunks.get(mid) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
+          let removed_chunks = removed_module_chunks.get(mid);
+          if let Some(removed_chunks) = removed_chunks && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
             return Ok(());
           }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
-          let mut filtered = vec![];
+          let module_name_for_condition = module.name_for_condition();
+          let mut module_layer = None;
+          let mut filtered = Vec::with_capacity(cache_groups.len());
 
           for cache_group in cache_groups.iter() {
-            let mut is_match = true;
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
-            is_match &= (cache_group.cache_group.r#type)(module);
-            // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            is_match &= (cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
+            if !(cache_group.cache_group.r#type)(module) {
+              continue;
+            }
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-            is_match &= match &cache_group.cache_group.test {
-              CacheGroupTest::String(str) => module
-                .name_for_condition().is_some_and(|name| name.starts_with(str)),
-              CacheGroupTest::RegExp(regexp) => module
-                .name_for_condition().is_some_and(|name| regexp.test(&name)),
+            let is_match = match &cache_group.cache_group.test {
+              CacheGroupTest::String(str) => module_name_for_condition
+                .as_ref()
+                .is_some_and(|name| name.starts_with(str)),
+              CacheGroupTest::RegExp(regexp) => module_name_for_condition
+                .as_ref()
+                .is_some_and(|name| regexp.test(name)),
               CacheGroupTest::Fn(f) => {
                 let ctx = CacheGroupTestFnCtx { compilation, module };
                 f(ctx).await?.unwrap_or_default()
@@ -355,9 +359,22 @@ impl SplitChunksPlugin {
               CacheGroupTest::Enabled => true,
             };
 
-            if is_match {
-              filtered.push(cache_group);
+            if !is_match {
+              continue;
             }
+
+            // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer` after cheaper predicates.
+            let layer_match = (cache_group.cache_group.layer)(
+              module_layer
+                .get_or_insert_with(|| module.get_layer().map(ToString::to_string))
+                .clone(),
+            )
+            .await?;
+            if !layer_match {
+              continue;
+            }
+
+            filtered.push(cache_group);
           }
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
@@ -443,7 +460,10 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              if selected_chunks.iter().any(|c| removed_module_chunks.get(mid).is_some_and(|chunks| chunks.contains(c))) {
+              if selected_chunks
+                .iter()
+                .any(|c| removed_chunks.is_some_and(|chunks| chunks.contains(c)))
+              {
                 continue;
               }
               merge_matched_item_into_module_group_map(
