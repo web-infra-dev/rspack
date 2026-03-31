@@ -96,7 +96,7 @@ jobs:
       # Linux
       - name: Build x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+        run: RUST_TARGET=x86_64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
 
