@@ -512,7 +512,11 @@ fn merge_exports_without_nested(
     );
 
     let (target_exports_info, target_module) =
-      find_target_exports_info(mg, exports_info_artifact, export_info);
+      if export_info.target_is_set() && !export_info.target().is_empty() {
+        find_target_exports_info(mg, exports_info_artifact, export_info)
+      } else {
+        (None, None)
+      };
     if let Some(target_module) = target_module {
       dependencies.push((target_module, *module_id));
     }
@@ -586,11 +590,14 @@ pub fn merge_exports(
       name,
     );
 
-    let (target_exports_info, target_module) = find_target_exports_info(
-      mg,
-      exports_info_artifact,
-      export_info.as_data(exports_info_artifact),
-    );
+    let target_exports_info_data = export_info.as_data(exports_info_artifact);
+    let (target_exports_info, target_module) = if target_exports_info_data.target_is_set()
+      && !target_exports_info_data.target().is_empty()
+    {
+      find_target_exports_info(mg, exports_info_artifact, target_exports_info_data)
+    } else {
+      (None, None)
+    };
     if let Some(target_module) = target_module {
       dependencies.push((target_module, *module_id));
     }
