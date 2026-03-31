@@ -24,11 +24,16 @@ it("should resolve statically analyzable string requests", () => {
 	expect(import.meta.resolve(`./${"a"}.js`)).toBe(require.resolve("./a.js"));
 });
 
-it("should rewrite string branches inside conditional expressions", () => {
+it("should resolve dynamic requests with context modules", () => {
+	function getFile() {
+		return "a";
+	}
+
+	expect(import.meta.resolve("./dir/" + getFile() + ".js")).toBe(require.resolve("./dir/" + getFile() + ".js"));
+	expect(import.meta.resolve(`./dir/${getFile()}.js`)).toBe(require.resolve(`./dir/${getFile()}.js`));
+
 	const flag = Math.random() > 0.5;
 	const aId = require.resolve("./a.js");
-	const bId = require.resolve("./b.js");
-
-	expect(import.meta.resolve(flag ? "./a.js" : "./b.js")).toBe(flag ? aId : bId);
-	expect(import.meta.resolve(flag ? "./a.js" : 42)).toBe(flag ? aId : 42);
+	const templateId = require.resolve(`./dir/${getFile()}.js`);
+	expect(import.meta.resolve(flag ? "./a.js" : `./dir/${getFile()}.js`)).toBe(flag ? aId : templateId);
 });
