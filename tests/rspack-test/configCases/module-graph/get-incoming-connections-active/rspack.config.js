@@ -1,4 +1,4 @@
-const { normalize, join } = require("path");
+const { normalize } = require("path");
 
 const PLUGIN_NAME = "Test";
 
@@ -25,8 +25,10 @@ class Plugin {
 				);
 				expect(usedConnection).toBeTruthy();
 
-				// Test getActiveState on outgoing connection
-				expect(usedConnection.getActiveState(undefined)).toBe(true);
+				// Test getActiveState on outgoing connection returns true (boolean)
+				const outgoingState = usedConnection.getActiveState(undefined);
+				expect(outgoingState).toBe(true);
+				expect(typeof outgoingState).toBe("boolean");
 
 				// Get incoming connections for "used.js" module
 				const usedModule = usedConnection.module;
@@ -34,10 +36,11 @@ class Plugin {
 					compilation.moduleGraph.getIncomingConnections(usedModule);
 				expect(incomingConnections.length).toBeGreaterThan(0);
 
-				// Verify incoming connections are active via getActiveState
+				// Verify all incoming connections to "used.js" are active
 				for (const connection of incomingConnections) {
 					const state = connection.getActiveState(undefined);
 					expect(state).toBe(true);
+					expect(typeof state).toBe("boolean");
 					expect(connection.originModule).toBeTruthy();
 				}
 			});

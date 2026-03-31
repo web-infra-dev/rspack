@@ -6,6 +6,10 @@ import type {
 import { ExportsInfo } from './ExportsInfo';
 import type { Module } from './Module';
 
+// Side-effect import: patches ModuleGraphConnection.prototype.getActiveState
+// to return Symbols instead of strings for non-boolean states.
+import './ModuleGraphConnection';
+
 export default class ModuleGraph {
   static __from_binding(binding: JsModuleGraph) {
     return new ModuleGraph(binding);

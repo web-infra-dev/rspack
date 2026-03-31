@@ -90,7 +90,7 @@ impl ModuleGraphConnection {
 
   #[napi(
     ts_args_type = "runtime: string | string[] | undefined",
-    ts_return_type = "true | false | 'transitive-only' | 'circular'"
+    ts_return_type = "boolean | string"
   )]
   pub fn get_active_state(
     &self,
