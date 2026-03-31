@@ -3,8 +3,8 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ExportInfoHashKey, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
@@ -37,8 +37,11 @@ struct NormalizedExportTargetValue {
   priority: u8,
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-struct ExportTargetCacheKey(Vec<NormalizedExportTargetValue>);
+#[derive(Debug, Hash, PartialEq, Eq)]
+struct ExportTargetCacheKey {
+  export_info: ExportInfoHashKey,
+  targets: Vec<NormalizedExportTargetValue>,
+}
 
 impl ExportTargetCacheKey {
   fn from_export_info(export_info: &ExportInfoData) -> Option<Self> {
@@ -57,7 +60,10 @@ impl ExportTargetCacheKey {
       })
       .collect::<Vec<_>>();
     targets.sort_unstable_by_key(|value| value.target_key);
-    Some(Self(targets))
+    Some(Self {
+      export_info: export_info.as_hash_key(),
+      targets,
+    })
   }
 }
 
