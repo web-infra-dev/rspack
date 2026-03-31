@@ -293,13 +293,10 @@ impl Compiler {
       .call(&mut self.compilation, &mut compilation_params)
       .await?;
 
-    let logger = self.compilation.get_logger("rspack.Compiler");
-    let start = logger.time("seal compilation");
     self
       .compilation
       .run_passes(self.plugin_driver.clone(), &mut *self.cache)
       .await?;
-    logger.time_end(start);
 
     // Consume plugin driver diagnostic
     let plugin_driver_diagnostics = self.plugin_driver.take_diagnostic();

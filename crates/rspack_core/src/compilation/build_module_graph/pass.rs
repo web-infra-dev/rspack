@@ -5,10 +5,8 @@ use super::build_module_graph_pass;
 use crate::{
   Compilation,
   cache::Cache,
-  compilation::{
-    finish_make::finish_make_pass, finish_module_graph::finish_module_graph_pass,
-    make::make_hook_pass, pass::PassExt,
-  },
+  compilation::{finish_make::finish_make_pass, make::make_hook_pass, pass::PassExt},
+  logger::Logger,
 };
 
 /// Composite pass for the entire Build Module Graph phase.
@@ -17,7 +15,6 @@ use crate::{
 /// - make hook
 /// - build module graph
 /// - finish make
-/// - finish module graph
 pub struct BuildModuleGraphPhasePass;
 
 #[async_trait]
@@ -41,30 +38,18 @@ impl PassExt for BuildModuleGraphPhasePass {
     _cache: &mut dyn Cache,
   ) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
+    let logger = compilation.get_logger("rspack.Compiler");
 
-    // Sub-phase: make hook
+    // webpack's `make hook` timing includes building the module graph.
+    let start = logger.time("make hook");
     make_hook_pass(compilation, plugin_driver.clone()).await?;
-
-    // Sub-phase: build module graph
     build_module_graph_pass(compilation).await?;
+    logger.time_end(start);
 
-    // Sub-phase: finish make
+    let start = logger.time("finish make hook");
     finish_make_pass(compilation, plugin_driver.clone()).await?;
+    logger.time_end(start);
 
-    // Sub-phase: finish module graph
-    finish_module_graph_pass(compilation).await?;
-
-    // Add checkpoint if incremental build is enabled
-    use crate::incremental::IncrementalPasses;
-    if compilation
-      .incremental
-      .passes_enabled(IncrementalPasses::BUILD_MODULE_GRAPH)
-    {
-      compilation
-        .build_module_graph_artifact
-        .module_graph
-        .checkpoint();
-    }
     Ok(())
   }
 
