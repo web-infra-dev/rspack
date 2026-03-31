@@ -38,7 +38,7 @@ pub struct Spawner<'scope, 'spawner, T, O> {
 /// # async fn foo() {
 /// let list: Vec<u32> = vec![1, 2, 3, 4];
 ///
-/// rspack_futures::scope(|token| {
+/// rspack_parallel::scope(|token| {
 ///   for i in 0..list.len() {
 ///     let s = unsafe { token.used(&list) };
 ///
@@ -55,7 +55,7 @@ pub struct Spawner<'scope, 'spawner, T, O> {
 ///
 /// ```rust,compile_fail
 /// # async fn foo() {
-/// rspack_futures::scope(|token| {
+/// rspack_parallel::scope(|token| {
 ///   let list: Vec<u32> = vec![1, 2, 3, 4];
 ///
 ///   for i in 0..list.len() {

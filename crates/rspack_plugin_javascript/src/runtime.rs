@@ -21,7 +21,7 @@ pub async fn render_chunk_modules(
   hooks: &JavascriptModulesPluginHooks,
   runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let module_sources = rspack_futures::scope::<_, _>(|token| {
+  let module_sources = rspack_parallel::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
       let s = unsafe {
         token.used((
@@ -334,7 +334,7 @@ pub async fn render_runtime_modules(
   _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  let runtime_module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
+  let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
       .chunk_graph

@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -56,6 +56,18 @@ impl Dependency for RequireResolveContextDependency {
 
   fn could_affect_referencing_module(&self) -> AffectType {
     AffectType::True
+  }
+
+  fn get_diagnostics(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+  ) -> Option<Vec<Diagnostic>> {
+    if let Some(critical) = self.critical() {
+      return Some(vec![critical.clone()]);
+    }
+    None
   }
 }
 

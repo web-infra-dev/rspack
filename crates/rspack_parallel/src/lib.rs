@@ -1,4 +1,6 @@
+mod iterator_consumer;
 pub mod scope;
+
 use std::{
   cell::UnsafeCell,
   future::Future,
@@ -6,6 +8,7 @@ use std::{
   mem::{ManuallyDrop, MaybeUninit},
 };
 
+pub use iterator_consumer::{FutureConsumer, RayonConsumer};
 pub use scope::scope;
 
 /// par_iter then collect into vec

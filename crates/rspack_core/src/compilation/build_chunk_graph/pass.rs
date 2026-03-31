@@ -24,11 +24,6 @@ impl PassExt for BuildChunkGraphPass {
     use_code_splitting_cache(compilation, |compilation| async {
       let start = logger.time("rebuild chunk graph");
       build_chunk_graph(compilation)?;
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .generate_dot(compilation, "after-code-splitting")
-        .await;
       logger.time_end(start);
       Ok(compilation)
     })

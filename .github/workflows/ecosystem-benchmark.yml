@@ -93,7 +93,7 @@ jobs:
         with:
           name: bindings-x86_64-unknown-linux-gnu
           path: crates/node_binding/
-          force-use-github: true
+          force-use-github-only: true
 
       - name: Show restored binding
         shell: bash

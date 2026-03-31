@@ -1,5 +1,5 @@
 {
   "dependencies": {
-    "mocked-react": "*"
+    "@rspack/mocked-react": "*"
   }
 }

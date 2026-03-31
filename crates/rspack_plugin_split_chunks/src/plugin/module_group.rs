@@ -70,6 +70,40 @@ pub(crate) struct Combinator {
 }
 
 impl Combinator {
+  fn get_non_used_exports_combs(
+    &self,
+    module: ModuleIdentifier,
+    module_chunks: &ModuleChunks,
+    chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+  ) -> &[FxHashSet<ChunkUkey>] {
+    let chunks = module_chunks
+      .get(&module)
+      .expect("should have module chunks");
+    let chunks_key = get_key(chunks.iter().copied(), chunk_index_map);
+    self
+      .combinations
+      .get(&chunks_key)
+      .expect("should have combinations")
+  }
+
+  fn get_used_exports_combs(&self, module: ModuleIdentifier) -> Vec<&FxHashSet<ChunkUkey>> {
+    let mut result = vec![];
+    let chunks_by_module_used = self
+      .grouped_by_exports
+      .get(&module)
+      .expect("should have exports for module");
+
+    for chunks_key in chunks_by_module_used.iter() {
+      let combs = self
+        .used_exports_combinations
+        .get(chunks_key)
+        .expect("should have combinations");
+      result.extend(combs.iter());
+    }
+
+    result
+  }
+
   fn group_chunks_by_exports(
     module_identifier: &ModuleIdentifier,
     module_chunks: impl Iterator<Item = ChunkUkey>,
@@ -105,32 +139,15 @@ impl Combinator {
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<FxHashSet<ChunkUkey>> {
     if used_exports {
-      let mut result = vec![];
-      let chunks_by_module_used = self
-        .grouped_by_exports
-        .get(&module)
-        .expect("should have exports for module");
-
-      for chunks_key in chunks_by_module_used.iter() {
-        let combs = self
-          .used_exports_combinations
-          .get(chunks_key)
-          .expect("should have combinations")
-          .clone();
-        result.extend(combs.into_iter());
-      }
-
-      result
-    } else {
-      let chunks = module_chunks
-        .get(&module)
-        .expect("should have module chunks");
-      let chunks_key = get_key(chunks.iter().copied(), chunk_index_map);
       self
-        .combinations
-        .get(&chunks_key)
-        .expect("should have combinations")
-        .clone()
+        .get_used_exports_combs(module)
+        .into_iter()
+        .cloned()
+        .collect()
+    } else {
+      self
+        .get_non_used_exports_combs(module, module_chunks, chunk_index_map)
+        .to_vec()
     }
   }
 
@@ -303,7 +320,7 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<String, ModuleGroup> = FxDashMap::default();
-    let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
+    let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|mid| {
         let s = unsafe { token.used((&cache_groups, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
         s.spawn(|(cache_groups, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {

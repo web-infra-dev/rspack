@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 function replaceFileContent(filePath, replaceFn) {
@@ -9,14 +9,6 @@ function replaceFileContent(filePath, replaceFn) {
   }
 }
 
-function renameFile(distPath, from, to) {
-  const fromPath = join(distPath, from);
-  const toPath = join(distPath, to);
-  if (existsSync(fromPath) && !existsSync(toPath)) {
-    renameSync(fromPath, toPath);
-  }
-}
-
 /** @type {import('prebundle').Config} */
 export default {
   dependencies: [
@@ -24,15 +16,6 @@ export default {
     {
       name: 'webpack-sources',
       copyDts: true,
-      afterBundle(task) {
-        /* Keep the declaration entry at index.d.ts so rslib can correctly
-         * redirect type files, since it doesn't resolve the `types` field yet.
-         */
-        renameFile(task.distPath, 'types.d.ts', 'index.d.ts');
-        replaceFileContent(join(task.distPath, 'package.json'), (content) =>
-          content.replace(/"types":"types.d.ts"/, `"types":"index.d.ts"`),
-        );
-      },
     },
     {
       name: 'connect-next',

@@ -58,18 +58,24 @@ importers:
 
   crates/node_binding:
     devDependencies:
+      '@emnapi/core':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@emnapi/runtime':
+        specifier: 1.9.1
+        version: 1.9.1
       '@napi-rs/cli':
-        specifier: 3.5.1
-        version: 3.5.1(@emnapi/runtime@1.8.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
+        specifier: 3.6.0
+        version: 3.6.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
-        specifier: 1.1.1
-        version: 1.1.1
+        specifier: 1.1.2
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@types/node':
         specifier: ^20.19.37
         version: 20.19.37
       emnapi:
-        specifier: 1.8.1
-        version: 1.8.1(node-addon-api@7.1.1)
+        specifier: 1.9.1
+        version: 1.9.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -107,15 +113,21 @@ importers:
 
   crates/rspack_binding_builder_testing:
     devDependencies:
+      '@emnapi/core':
+        specifier: 1.9.1
+        version: 1.9.1
+      '@emnapi/runtime':
+        specifier: 1.9.1
+        version: 1.9.1
       '@napi-rs/cli':
-        specifier: 3.5.1
-        version: 3.5.1(@emnapi/runtime@1.8.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
+        specifier: 3.6.0
+        version: 3.6.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@20.19.37)(node-addon-api@7.1.1)
       '@napi-rs/wasm-runtime':
-        specifier: 1.1.1
-        version: 1.1.1
+        specifier: 1.1.2
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       emnapi:
-        specifier: 1.8.1
-        version: 1.8.1(node-addon-api@7.1.1)
+        specifier: 1.9.1
+        version: 1.9.1(node-addon-api@7.1.1)
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -196,8 +208,8 @@ importers:
   npm/wasm32-wasi:
     dependencies:
       '@napi-rs/wasm-runtime':
-        specifier: 1.1.1
-        version: 1.1.1
+        specifier: 1.1.2
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
 
   npm/win32-arm64-msvc: {}
 
@@ -212,8 +224,8 @@ importers:
         version: 1.8.1
     devDependencies:
       '@rslib/core':
-        specifier: 0.20.1
-        version: 0.20.1(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)(typescript@6.0.2)
+        specifier: 0.20.2
+        version: 0.20.2(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)(typescript@6.0.2)
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -234,14 +246,14 @@ importers:
         specifier: ^0.42.0
         version: 0.42.0
       '@napi-rs/wasm-runtime':
-        specifier: 1.1.1
-        version: 1.1.1
+        specifier: 1.1.2
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.4
-        version: 1.4.4(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))
+        version: 1.4.4(@rsbuild/core@2.0.0-beta.11(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))
       '@rslib/core':
-        specifier: 0.20.1
-        version: 0.20.1(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)(typescript@6.0.2)
+        specifier: 0.20.2
+        version: 0.20.2(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)(typescript@6.0.2)
       '@rspack/lite-tapable':
         specifier: 1.1.0
         version: 1.1.0
@@ -294,8 +306,8 @@ importers:
   packages/rspack-browser:
     dependencies:
       '@napi-rs/wasm-runtime':
-        specifier: 1.1.1
-        version: 1.1.1
+        specifier: 1.1.2
+        version: 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@rspack/lite-tapable':
         specifier: 1.1.0
         version: 1.1.0
@@ -325,8 +337,8 @@ importers:
         version: 4.0.0
     devDependencies:
       '@rslib/core':
-        specifier: 0.20.1
-        version: 0.20.1(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)(typescript@6.0.2)
+        specifier: 0.20.2
+        version: 0.20.2(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)(typescript@6.0.2)
       '@rspack/core':
         specifier: workspace:*
         version: link:../rspack
@@ -1627,14 +1639,14 @@ packages:
       search-insights:
         optional: true
 
-  '@emnapi/core@1.8.1':
-    resolution: {integrity: sha512-AvT9QFpxK0Zd8J0jopedNm+w/2fIzvtPKPjqyw9jwvBaReTTqPBk9Hixaz7KbjimP+QNz605/XnjFcDAL2pqBg==}
+  '@emnapi/core@1.9.1':
+    resolution: {integrity: sha512-mukuNALVsoix/w1BJwFzwXBN/dHeejQtuVzcDsfOEsdpCumXb/E9j8w11h5S54tT1xhifGfbbSm/ICrObRb3KA==}
 
-  '@emnapi/runtime@1.8.1':
-    resolution: {integrity: sha512-mehfKSMWjjNol8659Z8KxEMrdSJDDot5SXMq00dM8BN4o+CLNXQ0xH2V7EchNHV4RmbZLmmPdEaXZc5H2FXmDg==}
+  '@emnapi/runtime@1.9.1':
+    resolution: {integrity: sha512-VYi5+ZVLhpgK4hQ0TAjiQiZ6ol0oe4mBx7mVv7IflsiEp0OWoVsp/+f9Vc1hOhE0TtkORVrI1GvzyreqpgWtkA==}
 
-  '@emnapi/wasi-threads@1.1.0':
-    resolution: {integrity: sha512-WI0DdZ8xFSbgMjR1sFsKABJ/C5OnRrjT06JXbZKexJGrDuPTzZdDYfFlsgcCXCyf+suG5QU2e/y1Wo2V/OapLQ==}
+  '@emnapi/wasi-threads@1.2.0':
+    resolution: {integrity: sha512-N10dEJNSsUx41Z6pZsXU8FjPjpBEplgH24sfkmITrBED1/U2Esum9F3lfLrMjKHHjmi557zQn7kR9R+XWXu5Rg==}
 
   '@epic-web/invariant@1.0.0':
     resolution: {integrity: sha512-lrTPqgvfFQtR/eY/qkIzp98OGdNJu0m5ji3q/nJI8v3SXkRKEnWiOxMmbvcSoAIzv/cGiuvRy57k4suKQSAdwA==}
@@ -2177,8 +2189,8 @@ packages:
   '@module-federation/webpack-bundler-runtime@2.2.3':
     resolution: {integrity: sha512-mSXz89ftG4rkt3t2yhUmKJUbPXnhUqU4hZ6wGCrsLL/N3G6USnFNg2vAcAc6lDo04vxLnZczrd6kKmLdASVEsw==}
 
-  '@napi-rs/cli@3.5.1':
-    resolution: {integrity: sha512-XBfLQRDcB3qhu6bazdMJsecWW55kR85l5/k0af9BIBELXQSsCFU0fzug7PX8eQp6vVdm7W/U3z6uP5WmITB2Gw==}
+  '@napi-rs/cli@3.6.0':
+    resolution: {integrity: sha512-aA8m4+9XxnK1+0sr4GplZP0Ze90gkzO8sMKaplOK0zXbLnzsLl6O2BQQt6rTCcTRzIN24wrrByakr/imM+CxhA==}
     engines: {node: '>= 16'}
     hasBin: true
     peerDependencies:
@@ -2431,6 +2443,12 @@ packages:
 
   '@napi-rs/wasm-runtime@1.1.1':
     resolution: {integrity: sha512-p64ah1M1ld8xjWv3qbvFwHiFVWrq1yFvV4f7w+mzaqiR4IlSgkqhcRdHwsGgomwzBH51sRY4NEowLxnaBjcW/A==}
+
+  '@napi-rs/wasm-runtime@1.1.2':
+    resolution: {integrity: sha512-sNXv5oLJ7ob93xkZ1XnxisYhGYXfaG9f65/ZgYuAu3qt7b3NadcOEhLvx28hv31PgX8SZJRYrAIPQilQmFpLVw==}
+    peerDependencies:
+      '@emnapi/core': ^1.7.1
+      '@emnapi/runtime': ^1.7.1
 
   '@napi-rs/wasm-tools-android-arm-eabi@1.0.1':
     resolution: {integrity: sha512-lr07E/l571Gft5v4aA1dI8koJEmF1F0UigBbsqg9OWNzg80H3lDPO+auv85y3T/NHE3GirDk7x/D3sLO57vayw==}
@@ -2839,8 +2857,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rsbuild/core@2.0.0-beta.10':
-    resolution: {integrity: sha512-6xalOGzWjamJQvC+qnAipo6azfW3cn9JSRSkTMBz/hiXFzcfy54GX31gCDhRY0TooEisyJ2wbGWjGcT8zPwwxg==}
+  '@rsbuild/core@2.0.0-beta.11':
+    resolution: {integrity: sha512-IBbQx7SrnSpD7j2p2qyq3qDxoqmG4E6lcflTpbBitX6iUrzpVRQbP4rktXZ2iuY7ph9+FtUK/SVAVA+Ocm3Nig==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -2890,8 +2908,8 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  '@rslib/core@0.20.1':
-    resolution: {integrity: sha512-5Mw9HvMCBNkyvzyxeMpxuOBYhtoZ+lwlm/d966JtH9eGesV8QGRNNZiC1axlZVO490kOTfMpbfbSt74XRCn/2A==}
+  '@rslib/core@0.20.2':
+    resolution: {integrity: sha512-NJk2GasIvgfZdQ9CUTh/JxFvlhKiBv9BOa8GsnRrkRZ62CzSVrfiCT+FaBnqMk5adt+m2T9n+4Clrm6Rl0eoGw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -2952,8 +2970,8 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@rspack/binding-darwin-arm64@2.0.0-beta.8':
-    resolution: {integrity: sha512-h3x2GreEh8J36A3cWFeHZGTuz4vjUArk9dBDq8fZSyaUQQQox/lp8bUOGa/2YuYUOXk0gei2GN+/BVi2R5p39A==}
+  '@rspack/binding-darwin-arm64@2.0.0-beta.9':
+    resolution: {integrity: sha512-9Aao24b+lrVGG25itl2c7e6HK6eNH5J5ao1Uq5UoSwSJZOxRPuY+QlHIvE2tyt833Ly9qcT1J7os2AIUNlF6Vw==}
     cpu: [arm64]
     os: [darwin]
 
@@ -2967,8 +2985,8 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@rspack/binding-darwin-x64@2.0.0-beta.8':
-    resolution: {integrity: sha512-+XTA37+FZjXgwxkNX94T/EqspFO8Q3Km4CklQ3nOQzieMi31w+TLBB0uTsnT1ugp0UTN5PHLd4DFK1SQB7Ckbg==}
+  '@rspack/binding-darwin-x64@2.0.0-beta.9':
+    resolution: {integrity: sha512-sP6gusMsxm3W4aHpRsmVaBQU09n1p/1+XpLHT/gZy6nJ7Wy3nqfNKNoybNBORwCuFcGUon6cVRcieN9AEm6iJA==}
     cpu: [x64]
     os: [darwin]
 
@@ -2982,8 +3000,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@rspack/binding-linux-arm64-gnu@2.0.0-beta.8':
-    resolution: {integrity: sha512-vD2+ztbMmeBR65jBlwUZCNIjUzO0exp/LaPSMIhLlqPlk670gMCQ7fmKo3tSgQ9tobfizEA/Atdy3/lW1Rl64A==}
+  '@rspack/binding-linux-arm64-gnu@2.0.0-beta.9':
+    resolution: {integrity: sha512-k2DPN3B2qaz4L/h/R+l7rbDk/lLwbR/sayfsHZ8sLdZ3f6pvaSI9ejrsFv0nU4OmKCQsz4zYuoKTVFPtDfbGjA==}
     cpu: [arm64]
     os: [linux]
 
@@ -2997,8 +3015,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@rspack/binding-linux-arm64-musl@2.0.0-beta.8':
-    resolution: {integrity: sha512-jJ1XB7Yz9YdPRA6MJ35S9/mb+3jeI4p9v78E3dexzCPA3G4X7WXbyOcRbUlYcyOlE5MtX5O19rDexqWlkD9tVw==}
+  '@rspack/binding-linux-arm64-musl@2.0.0-beta.9':
+    resolution: {integrity: sha512-7+XwAsqhfc2rIHMc9mY6RMBTP76RRqmUm1UjidqYdJl5hYBa5apffjeZfJYgAhVbSwKB/tUffzPpEffGUuc5kw==}
     cpu: [arm64]
     os: [linux]
 
@@ -3012,8 +3030,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@rspack/binding-linux-x64-gnu@2.0.0-beta.8':
-    resolution: {integrity: sha512-qy+fK/tiYw3KvGjTGGMu/mWOdvBYrMO8xva/ouiaRTrx64PPZ6vyqFXOUfHj9rhY5L6aU2NTObpV6HZHcBtmhQ==}
+  '@rspack/binding-linux-x64-gnu@2.0.0-beta.9':
+    resolution: {integrity: sha512-z/EOUKEq5rq4sYsVSFL9uzdPtTPVA82x3gsRJlDTfEcruZZI7Y6JKUkpDYkC0LivXqyOnoOz8slAFd2/dByRtA==}
     cpu: [x64]
     os: [linux]
 
@@ -3027,8 +3045,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@rspack/binding-linux-x64-musl@2.0.0-beta.8':
-    resolution: {integrity: sha512-eJF1IsayHhsURu5Dp6fzdr5jYGeJmoREOZAc9UV3aEqY6zNAcWgZT1RwKCCujJylmHgCTCOuxqdK/VdFJqWDyw==}
+  '@rspack/binding-linux-x64-musl@2.0.0-beta.9':
+    resolution: {integrity: sha512-LVIXrqtAOy/DowIB04jyUyYy+5kHtZNJ0W5EJd39OwY/9gGvhgAEVvSWu7JrRAvKW1kQsV7GnRT5ninbDrRw1A==}
     cpu: [x64]
     os: [linux]
 
@@ -3040,8 +3058,8 @@ packages:
     resolution: {integrity: sha512-wnH4qGb8pH+LFmgIdef8EOQVc5QMMaay5+D7Dp6IfiBGmY/242Imy+e16Qcwxnr1QCwvfrgxcCkus40vM1ujMw==}
     cpu: [wasm32]
 
-  '@rspack/binding-wasm32-wasi@2.0.0-beta.8':
-    resolution: {integrity: sha512-HssdOQE8i+nUWoK+NDeD5OSyNxf80k3elKCl/due3WunoNn0h6tUTSZ8QB+bhcT4tjH9vTbibWZIT91avtvUNw==}
+  '@rspack/binding-wasm32-wasi@2.0.0-beta.9':
+    resolution: {integrity: sha512-Vl7aDAt7DCqtZ/RJd8hLFjQqufX+efL/XZG3qADsagl/SspH1ItJ7N6X1S8o50eKoshy27Jr7mQYZEdufX9qhQ==}
     cpu: [wasm32]
 
   '@rspack/binding-win32-arm64-msvc@2.0.0-beta.3':
@@ -3054,8 +3072,8 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@rspack/binding-win32-arm64-msvc@2.0.0-beta.8':
-    resolution: {integrity: sha512-RuHbXuIMJr0ANMFoGXIb3sUZE5VwIsJw70u3TKPwfoaOFiJjgW7Pi2JTLPoTYfOlE+CNcu2ldX8VJRBbktR4NA==}
+  '@rspack/binding-win32-arm64-msvc@2.0.0-beta.9':
+    resolution: {integrity: sha512-g4Fc3JjfibuHt5ltoV64eK0bs6NKlh8kgHA8Go3ETwEGO6OBck877e+5CqPtjTH8c1/KQPbnCoccGR1OScoZGg==}
     cpu: [arm64]
     os: [win32]
 
@@ -3069,8 +3087,8 @@ packages:
     cpu: [ia32]
     os: [win32]
 
-  '@rspack/binding-win32-ia32-msvc@2.0.0-beta.8':
-    resolution: {integrity: sha512-ajzIOk30zjTKPiay+d6oV7lqzzqdgIXQhDD5YtcOqPn7NTh7949EB1NZX5l3Ueh1m8k4DSe7n07qFLjHDhZ8jw==}
+  '@rspack/binding-win32-ia32-msvc@2.0.0-beta.9':
+    resolution: {integrity: sha512-Oii4HpCEH3CBDKSXcS6EVlV9nGYVKAV/uBLSsuZ0RNdEG0i+OHvEiicqHAwuIYZNlH4Ea/Vwc+Dl5PM2twCZ4Q==}
     cpu: [ia32]
     os: [win32]
 
@@ -3084,8 +3102,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rspack/binding-win32-x64-msvc@2.0.0-beta.8':
-    resolution: {integrity: sha512-MqPuHCbxyLSEjavbhYapHs7cvs2zSA9GKd8nJtDuSMmDTVHFzwHfUXTffUMFB4JTCAvdpMn8XtOG/UOW5QVRCA==}
+  '@rspack/binding-win32-x64-msvc@2.0.0-beta.9':
+    resolution: {integrity: sha512-7UFjyy7QMtWvf1CBEVQkHL6bJBKaVY9yq9+Qxb7ggtxvpBbkoYykdsrhMTvr/f5TBjBqHmyeb0/oYXqo5pWFBQ==}
     cpu: [x64]
     os: [win32]
 
@@ -3095,8 +3113,8 @@ packages:
   '@rspack/binding@2.0.0-beta.7':
     resolution: {integrity: sha512-D5ycNB5gpYpsM7SwFohcbg0LooB1bmYEeTYRLPRuwXeN0Tp/Alq4iq4/32iaF1I9NcxgQddx2NERXzlxguvYeQ==}
 
-  '@rspack/binding@2.0.0-beta.8':
-    resolution: {integrity: sha512-6tG/yYhUIF1zcEF7qw9GPA1Bwj5gq+Hqy4OzVzIBUWOn/2bKsFTWuorEJh8Yx1LwOnjNO7O+NbsATvk5zEOGKQ==}
+  '@rspack/binding@2.0.0-beta.9':
+    resolution: {integrity: sha512-QgkOvzl6BJc4Vg5eaY9r7MkHNfXvVZPgTIeYkdBEOYPowdyCLhlG9vH7QltqLKP9KDNel70YIeMyUrpTqez01w==}
 
   '@rspack/core@2.0.0-beta.3':
     resolution: {integrity: sha512-VuLteRIesuyFFTXZaciUY0lwDZiwMc7JcpE8guvjArztDhtpVvlaOcLlVBp/Yza8c/Tk8Dxwe1ARzFL7xG1/0w==}
@@ -3122,8 +3140,8 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/core@2.0.0-beta.8':
-    resolution: {integrity: sha512-GHiMNhcxfzJV3DqxIYYjiBGzhFkwwt+jSJl8+aVFRbQM0AYRdZJSfQDH4G5rHD1gO2yc3ktOOMHYnZWNtXCwdA==}
+  '@rspack/core@2.0.0-beta.9':
+    resolution: {integrity: sha512-4sN3f72l4cj8n/dSCdWn6FkSjfHiDxHWrO1Kmqd0Bk0MmgyW+ldHitsSWPETCAxjTJGXY34r5sou5sYzb0DRww==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@module-federation/runtime-tools': ^0.24.1 || ^2.0.0
@@ -3278,6 +3296,9 @@ packages:
 
   '@swc/helpers@0.5.19':
     resolution: {integrity: sha512-QamiFeIK3txNjgUTNppE6MiG3p7TdninpZu0E0PbqVh1a9FNLT2FRhisaa4NcaX52XVhA5l7Pk58Ft7Sqi/2sA==}
+
+  '@swc/helpers@0.5.20':
+    resolution: {integrity: sha512-2egEBHUMasdypIzrprsu8g+OEVd7Vp2MM3a2eVlM/cyFYto0nGz5BX5BTgh/ShZZI9ed+ozEq+Ngt+rgmUs8tw==}
 
   '@swc/plugin-remove-console@12.7.0':
     resolution: {integrity: sha512-gdzoBtQSKvIoZDT/FJN9vmqC2ip+/ehmFcwNr/MVENXmk29eHjeWVTvhPJX5yOp87NBzpnkuOyR53SOt7vfzmA==}
@@ -4618,8 +4639,8 @@ packages:
   elliptic@6.6.1:
     resolution: {integrity: sha512-RaddvvMatK2LJHqFJ+YA4WysVN5Ita9E35botqIYspQ4TkRAlCicdzKOjlyv/1Za5RyTNn7di//eEV0uTAfe3g==}
 
-  emnapi@1.8.1:
-    resolution: {integrity: sha512-34i2BbgHx1LnEO4JCGQYo6h6s4e4KrdWtdTHfllBNLbXSHPmdIHplxKejfabsRK+ukNciqVdalB+fxMibqHdaQ==}
+  emnapi@1.9.1:
+    resolution: {integrity: sha512-s4RbfzgbYg9cWBZXJT6LazImJQ5p+F+LyTsCWQJXbGVdPmtCtdlwqd0Oiv3O51KyYV/Hq58xszaQ/l153tK6Uw==}
     peerDependencies:
       node-addon-api: '>= 6.1.0'
     peerDependenciesMeta:
@@ -6758,8 +6779,8 @@ packages:
   rrweb-cssom@0.8.0:
     resolution: {integrity: sha512-guoltQEx+9aMf2gDZ0s62EcV8lsXR+0w8915TC3ITdn2YueuNjdAYh/levpU9nFaoChh9RUS5ZdQMrKfVEN9tw==}
 
-  rsbuild-plugin-dts@0.20.1:
-    resolution: {integrity: sha512-V3cQ/hh8XpkZIYFmokGlk0OLsSSuttpeGgiSjNVRFsXsKxQUG1B8GhLDJ4wVKSZGAiRjZdQu+e96Y5QF6Ra/og==}
+  rsbuild-plugin-dts@0.20.2:
+    resolution: {integrity: sha512-GM2sNAXjMgm8X3HrASn6znHLoxkGRqQZrdbGqaV0nqzqIz1h9JF3PlsUAcI6iAxzWQYuTwNfIly2SnKzsB/PjA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@microsoft/api-extractor': ^7
@@ -8634,16 +8655,16 @@ snapshots:
       - '@algolia/client-search'
       - algoliasearch
 
-  '@emnapi/core@1.8.1':
+  '@emnapi/core@1.9.1':
     dependencies:
-      '@emnapi/wasi-threads': 1.1.0
+      '@emnapi/wasi-threads': 1.2.0
       tslib: 2.8.1
 
-  '@emnapi/runtime@1.8.1':
+  '@emnapi/runtime@1.9.1':
     dependencies:
       tslib: 2.8.1
 
-  '@emnapi/wasi-threads@1.1.0':
+  '@emnapi/wasi-threads@1.2.0':
     dependencies:
       tslib: 2.8.1
 
@@ -9176,23 +9197,24 @@ snapshots:
     transitivePeerDependencies:
       - node-fetch
 
-  '@napi-rs/cli@3.5.1(@emnapi/runtime@1.8.1)(@types/node@20.19.37)(node-addon-api@7.1.1)':
+  '@napi-rs/cli@3.6.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@20.19.37)(node-addon-api@7.1.1)':
     dependencies:
       '@inquirer/prompts': 8.3.2(@types/node@20.19.37)
-      '@napi-rs/cross-toolchain': 1.0.3
-      '@napi-rs/wasm-tools': 1.0.1
+      '@napi-rs/cross-toolchain': 1.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+      '@napi-rs/wasm-tools': 1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@octokit/rest': 22.0.1
       clipanion: 4.0.0-rc.4(typanion@3.14.0)
       colorette: 2.0.20
-      emnapi: 1.8.1(node-addon-api@7.1.1)
+      emnapi: 1.9.1(node-addon-api@7.1.1)
       es-toolkit: 1.45.1
       js-yaml: 4.1.1
       obug: 2.1.1
       semver: 7.7.4
       typanion: 3.14.0
     optionalDependencies:
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/runtime': 1.9.1
     transitivePeerDependencies:
+      - '@emnapi/core'
       - '@napi-rs/cross-toolchain-arm64-target-aarch64'
       - '@napi-rs/cross-toolchain-arm64-target-armv7'
       - '@napi-rs/cross-toolchain-arm64-target-ppc64le'
@@ -9207,12 +9229,14 @@ snapshots:
       - node-addon-api
       - supports-color
 
-  '@napi-rs/cross-toolchain@1.0.3':
+  '@napi-rs/cross-toolchain@1.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/lzma': 1.4.5
-      '@napi-rs/tar': 1.1.0
+      '@napi-rs/lzma': 1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+      '@napi-rs/tar': 1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       debug: 4.4.3
     transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
       - supports-color
 
   '@napi-rs/lzma-android-arm-eabi@1.4.5':
@@ -9254,9 +9278,12 @@ snapshots:
   '@napi-rs/lzma-linux-x64-musl@1.4.5':
     optional: true
 
-  '@napi-rs/lzma-wasm32-wasi@1.4.5':
+  '@napi-rs/lzma-wasm32-wasi@1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.1
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
     optional: true
 
   '@napi-rs/lzma-win32-arm64-msvc@1.4.5':
@@ -9268,7 +9295,7 @@ snapshots:
   '@napi-rs/lzma-win32-x64-msvc@1.4.5':
     optional: true
 
-  '@napi-rs/lzma@1.4.5':
+  '@napi-rs/lzma@1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     optionalDependencies:
       '@napi-rs/lzma-android-arm-eabi': 1.4.5
       '@napi-rs/lzma-android-arm64': 1.4.5
@@ -9283,10 +9310,13 @@ snapshots:
       '@napi-rs/lzma-linux-s390x-gnu': 1.4.5
       '@napi-rs/lzma-linux-x64-gnu': 1.4.5
       '@napi-rs/lzma-linux-x64-musl': 1.4.5
-      '@napi-rs/lzma-wasm32-wasi': 1.4.5
+      '@napi-rs/lzma-wasm32-wasi': 1.4.5(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@napi-rs/lzma-win32-arm64-msvc': 1.4.5
       '@napi-rs/lzma-win32-ia32-msvc': 1.4.5
       '@napi-rs/lzma-win32-x64-msvc': 1.4.5
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   '@napi-rs/tar-android-arm-eabi@1.1.0':
     optional: true
@@ -9324,9 +9354,12 @@ snapshots:
   '@napi-rs/tar-linux-x64-musl@1.1.0':
     optional: true
 
-  '@napi-rs/tar-wasm32-wasi@1.1.0':
+  '@napi-rs/tar-wasm32-wasi@1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.1
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
     optional: true
 
   '@napi-rs/tar-win32-arm64-msvc@1.1.0':
@@ -9338,7 +9371,7 @@ snapshots:
   '@napi-rs/tar-win32-x64-msvc@1.1.0':
     optional: true
 
-  '@napi-rs/tar@1.1.0':
+  '@napi-rs/tar@1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     optionalDependencies:
       '@napi-rs/tar-android-arm-eabi': 1.1.0
       '@napi-rs/tar-android-arm64': 1.1.0
@@ -9352,22 +9385,32 @@ snapshots:
       '@napi-rs/tar-linux-s390x-gnu': 1.1.0
       '@napi-rs/tar-linux-x64-gnu': 1.1.0
       '@napi-rs/tar-linux-x64-musl': 1.1.0
-      '@napi-rs/tar-wasm32-wasi': 1.1.0
+      '@napi-rs/tar-wasm32-wasi': 1.1.0(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@napi-rs/tar-win32-arm64-msvc': 1.1.0
       '@napi-rs/tar-win32-ia32-msvc': 1.1.0
       '@napi-rs/tar-win32-x64-msvc': 1.1.0
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   '@napi-rs/wasm-runtime@1.0.7':
     dependencies:
-      '@emnapi/core': 1.8.1
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
     optional: true
 
   '@napi-rs/wasm-runtime@1.1.1':
     dependencies:
-      '@emnapi/core': 1.8.1
-      '@emnapi/runtime': 1.8.1
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
+      '@tybys/wasm-util': 0.10.1
+    optional: true
+
+  '@napi-rs/wasm-runtime@1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
+    dependencies:
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
 
   '@napi-rs/wasm-tools-android-arm-eabi@1.0.1':
@@ -9397,9 +9440,12 @@ snapshots:
   '@napi-rs/wasm-tools-linux-x64-musl@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1':
+  '@napi-rs/wasm-tools-wasm32-wasi@1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.1.1
+      '@napi-rs/wasm-runtime': 1.1.2(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
     optional: true
 
   '@napi-rs/wasm-tools-win32-arm64-msvc@1.0.1':
@@ -9411,7 +9457,7 @@ snapshots:
   '@napi-rs/wasm-tools-win32-x64-msvc@1.0.1':
     optional: true
 
-  '@napi-rs/wasm-tools@1.0.1':
+  '@napi-rs/wasm-tools@1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)':
     optionalDependencies:
       '@napi-rs/wasm-tools-android-arm-eabi': 1.0.1
       '@napi-rs/wasm-tools-android-arm64': 1.0.1
@@ -9422,10 +9468,13 @@ snapshots:
       '@napi-rs/wasm-tools-linux-arm64-musl': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-gnu': 1.0.1
       '@napi-rs/wasm-tools-linux-x64-musl': 1.0.1
-      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1
+      '@napi-rs/wasm-tools-wasm32-wasi': 1.0.1(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)
       '@napi-rs/wasm-tools-win32-arm64-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-ia32-msvc': 1.0.1
       '@napi-rs/wasm-tools-win32-x64-msvc': 1.0.1
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   '@noble/hashes@1.4.0':
     optional: true
@@ -9755,19 +9804,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.59.0':
     optional: true
 
-  '@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)':
+  '@rsbuild/core@2.0.0-beta.11(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)':
     dependencies:
-      '@rspack/core': 2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(@swc/helpers@0.5.19)
-      '@swc/helpers': 0.5.19
-    optionalDependencies:
-      core-js: 3.49.0
-    transitivePeerDependencies:
-      - '@module-federation/runtime-tools'
-
-  '@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)':
-    dependencies:
-      '@rspack/core': 2.0.0-beta.8(@module-federation/runtime-tools@2.2.3)(@swc/helpers@0.5.19)
-      '@swc/helpers': 0.5.19
+      '@rspack/core': 2.0.0-beta.9(@module-federation/runtime-tools@2.1.0)(@swc/helpers@0.5.20)
+      '@swc/helpers': 0.5.20
     optionalDependencies:
       core-js: 3.49.0
     transitivePeerDependencies:
@@ -9791,7 +9831,7 @@ snapshots:
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))':
+  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-beta.11(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -9817,7 +9857,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)
+      '@rsbuild/core': 2.0.0-beta.11(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)
 
   '@rsbuild/plugin-react@1.4.5(@rsbuild/core@2.0.0-beta.6(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0))':
     dependencies:
@@ -9837,21 +9877,10 @@ snapshots:
     optionalDependencies:
       '@rsbuild/core': 2.0.0-beta.6(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)
 
-  '@rslib/core@0.20.1(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)(typescript@6.0.2)':
+  '@rslib/core@0.20.2(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)(typescript@6.0.2)':
     dependencies:
-      '@rsbuild/core': 2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)
-      rsbuild-plugin-dts: 0.20.1(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))(typescript@6.0.2)
-    optionalDependencies:
-      typescript: 6.0.2
-    transitivePeerDependencies:
-      - '@module-federation/runtime-tools'
-      - '@typescript/native-preview'
-      - core-js
-
-  '@rslib/core@0.20.1(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)(typescript@6.0.2)':
-    dependencies:
-      '@rsbuild/core': 2.0.0-beta.10(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)
-      rsbuild-plugin-dts: 0.20.1(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0))(typescript@6.0.2)
+      '@rsbuild/core': 2.0.0-beta.11(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)
+      rsbuild-plugin-dts: 0.20.2(@rsbuild/core@2.0.0-beta.11(core-js@3.49.0))(typescript@6.0.2)
     optionalDependencies:
       typescript: 6.0.2
     transitivePeerDependencies:
@@ -9893,7 +9922,7 @@ snapshots:
   '@rspack/binding-darwin-arm64@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-darwin-arm64@2.0.0-beta.8':
+  '@rspack/binding-darwin-arm64@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-darwin-x64@2.0.0-beta.3':
@@ -9902,7 +9931,7 @@ snapshots:
   '@rspack/binding-darwin-x64@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-darwin-x64@2.0.0-beta.8':
+  '@rspack/binding-darwin-x64@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-linux-arm64-gnu@2.0.0-beta.3':
@@ -9911,7 +9940,7 @@ snapshots:
   '@rspack/binding-linux-arm64-gnu@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-linux-arm64-gnu@2.0.0-beta.8':
+  '@rspack/binding-linux-arm64-gnu@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-linux-arm64-musl@2.0.0-beta.3':
@@ -9920,7 +9949,7 @@ snapshots:
   '@rspack/binding-linux-arm64-musl@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-linux-arm64-musl@2.0.0-beta.8':
+  '@rspack/binding-linux-arm64-musl@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-linux-x64-gnu@2.0.0-beta.3':
@@ -9929,7 +9958,7 @@ snapshots:
   '@rspack/binding-linux-x64-gnu@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-linux-x64-gnu@2.0.0-beta.8':
+  '@rspack/binding-linux-x64-gnu@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-linux-x64-musl@2.0.0-beta.3':
@@ -9938,7 +9967,7 @@ snapshots:
   '@rspack/binding-linux-x64-musl@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-linux-x64-musl@2.0.0-beta.8':
+  '@rspack/binding-linux-x64-musl@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-wasm32-wasi@2.0.0-beta.3':
@@ -9951,7 +9980,7 @@ snapshots:
       '@napi-rs/wasm-runtime': 1.0.7
     optional: true
 
-  '@rspack/binding-wasm32-wasi@2.0.0-beta.8':
+  '@rspack/binding-wasm32-wasi@2.0.0-beta.9':
     dependencies:
       '@napi-rs/wasm-runtime': 1.1.1
     optional: true
@@ -9962,7 +9991,7 @@ snapshots:
   '@rspack/binding-win32-arm64-msvc@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-win32-arm64-msvc@2.0.0-beta.8':
+  '@rspack/binding-win32-arm64-msvc@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-win32-ia32-msvc@2.0.0-beta.3':
@@ -9971,7 +10000,7 @@ snapshots:
   '@rspack/binding-win32-ia32-msvc@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-win32-ia32-msvc@2.0.0-beta.8':
+  '@rspack/binding-win32-ia32-msvc@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding-win32-x64-msvc@2.0.0-beta.3':
@@ -9980,7 +10009,7 @@ snapshots:
   '@rspack/binding-win32-x64-msvc@2.0.0-beta.7':
     optional: true
 
-  '@rspack/binding-win32-x64-msvc@2.0.0-beta.8':
+  '@rspack/binding-win32-x64-msvc@2.0.0-beta.9':
     optional: true
 
   '@rspack/binding@2.0.0-beta.3':
@@ -10009,18 +10038,18 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.0.0-beta.7
       '@rspack/binding-win32-x64-msvc': 2.0.0-beta.7
 
-  '@rspack/binding@2.0.0-beta.8':
+  '@rspack/binding@2.0.0-beta.9':
     optionalDependencies:
-      '@rspack/binding-darwin-arm64': 2.0.0-beta.8
-      '@rspack/binding-darwin-x64': 2.0.0-beta.8
-      '@rspack/binding-linux-arm64-gnu': 2.0.0-beta.8
-      '@rspack/binding-linux-arm64-musl': 2.0.0-beta.8
-      '@rspack/binding-linux-x64-gnu': 2.0.0-beta.8
-      '@rspack/binding-linux-x64-musl': 2.0.0-beta.8
-      '@rspack/binding-wasm32-wasi': 2.0.0-beta.8
-      '@rspack/binding-win32-arm64-msvc': 2.0.0-beta.8
-      '@rspack/binding-win32-ia32-msvc': 2.0.0-beta.8
-      '@rspack/binding-win32-x64-msvc': 2.0.0-beta.8
+      '@rspack/binding-darwin-arm64': 2.0.0-beta.9
+      '@rspack/binding-darwin-x64': 2.0.0-beta.9
+      '@rspack/binding-linux-arm64-gnu': 2.0.0-beta.9
+      '@rspack/binding-linux-arm64-musl': 2.0.0-beta.9
+      '@rspack/binding-linux-x64-gnu': 2.0.0-beta.9
+      '@rspack/binding-linux-x64-musl': 2.0.0-beta.9
+      '@rspack/binding-wasm32-wasi': 2.0.0-beta.9
+      '@rspack/binding-win32-arm64-msvc': 2.0.0-beta.9
+      '@rspack/binding-win32-ia32-msvc': 2.0.0-beta.9
+      '@rspack/binding-win32-x64-msvc': 2.0.0-beta.9
 
   '@rspack/core@2.0.0-beta.3(@module-federation/runtime-tools@2.2.3)(@swc/helpers@0.5.19)':
     dependencies:
@@ -10036,19 +10065,12 @@ snapshots:
       '@module-federation/runtime-tools': 2.2.3
       '@swc/helpers': 0.5.19
 
-  '@rspack/core@2.0.0-beta.8(@module-federation/runtime-tools@2.1.0)(@swc/helpers@0.5.19)':
+  '@rspack/core@2.0.0-beta.9(@module-federation/runtime-tools@2.1.0)(@swc/helpers@0.5.20)':
     dependencies:
-      '@rspack/binding': 2.0.0-beta.8
+      '@rspack/binding': 2.0.0-beta.9
     optionalDependencies:
       '@module-federation/runtime-tools': 2.1.0
-      '@swc/helpers': 0.5.19
-
-  '@rspack/core@2.0.0-beta.8(@module-federation/runtime-tools@2.2.3)(@swc/helpers@0.5.19)':
-    dependencies:
-      '@rspack/binding': 2.0.0-beta.8
-    optionalDependencies:
-      '@module-federation/runtime-tools': 2.2.3
-      '@swc/helpers': 0.5.19
+      '@swc/helpers': 0.5.20
 
   '@rspack/dev-middleware@2.0.0-beta.2(@rspack/core@packages+rspack)':
     optionalDependencies:
@@ -10268,6 +10290,10 @@ snapshots:
   '@swc/counter@0.1.3': {}
 
   '@swc/helpers@0.5.19':
+    dependencies:
+      tslib: 2.8.1
+
+  '@swc/helpers@0.5.20':
     dependencies:
       tslib: 2.8.1
 
@@ -11818,7 +11844,7 @@ snapshots:
       minimalistic-assert: 1.0.1
       minimalistic-crypto-utils: 1.0.1
 
-  emnapi@1.8.1(node-addon-api@7.1.1):
+  emnapi@1.9.1(node-addon-api@7.1.1):
     optionalDependencies:
       node-addon-api: 7.1.1
 
@@ -14511,17 +14537,10 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@0.20.1(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0))(typescript@6.0.2):
+  rsbuild-plugin-dts@0.20.2(@rsbuild/core@2.0.0-beta.11(core-js@3.49.0))(typescript@6.0.2):
     dependencies:
       '@ast-grep/napi': 0.37.0
-      '@rsbuild/core': 2.0.0-beta.10(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)
-    optionalDependencies:
-      typescript: 6.0.2
-
-  rsbuild-plugin-dts@0.20.1(@rsbuild/core@2.0.0-beta.10(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0))(typescript@6.0.2):
-    dependencies:
-      '@ast-grep/napi': 0.37.0
-      '@rsbuild/core': 2.0.0-beta.10(@module-federation/runtime-tools@2.2.3)(core-js@3.49.0)
+      '@rsbuild/core': 2.0.0-beta.11(@module-federation/runtime-tools@2.1.0)(core-js@3.49.0)
     optionalDependencies:
       typescript: 6.0.2
 
