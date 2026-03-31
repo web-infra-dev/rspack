@@ -124,7 +124,7 @@ where
   F: Future + Send + 'static,
   F::Output: Send + 'static,
 {
-  match CURRENT_COMPILER_CONTEXT.try_with(|ctx| ctx.clone()) {
+  match CURRENT_COMPILER_CONTEXT.try_get() {
     Ok(compiler_context) => tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future)),
     Err(_) => tokio::spawn(future),
   }
