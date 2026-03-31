@@ -99,8 +99,8 @@ LOG from rspack.Compilation
 <t> after seal: xx ms
 
 LOG from rspack.Compiler
-<t> make hook: xx ms
 <t> build module graph: xx ms
+<t> make hook: xx ms
 <t> finish make hook: xx ms
 <t> finish compilation: xx ms
 <t> seal compilation: xx ms
