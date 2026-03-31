@@ -125,8 +125,8 @@ export class BuildCommand implements RspackCommand {
       'emit stats json',
     );
 
-    command.action(async (options: BuildOptions) => {
+    command.action(cli.wrapAction(async (options: BuildOptions) => {
       await runBuild(cli, options);
-    });
+    }));
   }
 }

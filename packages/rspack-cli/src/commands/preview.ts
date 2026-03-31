@@ -40,7 +40,7 @@ export class PreviewCommand implements RspackCommand {
       // same as devServer.server
       .option('--server <config>', 'Configuration items for the server.');
 
-    command.action(async (dir: string | undefined, options: PreviewOptions) => {
+    command.action(cli.wrapAction(async (dir: string | undefined, options: PreviewOptions) => {
       setDefaultNodeEnv(options, 'production');
       normalizeCommonOptions(options, 'preview');
 
@@ -96,7 +96,7 @@ export class PreviewCommand implements RspackCommand {
 
         process.exit(2);
       }
-    });
+    }));
   }
 }
 

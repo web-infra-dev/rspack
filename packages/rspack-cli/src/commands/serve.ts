@@ -49,7 +49,7 @@ export class ServeCommand implements RspackCommand {
       .option('--port <port>', 'allows to specify a port to use')
       .option('--host <host>', 'allows to specify a hostname to use');
 
-    command.action(async (cliOptions: ServerOptions) => {
+    command.action(cli.wrapAction(async (cliOptions: ServerOptions) => {
       setDefaultNodeEnv(cliOptions, 'development');
       normalizeCommonOptions(cliOptions, 'serve');
       cliOptions.hot = normalizeHotOption(cliOptions.hot);
@@ -209,6 +209,6 @@ export class ServeCommand implements RspackCommand {
 
         process.exit(2);
       }
-    });
+    }));
   }
 }
