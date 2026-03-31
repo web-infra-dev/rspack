@@ -88,10 +88,7 @@ impl ModuleGraphConnection {
     }
   }
 
-  #[napi(
-    ts_args_type = "runtime: string | string[] | undefined",
-    ts_return_type = "boolean | string"
-  )]
+  #[napi(ts_args_type = "runtime: string | string[] | undefined")]
   pub fn get_active_state(
     &self,
     runtime: Option<napi::Either<String, Vec<String>>>,
