@@ -1,8 +1,10 @@
-use rspack_core::{InnerGraphMapUsage, TopLevelSymbol};
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
 
-use super::JavascriptParserPlugin;
+use super::{
+  JavascriptParserPlugin,
+  inner_graph::state::{InnerGraphMapUsage, TopLevelSymbol},
+};
 use crate::visitors::JavascriptParser;
 
 pub struct JavascriptMetaInfoPlugin;

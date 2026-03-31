@@ -1,7 +1,6 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, InnerGraphMapSetValue,
-  InnerGraphMapUsage, InnerGraphMapValue, InnerGraphState, InnerGraphUsageOperation,
-  TopLevelSymbol, UsedByExports, UsedByExportsDeferredPureCheck,
+  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
+  UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -13,6 +12,10 @@ use swc_core::{
   },
 };
 
+use super::state::{
+  InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue, InnerGraphState,
+  InnerGraphUsageOperation, TopLevelSymbol,
+};
 use crate::{
   ClassExt,
   dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
@@ -70,6 +73,7 @@ impl InnerGraphParserPlugin {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
       if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(stmt_span) {
+        let pure_part: &Span = pure_part;
         let pure_part_start = pure_part.real_lo();
         let pure_part_end = pure_part.real_hi();
         let dep = PureExpressionDependency::new(
@@ -608,6 +612,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
       parser.inner_graph.set_top_level_symbol(Some(*v));
 
       if let Some(pure_part) = parser.inner_graph.statement_pure_part.get(&stmt_span) {
+        let pure_part: &Span = pure_part;
         let pure_part_start = pure_part.real_lo();
         let pure_part_end = pure_part.real_hi();
         let dep = PureExpressionDependency::new(

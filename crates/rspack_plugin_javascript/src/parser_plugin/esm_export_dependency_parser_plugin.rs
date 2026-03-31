@@ -1,7 +1,5 @@
 use itertools::Itertools;
-use rspack_core::{
-  BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase, InnerGraphMapUsage,
-};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -12,6 +10,7 @@ use super::{
   DEFAULT_STAR_JS_WORD, JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
   esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
   inline_const::{INLINABLE_CONST_TAG, InlinableConstData},
+  inner_graph::state::InnerGraphMapUsage,
 };
 use crate::{
   InnerGraphParserPlugin,

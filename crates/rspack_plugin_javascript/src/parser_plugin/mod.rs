@@ -17,7 +17,7 @@ mod import_meta_plugin;
 mod import_parser_plugin;
 mod initialize_evaluating;
 mod inline_const;
-mod inner_graph;
+pub(crate) mod inner_graph;
 mod is_included_plugin;
 mod javascript_meta_info_plugin;
 pub mod node_stuff_plugin;

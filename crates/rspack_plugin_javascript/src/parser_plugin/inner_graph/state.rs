@@ -1,17 +1,14 @@
-// Inner graph state for cross-module pure function analysis
 use std::{
   collections::hash_map::Entry,
   sync::atomic::{AtomicUsize, Ordering},
 };
 
+use rspack_core::DependencyId;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{atoms::Atom, common::Span};
 
-use crate::DependencyId;
-
 static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 
-/// Represents a top-level symbol in the inner graph
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct TopLevelSymbol(usize);
 
@@ -21,7 +18,6 @@ impl TopLevelSymbol {
   }
 
   pub fn global() -> Self {
-    // use 0 to present global symbol
     Self(0)
   }
 
@@ -42,14 +38,12 @@ impl Default for TopLevelSymbol {
   }
 }
 
-/// Data associated with a top-level symbol
 #[derive(Debug, Clone)]
 pub struct TopLevelSymbolData {
   pub name: Atom,
   pub depend_on_pure: HashSet<(Atom, Span)>,
 }
 
-/// Value in the inner graph map for a symbol
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
 pub enum InnerGraphMapValue {
   Set(HashSet<InnerGraphMapSetValue>),
@@ -58,7 +52,6 @@ pub enum InnerGraphMapValue {
   Nil,
 }
 
-/// Set value variant for inner graph map
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum InnerGraphMapSetValue {
   TopLevel(TopLevelSymbol),
@@ -76,7 +69,6 @@ impl InnerGraphMapSetValue {
   }
 }
 
-/// Usage type for adding to inner graph
 #[derive(PartialEq, Eq, Debug)]
 pub enum InnerGraphMapUsage {
   TopLevel(TopLevelSymbol),
@@ -94,7 +86,6 @@ impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
   }
 }
 
-/// State for inner graph analysis
 #[derive(Default)]
 pub struct InnerGraphState {
   pub symbol_map: HashMap<TopLevelSymbol, TopLevelSymbolData>,
@@ -130,13 +121,6 @@ impl InnerGraphState {
     &self.symbol_map[name]
   }
 
-  pub fn top_level_symbol_mut(&mut self, name: &TopLevelSymbol) -> &mut TopLevelSymbolData {
-    self
-      .symbol_map
-      .get_mut(name)
-      .expect("should have symbol in map")
-  }
-
   pub fn new_top_level_symbol(&mut self, name: Atom) -> TopLevelSymbol {
     let symbol = TopLevelSymbol::new();
     let data = TopLevelSymbolData {
@@ -145,11 +129,6 @@ impl InnerGraphState {
     };
     self.symbol_map.insert(symbol, data);
     symbol
-  }
-
-  pub fn add_depend_on(&mut self, symbol: &TopLevelSymbol, name: Atom, span: Span) {
-    let data = self.top_level_symbol_mut(symbol);
-    data.depend_on_pure.insert((name, span));
   }
 
   pub fn enable(&mut self) {
@@ -194,9 +173,7 @@ impl InnerGraphState {
               InnerGraphMapValue::Set(set) => {
                 set.insert(set_value);
               }
-              InnerGraphMapValue::True => {
-                // do nothing
-              }
+              InnerGraphMapValue::True => {}
               InnerGraphMapValue::Nil => {
                 *val = InnerGraphMapValue::Set(HashSet::from_iter([set_value]));
               }
@@ -236,13 +213,9 @@ impl std::fmt::Debug for InnerGraphState {
   }
 }
 
-/// The operation to be performed when processing inner graph usage.
 #[derive(Debug, Clone)]
 pub enum InnerGraphUsageOperation {
-  /// Create PureExpressionDependency with the given range
   PureExpression(DependencyId),
-  /// Set used_by_exports on ESMImportSpecifierDependency at the given dependency index
   ESMImportSpecifier(DependencyId),
-  /// Set used_by_exports on URLDependency at the given dependency index
   URLDependency(DependencyId),
 }

@@ -22,7 +22,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta, InnerGraphState,
+  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
   ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
 };
@@ -48,8 +48,8 @@ use crate::{
   dependency::local_module::LocalModule,
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, JavaScriptParserPluginDrive, JavascriptParserPlugin,
-    RequireReferencesState,
+    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
+    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -576,15 +576,18 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn into_results(self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
+  pub fn into_results(mut self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
     if self.errors.is_empty() {
+      InnerGraphParserPlugin::finalize_dependency_usage(
+        &mut self.inner_graph,
+        &mut self.dependencies,
+      );
       Ok(ScanDependenciesResult {
         dependencies: self.dependencies,
         blocks: self.blocks,
         presentational_dependencies: self.presentational_dependencies,
         warning_diagnostics: self.warning_diagnostics,
         side_effects_item: self.side_effects_item,
-        inner_graph: self.inner_graph,
       })
     } else {
       Err(self.errors)

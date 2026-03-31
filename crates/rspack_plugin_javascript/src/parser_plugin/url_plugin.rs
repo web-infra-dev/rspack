@@ -1,7 +1,6 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions, Dependency,
-  DependencyCategory, InnerGraphUsageOperation, JavascriptParserUrl, RuntimeGlobals,
-  RuntimeRequirementsDependency,
+  DependencyCategory, JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
 use swc_core::{
@@ -13,7 +12,7 @@ use swc_core::{
 };
 use url::Url;
 
-use super::JavascriptParserPlugin;
+use super::{JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation};
 use crate::{
   InnerGraphParserPlugin,
   dependency::{URLContextDependency, URLDependency},

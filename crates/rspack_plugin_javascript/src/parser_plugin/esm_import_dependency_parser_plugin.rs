@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
-  ImportAttributes, ImportPhase, InnerGraphUsageOperation,
+  ImportAttributes, ImportPhase,
 };
 use swc_core::{
   atoms::Atom,
@@ -8,7 +8,9 @@ use swc_core::{
   ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl},
 };
 
-use super::{InnerGraphParserPlugin, JavascriptParserPlugin};
+use super::{
+  InnerGraphParserPlugin, JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation,
+};
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::object_properties::get_attributes,

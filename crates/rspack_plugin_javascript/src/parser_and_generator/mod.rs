@@ -30,7 +30,6 @@ use swc_core::{
 use crate::{
   BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  parser_plugin::InnerGraphParserPlugin,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
 
@@ -286,12 +285,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
     let ScanDependenciesResult {
-      mut dependencies,
+      dependencies,
       blocks,
       presentational_dependencies,
       mut warning_diagnostics,
       mut side_effects_item,
-      mut inner_graph,
     } = match ast.visit(|program, _| {
       scan_dependencies(
         &source_string,
@@ -318,7 +316,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         return default_with_diagnostics(source, diagnostics);
       }
     };
-    InnerGraphParserPlugin::finalize_dependency_usage(&mut inner_graph, &mut dependencies);
     diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 

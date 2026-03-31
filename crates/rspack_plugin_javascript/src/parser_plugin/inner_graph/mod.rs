@@ -5,6 +5,7 @@ use rspack_core::{
 };
 
 pub mod plugin;
+pub mod state;
 
 pub(crate) fn has_impure_deferred_pure_checks(
   module_graph: &ModuleGraph,
