@@ -1,6 +1,6 @@
 use std::{future::Future, sync::Arc};
 
-use rspack_tasks::spawn_in_compiler_context;
+use rspack_tasks::spawn_in_context;
 use tokio::sync::mpsc::unbounded_channel;
 
 /// Tools for consume iterator which return future.
@@ -29,7 +29,7 @@ where
       let tx = Arc::new(tx);
       self.for_each(|fut| {
         let tx = tx.clone();
-        spawn_in_compiler_context(async move {
+        spawn_in_context(async move {
           let data = fut.await;
           tx.send(data).expect("should send success");
         });

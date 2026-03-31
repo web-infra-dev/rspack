@@ -115,3 +115,17 @@ where
 
   tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
 }
+
+/// Like [`spawn_in_compiler_context`], but falls back to a plain [`tokio::spawn`]
+/// when there is no active compiler context (e.g. in unit tests or utility code
+/// that is not driven by a compiler).
+pub fn spawn_in_context<F>(future: F) -> JoinHandle<F::Output>
+where
+  F: Future + Send + 'static,
+  F::Output: Send + 'static,
+{
+  match CURRENT_COMPILER_CONTEXT.try_with(|ctx| ctx.clone()) {
+    Ok(compiler_context) => tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future)),
+    Err(_) => tokio::spawn(future),
+  }
+}
