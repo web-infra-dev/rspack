@@ -25,12 +25,8 @@ class Plugin {
 				);
 				expect(usedConnection).toBeTruthy();
 
-				// Test active property on outgoing connection
-				expect(usedConnection.active).toBe(true);
-				expect(usedConnection.conditional).toBe(false);
-
-				// Test getActiveState method
-				expect(usedConnection.getActiveState(undefined)).toBe("true");
+				// Test getActiveState on outgoing connection
+				expect(usedConnection.getActiveState(undefined)).toBe(true);
 
 				// Get incoming connections for "used.js" module
 				const usedModule = usedConnection.module;
@@ -38,20 +34,11 @@ class Plugin {
 					compilation.moduleGraph.getIncomingConnections(usedModule);
 				expect(incomingConnections.length).toBeGreaterThan(0);
 
-				// All incoming connections to "used.js" should be active
-				const activeIncoming = incomingConnections.filter(c => c.active);
-				expect(activeIncoming.length).toBe(incomingConnections.length);
-
-				// Verify incoming connection properties
+				// Verify incoming connections are active via getActiveState
 				for (const connection of incomingConnections) {
-					expect(typeof connection.active).toBe("boolean");
-					expect(typeof connection.conditional).toBe("boolean");
-					expect(connection.active).toBe(true);
-					expect(connection.originModule).toBeTruthy();
-
-					// Test getActiveState
 					const state = connection.getActiveState(undefined);
-					expect(state).toBe("true");
+					expect(state).toBe(true);
+					expect(connection.originModule).toBeTruthy();
 				}
 			});
 		});

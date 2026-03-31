@@ -88,53 +88,14 @@ impl ModuleGraphConnection {
     }
   }
 
-  #[napi(getter)]
-  pub fn active(&self) -> napi::Result<bool> {
-    let (compilation, module_graph) = self.as_ref()?;
-    if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
-      if let Some(module_graph_cache) = compilation.module_graph_cache_artifact.try_read() {
-        Ok(connection.is_active(
-          module_graph,
-          None,
-          module_graph_cache,
-          &compilation.exports_info_artifact,
-        ))
-      } else {
-        // Fallback: when module_graph_cache is not available (e.g., during build phase),
-        // use is_active without runtime which handles unconditional connections
-        Ok(connection.is_active(
-          module_graph,
-          None,
-          &Default::default(),
-          &compilation.exports_info_artifact,
-        ))
-      }
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
-        self.dependency_id
-      )))
-    }
-  }
-
-  #[napi(getter)]
-  pub fn conditional(&self) -> napi::Result<bool> {
-    let (_compilation, module_graph) = self.as_ref()?;
-    if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
-      Ok(connection.is_conditional())
-    } else {
-      Err(napi::Error::from_reason(format!(
-        "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
-        self.dependency_id
-      )))
-    }
-  }
-
-  #[napi(ts_args_type = "runtime: string | string[] | undefined")]
+  #[napi(
+    ts_args_type = "runtime: string | string[] | undefined",
+    ts_return_type = "true | false | 'transitive-only' | 'circular'"
+  )]
   pub fn get_active_state(
     &self,
     runtime: Option<napi::Either<String, Vec<String>>>,
-  ) -> napi::Result<String> {
+  ) -> napi::Result<napi::Either<bool, String>> {
     let (compilation, module_graph) = self.as_ref()?;
     if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
       let runtime_spec = runtime.and_then(|r| {
@@ -162,10 +123,9 @@ impl ModuleGraphConnection {
         &compilation.exports_info_artifact,
       );
       Ok(match state {
-        ConnectionState::Active(true) => "true".to_string(),
-        ConnectionState::Active(false) => "false".to_string(),
-        ConnectionState::CircularConnection => "circular".to_string(),
-        ConnectionState::TransitiveOnly => "transitive-only".to_string(),
+        ConnectionState::Active(active) => napi::Either::A(active),
+        ConnectionState::CircularConnection => napi::Either::B("circular".to_string()),
+        ConnectionState::TransitiveOnly => napi::Either::B("transitive-only".to_string()),
       })
     } else {
       Err(napi::Error::from_reason(format!(
