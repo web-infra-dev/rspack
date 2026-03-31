@@ -108,7 +108,7 @@ pub async fn create_chunk_assets(
       .collect()
   };
   let compilation_ref = &*compilation;
-  let results = rspack_futures::scope::<_, Result<_>>(|token| {
+  let results = rspack_parallel::scope::<_, Result<_>>(|token| {
     chunks.iter().for_each(|chunk| {
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((compilation_ref, &plugin_driver, chunk)) };

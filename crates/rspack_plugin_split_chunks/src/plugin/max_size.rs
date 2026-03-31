@@ -475,7 +475,7 @@ impl SplitChunksPlugin {
     let chunk_group_db = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
     let compilation_ref = &*compilation;
 
-    let chunks_with_size_info_results = rspack_futures::scope::<_, Result<_>>(|token| {
+    let chunks_with_size_info_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       compilation_ref
         .build_chunk_graph_artifact
         .chunk_by_ukey

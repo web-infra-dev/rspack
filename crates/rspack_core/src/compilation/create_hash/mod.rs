@@ -163,7 +163,7 @@ pub async fn create_hash(
 
   // create hash for runtime modules in other chunks
   let compilation_ref = &*compilation;
-  let other_chunk_runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+  let other_chunk_runtime_module_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
     other_chunks
       .iter()
       .flat_map(|chunk| {
@@ -195,7 +195,7 @@ pub async fn create_hash(
 
   // create hash for other chunks
   let compilation_ref = &*compilation;
-  let other_chunks_hash_results = rspack_futures::scope::<_, Result<_>>(|token| {
+  let other_chunks_hash_results = rspack_parallel::scope::<_, Result<_>>(|token| {
     for chunk in other_chunks {
       let s = unsafe { token.used((compilation_ref, chunk, plugin_driver.clone())) };
       s.spawn(|(compilation, chunk, plugin_driver)| async move {
@@ -342,7 +342,7 @@ pub async fn create_hash(
   let start = logger.time("hashing: hash runtime chunks");
   for runtime_chunk_ukey in runtime_chunks {
     let compilation_ref = &*compilation;
-    let runtime_module_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+    let runtime_module_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
       compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -468,7 +468,7 @@ pub async fn create_hash(
 #[instrument(skip_all)]
 pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> Result<()> {
   let compilation_ref = &*compilation;
-  let results = rspack_futures::scope::<_, Result<_>>(|token| {
+  let results = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .runtime_modules
       .iter()
