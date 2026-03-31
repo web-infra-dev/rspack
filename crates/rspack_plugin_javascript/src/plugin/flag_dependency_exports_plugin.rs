@@ -20,12 +20,6 @@ struct FlagDependencyExportsState<'a> {
   exports_info_artifact: &'a mut ExportsInfoArtifact,
 }
 
-struct NonNestedMergeContext<'a> {
-  mg: &'a ModuleGraph,
-  exports_info_artifact: &'a ExportsInfoArtifact,
-  module_id: &'a ModuleIdentifier,
-}
-
 impl<'a> FlagDependencyExportsState<'a> {
   pub fn new(
     mg: &'a ModuleGraph,
@@ -124,14 +118,11 @@ impl<'a> FlagDependencyExportsState<'a> {
             .get_exports_info_data(&module_id)
             .clone();
           let mut dependencies = Vec::with_capacity(exports_specs.len());
-          let mut merge_ctx = NonNestedMergeContext {
-            mg: self.mg,
-            exports_info_artifact: self.exports_info_artifact,
-            module_id: &module_id,
-          };
           for (dep_id, exports_spec) in exports_specs {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
-              &mut merge_ctx,
+              self.mg,
+              self.exports_info_artifact,
+              &module_id,
               dep_id,
               &exports_spec,
               &mut exports_info,
@@ -370,7 +361,9 @@ pub fn process_exports_spec(
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
 fn process_exports_spec_without_nested(
-  ctx: &mut NonNestedMergeContext<'_>,
+  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_id: &ModuleIdentifier,
   dep_id: DependencyId,
   export_desc: &ExportsSpec,
   exports_info: &mut ExportsInfoData,
@@ -404,7 +397,9 @@ fn process_exports_spec_without_nested(
     ExportsOfExportsSpec::NoExports => {}
     ExportsOfExportsSpec::Names(ele) => {
       let (merge_changed, merge_dependencies) = merge_exports_without_nested(
-        ctx,
+        mg,
+        exports_info_artifact,
+        module_id,
         exports_info,
         ele,
         DefaultExportInfo {
@@ -422,7 +417,7 @@ fn process_exports_spec_without_nested(
 
   if let Some(export_dependencies) = export_dependencies {
     for export_dep in export_dependencies {
-      dependencies.push((*export_dep, *ctx.module_id));
+      dependencies.push((*export_dep, *module_id));
     }
   }
 
@@ -480,7 +475,9 @@ impl<'a> ParsedExportSpec<'a> {
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
 fn merge_exports_without_nested(
-  ctx: &mut NonNestedMergeContext<'_>,
+  mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  module_id: &ModuleIdentifier,
   exports_info: &mut ExportsInfoData,
   exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
@@ -515,9 +512,9 @@ fn merge_exports_without_nested(
     );
 
     let (target_exports_info, target_module) =
-      find_target_exports_info(ctx.mg, ctx.exports_info_artifact, export_info);
+      find_target_exports_info(mg, exports_info_artifact, export_info);
     if let Some(target_module) = target_module {
-      dependencies.push((target_module, *ctx.module_id));
+      dependencies.push((target_module, *module_id));
     }
 
     if export_info.exports_info() != target_exports_info {
