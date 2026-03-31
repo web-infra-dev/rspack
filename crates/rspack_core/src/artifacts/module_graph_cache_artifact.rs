@@ -110,7 +110,7 @@ impl ModuleGraphCacheArtifactInner {
 
   pub fn cached_get_side_effects_connection_state<F: FnOnce() -> ConnectionState>(
     &self,
-    key: GetSideEffectsConnectionStateKey,
+    key: ModuleIdentifier,
     f: F,
   ) -> ConnectionState {
     if !self.freezed.load(Ordering::Acquire) {
@@ -226,11 +226,9 @@ pub(super) mod get_side_effects_connection_state {
 
   use crate::{ConnectionState, ModuleIdentifier};
 
-  pub type GetSideEffectsConnectionStateKey = ModuleIdentifier;
-
   #[derive(Debug, Default)]
   pub struct GetSideEffectsConnectionStateCache {
-    cache: DashMap<GetSideEffectsConnectionStateKey, ConnectionState, BuildHasherDefault<FxHasher>>,
+    cache: DashMap<ModuleIdentifier, ConnectionState, BuildHasherDefault<FxHasher>>,
   }
 
   impl GetSideEffectsConnectionStateCache {
@@ -238,11 +236,11 @@ pub(super) mod get_side_effects_connection_state {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &GetSideEffectsConnectionStateKey) -> Option<ConnectionState> {
+    pub fn get(&self, key: &ModuleIdentifier) -> Option<ConnectionState> {
       self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: GetSideEffectsConnectionStateKey, value: ConnectionState) {
+    pub fn set(&self, key: ModuleIdentifier, value: ConnectionState) {
       self.cache.insert(key, value);
     }
   }

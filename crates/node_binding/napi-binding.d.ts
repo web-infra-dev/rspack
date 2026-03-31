@@ -2483,6 +2483,11 @@ jsx?: boolean
  * @experimental
  */
 importMetaResolve?: boolean
+/**
+ * Flag top-level functions or exports as side-effect-free for advanced tree shaking.
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
 sideEffectsFree?: Array<string>
 }
 

@@ -1223,7 +1223,10 @@ export type JavascriptParserOptions = {
    * @default false
    */
   importMetaResolve?: boolean;
-  /** Flag the function to have no side effects */
+  /**
+   * Flag top-level functions or exports as side-effect-free for advanced tree shaking.
+   * @experimental
+   */
   sideEffectsFree?: string[];
 };
 

@@ -51,7 +51,9 @@ impl FromIterator<(ModuleIdentifier, SideEffectsState)> for SideEffectsStateArti
 }
 
 impl SideEffectsStateArtifact {
-  pub fn side_effect_free(&self, module_identifier: &ModuleIdentifier) -> Option<bool> {
+  /// Returns only the analyzed side-effects state overlay produced after parsing.
+  /// This intentionally excludes `factory_meta.side_effect_free`.
+  pub fn analyzed_side_effect_free(&self, module_identifier: &ModuleIdentifier) -> Option<bool> {
     self
       .get(module_identifier)
       .map(|state| state.side_effect_free)
@@ -67,25 +69,23 @@ impl IntoIterator for SideEffectsStateArtifact {
   }
 }
 
-pub fn module_side_effect_free(
-  module: &dyn Module,
-  side_effects_state_artifact: &SideEffectsStateArtifact,
-) -> Option<bool> {
-  module_declared_side_effect_free(module)
-    .or_else(|| module_analyzed_side_effect_free(module, side_effects_state_artifact))
-}
-
+/// Returns the explicitly declared side-effects state from `package.json`, rules,
+/// or other factory metadata. This must not be mixed with analyzed state when the
+/// caller only wants user-declared semantics.
 pub fn module_declared_side_effect_free(module: &dyn Module) -> Option<bool> {
   module
     .factory_meta()
     .and_then(|factory_meta| factory_meta.side_effect_free)
 }
 
+/// Returns the analyzed side-effects state derived during compilation.
+/// This reads the deferred side-effects overlay first, then falls back to the
+/// module's analyzed `build_meta.side_effect_free`.
 pub fn module_analyzed_side_effect_free(
   module: &dyn Module,
   side_effects_state_artifact: &SideEffectsStateArtifact,
 ) -> Option<bool> {
   side_effects_state_artifact
-    .side_effect_free(&module.identifier())
+    .analyzed_side_effect_free(&module.identifier())
     .or(module.build_meta().side_effect_free)
 }
