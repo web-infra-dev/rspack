@@ -10,7 +10,7 @@ use swc_core::{atoms::Atom, common::Span};
 static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub struct TopLevelSymbol(usize);
+pub(crate) struct TopLevelSymbol(usize);
 
 impl TopLevelSymbol {
   pub fn is_global(&self) -> bool {
@@ -26,7 +26,7 @@ impl TopLevelSymbol {
     Self(id)
   }
 
-  pub fn add_depend_on(self, state: &mut InnerGraphState, depend_on: Atom, span: Span) {
+  pub(crate) fn add_depend_on(self, state: &mut InnerGraphState, depend_on: Atom, span: Span) {
     let symbol = state.symbol_map.get_mut(&self).expect("should have symbol");
     symbol.depend_on_pure.insert((depend_on, span));
   }
@@ -39,13 +39,13 @@ impl Default for TopLevelSymbol {
 }
 
 #[derive(Debug, Clone)]
-pub struct TopLevelSymbolData {
-  pub name: Atom,
-  pub depend_on_pure: HashSet<(Atom, Span)>,
+pub(super) struct TopLevelSymbolData {
+  pub(super) name: Atom,
+  pub(super) depend_on_pure: HashSet<(Atom, Span)>,
 }
 
 #[derive(Default, Clone, PartialEq, Eq, Debug)]
-pub enum InnerGraphMapValue {
+pub(super) enum InnerGraphMapValue {
   Set(HashSet<InnerGraphMapSetValue>),
   True,
   #[default]
@@ -53,13 +53,13 @@ pub enum InnerGraphMapValue {
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
-pub enum InnerGraphMapSetValue {
+pub(super) enum InnerGraphMapSetValue {
   TopLevel(TopLevelSymbol),
   Str(Atom),
 }
 
 impl InnerGraphMapSetValue {
-  pub fn to_atom(&self, symbol_map: &HashMap<TopLevelSymbol, TopLevelSymbolData>) -> Atom {
+  pub(super) fn to_atom(&self, symbol_map: &HashMap<TopLevelSymbol, TopLevelSymbolData>) -> Atom {
     match self {
       InnerGraphMapSetValue::TopLevel(v) => {
         symbol_map.get(v).expect("should have symbol").name.clone()
@@ -70,7 +70,7 @@ impl InnerGraphMapSetValue {
 }
 
 #[derive(PartialEq, Eq, Debug)]
-pub enum InnerGraphMapUsage {
+pub(crate) enum InnerGraphMapUsage {
   TopLevel(TopLevelSymbol),
   Value(Atom),
   True,
@@ -87,21 +87,21 @@ impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
 }
 
 #[derive(Default)]
-pub struct InnerGraphState {
-  pub symbol_map: HashMap<TopLevelSymbol, TopLevelSymbolData>,
-  pub usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
-  pub inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
-  pub current_top_level_symbol: Option<TopLevelSymbol>,
+pub(crate) struct InnerGraphState {
+  pub(super) symbol_map: HashMap<TopLevelSymbol, TopLevelSymbolData>,
+  pub(super) usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
+  pub(super) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
+  current_top_level_symbol: Option<TopLevelSymbol>,
   enable: bool,
-  pub statement_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub statement_pure_part: HashMap<Span, Span>,
-  pub class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub pure_declarators: HashSet<Span>,
+  pub(super) statement_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) statement_pure_part: HashMap<Span, Span>,
+  pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) pure_declarators: HashSet<Span>,
 }
 
 impl InnerGraphState {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
     let mut symbol_map = HashMap::<TopLevelSymbol, TopLevelSymbolData>::default();
 
     symbol_map.insert(
@@ -117,11 +117,11 @@ impl InnerGraphState {
     }
   }
 
-  pub fn top_level_symbol(&self, name: &TopLevelSymbol) -> &TopLevelSymbolData {
+  pub(super) fn top_level_symbol(&self, name: &TopLevelSymbol) -> &TopLevelSymbolData {
     &self.symbol_map[name]
   }
 
-  pub fn new_top_level_symbol(&mut self, name: Atom) -> TopLevelSymbol {
+  pub(crate) fn new_top_level_symbol(&mut self, name: Atom) -> TopLevelSymbol {
     let symbol = TopLevelSymbol::new();
     let data = TopLevelSymbolData {
       name,
@@ -131,23 +131,23 @@ impl InnerGraphState {
     symbol
   }
 
-  pub fn enable(&mut self) {
+  pub(crate) fn enable(&mut self) {
     self.enable = true;
   }
 
-  pub fn bailout(&mut self) {
+  pub(crate) fn bailout(&mut self) {
     self.enable = false;
   }
 
-  pub fn is_enabled(&self) -> bool {
+  pub(crate) fn is_enabled(&self) -> bool {
     self.enable
   }
 
-  pub fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
+  pub(crate) fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
     self.current_top_level_symbol = symbol;
   }
 
-  pub fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
+  pub(crate) fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
     if self.is_enabled() {
       self.current_top_level_symbol
     } else {
@@ -155,7 +155,7 @@ impl InnerGraphState {
     }
   }
 
-  pub fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
+  pub(crate) fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
     if !self.is_enabled() {
       return;
     }
@@ -188,33 +188,8 @@ impl InnerGraphState {
   }
 }
 
-impl std::fmt::Debug for InnerGraphState {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("InnerGraphState")
-      .field("symbol_map", &self.symbol_map)
-      .field("inner_graph", &self.inner_graph)
-      .field("current_top_level_symbol", &self.current_top_level_symbol)
-      .field("enable", &self.enable)
-      .field(
-        "statement_with_top_level_symbol",
-        &self.statement_with_top_level_symbol,
-      )
-      .field("statement_pure_part", &self.statement_pure_part)
-      .field(
-        "class_with_top_level_symbol",
-        &self.class_with_top_level_symbol,
-      )
-      .field(
-        "decl_with_top_level_symbol",
-        &self.decl_with_top_level_symbol,
-      )
-      .field("pure_declarators", &self.pure_declarators)
-      .finish()
-  }
-}
-
 #[derive(Debug, Clone)]
-pub enum InnerGraphUsageOperation {
+pub(crate) enum InnerGraphUsageOperation {
   PureExpression(DependencyId),
   ESMImportSpecifier(DependencyId),
   URLDependency(DependencyId),

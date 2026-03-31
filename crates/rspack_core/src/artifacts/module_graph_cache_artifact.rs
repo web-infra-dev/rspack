@@ -219,16 +219,13 @@ pub(super) mod concatenated_module_entries {
 }
 
 pub(super) mod get_side_effects_connection_state {
-  use std::hash::BuildHasherDefault;
-
-  use dashmap::DashMap;
-  use rustc_hash::FxHasher;
+  use rspack_collections::IdentifierDashMap;
 
   use crate::{ConnectionState, ModuleIdentifier};
 
   #[derive(Debug, Default)]
   pub struct GetSideEffectsConnectionStateCache {
-    cache: DashMap<ModuleIdentifier, ConnectionState, BuildHasherDefault<FxHasher>>,
+    cache: IdentifierDashMap<ConnectionState>,
   }
 
   impl GetSideEffectsConnectionStateCache {

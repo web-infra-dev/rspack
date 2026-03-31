@@ -98,6 +98,17 @@ impl BuildModuleGraphArtifact {
     &mut self.module_graph
   }
 
+  pub fn steal_side_effects_state_artifact(&mut self) -> SideEffectsStateArtifact {
+    std::mem::take(&mut self.side_effects_state_artifact)
+  }
+
+  pub fn set_side_effects_state_artifact(
+    &mut self,
+    side_effects_state_artifact: SideEffectsStateArtifact,
+  ) {
+    self.side_effects_state_artifact = side_effects_state_artifact;
+  }
+
   /// revoke a module and return multiple parent ModuleIdentifier and DependencyId pair that can generate it.
   ///
   /// This function will update index on MakeArtifact.

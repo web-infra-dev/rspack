@@ -559,6 +559,10 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     // analyze if any function contains #__NO_SIDE_EFFECTS__ annotation
     // so that pure functions in current module can be marked as pure
     if self.analyze_side_effects_free {
+      // Build the explicit/implicit sideEffectsFree set in three steps:
+      // 1. collect NO_SIDE_EFFECTS annotations already present in the module,
+      // 2. keep only configured names that actually exist at top level,
+      // 3. run a fixed-point auto analysis so pure local helpers can unlock later candidates.
       // use a raw swc visitor so that we can find all pure functions before the parser visit the ast
       let mut pure_annotation = PureAnnotation {
         side_effects_free: FxHashSet::default(),

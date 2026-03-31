@@ -226,10 +226,14 @@ export function baz() {}
 
 ## sideEffectsFree
 
-`sideEffectsFree` 允许你通过 Rspack 配置文件手动指定某些函数名在特定模块中是无副作用的。这在处理无法修改源码的第三方库（如 `node_modules` 中的包）时非常有用。
+`sideEffectsFree` 允许你在命中的模块中，手动将顶层导出函数标记为“调用无副作用”，供 advanced tree shaking 使用。这在处理无法修改源码的第三方库（例如 `node_modules` 中的包）时非常有用。
+
+:::warning
+该选项目前是实验能力，且只有在启用 `experiments.advancedTreeShaking` 时才会生效。
+:::
 
 :::note
-只会对在顶层作用域的函数定义有效。
+目前仅支持顶层导出函数定义；对于默认导出，请使用 `default` 作为导出名。
 :::
 
 对于可以修改源码的业务代码，优先使用 `/*#__NO_SIDE_EFFECTS__*/` 注解。
@@ -240,12 +244,15 @@ export function baz() {}
 
 ```javascript title="rspack.config.js"
 module.exports = {
+  experiments: {
+    advancedTreeShaking: true,
+  },
   module: {
     rules: [
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
-          sideEffectsFree: ['isString', 'isNumber'],
+          sideEffectsFree: ['isString', 'default'],
         },
       },
     ],
@@ -253,4 +260,4 @@ module.exports = {
 };
 ```
 
-如果在对应的模块中没有找到 sideEffectsFree 中指定的函数名，或者这些函数未在该模块中定义，Rspack 会发出警告。
+Rspack 会校验 `sideEffectsFree` 中配置的每个名字是否确实存在于命中的模块中；如果找不到对应的导出函数名，就会发出警告。

@@ -1979,10 +1979,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let module_graph = compilation.get_module_graph();
         let module_graph_cache = &compilation.module_graph_cache_artifact;
         let exports_info_artifact = &compilation.exports_info_artifact;
-        let side_effects_state_artifact = compilation
+        let side_effects_state_artifact = &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .clone();
+          .side_effects_state_artifact;
 
         let mut queue_actions = Vec::new();
         let mut modules_to_skip = Vec::new();
@@ -1993,7 +1992,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             Some(&runtime),
             module_graph,
             module_graph_cache,
-            &side_effects_state_artifact,
+            side_effects_state_artifact,
             exports_info_artifact,
           );
           if active_state.is_false() {

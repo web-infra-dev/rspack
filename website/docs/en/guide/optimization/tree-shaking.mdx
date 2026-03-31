@@ -225,10 +225,14 @@ If a function is marked as side-effect-free and its return value is unused, Rspa
 
 ## sideEffectsFree
 
-`sideEffectsFree` allows you to manually specify function names as side-effect-free in specific modules via the Rspack configuration file. This is useful for third-party libraries where source code cannot be modified (e.g., packages in `node_modules`).
+`sideEffectsFree` lets you manually mark top-level exported functions in matched modules as side-effect-free for advanced tree shaking. This is useful for third-party libraries where source code cannot be modified, such as packages in `node_modules`.
+
+:::warning
+This option is experimental and only takes effect when `experiments.advancedTreeShaking` is enabled.
+:::
 
 :::note
-Works only for function declarations at top level scope
+Only top-level exported function definitions are supported. For default exports, use `default` as the exported name.
 :::
 
 For business source code where modification is possible, it is recommended to use the `/*#__NO_SIDE_EFFECTS__*/` annotation.
@@ -239,12 +243,15 @@ This option is configured in `module.rules[i].parser`:
 
 ```javascript title="rspack.config.js"
 module.exports = {
+  experiments: {
+    advancedTreeShaking: true,
+  },
   module: {
     rules: [
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
-          sideEffectsFree: ['isString', 'isNumber'],
+          sideEffectsFree: ['isString', 'default'],
         },
       },
     ],
@@ -252,4 +259,4 @@ module.exports = {
 };
 ```
 
-If a function name specified in the `sideEffectsFree` configuration is not found in the target module, Rspack will emit a warning.
+Rspack validates each configured name against the matched module. If a configured exported function name cannot be found, Rspack emits a warning.

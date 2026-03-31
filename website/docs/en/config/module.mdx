@@ -1675,6 +1675,39 @@ export default {
 This option is experimental in Rspack and may change or be removed.
 :::
 
+### module.parser.javascript.sideEffectsFree
+
+<ApiMeta stability={Stability.Experimental} />
+
+<PropertyType type="string[]" />
+
+Manually mark top-level exported functions in matched modules as side-effect-free for advanced tree shaking.
+
+This option is mainly intended for third-party libraries whose source cannot be annotated directly, such as packages in `node_modules`.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    advancedTreeShaking: true,
+  },
+  module: {
+    parser: {
+      javascript: {
+        sideEffectsFree: ['isString', 'default'],
+      },
+    },
+  },
+};
+```
+
+:::note
+Only top-level exported function definitions are supported. For default exports, use `default` as the exported name.
+:::
+
+:::warning
+This option only takes effect when `experiments.advancedTreeShaking` is enabled, and Rspack emits a warning if a configured exported function name cannot be found in the matched module.
+:::
+
 ### module.parser["javascript/auto"]
 
 Parser options for `javascript/auto` modules, same as the [`javascript` parser options](#moduleparserjavascript).

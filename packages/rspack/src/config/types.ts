@@ -1224,7 +1224,7 @@ export type JavascriptParserOptions = {
    */
   importMetaResolve?: boolean;
   /**
-   * Flag top-level functions or exports as side-effect-free for advanced tree shaking.
+   * Flag top-level exported functions as side-effect-free for advanced tree shaking.
    * @experimental
    */
   sideEffectsFree?: string[];
