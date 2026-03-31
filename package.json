@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "1.7.10",
+  "version": "1.7.11",
   "license": "MIT",
   "description": "The fast Rust-based web bundler with webpack-compatible API",
   "private": true,
