@@ -15,6 +15,7 @@ pub(crate) struct SolveComponent {
   pub modules: Vec<ModuleIdentifier>,
   pub dependents_within_component: IdentifierMap<IdentifierSet>,
   pub fallback: bool,
+  pub is_cyclic: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -50,7 +51,8 @@ pub(crate) fn build_solve_graph(planned_modules: Vec<PlannedModule>) -> SolveGra
     .enumerate()
     .map(|(index, planned)| (planned.module_id, index))
     .collect::<IdentifierMap<_>>();
-  let components = condense_components(&planned_modules, &module_index);
+  let mut components = condense_components(&planned_modules, &module_index);
+  components = group_fallback_components(components, &planned_modules, &module_index);
   let module_to_component = components
     .iter()
     .enumerate()
@@ -99,35 +101,144 @@ fn condense_components(
   tarjan
     .components
     .into_iter()
-    .map(|modules| {
-      let module_set = modules.iter().copied().collect::<IdentifierSet>();
-      let dependents_within_component = planned_modules
-        .iter()
-        .filter(|planned| module_set.contains(&planned.module_id))
-        .map(|planned| {
-          let dependents = planned_modules
-            .iter()
-            .filter(|candidate| {
-              module_set.contains(&candidate.module_id)
-                && candidate.provider_modules.contains(&planned.module_id)
-            })
-            .map(|candidate| candidate.module_id)
-            .collect::<IdentifierSet>();
-          (planned.module_id, dependents)
-        })
-        .collect::<IdentifierMap<_>>();
-      let fallback = planned_modules
-        .iter()
-        .filter(|planned| module_set.contains(&planned.module_id))
-        .any(|planned| planned.has_unknown_provider);
+    .map(|modules| build_component(modules, planned_modules, module_index))
+    .collect()
+}
 
-      SolveComponent {
-        modules,
-        dependents_within_component,
-        fallback,
+fn build_component(
+  modules: Vec<ModuleIdentifier>,
+  planned_modules: &[PlannedModule],
+  module_index: &IdentifierMap<usize>,
+) -> SolveComponent {
+  let module_set = modules.iter().copied().collect::<IdentifierSet>();
+  let mut dependents_within_component = modules
+    .iter()
+    .copied()
+    .map(|module_id| (module_id, IdentifierSet::default()))
+    .collect::<IdentifierMap<_>>();
+  let mut fallback = false;
+  let mut is_cyclic = false;
+
+  for module_id in modules.iter().copied() {
+    let planned = &planned_modules[module_index[&module_id]];
+    if planned.has_unknown_provider {
+      fallback = true;
+    }
+    if planned.provider_modules.contains(&module_id) {
+      is_cyclic = true;
+    }
+    for provider in &planned.provider_modules {
+      if !module_set.contains(provider) {
+        continue;
       }
+      if let Some(dependents) = dependents_within_component.get_mut(provider) {
+        dependents.insert(module_id);
+      }
+    }
+  }
+
+  if modules.len() > 1 {
+    is_cyclic = true;
+  }
+
+  SolveComponent {
+    modules,
+    dependents_within_component,
+    fallback,
+    is_cyclic,
+  }
+}
+
+fn group_fallback_components(
+  components: Vec<SolveComponent>,
+  planned_modules: &[PlannedModule],
+  module_index: &IdentifierMap<usize>,
+) -> Vec<SolveComponent> {
+  let component_count = components.len();
+  let fallback_roots = components
+    .iter()
+    .enumerate()
+    .filter_map(|(index, component)| component.fallback.then_some(index))
+    .collect::<Vec<_>>();
+
+  if fallback_roots.is_empty() {
+    return components;
+  }
+
+  let module_to_component = components
+    .iter()
+    .enumerate()
+    .flat_map(|(component_id, component)| {
+      component
+        .modules
+        .iter()
+        .copied()
+        .map(move |module_id| (module_id, component_id))
+    })
+    .collect::<IdentifierMap<_>>();
+
+  let mut outgoing = vec![Vec::new(); component_count];
+  for planned in planned_modules {
+    let consumer = module_to_component[&planned.module_id];
+    for provider in &planned.provider_modules {
+      let Some(&provider_component) = module_to_component.get(provider) else {
+        continue;
+      };
+      if consumer == provider_component {
+        continue;
+      }
+      outgoing[provider_component].push(consumer);
+    }
+  }
+
+  let mut parent = (0..component_count).collect::<Vec<_>>();
+  for root in &fallback_roots {
+    let mut stack = Vec::from([*root]);
+    let mut visited = vec![false; component_count];
+    visited[*root] = true;
+
+    while let Some(component_id) = stack.pop() {
+      for &dependent in &outgoing[component_id] {
+        if !visited[dependent] {
+          visited[dependent] = true;
+          union(&mut parent, *root, dependent);
+          stack.push(dependent);
+        }
+      }
+    }
+  }
+
+  let mut grouped_components = vec![Vec::new(); component_count];
+  for component_id in 0..component_count {
+    let root = find(&mut parent, component_id);
+    grouped_components[root].push(component_id);
+  }
+
+  grouped_components
+    .into_iter()
+    .filter(|indices| !indices.is_empty())
+    .map(|indices| {
+      let modules = indices
+        .into_iter()
+        .flat_map(|index| components[index].modules.iter().copied())
+        .collect::<Vec<_>>();
+      build_component(modules, planned_modules, module_index)
     })
     .collect()
+}
+
+fn find(parent: &mut Vec<usize>, component_id: usize) -> usize {
+  if parent[component_id] != component_id {
+    let root = find(parent, parent[component_id]);
+    parent[component_id] = root;
+  }
+  parent[component_id]
+}
+
+fn union(parent: &mut Vec<usize>, left: usize, right: usize) {
+  let left = find(parent, left);
+  let right = find(parent, right);
+  parent[right] = left;
 }
 
 fn strong_connect(
@@ -251,6 +362,21 @@ mod tests {
     }
   }
 
+  fn planned_with_unknown(
+    name: &str,
+    providers: &[&str],
+    has_unknown_provider: bool,
+  ) -> PlannedModule {
+    PlannedModule {
+      module_id: module(name),
+      provider_modules: providers
+        .iter()
+        .map(|provider| module(provider))
+        .collect::<IdentifierSet>(),
+      has_unknown_provider,
+    }
+  }
+
   #[test]
   fn build_solve_graph_solves_providers_before_consumers() {
     let graph = build_solve_graph(vec![
@@ -284,6 +410,38 @@ mod tests {
   }
 
   #[test]
+  fn build_solve_graph_marks_singleton_self_cycle_as_cyclic() {
+    let graph = build_solve_graph(vec![planned_with_unknown("a", &["a"], false)]);
+
+    assert_eq!(graph.components.len(), 1);
+    assert_eq!(graph.components[0].modules, vec![module("a")]);
+    assert!(graph.components[0].is_cyclic);
+  }
+
+  #[test]
+  fn build_solve_graph_groups_unknown_providers_into_fallback_component() {
+    let graph = build_solve_graph(vec![
+      planned_with_unknown("leaf", &[], false),
+      planned_with_unknown("unknown", &["leaf"], true),
+      planned("consumer", &["unknown"]),
+      planned("sink", &["consumer"]),
+    ]);
+
+    let unknown_component = graph.module_to_component[&module("unknown")];
+    let consumer_component = graph.module_to_component[&module("consumer")];
+    let sink_component = graph.module_to_component[&module("sink")];
+    let leaf_component = graph.module_to_component[&module("leaf")];
+
+    assert_eq!(graph.components.len(), 2);
+    assert_eq!(unknown_component, consumer_component);
+    assert_eq!(unknown_component, sink_component);
+    assert!(graph.components[unknown_component].fallback);
+    assert!(graph.components[consumer_component].fallback);
+    assert!(graph.components[sink_component].fallback);
+    assert_ne!(unknown_component, leaf_component);
+  }
+
+  #[test]
   fn execute_component_worklist_requeues_only_changed_in_component_dependents() {
     let component = SolveComponent {
       modules: vec![module("a"), module("b")],
@@ -300,6 +458,7 @@ mod tests {
       .into_iter()
       .collect::<IdentifierMap<_>>(),
       fallback: false,
+      is_cyclic: false,
     };
     let mut queue = VecDeque::new();
     let mut calls = Vec::new();
