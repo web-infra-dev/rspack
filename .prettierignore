@@ -16,6 +16,9 @@ gitignore
 tests/rspack-test/**/*.js
 !tests/rspack-test/**/
 !tests/rspack-test/**/rspack.config.*
+tests/rspack-test/**/rspack.lock.data/**
+tests/rspack-test/**/*.webpack.lock.data/**
+tests/rspack-test/**/lock-files/test/**
 
 # Ignore intentionally invalid test files
 tests/rspack-test/configCases/builtin-lightningcss-loader/report-warning/index.css
