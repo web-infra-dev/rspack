@@ -367,7 +367,6 @@ impl JsCompiler {
     reference: Reference<JsCompiler>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
-    let compilation_scoped_tsfn_manager = self.compilation_scoped_tsfn_manager.clone();
     unsafe {
       self.run(env, reference, |compiler, guard| {
         callbackify(
@@ -381,9 +380,6 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
-            // Build-scoped TSFNs must be dropped from the JS callback finalizer so old JS
-            // closures stop rooting the previous compilation before the next build starts.
-            compilation_scoped_tsfn_manager.release();
             drop(guard);
           }),
         )
@@ -403,9 +399,6 @@ impl JsCompiler {
     removed_files: Vec<String>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
-    use std::collections::HashSet;
-
-    let compilation_scoped_tsfn_manager = self.compilation_scoped_tsfn_manager.clone();
     unsafe {
       self.run(env, reference, |compiler, guard| {
         callbackify(
@@ -425,9 +418,6 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
-            // Rebuild uses the same activation window as build: activate before entering
-            // the run, release after the JS callback has fully finished.
-            compilation_scoped_tsfn_manager.release();
             drop(guard);
           }),
         )
@@ -479,8 +469,15 @@ impl JsCompiler {
 }
 
 struct RunGuard {
-  _compiler_state_guard: CompilerStateGuard,
-  _reference: Reference<JsCompiler>,
+  compiler_state_guard: CompilerStateGuard,
+  reference: Reference<JsCompiler>,
+  compilation_scoped_tsfn_manager: CompilationScopedTsFnManager,
+}
+
+impl Drop for RunGuard {
+  fn drop(&mut self) {
+    self.compilation_scoped_tsfn_manager.release();
+  }
 }
 
 impl JsCompiler {
@@ -501,7 +498,20 @@ impl JsCompiler {
     }
 
     let compiler_state_guard = self.state.enter();
+
+    // SAFETY:
+    // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
+    // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
+    let compiler = unsafe {
+      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
+    };
+
     let weak_reference = reference.downgrade();
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.insert(compiler.id(), weak_reference);
+    });
+
     // Install fresh TSFNs for every registered callback right before the compiler run.
     // This keeps callbacks callable during the current build/rebuild without letting the
     // previous run's TSFNs retain JS objects after the run completes.
@@ -509,20 +519,12 @@ impl JsCompiler {
       .compilation_scoped_tsfn_manager
       .activate(env)
       .map_err(|err| napi::Error::new(ErrorCode::Napi(err.status), err.reason.clone()))?;
-    // SAFETY:
-    // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
-    // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
-    let compiler = unsafe {
-      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
-    };
+
     let guard = RunGuard {
-      _compiler_state_guard: compiler_state_guard,
-      _reference: reference,
+      compiler_state_guard,
+      reference,
+      compilation_scoped_tsfn_manager: self.compilation_scoped_tsfn_manager.clone(),
     };
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.insert(compiler.id(), weak_reference);
-    });
 
     self.cleanup_last_compilation(&compiler.compilation);
     within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
