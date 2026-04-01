@@ -96,27 +96,42 @@ __dirname
 
 ## import.meta（ESM）
 
-`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在 ESM（ECMAScript 模块）中可用。
+`import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type模块类型)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
 
-> 请注意，Rspack 不支持直接访问 `import.meta`（将抛出警告）。因此，你应该访问其属性或使用解构赋值。
+:::note
+由于 Rspack 需要静态分析 `import.meta` 元数据的使用情况，所以 Rspack 不支持动态访问 `import.meta` 并会抛出警告。你应该通过属性访问或解构赋值的方式来访问 `import.meta` 上的元数据。
 
 <Columns>
+
 ```js title=源码
-import.meta
-typeof import.meta
+// 会抛出警告
+Object.keys(import.meta);
+// 允许 typeof 访问
+typeof import.meta;
+// 允许属性访问
+import.meta.url;
+// 允许解构赋值访问
+let { url } = import.meta;
 ```
 
 ```js title=产物
-{
-} // Warning: Accessing import.meta directly is unsupported (only property access or destructuring is supported)
+// Warning
+Object.keys({});
+
 ('object');
+
+('file:///project/index.js');
+
+let { url } = { url: 'file:///project/index.js' };
 ```
 
 </Columns>
 
+:::
+
 ### import.meta.url
 
-返回模块以 `file:` 开头绝对路径的 URL。
+返回当前模块的以 `file:` 开头的绝对路径 URL 字符串。
 
 <Columns>
 ```js title=源码
@@ -125,10 +140,9 @@ typeof import.meta.url
 ```
 
 ```js title=产物
-'file://project_root/src/main.js';
+'file:///project/index.js';
 'string';
 ```
-
 </Columns>
 
 ### import.meta.resolve
