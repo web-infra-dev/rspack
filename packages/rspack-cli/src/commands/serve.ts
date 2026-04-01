@@ -117,10 +117,6 @@ export class ServeCommand implements RspackCommand {
         const compilerForDevServerOptions =
           compilerForDevServer.options.devServer;
 
-        if (compilerForDevServerOptions === false) {
-          return;
-        }
-
         /**
          * Rspack relies on devServer.hot to enable HMR
          */
@@ -164,8 +160,10 @@ export class ServeCommand implements RspackCommand {
         }
 
         const devServerOptions: DevServer =
-          compilerForDevServerOptions ??
-          (compilerForDevServer.options.devServer = {});
+          compilerForDevServerOptions === false
+            ? {}
+            : (compilerForDevServerOptions ??
+              (compilerForDevServer.options.devServer = {}));
         const { setupMiddlewares } = devServerOptions;
 
         const lazyCompileMiddleware =
