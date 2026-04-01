@@ -12,7 +12,7 @@ use super::{
   optimize_tree::optimize_tree_pass, process_assets::process_assets_pass,
   runtime_requirements::runtime_requirements_pass, seal::seal_pass, *,
 };
-use crate::{Compilation, SharedPluginDriver, cache::Cache};
+use crate::{Compilation, SharedPluginDriver, cache::Cache, logger::Logger};
 
 impl Compilation {
   pub async fn run_passes(
@@ -20,11 +20,20 @@ impl Compilation {
     plugin_driver: SharedPluginDriver,
     cache: &mut dyn Cache,
   ) -> Result<()> {
+    let logger = self.get_logger("rspack.Compiler");
+
+    let start = logger.time("make hook");
     make_hook_pass(self, plugin_driver.clone(), cache).await?;
     build_module_graph_pass(self).await?;
+    logger.time_end(start);
+
     finish_make_pass(self, plugin_driver.clone()).await?;
+
+    let start = logger.time("finish compilation");
     finish_module_graph_pass(self, cache).await?;
     finish_modules_pass(self).await?;
+    logger.time_end(start);
+
     // This is the end of first pass of build module graph which will be recovered for next compilation
     // add a checkpoint here since we may modify module graph later in incremental compilation
     // and we can recover to this checkpoint in the future
@@ -35,6 +44,7 @@ impl Compilation {
       self.module_static_cache_artifact.freeze();
     }
 
+    let start = logger.time("seal compilation");
     seal_pass(self, plugin_driver.clone()).await?;
 
     optimize_dependencies_pass(self, plugin_driver.clone()).await?;
@@ -59,6 +69,7 @@ impl Compilation {
     create_chunk_assets_pass(self, plugin_driver.clone()).await?;
     process_assets_pass(self, plugin_driver.clone()).await?;
     after_seal_pass(self, plugin_driver).await?;
+    logger.time_end(start);
 
     if !self.options.mode.is_development() {
       self.module_static_cache_artifact.unfreeze();
