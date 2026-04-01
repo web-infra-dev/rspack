@@ -87,11 +87,7 @@ export class PreviewCommand implements RspackCommand {
           const singleConfig =
             config.find((item) => item.devServer) || config[0];
 
-          const devServer =
-            singleConfig.devServer === false
-              ? undefined
-              : singleConfig.devServer;
-          const devServerOptions: DevServer = devServer ?? {};
+          const devServerOptions = singleConfig.devServer as DevServer;
 
           try {
             const compiler = rspack({ entry: {} });
