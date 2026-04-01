@@ -30,18 +30,14 @@ impl ToNapiValue for JsConnectionState {
     unsafe {
       match val {
         JsConnectionState::Bool(b) => ToNapiValue::to_napi_value(env, b),
-        JsConnectionState::CircularConnection => {
-          CIRCULAR_CONNECTION_SYMBOL.with(|once_cell| {
-            #[allow(clippy::unwrap_used)]
-            ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
-          })
-        }
-        JsConnectionState::TransitiveOnly => {
-          TRANSITIVE_ONLY_SYMBOL.with(|once_cell| {
-            #[allow(clippy::unwrap_used)]
-            ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
-          })
-        }
+        JsConnectionState::CircularConnection => CIRCULAR_CONNECTION_SYMBOL.with(|once_cell| {
+          #[allow(clippy::unwrap_used)]
+          ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
+        }),
+        JsConnectionState::TransitiveOnly => TRANSITIVE_ONLY_SYMBOL.with(|once_cell| {
+          #[allow(clippy::unwrap_used)]
+          ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
+        }),
       }
     }
   }

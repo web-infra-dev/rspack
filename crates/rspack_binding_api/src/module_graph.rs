@@ -270,5 +270,4 @@ impl JsModuleGraph {
       &module.identifier,
     ))
   }
-
 }
