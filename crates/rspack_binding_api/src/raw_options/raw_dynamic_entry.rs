@@ -1,9 +1,11 @@
 use napi::bindgen_prelude::Promise;
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_dynamic_entry::{DynamicEntryPluginOptions, EntryDynamicResult};
 
-use crate::options::entry::JsEntryOptions;
+use crate::{
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  options::entry::JsEntryOptions,
+};
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]

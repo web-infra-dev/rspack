@@ -138,8 +138,6 @@ class Compiler {
   #initial: boolean;
 
   #compilation?: Compilation;
-  // TODO: GC issue - manual cleanup needed to prevent memory leaks.
-  // Suspected closure references preventing proper garbage collection.
   #bindingCompilationMap = new WeakMap<binding.JsCompilation, Compilation>();
   #compilationParams?: CompilationParams;
 
@@ -807,12 +805,6 @@ class Compiler {
   }
 
   close(callback: (error?: Error | null) => void) {
-    if (this.#compilation) {
-      this.#bindingCompilationMap.delete(
-        this.#compilation.__internal_getInner(),
-      );
-    }
-
     if (this.watching) {
       // When there is still an active watching, close this #initial
       this.watching.close(() => {
@@ -889,8 +881,6 @@ class Compiler {
       compilation = new Compilation(this, native);
       compilation.name = this.name;
       this.#bindingCompilationMap.set(native, compilation);
-    } else {
-      this.#bindingCompilationMap.delete(compilation.__internal_getInner());
     }
 
     this.#compilation = compilation;

@@ -4,7 +4,6 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_error::Error;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_module_replacement::{
   NormalModuleReplacementPluginOptions, NormalModuleReplacer,
 };
@@ -12,7 +11,10 @@ use rspack_plugin_runtime_chunk::RuntimeChunkName;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;
 
-use crate::normal_module_factory::JsResolveData;
+use crate::{
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  normal_module_factory::JsResolveData,
+};
 
 #[napi(object, object_to_js = false)]
 pub struct RawNormalModuleReplacementPluginOptions {

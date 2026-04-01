@@ -9,11 +9,11 @@ use rspack_core::{
   ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
   ResolveOptionsWithDependencyType, ResolverFactory,
 };
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
   error::ErrorCode,
   normal_module_factory::ContextInfo,
   options::raw_resolve::{

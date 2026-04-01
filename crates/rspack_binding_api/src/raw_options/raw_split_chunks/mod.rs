@@ -10,7 +10,7 @@ use napi::{Either, JsString, bindgen_prelude::Either3};
 use napi_derive::napi;
 use raw_split_chunk_name::{RawChunkOptionName, normalize_raw_chunk_name};
 use rspack_core::{DEFAULT_DELIMITER, Filename, SourceType};
-use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
+use rspack_napi::string::JsStringExt;
 use rspack_plugin_split_chunks::ChunkNameGetter;
 use rspack_regex::RspackRegex;
 
@@ -22,7 +22,9 @@ use self::{
   raw_split_chunk_name::default_chunk_option_name,
   raw_split_chunk_size::RawSplitChunkSizes,
 };
-use crate::filename::JsFilename;
+use crate::{
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
+};
 
 #[napi(object, object_to_js = false)]
 #[derive(Debug)]

@@ -2,10 +2,12 @@ use std::sync::Arc;
 
 use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
-use crate::{chunk::ChunkWrapper, module::ModuleObject};
+use crate::{
+  chunk::ChunkWrapper, compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  module::ModuleObject,
+};
 
 pub(super) type RawChunkOptionName =
   Either3<String, bool, ThreadsafeFunction<JsChunkOptionNameCtx, Option<String>>>;

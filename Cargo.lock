@@ -3704,6 +3704,7 @@ version = "0.100.0-beta.9"
 dependencies = [
  "anyhow",
  "async-trait",
+ "atomic_refcell",
  "cow-utils",
  "derive_more",
  "futures",

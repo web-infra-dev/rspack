@@ -6,11 +6,12 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::rspack_sources::{RawBufferSource, RawStringSource, SourceExt};
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_copy::{
   CopyGlobOptions, CopyPattern, CopyRspackPluginOptions, Info, Related, ToOption, ToType,
   TransformerFn,
 };
+
+use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
 
 type RawTransformer = ThreadsafeFunction<FnArgs<(Buffer, String)>, Promise<Either<String, Buffer>>>;
 

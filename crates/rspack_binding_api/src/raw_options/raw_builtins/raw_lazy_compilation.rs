@@ -7,12 +7,13 @@ use napi::{
 use napi_derive::napi;
 use rspack_collections::IdentifierSet;
 use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{Backend, LazyCompilationTest, LazyCompilationTestCheck};
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::module::ModuleObject;
+use crate::{
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
+};
 
 #[derive(Debug)]
 pub struct RawLazyCompilationTest<F = ThreadsafeFunction<ModuleObject, Option<bool>>>(

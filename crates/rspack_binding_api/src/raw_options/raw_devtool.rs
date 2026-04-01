@@ -6,12 +6,14 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::PathData;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
 };
 
-use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
+use crate::{
+  asset_condition::{RawAssetConditions, into_asset_conditions},
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+};
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
 

@@ -1,7 +1,8 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_runtime_chunk::{RuntimeChunkName, RuntimeChunkOptions};
+
+use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
 
 #[napi(object, object_to_js = false)]
 pub struct RawRuntimeChunkOptions {

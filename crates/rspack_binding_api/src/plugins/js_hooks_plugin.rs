@@ -1,7 +1,7 @@
 use std::fmt;
 
 use async_trait::async_trait;
-use napi::{Env, Result};
+use napi::Result;
 use rspack_core::{
   ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin,
@@ -358,6 +358,7 @@ impl Plugin for JsHooksAdapterPlugin {
     self
       .register_runtime_plugin_create_script_taps
       .clear_cache();
+    self.register_runtime_plugin_create_link_taps.clear_cache();
     self.register_runtime_plugin_link_preload_taps.clear_cache();
     self
       .register_runtime_plugin_link_prefetch_taps
@@ -476,7 +477,7 @@ async fn rsdoctor_hooks_adapter_compilation(
 }
 
 impl JsHooksAdapterPlugin {
-  pub fn from_js_hooks(_env: Env, register_js_taps: RegisterJsTaps) -> Result<Self> {
+  pub fn from_js_hooks(register_js_taps: RegisterJsTaps) -> Result<Self> {
     let non_skippable_registers = NonSkippableRegisters::default();
     Ok(JsHooksAdapterPlugin {
       inner: JsHooksAdapterPluginInner {

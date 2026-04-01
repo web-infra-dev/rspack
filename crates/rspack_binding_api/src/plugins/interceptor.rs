@@ -79,6 +79,7 @@ use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
   compilation::JsCompilationWrapper,
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle,
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
@@ -183,7 +184,7 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
 }
 
 type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
-type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
+type RegisterFunction<T, R> = CompilationScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
   register: RegisterFunction<T, R>,

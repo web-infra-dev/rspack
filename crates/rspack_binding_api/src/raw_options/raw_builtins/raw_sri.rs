@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use derive_more::Debug;
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_sri::{
   IntegrityCallbackData, SubresourceIntegrityHashFunction, SubresourceIntegrityPluginOptions,
 };
+
+use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
 
 #[derive(Debug)]
 #[napi(

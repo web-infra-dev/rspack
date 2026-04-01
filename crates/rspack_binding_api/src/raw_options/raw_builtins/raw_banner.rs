@@ -2,12 +2,12 @@ use derive_more::Debug;
 use napi::Either;
 use napi_derive::napi;
 use rspack_error::Result;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
 use crate::{
   asset_condition::{RawAssetConditions, into_asset_conditions},
   chunk::ChunkWrapper,
+  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
 };
 
 #[napi(object, object_from_js = false)]

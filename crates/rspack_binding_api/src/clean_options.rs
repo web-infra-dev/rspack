@@ -3,9 +3,11 @@ use std::{str::FromStr, sync::Arc};
 use ::napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_core::CleanOptions;
-use rspack_napi::{napi, threadsafe_function::ThreadsafeFunction};
+use rspack_napi::napi;
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
+
+use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
 
 /// File clean options
 ///
