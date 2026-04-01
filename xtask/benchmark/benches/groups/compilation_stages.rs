@@ -413,6 +413,8 @@ fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
+// Primary stage-1 performance gate for ModuleConcatenationPlugin changes.
+// This benchmark measures the optimize_chunk_modules hook on a concat-heavy graph.
 fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
