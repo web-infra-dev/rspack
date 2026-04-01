@@ -1,13 +1,13 @@
 module.exports = {
-	output: {
-		module: true,
-		library: {
-			type: "module"
-		}
-	},
-	optimization: {
-		usedExports: true,
-		concatenateModules: true
-	},
-	target: "browserslist: last 2 chrome versions",
+  output: {
+    module: true,
+    library: {
+      type: 'module',
+    },
+  },
+  optimization: {
+    usedExports: true,
+    concatenateModules: true,
+  },
+  target: 'browserslist: last 2 chrome versions',
 };

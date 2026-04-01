@@ -1,28 +1,29 @@
-const rspack = require("@rspack/core");
+const rspack = require('@rspack/core');
 const { SubresourceIntegrityPlugin } = rspack;
 
 const createConfig = (runtimeChunk, mfPlugin) => ({
-  mode: "production",
+  mode: 'production',
   devtool: false,
-  target: "web",
+  target: 'web',
   entry: {
-    main: "./main-entry",
-    mfeEntry: "./mfe-entry",
+    main: './main-entry',
+    mfeEntry: './mfe-entry',
   },
   plugins: [
     new SubresourceIntegrityPlugin(),
-    mfPlugin && new rspack.container.ModuleFederationPlugin({
-      name: "mfeEntry",
-      filename: 'mfe-chunk.js',
-      exposes: {
-        './mock': 'mock',
-        './mock-redux': 'mock-redux',
-      }
-    }),
+    mfPlugin &&
+      new rspack.container.ModuleFederationPlugin({
+        name: 'mfeEntry',
+        filename: 'mfe-chunk.js',
+        exposes: {
+          './mock': 'mock',
+          './mock-redux': 'mock-redux',
+        },
+      }),
   ].filter(Boolean),
   output: {
-    filename: `${runtimeChunk}-${mfPlugin ? "mf" : "no-mf"}-[name].js`,
-    crossOriginLoading: "anonymous",
+    filename: `${runtimeChunk}-${mfPlugin ? 'mf' : 'no-mf'}-[name].js`,
+    crossOriginLoading: 'anonymous',
   },
   optimization: {
     runtimeChunk: runtimeChunk,
@@ -33,10 +34,7 @@ const createConfig = (runtimeChunk, mfPlugin) => ({
             const resource = m.nameForCondition?.();
             if (!resource) return false;
 
-            const frameworkDeps = [
-              "mock",
-              "mock-redux",
-            ];
+            const frameworkDeps = ['mock', 'mock-redux'];
 
             const isFramework = frameworkDeps
               .map((pkg) => `node_modules/${pkg}/`)
@@ -44,8 +42,8 @@ const createConfig = (runtimeChunk, mfPlugin) => ({
 
             return isFramework;
           },
-          name: "framework",
-          chunks: "all",
+          name: 'framework',
+          chunks: 'all',
           enforce: true,
         },
       },
@@ -53,10 +51,9 @@ const createConfig = (runtimeChunk, mfPlugin) => ({
   },
 });
 
-
 module.exports = [
-  createConfig("single", true),
-  createConfig("single", false),
-  createConfig("multiple", true),
-  createConfig("multiple", false),
+  createConfig('single', true),
+  createConfig('single', false),
+  createConfig('multiple', true),
+  createConfig('multiple', false),
 ];

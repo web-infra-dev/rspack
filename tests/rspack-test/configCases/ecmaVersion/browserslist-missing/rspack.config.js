@@ -1,4 +1,4 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: ["browserslist"]
+  target: ['browserslist'],
 };

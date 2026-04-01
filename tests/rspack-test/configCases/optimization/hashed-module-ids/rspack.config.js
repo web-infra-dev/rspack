@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		moduleIds: "hashed"
-	}
+  optimization: {
+    moduleIds: 'hashed',
+  },
 };

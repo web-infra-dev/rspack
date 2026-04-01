@@ -2,28 +2,28 @@
  * @return {import("@rspack/core").Configuration}
  */
 function config(index, { concatenateModules } = {}) {
-	return {
-		entry: "./index.js",
-		output: {
-			filename: `bundle.${index}.js`
-		},
-		plugins: [
-			function (compiler) {
-				new compiler.rspack.DefinePlugin({
-					CONCATENATED: JSON.stringify(concatenateModules)
-				}).apply(compiler);
-			}
-		],
-		optimization: {
-			concatenateModules,
-			moduleIds: "named",
-			inlineExports: true
-		},
-	};
+  return {
+    entry: './index.js',
+    output: {
+      filename: `bundle.${index}.js`,
+    },
+    plugins: [
+      function (compiler) {
+        new compiler.rspack.DefinePlugin({
+          CONCATENATED: JSON.stringify(concatenateModules),
+        }).apply(compiler);
+      },
+    ],
+    optimization: {
+      concatenateModules,
+      moduleIds: 'named',
+      inlineExports: true,
+    },
+  };
 }
 
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
-	config(0, { concatenateModules: true }),
-	config(1, { concatenateModules: false })
+  config(0, { concatenateModules: true }),
+  config(1, { concatenateModules: false }),
 ];

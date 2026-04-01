@@ -1,11 +1,11 @@
-const path = require("path");
+const path = require('path');
 module.exports = {
-	module: {
-		rules: [
-			{
-				test: path.resolve(__dirname, "index.js"),
-				loader: "./loader"
-			}
-		]
-	}
+  module: {
+    rules: [
+      {
+        test: path.resolve(__dirname, 'index.js'),
+        loader: './loader',
+      },
+    ],
+  },
 };

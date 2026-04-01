@@ -1,7 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		moduleIds: "named",
-		inlineExports: true
-	},
+  optimization: {
+    moduleIds: 'named',
+    inlineExports: true,
+  },
 };

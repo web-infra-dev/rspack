@@ -1,47 +1,47 @@
-"use strict";
+'use strict';
 
-const { rspack } = require("@rspack/core");
+const { rspack } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
-	{
-		output: {
-			module: true
-		},
-		target: ["node"],
-		plugins: [
-			{
-				apply(compiler) {
-					compiler.hooks.compilation.tap("Test", (compilation) => {
-						compilation.hooks.processAssets.tap(
-							{
-								name: "copy-webpack-plugin",
-								stage:
-									compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-							},
-							() => {
-								compilation.emitAsset(
-									"bar.js",
-									new rspack.sources.RawSource("module.exports = 1;")
-								);
-							}
-						);
-					});
-				}
-			}
-		]
-	},
-	{
-		output: {
-			module: true
-		},
-		target: "web",
-		plugins: [
-			new rspack.BannerPlugin({
-				raw: true,
-				banner:
-					'import { createRequire } from "module"; const require = createRequire(import.meta.url)'
-			})
-		]
-	}
+  {
+    output: {
+      module: true,
+    },
+    target: ['node'],
+    plugins: [
+      {
+        apply(compiler) {
+          compiler.hooks.compilation.tap('Test', (compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'copy-webpack-plugin',
+                stage:
+                  compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+              },
+              () => {
+                compilation.emitAsset(
+                  'bar.js',
+                  new rspack.sources.RawSource('module.exports = 1;'),
+                );
+              },
+            );
+          });
+        },
+      },
+    ],
+  },
+  {
+    output: {
+      module: true,
+    },
+    target: 'web',
+    plugins: [
+      new rspack.BannerPlugin({
+        raw: true,
+        banner:
+          'import { createRequire } from "module"; const require = createRequire(import.meta.url)',
+      }),
+    ],
+  },
 ];
