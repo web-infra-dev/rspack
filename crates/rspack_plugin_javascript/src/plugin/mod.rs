@@ -11,6 +11,7 @@ use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 pub mod api_plugin;
 mod drive;
 mod flag_dependency_exports_plugin;
+mod flag_dependency_exports_solver;
 mod flag_dependency_usage_plugin;
 pub mod impl_plugin_for_js_plugin;
 pub mod infer_async_modules_plugin;
