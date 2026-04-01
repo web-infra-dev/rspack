@@ -13,9 +13,29 @@ gitignore
 *.svg
 
 # Ignore test related
-tests/rspack-test/**/*
+tests/rspack-test/**/*.js
 !tests/rspack-test/**/
 !tests/rspack-test/**/rspack.config.*
+# Ignore intentionally invalid fixtures
+tests/rspack-test/configCases/builtin-lightningcss-loader/report-warning/index.css
+tests/rspack-test/configCases/css/css-modules/style.module.css
+tests/rspack-test/configCases/css/no-extra-runtime-in-js/style.css
+tests/rspack-test/configCases/css/parsing/cases/at-rule.css
+tests/rspack-test/configCases/css/parsing/cases/declaration.css
+tests/rspack-test/configCases/css/parsing/cases/values.css
+tests/rspack-test/configCases/css/url/style.css
+tests/rspack-test/configCases/entry/depend-on-non-js/*.css
+tests/rspack-test/diagnosticsCases/builtins/html_syntax_error/index.html
+tests/rspack-test/diagnosticsCases/builtins/recoverable_syntax_error/index.tsx
+tests/rspack-test/diagnosticsCases/factorize/mismatched-module-type/app.ts
+tests/rspack-test/diagnosticsCases/minimize/lightning-css-invalid/invalid.css
+tests/rspack-test/diagnosticsCases/module-parse-failed/json/syntax-error.json
+tests/rspack-test/diagnosticsCases/module-parse-failed/multi_json_syntax_error/*.json
+tests/rspack-test/hotCases/css/recovery/index.css
+tests/rspack-test/hotCases/css/recovery-cacheable/change.css
+tests/rspack-test/hotCases/invalidate/conditional-accept/data.json
+tests/rspack-test/hotCases/json/error-in-json/data.json
+tests/rspack-test/statsOutputCases/builtin-swc-loader-parse-error/index.ts
 packages/**/etc/**/*
 tests/e2e/cases/make/rewrite-factorize-request/file.js
 

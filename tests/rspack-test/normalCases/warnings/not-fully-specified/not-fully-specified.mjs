@@ -1,1 +1,1 @@
-export default 'not-fully-specified'
+export default 'not-fully-specified';

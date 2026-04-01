@@ -1,10 +1,10 @@
 class a {}
 
-function A(){
-	return <div>123</div>
+function A() {
+  return <div>123</div>;
 }
 
 interface A {
-	a: number
+  a: number;
 }
-const b: A = {a:123}
+const b: A = { a: 123 };

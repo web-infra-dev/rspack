@@ -1,1 +1,1 @@
-export { default } from "./esm-cjs-dep.js";
+export { default } from './esm-cjs-dep.js';

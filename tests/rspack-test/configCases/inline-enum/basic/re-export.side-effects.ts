@@ -1,1 +1,1 @@
-export * from "./enum.side-effects"
+export * from './enum.side-effects';

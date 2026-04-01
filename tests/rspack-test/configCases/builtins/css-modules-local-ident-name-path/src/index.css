@@ -61,41 +61,111 @@
   color: black;
 }
 
-.♥ { background: lime; }
-.© { background: lime; }
-.😍 { background: lime; }
-.“‘’” { background: lime; }
-.☺☃ { background: lime; }
-.⌘⌥ { background: lime; }
-.𝄞♪♩♫♬ { background: lime; }
-.💩 { background: lime; }
-.\? { background: lime; }
-.\@ { background: lime; }
-.\. { background: lime; }
-.\3A \) { background: lime; }
-.\3A \`\( { background: lime; }
-.\31 23 { background: lime; }
-.\31 a2b3c { background: lime; }
-.\<p\> { background: lime; }
-.\<\>\<\<\<\>\>\<\> { background: lime; }
-.\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<\-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.\-\-\-\-\-\-\.\-\-\-\-\-\-\-\-\.\>\+\.\>\. { background: lime; }
-.\# { background: lime; }
-.\#\# { background: lime; }
-.\#\.\#\.\# { background: lime; }
-.\_ { background: lime; }
-.\{\} { background: lime; }
-.\#fake\-id { background: lime; }
-.foo\.bar { background: lime; }
-.\3A hover { background: lime; }
-.\3A hover\3A focus\3A active { background: lime; }
-.\[attr\=value\] { background: lime; }
-.f\/o\/o { background: lime; }
-.f\\o\\o { background: lime; }
-.f\*o\*o { background: lime; }
-.f\!o\!o { background: lime; }
-.f\'o\'o { background: lime; }
-.f\~o\~o { background: lime; }
-.f\+o\+o { background: lime; }
+.♥ {
+  background: lime;
+}
+.© {
+  background: lime;
+}
+.😍 {
+  background: lime;
+}
+.“‘’” {
+  background: lime;
+}
+.☺☃ {
+  background: lime;
+}
+.⌘⌥ {
+  background: lime;
+}
+.𝄞♪♩♫♬ {
+  background: lime;
+}
+.💩 {
+  background: lime;
+}
+.\? {
+  background: lime;
+}
+.\@ {
+  background: lime;
+}
+.\. {
+  background: lime;
+}
+.\3A \) {
+  background: lime;
+}
+.\3A \`\( {
+  background: lime;
+}
+.\31 23 {
+  background: lime;
+}
+.\31 a2b3c {
+  background: lime;
+}
+.\<p\> {
+  background: lime;
+}
+.\<\>\<\<\<\>\>\<\> {
+  background: lime;
+}
+.\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<\-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.\-\-\-\-\-\-\.\-\-\-\-\-\-\-\-\.\>\+\.\>\. {
+  background: lime;
+}
+.\# {
+  background: lime;
+}
+.\#\# {
+  background: lime;
+}
+.\#\.\#\.\# {
+  background: lime;
+}
+.\_ {
+  background: lime;
+}
+.\{\} {
+  background: lime;
+}
+.\#fake\-id {
+  background: lime;
+}
+.foo\.bar {
+  background: lime;
+}
+.\3A hover {
+  background: lime;
+}
+.\3A hover\3A focus\3A active {
+  background: lime;
+}
+.\[attr\=value\] {
+  background: lime;
+}
+.f\/o\/o {
+  background: lime;
+}
+.f\\o\\o {
+  background: lime;
+}
+.f\*o\*o {
+  background: lime;
+}
+.f\!o\!o {
+  background: lime;
+}
+.f\'o\'o {
+  background: lime;
+}
+.f\~o\~o {
+  background: lime;
+}
+.f\+o\+o {
+  background: lime;
+}
 
 .foo\/bar {
   background: hotpink;

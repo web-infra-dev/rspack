@@ -1,3 +1,5 @@
 {
-  "sideEffects": ["*.svg"]
+  "sideEffects": [
+    "*.svg"
+  ]
 }

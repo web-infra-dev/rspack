@@ -1,5 +1,6 @@
-@import "./all-deep-deep-nested.css" layer(baz) supports(display: table) screen and (min-width: 600px);
+@import './all-deep-deep-nested.css' layer(baz) supports(display: table) screen
+  and (min-width: 600px);
 
 .class {
-	deep-nested: 1;
+  deep-nested: 1;
 }

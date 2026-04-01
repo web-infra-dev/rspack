@@ -1,3 +1,5 @@
 {
-  "sideEffects": ["**/*.css"]
+  "sideEffects": [
+    "**/*.css"
+  ]
 }

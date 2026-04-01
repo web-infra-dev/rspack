@@ -1,5 +1,5 @@
-@import "./layer-deep-nested.css" layer(bar);
+@import './layer-deep-nested.css' layer(bar);
 
 .class {
-	nested: 1;
+  nested: 1;
 }

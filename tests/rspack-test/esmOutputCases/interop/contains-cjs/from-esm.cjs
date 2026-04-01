@@ -1,2 +1,2 @@
-exports.__esModule = true
-exports.default = 'esm'
+exports.__esModule = true;
+exports.default = 'esm';

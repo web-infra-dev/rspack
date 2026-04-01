@@ -4,7 +4,7 @@ enum InlineE1 {
 
 const InlineE = {
   A: {},
-}
+};
 
-export { InlineE1 as InlineE }
-export { InlineE as InlineE1 }
+export { InlineE1 as InlineE };
+export { InlineE as InlineE1 };

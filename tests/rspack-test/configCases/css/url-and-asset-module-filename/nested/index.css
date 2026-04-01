@@ -1,4 +1,4 @@
-@import "./nested/index.css";
+@import './nested/index.css';
 
 h2 {
   same-dir: url('./img2.png');

@@ -1,1 +1,1 @@
-throw Error("should never use this module");
+throw Error('should never use this module');

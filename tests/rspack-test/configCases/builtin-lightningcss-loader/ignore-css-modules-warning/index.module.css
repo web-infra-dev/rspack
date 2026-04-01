@@ -1,23 +1,23 @@
 :global(.foo) {
-    background-color: red;
+  background-color: red;
 }
 
 :local(.bar) {
-    background-color: blue;
+  background-color: blue;
 }
 
 :global {
-    .foo {
-        background-color: red;
-    }
+  .foo {
+    background-color: red;
+  }
 }
 
 :local {
-    .bar {
-        background-color: blue;
-    }
+  .bar {
+    background-color: blue;
+  }
 }
 
 ::v-deep .foo {
-    color: sandybrown;
+  color: sandybrown;
 }

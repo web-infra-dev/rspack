@@ -1,5 +1,5 @@
 {
-	"name": "shared-esm-pkg",
-	"version": "1.0.0",
-	"type": "module"
+  "name": "shared-esm-pkg",
+  "version": "1.0.0",
+  "type": "module"
 }

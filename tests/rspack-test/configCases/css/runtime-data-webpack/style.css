@@ -1,5 +1,5 @@
-@import "other-style.css";
+@import 'other-style.css';
 
 body {
-	background: red;
+  background: red;
 }

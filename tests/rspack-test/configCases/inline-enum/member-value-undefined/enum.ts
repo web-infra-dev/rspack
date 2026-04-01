@@ -1,4 +1,4 @@
 export enum E {
-  A = "a",
+  A = 'a',
   B,
 }

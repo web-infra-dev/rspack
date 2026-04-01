@@ -1,6 +1,6 @@
 .class1 {
-    color: red;
+  color: red;
 }
 :global(.class2) {
-    background: green; 
+  background: green;
 }

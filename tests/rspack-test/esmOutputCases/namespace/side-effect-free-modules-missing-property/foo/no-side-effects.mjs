@@ -1,1 +1,1 @@
-console.log("mjs");
+console.log('mjs');

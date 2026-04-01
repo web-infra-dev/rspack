@@ -1,1 +1,1 @@
-import "dependency.js";
+import 'dependency.js';

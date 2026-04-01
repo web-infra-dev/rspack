@@ -1,7 +1,7 @@
-import { value, T } from './re-export'
+import { value, T } from './re-export';
 
-export { value, T }
+export { value, T };
 
-it("should not reexport type", function () {
-	expect(value).toBe(1)
+it('should not reexport type', function () {
+  expect(value).toBe(1);
 });

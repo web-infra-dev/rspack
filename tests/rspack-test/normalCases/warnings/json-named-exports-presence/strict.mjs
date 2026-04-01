@@ -1,2 +1,2 @@
-import { aa } from "./data.json";
+import { aa } from './data.json';
 aa;

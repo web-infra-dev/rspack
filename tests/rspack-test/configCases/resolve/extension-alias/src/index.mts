@@ -1,1 +1,1 @@
-module.exports = "in ts"
+module.exports = 'in ts';

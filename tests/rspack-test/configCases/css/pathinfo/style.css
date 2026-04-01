@@ -1,4 +1,4 @@
-@import "style-imported.css";
+@import 'style-imported.css';
 body {
-	background: red;
+  background: red;
 }

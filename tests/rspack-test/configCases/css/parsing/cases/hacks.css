@@ -1,7 +1,17 @@
-html > /**/ body .selector {}
-head ~ /**/ body .selector {}
+html > /**/ body .selector {
+}
+head ~ /**/ body .selector {
+}
 
-.selector { _property: value; }
-.selector { -property: value; }
-.selector { property: value\9; }
-.selector { property/*\**/: value\9; }
+.selector {
+  _property: value;
+}
+.selector {
+  -property: value;
+}
+.selector {
+  property: value\9;
+}
+.selector {
+  property/*\**/: value\9;
+}

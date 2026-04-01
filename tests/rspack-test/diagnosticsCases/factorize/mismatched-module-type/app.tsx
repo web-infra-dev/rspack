@@ -1,7 +1,7 @@
 const React = {
-	createElement(elm: any) {}
+  createElement(elm: any) {},
 };
 function Component<T>() {
-	return <div></div>;
+  return <div></div>;
 }
 export const App = () => <Component<any>></Component>;

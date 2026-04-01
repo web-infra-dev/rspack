@@ -1,9 +1,12 @@
-import { externalValue as valueA, getOtherExternal as getA } from "./external-a.mjs";
+import {
+  externalValue as valueA,
+  getOtherExternal as getA,
+} from './external-a.mjs';
 
-export const externalValue = "external-B";
+export const externalValue = 'external-B';
 
 export function getOtherExternal() {
-	return valueA;
+  return valueA;
 }
 
 // Re-export to test circular re-exports

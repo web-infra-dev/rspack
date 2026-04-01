@@ -1,3 +1,3 @@
-const exportSymbol = () => 'bar'
+const exportSymbol = () => 'bar';
 
-exports[exportSymbol()] = () => 'bar'
+exports[exportSymbol()] = () => 'bar';

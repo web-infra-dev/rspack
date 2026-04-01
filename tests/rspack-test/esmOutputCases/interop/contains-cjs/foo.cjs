@@ -1,1 +1,1 @@
-exports.foo = 42
+exports.foo = 42;

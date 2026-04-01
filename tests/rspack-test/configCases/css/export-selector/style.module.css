@@ -1,6 +1,11 @@
-:export {foo:foo;bar:b a r}
+:export {
+  foo: foo;
+  bar: b a r;
+}
 
-.local {}
+.local {
+}
 
-:export {dash-name:dashName}
-
+:export {
+  dash-name: dashName;
+}

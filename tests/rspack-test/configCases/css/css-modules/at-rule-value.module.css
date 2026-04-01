@@ -1,7 +1,7 @@
 @value my-red blue;
 
 .value-in-class {
-	color: my-red;
+  color: my-red;
 }
 
 @value v-comment-broken:;
@@ -10,114 +10,141 @@
 @value small: (max-width: 599px);
 
 @media small {
-	abbr:hover {
-		color: limegreen;
-		transition-duration: 1s;
-	}
+  abbr:hover {
+    color: limegreen;
+    transition-duration: 1s;
+  }
 }
 
 @value blue-v1: red;
 
-.foo { color: blue-v1; }
-
-@value blue-v3: red;
-
 .foo {
-	&.bar { color: blue-v3; }
+  color: blue-v1;
 }
 
 @value blue-v3: red;
 
 .foo {
-	@media (min-width: 1024px) {
-		&.bar { color: blue-v3; }
-	}
+  &.bar {
+    color: blue-v3;
+  }
+}
+
+@value blue-v3: red;
+
+.foo {
+  @media (min-width: 1024px) {
+    &.bar {
+      color: blue-v3;
+    }
+  }
 }
 
 @value blue-v4: red;
 
 .foo {
-	@media (min-width: 1024px) {
-		&.bar {
-			@media (min-width: 1024px) {
-				color: blue-v4;
-			}
-		}
-	}
+  @media (min-width: 1024px) {
+    &.bar {
+      @media (min-width: 1024px) {
+        color: blue-v4;
+      }
+    }
+  }
 }
 
 @value test-t: 40px;
 @value test_q: 36px;
 
-.foo { height: test-t; height: test_q; }
+.foo {
+  height: test-t;
+  height: test_q;
+}
 
 @value colorValue: red;
 
 .colorValue {
-	color: colorValue;
+  color: colorValue;
 }
 
 @value colorValue-v1: red;
 
 #colorValue-v1 {
-	color: colorValue-v1;
+  color: colorValue-v1;
 }
 
 @value colorValue-v2: red;
 
 .colorValue-v2 > .colorValue-v2 {
-	color: colorValue-v2;
+  color: colorValue-v2;
 }
 
 @value colorValue-v3: .red;
 
 colorValue-v3 {
-	color: colorValue-v3;
+  color: colorValue-v3;
 }
 
 @value red-v2 from "./colors.module.css";
 
 .export {
-	color: red-v2;
+  color: red-v2;
 }
 
 @value blue-v1 as green from "./colors.module.css";
 
-.foo { color: green; }
+.foo {
+  color: green;
+}
 
 @value blue-i, green-v2 from "./colors.module.css";
 
-.foo { color: blue-i; }
-.bar { color: green-v2 }
+.foo {
+  color: blue-i;
+}
+.bar {
+  color: green-v2;
+}
 
 @value red-v3 from colors;
 @value colors: "./colors.module.css";
 
-.foo { color: red-v3; }
+.foo {
+  color: red-v3;
+}
 
 @value colors: "./colors.module.css";
 @value red-v4 from colors;
 
-.foo { color: red-v4; }
+.foo {
+  color: red-v4;
+}
 
 @value aaa: red;
 @value bbb: aaa;
 
-.class-a { color: bbb; }
+.class-a {
+  color: bbb;
+}
 
 @value base: 10px;
 @value large: calc(base * 2);
 
-.class-a { margin: large; }
+.class-a {
+  margin: large;
+}
 
 @value a from "./colors.module.css";
 @value b from "./colors.module.css";
 
-.class-a { content: a b; }
+.class-a {
+  content: a b;
+}
 
 @value --red from "./colors.module.css";
 
-.foo { color: --red; }
+.foo {
+  color: --red;
+}
 
 @value named: red;
 @value _3char #0f0;
@@ -126,105 +153,139 @@ colorValue-v3 {
 @value hsla hsla(220, 13.0%, 18.0%, 1);
 
 .foo {
-	color: named;
-	background-color: _3char;
-	border-top-color: _6char;
-	border-bottom-color: rgba;
-	outline-color: hsla;
+  color: named;
+  background-color: _3char;
+  border-top-color: _6char;
+  border-bottom-color: rgba;
+  outline-color: hsla;
 }
 
 @value (blue-i, red-i) from "./colors.module.css";
 
-.foo { color: red-i; }
-.bar { color: blue-i }
+.foo {
+  color: red-i;
+}
+.bar {
+  color: blue-i;
+}
 
-@value coolShadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14)   ;
+@value coolShadow: 0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow; }
+.foo {
+  box-shadow: coolShadow;
+}
 
 @value func: color(red lightness(50%));
 
-.foo { color: func; }
+.foo {
+  color: func;
+}
 
 @value v-color: red;
 
-:root { --color: v-color; }
+:root {
+  --color: v-color;
+}
 
-@value v-empty: ;
+@value v-empty:;
 
-:root { --color:v-empty; }
+:root {
+  --color: v-empty;
+}
 
-@value v-empty-v2:   ;
+@value v-empty-v2:;
 
-:root { --color:v-empty-v2; }
+:root {
+  --color: v-empty-v2;
+}
 
 @value v-empty-v3: /* comment */;
 
-:root { --color:v-empty-v3; }
+:root {
+  --color: v-empty-v3;
+}
 
 @value override: blue;
 @value override: red;
 
 .override {
-	color: override;
+  color: override;
 }
 
 @value (blue-v1 as my-name) from "./colors.module.css";
 @value (blue-v1 as my-name-again, red-v1) from "./colors.module.css";
 
 .class {
-	color: my-name;
-	color: my-name-again;
-	color: red-v1;
+  color: my-name;
+  color: my-name-again;
+  color: red-v1;
 }
 
-@value/* test */blue-v5/* test */:/* test */red/* test */;
+@value /* test */blue-v5/* test */:/* test */red/* test */;
 
 .color {
-	color: blue-v5;
+  color: blue-v5;
 }
 
-@value/* test */blue-v6/* test *//* test */red/* test */;
+@value /* test */blue-v6/* test *//* test */red/* test */;
 
 .color {
-	color: blue-v6;
+  color: blue-v6;
 }
 
-@value coolShadow-v2   :   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14)   ;
+@value coolShadow-v2   :   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow-v2; }
+.foo {
+  box-shadow: coolShadow-v2;
+}
 
-@value   /* test */   coolShadow-v3   /* test */   :   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14)   ;
+@value /* test */   coolShadow-v3   /* test */   :   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow-v3; }
+.foo {
+  box-shadow: coolShadow-v3;
+}
 
-@value   /* test */   coolShadow-v4   /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14)   ;
+@value /* test */   coolShadow-v4   /* test */   0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow-v4; }
+.foo {
+  box-shadow: coolShadow-v4;
+}
 
-@value/* test */coolShadow-v5/* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
+@value /* test */coolShadow-v5/* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow-v5; }
+.foo {
+  box-shadow: coolShadow-v5;
+}
 
-@value/* test */coolShadow-v6/* test */:0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
+@value /* test */coolShadow-v6/* test */:0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow-v6; }
+.foo {
+  box-shadow: coolShadow-v6;
+}
 
-@value/* test */coolShadow-v7/* test */:/* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
+@value /* test */coolShadow-v7/* test */:/* test */0 11px 15px -7px rgba(0,0,0,.2),0 24px 38px 3px rgba(0,0,0,.14);
 
-.foo { box-shadow: coolShadow-v7; }
+.foo {
+  box-shadow: coolShadow-v7;
+}
 
 @value /* test */ test-v1 /* test */ from /* test */ "./colors.module.css" /* test */;
 
-.foo { color: test-v1; }
+.foo {
+  color: test-v1;
+}
 
-@value/* test */test-v2/* test */from/* test */"./colors.module.css"/* test */;
+@value /* test */test-v2/* test */from/* test */"./colors.module.css"/* test */;
 
-.foo { color: test-v2; }
+.foo {
+  color: test-v2;
+}
 
-@value/* test */(/* test */blue/* test */as/* test */my-name-q/* test */)/* test */from/* test */"./colors.module.css"/* test */;
+@value /* test */(/* test */blue/* test */as/* test */my-name-q/* test */)/* test */from/* test */"./colors.module.css"/* test */;
 
-.foo { color: my-name-q; }
+.foo {
+  color: my-name-q;
+}
 
 @value;
 @value test;

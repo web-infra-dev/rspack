@@ -1,2 +1,2 @@
-module.exports = 'foo'
+module.exports = 'foo';
 globalThis.testValue = 'foo';

@@ -1,3 +1,3 @@
-const path = require('path')
+const path = require('path');
 
-module.exports = path.sep
+module.exports = path.sep;

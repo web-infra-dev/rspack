@@ -1,4 +1,4 @@
-@import "custom://css";
+@import 'custom://css';
 
 .class {
   a: url(custom://css);

@@ -1,5 +1,5 @@
 export class Foo {
-	foo(): number {
-		return 42;
-	}
+  foo(): number {
+    return 42;
+  }
 }

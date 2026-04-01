@@ -1,8 +1,8 @@
-@import url("./b.css") (prefers-color-scheme: dark);
+@import url('./b.css') (prefers-color-scheme: dark);
 
-@import url("./c.css") layer(my-layer) supports(display: grid);
+@import url('./c.css') layer(my-layer) supports(display: grid);
 
-@import url("./d.css");
+@import url('./d.css');
 
 .a {
   color: blue;

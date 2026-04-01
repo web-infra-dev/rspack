@@ -1,4 +1,4 @@
-it("should not parse require under esm", () => {
+it('should not parse require under esm', () => {
   let count = 0;
   try {
     require('./in-exists');
@@ -6,4 +6,4 @@ it("should not parse require under esm", () => {
     count += 1;
   }
   expect(count).toBe(1);
-})
+});

@@ -1,2 +1,2 @@
-export type T = unknown
-export const value = 1
+export type T = unknown;
+export const value = 1;

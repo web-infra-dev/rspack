@@ -1,1 +1,1 @@
-export default ((value: string): string => value)("mts");
+export default ((value: string): string => value)('mts');

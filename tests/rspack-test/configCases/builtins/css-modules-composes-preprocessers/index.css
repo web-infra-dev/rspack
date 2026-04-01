@@ -8,12 +8,12 @@
 
 .class {
   color: yellow;
-  composes: lessClass from "./less-file.less";
+  composes: lessClass from './less-file.less';
 }
 
 .other {
   color: palegreen;
-  composes: scssClass from "./scss-file.scss";
+  composes: scssClass from './scss-file.scss';
 }
 
 .otherClassName {

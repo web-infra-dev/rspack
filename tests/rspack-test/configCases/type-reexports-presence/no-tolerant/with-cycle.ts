@@ -1,2 +1,2 @@
-import { A as B } from "./reexport-cycle";
-export { B }
+import { A as B } from './reexport-cycle';
+export { B };

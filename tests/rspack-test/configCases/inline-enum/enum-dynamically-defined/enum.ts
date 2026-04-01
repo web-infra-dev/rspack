@@ -4,8 +4,8 @@ export enum Kind {
 }
 
 export namespace Kind {
-  export const isA = (value: Kind) => value == Kind.A
-  export const aaa = "aaa"
+  export const isA = (value: Kind) => value == Kind.A;
+  export const aaa = 'aaa';
 }
 
-Kind.isB = (value: Kind) => value == Kind.B
+Kind.isB = (value: Kind) => value == Kind.B;

@@ -1,10 +1,10 @@
 export function a0() {
-  a2('*a0*')
-  return <view></view>
+  a2('*a0*');
+  return <view></view>;
 }
 
 function A1() {
-  return <view>{'*a1*'}</view>
+  return <view>{'*a1*'}</view>;
 }
 
 export function a2() {
@@ -12,6 +12,5 @@ export function a2() {
     <view>
       <A1 bar={'*a2*'} />
     </view>
-  )
+  );
 }
-

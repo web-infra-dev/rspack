@@ -1,13 +1,13 @@
-const { touch } = require("../side-effect-counter");
+const { touch } = require('../side-effect-counter');
 
 function f() {
-	return "func";
+  return 'func';
 }
 
 touch();
 module.exports.f = f;
 module.exports.T = class T {
-	constructor() {
-		this.x = 1;
-	}
-}
+  constructor() {
+    this.x = 1;
+  }
+};

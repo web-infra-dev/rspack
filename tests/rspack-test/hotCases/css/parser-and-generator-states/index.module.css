@@ -2,8 +2,6 @@
   color: blue;
 }
 
----
-
-.btn-info_is-enabled {
+--- .btn-info_is-enabled {
   color: red;
 }

@@ -1,5 +1,5 @@
 a {
-	background-image: url(./image.jpg  a  );
+  background-image: url(./image.jpg  a);
 }
 
 /**
@@ -11,22 +11,21 @@ a {
 } */
 
 a {
-	background: \url(te st);
+  background: \url(te st);
 }
 
 div {
-	background: url(image(.png);
-	color: red;
+  background: url(image(.png);
+  color: red;
 }
 
 div {
-	background: url(image.
+  background: url(image.
  png);
-	color: red;
+  color: red;
 }
 
 p::before {
-	content: "tes
- t";
-
+  content: 'tes
+ t';
 }

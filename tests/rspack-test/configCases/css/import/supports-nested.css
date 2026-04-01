@@ -1,5 +1,5 @@
-@import "./supports-deep-nested.css" supports(display: grid);
+@import './supports-deep-nested.css' supports(display: grid);
 
 .class {
-	nested: 1;
+  nested: 1;
 }

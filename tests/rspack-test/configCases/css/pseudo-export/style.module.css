@@ -1,25 +1,16 @@
 :export {
-	a: a;
+  a: a;
 }
 
 :export {
-	abc: a b c;
-	comments: abc/****/   /* hello world *//****/   def
+  abc: a b c;
+  comments: abc /****/ /* hello world */ /****/ def;
 }
 
-:export
-
-
-{
-
-
-	whitespace
-
-	:
-
-	abc
-	def
-
+:export {
+  whitespace: abc def;
 }
 
-:export{default:default}
+:export {
+  default: default;
+}

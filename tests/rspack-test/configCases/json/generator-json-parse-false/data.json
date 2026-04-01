@@ -1,1 +1,3 @@
-{"this is a large JSON object": "that should be converted to JSON.parse by default"}
+{
+  "this is a large JSON object": "that should be converted to JSON.parse by default"
+}

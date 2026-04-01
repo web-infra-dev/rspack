@@ -1,9 +1,9 @@
 body {
   .used {
-    color: blue
+    color: blue;
   }
 
   .unused {
-    color: red
+    color: red;
   }
 }

@@ -1,4 +1,4 @@
-@import "./dark.css" (prefers-color-scheme: dark);
+@import './dark.css' (prefers-color-scheme: dark);
 
 a {
   color: black;

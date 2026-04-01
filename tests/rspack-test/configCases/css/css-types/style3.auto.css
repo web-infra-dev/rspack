@@ -1,11 +1,11 @@
 body {
-    background: red;
+  background: red;
 }
 
 :local(.baz) {
-    color: red;
+  color: red;
 }
 
 :global(.qux) {
-    color: green;
+  color: green;
 }

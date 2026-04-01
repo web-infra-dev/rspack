@@ -1,5 +1,5 @@
 function defExports(m) {
-  m.exports = 42
+  m.exports = 42;
 }
 
-defExports(module)
+defExports(module);

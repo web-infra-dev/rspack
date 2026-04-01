@@ -1,11 +1,11 @@
 body {
-    color: red;
+  color: red;
 }
 
 :local(.foo) {
-    color: red;
+  color: red;
 }
 
 :global(.bar) {
-    color: green;
+  color: green;
 }

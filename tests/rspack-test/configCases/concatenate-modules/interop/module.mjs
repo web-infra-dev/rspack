@@ -1,1 +1,1 @@
-export { default as value } from './module-normal.cjs'
+export { default as value } from './module-normal.cjs';

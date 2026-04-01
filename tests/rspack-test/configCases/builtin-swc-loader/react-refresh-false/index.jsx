@@ -1,5 +1,5 @@
-function component () {
-	return <div></div>
+function component() {
+  return <div></div>;
 }
 
-it('react refresh false should run', () => {})
+it('react refresh false should run', () => {});

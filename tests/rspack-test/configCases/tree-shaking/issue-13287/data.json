@@ -1,7 +1,7 @@
 {
-	"name": "rspack-cjs-treeshaking",
-	"version": "1.0.0",
-	"bin": {
-		"cli": "dist/index.js"
-	}
+  "name": "rspack-cjs-treeshaking",
+  "version": "1.0.0",
+  "bin": {
+    "cli": "dist/index.js"
+  }
 }

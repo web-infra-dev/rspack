@@ -1,6 +1,6 @@
 .foo {
   animation-name: slide-in;
-  composes: bar
+  composes: bar;
 }
 
 .bar {
@@ -22,5 +22,3 @@
     scale: 100% 1;
   }
 }
-
-

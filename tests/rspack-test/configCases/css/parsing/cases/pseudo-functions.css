@@ -1,3 +1,6 @@
-:local(.class#id, .class:not(*:hover)) { color: red; }
+:local(.class#id, .class:not(*:hover)) {
+  color: red;
+}
 
-:import(something from ":somewhere") {}
+:import(something from ':somewhere') {
+}

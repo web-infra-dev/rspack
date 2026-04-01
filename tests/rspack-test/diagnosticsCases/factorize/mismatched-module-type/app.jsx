@@ -1,4 +1,4 @@
 const React = {
-	createElement() {}
+  createElement() {},
 };
 export const App = () => <div></div>;

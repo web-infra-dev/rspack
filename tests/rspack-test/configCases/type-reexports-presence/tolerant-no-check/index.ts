@@ -1,1 +1,1 @@
-import "../no-tolerant/index";
+import '../no-tolerant/index';

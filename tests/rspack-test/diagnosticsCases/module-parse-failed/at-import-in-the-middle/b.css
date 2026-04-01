@@ -2,7 +2,7 @@
   background: red;
 }
 
-@import url("https://some/external/css");
+@import url('https://some/external/css');
 
 .b {
   color: yellow;

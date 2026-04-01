@@ -1,3 +1,3 @@
-export default function(name) {
-	return name;
+export default function (name) {
+  return name;
 }

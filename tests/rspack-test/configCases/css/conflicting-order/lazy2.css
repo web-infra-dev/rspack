@@ -1,7 +1,7 @@
-@import "c.css";
-@import "b.css";
-@import "a.css";
+@import 'c.css';
+@import 'b.css';
+@import 'a.css';
 
 body {
-	color: 2;
+  color: 2;
 }

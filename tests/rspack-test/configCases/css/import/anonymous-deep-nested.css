@@ -1,5 +1,5 @@
-@import "./anonymous-deep-deep-nested.css" layer;
+@import './anonymous-deep-deep-nested.css' layer;
 
 .class {
-	deep-nested: 1;
+  deep-nested: 1;
 }

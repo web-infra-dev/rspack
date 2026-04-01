@@ -1,5 +1,5 @@
-@import "./file.less";
+@import './file.less';
 
 .foo {
-	color: red;
+  color: red;
 }

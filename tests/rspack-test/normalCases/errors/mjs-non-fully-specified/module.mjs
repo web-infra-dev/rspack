@@ -1,1 +1,1 @@
-import "./dependency";
+import './dependency';

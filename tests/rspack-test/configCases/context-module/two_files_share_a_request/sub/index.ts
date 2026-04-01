@@ -1,1 +1,1 @@
-export default "ts"
+export default 'ts';

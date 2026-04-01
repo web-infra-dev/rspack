@@ -1,6 +1,6 @@
 .f-1 {
-    color: black;
+  color: black;
 }
 .f {
-    composes: f-1;
+  composes: f-1;
 }

@@ -1,5 +1,5 @@
-@import "./mixed-deep-nested.css" supports(display: flex);
+@import './mixed-deep-nested.css' supports(display: flex);
 
 .class {
-	nested: 1;
+  nested: 1;
 }

@@ -1,7 +1,6 @@
 .class {
-	color: red;
+  color: red;
 }
----
-.class-other {
-	color: blue;
+--- .class-other {
+  color: blue;
 }

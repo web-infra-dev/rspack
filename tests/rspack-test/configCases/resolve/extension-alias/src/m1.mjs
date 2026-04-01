@@ -1,1 +1,1 @@
-module.exports = "in m1 mjs"
+module.exports = 'in m1 mjs';

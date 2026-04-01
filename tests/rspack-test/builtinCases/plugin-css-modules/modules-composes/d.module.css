@@ -1,7 +1,7 @@
 .d-1 {
-    color: green;
+  color: green;
 }
 
 .d {
-    composes: d-1;
+  composes: d-1;
 }

@@ -1,1 +1,1 @@
-module.exports = "jsx";
+module.exports = 'jsx';

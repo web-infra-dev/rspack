@@ -1,1 +1,1 @@
-export * from "./with-cycle";
+export * from './with-cycle';
