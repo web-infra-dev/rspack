@@ -21,6 +21,7 @@ tests/rspack-test/**/*.webpack.lock.data/**
 tests/rspack-test/**/lock-files/test/**
 tests/rspack-test/serialCases/css/large/tailwind.*.css
 tests/rspack-test/configCases/css/parsing/cases/*.css
+tests/rspack-test/configCases/builtins/html-template-parameters/*.html
 
 # Ignore intentionally invalid test files
 tests/rspack-test/configCases/builtin-lightningcss-loader/report-warning/index.css
