@@ -129,7 +129,7 @@ fn truncate_source_preview(source: &str) -> String {
 }
 
 #[cfg(debug_assertions)]
-fn describe_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String {
+fn format_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String {
   let env = Env::from_raw(env);
   let function = napi::bindgen_prelude::Object::from_raw(env.raw(), napi_val);
   if let Some(name) = function
@@ -161,14 +161,14 @@ fn describe_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String
 // Each build/rebuild activates a fresh TSFN into the shared slot and the build callback
 // finalizer clears that slot again.
 struct CompilationScopedTsFnRegistration<T: 'static + JsValuesTupleIntoVec, R> {
-  /// A weak reference to the JS callback function. The actual function is kept alive on the JS side:
-  /// - For options callbacks: stored in `#rawOptions` in `packages/rspack/src/Compiler.ts`
-  /// - For hook registration callbacks: stored in `#registers` in `packages/rspack/src/Compiler.ts`
-  /// This ensures the function's lifetime matches the Compiler's lifetime.
+  // A weak reference to the JS callback function. The actual function is kept alive on the JS side:
+  // - For options callbacks: stored in `#rawOptions` in `packages/rspack/src/Compiler.ts`
+  // - For hook registration callbacks: stored in `#registers` in `packages/rspack/src/Compiler.ts`
+  // This ensures the function's lifetime matches the Compiler's lifetime.
   registered_fn: WeakRef,
   active_tsfn: ActiveThreadsafeFunction<T, R>,
   #[cfg(debug_assertions)]
-  function_description: String,
+  function_desc: String,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static> CompilationScopedTsFnRegistrationOps
@@ -179,7 +179,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> CompilationScopedTsFnRegistr
       #[cfg(debug_assertions)]
       let message = format!(
         "Compilation-scoped JS callback {} has been garbage collected before activation",
-        self.function_description
+        self.function_desc
       );
       #[cfg(not(debug_assertions))]
       let message = "Compilation-scoped JS callback has been garbage collected before activation";
@@ -252,14 +252,27 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> FromNapiValue
         registered_fn: WeakRef::new(env, &mut function)?,
         active_tsfn: active_tsfn.clone(),
         #[cfg(debug_assertions)]
-        function_description: describe_js_function(env, napi_val),
+        function_desc: format_js_function(env, napi_val),
       });
       manager.register(registration);
     } else {
-      // Callbacks parsed outside a compiler construction scope keep the historical eager
-      // TSFN behavior because they are not owned by the compilation-scoped lifecycle.
-      let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env, napi_val) }?;
-      *active_tsfn.borrow_mut() = Some(tsfn);
+      // Callbacks parsed outside a compiler construction scope fall back to eager TSFN behavior.
+      // This should not happen in normal usage - report an error in debug builds to catch issues early.
+      #[cfg(debug_assertions)]
+      {
+        let function_desc = format_js_function(env, napi_val);
+        return Err(napi::Error::new(
+          Status::GenericFailure,
+          format!(
+            "Compilation-scoped callback {function_desc} was parsed outside a compiler construction scope",
+          ),
+        ));
+      }
+      #[cfg(not(debug_assertions))]
+      {
+        let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env, napi_val) }?;
+        *active_tsfn.borrow_mut() = Some(tsfn);
+      }
     }
 
     Ok(Self { active_tsfn })
