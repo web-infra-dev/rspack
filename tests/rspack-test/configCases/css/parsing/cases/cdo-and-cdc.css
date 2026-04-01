@@ -1,13 +1,19 @@
-<!---- > <!-- -- > <!-- .foo {
-  color: red;
-}
--- > div {
-  color: red;
+<!---->
+
+<!-- -->
+
+<!-- .foo { color: red }  -->
+
+div {
+	color: red;
 }
 
-<!-- .class {
-  color: red;
+<!--
+
+.class {
+	color: red;
 }
 
--- > .test {
-}
+-->
+
+.test {}

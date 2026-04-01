@@ -1,21 +1,19 @@
 :root {
-  --main-color: #06c;
-  --accent-color: #006;
+	--main-color: #06c;
+	--accent-color: #006;
 }
 
 .foo {
-  --fg-color: blue;
+	--fg-color: blue;
 }
 
 #foo h1 {
-  color: var(--main-color);
+	color: var(--main-color);
 }
 
-@--custom {
-}
-@--library1-custom {
-}
+@--custom {}
+@--library1-custom {}
 
 .class {
-  --vendor-property: --vendor-function('test');
+	--vendor-property: --vendor-function("test");
 }
