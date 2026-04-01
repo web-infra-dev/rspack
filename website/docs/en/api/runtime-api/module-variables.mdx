@@ -118,9 +118,9 @@ let { url } = import.meta;
 // Warning
 Object.keys({});
 
-'object';
+('object');
 
-'file:///project/index.js';
+('file:///project/index.js');
 
 let { url } = { url: 'file:///project/index.js' };
 ```
@@ -135,14 +135,15 @@ Returns the absolute `file:` URL string of the current module.
 
 <Columns>
 ```js title=Source
-import.meta.url
-typeof import.meta.url
+import.meta.url;
+typeof import.meta.url;
 ```
 
 ```js title=Compiled
 'file:///project/index.js';
 'string';
 ```
+
 </Columns>
 
 ### import.meta.main
@@ -157,10 +158,14 @@ if (import.meta.main) {
 ```
 
 ```js title=Compiled
-if (__webpack_module_cache__[/* entry module id */__webpack_require__.s] === module) {
+if (
+  __webpack_module_cache__[/* entry module id */ __webpack_require__.s] ===
+  module
+) {
   main();
 }
 ```
+
 </Columns>
 
 ### import.meta.filename
@@ -191,6 +196,7 @@ img.src = import.meta.resolve('./img.png');
 let img = new Image();
 img.src = './src/img.png'; // module ID of img.png
 ```
+
 </Columns>
 
 :::warning
