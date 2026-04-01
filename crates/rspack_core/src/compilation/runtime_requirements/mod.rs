@@ -196,7 +196,7 @@ pub async fn process_modules_runtime_requirements(
   let start = logger.time("runtime requirements.modules");
 
   let compilation_ref = &*compilation;
-  let module_results = rspack_futures::scope::<_, Result<_>>(|token| {
+  let module_results = rspack_parallel::scope::<_, Result<_>>(|token| {
     modules
       .into_iter()
       .filter(|module| {

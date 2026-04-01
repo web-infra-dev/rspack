@@ -3487,6 +3487,12 @@ impl OptimizationOptionsBuilder {
           .plugins
           .push(BuiltinPluginOptions::NaturalModuleIdsPlugin);
       }
+      "hashed" => {
+        builder_context
+          .plugins
+          .push(BuiltinPluginOptions::HashedModuleIdsPlugin);
+      }
+      "false" => {}
       _ => {
         return Err(
           BuilderError::Option(

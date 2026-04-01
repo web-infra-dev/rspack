@@ -1,5 +1,5 @@
 module.exports = {
   externals: {
-    fs: "module-import fs",
+    fs: 'module-import fs',
   },
 };

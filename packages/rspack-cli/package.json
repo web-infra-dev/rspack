@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.0.0-beta.9",
+  "version": "2.0.0-rc.0",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -36,7 +36,7 @@
     "exit-hook": "^4.0.0"
   },
   "devDependencies": {
-    "@rslib/core": "0.20.1",
+    "@rslib/core": "0.20.2",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "2.0.0-beta.7",
     "@rspack/test-tools": "workspace:*",

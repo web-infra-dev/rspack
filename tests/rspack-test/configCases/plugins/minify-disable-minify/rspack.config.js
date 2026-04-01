@@ -1,24 +1,24 @@
-const { rspack } = require("@rspack/core");
+const { rspack } = require('@rspack/core');
 /**
  * @type {import("@rspack/core").Configuration}
  */
 module.exports = {
-	entry: {
-		a: "./a",
-		main: "./index"
-	},
-	output: {
-		filename: "[name].js"
-	},
-	optimization: {
-		minimize: true
-	},
-	plugins: [
-		new rspack.SwcJsMinimizerRspackPlugin({
-			minimizerOptions: {
-				minify: false,
-				mangle: false
-			}
-		})
-	]
+  entry: {
+    a: './a',
+    main: './index',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  optimization: {
+    minimize: true,
+  },
+  plugins: [
+    new rspack.SwcJsMinimizerRspackPlugin({
+      minimizerOptions: {
+        minify: false,
+        mangle: false,
+      },
+    }),
+  ],
 };

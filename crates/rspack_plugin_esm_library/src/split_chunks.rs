@@ -192,7 +192,7 @@ async fn matches_module_to_cache_group(
 
 pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) -> Result<()> {
   let modules = compilation.build_chunk_graph_artifact.chunk_graph.modules();
-  let results: Vec<std::result::Result<_, _>> = rspack_futures::scope::<_, Result<_>>(|token| {
+  let results: Vec<std::result::Result<_, _>> = rspack_parallel::scope::<_, Result<_>>(|token| {
     modules.iter().copied().for_each(|module_identifier| {
       // SAFETY: `groups` and `compilation` outlive the scope and are only read (not mutated) concurrently.
       let s = unsafe { token.used((groups, &*compilation)) };

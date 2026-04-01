@@ -109,9 +109,11 @@ impl AggregatedDependency {
           | DependencyType::ImportMetaHotAccept
           | DependencyType::ImportMetaHotDecline
           | DependencyType::ImportMetaResolve
+          | DependencyType::ImportMetaResolveContext
           | DependencyType::ModuleHotAccept
           | DependencyType::ModuleHotDecline
           | DependencyType::RequireResolve
+          | DependencyType::RequireResolveContext
       )
     })
   }

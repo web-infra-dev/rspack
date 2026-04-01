@@ -1,5 +1,5 @@
-const rspack = require("@rspack/core");
-const LogTestPlugin = require("@rspack/test-tools/helper/legacy/LogTestPlugin");
+const rspack = require('@rspack/core');
+const LogTestPlugin = require('@rspack/test-tools/helper/legacy/LogTestPlugin');
 
 module.exports = {
   entry: './index.js',
@@ -9,8 +9,8 @@ module.exports = {
   },
   output: {
     library: {
-      type: "modern-module"
-    }
+      type: 'modern-module',
+    },
   },
   optimization: {
     splitChunks: {
@@ -24,8 +24,8 @@ module.exports = {
           maxAsyncSize: 200000, // unsupported field
           maxAsyncRequests: 10, // unsupported field
           maxInitialRequests: 5, // unsupported field
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 };

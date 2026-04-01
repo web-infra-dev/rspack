@@ -660,7 +660,7 @@ export interface RspackOptionsNormalized {
   incremental?: false | Incremental;
   watch?: Watch;
   watchOptions: WatchOptions;
-  devServer?: DevServer;
+  devServer?: false | DevServer;
   ignoreWarnings?: IgnoreWarningsNormalized;
   performance?: Performance;
   amd?: Amd;

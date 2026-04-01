@@ -37,7 +37,6 @@ rspack_collections         = { workspace = true }
 rspack_dojang              = { workspace = true }
 rspack_error               = { workspace = true }
 rspack_fs                  = { workspace = true }
-rspack_futures             = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
 rspack_javascript_compiler = { workspace = true }
@@ -45,6 +44,7 @@ rspack_loader_runner       = { workspace = true }
 rspack_location            = { workspace = true }
 rspack_macros              = { workspace = true }
 rspack_napi                = { workspace = true, optional = true }
+rspack_parallel            = { workspace = true }
 rspack_paths               = { workspace = true }
 rspack_regex               = { workspace = true }
 rspack_resolver            = { workspace = true }

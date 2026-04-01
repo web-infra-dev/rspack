@@ -1,16 +1,16 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	devtool: false,
-	plugins: [
-		compiler => {
-			new compiler.rspack.SourceMapDevToolPlugin({}).apply(compiler);
-		}
-	],
-	module: {
-		rules: [
-			{
-				loader: "./loader.js"
-			}
-		]
-	}
+  devtool: false,
+  plugins: [
+    (compiler) => {
+      new compiler.rspack.SourceMapDevToolPlugin({}).apply(compiler);
+    },
+  ],
+  module: {
+    rules: [
+      {
+        loader: './loader.js',
+      },
+    ],
+  },
 };

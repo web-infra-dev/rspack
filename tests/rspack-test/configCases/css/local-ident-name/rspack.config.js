@@ -1,17 +1,16 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		generator: {
-			"css/auto": {
-				localIdentName: "[local]-[hash:base64:6]-[hash]"
-			}
-		},
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
-	},
-
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentName: '[local]-[hash:base64:6]-[hash]',
+      },
+    },
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
 };

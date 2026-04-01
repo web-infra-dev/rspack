@@ -74,7 +74,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'HashedModuleIdsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'HotModuleReplacementPlugin',

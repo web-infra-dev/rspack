@@ -47,7 +47,7 @@ if (__nodeFs.existsSync(__wasmDebugFilePath)) {
 
 const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule } = __emnapiInstantiateNapiModuleSync(__nodeFs.readFileSync(__wasmFilePath), {
   context: __emnapiContext,
-  asyncWorkPoolSize: (function () {
+  asyncWorkPoolSize: (function() {
     const threadsSizeFromEnv = Number(process.env.NAPI_RS_ASYNC_WORK_POOL_SIZE ?? process.env.UV_THREADPOOL_SIZE)
     // NaN > 0 is false
     if (threadsSizeFromEnv > 0) {
@@ -76,14 +76,14 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
         s.toString().includes("kPublicPort")
       );
       if (kPublicPort) {
-        worker[kPublicPort].ref = () => { };
+        worker[kPublicPort].ref = () => {};
       }
 
       const kHandle = Object.getOwnPropertySymbols(worker).find(s =>
         s.toString().includes("kHandle")
       );
       if (kHandle) {
-        worker[kHandle].ref = () => { };
+        worker[kHandle].ref = () => {};
       }
 
       worker.unref();

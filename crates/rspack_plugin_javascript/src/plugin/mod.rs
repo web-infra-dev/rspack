@@ -1027,7 +1027,7 @@ var {} = {{}};
       RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect();
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
-    let render_module_results = rspack_futures::scope::<_, _>(|token| {
+    let render_module_results = rspack_parallel::scope::<_, _>(|token| {
       all_modules.iter().for_each(|module| {
         let s = unsafe {
           token.used((

@@ -1,9 +1,9 @@
-const createTestCases = require("../_helpers/createTestCases");
+const createTestCases = require('../_helpers/createTestCases');
 module.exports = createTestCases({
-	nothing: {
-		usedExports: [],
-		expect: {
-			"./assert": ["deepEqual"]
-		}
-	}
+  nothing: {
+    usedExports: [],
+    expect: {
+      './assert': ['deepEqual'],
+    },
+  },
 });

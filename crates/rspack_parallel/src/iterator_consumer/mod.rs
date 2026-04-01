@@ -1,7 +1,7 @@
 mod future;
 mod rayon;
-mod rayon_fut;
+mod try_future;
 
 pub use future::FutureConsumer;
 pub use rayon::RayonConsumer;
-pub use rayon_fut::RayonFutureConsumer;
+pub use try_future::TryFutureConsumer;

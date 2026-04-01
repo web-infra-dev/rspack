@@ -175,7 +175,7 @@ impl CssPlugin {
       })
       .collect::<Result<Vec<_>>>()?;
 
-    let module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
+    let module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
       module_sources
         .into_iter()
         .flatten()

@@ -1,9 +1,9 @@
 module.exports = {
-	module: {
-		parser: {
-			javascript: {
-				reexportExportsPresence: false,
-			},
-		},
-	},
+  module: {
+    parser: {
+      javascript: {
+        reexportExportsPresence: false,
+      },
+    },
+  },
 };

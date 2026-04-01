@@ -2,8 +2,8 @@ mod index;
 mod meta;
 mod pack;
 
-use futures::future::try_join_all;
 use pack::{PackGenerator, PackId, PackIdAlloc};
+use rspack_parallel::TryFutureConsumer;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::{meta::Meta, pack::Pack};
@@ -58,7 +58,7 @@ impl Bucket {
     let mut result = self.hot_pack.clone().data();
 
     // Load and verify all cold packs
-    let tasks = self
+    self
       .meta
       .cold_pack_indexes()
       .iter()
@@ -66,7 +66,7 @@ impl Bucket {
         let fs = self.fs.clone();
         let pack_id = *pack_id;
         let expected_hash = index.content_hash();
-        tokio::spawn(async move {
+        async move {
           let (pack, hash) = Pack::load(&fs, pack_id).await?;
           if hash != expected_hash {
             return Err(Error::CorruptedData(format!(
@@ -77,15 +77,11 @@ impl Bucket {
             )));
           }
           Ok(pack)
-        })
-      });
-    let results = try_join_all(tasks)
-      .await?
-      .into_iter()
-      .collect::<Result<Vec<_>>>()?;
-    for pack in results {
-      result.extend(pack.data());
-    }
+        }
+      })
+      .try_fut_consume(|pack| result.extend(pack.data()))
+      .await?;
+
     Ok(result)
   }
 
@@ -142,28 +138,26 @@ impl Bucket {
     }
 
     // Perform parallel writes on multiple threads
-    let results = try_join_all(pending_packs.into_iter().map(|(pack_id, pack)| {
-      let fs = writable_fs.clone();
-      tokio::spawn(async move {
-        let index = pack.save(&fs, pack_id).await?;
-        Ok::<_, Error>((pack_id, pack, index))
+    let mut added_files = Vec::with_capacity(pending_packs.len());
+    pending_packs
+      .into_iter()
+      .map(|(pack_id, pack)| {
+        let fs = writable_fs.clone();
+        async move {
+          let index = pack.save(&fs, pack_id).await?;
+          Ok::<_, Error>((pack_id, pack, index))
+        }
       })
-    }))
-    .await?
-    .into_iter()
-    .collect::<Result<Vec<_>>>()?;
-
-    // Update metadata with results
-    let mut added_files = Vec::with_capacity(results.len());
-    for (pack_id, pack, index) in results {
-      if pack_id == PackIdAlloc::HOT_PACK_ID {
-        self.hot_pack = pack;
-      }
-      self.meta.update_pack_index(pack_id, Some(index));
-      // Remove reused pack id
-      removed_pack_ids.remove(&pack_id);
-      added_files.push(pack_id.pack_name());
-    }
+      .try_fut_consume(|(pack_id, pack, index)| {
+        if pack_id == PackIdAlloc::HOT_PACK_ID {
+          self.hot_pack = pack;
+        }
+        self.meta.update_pack_index(pack_id, Some(index));
+        // Remove reused pack id
+        removed_pack_ids.remove(&pack_id);
+        added_files.push(pack_id.pack_name());
+      })
+      .await?;
 
     // Collect removed pack files
     let removed_files = removed_pack_ids

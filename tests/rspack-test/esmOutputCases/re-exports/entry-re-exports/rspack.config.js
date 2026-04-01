@@ -1,10 +1,10 @@
 module.exports = {
-	node: false,
-	module: {
-		parser: {
-			javascript: {
-				importMeta: false
-			}
-		}
-	}
+  node: false,
+  module: {
+    parser: {
+      javascript: {
+        importMeta: false,
+      },
+    },
+  },
 };

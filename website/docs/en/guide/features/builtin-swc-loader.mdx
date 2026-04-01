@@ -249,7 +249,7 @@ Inference rules:
 - `.js`, `.jsx`, `.mjs`, `.cjs` -> `{ syntax: "ecmascript", jsx: true }`
 - `.ts`, `.mts`, `.cts` -> `{ syntax: "typescript", tsx: false }`
 - `.tsx` -> `{ syntax: "typescript", tsx: true }`
-- Other extensions -> no inference
+- Resources without a recognizable extension -> `{ syntax: "typescript", tsx: true }`
 
 > If `jsc.parser.syntax` is explicitly provided, `detectSyntax` does not infer syntax.
 

@@ -1,5 +1,5 @@
 module.exports = {
-	optimization: {
-		runtimeChunk: false,
-	},
+  optimization: {
+    runtimeChunk: false,
+  },
 };
