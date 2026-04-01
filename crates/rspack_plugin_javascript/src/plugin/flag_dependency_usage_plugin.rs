@@ -19,6 +19,24 @@ use rustc_hash::FxHashMap as HashMap;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
 type NonNestedTask = (Option<RuntimeSpec>, bool, Vec<ExtendedReferencedExport>);
 
+fn coalesce_process_block_tasks(tasks: Vec<ProcessBlockTask>) -> Vec<ProcessBlockTask> {
+  let mut index_by_key: HashMap<(ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>), usize> =
+    HashMap::default();
+  let mut merged: Vec<ProcessBlockTask> = Vec::with_capacity(tasks.len());
+
+  for (block_id, runtime, force_side_effects) in tasks {
+    let key = (block_id, runtime.clone());
+    if let Some(index) = index_by_key.get(&key).copied() {
+      merged[index].2 |= force_side_effects;
+    } else {
+      index_by_key.insert(key, merged.len());
+      merged.push((block_id, runtime, force_side_effects));
+    }
+  }
+
+  merged
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
   Module(ModuleIdentifier),
@@ -115,6 +133,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       while let Some(task) = q.dequeue() {
         batch.push(task);
       }
+      let batch = coalesce_process_block_tasks(batch);
 
       self.compilation.module_graph_cache_artifact.freeze();
       let compilation = self.compilation;
@@ -856,4 +875,62 @@ fn process_referenced_module_without_nested(
     }
   }
   queue
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn runtime(names: &[&str]) -> RuntimeSpec {
+    names
+      .iter()
+      .copied()
+      .map(Into::into)
+      .collect::<RuntimeSpec>()
+  }
+
+  fn module_task(
+    name: &str,
+    runtime_names: Option<&[&str]>,
+    force_side_effects: bool,
+  ) -> ProcessBlockTask {
+    (
+      ModuleOrAsyncDependenciesBlock::Module(ModuleIdentifier::from(name)),
+      runtime_names.map(runtime),
+      force_side_effects,
+    )
+  }
+
+  #[test]
+  fn coalesce_process_block_tasks_merges_force_side_effects_for_same_module_and_runtime() {
+    let tasks = vec![
+      module_task("module-a", Some(&["main"]), false),
+      module_task("module-a", Some(&["main"]), true),
+    ];
+
+    assert_eq!(
+      coalesce_process_block_tasks(tasks),
+      vec![module_task("module-a", Some(&["main"]), true)]
+    );
+  }
+
+  #[test]
+  fn coalesce_process_block_tasks_keeps_distinct_runtimes_separate() {
+    let tasks = vec![
+      module_task("module-a", Some(&["main"]), false),
+      module_task("module-a", Some(&["admin"]), true),
+    ];
+
+    assert_eq!(coalesce_process_block_tasks(tasks.clone()), tasks);
+  }
+
+  #[test]
+  fn coalesce_process_block_tasks_keeps_none_runtime_distinct_from_some_runtime() {
+    let tasks = vec![
+      module_task("module-a", None, false),
+      module_task("module-a", Some(&["main"]), true),
+    ];
+
+    assert_eq!(coalesce_process_block_tasks(tasks.clone()), tasks);
+  }
 }
