@@ -1,7 +1,7 @@
 use std::fmt;
 
 use async_trait::async_trait;
-use napi::Result;
+use napi::{Env, Result};
 use rspack_core::{
   ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin,
@@ -477,7 +477,8 @@ async fn rsdoctor_hooks_adapter_compilation(
 }
 
 impl JsHooksAdapterPlugin {
-  pub fn from_js_hooks(register_js_taps: RegisterJsTaps) -> Result<Self> {
+  /// The `_env` parameter ensures this function is called on the JS main thread.
+  pub fn from_js_hooks(_env: &Env, register_js_taps: RegisterJsTaps) -> Result<Self> {
     let non_skippable_registers = NonSkippableRegisters::default();
     Ok(JsHooksAdapterPlugin {
       inner: JsHooksAdapterPluginInner {

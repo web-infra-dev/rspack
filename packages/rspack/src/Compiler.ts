@@ -76,7 +76,7 @@ import type {
 import { makePathsRelative } from './util/identifier';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
 import { Watching } from './Watching';
-import { RawOptions } from '@rspack/binding';
+import type { RawOptions } from '@rspack/binding';
 
 const require = createRequire(import.meta.url);
 

@@ -161,6 +161,10 @@ fn describe_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String
 // Each build/rebuild activates a fresh TSFN into the shared slot and the build callback
 // finalizer clears that slot again.
 struct CompilationScopedTsFnRegistration<T: 'static + JsValuesTupleIntoVec, R> {
+  /// A weak reference to the JS callback function. The actual function is kept alive on the JS side:
+  /// - For options callbacks: stored in `#rawOptions` in `packages/rspack/src/Compiler.ts`
+  /// - For hook registration callbacks: stored in `#registers` in `packages/rspack/src/Compiler.ts`
+  /// This ensures the function's lifetime matches the Compiler's lifetime.
   registered_fn: WeakRef,
   active_tsfn: ActiveThreadsafeFunction<T, R>,
   #[cfg(debug_assertions)]

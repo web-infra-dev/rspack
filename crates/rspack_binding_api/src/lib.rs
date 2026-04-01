@@ -217,7 +217,7 @@ impl JsCompiler {
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
       tracing::info!(name:"raw_options", options=?&options);
       let mut plugins = Vec::with_capacity(builtin_plugins.len());
-      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(register_js_taps)?;
+      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(&env, register_js_taps)?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
       // Register builtin loader plugins
@@ -435,9 +435,8 @@ impl JsCompiler {
     // The `Reference<JsCompiler>` prevents the JsCompiler from being garbage collected
     // until `promise.finally()` runs, ensuring the Compiler remains valid throughout the
     // async operation. This allows us to safely extend the lifetime to 'static.
-    let compiler = unsafe {
-      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
-    };
+    let compiler =
+      unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
 
     let spawn_future_result = env.spawn_future(async move {
       compiler.close().await.to_napi_result_with_message(|e| {
