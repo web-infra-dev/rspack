@@ -169,6 +169,18 @@ impl BuildChunkGraphArtifact {
     true
   }
 
+  /// Reset cached chunks back to the initial render state.
+  ///
+  /// webpack creates fresh `Chunk` instances for every compilation, and
+  /// `Chunk.rendered` starts as `false` in the constructor. Rspack can reuse
+  /// cached chunks across incremental compilations, so we need to restore the
+  /// same state before running the next sealing/rendering pipeline.
+  fn reset_chunk_rendered_state(&mut self) {
+    for chunk in self.chunk_by_ukey.values_mut() {
+      chunk.set_rendered(false);
+    }
+  }
+
   fn reset_for_rebuild(&mut self) {
     self.chunk_by_ukey = Default::default();
     self.chunk_graph = Default::default();
@@ -191,13 +203,9 @@ where
   T: Fn(&'a mut Compilation) -> F,
   F: Future<Output = Result<&'a mut Compilation>>,
 {
-  for chunk in compilation
+  compilation
     .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .values_mut()
-  {
-    chunk.set_rendered(false);
-  }
+    .reset_chunk_rendered_state();
 
   if !compilation.incremental.enabled() {
     task(compilation).await?;
