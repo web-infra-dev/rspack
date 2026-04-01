@@ -99,7 +99,7 @@ __dirname
 `import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type模块类型)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
 
 :::note
-由于 Rspack 需要静态分析 `import.meta` 元数据的使用情况，所以 Rspack 不支持动态访问 `import.meta` 并会抛出警告。你应该通过属性访问或解构赋值的方式来访问 `import.meta` 上的元数据。
+Rspack 在编译时会静态分析将 `import.meta` 的属性替换为具体值，因此不支持动态访问 `import.meta`（如 `Object.keys(import.meta)`），否则会抛出警告。你应该通过属性访问或解构赋值的方式来访问 `import.meta` 上的元数据。
 
 <Columns>
 
@@ -118,9 +118,9 @@ let { url } = import.meta;
 // Warning
 Object.keys({});
 
-('object');
+'object';
 
-('file:///project/index.js');
+'file:///project/index.js';
 
 let { url } = { url: 'file:///project/index.js' };
 ```
@@ -145,15 +145,53 @@ typeof import.meta.url
 ```
 </Columns>
 
+### import.meta.main
+
+返回一个布尔值，表示当前模块是否为入口模块。
+
+<Columns>
+```js title=源码
+if (import.meta.main) {
+  main();
+}
+```
+
+```js title=产物
+if (__webpack_module_cache__[/* entry module id */__webpack_require__.s] === module) {
+  main();
+}
+```
+</Columns>
+
+### import.meta.filename
+
+返回当前模块的完整文件路径，是 [`__filename`](#__filename) 的 ESM 等价写法。常用于在 ESM 模块中获取当前文件的路径信息。
+
+具体的编译行为由 [`node.__filename`](/config/node#node__filename) 配置项控制，详见该配置文档。
+
+### import.meta.dirname
+
+返回当前模块所在的目录路径，是 [`__dirname`](#__dirname) 的 ESM 等价写法。常用于在 ESM 模块中构造基于当前文件位置的路径。
+
+具体的编译行为由 [`node.__dirname`](/config/node#node__dirname) 配置项控制，详见该配置文档。
+
 ### import.meta.resolve
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
 
-类似 [`require.resolve()`](/api/runtime-api/module-methods#requireresolve) 获取模块的 ID，会将模块打包进最终的 bundle 中，并返回模块的模块 ID。
+是 [`require.resolve()`](/api/runtime-api/module-methods#requireresolve) 的 ESM 等价写法，用于获取其他模块的 ID。会将模块打包进最终的 bundle 中，并返回该模块的模块 ID。
 
-```ts
-import.meta.resolve(dependency: string);
+<Columns>
+```js title=源码
+let img = new Image();
+img.src = import.meta.resolve('./img.png');
 ```
+
+```js title=产物
+let img = new Image();
+img.src = './src/img.png'; // img.png 的模块 ID
+```
+</Columns>
 
 :::warning
 `import.meta.resolve()` 目前仍是实验性功能，需要通过 [`module.parser.javascript.importMetaResolve`](/config/module#moduleparserjavascriptimportmetaresolve) 开启，未来会优先[对齐标准实现](https://github.com/openjs-foundation/bundler-collab-space/issues/8)，因此该 API 行为可能会发生变化，请谨慎使用。
@@ -163,7 +201,7 @@ import.meta.resolve(dependency: string);
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-`import.meta.webpackContext` 是 Rspack 和 webpack 特有的一个函数，它允许你动态地 import 一组模块。
+`import.meta.webpackContext` 是 [`require.context()`](/api/runtime-api/module-methods#requirecontext) 的 ESM 等价写法，它允许你动态地引入一组模块。
 
 你可以在代码中使用 `import.meta.webpackContext`，Rspack 将在构建时进行解析并引用匹配的模块。
 
@@ -280,7 +318,7 @@ componentsContext.keys().forEach((fileName) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-[`module.hot`](#modulehot) 的别名，`import.meta.webpackHot` 可以在严格的 ESM 中使用，而 `module.hot` 不能。
+是 [`module.hot`](#modulehot) 的 ESM 等价写法，`import.meta.webpackHot` 可以在严格 ESM 模块（模块类型为 `javascript/esm`）中使用，而 `module.hot` 不能。
 
 ## Runtime
 
