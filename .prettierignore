@@ -16,7 +16,8 @@ gitignore
 tests/rspack-test/**/*.js
 !tests/rspack-test/**/
 !tests/rspack-test/**/rspack.config.*
-# Ignore intentionally invalid fixtures
+
+# Ignore intentionally invalid test files
 tests/rspack-test/configCases/builtin-lightningcss-loader/report-warning/index.css
 tests/rspack-test/configCases/css/css-modules/style.module.css
 tests/rspack-test/configCases/css/no-extra-runtime-in-js/style.css
@@ -36,7 +37,6 @@ tests/rspack-test/hotCases/css/recovery-cacheable/change.css
 tests/rspack-test/hotCases/invalidate/conditional-accept/data.json
 tests/rspack-test/hotCases/json/error-in-json/data.json
 tests/rspack-test/statsOutputCases/builtin-swc-loader-parse-error/index.ts
-packages/**/etc/**/*
 tests/e2e/cases/make/rewrite-factorize-request/file.js
 
 # Crates
