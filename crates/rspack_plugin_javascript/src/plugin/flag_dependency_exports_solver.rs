@@ -101,7 +101,15 @@ fn condense_components(
   tarjan
     .components
     .into_iter()
-    .map(|modules| build_component(modules, planned_modules, module_index))
+    .map(|modules| {
+      let is_cyclic = modules.len() > 1
+        || modules.iter().any(|module_id| {
+          planned_modules[module_index[module_id]]
+            .provider_modules
+            .contains(module_id)
+        });
+      build_component(modules, planned_modules, module_index, is_cyclic)
+    })
     .collect()
 }
 
@@ -109,6 +117,7 @@ fn build_component(
   modules: Vec<ModuleIdentifier>,
   planned_modules: &[PlannedModule],
   module_index: &IdentifierMap<usize>,
+  is_cyclic: bool,
 ) -> SolveComponent {
   let module_set = modules.iter().copied().collect::<IdentifierSet>();
   let mut dependents_within_component = modules
@@ -117,15 +126,11 @@ fn build_component(
     .map(|module_id| (module_id, IdentifierSet::default()))
     .collect::<IdentifierMap<_>>();
   let mut fallback = false;
-  let mut is_cyclic = false;
 
   for module_id in modules.iter().copied() {
     let planned = &planned_modules[module_index[&module_id]];
     if planned.has_unknown_provider {
       fallback = true;
-    }
-    if planned.provider_modules.contains(&module_id) {
-      is_cyclic = true;
     }
     for provider in &planned.provider_modules {
       if !module_set.contains(provider) {
@@ -135,10 +140,6 @@ fn build_component(
         dependents.insert(module_id);
       }
     }
-  }
-
-  if modules.len() > 1 {
-    is_cyclic = true;
   }
 
   SolveComponent {
@@ -218,11 +219,13 @@ fn group_fallback_components(
     .into_iter()
     .filter(|indices| !indices.is_empty())
     .map(|indices| {
-      let modules = indices
-        .into_iter()
-        .flat_map(|index| components[index].modules.iter().copied())
-        .collect::<Vec<_>>();
-      build_component(modules, planned_modules, module_index)
+      let mut is_cyclic = false;
+      let mut modules = Vec::new();
+      for index in indices {
+        is_cyclic = is_cyclic || components[index].is_cyclic;
+        modules.extend(components[index].modules.iter().copied());
+      }
+      build_component(modules, planned_modules, module_index, is_cyclic)
     })
     .collect()
 }
@@ -438,6 +441,7 @@ mod tests {
     assert!(graph.components[unknown_component].fallback);
     assert!(graph.components[consumer_component].fallback);
     assert!(graph.components[sink_component].fallback);
+    assert!(!graph.components[unknown_component].is_cyclic);
     assert_ne!(unknown_component, leaf_component);
   }
 
