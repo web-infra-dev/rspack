@@ -875,7 +875,7 @@ impl ModuleConcatenationPlugin {
     let facts_by_module: Vec<_> = modules
       .into_par_iter()
       .map(|module_id| {
-        let mut facts = build_module_concat_facts(compilation, module_id);
+        let mut facts = build_module_concat_precheck_facts(compilation, module_id);
         collect_initial_bailout_reasons(compilation, module_id, &mut facts);
         (module_id, facts)
       })
@@ -1413,6 +1413,76 @@ struct ModuleConcatFacts {
 }
 
 #[allow(dead_code)]
+#[derive(Debug)]
+struct ModuleConcatPrecheckFacts {
+  number_of_chunks: usize,
+  can_be_root_precheck: bool,
+  can_be_inner_precheck: bool,
+  initial_bailout_reasons: Vec<Cow<'static, str>>,
+}
+
+trait ModuleConcatBailoutFacts {
+  fn number_of_chunks(&self) -> usize;
+  fn can_be_root_precheck(&self) -> bool;
+  fn can_be_inner_precheck(&self) -> bool;
+  fn disable_root_precheck(&mut self);
+  fn disable_inner_precheck(&mut self);
+  fn push_initial_bailout_reason(&mut self, reason: Cow<'static, str>);
+}
+
+impl ModuleConcatBailoutFacts for ModuleConcatFacts {
+  fn number_of_chunks(&self) -> usize {
+    self.number_of_chunks
+  }
+
+  fn can_be_root_precheck(&self) -> bool {
+    self.can_be_root_precheck
+  }
+
+  fn can_be_inner_precheck(&self) -> bool {
+    self.can_be_inner_precheck
+  }
+
+  fn disable_root_precheck(&mut self) {
+    self.can_be_root_precheck = false;
+  }
+
+  fn disable_inner_precheck(&mut self) {
+    self.can_be_inner_precheck = false;
+  }
+
+  fn push_initial_bailout_reason(&mut self, reason: Cow<'static, str>) {
+    self.initial_bailout_reasons.push(reason);
+  }
+}
+
+impl ModuleConcatBailoutFacts for ModuleConcatPrecheckFacts {
+  fn number_of_chunks(&self) -> usize {
+    self.number_of_chunks
+  }
+
+  fn can_be_root_precheck(&self) -> bool {
+    self.can_be_root_precheck
+  }
+
+  fn can_be_inner_precheck(&self) -> bool {
+    self.can_be_inner_precheck
+  }
+
+  fn disable_root_precheck(&mut self) {
+    self.can_be_root_precheck = false;
+  }
+
+  fn disable_inner_precheck(&mut self) {
+    self.can_be_inner_precheck = false;
+  }
+
+  fn push_initial_bailout_reason(&mut self, reason: Cow<'static, str>) {
+    self.initial_bailout_reasons.push(reason);
+  }
+}
+
+#[allow(dead_code)]
 fn build_module_concat_facts(
   compilation: &Compilation,
   module_id: ModuleIdentifier,
@@ -1479,6 +1549,21 @@ fn build_module_concat_facts(
     incoming_from_non_modules: Vec::new(),
     incoming_from_modules: IdentifierMap::default(),
     active_incomings_for_module_runtime: HashMap::default(),
+  }
+}
+
+#[allow(dead_code)]
+fn build_module_concat_precheck_facts(
+  compilation: &Compilation,
+  module_id: ModuleIdentifier,
+) -> ModuleConcatPrecheckFacts {
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+
+  ModuleConcatPrecheckFacts {
+    number_of_chunks: chunk_graph.get_number_of_module_chunks(module_id),
+    can_be_root_precheck: true,
+    can_be_inner_precheck: true,
+    initial_bailout_reasons: Vec::new(),
   }
 }
 
@@ -1768,15 +1853,20 @@ fn is_connection_active_in_runtime(
   connection.is_active(mg, runtime, mg_cache, exports_info_artifact)
 }
 
-fn classify_module_from_facts(facts: &ModuleConcatFacts) -> (bool, bool) {
-  (facts.can_be_root_precheck, facts.can_be_inner_precheck)
+fn classify_module_from_facts<Facts>(facts: &Facts) -> (bool, bool)
+where
+  Facts: ModuleConcatBailoutFacts,
+{
+  (facts.can_be_root_precheck(), facts.can_be_inner_precheck())
 }
 
-fn collect_initial_bailout_reasons(
+fn collect_initial_bailout_reasons<Facts>(
   compilation: &Compilation,
   module_id: ModuleIdentifier,
-  facts: &mut ModuleConcatFacts,
-) {
+  facts: &mut Facts,
+) where
+  Facts: ModuleConcatBailoutFacts,
+{
   let module_graph = compilation.get_module_graph();
   let exports_info = compilation
     .exports_info_artifact
@@ -1789,34 +1879,30 @@ fn collect_initial_bailout_reasons(
     module_graph,
     &compilation.build_chunk_graph_artifact.chunk_graph,
   ) {
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts.initial_bailout_reasons.push(reason);
+    facts.disable_root_precheck();
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason(reason);
     return;
   }
 
   if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts.initial_bailout_reasons.push("Module is async".into());
+    facts.disable_root_precheck();
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason("Module is async".into());
     return;
   }
 
   if !module.build_info().strict {
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts
-      .initial_bailout_reasons
-      .push("Module is not in strict mode".into());
+    facts.disable_root_precheck();
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason("Module is not in strict mode".into());
     return;
   }
 
-  if facts.number_of_chunks == 0 {
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts
-      .initial_bailout_reasons
-      .push("Module is not in any chunk".into());
+  if facts.number_of_chunks() == 0 {
+    facts.disable_root_precheck();
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason("Module is not in any chunk".into());
     return;
   }
 
@@ -1849,9 +1935,9 @@ fn collect_initial_bailout_reasons(
       })
       .collect::<Vec<String>>()
       .join(", ");
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts.initial_bailout_reasons.push(
+    facts.disable_root_precheck();
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason(
       format!("Reexports in this module do not have a static target ({cur_bailout_reason})").into(),
     );
     return;
@@ -1880,10 +1966,10 @@ fn collect_initial_bailout_reasons(
       })
       .collect::<Vec<String>>()
       .join(", ");
-    facts.can_be_root_precheck = false;
-    facts
-      .initial_bailout_reasons
-      .push(format!("List of module exports is dynamic ({cur_bailout_reason})").into());
+    facts.disable_root_precheck();
+    facts.push_initial_bailout_reason(
+      format!("List of module exports is dynamic ({cur_bailout_reason})").into(),
+    );
   }
 
   if compilation
@@ -1891,17 +1977,13 @@ fn collect_initial_bailout_reasons(
     .chunk_graph
     .is_entry_module(&module_id)
   {
-    facts.can_be_inner_precheck = false;
-    facts
-      .initial_bailout_reasons
-      .push("Module is an entry point".into());
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason("Module is an entry point".into());
   }
 
   if module_graph.is_deferred(&compilation.imported_by_defer_modules_artifact, &module_id) {
-    facts.can_be_inner_precheck = false;
-    facts
-      .initial_bailout_reasons
-      .push("Module is deferred".into());
+    facts.disable_inner_precheck();
+    facts.push_initial_bailout_reason("Module is deferred".into());
   }
 }
 
