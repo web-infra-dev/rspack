@@ -67,6 +67,11 @@ impl<'a> Visit for PureAnnotation<'a> {
             self.side_effects_free.insert(ident.sym.clone());
           }
           self.side_effects_free.insert(Atom::from("default"));
+        } else if let Some(arrow_expr) = default_expr.expr.as_arrow()
+          && (has_no_side_effects_notation(self.parser.comments, default_expr.span())
+            || has_no_side_effects_notation(self.parser.comments, arrow_expr.span()))
+        {
+          self.side_effects_free.insert(Atom::from("default"));
         }
       }
       ModuleDecl::ExportDefaultDecl(default_decl) => {
@@ -180,7 +185,7 @@ fn function_like_var_decl_names(var_decl: &VarDecl, refs: &mut FxHashSet<Atom>) 
 
     if matches!(
       declarator.init.as_deref(),
-      Some(Expr::Fn(_)) | Some(Expr::Arrow(_))
+      Some(Expr::Fn(_) | Expr::Arrow(_))
     ) {
       refs.insert(ident.sym.clone());
     }
@@ -207,18 +212,19 @@ fn collect_top_level_function_like_local_refs(program: &Program) -> FxHashSet<At
               }
             }
           }
-          ModuleItem::ModuleDecl(decl) => match decl {
-            ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
-              Decl::Fn(fn_decl) => {
-                refs.insert(fn_decl.ident.sym.clone());
+          ModuleItem::ModuleDecl(decl) => {
+            if let ModuleDecl::ExportDecl(export_decl) = decl {
+              match &export_decl.decl {
+                Decl::Fn(fn_decl) => {
+                  refs.insert(fn_decl.ident.sym.clone());
+                }
+                Decl::Var(var_decl) => {
+                  function_like_var_decl_names(var_decl, &mut refs);
+                }
+                _ => {}
               }
-              Decl::Var(var_decl) => {
-                function_like_var_decl_names(var_decl, &mut refs);
-              }
-              _ => {}
-            },
-            _ => {}
-          },
+            }
+          }
         }
       }
     }

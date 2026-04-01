@@ -11,6 +11,7 @@ import foo25, {
   foo23,
   foo24,
 } from './decl'
+import foo26 from './default-arrow'
 
 // all invoke should have no side effects, and its return value is not used,
 // so they all should be removed
@@ -26,3 +27,4 @@ foo22();
 foo23();
 foo24();
 foo25();
+foo26();
