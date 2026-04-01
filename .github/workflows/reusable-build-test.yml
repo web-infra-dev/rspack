@@ -164,10 +164,6 @@ jobs:
           path: tests/rspack-test/js/temp/**/.cache
           include-hidden-files: true
 
-      - name: Debug WASM
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        uses: .github/actions/debugger
-
       ### WASM
       - name: Test WASM
         timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
@@ -176,7 +172,8 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
-        run: pnpm run test:ci
+          NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
+        run: pnpm run build:js && pnpm --filter "@rspack/cli" test && pnpm --filter "@rspack/tests" test
 
       - name: Upload Test Reporter
         if: always()
