@@ -1,16 +1,6 @@
 name: Ecosystem CI
 
 on:
-  push:
-    branches:
-      - main
-      - v1.x
-    paths-ignore:
-      - '**/*.md'
-      - 'website/**'
-    tags-ignore:
-      - '**'
-
   workflow_dispatch:
     inputs:
       pr:
@@ -56,30 +46,10 @@ permissions:
   pull-requests: write
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    if: github.repository == 'web-infra-dev/rspack' && github.event_name != 'workflow_dispatch'
-    outputs:
-      changed: ${{ steps.changes.outputs.changed }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          fetch-depth: 1
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
-        id: changes
-        with:
-          predicate-quantifier: 'every'
-          filters: |
-            changed:
-              - "!**/*.md"
-              - "!**/*.mdx"
-              - "!website/**"
-
   ecosystem_ci_dispatch:
     name: Dispatch ecosystem CI
     runs-on: ubuntu-latest
-    if: github.repository == 'web-infra-dev/rspack' && github.event_name == 'workflow_dispatch'
+    if: github.repository == 'web-infra-dev/rspack'
     steps:
       - name: Get PR info
         id: pr-info
@@ -104,18 +74,3 @@ jobs:
           pr-number: ${{ github.event.inputs.pr }}
           client-payload: '{"prNumber":"${{ github.event.inputs.pr }}","branchName":"${{ steps.pr-info.outputs.branch }}","repo":"${{ steps.pr-info.outputs.repo }}","suite":"${{ github.event.inputs.suite || ''-'' }}","suiteRefType":"${{ github.event.inputs.suiteRefType }}","suiteRef":"${{ github.event.inputs.suiteRef }}"}'
           branch: ${{ steps.pr-info.outputs.branch }}
-
-  ecosystem_ci_per_commit:
-    name: Run ecosystem CI per commit
-    needs: changes
-    runs-on: ubuntu-latest
-    if: github.repository == 'web-infra-dev/rspack' && github.event_name != 'workflow_dispatch' && needs.changes.outputs.changed == 'true'
-    steps:
-      - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@v0.3.0
-        with:
-          github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
-          ecosystem-owner: web-infra-dev
-          ecosystem-repo: rspack
-          workflow-file: rspack-ecosystem-ci-from-commit.yml
-          client-payload: '{"commitSHA":"${{ github.sha }}","updateComment":true,"repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded"}'
