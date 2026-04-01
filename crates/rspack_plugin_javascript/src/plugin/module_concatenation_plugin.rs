@@ -1795,19 +1795,28 @@ fn collect_initial_bailout_reasons(
     return;
   }
 
+  if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
+    facts.can_be_root_precheck = false;
+    facts.can_be_inner_precheck = false;
+    facts.initial_bailout_reasons.push("Module is async".into());
+    return;
+  }
+
+  if !module.build_info().strict {
+    facts.can_be_root_precheck = false;
+    facts.can_be_inner_precheck = false;
+    facts
+      .initial_bailout_reasons
+      .push("Module is not in strict mode".into());
+    return;
+  }
+
   if facts.number_of_chunks == 0 {
     facts.can_be_root_precheck = false;
     facts.can_be_inner_precheck = false;
     facts
       .initial_bailout_reasons
       .push("Module is not in any chunk".into());
-    return;
-  }
-
-  if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts.initial_bailout_reasons.push("Module is async".into());
     return;
   }
 
@@ -1875,15 +1884,6 @@ fn collect_initial_bailout_reasons(
     facts
       .initial_bailout_reasons
       .push(format!("List of module exports is dynamic ({cur_bailout_reason})").into());
-  }
-
-  if !module.build_info().strict {
-    facts.can_be_root_precheck = false;
-    facts.can_be_inner_precheck = false;
-    facts
-      .initial_bailout_reasons
-      .push("Module is not in strict mode".into());
-    return;
   }
 
   if compilation
