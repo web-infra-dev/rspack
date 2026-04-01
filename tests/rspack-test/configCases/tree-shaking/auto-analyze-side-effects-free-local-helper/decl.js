@@ -1,7 +1,9 @@
-export function pureUsesHelper() {
+function pureUsesHelper() {
   return helperPure();
 }
 
-export function helperPure() {
+function helperPure() {
   return 1;
 }
+
+export { pureUsesHelper, helperPure };

@@ -343,7 +343,7 @@ fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(&Atom)) {
   }
 }
 
-fn visit_module_decl_binding_names(decl: &ModuleDecl, f: &mut impl FnMut(&Atom)) {
+fn visit_module_decl_defined_binding_names(decl: &ModuleDecl, f: &mut impl FnMut(&Atom)) {
   match decl {
     ModuleDecl::Import(import_decl) => {
       for specifier in &import_decl.specifiers {
@@ -360,46 +360,14 @@ fn visit_module_decl_binding_names(decl: &ModuleDecl, f: &mut impl FnMut(&Atom))
         if let Some(ident) = &fn_expr.ident {
           f(&ident.sym);
         }
-        f(&Atom::from("default"));
       }
       swc_core::ecma::ast::DefaultDecl::Class(class_expr) => {
         if let Some(ident) = &class_expr.ident {
           f(&ident.sym);
         }
-        f(&Atom::from("default"));
       }
       swc_core::ecma::ast::DefaultDecl::TsInterfaceDecl(_) => {}
     },
-    ModuleDecl::ExportDefaultExpr(_) => {
-      f(&Atom::from("default"));
-    }
-    ModuleDecl::ExportNamed(named_export) => {
-      if named_export.src.is_none() {
-        for specifier in &named_export.specifiers {
-          if let swc_core::ecma::ast::ExportSpecifier::Named(named) = specifier {
-            if let Some(exported) = &named.exported {
-              match exported {
-                swc_core::ecma::ast::ModuleExportName::Ident(ident) => f(&ident.sym),
-                swc_core::ecma::ast::ModuleExportName::Str(str) => {
-                  if let Some(atom) = str.value.as_atom() {
-                    f(atom);
-                  }
-                }
-              }
-            } else {
-              match &named.orig {
-                swc_core::ecma::ast::ModuleExportName::Ident(ident) => f(&ident.sym),
-                swc_core::ecma::ast::ModuleExportName::Str(str) => {
-                  if let Some(atom) = str.value.as_atom() {
-                    f(atom);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
     _ => {}
   }
 }
@@ -415,7 +383,9 @@ fn collect_duplicate_top_level_names(program: &Program) -> FxHashSet<Atom> {
       for item in &module.body {
         match item {
           ModuleItem::Stmt(Stmt::Decl(decl)) => visit_decl_binding_names(decl, &mut count_name),
-          ModuleItem::ModuleDecl(decl) => visit_module_decl_binding_names(decl, &mut count_name),
+          ModuleItem::ModuleDecl(decl) => {
+            visit_module_decl_defined_binding_names(decl, &mut count_name)
+          }
           _ => {}
         }
       }
