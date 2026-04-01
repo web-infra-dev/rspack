@@ -41,8 +41,8 @@ impl ModulesContainer for ModuleGroup {
 }
 
 /// Return `true` if the `ModuleGroup` become empty.
-pub(crate) fn remove_min_size_violating_modules(
-  module_group_key: &str,
+pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
+  module_group_key: &T,
   module_group: &mut ModuleGroup,
   cache_group: &CacheGroup,
   module_sizes: &ModuleSizes,
