@@ -219,10 +219,17 @@ async fn finish_modules(
             exports_info_artifact,
             &resolve_filter,
             &mut Default::default(),
-          ) && let Some(export) = &target.export
-            && let Some(atom) = export.first()
-          {
-            (target.module, atom.clone())
+          ) {
+            let atom = if target.module == *ref_module {
+              deferred_check.atom.clone()
+            } else {
+              target
+                .export
+                .as_ref()
+                .and_then(|export| export.first().cloned())
+                .unwrap_or_else(|| deferred_check.atom.clone())
+            };
+            (target.module, atom)
           } else {
             (*ref_module, deferred_check.atom.clone())
           };

@@ -1,3 +1,5 @@
-export function pureNamed() {
+function pureNamedImpl() {
   unreachable();
 }
+
+export { pureNamedImpl as pureNamed };

@@ -1,3 +1,5 @@
-export default function pureDefault() {
+function pureDefault() {
   unreachable();
 }
+
+export { pureDefault as default };
