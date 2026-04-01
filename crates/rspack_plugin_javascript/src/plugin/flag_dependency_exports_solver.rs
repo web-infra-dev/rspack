@@ -24,6 +24,214 @@ pub(crate) struct SolveGraph {
   pub module_to_component: IdentifierMap<usize>,
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub(crate) struct ExportsSolveStats {
+  pub planned_modules: usize,
+  pub provider_edges: usize,
+  pub scc_count: usize,
+  pub fallback_components: usize,
+  pub solve_module_once_calls: usize,
+  pub local_requeues: usize,
+}
+
+#[derive(Debug)]
+struct TarjanState {
+  index: usize,
+  stack: Vec<ModuleIdentifier>,
+  on_stack: IdentifierSet,
+  indices: IdentifierMap<usize>,
+  low_links: IdentifierMap<usize>,
+  components: Vec<Vec<ModuleIdentifier>>,
+}
+
+pub(crate) fn build_solve_graph(planned_modules: Vec<PlannedModule>) -> SolveGraph {
+  let module_index = planned_modules
+    .iter()
+    .enumerate()
+    .map(|(index, planned)| (planned.module_id, index))
+    .collect::<IdentifierMap<_>>();
+  let components = condense_components(&planned_modules, &module_index);
+  let module_to_component = components
+    .iter()
+    .enumerate()
+    .flat_map(|(component_id, component)| {
+      component
+        .modules
+        .iter()
+        .copied()
+        .map(move |module_id| (module_id, component_id))
+    })
+    .collect::<IdentifierMap<_>>();
+  let reverse_topo_order =
+    reverse_topological_component_order(&planned_modules, &components, &module_to_component);
+
+  SolveGraph {
+    components,
+    reverse_topo_order,
+    module_to_component,
+  }
+}
+
+fn condense_components(
+  planned_modules: &[PlannedModule],
+  module_index: &IdentifierMap<usize>,
+) -> Vec<SolveComponent> {
+  let mut tarjan = TarjanState {
+    index: 0,
+    stack: Vec::new(),
+    on_stack: IdentifierSet::default(),
+    indices: IdentifierMap::default(),
+    low_links: IdentifierMap::default(),
+    components: Vec::new(),
+  };
+
+  for planned in planned_modules {
+    if !tarjan.indices.contains_key(&planned.module_id) {
+      strong_connect(
+        planned.module_id,
+        planned_modules,
+        module_index,
+        &mut tarjan,
+      );
+    }
+  }
+
+  tarjan
+    .components
+    .into_iter()
+    .map(|modules| {
+      let module_set = modules.iter().copied().collect::<IdentifierSet>();
+      let dependents_within_component = planned_modules
+        .iter()
+        .filter(|planned| module_set.contains(&planned.module_id))
+        .map(|planned| {
+          let dependents = planned_modules
+            .iter()
+            .filter(|candidate| {
+              module_set.contains(&candidate.module_id)
+                && candidate.provider_modules.contains(&planned.module_id)
+            })
+            .map(|candidate| candidate.module_id)
+            .collect::<IdentifierSet>();
+          (planned.module_id, dependents)
+        })
+        .collect::<IdentifierMap<_>>();
+      let fallback = planned_modules
+        .iter()
+        .filter(|planned| module_set.contains(&planned.module_id))
+        .any(|planned| planned.has_unknown_provider);
+
+      SolveComponent {
+        modules,
+        dependents_within_component,
+        fallback,
+      }
+    })
+    .collect()
+}
+
+fn strong_connect(
+  module_id: ModuleIdentifier,
+  planned_modules: &[PlannedModule],
+  module_index: &IdentifierMap<usize>,
+  tarjan: &mut TarjanState,
+) {
+  tarjan.indices.insert(module_id, tarjan.index);
+  tarjan.low_links.insert(module_id, tarjan.index);
+  tarjan.index += 1;
+  tarjan.stack.push(module_id);
+  tarjan.on_stack.insert(module_id);
+
+  let planned = &planned_modules[module_index[&module_id]];
+  for provider in &planned.provider_modules {
+    if !module_index.contains_key(provider) {
+      continue;
+    }
+    if !tarjan.indices.contains_key(provider) {
+      strong_connect(*provider, planned_modules, module_index, tarjan);
+      let low_link = tarjan.low_links[&module_id].min(tarjan.low_links[provider]);
+      tarjan.low_links.insert(module_id, low_link);
+    } else if tarjan.on_stack.contains(provider) {
+      let low_link = tarjan.low_links[&module_id].min(tarjan.indices[provider]);
+      tarjan.low_links.insert(module_id, low_link);
+    }
+  }
+
+  if tarjan.low_links[&module_id] == tarjan.indices[&module_id] {
+    let mut component = Vec::new();
+    while let Some(popped) = tarjan.stack.pop() {
+      tarjan.on_stack.remove(&popped);
+      component.push(popped);
+      if popped == module_id {
+        break;
+      }
+    }
+    tarjan.components.push(component);
+  }
+}
+
+fn reverse_topological_component_order(
+  planned_modules: &[PlannedModule],
+  components: &[SolveComponent],
+  module_to_component: &IdentifierMap<usize>,
+) -> Vec<usize> {
+  let mut indegree = vec![0usize; components.len()];
+  let mut outgoing = vec![Vec::new(); components.len()];
+
+  for planned in planned_modules {
+    let consumer = module_to_component[&planned.module_id];
+    for provider in &planned.provider_modules {
+      let Some(&provider_component) = module_to_component.get(provider) else {
+        continue;
+      };
+      if consumer == provider_component {
+        continue;
+      }
+      outgoing[provider_component].push(consumer);
+      indegree[consumer] += 1;
+    }
+  }
+
+  let mut queue = VecDeque::from(
+    indegree
+      .iter()
+      .enumerate()
+      .filter_map(|(index, degree)| (*degree == 0).then_some(index))
+      .collect::<Vec<_>>(),
+  );
+  let mut order = Vec::with_capacity(components.len());
+
+  while let Some(component_id) = queue.pop_front() {
+    order.push(component_id);
+    for dependent in &outgoing[component_id] {
+      indegree[*dependent] -= 1;
+      if indegree[*dependent] == 0 {
+        queue.push_back(*dependent);
+      }
+    }
+  }
+
+  order
+}
+
+pub(crate) fn execute_component_worklist(
+  component: &SolveComponent,
+  queue: &mut VecDeque<ModuleIdentifier>,
+  mut solve_once: impl FnMut(ModuleIdentifier) -> bool,
+) {
+  if queue.is_empty() {
+    queue.extend(component.modules.iter().copied());
+  }
+
+  while let Some(module_id) = queue.pop_front() {
+    if solve_once(module_id) {
+      if let Some(dependents) = component.dependents_within_component.get(&module_id) {
+        queue.extend(dependents.iter().copied());
+      }
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
