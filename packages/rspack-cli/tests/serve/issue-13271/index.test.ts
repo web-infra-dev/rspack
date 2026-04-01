@@ -1,19 +1,20 @@
 import {
   getRandomPort,
-  normalizeStderr,
   normalizeStdout,
+  processKill,
   runAndGetProcess,
-  run,
 } from '../../utils/test-utils';
 
 describe('issue-13271 serve', () => {
   it.concurrent(
     'uses the enabled compiler devServer options when another compiler disables devServer',
     async () => {
+      const port = await getRandomPort();
       const child = runAndGetProcess(__dirname, [
         'serve',
         '--config',
         './multi.config.js',
+        `--port=${port}`,
       ]);
 
       let stdout = '';
@@ -21,14 +22,14 @@ describe('issue-13271 serve', () => {
       let killTimer: NodeJS.Timeout | undefined;
 
       const hardTimeout = setTimeout(() => {
-        child.kill('SIGKILL');
+        processKill(child);
       }, 8000);
 
       child.stdout?.on('data', (chunk) => {
         stdout += chunk.toString('utf8');
 
         if (stdout.includes('"source":"disabled"')) {
-          child.kill('SIGKILL');
+          processKill(child);
           return;
         }
 
@@ -40,7 +41,7 @@ describe('issue-13271 serve', () => {
         ) {
           sawWebListening = true;
           killTimer = setTimeout(() => {
-            child.kill('SIGKILL');
+            processKill(child);
           }, 1000);
         }
       });
@@ -74,14 +75,14 @@ describe('issue-13271 serve', () => {
 
       let stdout = '';
       const hardTimeout = setTimeout(() => {
-        child.kill('SIGKILL');
+        processKill(child);
       }, 8000);
 
       child.stdout?.on('data', (chunk) => {
         stdout += chunk.toString('utf8');
 
         if (stdout.includes('Local:')) {
-          child.kill('SIGKILL');
+          processKill(child);
         }
       });
 

@@ -114,8 +114,6 @@ export class ServeCommand implements RspackCommand {
          */
         const compilerForDevServer =
           possibleCompilers.length > 0 ? possibleCompilers[0] : compilers[0];
-        const compilerForDevServerOptions =
-          compilerForDevServer.options.devServer;
 
         /**
          * Rspack relies on devServer.hot to enable HMR
@@ -159,6 +157,8 @@ export class ServeCommand implements RspackCommand {
           }
         }
 
+        const compilerForDevServerOptions =
+          compilerForDevServer.options.devServer;
         const devServerOptions: DevServer =
           compilerForDevServerOptions === false
             ? {}
