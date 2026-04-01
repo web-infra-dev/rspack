@@ -1,5 +1,5 @@
 module.exports = {
   experiments: {
-    css: false
+    css: false,
   },
 };

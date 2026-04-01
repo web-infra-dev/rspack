@@ -1,10 +1,10 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		environment: {
-			destructuring: false
-		}
-	}
+  output: {
+    environment: {
+      destructuring: false,
+    },
+  },
 };

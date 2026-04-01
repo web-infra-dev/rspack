@@ -3,4 +3,4 @@ module.exports = {
     main: './main.js',
     index: './index.js',
   },
-}
+};

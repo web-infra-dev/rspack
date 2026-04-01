@@ -5,9 +5,9 @@ module.exports = {
       cacheGroups: {
         other: {
           test: /other\.js/,
-          name: 'other'
-        }
-      }
-    }
-  }
-}
+          name: 'other',
+        },
+      },
+    },
+  },
+};
