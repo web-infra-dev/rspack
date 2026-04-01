@@ -110,17 +110,13 @@ impl<'a> FlagDependencyExportsState<'a> {
 
       // parallelize the merging of exports specs to exports info data
       let non_nested_tasks = non_nested_specs
-        .into_iter()
+        .into_par_iter()
         .map(|(module_id, (exports_specs, _))| {
-          let exports_info = self
+          let mut changed = false;
+          let mut exports_info = self
             .exports_info_artifact
             .get_exports_info_data(&module_id)
             .clone();
-          (module_id, exports_info, exports_specs)
-        })
-        .par_bridge()
-        .map(|(module_id, mut exports_info, exports_specs)| {
-          let mut changed = false;
           let mut dependencies = Vec::with_capacity(exports_specs.len());
           for (dep_id, exports_spec) in exports_specs {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
@@ -364,7 +360,7 @@ pub fn process_exports_spec(
 /// which will be used to backtrack when target exports info is changed
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-pub fn process_exports_spec_without_nested(
+fn process_exports_spec_without_nested(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
@@ -478,12 +474,12 @@ impl<'a> ParsedExportSpec<'a> {
 ///
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-pub fn merge_exports_without_nested(
+fn merge_exports_without_nested(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
   exports_info: &mut ExportsInfoData,
-  exports: &Vec<ExportNameOrSpec>,
+  exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
@@ -515,9 +511,11 @@ pub fn merge_exports_without_nested(
       name,
     );
 
-    let (target_exports_info, target_dependencies) =
-      find_target_exports_info(mg, exports_info_artifact, export_info, module_id);
-    dependencies.extend(target_dependencies);
+    let (target_exports_info, target_module) =
+      find_target_exports_info(mg, exports_info_artifact, export_info);
+    if let Some(target_module) = target_module {
+      dependencies.push((target_module, *module_id));
+    }
 
     if export_info.exports_info() != target_exports_info {
       export_info.set_exports_info(target_exports_info);
@@ -588,13 +586,14 @@ pub fn merge_exports(
       name,
     );
 
-    let (target_exports_info, target_dependencies) = find_target_exports_info(
+    let (target_exports_info, target_module) = find_target_exports_info(
       mg,
       exports_info_artifact,
       export_info.as_data(exports_info_artifact),
-      module_id,
     );
-    dependencies.extend(target_dependencies);
+    if let Some(target_module) = target_module {
+      dependencies.push((target_module, *module_id));
+    }
 
     let export_info_data = export_info.as_data_mut(exports_info_artifact);
     if export_info_data.exports_info_owned()
@@ -729,12 +728,7 @@ fn find_target_exports_info(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   export_info: &ExportInfoData,
-  module_id: &ModuleIdentifier,
-) -> (
-  Option<ExportsInfo>,
-  Vec<(ModuleIdentifier, ModuleIdentifier)>,
-) {
-  let mut dependencies = vec![];
+) -> (Option<ExportsInfo>, Option<ModuleIdentifier>) {
   // Recalculate target exportsInfo
   let target = get_target(
     export_info,
@@ -745,6 +739,7 @@ fn find_target_exports_info(
   );
 
   let mut target_exports_info = None;
+  let mut target_module = None;
   if let Some(GetTargetResult::Target(target)) = target {
     let target_module_exports_info = exports_info_artifact.get_prefetched_exports_info(
       &target.module,
@@ -757,9 +752,8 @@ fn find_target_exports_info(
     target_exports_info = target_module_exports_info
       .get_nested_exports_info(target.export.as_deref())
       .map(|data| data.id());
-
-    dependencies.push((target.module, *module_id));
+    target_module = Some(target.module);
   }
 
-  (target_exports_info, dependencies)
+  (target_exports_info, target_module)
 }

@@ -182,7 +182,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       })
       .collect::<HashMap<_, _>>();
 
-    let new_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+    let new_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
       batch
         .iter()
         .cloned()

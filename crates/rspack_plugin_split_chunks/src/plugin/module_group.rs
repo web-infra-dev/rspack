@@ -320,7 +320,7 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<String, ModuleGroup> = FxDashMap::default();
-    let module_group_results = rspack_futures::scope::<_, Result<_>>(|token| {
+    let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|mid| {
         let s = unsafe { token.used((&cache_groups, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
         s.spawn(|(cache_groups, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {

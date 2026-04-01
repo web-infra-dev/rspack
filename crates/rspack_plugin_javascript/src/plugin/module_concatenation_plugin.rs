@@ -1361,7 +1361,7 @@ impl ModuleConcatenationPlugin {
       batch.push(config);
     }
 
-    let new_modules = rspack_futures::scope::<_, Result<_>>(|token| {
+    let new_modules = rspack_parallel::scope::<_, Result<_>>(|token| {
       batch.into_iter().for_each(|config| {
         let s = unsafe { token.used(&*compilation) };
         s.spawn(move |compilation| async move {

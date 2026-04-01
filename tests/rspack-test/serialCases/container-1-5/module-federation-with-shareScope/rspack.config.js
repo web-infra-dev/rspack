@@ -16,7 +16,7 @@ const commonMF = {
 		"./ComponentB": "./ComponentB",
 		"./ComponentC": "./ComponentC"
 	},
-	shared: ["mocked-react"],
+	shared: ["@rspack/mocked-react"],
 	shareScope: "test-scope"
 };
 

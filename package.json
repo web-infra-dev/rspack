@@ -1,6 +1,6 @@
 {
   "name": "monorepo",
-  "version": "2.0.0-beta.9",
+  "version": "2.0.0-rc.0",
   "license": "MIT",
   "description": "Fast Rust-based bundler for the web with a modernized webpack API",
   "private": true,
@@ -52,7 +52,7 @@
     "pnpm": "10.26.2"
   },
   "devDependencies": {
-    "@rslint/core": "0.3.2",
+    "@rslint/core": "0.3.4",
     "@rstest/core": "^0.9.4",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.37",
