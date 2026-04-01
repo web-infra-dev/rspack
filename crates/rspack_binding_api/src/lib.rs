@@ -201,6 +201,9 @@ impl JsCompiler {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
     let compilation_scoped_tsfn_manager = CompilationScopedTsFnManager::new();
+    // Parse constructor inputs inside the manager scope so any nested callback fields in
+    // options, builtin plugins, or hook registrations become compiler-local registrations
+    // instead of eagerly-created long-lived TSFNs.
     let mut options: RawOptions = compilation_scoped_tsfn_manager
       .scope(|| unsafe { RawOptions::from_napi_value(env.raw(), raw_options.raw()) })?;
     let builtin_plugins: Vec<BuiltinPlugin> = compilation_scoped_tsfn_manager.scope(|| unsafe {
@@ -378,6 +381,8 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
+            // Build-scoped TSFNs must be dropped from the JS callback finalizer so old JS
+            // closures stop rooting the previous compilation before the next build starts.
             compilation_scoped_tsfn_manager.release();
             drop(guard);
           }),
@@ -420,6 +425,8 @@ impl JsCompiler {
             Ok(())
           },
           Some(move || {
+            // Rebuild uses the same activation window as build: activate before entering
+            // the run, release after the JS callback has fully finished.
             compilation_scoped_tsfn_manager.release();
             drop(guard);
           }),
@@ -442,12 +449,17 @@ impl JsCompiler {
       std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
     };
 
-    env.spawn_future(async move {
-      compiler.close().await.to_napi_result_with_message(|e| {
-        print_error_diagnostic(e, compiler.options.stats.colors)
-      })?;
-      Ok(())
-    })
+    env
+      .spawn_future(async move {
+        compiler.close().await.to_napi_result_with_message(|e| {
+          print_error_diagnostic(e, compiler.options.stats.colors)
+        })?;
+        Ok(())
+      })?
+      .finally(|_env| {
+        drop(reference);
+        Ok(())
+      })
   }
 
   #[napi]
@@ -488,6 +500,9 @@ impl JsCompiler {
 
     let compiler_state_guard = self.state.enter();
     let weak_reference = reference.downgrade();
+    // Install fresh TSFNs for every registered callback right before the compiler run.
+    // This keeps callbacks callable during the current build/rebuild without letting the
+    // previous run's TSFNs retain JS objects after the run completes.
     self
       .compilation_scoped_tsfn_manager
       .activate(env)

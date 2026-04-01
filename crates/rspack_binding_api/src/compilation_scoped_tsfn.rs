@@ -15,6 +15,9 @@ use rspack_error::error;
 use rspack_napi::{WeakRef, threadsafe_function::ThreadsafeFunction};
 
 thread_local! {
+  // `FromNapiValue` does not accept extra context, so constructor-time parsing uses a
+  // thread-local scope to tell nested callback conversions which compiler-local manager
+  // should own their registration.
   static CURRENT_COMPILATION_SCOPED_TS_FN_CONTEXT: RefCell<Option<CompilationScopedTsFnContext>> = Default::default();
 }
 
@@ -107,39 +110,44 @@ impl CompilationScopedTsFnManager {
 
 type ActiveThreadsafeFunction<T, R> = Arc<AtomicRefCell<Option<ThreadsafeFunction<T, R>>>>;
 
+// A registration keeps the original JS callback registered fn alive only as a weak reference.
+// Each build/rebuild activates a fresh TSFN into the shared slot and the build callback
+// finalizer clears that slot again.
 struct CompilationScopedTsFnRegistration<T: 'static + JsValuesTupleIntoVec, R> {
-  source: WeakRef,
-  active: ActiveThreadsafeFunction<T, R>,
+  registered_fn: WeakRef,
+  active_tsfn: ActiveThreadsafeFunction<T, R>,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static> CompilationScopedTsFnRegistrationOps
   for CompilationScopedTsFnRegistration<T, R>
 {
   fn activate(&self, env: Env) -> napi::Result<()> {
-    let function = self.source.as_object(&env).map_err(|_| {
+    let function = self.registered_fn.as_object(&env).map_err(|_| {
       napi::Error::new(
         Status::GenericFailure,
         "Compilation-scoped JS callback has been garbage collected before activation",
       )
     })?;
     let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env.raw(), function.raw()) }?;
-    *self.active.borrow_mut() = Some(tsfn);
+    *self.active_tsfn.borrow_mut() = Some(tsfn);
     Ok(())
   }
 
   fn release(&self) {
-    *self.active.borrow_mut() = None;
+    *self.active_tsfn.borrow_mut() = None;
   }
 }
 
+// Call sites only keep this handle. It never owns the JS function directly and can only
+// execute while the manager has installed an active TSFN for the current compilation run.
 pub struct CompilationScopedTsFnHandle<T: 'static + JsValuesTupleIntoVec, R> {
-  active: ActiveThreadsafeFunction<T, R>,
+  active_tsfn: ActiveThreadsafeFunction<T, R>,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> Clone for CompilationScopedTsFnHandle<T, R> {
   fn clone(&self) -> Self {
     Self {
-      active: self.active.clone(),
+      active_tsfn: self.active_tsfn.clone(),
     }
   }
 }
@@ -152,8 +160,8 @@ impl<T: 'static + JsValuesTupleIntoVec, R> fmt::Debug for CompilationScopedTsFnH
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> CompilationScopedTsFnHandle<T, R> {
-  fn active(&self) -> rspack_error::Result<ThreadsafeFunction<T, R>> {
-    self.active.borrow().clone().ok_or_else(|| {
+  fn expect_active_tsfn(&self) -> rspack_error::Result<ThreadsafeFunction<T, R>> {
+    self.active_tsfn.borrow().clone().ok_or_else(|| {
       error!("Compilation-scoped JS callback was invoked outside an active compilation session")
     })
   }
@@ -163,7 +171,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
   CompilationScopedTsFnHandle<T, R>
 {
   pub async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
-    self.active()?.call_with_sync(value).await
+    self.expect_active_tsfn()?.call_with_sync(value).await
   }
 }
 
@@ -171,7 +179,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
   CompilationScopedTsFnHandle<T, Promise<R>>
 {
   pub async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {
-    self.active()?.call_with_promise(value).await
+    self.expect_active_tsfn()?.call_with_promise(value).await
   }
 }
 
@@ -179,21 +187,23 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> FromNapiValue
   for CompilationScopedTsFnHandle<T, R>
 {
   unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
-    let active = Arc::new(AtomicRefCell::new(None));
+    let active_tsfn = Arc::new(AtomicRefCell::new(None));
 
     if let Some(manager) = CompilationScopedTsFnManager::current_context() {
       let mut function = napi::bindgen_prelude::Object::from_raw(env, napi_val);
       let registration = Rc::new(CompilationScopedTsFnRegistration {
-        source: WeakRef::new(env, &mut function)?,
-        active: active.clone(),
+        registered_fn: WeakRef::new(env, &mut function)?,
+        active_tsfn: active_tsfn.clone(),
       });
       manager.register(registration);
     } else {
+      // Callbacks parsed outside a compiler construction scope keep the historical eager
+      // TSFN behavior because they are not owned by the compilation-scoped lifecycle.
       let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env, napi_val) }?;
-      *active.borrow_mut() = Some(tsfn);
+      *active_tsfn.borrow_mut() = Some(tsfn);
     }
 
-    Ok(Self { active })
+    Ok(Self { active_tsfn })
   }
 }
 

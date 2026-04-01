@@ -184,6 +184,10 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
 }
 
 type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
+// The register callback itself is compilation-scoped because it can capture compiler or
+// compilation JS objects across builds. The taps returned by that callback stay as ordinary
+// TSFNs: uncached taps die with the returned vector, while cached taps are explicitly
+// released by `clear_cache()`.
 type RegisterFunction<T, R> = CompilationScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
