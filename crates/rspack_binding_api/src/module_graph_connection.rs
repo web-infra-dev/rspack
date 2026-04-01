@@ -137,7 +137,7 @@ impl ModuleGraphConnection {
   ) -> napi::Result<JsConnectionState> {
     let (compilation, module_graph) = self.as_ref()?;
     if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
-      let runtime_spec = runtime.and_then(|r| {
+      let runtime_spec = runtime.map(|r| {
         let mut set = ustr::UstrSet::default();
         match r {
           napi::Either::A(s) => {
@@ -147,7 +147,7 @@ impl ModuleGraphConnection {
             set.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
           }
         }
-        Some(rspack_core::RuntimeSpec::new(set))
+        rspack_core::RuntimeSpec::new(set)
       });
       let module_graph_cache = compilation
         .module_graph_cache_artifact
