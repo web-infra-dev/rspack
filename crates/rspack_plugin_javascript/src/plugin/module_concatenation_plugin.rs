@@ -178,52 +178,44 @@ impl ModuleConcatenationPlugin {
       .map(|reason| reason.clone())
   }
 
-  pub fn get_imports(
+  fn get_imports(
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
-    module_cache: &IdentifierMap<NoRuntimeModuleCache>,
+    module_facts: &IdentifierMap<ModuleConcatFacts>,
   ) -> IdentifierIndexSet {
     if let Some(set) = imports_cache.get(&mi, runtime) {
       return set.clone();
     }
 
-    let cached = module_cache.get(&mi).expect("should have module");
+    let facts = module_facts.get(&mi).expect("should have module facts");
 
-    let mut set =
-      IdentifierIndexSet::with_capacity_and_hasher(cached.connections.len(), Default::default());
-    for (con, (has_imported_names, cached_active)) in &cached.connections {
-      if set.contains(con.module_identifier()) {
+    let mut set = IdentifierIndexSet::with_capacity_and_hasher(
+      facts.outgoing_esm_connections.len(),
+      Default::default(),
+    );
+    for outgoing in &facts.outgoing_esm_connections {
+      if set.contains(outgoing.connection.module_identifier()) {
         continue;
       }
 
-      let is_target_active = if let Some(runtime) = runtime {
-        if cached.runtime == *runtime {
-          // runtime is same, use cached value
-          *cached_active
-        } else if *cached_active && cached.runtime.is_subset(runtime) {
-          // cached runtime is subset and active, means it is also active in current runtime
-          true
-        } else if !*cached_active && cached.runtime.is_superset(runtime) {
-          // cached runtime is superset and inactive, means it is also inactive in current runtime
-          false
-        } else {
-          // can't determine, need to check
-          con.is_target_active(mg, Some(runtime), mg_cache, exports_info_artifact)
-        }
-      } else {
-        // no runtime, need to check
-        con.is_target_active(mg, None, mg_cache, exports_info_artifact)
-      };
+      let is_target_active =
+        reuse_cached_activity(&facts.runtime, runtime, outgoing.active_for_module_runtime)
+          .unwrap_or_else(|| {
+            outgoing
+              .connection
+              .is_target_active(mg, runtime, mg_cache, exports_info_artifact)
+          });
 
-      if !is_target_active {
-        continue;
-      }
-      if *has_imported_names || cached.provided_names {
-        set.insert(*con.module_identifier());
+      if should_include_import_target(
+        outgoing.has_imported_names,
+        facts.provided_names,
+        is_target_active,
+      ) {
+        set.insert(*outgoing.connection.module_identifier());
       }
     }
 
@@ -245,6 +237,7 @@ impl ModuleConcatenationPlugin {
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
+    module_facts: &IdentifierMap<ModuleConcatFacts>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
   ) -> Option<Warning> {
     statistics
@@ -622,6 +615,7 @@ impl ModuleConcatenationPlugin {
         false,
         statistics,
         imports_cache,
+        module_facts,
         module_cache,
       ) {
         if let Some(backup) = &backup {
@@ -640,7 +634,7 @@ impl ModuleConcatenationPlugin {
       *module_id,
       runtime,
       imports_cache,
-      module_cache,
+      module_facts,
     ) {
       candidates.insert(imp);
     }
@@ -935,19 +929,22 @@ impl ModuleConcatenationPlugin {
       .chain(possible_inners.iter())
       .copied()
       .collect::<IdentifierSet>();
+    let module_facts_entries = cache_modules
+      .into_par_iter()
+      .map(|module_id| (module_id, build_module_concat_facts(compilation, module_id)))
+      .collect::<Vec<_>>();
+    let mut module_facts =
+      IdentifierMap::with_capacity_and_hasher(module_facts_entries.len(), Default::default());
+    module_facts.extend(module_facts_entries);
+
+    let cache_modules = relevant_modules
+      .iter()
+      .chain(possible_inners.iter())
+      .copied()
+      .collect::<IdentifierSet>();
     let modules_without_runtime_cache_entries = cache_modules
       .into_par_iter()
       .map(|module_id| {
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
-        let provided_names = matches!(
-          exports_info.get_provided_exports(),
-          ProvidedExports::ProvidedNames(_)
-        );
-        let module = module_graph
-          .module_by_identifier(&module_id)
-          .expect("should have module");
         let runtime = RuntimeSpec::from_runtimes(
           compilation
             .build_chunk_graph_artifact
@@ -964,41 +961,6 @@ impl ModuleConcatenationPlugin {
           module_static_cache,
           compilation_context,
         );
-
-        let connections = module
-          .get_dependencies()
-          .iter()
-          .filter_map(|d| {
-            let dep = module_graph.dependency_by_id(d);
-            if !is_esm_dep_like(dep) {
-              return None;
-            }
-            let con = module_graph.connection_by_dependency_id(d)?;
-            let module_dep = dep.as_module_dependency().expect("should be module dep");
-            let imported_names = module_dep.get_referenced_exports(
-              module_graph,
-              module_graph_cache,
-              &compilation.exports_info_artifact,
-              None,
-            );
-
-            Some((
-              con.clone(),
-              (
-                imported_names.iter().all(|item| match item {
-                  ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-                  ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-                }),
-                con.is_target_active(
-                  module_graph,
-                  Some(&runtime),
-                  module_graph_cache,
-                  &compilation.exports_info_artifact,
-                ),
-              ),
-            ))
-          })
-          .collect::<Vec<_>>();
 
         let incoming_connections =
           module_graph.get_incoming_connections_by_origin_module(&module_id);
@@ -1047,8 +1009,6 @@ impl ModuleConcatenationPlugin {
           module_id,
           NoRuntimeModuleCache {
             runtime,
-            provided_names,
-            connections,
             incomings,
             active_incomings,
             number_of_chunks,
@@ -1097,7 +1057,7 @@ impl ModuleConcatenationPlugin {
         *current_root,
         active_runtime.as_ref(),
         &mut imports_cache,
-        &modules_without_runtime_cache,
+        &module_facts,
       );
       for import in imports {
         candidates.push_back(import);
@@ -1123,6 +1083,7 @@ impl ModuleConcatenationPlugin {
           true,
           &mut statistics,
           &mut imports_cache,
+          &module_facts,
           &modules_without_runtime_cache,
         ) {
           Some(problem) => {
@@ -1363,8 +1324,6 @@ struct IncomingConnections {
 #[derive(Debug)]
 pub struct NoRuntimeModuleCache {
   runtime: RuntimeSpec,
-  provided_names: bool,
-  connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: IncomingConnections,
   active_incomings: HashMap<DependencyId, bool>,
   number_of_chunks: usize,
@@ -1387,6 +1346,14 @@ fn reuse_cached_activity(
     return Some(false);
   }
   None
+}
+
+fn should_include_import_target(
+  has_imported_names: bool,
+  provided_names: bool,
+  is_target_active: bool,
+) -> bool {
+  is_target_active && (has_imported_names || provided_names)
 }
 
 #[allow(dead_code)]
@@ -2071,5 +2038,20 @@ mod tests {
     let cached = runtime(&["main"]);
     let query = runtime(&["admin"]);
     assert_eq!(reuse_cached_activity(&cached, Some(&query), true), None);
+  }
+
+  #[test]
+  fn should_include_import_target_accepts_direct_imports() {
+    assert!(should_include_import_target(true, false, true));
+  }
+
+  #[test]
+  fn should_include_import_target_accepts_provided_namespace() {
+    assert!(should_include_import_target(false, true, true));
+  }
+
+  #[test]
+  fn should_include_import_target_rejects_inactive_connections() {
+    assert!(!should_include_import_target(true, true, false));
   }
 }
