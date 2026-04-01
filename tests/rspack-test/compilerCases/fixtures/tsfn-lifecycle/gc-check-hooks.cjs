@@ -23,7 +23,7 @@ function delay() {
   return new Promise(resolve => setTimeout(resolve, 0));
 }
 
-async function waitForCollection(finalized, label) {
+async function waitForGC(finalized, label) {
   for (let i = 0; i < 100; i++) {
     global.gc();
     await delay();
@@ -74,7 +74,7 @@ async function main() {
   let secondCompilation = capturedCompilations[capturedCompilations.length - 1];
   registry.register(secondCompilation, "second compilation");
 
-  await waitForCollection(finalized, "first compilation");
+  await waitForGC(finalized, "first compilation");
 
   registry.register(compiler, "compiler");
 
@@ -85,8 +85,8 @@ async function main() {
   capturedCompilations[capturedCompilations.length - 1] = null;
   compiler = null;
 
-  await waitForCollection(finalized, "second compilation");
-  await waitForCollection(finalized, "compiler");
+  await waitForGC(finalized, "second compilation");
+  await waitForGC(finalized, "compiler");
 }
 
 main().catch(error => {

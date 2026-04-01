@@ -73,7 +73,7 @@ module.exports = [
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "gc-check.cjs",
+          "gc-check-hooks.cjs",
         ),
       );
     },
@@ -92,7 +92,7 @@ module.exports = [
     },
   },
   {
-    description: "should isolate compilation-scoped tsfn lifecycles across compilers on the same js thread",
+    description: "should isolate compiler-scoped tsfn lifecycles across compilers on the same js thread",
     async build() {
       await runChild(
         path.join(

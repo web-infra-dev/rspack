@@ -19,11 +19,15 @@ function closeCompiler(compiler) {
   });
 }
 
-async function waitForCollection(ref, label) {
+function delay() {
+  return new Promise(resolve => setTimeout(resolve, 0));
+}
+
+async function waitForGC(finalized, label) {
   for (let i = 0; i < 100; i++) {
     global.gc();
-    await new Promise(resolve => setTimeout(resolve, 0));
-    if (ref.deref() === undefined) {
+    await delay();
+    if (finalized.has(label)) {
       return;
     }
   }
@@ -36,35 +40,70 @@ async function main() {
     throw new Error("global.gc is unavailable; run this script with --expose-gc");
   }
 
+  const finalized = new Set();
+  const registry = new FinalizationRegistry(label => {
+    finalized.add(label);
+  });
+
   const fixtureDir = __dirname;
   let compiler;
-  const filename = () => {
-    if (compiler && compiler.running) {
-      return "bundle.js";
-    }
-    return "bundle.js";
-  };
+  let filenameUsedCompilation = false;
+  let bannerUsedCompilation = false;
 
-  compiler = rspack({
-    context: fixtureDir,
-    mode: "development",
-    entry: "./entry.js",
-    output: {
-      path: "/",
-      filename,
-    },
-  });
+  compiler = rspack((() => {
+    let capturedCompilation;
+
+    return {
+      context: fixtureDir,
+      mode: "development",
+      entry: "./entry.js",
+      output: {
+        path: "/",
+        filename: () => {
+          if (capturedCompilation) {
+            filenameUsedCompilation = true;
+            capturedCompilation.hash;
+          }
+          return "bundle.js";
+        },
+      },
+      plugins: [
+        new rspack.BannerPlugin({
+          banner: () => {
+            if (capturedCompilation) {
+              bannerUsedCompilation = true;
+              capturedCompilation.hash;
+            }
+            return "banner";
+          },
+        }),
+        {
+          apply(compiler) {
+            compiler.hooks.compilation.tap("PLUGIN", compilation => {
+              capturedCompilation = compilation;
+            });
+          }
+        }
+      ]
+    };
+  })());
   compiler.outputFileSystem = createFsFromVolume(new Volume());
 
   let stats = await runCompiler(compiler);
-  const compilerRef = new WeakRef(compiler);
+  if (!filenameUsedCompilation) {
+    throw new Error("output.filename callback did not observe compilation");
+  }
+  if (!bannerUsedCompilation) {
+    throw new Error("BannerPlugin callback did not observe compilation");
+  }
+  registry.register(compiler, "option callback compiler");
 
   await closeCompiler(compiler);
 
   stats = null;
   compiler = null;
 
-  await waitForCollection(compilerRef, "option callback compiler");
+  await waitForGC(finalized, "option callback compiler");
 }
 
 main().catch(error => {

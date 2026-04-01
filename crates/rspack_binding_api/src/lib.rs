@@ -432,8 +432,9 @@ impl JsCompiler {
     mut reference: Reference<JsCompiler>,
   ) -> Result<PromiseRaw<'env, ()>> {
     // SAFETY:
-    // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
-    // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
+    // The `Reference<JsCompiler>` prevents the JsCompiler from being garbage collected
+    // until `promise.finally()` runs, ensuring the Compiler remains valid throughout the
+    // async operation. This allows us to safely extend the lifetime to 'static.
     let compiler = unsafe {
       std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
     };
