@@ -1585,10 +1585,11 @@ fn build_module_concat_facts(
     );
     outgoing_esm_connections.push(OutgoingConnectionFacts {
       connection: connection.clone(),
-      has_imported_names: imported_names.iter().all(|item| match item {
-        ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-        ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-      }),
+      has_imported_names: !imported_names.is_empty()
+        && imported_names.iter().all(|item| match item {
+          ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
+          ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
+        }),
       active_for_module_runtime: connection.is_target_active(
         module_graph,
         Some(&runtime),
