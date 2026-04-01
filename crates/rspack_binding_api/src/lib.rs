@@ -441,7 +441,6 @@ impl JsCompiler {
     env: &'env Env,
     mut reference: Reference<JsCompiler>,
   ) -> Result<PromiseRaw<'env, ()>> {
-    let weak_reference = reference.downgrade();
     // SAFETY:
     // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
     // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
@@ -449,17 +448,20 @@ impl JsCompiler {
       std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
     };
 
-    env
-      .spawn_future(async move {
-        compiler.close().await.to_napi_result_with_message(|e| {
-          print_error_diagnostic(e, compiler.options.stats.colors)
-        })?;
-        Ok(())
-      })?
-      .finally(|_env| {
-        drop(reference);
-        Ok(())
-      })
+    let spawn_future_result = env.spawn_future(async move {
+      compiler.close().await.to_napi_result_with_message(|e| {
+        print_error_diagnostic(e, compiler.options.stats.colors)
+      })?;
+      Ok(())
+    });
+    let Ok(mut promise) = spawn_future_result else {
+      drop(reference);
+      return spawn_future_result;
+    };
+    promise.finally(|_env| {
+      drop(reference);
+      Ok(())
+    })
   }
 
   #[napi]
