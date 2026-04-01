@@ -8,7 +8,9 @@ use std::{
 use atomic_refcell::AtomicRefCell;
 use napi::{
   Env, JsValue, Status, ValueType,
-  bindgen_prelude::{FromNapiValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue},
+  bindgen_prelude::{
+    FromNapiValue, JsObjectValue, JsValuesTupleIntoVec, Promise, TypeName, ValidateNapiValue,
+  },
   sys,
 };
 use rspack_error::error;
@@ -110,12 +112,59 @@ impl CompilationScopedTsFnManager {
 
 type ActiveThreadsafeFunction<T, R> = Arc<AtomicRefCell<Option<ThreadsafeFunction<T, R>>>>;
 
+#[cfg(debug_assertions)]
+const CALLBACK_SOURCE_PREVIEW_LIMIT: usize = 160;
+
+#[cfg(debug_assertions)]
+fn truncate_source_preview(source: &str) -> String {
+  let compact = source.split_whitespace().collect::<Vec<_>>().join(" ");
+  let mut preview = compact
+    .chars()
+    .take(CALLBACK_SOURCE_PREVIEW_LIMIT)
+    .collect::<String>();
+  if compact.chars().count() > CALLBACK_SOURCE_PREVIEW_LIMIT {
+    preview.push_str("...");
+  }
+  preview
+}
+
+#[cfg(debug_assertions)]
+fn describe_js_function(env: sys::napi_env, napi_val: sys::napi_value) -> String {
+  let env = Env::from_raw(env);
+  let function = napi::bindgen_prelude::Object::from_raw(env.raw(), napi_val);
+  if let Some(name) = function
+    .get_named_property::<String>("name")
+    .ok()
+    .filter(|name| !name.is_empty())
+  {
+    return format!("function `{name}`");
+  }
+
+  function
+    .coerce_to_string()
+    .ok()
+    .and_then(|source| source.into_utf8().ok())
+    .and_then(|source| source.into_owned().ok())
+    .filter(|source| !source.is_empty())
+    .map_or_else(
+      || "anonymous function".to_string(),
+      |source| {
+        format!(
+          "anonymous function with source preview: {}",
+          truncate_source_preview(&source)
+        )
+      },
+    )
+}
+
 // A registration keeps the original JS callback registered fn alive only as a weak reference.
 // Each build/rebuild activates a fresh TSFN into the shared slot and the build callback
 // finalizer clears that slot again.
 struct CompilationScopedTsFnRegistration<T: 'static + JsValuesTupleIntoVec, R> {
   registered_fn: WeakRef,
   active_tsfn: ActiveThreadsafeFunction<T, R>,
+  #[cfg(debug_assertions)]
+  function_description: String,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R: 'static> CompilationScopedTsFnRegistrationOps
@@ -123,10 +172,14 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> CompilationScopedTsFnRegistr
 {
   fn activate(&self, env: Env) -> napi::Result<()> {
     let function = self.registered_fn.as_object(&env).map_err(|_| {
-      napi::Error::new(
-        Status::GenericFailure,
-        "Compilation-scoped JS callback has been garbage collected before activation",
-      )
+      #[cfg(debug_assertions)]
+      let message = format!(
+        "Compilation-scoped JS callback {} has been garbage collected before activation",
+        self.function_description
+      );
+      #[cfg(not(debug_assertions))]
+      let message = "Compilation-scoped JS callback has been garbage collected before activation";
+      napi::Error::new(Status::GenericFailure, message)
     })?;
     let tsfn = unsafe { ThreadsafeFunction::from_napi_value(env.raw(), function.raw()) }?;
     *self.active_tsfn.borrow_mut() = Some(tsfn);
@@ -194,6 +247,8 @@ impl<T: 'static + JsValuesTupleIntoVec, R: 'static> FromNapiValue
       let registration = Rc::new(CompilationScopedTsFnRegistration {
         registered_fn: WeakRef::new(env, &mut function)?,
         active_tsfn: active_tsfn.clone(),
+        #[cfg(debug_assertions)]
+        function_description: describe_js_function(env, napi_val),
       });
       manager.register(registration);
     } else {

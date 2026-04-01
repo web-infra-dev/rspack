@@ -1,51 +1,15 @@
 const rspack = require("@rspack/core");
 const { createFsFromVolume, Volume } = require("memfs");
-
-function runCompiler(compiler) {
-  return new Promise((resolve, reject) => {
-    compiler.run((err, stats) => {
-      if (err) return reject(err);
-      resolve(stats);
-    });
-  });
-}
-
-function closeCompiler(compiler) {
-  return new Promise((resolve, reject) => {
-    compiler.close(err => {
-      if (err) return reject(err);
-      resolve();
-    });
-  });
-}
-
-function delay() {
-  return new Promise(resolve => setTimeout(resolve, 0));
-}
-
-async function waitForGC(finalized, label) {
-  for (let i = 0; i < 100; i++) {
-    global.gc();
-    await delay();
-    if (finalized.has(label)) {
-      return;
-    }
-  }
-
-  throw new Error(`${label} was not garbage collected`);
-}
+const {
+  closeCompiler,
+  createGCTracker,
+  runCompiler,
+} = require("./helpers.cjs");
 
 async function main() {
-  if (typeof global.gc !== "function") {
-    throw new Error("global.gc is unavailable; run this script with --expose-gc");
-  }
-
-  const finalized = new Set();
-  const registry = new FinalizationRegistry(label => {
-    finalized.add(label);
-  });
-
+  const gcTracker = createGCTracker();
   const fixtureDir = __dirname;
+
   let compiler = rspack({
     context: fixtureDir,
     mode: "development",
@@ -58,25 +22,47 @@ async function main() {
   compiler.outputFileSystem = createFsFromVolume(new Volume());
 
   const capturedCompilations = [];
-  compiler.hooks.compilation.tap("TsfnLifecyclePlugin", compilation => {
-    capturedCompilations.push(compilation);
-    compilation.hooks.processAssets.tap("TsfnLifecyclePlugin", () => { });
-  });
+  let processAssetsCalls = 0;
+  let processAssetsUsedCompiler = false;
+  let processAssetsUsedCompilation = false;
+  {
+    const compilerRef = compiler;
+    compiler.hooks.compilation.tap("TsfnLifecycleHooks", compilation => {
+      capturedCompilations.push(compilation);
+      const compilationRef = compilation;
+
+      compilation.hooks.processAssets.tap("TsfnLifecycleHooks", () => {
+        processAssetsCalls += 1;
+        processAssetsUsedCompiler = true;
+        processAssetsUsedCompilation = true;
+        compilerRef.outputFileSystem;
+        compilationRef.hash;
+      });
+    });
+  }
 
   let firstStats = await runCompiler(compiler);
+  if (!processAssetsUsedCompiler || !processAssetsUsedCompilation) {
+    throw new Error("hook closures did not observe both compiler and compilation");
+  }
+
   let firstCompilation = capturedCompilations[0];
-  registry.register(firstCompilation, "first compilation");
+  gcTracker.track(firstCompilation, "first hook compilation");
   firstStats = null;
   firstCompilation = null;
   capturedCompilations[0] = null;
 
   let secondStats = await runCompiler(compiler);
   let secondCompilation = capturedCompilations[capturedCompilations.length - 1];
-  registry.register(secondCompilation, "second compilation");
+  gcTracker.track(secondCompilation, "second hook compilation");
 
-  await waitForGC(finalized, "first compilation");
+  if (processAssetsCalls < 2) {
+    throw new Error("hook closures were not invoked for both builds");
+  }
 
-  registry.register(compiler, "compiler");
+  await gcTracker.waitForCollection("first hook compilation");
+
+  gcTracker.track(compiler, "hook compiler");
 
   await closeCompiler(compiler);
 
@@ -85,8 +71,8 @@ async function main() {
   capturedCompilations[capturedCompilations.length - 1] = null;
   compiler = null;
 
-  await waitForGC(finalized, "second compilation");
-  await waitForGC(finalized, "compiler");
+  await gcTracker.waitForCollection("second hook compilation");
+  await gcTracker.waitForCollection("hook compiler");
 }
 
 main().catch(error => {

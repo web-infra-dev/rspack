@@ -1,57 +1,25 @@
 const rspack = require("@rspack/core");
 const { createFsFromVolume, Volume } = require("memfs");
-
-function runCompiler(compiler) {
-  return new Promise((resolve, reject) => {
-    compiler.run((err, stats) => {
-      if (err) return reject(err);
-      resolve(stats);
-    });
-  });
-}
-
-function closeCompiler(compiler) {
-  return new Promise((resolve, reject) => {
-    compiler.close(err => {
-      if (err) return reject(err);
-      resolve();
-    });
-  });
-}
-
-function delay() {
-  return new Promise(resolve => setTimeout(resolve, 0));
-}
-
-async function waitForGC(finalized, label) {
-  for (let i = 0; i < 100; i++) {
-    global.gc();
-    await delay();
-    if (finalized.has(label)) {
-      return;
-    }
-  }
-
-  throw new Error(`${label} was not garbage collected`);
-}
+const {
+  closeCompiler,
+  createGCTracker,
+  runCompiler,
+} = require("./helpers.cjs");
 
 async function main() {
-  if (typeof global.gc !== "function") {
-    throw new Error("global.gc is unavailable; run this script with --expose-gc");
-  }
-
-  const finalized = new Set();
-  const registry = new FinalizationRegistry(label => {
-    finalized.add(label);
-  });
-
+  const gcTracker = createGCTracker();
   const fixtureDir = __dirname;
-  let compiler;
+  const capturedCompilations = [];
+  let filenameCalls = 0;
+  let bannerCalls = 0;
+  let filenameUsedCompiler = false;
   let filenameUsedCompilation = false;
+  let bannerUsedCompiler = false;
   let bannerUsedCompilation = false;
 
-  compiler = rspack((() => {
-    let capturedCompilation;
+  let compiler = rspack((() => {
+    let compilerRef;
+    let latestCompilation;
 
     return {
       context: fixtureDir,
@@ -60,9 +28,14 @@ async function main() {
       output: {
         path: "/",
         filename: () => {
-          if (capturedCompilation) {
+          filenameCalls += 1;
+          if (compilerRef) {
+            filenameUsedCompiler = true;
+            compilerRef.outputFileSystem;
+          }
+          if (latestCompilation) {
             filenameUsedCompilation = true;
-            capturedCompilation.hash;
+            latestCompilation.hash;
           }
           return "bundle.js";
         },
@@ -70,40 +43,69 @@ async function main() {
       plugins: [
         new rspack.BannerPlugin({
           banner: () => {
-            if (capturedCompilation) {
+            bannerCalls += 1;
+            if (compilerRef) {
+              bannerUsedCompiler = true;
+              compilerRef.outputFileSystem;
+            }
+            if (latestCompilation) {
               bannerUsedCompilation = true;
-              capturedCompilation.hash;
+              latestCompilation.hash;
             }
             return "banner";
           },
         }),
         {
           apply(compiler) {
-            compiler.hooks.compilation.tap("PLUGIN", compilation => {
-              capturedCompilation = compilation;
+            compilerRef = compiler;
+            compiler.hooks.compilation.tap("TsfnLifecycleOptionCapture", compilation => {
+              latestCompilation = compilation;
+              capturedCompilations.push(compilation);
             });
-          }
-        }
-      ]
+          },
+        },
+      ],
     };
   })());
   compiler.outputFileSystem = createFsFromVolume(new Volume());
 
-  let stats = await runCompiler(compiler);
-  if (!filenameUsedCompilation) {
-    throw new Error("output.filename callback did not observe compilation");
+  let firstStats = await runCompiler(compiler);
+  if (
+    !filenameUsedCompiler ||
+    !filenameUsedCompilation ||
+    !bannerUsedCompiler ||
+    !bannerUsedCompilation
+  ) {
+    throw new Error("option callbacks did not observe both compiler and compilation");
   }
-  if (!bannerUsedCompilation) {
-    throw new Error("BannerPlugin callback did not observe compilation");
+
+  let firstCompilation = capturedCompilations[0];
+  gcTracker.track(firstCompilation, "first option compilation");
+  firstStats = null;
+  firstCompilation = null;
+  capturedCompilations[0] = null;
+
+  let secondStats = await runCompiler(compiler);
+  let secondCompilation = capturedCompilations[capturedCompilations.length - 1];
+  gcTracker.track(secondCompilation, "second option compilation");
+
+  if (filenameCalls < 2 || bannerCalls < 2) {
+    throw new Error("option callbacks were not invoked for both builds");
   }
-  registry.register(compiler, "option callback compiler");
+
+  await gcTracker.waitForCollection("first option compilation");
+
+  gcTracker.track(compiler, "option compiler");
 
   await closeCompiler(compiler);
 
-  stats = null;
+  secondStats = null;
+  secondCompilation = null;
+  capturedCompilations[capturedCompilations.length - 1] = null;
   compiler = null;
 
-  await waitForGC(finalized, "option callback compiler");
+  await gcTracker.waitForCollection("second option compilation");
+  await gcTracker.waitForCollection("option compiler");
 }
 
 main().catch(error => {

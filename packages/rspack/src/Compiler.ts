@@ -76,6 +76,7 @@ import type {
 import { makePathsRelative } from './util/identifier';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
 import { Watching } from './Watching';
+import { RawOptions } from '@rspack/binding';
 
 const require = createRequire(import.meta.url);
 
@@ -187,6 +188,12 @@ class Compiler {
   #platform: PlatformTargetProperties;
   #target: ExtractedTargetProperties;
   options: RspackOptionsNormalized;
+
+  // Keep the original RawOptions object alive on the JS Compiler instance.
+  // The Rust napi layer only keeps a weak reference to RawOptions so it does not
+  // accidentally keep the Compiler JS object from being garbage collected.
+  #rawOptions?: RawOptions;
+
   /**
    * Whether to skip dropping Rust compiler instance to improve performance.
    * This is an internal option api and could be removed or changed at any time.
@@ -933,12 +940,12 @@ class Compiler {
     }
 
     const { options } = this;
-    const rawOptions = getRawOptions(options, this);
-    rawOptions.__references = Object.fromEntries(
+    this.#rawOptions = getRawOptions(options, this);
+    this.#rawOptions.__references = Object.fromEntries(
       this.#ruleSet.builtinReferences.entries(),
     );
 
-    rawOptions.__virtual_files =
+    this.#rawOptions.__virtual_files =
       VirtualModulesPlugin.__internal__take_virtual_files(this);
 
     const instanceBinding: typeof binding = require('@rspack/binding');
@@ -954,7 +961,7 @@ class Compiler {
     try {
       this.#instance = new instanceBinding.JsCompiler(
         this.compilerPath,
-        rawOptions,
+        this.#rawOptions,
         this.#builtinPlugins,
         this.#registers,
         ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),

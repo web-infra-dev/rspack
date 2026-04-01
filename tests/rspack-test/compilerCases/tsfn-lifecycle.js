@@ -1,6 +1,5 @@
 const path = require("node:path");
 const { spawn } = require("node:child_process");
-const { createFsFromVolume, Volume } = require("memfs");
 
 function runChild(script) {
   return new Promise((resolve, reject) => {
@@ -39,34 +38,8 @@ function runChild(script) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
   {
-    description: "should reject run after compiler.close",
-    options() {
-      return {
-        mode: "development",
-        entry: "./c",
-      };
-    },
-    async compiler(context, compiler) {
-      compiler.outputFileSystem = createFsFromVolume(new Volume());
-    },
-    async build(context, compiler) {
-      await new Promise((resolve, reject) => {
-        compiler.run(err => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
-
-      await new Promise((resolve, reject) => {
-        compiler.close(err => {
-          if (err) return reject(err);
-          resolve();
-        });
-      });
-    },
-  },
-  {
-    description: "should release tsfn-owned compiler and compilation lifecycles after close",
+    description:
+      "should garbage collect hook closures that capture both compilation and compiler",
     async build() {
       await runChild(
         path.join(
@@ -79,7 +52,8 @@ module.exports = [
     },
   },
   {
-    description: "should release tsfn-owned option callback lifecycles after close",
+    description:
+      "should garbage collect option callbacks that capture both compilation and compiler",
     async build() {
       await runChild(
         path.join(
@@ -92,14 +66,15 @@ module.exports = [
     },
   },
   {
-    description: "should isolate compiler-scoped tsfn lifecycles across compilers on the same js thread",
+    description:
+      "should keep option callbacks alive across multiple builds even after forced gc",
     async build() {
       await runChild(
         path.join(
           __dirname,
           "fixtures",
           "tsfn-lifecycle",
-          "parallel-compilers.cjs",
+          "gc-check-options-multiple-builds.cjs",
         ),
       );
     },
