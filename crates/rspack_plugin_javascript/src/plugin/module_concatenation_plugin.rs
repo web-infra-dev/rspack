@@ -1504,6 +1504,117 @@ pub struct NoRuntimeModuleCache {
   number_of_chunks: usize,
 }
 
+#[allow(dead_code)]
+fn reuse_cached_activity(
+  cached_runtime: &RuntimeSpec,
+  query_runtime: Option<&RuntimeSpec>,
+  cached_active: bool,
+) -> Option<bool> {
+  let query_runtime = query_runtime?;
+  if cached_runtime == query_runtime {
+    return Some(cached_active);
+  }
+  if cached_active && cached_runtime.is_subset(query_runtime) {
+    return Some(true);
+  }
+  if !cached_active && cached_runtime.is_superset(query_runtime) {
+    return Some(false);
+  }
+  None
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct OutgoingConnectionFacts {
+  connection: ModuleGraphConnection,
+  has_imported_names: bool,
+  active_for_module_runtime: bool,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+struct ModuleConcatFacts {
+  runtime: RuntimeSpec,
+  number_of_chunks: usize,
+  provided_names: bool,
+  can_be_root_precheck: bool,
+  can_be_inner_precheck: bool,
+  initial_bailout_reasons: Vec<Cow<'static, str>>,
+  outgoing_esm_connections: Vec<OutgoingConnectionFacts>,
+  incoming_from_non_modules: Vec<ModuleGraphConnection>,
+  incoming_from_modules: IdentifierMap<Vec<ModuleGraphConnection>>,
+  active_incomings_for_module_runtime: HashMap<DependencyId, bool>,
+}
+
+#[allow(dead_code)]
+fn build_module_concat_facts(
+  compilation: &Compilation,
+  module_id: ModuleIdentifier,
+) -> ModuleConcatFacts {
+  let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
+  let runtime =
+    RuntimeSpec::from_runtimes(chunk_graph.get_module_runtimes_iter(module_id, chunk_by_ukey));
+
+  let module = module_graph
+    .module_by_identifier(&module_id)
+    .expect("should have module");
+
+  let mut outgoing_esm_connections = Vec::new();
+  for dependency_id in module.get_dependencies() {
+    let dependency = module_graph.dependency_by_id(dependency_id);
+    if !is_esm_dep_like(dependency) {
+      continue;
+    }
+    let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+      continue;
+    };
+    let module_dependency = dependency
+      .as_module_dependency()
+      .expect("should be module dep");
+    let imported_names = module_dependency.get_referenced_exports(
+      module_graph,
+      module_graph_cache,
+      &compilation.exports_info_artifact,
+      None,
+    );
+    outgoing_esm_connections.push(OutgoingConnectionFacts {
+      connection: connection.clone(),
+      has_imported_names: imported_names.iter().all(|item| match item {
+        ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
+        ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
+      }),
+      active_for_module_runtime: connection.is_target_active(
+        module_graph,
+        Some(&runtime),
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+      ),
+    });
+  }
+
+  ModuleConcatFacts {
+    runtime,
+    number_of_chunks: chunk_graph.get_number_of_module_chunks(module_id),
+    provided_names: matches!(
+      exports_info.get_provided_exports(),
+      ProvidedExports::ProvidedNames(_)
+    ),
+    can_be_root_precheck: true,
+    can_be_inner_precheck: true,
+    initial_bailout_reasons: Vec::new(),
+    outgoing_esm_connections,
+    incoming_from_non_modules: Vec::new(),
+    incoming_from_modules: IdentifierMap::default(),
+    active_incomings_for_module_runtime: HashMap::default(),
+  }
+}
+
 async fn create_concatenated_module(
   compilation: &Compilation,
   config: &ConcatConfiguration,
@@ -1788,4 +1899,57 @@ fn is_connection_active_in_runtime(
   }
 
   connection.is_active(mg, runtime, mg_cache, exports_info_artifact)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn runtime(names: &[&str]) -> RuntimeSpec {
+    names
+      .iter()
+      .copied()
+      .map(Into::into)
+      .collect::<RuntimeSpec>()
+  }
+
+  #[test]
+  fn reuse_cached_activity_returns_exact_match() {
+    let runtime = runtime(&["main"]);
+    assert_eq!(
+      reuse_cached_activity(&runtime, Some(&runtime), true),
+      Some(true)
+    );
+    assert_eq!(
+      reuse_cached_activity(&runtime, Some(&runtime), false),
+      Some(false)
+    );
+  }
+
+  #[test]
+  fn reuse_cached_activity_promotes_active_subset() {
+    let cached = runtime(&["main"]);
+    let query = runtime(&["main", "admin"]);
+    assert_eq!(
+      reuse_cached_activity(&cached, Some(&query), true),
+      Some(true)
+    );
+  }
+
+  #[test]
+  fn reuse_cached_activity_demotes_inactive_superset() {
+    let cached = runtime(&["main", "admin"]);
+    let query = runtime(&["main"]);
+    assert_eq!(
+      reuse_cached_activity(&cached, Some(&query), false),
+      Some(false)
+    );
+  }
+
+  #[test]
+  fn reuse_cached_activity_falls_back_when_undecidable() {
+    let cached = runtime(&["main"]);
+    let query = runtime(&["admin"]);
+    assert_eq!(reuse_cached_activity(&cached, Some(&query), true), None);
+  }
 }
