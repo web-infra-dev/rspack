@@ -114,13 +114,25 @@ export class ServeCommand implements RspackCommand {
          */
         const compilerForDevServer =
           possibleCompilers.length > 0 ? possibleCompilers[0] : compilers[0];
+        const compilerForDevServerOptions =
+          compilerForDevServer.options.devServer;
+
+        if (compilerForDevServerOptions === false) {
+          return;
+        }
 
         /**
          * Rspack relies on devServer.hot to enable HMR
          */
         for (const [index, compiler] of compilers.entries()) {
           const userConfig = userConfigs[index];
-          const devServer = (compiler.options.devServer ??= {});
+          const existingDevServer = compiler.options.devServer;
+          if (existingDevServer === false) {
+            continue;
+          }
+
+          const devServer: DevServer =
+            existingDevServer ?? (compiler.options.devServer = {});
           const isWebAppOnly =
             compiler.platform.web &&
             !compiler.platform.node &&
@@ -151,8 +163,9 @@ export class ServeCommand implements RspackCommand {
           }
         }
 
-        const devServerOptions = (compilerForDevServer.options.devServer ??=
-          {});
+        const devServerOptions: DevServer =
+          compilerForDevServerOptions ??
+          (compilerForDevServer.options.devServer = {});
         const { setupMiddlewares } = devServerOptions;
 
         const lazyCompileMiddleware =

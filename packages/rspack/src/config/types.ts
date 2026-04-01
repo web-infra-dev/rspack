@@ -3138,7 +3138,7 @@ export type RspackOptions = {
   /**
    * Configuration for the development server.
    */
-  devServer?: DevServer;
+  devServer?: false | DevServer;
   /**
    * Options for module configuration.
    */

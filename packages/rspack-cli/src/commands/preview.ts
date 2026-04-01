@@ -87,7 +87,11 @@ export class PreviewCommand implements RspackCommand {
           const singleConfig =
             config.find((item) => item.devServer) || config[0];
 
-          const devServerOptions = singleConfig.devServer as DevServer;
+          const devServer =
+            singleConfig.devServer === false
+              ? undefined
+              : singleConfig.devServer;
+          const devServerOptions: DevServer = devServer ?? {};
 
           try {
             const compiler = rspack({ entry: {} });
@@ -117,6 +121,7 @@ async function getPreviewConfig(
 
   const internalPreviewConfig = async (item: RspackOptions) => {
     // all of the options that a preview static server needs(maybe not all)
+    const devServer = item.devServer === false ? undefined : item.devServer;
     item.devServer = {
       static: {
         directory: dir
@@ -126,11 +131,11 @@ async function getPreviewConfig(
         publicPath: options.publicPath ?? '/',
       },
       port: options.port ?? 8080,
-      proxy: item.devServer?.proxy,
-      host: options.host ?? item.devServer?.host,
-      open: options.open ?? item.devServer?.open,
-      server: options.server ?? item.devServer?.server,
-      historyApiFallback: item.devServer?.historyApiFallback,
+      proxy: devServer?.proxy,
+      host: options.host ?? devServer?.host,
+      open: options.open ?? devServer?.open,
+      server: options.server ?? devServer?.server,
+      historyApiFallback: devServer?.historyApiFallback,
     };
     return item;
   };
