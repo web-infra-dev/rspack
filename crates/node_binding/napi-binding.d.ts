@@ -25,6 +25,10 @@ export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 
 export const RUST_ERROR_SYMBOL: unique symbol;
 
+export const CIRCULAR_CONNECTION_SYMBOL: unique symbol;
+export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
+export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
+
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
 	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
@@ -446,10 +450,6 @@ export declare class Module {
   libIdent(options: JsLibIdentOptions): string | null
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
-
-export declare const CIRCULAR_CONNECTION_SYMBOL: unique symbol
-export declare const TRANSITIVE_ONLY_SYMBOL: unique symbol
-export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL
 
 export declare class ModuleGraphConnection {
   get dependency(): Dependency
