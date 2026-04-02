@@ -328,14 +328,10 @@ importers:
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
 
   packages/rspack-cli:
-    dependencies:
+    devDependencies:
       '@discoveryjs/json-ext':
         specifier: ^0.5.7
         version: 0.5.7
-      exit-hook:
-        specifier: ^4.0.0
-        version: 4.0.0
-    devDependencies:
       '@rslib/core':
         specifier: 0.20.2
         version: 0.20.2(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)(typescript@6.0.2)
@@ -360,6 +356,9 @@ importers:
       execa:
         specifier: ^5.1.1
         version: 5.1.1
+      exit-hook:
+        specifier: ^4.0.0
+        version: 4.0.0
       pirates:
         specifier: ^4.0.7
         version: 4.0.7
