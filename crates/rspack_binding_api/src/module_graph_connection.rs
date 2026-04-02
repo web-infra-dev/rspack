@@ -145,17 +145,21 @@ impl ModuleGraphConnection {
         }
         rspack_core::RuntimeSpec::new(set)
       });
+      let default_mgc: rspack_core::ModuleGraphCacheArtifact = Default::default();
       let module_graph_cache = compilation
         .module_graph_cache_artifact
         .try_read()
-        .map(|r| r as &rspack_core::ModuleGraphCacheArtifact);
-      let default_cache = Default::default();
-      let cache = module_graph_cache.unwrap_or(&default_cache);
+        .unwrap_or(&default_mgc);
+      let default_eia: rspack_core::ExportsInfoArtifact = Default::default();
+      let exports_info_artifact = compilation
+        .exports_info_artifact
+        .try_read()
+        .unwrap_or(&default_eia);
       let state = connection.active_state(
         module_graph,
         runtime_spec.as_ref(),
-        cache,
-        &compilation.exports_info_artifact,
+        module_graph_cache,
+        exports_info_artifact,
       );
       Ok(match state {
         ConnectionState::Active(active) => JsConnectionState::Bool(active),
