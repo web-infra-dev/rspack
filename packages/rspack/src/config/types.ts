@@ -1111,7 +1111,6 @@ export type JavascriptParserOptions = {
 
   /**
    * Enable or disable evaluating import.meta. Set to 'preserve-unknown' to preserve unknown properties for runtime evaluation.
-   * @default 'preserve-unknown'
    */
   importMeta?: boolean | 'preserve-unknown';
 
@@ -2544,8 +2543,10 @@ export type OptimizationSplitChunksOptions = {
 export type Optimization = {
   /**
    * Which algorithm to use when choosing module ids.
+   * Setting to `false` disables the built-in algorithm, allowing a custom plugin
+   * (e.g. HashedModuleIdsPlugin) to provide module ids instead.
    */
-  moduleIds?: 'named' | 'natural' | 'deterministic';
+  moduleIds?: false | 'named' | 'natural' | 'deterministic' | 'hashed';
 
   /**
    * Which algorithm to use when choosing chunk ids.
@@ -3136,7 +3137,7 @@ export type RspackOptions = {
   /**
    * Configuration for the development server.
    */
-  devServer?: DevServer;
+  devServer?: false | DevServer;
   /**
    * Options for module configuration.
    */

@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		parser: {
-			javascript: {
-				wrappedContextRegExp: /.*1/
-			}
-		}
-	}
+  module: {
+    parser: {
+      javascript: {
+        wrappedContextRegExp: /.*1/,
+      },
+    },
+  },
 };

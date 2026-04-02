@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		parser: {
-			javascript: {
-				importMetaResolve: true,
-			}
-		}
-	},
+  module: {
+    parser: {
+      javascript: {
+        importMetaResolve: true,
+      },
+    },
+  },
 };

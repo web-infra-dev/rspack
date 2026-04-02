@@ -1,5 +1,5 @@
 module.exports = {
-	node: {
-		__dirname: false
-	}
+  node: {
+    __dirname: false,
+  },
 };

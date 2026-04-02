@@ -63,10 +63,6 @@ async function build() {
 		}
 		if (process.env.RUST_TARGET) {
 			args.push("--target", process.env.RUST_TARGET);
-			if (process.env.RUST_TARGET.includes("wasm32")) {
-				// Strip debug format to reduce wasm size of wasm artifacts
-				rustflags.push("-Zfmt-debug=none");
-			}
 		}
 		if (!process.env.DISABLE_PLUGIN) {
 			args.push("--no-default-features");

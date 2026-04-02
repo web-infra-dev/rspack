@@ -14,7 +14,9 @@ export async function applyProfile(
   traceLayer: string = DEFAULT_RUST_TRACE_LAYER,
   traceOutput?: string,
 ) {
-  const { asyncExitHook } = await import('exit-hook');
+  const { asyncExitHook } = await import(
+    /* webpackChunkName: "exit-hook" */ 'exit-hook'
+  );
 
   if (traceLayer !== 'logger' && traceLayer !== 'perfetto') {
     throw new Error(`unsupported trace layer: ${traceLayer}`);

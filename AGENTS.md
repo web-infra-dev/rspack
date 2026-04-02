@@ -9,6 +9,13 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - **Monorepo** with Rust crates (`crates/`) and JavaScript packages (`packages/`)
 - See [Project Architecture](website/docs/en/contribute/development/project.md) for details
 
+## Concurrency architecture
+
+- **Synchronous concurrency**: Prefer `rayon` for CPU-bound parallel work and data-parallel iteration
+- **Asynchronous concurrency**: Prefer the abstractions provided by `rspack_parallel` instead of using raw `tokio` task orchestration directly
+- **Thread pool boundaries**: Avoid mixing `rayon` and `tokio` thread pools for the same workflow unless there is a clear boundary that cannot be avoided
+- **Rule of thumb**: Do not use `tokio` to parallelize synchronous CPU-heavy work, and do not introduce `rayon` inside async orchestration that should stay within `rspack_parallel`
+
 ## Setup
 
 - **Rust**: Latest stable (via [rustup](https://rustup.rs/))

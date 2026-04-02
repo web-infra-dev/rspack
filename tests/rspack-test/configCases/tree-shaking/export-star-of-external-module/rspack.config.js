@@ -1,17 +1,17 @@
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
-	context: __dirname,
-	module: {
-		rules: []
-	},
+  context: __dirname,
+  module: {
+    rules: [],
+  },
 
-	optimization: {
-		sideEffects: true
-	},
-	externalsPresets: {
-		node: true
-	},
-	externals: {
-		"react-router-dom": "Buffer"
-	}
+  optimization: {
+    sideEffects: true,
+  },
+  externalsPresets: {
+    node: true,
+  },
+  externals: {
+    'react-router-dom': 'Buffer',
+  },
 };
