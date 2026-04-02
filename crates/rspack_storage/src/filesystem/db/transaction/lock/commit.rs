@@ -23,6 +23,8 @@ pub struct CommitLock {
 
 impl CommitLock {
   pub fn new(added_files: Vec<String>, removed_files: Vec<String>) -> Self {
+    // added_files and removed_files should be mutually exclusive.
+    debug_assert!(!removed_files.iter().any(|item| added_files.contains(item)));
     Self {
       added_files,
       removed_files,
