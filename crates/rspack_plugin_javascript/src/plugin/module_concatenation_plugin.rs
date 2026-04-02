@@ -923,7 +923,6 @@ impl ModuleConcatenationPlugin {
     let mut imports_cache = RuntimeIdentifierCache::<IdentifierIndexSet>::default();
 
     let module_graph = compilation.get_module_graph();
-    let module_graph_cache = &compilation.module_graph_cache_artifact;
     let module_static_cache = &compilation.module_static_cache;
     let compilation_context = &compilation.options.context;
     let cache_modules = relevant_modules
@@ -964,13 +963,6 @@ impl ModuleConcatenationPlugin {
           compilation_context,
         );
 
-        let (incomings, active_incomings) = collect_incoming_connections(
-          module_graph,
-          module_graph_cache,
-          &compilation.exports_info_artifact,
-          module_id,
-          &runtime,
-        );
         let number_of_chunks = compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -979,8 +971,6 @@ impl ModuleConcatenationPlugin {
           module_id,
           NoRuntimeModuleCache {
             runtime,
-            incomings,
-            active_incomings,
             number_of_chunks,
           },
         )
@@ -1294,8 +1284,6 @@ struct IncomingConnections {
 #[derive(Debug)]
 pub struct NoRuntimeModuleCache {
   runtime: RuntimeSpec,
-  incomings: IncomingConnections,
-  active_incomings: HashMap<DependencyId, bool>,
   number_of_chunks: usize,
 }
 
