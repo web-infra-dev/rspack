@@ -1,13 +1,13 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: "node",
-	mode: "development",
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
-	}
+  target: 'node',
+  mode: 'development',
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
 };

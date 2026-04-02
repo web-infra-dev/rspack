@@ -2,12 +2,12 @@ const path = require('path');
 
 module.exports = {
   optimization: {
-    chunkIds: "named",
-    moduleIds: "named",
-    splitChunks: false
+    chunkIds: 'named',
+    moduleIds: 'named',
+    splitChunks: false,
   },
   output: {
-    chunkFilename: "worker.js",
+    chunkFilename: 'worker.js',
   },
   node: {
     __dirname: false,
@@ -20,10 +20,10 @@ module.exports = {
         type: 'javascript/auto',
         resolve: {
           alias: {
-            'somefakemodule': path.resolve(__dirname, "./node_modules/corejs")
-          }
-        }
+            somefakemodule: path.resolve(__dirname, './node_modules/corejs'),
+          },
+        },
       },
-    ]
-  }
+    ],
+  },
 };

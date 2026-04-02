@@ -5,9 +5,9 @@
  */
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "production",
-	entry: "./index",
-	stats: {
-		preset: "errors-warnings",
-	},
+  mode: 'production',
+  entry: './index',
+  stats: {
+    preset: 'errors-warnings',
+  },
 };

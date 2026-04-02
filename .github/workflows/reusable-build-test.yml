@@ -134,7 +134,6 @@ jobs:
         with:
           name: testCase-persistentCache-linux
           path: tests/rspack-test/js/temp/**/.cache
-          force-use-github: true
           include-hidden-files: true
 
       ### *-apple-darwin
@@ -163,7 +162,6 @@ jobs:
         with:
           name: testCase-persistentCache-windows
           path: tests/rspack-test/js/temp/**/.cache
-          force-use-github: true
           include-hidden-files: true
 
       ### WASM
@@ -174,7 +172,8 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
-        run: pnpm run test:ci
+          NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
+        run: pnpm run build:js && pnpm --filter "@rspack/cli" test && pnpm --filter "@rspack/tests" test
 
       - name: Upload Test Reporter
         if: always()

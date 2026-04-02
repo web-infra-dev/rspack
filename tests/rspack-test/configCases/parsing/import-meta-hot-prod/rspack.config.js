@@ -1,7 +1,7 @@
 module.exports = {
-	mode: "production",
-	target: "web",
-	devServer: {
-		hot: true
-	}
+  mode: 'production',
+  target: 'web',
+  devServer: {
+    hot: true,
+  },
 };

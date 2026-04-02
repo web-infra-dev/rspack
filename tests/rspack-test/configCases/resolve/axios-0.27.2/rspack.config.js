@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	resolve: {
-		aliasFields: ["browser"]
-	}
+  resolve: {
+    aliasFields: ['browser'],
+  },
 };

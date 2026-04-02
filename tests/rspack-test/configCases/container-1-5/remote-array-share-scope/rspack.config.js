@@ -1,5 +1,5 @@
 // eslint-disable-next-line node/no-unpublished-require
-const { ModuleFederationPlugin } = require("@rspack/core").container;
+const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 /** @type {import("@rspack/core").Configuration} */
 
@@ -26,9 +26,10 @@ module.exports = [
         name: 'remote_array_share_scope_host',
         remotes: {
           'remote-alias': {
-            external: 'remote_array_share_scope_provider@http://localhost:3001/remoteEntry.js',
-            shareScope: ['scope1', 'scope3']
-          }
+            external:
+              'remote_array_share_scope_provider@http://localhost:3001/remoteEntry.js',
+            shareScope: ['scope1', 'scope3'],
+          },
         },
         runtimePlugins: [require.resolve('./runtime-plugin.js')],
         shared: {
@@ -45,12 +46,12 @@ module.exports = [
           },
         },
       }),
-    ]
+    ],
   },
   {
     ...commonConfig,
     entry: {
-      output:'./Expose.js'
+      output: './Expose.js',
     },
     plugins: [
       new ModuleFederationPlugin({
@@ -80,6 +81,6 @@ module.exports = [
           },
         },
       }),
-    ]
+    ],
   },
-]
+];

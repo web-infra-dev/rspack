@@ -19,8 +19,8 @@ if (globalThis.__FEDERATION__) {
 globalThis.__federation_shared__ = {};
 
 beforeEach(() => {
-	// Reset mocked-react back to the baseline version used in this case.
-	return import("mocked-react")
+	// Reset @rspack/mocked-react back to the baseline version used in this case.
+	return import("@rspack/mocked-react")
 		.then(mod => mod.setVersion?.("2.1.0"))
 		.catch(() => {
 			// ignore when module isn't available yet

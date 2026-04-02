@@ -8,7 +8,7 @@ module.exports = {
         b: {
           test: /b\.js/,
         },
-      }
-    }
-  }
-}
+      },
+    },
+  },
+};

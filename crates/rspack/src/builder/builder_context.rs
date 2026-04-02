@@ -77,6 +77,7 @@ pub(super) enum BuiltinPluginOptions {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
@@ -300,6 +301,10 @@ impl BuilderContext {
       BuiltinPluginOptions::DeterministicModuleIdsPlugin => {
         plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginOptions::HashedModuleIdsPlugin => plugins.push(
+        rspack_ids::HashedModuleIdsPlugin::new(rspack_ids::HashedModuleIdsPluginOptions::default())
+          .boxed(),
+      ),
       BuiltinPluginOptions::NaturalChunkIdsPlugin => {
         plugins.push(rspack_ids::NaturalChunkIdsPlugin::default().boxed())
       }

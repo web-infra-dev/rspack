@@ -22,4 +22,8 @@ async function runCLI() {
   await cli.run(process.argv);
 }
 
-runCLI();
+runCLI().catch((err) => {
+  console.error('[rspack] CLI failed:');
+  console.error(err);
+  process.exit(1);
+});

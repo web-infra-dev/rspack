@@ -79,32 +79,32 @@ impl DiskWatcher {
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
-    let patterns: HashSet<WatchPattern> = patterns.collect();
+    let new_patterns: HashSet<WatchPattern> = patterns.collect();
 
-    let already_watched_paths = self
+    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
+
+    // Collect stale paths that are no longer needed, then unwatch and remove them.
+    let stale_paths: HashSet<ArcPath> = self
       .watch_patterns
       .iter()
-      .map(|p| &p.path)
-      .collect::<HashSet<_>>();
-    let current_should_watch_paths = patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
+      .filter(|p| !new_paths.contains(&p.path))
+      .map(|p| p.path.clone())
+      .collect();
 
-    // notify::Watcher only unwatchs the path, so we need to check which paths instead of patterns.
-    for pattern in already_watched_paths.difference(&current_should_watch_paths) {
-      // If the path is no longer in the patterns to watch, unwatch it
-      if let Some(watcher) = &mut self.inner {
-        // Currently, we unwatch the path even if it might still be in other patterns, as we lack a way to track paths precisely.
-        // The `notify` crate automatically removes the watch path when it is removed internally.
-        // If we attempt to unwatch the path again, it may return an error.
-        // Consider enhancing the tracking of paths to avoid unnecessary `unwatch` calls and handle errors more robustly.
-        if let Err(e) = watcher.unwatch(pattern)
-          && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
-        {
-          return Err(rspack_error::error!(e.to_string()));
-        }
+    for path in &stale_paths {
+      if let Some(watcher) = &mut self.inner
+        && let Err(e) = watcher.unwatch(path)
+        && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
+      {
+        return Err(rspack_error::error!(e.to_string()));
       }
     }
 
-    for pattern in patterns {
+    self
+      .watch_patterns
+      .retain(|p| !stale_paths.contains(&p.path));
+
+    for pattern in new_patterns {
       if self.watch_patterns.contains(&pattern) {
         continue;
       }
@@ -124,5 +124,83 @@ impl DiskWatcher {
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use rspack_paths::ArcPath;
+  use tokio::sync::mpsc;
+
+  use super::*;
+  use crate::paths::PathManager;
+
+  fn create_disk_watcher() -> DiskWatcher {
+    let (tx, _rx) = mpsc::unbounded_channel();
+    let path_manager = Arc::new(PathManager::default());
+    let trigger = Arc::new(trigger::Trigger::new(path_manager, tx));
+    DiskWatcher::new(false, None, trigger)
+  }
+
+  #[test]
+  fn test_watch_removes_stale_patterns() {
+    let temp_dir = tempfile::TempDir::new().unwrap();
+    let base = temp_dir.path().canonicalize().unwrap();
+
+    let dir_a = base.join("a");
+    let dir_b = base.join("b");
+    let dir_c = base.join("c");
+    std::fs::create_dir_all(&dir_a).unwrap();
+    std::fs::create_dir_all(&dir_b).unwrap();
+    std::fs::create_dir_all(&dir_c).unwrap();
+
+    let mut watcher = create_disk_watcher();
+
+    // First watch: {A, B}
+    watcher
+      .watch(
+        vec![
+          WatchPattern {
+            path: ArcPath::from(dir_a.clone()),
+            mode: notify::RecursiveMode::NonRecursive,
+          },
+          WatchPattern {
+            path: ArcPath::from(dir_b.clone()),
+            mode: notify::RecursiveMode::NonRecursive,
+          },
+        ]
+        .into_iter(),
+      )
+      .unwrap();
+    assert_eq!(watcher.watch_patterns.len(), 2);
+
+    // Second watch: {B, C} — A should be removed
+    watcher
+      .watch(
+        vec![
+          WatchPattern {
+            path: ArcPath::from(dir_b.clone()),
+            mode: notify::RecursiveMode::NonRecursive,
+          },
+          WatchPattern {
+            path: ArcPath::from(dir_c.clone()),
+            mode: notify::RecursiveMode::NonRecursive,
+          },
+        ]
+        .into_iter(),
+      )
+      .unwrap();
+
+    assert_eq!(watcher.watch_patterns.len(), 2);
+    let paths: HashSet<_> = watcher
+      .watch_patterns
+      .iter()
+      .map(|p| p.path.clone())
+      .collect();
+    assert!(paths.contains(&ArcPath::from(dir_b)));
+    assert!(paths.contains(&ArcPath::from(dir_c)));
+    assert!(!paths.contains(&ArcPath::from(dir_a)));
   }
 }

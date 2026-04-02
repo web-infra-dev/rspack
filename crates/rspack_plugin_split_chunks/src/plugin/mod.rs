@@ -20,10 +20,10 @@ use crate::{
   CacheGroup, SplitChunkSizes,
   common::FallbackCacheGroup,
   get_module_sizes,
-  module_group::{IndexedCacheGroup, ModuleGroup},
+  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey},
 };
 
-type ModuleGroupMap = FxIndexMap<String, ModuleGroup>;
+type ModuleGroupMap = FxIndexMap<ModuleGroupKey, ModuleGroup>;
 
 #[derive(Debug)]
 pub struct PluginOptions {
@@ -305,11 +305,6 @@ impl Debug for SplitChunksPlugin {
 #[plugin_hook(CompilationOptimizeChunks for SplitChunksPlugin, stage = Compilation::OPTIMIZE_CHUNKS_STAGE_ADVANCED)]
 async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   self.inner_impl(compilation).await?;
-  compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .generate_dot(compilation, "after-split-chunks")
-    .await;
   Ok(None)
 }
 

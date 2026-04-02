@@ -1,4 +1,4 @@
-use std::{borrow::Cow, fmt::Debug, rc::Rc};
+use std::{borrow::Cow, fmt::Debug};
 
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -363,13 +363,14 @@ fn can_optimize_connection(
       .get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
+    let resolve_filter = |target: &ResolvedExportInfoTarget| {
+      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+    };
     let target = can_move_target(
       &export_info,
       module_graph,
       exports_info_artifact,
-      Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
-      }),
+      &resolve_filter,
     )?;
     if !module_graph.can_update_module(&dependency_id, &target.module) {
       return None;
@@ -410,13 +411,14 @@ fn can_optimize_connection(
     );
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
+    let resolve_filter = |target: &ResolvedExportInfoTarget| {
+      side_effects_state_map[&target.module] == ConnectionState::Active(false)
+    };
     let Some(GetTargetResult::Target(target)) = get_target(
       &export_info,
       module_graph,
       exports_info_artifact,
-      Rc::new(|target: &ResolvedExportInfoTarget| {
-        side_effects_state_map[&target.module] == ConnectionState::Active(false)
-      }),
+      &resolve_filter,
       &mut Default::default(),
     ) else {
       return None;

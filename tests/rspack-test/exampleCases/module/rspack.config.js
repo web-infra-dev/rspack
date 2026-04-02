@@ -1,12 +1,12 @@
 module.exports = {
-	output: {
-		module: true,
-		library: {
-			type: "module"
-		}
-	},
-	optimization: {
-		usedExports: true,
-		concatenateModules: true
-	},
+  output: {
+    module: true,
+    library: {
+      type: 'module',
+    },
+  },
+  optimization: {
+    usedExports: true,
+    concatenateModules: true,
+  },
 };

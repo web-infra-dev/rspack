@@ -4,8 +4,8 @@ module.exports = {
       cacheGroups: {
         broken: {
           test: /broken\.js$/,
-          name: "broken-chunk",
-          chunks: "all",
+          name: 'broken-chunk',
+          chunks: 'all',
         },
       },
     },

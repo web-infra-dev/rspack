@@ -15,9 +15,9 @@ rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_core                = { workspace = true }
 rspack_error               = { workspace = true }
-rspack_futures             = { workspace = true }
 rspack_hash                = { workspace = true }
 rspack_hook                = { workspace = true }
+rspack_parallel            = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_rslib        = { workspace = true }
 rspack_plugin_runtime      = { workspace = true }
@@ -43,6 +43,9 @@ tracing                        = { workspace = true }
 [lints]
 workspace = true
 
+[lib]
+doctest = false
+
 
 [package.metadata.cargo-shear]
-ignored = ["serde", "tracing", "rspack_hash", "rspack_cacheable"]
+ignored = ["serde", "rspack_hash", "rspack_cacheable"]

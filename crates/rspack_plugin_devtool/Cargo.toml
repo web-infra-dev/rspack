@@ -17,9 +17,9 @@ regex                    = { workspace = true }
 rspack_collections       = { workspace = true }
 rspack_core              = { workspace = true }
 rspack_error             = { workspace = true }
-rspack_futures           = { workspace = true }
 rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
+rspack_parallel          = { workspace = true }
 rspack_paths             = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
@@ -34,3 +34,6 @@ ignored = ["tracing"]
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

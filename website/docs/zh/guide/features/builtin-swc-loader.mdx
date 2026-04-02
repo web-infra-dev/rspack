@@ -249,7 +249,7 @@ export default {
 - `.js`、`.jsx`、`.mjs`、`.cjs` -> `{ syntax: "ecmascript", jsx: true }`
 - `.ts`、`.mts`、`.cts` -> `{ syntax: "typescript", tsx: false }`
 - `.tsx` -> `{ syntax: "typescript", tsx: true }`
-- 其他扩展名 -> 不做推断
+- 无法识别扩展名的资源 -> `{ syntax: "typescript", tsx: true }`
 
 > 如果显式设置了 `jsc.parser.syntax`，`detectSyntax` 不会再推断语法。
 

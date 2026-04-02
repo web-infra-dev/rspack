@@ -1,9 +1,9 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	externals: {
-		module: "commonjs module",
-		fs: "commonjs fs"
-	}
+  externals: {
+    module: 'commonjs module',
+    fs: 'commonjs fs',
+  },
 };
