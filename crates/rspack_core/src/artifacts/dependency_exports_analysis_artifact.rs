@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierMap;
 
 use crate::{
   ArtifactExt, ModuleIdentifier,
@@ -32,7 +32,7 @@ impl ModuleDependencyExportsAnalysis {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct DependencyExportsSccNode {
+struct DependencyExportsSccNode {
   modules: Vec<ModuleIdentifier>,
   incoming_sccs: Vec<usize>,
   outgoing_sccs: Vec<usize>,
@@ -40,7 +40,6 @@ pub struct DependencyExportsSccNode {
 
 #[derive(Debug, Default, Clone)]
 pub struct DependencyExportsTopology {
-  module_to_scc: IdentifierMap<usize>,
   scc_nodes: Vec<DependencyExportsSccNode>,
   waves: Vec<Vec<usize>>,
 }
@@ -119,23 +118,11 @@ impl DependencyExportsAnalysisArtifact {
 
 impl DependencyExportsTopology {
   fn from_modules(modules: &IdentifierMap<ModuleDependencyExportsAnalysis>) -> Self {
-    let scc = tarjan_scc(modules);
+    let scc = compute_strongly_connected_components(modules);
     let scc_nodes = condense_scc_graph(modules, &scc);
     let waves = build_parallel_waves(&scc_nodes);
 
-    Self {
-      module_to_scc: scc.module_to_scc,
-      scc_nodes,
-      waves,
-    }
-  }
-
-  pub fn module_to_scc(&self) -> &IdentifierMap<usize> {
-    &self.module_to_scc
-  }
-
-  pub fn scc_nodes(&self) -> &[DependencyExportsSccNode] {
-    &self.scc_nodes
+    Self { scc_nodes, waves }
   }
 
   pub fn scc_modules(&self, scc_id: usize) -> &[ModuleIdentifier] {
@@ -157,104 +144,145 @@ struct StronglyConnectedComponents {
 }
 
 #[derive(Debug)]
-struct TarjanState<'a> {
-  modules: &'a IdentifierMap<ModuleDependencyExportsAnalysis>,
-  next_index: usize,
-  indices: IdentifierMap<usize>,
-  lowlinks: IdentifierMap<usize>,
-  stack: Vec<ModuleIdentifier>,
-  on_stack: IdentifierSet,
-  module_to_scc: IdentifierMap<usize>,
-  scc_modules: Vec<Vec<ModuleIdentifier>>,
+struct DfsFrame {
+  module: ModuleIdentifier,
+  next_neighbor_index: usize,
 }
 
-impl TarjanState<'_> {
-  fn strong_connect(&mut self, module_identifier: ModuleIdentifier) {
-    let module_index = self.next_index;
-    self.next_index += 1;
-    self.indices.insert(module_identifier, module_index);
-    self.lowlinks.insert(module_identifier, module_index);
-    self.stack.push(module_identifier);
-    self.on_stack.insert(module_identifier);
+fn compute_strongly_connected_components(
+  modules: &IdentifierMap<ModuleDependencyExportsAnalysis>,
+) -> StronglyConnectedComponents {
+  let module_graph = build_module_graph(modules);
+  let reverse_module_graph = build_reverse_module_graph(&module_graph);
+  let mut finish_order = build_finish_order(&module_graph);
+  let mut visited = BTreeSet::new();
+  let mut scc_modules = Vec::new();
 
-    for target in module_targets(self.modules, module_identifier) {
-      if !self.indices.contains_key(&target) {
-        self.strong_connect(target);
-        let target_lowlink = *self
-          .lowlinks
-          .get(&target)
-          .expect("target lowlink should exist after traversal");
-        let lowlink = self
-          .lowlinks
-          .get_mut(&module_identifier)
-          .expect("module lowlink should exist");
-        *lowlink = (*lowlink).min(target_lowlink);
-      } else if self.on_stack.contains(&target) {
-        let target_index = *self
-          .indices
-          .get(&target)
-          .expect("stacked target index should exist");
-        let lowlink = self
-          .lowlinks
-          .get_mut(&module_identifier)
-          .expect("module lowlink should exist");
-        *lowlink = (*lowlink).min(target_index);
-      }
-    }
-
-    if self.lowlinks[&module_identifier] != module_index {
-      return;
+  while let Some(module_identifier) = finish_order.pop() {
+    if !visited.insert(module_identifier) {
+      continue;
     }
 
     let mut component = Vec::new();
-    loop {
-      let stack_module = self
-        .stack
-        .pop()
-        .expect("component root should have at least one stack item");
-      self.on_stack.remove(&stack_module);
-      component.push(stack_module);
-      if stack_module == module_identifier {
-        break;
+    let mut stack = vec![module_identifier];
+    while let Some(module_identifier) = stack.pop() {
+      component.push(module_identifier);
+
+      for neighbor in reverse_module_graph
+        .get(&module_identifier)
+        .map_or(&[][..], Vec::as_slice)
+        .iter()
+        .rev()
+      {
+        if visited.insert(*neighbor) {
+          stack.push(*neighbor);
+        }
       }
     }
 
     component.sort_unstable();
-    let scc_id = self.scc_modules.len();
-    for module in &component {
-      self.module_to_scc.insert(*module, scc_id);
-    }
-    self.scc_modules.push(component);
+    scc_modules.push(component);
   }
-}
 
-fn tarjan_scc(
-  modules: &IdentifierMap<ModuleDependencyExportsAnalysis>,
-) -> StronglyConnectedComponents {
-  let mut module_identifiers = modules.keys().copied().collect::<Vec<_>>();
-  module_identifiers.sort_unstable();
-
-  let mut state = TarjanState {
-    modules,
-    next_index: 0,
-    indices: IdentifierMap::default(),
-    lowlinks: IdentifierMap::default(),
-    stack: Vec::new(),
-    on_stack: IdentifierSet::default(),
-    module_to_scc: IdentifierMap::default(),
-    scc_modules: Vec::new(),
-  };
-
-  for module_identifier in module_identifiers {
-    if !state.indices.contains_key(&module_identifier) {
-      state.strong_connect(module_identifier);
+  scc_modules.sort_unstable();
+  let mut module_to_scc = IdentifierMap::default();
+  for (scc_id, modules) in scc_modules.iter().enumerate() {
+    for module_identifier in modules {
+      module_to_scc.insert(*module_identifier, scc_id);
     }
   }
 
   StronglyConnectedComponents {
-    module_to_scc: state.module_to_scc,
-    scc_modules: state.scc_modules,
+    module_to_scc,
+    scc_modules,
   }
+}
+
+fn build_module_graph(
+  modules: &IdentifierMap<ModuleDependencyExportsAnalysis>,
+) -> IdentifierMap<Vec<ModuleIdentifier>> {
+  let mut module_identifiers = modules.keys().copied().collect::<Vec<_>>();
+  module_identifiers.sort_unstable();
+
+  module_identifiers
+    .into_iter()
+    .map(|module_identifier| {
+      (
+        module_identifier,
+        module_targets(modules, module_identifier),
+      )
+    })
+    .collect()
+}
+
+fn build_reverse_module_graph(
+  module_graph: &IdentifierMap<Vec<ModuleIdentifier>>,
+) -> IdentifierMap<Vec<ModuleIdentifier>> {
+  let mut reverse_module_graph = IdentifierMap::default();
+  let mut module_identifiers = module_graph.keys().copied().collect::<Vec<_>>();
+  module_identifiers.sort_unstable();
+
+  for module_identifier in &module_identifiers {
+    reverse_module_graph.insert(*module_identifier, Vec::new());
+  }
+
+  for module_identifier in module_identifiers {
+    for target in &module_graph[&module_identifier] {
+      reverse_module_graph
+        .get_mut(target)
+        .expect("reverse graph should contain every target module")
+        .push(module_identifier);
+    }
+  }
+
+  reverse_module_graph.values_mut().for_each(|neighbors| {
+    neighbors.sort_unstable();
+    neighbors.dedup();
+  });
+
+  reverse_module_graph
+}
+
+fn build_finish_order(
+  module_graph: &IdentifierMap<Vec<ModuleIdentifier>>,
+) -> Vec<ModuleIdentifier> {
+  let mut module_identifiers = module_graph.keys().copied().collect::<Vec<_>>();
+  module_identifiers.sort_unstable();
+  let mut visited = BTreeSet::new();
+  let mut finish_order = Vec::with_capacity(module_identifiers.len());
+
+  for module_identifier in module_identifiers {
+    if !visited.insert(module_identifier) {
+      continue;
+    }
+
+    let mut stack = vec![DfsFrame {
+      module: module_identifier,
+      next_neighbor_index: 0,
+    }];
+
+    while let Some(frame) = stack.last_mut() {
+      let neighbors = module_graph
+        .get(&frame.module)
+        .map_or(&[][..], Vec::as_slice);
+
+      if frame.next_neighbor_index < neighbors.len() {
+        let neighbor = neighbors[frame.next_neighbor_index];
+        frame.next_neighbor_index += 1;
+        if visited.insert(neighbor) {
+          stack.push(DfsFrame {
+            module: neighbor,
+            next_neighbor_index: 0,
+          });
+        }
+      } else {
+        let frame = stack.pop().expect("last frame should exist");
+        finish_order.push(frame.module);
+      }
+    }
+  }
+
+  finish_order
 }
 
 fn condense_scc_graph(
@@ -364,6 +392,21 @@ mod tests {
     incremental::{Incremental, IncrementalOptions, IncrementalPasses},
   };
 
+  fn topology_wave_modules(
+    topology: &DependencyExportsTopology,
+  ) -> Vec<Vec<Vec<ModuleIdentifier>>> {
+    topology
+      .waves()
+      .iter()
+      .map(|wave| {
+        wave
+          .iter()
+          .map(|scc_id| topology.scc_modules(*scc_id).to_vec())
+          .collect()
+      })
+      .collect()
+  }
+
   #[test]
   fn recover_keeps_previous_finish_modules_state_and_marks_it_dirty() {
     let module = ModuleIdentifier::from("module-a");
@@ -409,18 +452,20 @@ mod tests {
     let mut artifact = DependencyExportsAnalysisArtifact::default();
     let a = ModuleIdentifier::from("a");
     let b = ModuleIdentifier::from("b");
-    let c = ModuleIdentifier::from("c");
-    let d = ModuleIdentifier::from("d");
+    let y = ModuleIdentifier::from("y");
+    let z = ModuleIdentifier::from("z");
 
-    artifact.replace_module(a, ModuleDependencyExportsAnalysis::with_targets([c]));
-    artifact.replace_module(b, ModuleDependencyExportsAnalysis::with_targets([d]));
-    artifact.replace_module(c, ModuleDependencyExportsAnalysis::default());
-    artifact.replace_module(d, ModuleDependencyExportsAnalysis::default());
+    artifact.replace_module(a, ModuleDependencyExportsAnalysis::with_targets([z]));
+    artifact.replace_module(b, ModuleDependencyExportsAnalysis::with_targets([y]));
+    artifact.replace_module(y, ModuleDependencyExportsAnalysis::default());
+    artifact.replace_module(z, ModuleDependencyExportsAnalysis::default());
 
     artifact.rebuild_topology();
 
-    assert_eq!(artifact.topology().waves().len(), 2);
-    assert_eq!(artifact.topology().waves()[0].len(), 2);
+    assert_eq!(
+      topology_wave_modules(artifact.topology()),
+      vec![vec![vec![y], vec![z]], vec![vec![a], vec![b]]]
+    );
   }
 
   #[test]
@@ -434,6 +479,9 @@ mod tests {
 
     artifact.rebuild_topology();
 
-    assert_eq!(artifact.topology().scc_nodes().len(), 1);
+    assert_eq!(
+      topology_wave_modules(artifact.topology()),
+      vec![vec![vec![a, b]]]
+    );
   }
 }
