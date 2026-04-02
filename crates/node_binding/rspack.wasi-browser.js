@@ -32,24 +32,7 @@ const __sharedMemory = new WebAssembly.Memory({
 
 const __EMNAPI_MEMORY_LIMIT = 0x80000000
 
-function __shouldTraceEmnapiMalloc() {
-  return globalThis.__RSPACK_WASM_PTR_TRACE === true
-}
-
-function __formatWasmBytes(value) {
-  if (value >= 1024 ** 3) {
-    return `${(value / 1024 ** 3).toFixed(3)} GiB`
-  }
-  if (value >= 1024 ** 2) {
-    return `${(value / 1024 ** 2).toFixed(3)} MiB`
-  }
-  if (value >= 1024) {
-    return `${(value / 1024).toFixed(3)} KiB`
-  }
-  return `${value} B`
-}
-
-function __assertEmnapiMemoryRange(name, ptr, size) {
+function __assertEmnapiMemoryRange(ptr, size) {
   if (ptr === 0) {
     return ptr
   }
@@ -57,13 +40,6 @@ function __assertEmnapiMemoryRange(name, ptr, size) {
   const start = Number(ptr)
   const allocationSize = Number(size) >>> 0
   const end = start + allocationSize
-
-  if (__shouldTraceEmnapiMalloc()) {
-    const usedPercent = ((start / __EMNAPI_MEMORY_LIMIT) * 100).toFixed(2)
-    console.error(
-      `[emnapi:${name}] ptr=0x${start.toString(16)} start=${__formatWasmBytes(start)} end=${__formatWasmBytes(end)} size=${__formatWasmBytes(allocationSize)} limit=${__formatWasmBytes(__EMNAPI_MEMORY_LIMIT)} used=${usedPercent}%`
-    )
-  }
 
   if (!(start < __EMNAPI_MEMORY_LIMIT && end <= __EMNAPI_MEMORY_LIMIT)) {
     throw new Error(
@@ -84,7 +60,7 @@ function __wrapEmnapiInstance(instance) {
 
     Object.defineProperty(wrappedExports, name, {
       value: function(size) {
-        return __assertEmnapiMemoryRange(name, original(size), size)
+        return __assertEmnapiMemoryRange(original(size), size)
       },
       enumerable: true,
       configurable: true,
