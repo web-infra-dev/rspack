@@ -4,14 +4,15 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
-  ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, property_access, to_normal_comment,
+  AsContextDependency, DeferredReexportItem, DeferredReexportSpec, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportProvided, ExportSpec,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -231,17 +232,26 @@ impl Dependency for CommonJsExportRequireDependency {
       };
       let from = mg.connection_by_dependency_id(&self.id)?;
       Some(ExportsSpec {
-        exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-          name: name.to_owned(),
-          from: Some(from.to_owned()),
-          can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
-          export: Some(if ids.is_empty() {
-            Nullable::Null
-          } else {
-            Nullable::Value(ids.to_vec())
-          }),
-          ..Default::default()
-        })]),
+        exports: ExportsOfExportsSpec::Names(vec![]),
+        processing: ExportsProcessing::DeferredReexport(vec![DeferredReexportSpec {
+          target_module: *from.module_identifier(),
+          dep_id: self.id,
+          priority: None,
+          can_mangle: Some(
+            !OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())
+              && !self.is_all_exported_by_module_exports(),
+          ),
+          terminal_binding: false,
+          items: vec![DeferredReexportItem {
+            exposed_name: name.to_owned(),
+            target_path: if ids.is_empty() {
+              Nullable::Null
+            } else {
+              Nullable::Value(ids.to_vec())
+            },
+            hidden: false,
+          }],
+        }]),
         dependencies: Some(vec![*from.module_identifier()]),
         ..Default::default()
       })
@@ -254,24 +264,33 @@ impl Dependency for CommonJsExportRequireDependency {
         None,
         from.module_identifier(),
       ) {
+        let deferred_items = reexport_info
+          .iter()
+          .map(|name| {
+            let mut target_path = ids.to_vec();
+            target_path.push(name.to_owned());
+            DeferredReexportItem {
+              exposed_name: name.to_owned(),
+              target_path: Nullable::Value(target_path),
+              hidden: false,
+            }
+          })
+          .collect_vec();
+
         Some(ExportsSpec {
-          exports: ExportsOfExportsSpec::Names(
-            reexport_info
-              .iter()
-              .map(|name| {
-                let mut export = ids.to_vec();
-                export.extend(vec![name.to_owned()]);
-                ExportNameOrSpec::ExportSpec(ExportSpec {
-                  name: name.to_owned(),
-                  from: Some(from.to_owned()),
-                  export: Some(Nullable::Value(export)),
-                  // `module.exports = require("./m")` can't be mangled
-                  can_mangle: Some(!self.is_all_exported_by_module_exports()),
-                  ..Default::default()
-                })
-              })
-              .collect_vec(),
-          ),
+          exports: ExportsOfExportsSpec::Names(vec![]),
+          processing: if deferred_items.is_empty() {
+            ExportsProcessing::Immediate
+          } else {
+            ExportsProcessing::DeferredReexport(vec![DeferredReexportSpec {
+              target_module: *from.module_identifier(),
+              dep_id: self.id,
+              priority: None,
+              can_mangle: Some(!self.is_all_exported_by_module_exports()),
+              terminal_binding: false,
+              items: deferred_items,
+            }])
+          },
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })

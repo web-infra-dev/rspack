@@ -7,24 +7,24 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
-  DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment, ExportMode,
-  ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
-  ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
-  ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
-  ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, DeferredReexportItem,
+  DeferredReexportSpec, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
+  ESMExportInitFragment, ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar,
+  ExportModeFakeNamespaceObject, ExportModeNormalReexport, ExportModeReexportDynamicDefault,
+  ExportModeReexportNamedDefault, ExportModeReexportNamespaceObject, ExportModeReexportUndefined,
+  ExportModeUnused, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam,
+  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
+  PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_util::json_stringify;
@@ -1273,25 +1273,47 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         ..Default::default()
       }),
       ExportMode::NormalReexport(mode) => {
-        let from = mg.connection_by_dependency_id(self.id());
+        let from = mg
+          .connection_by_dependency_id(self.id())
+          .expect("should have module");
+        let target_module = *from.module_identifier();
+        let mut local_exports = Vec::new();
+        let mut deferred_items = Vec::new();
+
+        for item in mode.items {
+          if item.ids.len() > 1 {
+            local_exports.push(ExportNameOrSpec::ExportSpec(ExportSpec {
+              name: item.name,
+              from: Some(from.clone()),
+              export: Some(rspack_core::Nullable::Value(item.ids)),
+              hidden: Some(item.hidden),
+              ..Default::default()
+            }));
+          } else {
+            deferred_items.push(DeferredReexportItem {
+              exposed_name: item.name,
+              target_path: rspack_core::Nullable::Value(item.ids),
+              hidden: item.hidden,
+            });
+          }
+        }
+
         Some(ExportsSpec {
           priority: Some(1),
-          exports: ExportsOfExportsSpec::Names(
-            mode
-              .items
-              .into_iter()
-              .map(|item| {
-                ExportNameOrSpec::ExportSpec(ExportSpec {
-                  name: item.name,
-                  from: from.cloned(),
-                  export: Some(rspack_core::Nullable::Value(item.ids)),
-                  hidden: Some(item.hidden),
-                  ..Default::default()
-                })
-              })
-              .collect::<Vec<_>>(),
-          ),
-          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
+          exports: ExportsOfExportsSpec::Names(local_exports),
+          processing: if deferred_items.is_empty() {
+            ExportsProcessing::Immediate
+          } else {
+            ExportsProcessing::DeferredReexport(vec![DeferredReexportSpec {
+              target_module,
+              dep_id: self.id,
+              priority: Some(1),
+              can_mangle: None,
+              terminal_binding: false,
+              items: deferred_items,
+            }])
+          },
+          dependencies: Some(vec![target_module]),
           ..Default::default()
         })
       }
