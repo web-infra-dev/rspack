@@ -447,9 +447,9 @@ export declare class Module {
   _emitFile(filename: string, source: JsSource, assetInfo?: AssetInfo | undefined | null): void
 }
 
-export declare const CIRCULAR_CONNECTION: unique symbol
-export declare const TRANSITIVE_ONLY: unique symbol
-export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION | typeof TRANSITIVE_ONLY
+export declare const CIRCULAR_CONNECTION_SYMBOL: unique symbol
+export declare const TRANSITIVE_ONLY_SYMBOL: unique symbol
+export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL
 
 export declare class ModuleGraphConnection {
   get dependency(): Dependency
