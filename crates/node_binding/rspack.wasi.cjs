@@ -32,6 +32,42 @@ const __sharedMemory = new WebAssembly.Memory({
   shared: true,
 })
 
+const __EMNAPI_MEMORY_LIMIT = 0x80000000
+
+function __assertEmnapiMemoryRange(ptr, size) {
+  if (ptr === 0) {
+    return ptr
+  }
+
+  const start = Number(ptr)
+  const allocationSize = Number(size) >>> 0
+  const end = start + allocationSize
+
+  if (!(start < __EMNAPI_MEMORY_LIMIT && end <= __EMNAPI_MEMORY_LIMIT)) {
+    throw new Error(
+      `emnapi malloc exceeded the 2 GiB memory limit: start=0x${start.toString(16)}, size=0x${allocationSize.toString(16)}, end=0x${end.toString(16)}, limit=0x${__EMNAPI_MEMORY_LIMIT.toString(16)}`
+    )
+  }
+
+  return ptr
+}
+
+function __patchEmnapiMalloc(instance) {
+  const { exports } = instance
+  for (const name of ['malloc', '_malloc']) {
+    const original = exports[name]
+    if (typeof original !== 'function' || original.__rspackEmnapiMallocGuard) {
+      continue
+    }
+
+    const wrapped = function(size) {
+      return __assertEmnapiMemoryRange(original(size), size)
+    }
+    wrapped.__rspackEmnapiMallocGuard = true
+    exports[name] = wrapped
+  }
+}
+
 let __wasmFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.wasm')
 const __wasmDebugFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.debug.wasm')
 
@@ -100,6 +136,7 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     return importObject
   },
   beforeInit({ instance }) {
+    __patchEmnapiMalloc(instance)
     for (const name of Object.keys(instance.exports)) {
       if (name.startsWith('__napi_register__')) {
         instance.exports[name]()
