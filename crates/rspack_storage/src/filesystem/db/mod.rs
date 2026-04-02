@@ -2,7 +2,13 @@ mod bucket;
 mod task_queue;
 mod transaction;
 
-use std::{collections::hash_map::Entry, sync::Arc};
+use std::{
+  collections::hash_map::Entry,
+  sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  },
+};
 
 use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
@@ -25,7 +31,8 @@ pub struct DB {
   /// Cached buckets, lazily loaded on first access
   buckets: Arc<Mutex<HashMap<String, Bucket>>>,
   /// Background task queue for asynchronous save operations
-  task_queue: TaskQueue,
+  task_queue: Arc<TaskQueue>,
+  readonly: Arc<AtomicBool>,
 }
 
 impl DB {
@@ -34,7 +41,8 @@ impl DB {
     Self {
       fs,
       buckets: Default::default(),
-      task_queue: TaskQueue::default(),
+      task_queue: Arc::new(TaskQueue::default()),
+      readonly: Arc::new(AtomicBool::new(false)),
     }
   }
 
@@ -60,13 +68,13 @@ impl DB {
   }
 
   /// Loads all key-value pairs from the specified bucket.
-  ///
-  /// If the bucket doesn't exist yet, it will be created empty.
-  /// Updates the database metadata with current access time.
   pub async fn load(&self, bucket_name: &str) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
-    self.fs.ensure_exist().await?;
-
     let mut buckets = self.buckets.lock().await;
+
+    self.fs.ensure_exist().await?;
+    // Ensure any crashed prior transaction is recovered before we read.
+    Transaction::ensure_committed(&self.fs).await?;
+
     let bucket = match buckets.entry(bucket_name.to_string()) {
       Entry::Occupied(entry) => entry.into_mut(),
       Entry::Vacant(entry) => {
@@ -85,21 +93,24 @@ impl DB {
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
-  /// The write is performed asynchronously by the background [`TaskQueue`] worker.
-  /// Call [`DB::flush`] to wait until the enqueued write has completed.
+  /// No-op when the DB is in readonly mode.
   pub fn save(&self, changes: BucketChanges, max_pack_size: usize) {
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
+    let readonly = self.readonly.clone();
 
     self.task_queue.add_task(async move {
-      let task_fn = async move || -> Result<()> {
-        let transaction = Transaction::new(&fs).await?;
+      if readonly.load(Ordering::Relaxed) {
+        return;
+      }
 
-        // Acquire write lock for the entire commit operation
+      let task_fn = async move || -> Result<()> {
         let mut buckets = buckets.lock().await;
 
-        // Separate cached buckets from those that need initialization,
-        // so both Bucket::new and bucket.save can run in parallel.
+        let transaction = Transaction::new(&fs).await?;
+
+        // Split changes into cached vs. uncached buckets so Bucket::new and
+        // bucket.save can run concurrently across buckets.
         let pending_buckets: Vec<_> = changes
           .into_iter()
           .map(|(bucket_name, bucket_changes)| {
@@ -110,7 +121,8 @@ impl DB {
 
         let mut all_files_to_add = Vec::new();
         let mut all_files_to_remove = Vec::new();
-        pending_buckets
+        let mut updated_buckets = HashMap::default();
+        let save_result = pending_buckets
           .into_iter()
           .map(|(bucket_name, cached_bucket, changes)| {
             let readable_fs = transaction.readable_fs().child_fs(&bucket_name);
@@ -130,7 +142,7 @@ impl DB {
           })
           .try_fut_consume(|(bucket_name, bucket, affacted_files)| {
             let (added_pack, removed_pack) = affacted_files;
-            buckets.insert(bucket_name.clone(), bucket);
+            updated_buckets.insert(bucket_name.clone(), bucket);
             all_files_to_add.extend(
               added_pack
                 .into_iter()
@@ -142,17 +154,33 @@ impl DB {
                 .map(|file| format!("{bucket_name}/{file}")),
             );
           })
-          .await?;
+          .await;
 
-        // Atomically commit all changes
-        transaction
-          .commit(all_files_to_add, all_files_to_remove)
-          .await
+        match save_result {
+          Ok(()) => {
+            transaction
+              .commit(all_files_to_add, all_files_to_remove)
+              .await?;
+            buckets.extend(updated_buckets);
+          }
+          Err(e) => {
+            transaction.rollback().await?;
+            return Err(e);
+          }
+        }
+        Ok(())
       };
 
       if let Err(err) = task_fn().await {
-        // TODO use infrastructure logger instead of println
-        println!("persistent cache save failed. {err}");
+        // The cache may be in an indeterminate state. Switch to readonly so no
+        // further writes can make things worse. Restart the process to recover.
+        // The current build is not affected.
+        readonly.store(true, Ordering::Relaxed);
+        println!(
+          "Rspack persistent cache save failed: {err}\n  \
+           Persistent cache has been disabled for this session. \
+           Restart the process to re-enable it."
+        );
       }
     });
   }

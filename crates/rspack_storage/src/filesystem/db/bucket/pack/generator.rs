@@ -31,7 +31,7 @@ impl PackGenerator {
   ///
   /// Large items (>80% of max size) are isolated to avoid fragmentation.
   /// Regular items are grouped until a pack reaches max size.
-  pub fn extend(&mut self, data: Vec<(Vec<u8>, Vec<u8>)>) {
+  pub fn extend<T: IntoIterator<Item = (Vec<u8>, Vec<u8>)>>(&mut self, data: T) {
     for (key, value) in data {
       let size = key.len() + value.len();
 
@@ -70,16 +70,12 @@ mod test {
   #[test]
   fn test_pack_generator() {
     let mut generator = PackGenerator::new(25);
-    generator.extend(
-      (0..9)
-        .map(|num| {
-          (
-            format!("key{num}").as_bytes().to_vec(),
-            format!("value{num}").as_bytes().to_vec(),
-          )
-        })
-        .collect(),
-    );
+    generator.extend((0..9).map(|num| {
+      (
+        format!("key{num}").as_bytes().to_vec(),
+        format!("value{num}").as_bytes().to_vec(),
+      )
+    }));
     let (hot_pack, packs) = generator.finish();
     assert_eq!(packs.len(), 4);
     assert_eq!(hot_pack.data.len(), 1);
