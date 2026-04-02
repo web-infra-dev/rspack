@@ -2554,7 +2554,7 @@ dependencies = [
 name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "33d852cb9b869c2a9b3df8b31a50b88a23a817dcd4f2bd0ee8fbba461d1f1c9d"
+checksum = "f8ca58f447f06ed17d5fc4043ce1b10dd205e060fb3ce5b979b8ed8e59ff3f79"
 
 [[package]]
 name = "memfd"
@@ -5219,7 +5219,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.20"
-source = "git+https://github.com/rstackjs/rspack-sources.git?rev=f8d873ca674a88e5ac4ab605b697a0143b882cda#f8d873ca674a88e5ac4ab605b697a0143b882cda"
+source = "git+https://github.com/rstackjs/rspack-sources.git?rev=2a4f31a763bea729560450e4758c87c55766720a#2a4f31a763bea729560450e4758c87c55766720a"
 dependencies = [
  "dyn-clone",
  "memchr",
@@ -5379,7 +5379,7 @@ checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 name = "rustc-hash"
 version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b7996fd6d7144d7f1648b8617a470dd6a7f75c52ed8b20e267f0a8fe08b5f41"
+checksum = "94300abf3f1ae2e2b8ffb7b58043de3d399c73fa6f4b73826402a5c457614dbe"
 
 [[package]]
 name = "rustix"
