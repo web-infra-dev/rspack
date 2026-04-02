@@ -13,7 +13,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{queue::Queue, swc::join_atom};
+use rspack_util::{atom::Atom, queue::Queue};
 use rustc_hash::FxHashMap as HashMap;
 
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
@@ -43,9 +43,22 @@ enum ModuleOrAsyncDependenciesBlock {
   AsyncDependenciesBlock(AsyncDependenciesBlockIdentifier),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ExportPathKey(Box<[Atom]>);
+
+impl ExportPathKey {
+  fn new(item: &ExtendedReferencedExport) -> Self {
+    let names = match item {
+      ExtendedReferencedExport::Array(arr) => arr.clone(),
+      ExtendedReferencedExport::Export(export) => export.name.clone(),
+    };
+    Self(names.into_boxed_slice())
+  }
+}
+
 #[derive(Debug, Clone)]
 enum ProcessModuleReferencedExports {
-  Map(HashMap<String, ExtendedReferencedExport>),
+  Map(HashMap<ExportPathKey, ExtendedReferencedExport>),
   ExtendRef(Vec<ExtendedReferencedExport>),
 }
 #[allow(unused)]
@@ -636,24 +649,17 @@ fn merge_referenced_exports(
       ProcessModuleReferencedExports::Map(map) => map,
       ProcessModuleReferencedExports::ExtendRef(ref_items) => ref_items
         .into_iter()
-        .map(|item| {
-          let key = match &item {
-            ExtendedReferencedExport::Array(arr) => join_atom(arr.iter(), "\n"),
-            ExtendedReferencedExport::Export(export) => join_atom(export.name.iter(), "\n"),
-          };
-          (key, item)
-        })
+        .map(|item| (ExportPathKey::new(&item), item))
         .collect::<HashMap<_, _>>(),
     };
 
     for mut item in referenced_exports {
+      let key = ExportPathKey::new(&item);
       match item {
-        ExtendedReferencedExport::Array(ref arr) => {
-          let key = join_atom(arr.iter(), "\n");
+        ExtendedReferencedExport::Array(_) => {
           exports_map.entry(key).or_insert(item);
         }
         ExtendedReferencedExport::Export(ref mut export) => {
-          let key = join_atom(export.name.iter(), "\n");
           match exports_map.entry(key) {
             Entry::Occupied(mut occ) => {
               let old_item = occ.get();
@@ -880,6 +886,7 @@ fn process_referenced_module_without_nested(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use rspack_util::atom::Atom;
 
   fn runtime(names: &[&str]) -> RuntimeSpec {
     names
@@ -932,5 +939,106 @@ mod tests {
     ];
 
     assert_eq!(coalesce_process_block_tasks(tasks.clone()), tasks);
+  }
+
+  fn export_path(names: &[&str]) -> Vec<Atom> {
+    names.iter().copied().map(Into::into).collect()
+  }
+
+  fn export_item(
+    names: &[&str],
+    can_mangle: bool,
+    can_inline: bool,
+    ns_access: bool,
+  ) -> ExtendedReferencedExport {
+    ExtendedReferencedExport::Export(ReferencedExport {
+      name: export_path(names),
+      can_mangle,
+      can_inline,
+      ns_access,
+    })
+  }
+
+  #[test]
+  fn export_path_key_matches_array_and_export_for_same_path() {
+    let array = ExtendedReferencedExport::Array(export_path(&["feature"]));
+    let export = export_item(&["feature"], true, true, false);
+
+    assert_eq!(ExportPathKey::new(&array), ExportPathKey::new(&export));
+  }
+
+  #[test]
+  fn export_path_key_distinguishes_different_paths() {
+    let left = ExtendedReferencedExport::Array(export_path(&["feature"]));
+    let right = ExtendedReferencedExport::Array(export_path(&["feature", "nested"]));
+
+    assert_ne!(ExportPathKey::new(&left), ExportPathKey::new(&right));
+  }
+
+  #[test]
+  fn merge_referenced_exports_replaces_array_with_export_for_same_path() {
+    let merged = merge_referenced_exports(
+      Some(ProcessModuleReferencedExports::ExtendRef(vec![
+        ExtendedReferencedExport::Array(export_path(&["feature"])),
+      ])),
+      vec![export_item(&["feature"], false, true, true)],
+    )
+    .expect("merged result");
+
+    let ProcessModuleReferencedExports::Map(map) = merged else {
+      panic!("expected merged map");
+    };
+
+    assert_eq!(map.len(), 1);
+
+    let item = map
+      .values()
+      .next()
+      .expect("expected one merged export item");
+
+    match item {
+      ExtendedReferencedExport::Export(export) => {
+        assert_eq!(export.name, export_path(&["feature"]));
+        assert!(!export.can_mangle);
+        assert!(export.can_inline);
+        assert!(export.ns_access);
+      }
+      ExtendedReferencedExport::Array(_) => panic!("expected export variant"),
+    }
+  }
+
+  #[test]
+  fn merge_referenced_exports_folds_flags_for_duplicate_export_paths() {
+    let merged = merge_referenced_exports(
+      Some(ProcessModuleReferencedExports::ExtendRef(vec![export_item(
+        &["feature"],
+        true,
+        false,
+        true,
+      )])),
+      vec![export_item(&["feature"], false, true, false)],
+    )
+    .expect("merged result");
+
+    let ProcessModuleReferencedExports::Map(map) = merged else {
+      panic!("expected merged map");
+    };
+
+    assert_eq!(map.len(), 1);
+
+    let item = map
+      .values()
+      .next()
+      .expect("expected one merged export item");
+
+    match item {
+      ExtendedReferencedExport::Export(export) => {
+        assert_eq!(export.name, export_path(&["feature"]));
+        assert!(!export.can_mangle);
+        assert!(!export.can_inline);
+        assert!(export.ns_access);
+      }
+      ExtendedReferencedExport::Array(_) => panic!("expected export variant"),
+    }
   }
 }
