@@ -5377,9 +5377,9 @@ checksum = "719b953e2095829ee67db738b3bfa9fa368c94900df327b3f07fe6e794d2fe1f"
 
 [[package]]
 name = "rustc-hash"
-version = "2.1.1"
+version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
+checksum = "7b7996fd6d7144d7f1648b8617a470dd6a7f75c52ed8b20e267f0a8fe08b5f41"
 
 [[package]]
 name = "rustix"
