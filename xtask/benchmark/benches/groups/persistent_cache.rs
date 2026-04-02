@@ -34,6 +34,8 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
     .build()
     .unwrap();
   let pending_cleanup = RefCell::new(Vec::new());
+  verify_warm_restore_probe(&rt);
+  verify_invalidated_restore_probe(&rt);
 
   group.bench_function(
     "rust@persistent_cache_restore@basic-react-development",
@@ -41,12 +43,6 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
       b.iter_batched(
         || {
           cleanup_pending_workspaces(&pending_cleanup);
-          let probe_case = prepare_seeded_case();
-          rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
-          assert_cache_materialized(&probe_case.cache_dir);
-          rt.block_on(assert_restore_available(&probe_case, &[]));
-          let _ = fs::remove_dir_all(probe_case.workspace_dir);
-
           let measured_case = prepare_seeded_case();
           rt.block_on(run_compiler(
             &measured_case.project_dir,
@@ -72,18 +68,6 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
       b.iter_batched(
         || {
           cleanup_pending_workspaces(&pending_cleanup);
-          let probe_case = prepare_seeded_case();
-          rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
-          assert_cache_materialized(&probe_case.cache_dir);
-
-          mutate_leaf_module(&probe_case.project_dir);
-          rt.block_on(assert_restore_available(
-            &probe_case,
-            &[probe_case.project_dir.join(INVALIDATION_TARGET)],
-          ));
-
-          let _ = fs::remove_dir_all(probe_case.workspace_dir);
-
           let measured_case = prepare_seeded_case();
           rt.block_on(run_compiler(
             &measured_case.project_dir,
@@ -115,6 +99,26 @@ struct PreparedCase {
   workspace_dir: PathBuf,
   project_dir: PathBuf,
   cache_dir: PathBuf,
+}
+
+fn verify_warm_restore_probe(rt: &tokio::runtime::Runtime) {
+  let probe_case = prepare_seeded_case();
+  rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
+  assert_cache_materialized(&probe_case.cache_dir);
+  rt.block_on(assert_restore_available(&probe_case, &[]));
+  let _ = fs::remove_dir_all(probe_case.workspace_dir);
+}
+
+fn verify_invalidated_restore_probe(rt: &tokio::runtime::Runtime) {
+  let probe_case = prepare_seeded_case();
+  rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
+  assert_cache_materialized(&probe_case.cache_dir);
+  mutate_leaf_module(&probe_case.project_dir);
+  rt.block_on(assert_restore_available(
+    &probe_case,
+    &[probe_case.project_dir.join(INVALIDATION_TARGET)],
+  ));
+  let _ = fs::remove_dir_all(probe_case.workspace_dir);
 }
 
 fn prepare_seeded_case() -> PreparedCase {
