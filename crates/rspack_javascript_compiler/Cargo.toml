@@ -30,9 +30,6 @@ rspack_workspace = { workspace = true }
 [lints]
 workspace = true
 
-[target.'cfg(not(target_family = "wasm"))'.dependencies]
-stacker = { workspace = true }
-
 [lib]
 doctest = false
 test    = false

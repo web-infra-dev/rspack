@@ -127,60 +127,45 @@ fn parse_with_lexer(
   is_module: IsModule,
   with_tokens: bool,
 ) -> Result<(SwcProgram, Option<Vec<TokenAndSpan>>), Vec<parser::error::Error>> {
-  let inner = || {
-    // don't call capturing when with_tokens is false to avoid performance cost
-    let (tokens, program_result, mut errors) = if with_tokens {
-      // `source.len + 1` is an overestimation of the number of tokens.
-      // It's wasteful and might be optimized in the future.
-      let lexer = Capturing::new(lexer);
-      let mut parser = Parser::new_from(lexer);
-      let program_result = match is_module {
-        IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
-        IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
-        IsModule::Unknown => parser.parse_program(),
-        IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
-      };
-      (
-        Some(parser.input_mut().iter_mut().take()),
-        program_result,
-        parser.take_errors(),
-      )
-    } else {
-      let mut parser = Parser::new_from(lexer);
-      let program_result = match is_module {
-        IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
-        IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
-        IsModule::Unknown => parser.parse_program(),
-        IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
-      };
-      (None, program_result, parser.take_errors())
+  // don't call capturing when with_tokens is false to avoid performance cost
+  let (tokens, program_result, mut errors) = if with_tokens {
+    // `source.len + 1` is an overestimation of the number of tokens.
+    // It's wasteful and might be optimized in the future.
+    let lexer = Capturing::new(lexer);
+    let mut parser = Parser::new_from(lexer);
+    let program_result = match is_module {
+      IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+      IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
+      IsModule::Unknown => parser.parse_program(),
+      IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
     };
-
-    // Using combinator will let rustc unhappy.
-    match program_result {
-      Ok(program) => {
-        if !errors.is_empty() {
-          return Err(errors);
-        }
-        Ok((program, tokens))
-      }
-      Err(err) => {
-        errors.push(err);
-        Err(errors)
-      }
-    }
+    (
+      Some(parser.input_mut().iter_mut().take()),
+      program_result,
+      parser.take_errors(),
+    )
+  } else {
+    let mut parser = Parser::new_from(lexer);
+    let program_result = match is_module {
+      IsModule::Bool(true) => parser.parse_module().map(SwcProgram::Module),
+      IsModule::Bool(false) => parser.parse_script().map(SwcProgram::Script),
+      IsModule::Unknown => parser.parse_program(),
+      IsModule::CommonJS => parser.parse_commonjs().map(SwcProgram::Script),
+    };
+    (None, program_result, parser.take_errors())
   };
 
-  // TODO: add stacker to avoid stack overflow
-  #[cfg(all(debug_assertions, not(target_family = "wasm")))]
-  {
-    // Adjust stack to avoid stack overflow.
-    stacker::maybe_grow(
-      2 * 1024 * 1024, /* 2mb */
-      4 * 1024 * 1024, /* 4mb */
-      inner,
-    )
+  // Using combinator will let rustc unhappy.
+  match program_result {
+    Ok(program) => {
+      if !errors.is_empty() {
+        return Err(errors);
+      }
+      Ok((program, tokens))
+    }
+    Err(err) => {
+      errors.push(err);
+      Err(errors)
+    }
   }
-  #[cfg(any(not(debug_assertions), target_family = "wasm"))]
-  inner()
 }
