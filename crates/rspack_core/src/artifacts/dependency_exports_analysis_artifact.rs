@@ -1,9 +1,11 @@
 use rspack_collections::IdentifierMap;
 
 use crate::{
-  ArtifactExt, ModuleIdentifier,
+  ArtifactExt,
   incremental::{Incremental, IncrementalPasses},
 };
+#[cfg(test)]
+use crate::ModuleIdentifier;
 
 #[derive(Debug, Default, Clone)]
 pub struct ModuleDependencyExportsAnalysis {
@@ -47,45 +49,45 @@ impl DependencyExportsAnalysisArtifact {
     &self.modules
   }
 
-  pub fn modules_mut(&mut self) -> &mut IdentifierMap<ModuleDependencyExportsAnalysis> {
-    &mut self.modules
-  }
-
-  pub fn replace_module(
+  #[cfg(test)]
+  fn replace_module(
     &mut self,
     module_identifier: ModuleIdentifier,
     analysis: ModuleDependencyExportsAnalysis,
   ) -> Option<ModuleDependencyExportsAnalysis> {
-    self.modules.insert(module_identifier, analysis)
+    let previous = self.modules.insert(module_identifier, analysis);
+    self.set_topology_dirty(true);
+    previous
   }
 
-  pub fn remove_module(
+  #[cfg(test)]
+  fn remove_module(
     &mut self,
     module_identifier: &ModuleIdentifier,
   ) -> Option<ModuleDependencyExportsAnalysis> {
-    self.modules.remove(module_identifier)
+    let previous = self.modules.remove(module_identifier);
+    if previous.is_some() {
+      self.set_topology_dirty(true);
+    }
+    previous
   }
 
-  pub fn mark_all_dirty(&mut self) {
+  fn mark_all_dirty(&mut self) {
     self
       .modules
       .values_mut()
       .for_each(|analysis| analysis.set_dirty(true));
   }
 
-  pub fn topology(&self) -> &DependencyExportsTopology {
-    &self.topology
-  }
-
-  pub fn topology_mut(&mut self) -> &mut DependencyExportsTopology {
-    &mut self.topology
-  }
-
   pub fn topology_dirty(&self) -> bool {
     self.topology_dirty
   }
 
-  pub fn set_topology_dirty(&mut self, topology_dirty: bool) {
+  pub fn topology(&self) -> &DependencyExportsTopology {
+    &self.topology
+  }
+
+  fn set_topology_dirty(&mut self, topology_dirty: bool) {
     self.topology_dirty = topology_dirty;
   }
 }
@@ -122,5 +124,19 @@ mod tests {
         .dirty()
     );
     assert!(new.topology_dirty());
+  }
+
+  #[test]
+  fn module_mutations_mark_topology_dirty() {
+    let module = ModuleIdentifier::from("module-a");
+    let mut artifact = DependencyExportsAnalysisArtifact::default();
+
+    artifact.set_topology_dirty(false);
+    artifact.replace_module(module, ModuleDependencyExportsAnalysis::default());
+    assert!(artifact.topology_dirty());
+
+    artifact.set_topology_dirty(false);
+    artifact.remove_module(&module);
+    assert!(artifact.topology_dirty());
   }
 }
