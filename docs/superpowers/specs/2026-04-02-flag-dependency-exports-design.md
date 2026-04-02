@@ -173,6 +173,7 @@ The artifact also caches:
 - SCC node membership
 - SCC outgoing and incoming edges
 - SCC topological order
+- SCC propagation waves for parallel scheduling
 
 ## Dependency Collection Changes
 
@@ -226,10 +227,18 @@ Why:
 
 ### Step 4: Leaf-To-Root Propagation
 
-Process SCCs in reverse topological order:
+Process SCCs in reverse topological order, but not as one global serial queue.
+
+Instead, partition SCCs into propagation waves:
 
 - leaf SCCs first
 - root-like SCCs last
+- SCCs in the same wave have no parent-child dependency relationship with each other
+
+Execution rule:
+
+- SCCs in the same propagation wave may run in parallel
+- ordering is required only across waves, not within a wave
 
 For each SCC:
 
@@ -246,6 +255,12 @@ Inside a cyclic SCC:
 - stop when no owner module in the SCC changes
 
 This yields a local fixed-point loop instead of global recursive backtracking.
+
+The important concurrency boundary is:
+
+- parallel across independent SCCs in the same wave
+- sequential only where topology requires parent-after-child ordering
+- iterative only inside a single SCC until that SCC converges
 
 ## Incremental Strategy
 
@@ -264,6 +279,11 @@ Propagation-dirty SCCs:
 
 - SCCs containing any hard-dirty module
 - all SCCs that can reach those SCCs through reverse reexport edges
+
+Dirty propagation execution still follows propagation waves:
+
+- only the wave closure covering propagation-dirty SCCs needs to rerun
+- within each rerun wave, independent SCCs may still execute in parallel
 
 ### First-Version Rebuild Strategy
 
@@ -332,7 +352,7 @@ Mitigation:
 6. Update reexport-producing dependency collection logic to emit deferred metadata.
 7. Keep nested/interop-sensitive shapes as structured local mutations.
 8. Implement SCC/topology build.
-9. Implement SCC leaf-to-root propagation with local fixed-point.
+9. Implement SCC leaf-to-root wave scheduling with local fixed-point.
 10. Wire dirty module and propagation-dirty SCC invalidation.
 11. Add focused regression coverage for reexport graphs, cycles, star reexports, namespace reexports, and structured local cases.
 12. Run full performance and correctness validation.
