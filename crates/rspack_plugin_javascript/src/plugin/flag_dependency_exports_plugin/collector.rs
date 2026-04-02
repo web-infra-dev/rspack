@@ -45,15 +45,14 @@ pub(super) fn collect_module_analysis(
       .iter()
       .map(|reexport| reexport.target_module)
       .collect::<Vec<_>>();
-    dependency_exports_analysis_artifact.replace_module(
-      module_identifier,
-      ModuleDependencyExportsAnalysis::with_staged_analysis(
-        targets,
-        analysis.flat_local_apply,
-        analysis.structured_local_apply,
-        analysis.deferred_reexports,
-      ),
+    let mut module_analysis = ModuleDependencyExportsAnalysis::with_staged_analysis(
+      targets,
+      analysis.flat_local_apply,
+      analysis.structured_local_apply,
+      analysis.deferred_reexports,
     );
+    module_analysis.set_dirty(true);
+    dependency_exports_analysis_artifact.replace_module(module_identifier, module_analysis);
   }
 
   if dependency_exports_analysis_artifact.topology_dirty() {

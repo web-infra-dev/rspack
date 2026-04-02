@@ -36,6 +36,15 @@ fn collect_affected_modules(compilation: &Compilation) -> IdentifierSet {
   }
 }
 
+fn collect_staged_modules(
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
+  affected_modules: &IdentifierSet,
+) -> IdentifierSet {
+  let mut staged_modules = affected_modules.clone();
+  staged_modules.extend(dependency_exports_analysis_artifact.dirty_modules());
+  staged_modules
+}
+
 fn prepare_provide_info(
   module_graph: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
@@ -108,19 +117,21 @@ async fn finish_modules(
   let affected_modules = collect_affected_modules(compilation);
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
   prune_removed_modules(compilation, dependency_exports_analysis_artifact);
-  prepare_provide_info(module_graph, exports_info_artifact, &affected_modules);
+  let staged_modules =
+    collect_staged_modules(dependency_exports_analysis_artifact, &affected_modules);
+  prepare_provide_info(module_graph, exports_info_artifact, &staged_modules);
   collector::collect_module_analysis(
     module_graph,
     &module_graph_cache,
     exports_info_artifact,
     dependency_exports_analysis_artifact,
-    &affected_modules,
+    &staged_modules,
   )?;
   local_apply::apply_local_exports(
     module_graph,
     exports_info_artifact,
     dependency_exports_analysis_artifact,
-    &affected_modules,
+    &staged_modules,
   )?;
   propagation::propagate_deferred_reexports(
     module_graph,

@@ -3,100 +3,117 @@ use rayon::prelude::*;
 use rspack_core::ModuleIdentifier;
 use rspack_core::{
   DeferredReexportSpec, DependencyExportsAnalysisArtifact, ExportNameOrSpec, ExportSpec,
-  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ModuleGraph,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
+  ModuleGraph,
 };
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 
 use super::process_exports_spec_without_nested;
 
 pub(super) fn propagate_deferred_reexports(
   module_graph: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
-  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
+  dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   for wave in dependency_exports_analysis_artifact.topology().waves() {
-    loop {
-      let wave_iteration = wave
-        .par_iter()
-        .map(|scc_id| {
-          resolve_scc_iteration(
-            *scc_id,
-            module_graph,
-            exports_info_artifact,
-            dependency_exports_analysis_artifact,
-          )
-        })
-        .collect::<Vec<_>>();
+    let wave_updates = wave
+      .par_iter()
+      .map(|scc_id| {
+        let mut scc_exports_info_artifact =
+          snapshot_exports_info_artifact(module_graph, exports_info_artifact);
+        resolve_scc_until_fixed_point(
+          *scc_id,
+          module_graph,
+          &mut scc_exports_info_artifact,
+          dependency_exports_analysis_artifact,
+        )
+      })
+      .collect::<Vec<_>>();
 
-      let mut changed = false;
-      for scc_updates in wave_iteration {
-        for module_update in scc_updates? {
-          changed |= module_update.changed;
+    for scc_updates in wave_updates {
+      for module_update in scc_updates? {
+        if module_update.changed {
           exports_info_artifact
             .set_exports_info_by_id(module_update.exports_info.id(), module_update.exports_info);
         }
       }
-
-      if !changed {
-        break;
-      }
     }
   }
+  dependency_exports_analysis_artifact.clear_all_dirty();
 
   Ok(())
 }
 
 struct PropagationModuleUpdate {
   changed: bool,
-  exports_info: rspack_core::ExportsInfoData,
+  exports_info: ExportsInfoData,
 }
 
-fn resolve_scc_iteration(
+fn resolve_scc_until_fixed_point(
   scc_id: usize,
   module_graph: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
   dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
 ) -> Result<Vec<PropagationModuleUpdate>> {
-  let mut updates = Vec::new();
-  for module_identifier in dependency_exports_analysis_artifact
+  let scc_modules = dependency_exports_analysis_artifact
     .topology()
     .scc_modules(scc_id)
-  {
-    let Some(module_analysis) = dependency_exports_analysis_artifact.module(module_identifier)
-    else {
-      continue;
-    };
-    if module_analysis.deferred_reexports().is_empty() {
-      continue;
-    }
+    .to_vec();
 
+  loop {
+    let mut updates = Vec::new();
     let mut changed = false;
-    let mut exports_info = exports_info_artifact
-      .get_exports_info_data(module_identifier)
-      .clone();
-    for deferred_reexport in module_analysis.deferred_reexports() {
-      let Some(exports_spec) = deferred_reexport_as_exports_spec(module_graph, deferred_reexport)
+
+    for module_identifier in &scc_modules {
+      let Some(module_analysis) = dependency_exports_analysis_artifact.module(module_identifier)
       else {
         continue;
       };
-      let (propagation_changed, _changed_dependencies) = process_exports_spec_without_nested(
-        module_graph,
-        exports_info_artifact,
-        module_identifier,
-        deferred_reexport.dep_id,
-        &exports_spec,
-        &mut exports_info,
-      );
-      changed |= propagation_changed;
+      if module_analysis.deferred_reexports().is_empty() {
+        continue;
+      }
+
+      let mut module_changed = false;
+      let mut exports_info = exports_info_artifact
+        .get_exports_info_data(module_identifier)
+        .clone();
+      for deferred_reexport in module_analysis.deferred_reexports() {
+        let Some(exports_spec) = deferred_reexport_as_exports_spec(module_graph, deferred_reexport)
+        else {
+          continue;
+        };
+        let (propagation_changed, _changed_dependencies) = process_exports_spec_without_nested(
+          module_graph,
+          exports_info_artifact,
+          module_identifier,
+          deferred_reexport.dep_id,
+          &exports_spec,
+          &mut exports_info,
+        );
+        module_changed |= propagation_changed;
+      }
+
+      changed |= module_changed;
+      updates.push(PropagationModuleUpdate {
+        changed: module_changed,
+        exports_info,
+      });
     }
 
-    updates.push(PropagationModuleUpdate {
-      changed,
-      exports_info,
-    });
-  }
+    if !changed {
+      return Ok(updates);
+    }
 
-  Ok(updates)
+    for module_update in &updates {
+      if module_update.changed {
+        exports_info_artifact.set_exports_info_by_id(
+          module_update.exports_info.id(),
+          module_update.exports_info.clone(),
+        );
+      }
+    }
+  }
 }
 
 fn deferred_reexport_as_exports_spec(
@@ -131,6 +148,50 @@ fn deferred_reexport_as_exports_spec(
     dependencies: Some(vec![deferred_reexport.target_module]),
     ..Default::default()
   })
+}
+
+fn snapshot_exports_info_artifact(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> ExportsInfoArtifact {
+  let mut snapshot = ExportsInfoArtifact::default();
+  let mut copied = FxHashSet::default();
+
+  for module_identifier in module_graph.modules_keys() {
+    let exports_info = exports_info_artifact.get_exports_info(module_identifier);
+    snapshot.set_exports_info(*module_identifier, exports_info);
+    copy_exports_info_recursive(
+      exports_info,
+      exports_info_artifact,
+      &mut snapshot,
+      &mut copied,
+    );
+  }
+
+  snapshot
+}
+
+fn copy_exports_info_recursive(
+  exports_info: ExportsInfo,
+  source: &ExportsInfoArtifact,
+  snapshot: &mut ExportsInfoArtifact,
+  copied: &mut FxHashSet<ExportsInfo>,
+) {
+  if !copied.insert(exports_info) {
+    return;
+  }
+
+  let exports_info_data = source.get_exports_info_by_id(&exports_info).clone();
+  let nested_exports_infos = exports_info_data
+    .exports()
+    .values()
+    .filter_map(|export_info| export_info.exports_info())
+    .collect::<Vec<_>>();
+  snapshot.set_exports_info_by_id(exports_info, exports_info_data);
+
+  for nested_exports_info in nested_exports_infos {
+    copy_exports_info_recursive(nested_exports_info, source, snapshot, copied);
+  }
 }
 
 #[cfg(test)]

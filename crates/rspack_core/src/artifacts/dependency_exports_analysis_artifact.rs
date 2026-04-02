@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 
 use crate::{
   ArtifactExt, DeferredReexportSpec, DependencyId, ExportsSpec, ModuleIdentifier,
@@ -102,6 +102,21 @@ impl DependencyExportsAnalysisArtifact {
     module_identifier: &ModuleIdentifier,
   ) -> Option<&ModuleDependencyExportsAnalysis> {
     self.modules.get(module_identifier)
+  }
+
+  pub fn dirty_modules(&self) -> IdentifierSet {
+    self
+      .modules
+      .iter()
+      .filter_map(|(module_identifier, analysis)| analysis.dirty().then_some(*module_identifier))
+      .collect()
+  }
+
+  pub fn clear_all_dirty(&mut self) {
+    self
+      .modules
+      .values_mut()
+      .for_each(|analysis| analysis.set_dirty(false));
   }
 
   pub fn rebuild_topology(&mut self) {
