@@ -2,10 +2,11 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 
 use crate::{
-  ArtifactExt, ExportsInfo, ExportsInfoData, ExportsInfoGetter, ModuleIdentifier,
+  ArtifactExt, ExportsInfo, ExportsInfoData, ExportsInfoGetter, ExportsInfoRead, ModuleIdentifier,
   PrefetchExportsInfoMode, PrefetchedExportsInfoUsed, PrefetchedExportsInfoWrapper, RuntimeSpec,
   incremental::{Incremental, IncrementalPasses},
   module_graph::rollback,
+  utils::StealCell,
 };
 
 #[derive(Debug, Default)]
@@ -136,6 +137,26 @@ impl ExportsInfoArtifact {
         exports_info.other_exports_info_mut().set_has_use_info();
       },
     );
+  }
+}
+
+impl ExportsInfoRead for ExportsInfoArtifact {
+  fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
+    ExportsInfoArtifact::get_exports_info(self, module_identifier)
+  }
+
+  fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+    ExportsInfoArtifact::get_exports_info_by_id(self, id)
+  }
+}
+
+impl ExportsInfoRead for StealCell<ExportsInfoArtifact> {
+  fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
+    (**self).get_exports_info(module_identifier)
+  }
+
+  fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+    (**self).get_exports_info_by_id(id)
   }
 }
 

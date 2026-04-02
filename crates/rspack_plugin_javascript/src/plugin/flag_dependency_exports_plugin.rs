@@ -8,8 +8,9 @@ use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
   DependencyExportsAnalysisArtifact, DependencyId, EvaluatedInlinableValue, ExportInfo,
   ExportInfoData, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
-  ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, get_target,
+  ExportsInfoData, ExportsInfoRead, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger,
+  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode,
+  get_target,
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::Result;
@@ -120,15 +121,9 @@ async fn finish_modules(
   let staged_modules =
     collect_staged_modules(dependency_exports_analysis_artifact, &affected_modules);
   prepare_provide_info(module_graph, exports_info_artifact, &staged_modules);
-  collector::collect_module_analysis(
-    module_graph,
-    &module_graph_cache,
-    exports_info_artifact,
-    dependency_exports_analysis_artifact,
-    &staged_modules,
-  )?;
   local_apply::apply_local_exports(
     module_graph,
+    &module_graph_cache,
     exports_info_artifact,
     dependency_exports_analysis_artifact,
     &staged_modules,
@@ -233,9 +228,9 @@ pub(super) fn process_exports_spec(
 /// which will be used to backtrack when target exports info is changed
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-pub(super) fn process_exports_spec_without_nested(
+pub(super) fn process_exports_spec_without_nested<T: ExportsInfoRead>(
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
   module_id: &ModuleIdentifier,
   dep_id: DependencyId,
   export_desc: &ExportsSpec,
@@ -347,9 +342,9 @@ impl<'a> ParsedExportSpec<'a> {
 ///
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-fn merge_exports_without_nested(
+fn merge_exports_without_nested<T: ExportsInfoRead>(
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
   module_id: &ModuleIdentifier,
   exports_info: &mut ExportsInfoData,
   exports: &[ExportNameOrSpec],
@@ -597,9 +592,9 @@ fn set_export_target(
   changed
 }
 
-fn find_target_exports_info(
+fn find_target_exports_info<T: ExportsInfoRead>(
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
   export_info: &ExportInfoData,
 ) -> (Option<ExportsInfo>, Option<ModuleIdentifier>) {
   // Recalculate target exportsInfo

@@ -1,13 +1,12 @@
 use rayon::prelude::*;
-#[cfg(test)]
-use rspack_core::ModuleIdentifier;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   DeferredReexportSpec, DependencyExportsAnalysisArtifact, ExportNameOrSpec, ExportSpec,
-  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
-  ModuleGraph,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsInfoRead, ExportsOfExportsSpec,
+  ExportsSpec, ModuleGraph, ModuleIdentifier,
 };
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::process_exports_spec_without_nested;
 
@@ -17,30 +16,56 @@ pub(super) fn propagate_deferred_reexports(
   dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   for wave in dependency_exports_analysis_artifact.topology().waves() {
+    let wave_snapshot = snapshot_exports_info_artifact(module_graph, exports_info_artifact);
     let wave_updates = wave
       .par_iter()
       .map(|scc_id| {
-        let mut scc_exports_info_artifact =
-          snapshot_exports_info_artifact(module_graph, exports_info_artifact);
         resolve_scc_until_fixed_point(
           *scc_id,
           module_graph,
-          &mut scc_exports_info_artifact,
+          &wave_snapshot,
           dependency_exports_analysis_artifact,
         )
       })
-      .collect::<Vec<_>>();
+      .collect::<Result<Vec<_>>>()?;
 
-    for scc_updates in wave_updates {
-      for module_update in scc_updates? {
-        if module_update.changed {
-          exports_info_artifact
-            .set_exports_info_by_id(module_update.exports_info.id(), module_update.exports_info);
-        }
+    for module_update in wave_updates.into_iter().flatten() {
+      if module_update.changed {
+        exports_info_artifact
+          .set_exports_info_by_id(module_update.exports_info.id(), module_update.exports_info);
       }
     }
   }
   dependency_exports_analysis_artifact.clear_all_dirty();
+
+  Ok(())
+}
+
+#[cfg(test)]
+fn process_waves_in_parallel<TWaveState, TPatch, TSnapshot, TResolve, TApply>(
+  waves: &[Vec<usize>],
+  mut build_wave_state: TSnapshot,
+  resolve_scc: TResolve,
+  mut apply_wave: TApply,
+) -> Result<()>
+where
+  TWaveState: Sync,
+  TPatch: Send,
+  TSnapshot: FnMut(&[usize]) -> TWaveState,
+  TResolve: Fn(&TWaveState, usize) -> Result<Vec<TPatch>> + Sync,
+  TApply: FnMut(&[usize], Vec<TPatch>) -> Result<()>,
+{
+  for wave in waves {
+    let wave_state = build_wave_state(wave);
+    let wave_patches = wave
+      .par_iter()
+      .map(|scc_id| resolve_scc(&wave_state, *scc_id))
+      .collect::<Result<Vec<_>>>()?
+      .into_iter()
+      .flatten()
+      .collect::<Vec<_>>();
+    apply_wave(wave, wave_patches)?;
+  }
 
   Ok(())
 }
@@ -50,20 +75,65 @@ struct PropagationModuleUpdate {
   exports_info: ExportsInfoData,
 }
 
+struct WaveExportsInfoSnapshot {
+  module_exports_info: IdentifierMap<ExportsInfo>,
+  exports_info_map: FxHashMap<ExportsInfo, ExportsInfoData>,
+}
+
+impl ExportsInfoRead for WaveExportsInfoSnapshot {
+  fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
+    *self
+      .module_exports_info
+      .get(module_identifier)
+      .expect("should have module exports info")
+  }
+
+  fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+    self
+      .exports_info_map
+      .get(id)
+      .expect("should have exports info snapshot")
+  }
+}
+
+struct PatchedSccExportsInfoRead<'a> {
+  snapshot: &'a WaveExportsInfoSnapshot,
+  patches: &'a FxHashMap<ExportsInfo, ExportsInfoData>,
+}
+
+impl ExportsInfoRead for PatchedSccExportsInfoRead<'_> {
+  fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
+    self.snapshot.get_exports_info(module_identifier)
+  }
+
+  fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
+    self
+      .patches
+      .get(id)
+      .unwrap_or_else(|| self.snapshot.get_exports_info_by_id(id))
+  }
+}
+
 fn resolve_scc_until_fixed_point(
   scc_id: usize,
   module_graph: &ModuleGraph,
-  exports_info_artifact: &mut ExportsInfoArtifact,
+  wave_snapshot: &WaveExportsInfoSnapshot,
   dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
 ) -> Result<Vec<PropagationModuleUpdate>> {
   let scc_modules = dependency_exports_analysis_artifact
     .topology()
     .scc_modules(scc_id)
     .to_vec();
+  let mut patches = FxHashMap::default();
 
   loop {
+    let read_state = PatchedSccExportsInfoRead {
+      snapshot: wave_snapshot,
+      patches: &patches,
+    };
     let mut updates = Vec::new();
     let mut changed = false;
+    let mut next_patches = patches.clone();
 
     for module_identifier in &scc_modules {
       let Some(module_analysis) = dependency_exports_analysis_artifact.module(module_identifier)
@@ -75,9 +145,8 @@ fn resolve_scc_until_fixed_point(
       }
 
       let mut module_changed = false;
-      let mut exports_info = exports_info_artifact
-        .get_exports_info_data(module_identifier)
-        .clone();
+      let exports_info_id = read_state.get_exports_info(module_identifier);
+      let mut exports_info = read_state.get_exports_info_by_id(&exports_info_id).clone();
       for deferred_reexport in module_analysis.deferred_reexports() {
         let Some(exports_spec) = deferred_reexport_as_exports_spec(module_graph, deferred_reexport)
         else {
@@ -85,7 +154,7 @@ fn resolve_scc_until_fixed_point(
         };
         let (propagation_changed, _changed_dependencies) = process_exports_spec_without_nested(
           module_graph,
-          exports_info_artifact,
+          &read_state,
           module_identifier,
           deferred_reexport.dep_id,
           &exports_spec,
@@ -95,6 +164,9 @@ fn resolve_scc_until_fixed_point(
       }
 
       changed |= module_changed;
+      if module_changed {
+        next_patches.insert(exports_info.id(), exports_info.clone());
+      }
       updates.push(PropagationModuleUpdate {
         changed: module_changed,
         exports_info,
@@ -104,15 +176,7 @@ fn resolve_scc_until_fixed_point(
     if !changed {
       return Ok(updates);
     }
-
-    for module_update in &updates {
-      if module_update.changed {
-        exports_info_artifact.set_exports_info_by_id(
-          module_update.exports_info.id(),
-          module_update.exports_info.clone(),
-        );
-      }
-    }
+    patches = next_patches;
   }
 }
 
@@ -153,13 +217,18 @@ fn deferred_reexport_as_exports_spec(
 fn snapshot_exports_info_artifact(
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> ExportsInfoArtifact {
-  let mut snapshot = ExportsInfoArtifact::default();
+) -> WaveExportsInfoSnapshot {
+  let mut snapshot = WaveExportsInfoSnapshot {
+    module_exports_info: IdentifierMap::default(),
+    exports_info_map: FxHashMap::default(),
+  };
   let mut copied = FxHashSet::default();
 
   for module_identifier in module_graph.modules_keys() {
     let exports_info = exports_info_artifact.get_exports_info(module_identifier);
-    snapshot.set_exports_info(*module_identifier, exports_info);
+    snapshot
+      .module_exports_info
+      .insert(*module_identifier, exports_info);
     copy_exports_info_recursive(
       exports_info,
       exports_info_artifact,
@@ -174,7 +243,7 @@ fn snapshot_exports_info_artifact(
 fn copy_exports_info_recursive(
   exports_info: ExportsInfo,
   source: &ExportsInfoArtifact,
-  snapshot: &mut ExportsInfoArtifact,
+  snapshot: &mut WaveExportsInfoSnapshot,
   copied: &mut FxHashSet<ExportsInfo>,
 ) {
   if !copied.insert(exports_info) {
@@ -187,7 +256,9 @@ fn copy_exports_info_recursive(
     .values()
     .filter_map(|export_info| export_info.exports_info())
     .collect::<Vec<_>>();
-  snapshot.set_exports_info_by_id(exports_info, exports_info_data);
+  snapshot
+    .exports_info_map
+    .insert(exports_info, exports_info_data);
 
   for nested_exports_info in nested_exports_infos {
     copy_exports_info_recursive(nested_exports_info, source, snapshot, copied);
@@ -218,6 +289,11 @@ fn propagation_waves(
 
 #[cfg(test)]
 mod tests {
+  use std::sync::{
+    Mutex,
+    atomic::{AtomicUsize, Ordering},
+  };
+
   use rspack_core::{
     DeferredReexportItem, DeferredReexportSpec, DependencyExportsAnalysisArtifact, DependencyId,
     ModuleDependencyExportsAnalysis, ModuleIdentifier, Nullable,
@@ -264,5 +340,49 @@ mod tests {
         .len(),
       1
     );
+  }
+
+  #[test]
+  fn propagate_builds_one_shared_snapshot_per_wave() -> Result<()> {
+    let waves = vec![vec![0, 1], vec![2]];
+    let snapshot_builds = AtomicUsize::new(0);
+    let resolved = Mutex::new(Vec::new());
+    let applied = Mutex::new(Vec::new());
+
+    process_waves_in_parallel(
+      &waves,
+      |_| snapshot_builds.fetch_add(1, Ordering::SeqCst) + 1,
+      |snapshot_id, scc_id| {
+        resolved
+          .lock()
+          .expect("should lock")
+          .push((*snapshot_id, scc_id));
+        Ok(vec![(scc_id, *snapshot_id)])
+      },
+      |_wave, patches| {
+        applied.lock().expect("should lock").push(patches);
+        Ok(())
+      },
+    )?;
+
+    assert_eq!(
+      snapshot_builds.load(Ordering::SeqCst),
+      2,
+      "each wave should build exactly one shared snapshot"
+    );
+    let mut resolved = resolved.lock().expect("should lock").clone();
+    resolved.sort_unstable();
+    assert_eq!(
+      resolved,
+      vec![(1, 0), (1, 1), (2, 2)],
+      "all SCCs in the first wave should resolve from the same shared snapshot"
+    );
+    assert_eq!(
+      applied.lock().expect("should lock").clone(),
+      vec![vec![(0, 1), (1, 1)], vec![(2, 2)]],
+      "patches should apply only after the wave-wide parallel work completes"
+    );
+
+    Ok(())
   }
 }
