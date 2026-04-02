@@ -6,7 +6,8 @@ import { parentPort, Worker } from "node:worker_threads";
 
 const require = createRequire(import.meta.url);
 
-const { instantiateNapiModuleSync, MessageHandler, getDefaultContext } = require("@napi-rs/wasm-runtime");
+const { MessageHandler, getDefaultContext } = require("@napi-rs/wasm-runtime");
+const { createNapiModule: __emnapiCreateNapiModule, loadNapiModuleSync: __emnapiLoadNapiModuleSync } = require("@emnapi/core");
 
 if (parentPort) {
   parentPort.on("message", (data) => {
@@ -52,20 +53,40 @@ function __assertEmnapiMemoryRange(ptr, size) {
   return ptr;
 }
 
-function __patchEmnapiMalloc(instance) {
-  const { exports } = instance;
+function __wrapEmnapiInstance(instance) {
+  const wrappedExports = Object.create(instance.exports);
   for (const name of ["malloc", "_malloc"]) {
-    const original = exports[name];
-    if (typeof original !== "function" || original.__rspackEmnapiMallocGuard) {
+    const original = instance.exports[name];
+    if (typeof original !== "function") {
       continue;
     }
 
-    const wrapped = function (size) {
-      return __assertEmnapiMemoryRange(original(size), size);
-    };
-    wrapped.__rspackEmnapiMallocGuard = true;
-    exports[name] = wrapped;
+    Object.defineProperty(wrappedExports, name, {
+      value: function (size) {
+        return __assertEmnapiMemoryRange(original(size), size);
+      },
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    });
+    wrappedExports[name].__rspackEmnapiMallocGuard = true;
   }
+
+  return {
+    exports: wrappedExports,
+  };
+}
+
+function __createPatchedNapiModule(options) {
+  const napiModule = __emnapiCreateNapiModule(options);
+  const originalInit = napiModule.init;
+  napiModule.init = function (initOptions) {
+    return originalInit.call(this, {
+      ...initOptions,
+      instance: __wrapEmnapiInstance(initOptions.instance),
+    });
+  };
+  return napiModule;
 }
 
 const handler = new MessageHandler({
@@ -78,13 +99,10 @@ const handler = new MessageHandler({
       },
     });
 
-    return instantiateNapiModuleSync(wasmModule, {
+    const __emnapiOptions = {
       childThread: true,
       wasi,
       context: emnapiContext,
-      beforeInit({ instance }) {
-        __patchEmnapiMalloc(instance);
-      },
       overwriteImports(importObject) {
         importObject.env = {
           ...importObject.env,
@@ -93,7 +111,12 @@ const handler = new MessageHandler({
           memory: wasmMemory
         };
       },
-    });
+    };
+    return __emnapiLoadNapiModuleSync(
+      __createPatchedNapiModule(__emnapiOptions),
+      wasmModule,
+      __emnapiOptions
+    );
   },
 });
 

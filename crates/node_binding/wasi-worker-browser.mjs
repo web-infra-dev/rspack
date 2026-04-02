@@ -1,4 +1,8 @@
-import { instantiateNapiModuleSync, MessageHandler, WASI, createFsProxy } from '@napi-rs/wasm-runtime'
+import { MessageHandler, WASI, createFsProxy } from '@napi-rs/wasm-runtime'
+import {
+  createNapiModule as __emnapiCreateNapiModule,
+  loadNapiModuleSync as __emnapiLoadNapiModuleSync,
+} from '@emnapi/core'
 import { memfsExported as __memfsExported } from '@napi-rs/wasm-runtime/fs'
 
 const fs = createFsProxy(__memfsExported)
@@ -25,20 +29,40 @@ function __assertEmnapiMemoryRange(ptr, size) {
   return ptr
 }
 
-function __patchEmnapiMalloc(instance) {
-  const { exports } = instance
+function __wrapEmnapiInstance(instance) {
+  const wrappedExports = Object.create(instance.exports)
   for (const name of ['malloc', '_malloc']) {
-    const original = exports[name]
-    if (typeof original !== 'function' || original.__rspackEmnapiMallocGuard) {
+    const original = instance.exports[name]
+    if (typeof original !== 'function') {
       continue
     }
 
-    const wrapped = function(size) {
-      return __assertEmnapiMemoryRange(original(size), size)
-    }
-    wrapped.__rspackEmnapiMallocGuard = true
-    exports[name] = wrapped
+    Object.defineProperty(wrappedExports, name, {
+      value: function(size) {
+        return __assertEmnapiMemoryRange(original(size), size)
+      },
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    })
+    wrappedExports[name].__rspackEmnapiMallocGuard = true
   }
+
+  return {
+    exports: wrappedExports,
+  }
+}
+
+function __createPatchedNapiModule(options) {
+  const napiModule = __emnapiCreateNapiModule(options)
+  const originalInit = napiModule.init
+  napiModule.init = function(initOptions) {
+    return originalInit.call(this, {
+      ...initOptions,
+      instance: __wrapEmnapiInstance(initOptions.instance),
+    })
+  }
+  return napiModule
 }
 
 const handler = new MessageHandler({
@@ -59,12 +83,9 @@ const handler = new MessageHandler({
         errorOutputs.push([...arguments])
       },
     })
-    return instantiateNapiModuleSync(wasmModule, {
+    const __emnapiOptions = {
       childThread: true,
       wasi,
-      beforeInit({ instance }) {
-        __patchEmnapiMalloc(instance)
-      },
       overwriteImports(importObject) {
         importObject.env = {
           ...importObject.env,
@@ -73,7 +94,12 @@ const handler = new MessageHandler({
           memory: wasmMemory,
         }
       },
-    })
+    }
+    return __emnapiLoadNapiModuleSync(
+      __createPatchedNapiModule(__emnapiOptions),
+      wasmModule,
+      __emnapiOptions
+    )
   },
   onError(error) {
     postMessage({ type: 'error', error, errorOutputs })

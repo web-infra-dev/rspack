@@ -11,8 +11,11 @@ const { Worker } = require('node:worker_threads')
 const {
   createOnMessage: __wasmCreateOnMessageForFsProxy,
   getDefaultContext: __emnapiGetDefaultContext,
-  instantiateNapiModuleSync: __emnapiInstantiateNapiModuleSync,
 } = require('@napi-rs/wasm-runtime')
+const {
+  createNapiModule: __emnapiCreateNapiModule,
+  loadNapiModuleSync: __emnapiLoadNapiModuleSync,
+} = require('@emnapi/core')
 
 const __rootDir = __nodePath.parse(process.cwd()).root
 
@@ -52,20 +55,40 @@ function __assertEmnapiMemoryRange(ptr, size) {
   return ptr
 }
 
-function __patchEmnapiMalloc(instance) {
-  const { exports } = instance
+function __wrapEmnapiInstance(instance) {
+  const wrappedExports = Object.create(instance.exports)
   for (const name of ['malloc', '_malloc']) {
-    const original = exports[name]
-    if (typeof original !== 'function' || original.__rspackEmnapiMallocGuard) {
+    const original = instance.exports[name]
+    if (typeof original !== 'function') {
       continue
     }
 
-    const wrapped = function(size) {
-      return __assertEmnapiMemoryRange(original(size), size)
-    }
-    wrapped.__rspackEmnapiMallocGuard = true
-    exports[name] = wrapped
+    Object.defineProperty(wrappedExports, name, {
+      value: function(size) {
+        return __assertEmnapiMemoryRange(original(size), size)
+      },
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    })
+    wrappedExports[name].__rspackEmnapiMallocGuard = true
   }
+
+  return {
+    exports: wrappedExports,
+  }
+}
+
+function __createPatchedNapiModule(options) {
+  const napiModule = __emnapiCreateNapiModule(options)
+  const originalInit = napiModule.init
+  napiModule.init = function(initOptions) {
+    return originalInit.call(this, {
+      ...initOptions,
+      instance: __wrapEmnapiInstance(initOptions.instance),
+    })
+  }
+  return napiModule
 }
 
 let __wasmFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.wasm')
@@ -81,7 +104,7 @@ if (__nodeFs.existsSync(__wasmDebugFilePath)) {
   }
 }
 
-const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule } = __emnapiInstantiateNapiModuleSync(__nodeFs.readFileSync(__wasmFilePath), {
+const __emnapiOptions = {
   context: __emnapiContext,
   asyncWorkPoolSize: (function() {
     const threadsSizeFromEnv = Number(process.env.NAPI_RS_ASYNC_WORK_POOL_SIZE ?? process.env.UV_THREADPOOL_SIZE)
@@ -136,14 +159,22 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
     return importObject
   },
   beforeInit({ instance }) {
-    __patchEmnapiMalloc(instance)
     for (const name of Object.keys(instance.exports)) {
       if (name.startsWith('__napi_register__')) {
         instance.exports[name]()
       }
     }
   },
-})
+}
+
+const __napiModule = __createPatchedNapiModule(__emnapiOptions)
+
+const { instance: __napiInstance, module: __wasiModule } =
+  __emnapiLoadNapiModuleSync(
+    __napiModule,
+    __nodeFs.readFileSync(__wasmFilePath),
+    __emnapiOptions
+  )
 module.exports = __napiModule.exports
 module.exports.Assets = __napiModule.exports.Assets
 module.exports.AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock

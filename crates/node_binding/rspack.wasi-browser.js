@@ -1,9 +1,12 @@
 import {
   createOnMessage as __wasmCreateOnMessageForFsProxy,
   getDefaultContext as __emnapiGetDefaultContext,
-  instantiateNapiModule as __emnapiInstantiateNapiModule,
   WASI as __WASI,
 } from '@napi-rs/wasm-runtime'
+import {
+  createNapiModule as __emnapiCreateNapiModule,
+  loadNapiModule as __emnapiLoadNapiModule,
+} from '@emnapi/core'
 import { memfs, Buffer } from '@napi-rs/wasm-runtime/fs'
 
 
@@ -47,29 +50,45 @@ function __assertEmnapiMemoryRange(ptr, size) {
   return ptr
 }
 
-function __patchEmnapiMalloc(instance) {
-  const { exports } = instance
+function __wrapEmnapiInstance(instance) {
+  const wrappedExports = Object.create(instance.exports)
   for (const name of ['malloc', '_malloc']) {
-    const original = exports[name]
-    if (typeof original !== 'function' || original.__rspackEmnapiMallocGuard) {
+    const original = instance.exports[name]
+    if (typeof original !== 'function') {
       continue
     }
 
-    const wrapped = function(size) {
-      return __assertEmnapiMemoryRange(original(size), size)
-    }
-    wrapped.__rspackEmnapiMallocGuard = true
-    exports[name] = wrapped
+    Object.defineProperty(wrappedExports, name, {
+      value: function(size) {
+        return __assertEmnapiMemoryRange(original(size), size)
+      },
+      enumerable: true,
+      configurable: true,
+      writable: true,
+    })
+    wrappedExports[name].__rspackEmnapiMallocGuard = true
   }
+
+  return {
+    exports: wrappedExports,
+  }
+}
+
+function __createPatchedNapiModule(options) {
+  const napiModule = __emnapiCreateNapiModule(options)
+  const originalInit = napiModule.init
+  napiModule.init = function(initOptions) {
+    return originalInit.call(this, {
+      ...initOptions,
+      instance: __wrapEmnapiInstance(initOptions.instance),
+    })
+  }
+  return napiModule
 }
 
 const __wasmFile = await fetch(__wasmUrl).then((res) => res.arrayBuffer())
 
-const {
-  instance: __napiInstance,
-  module: __wasiModule,
-  napiModule: __napiModule,
-} = await __emnapiInstantiateNapiModule(__wasmFile, {
+const __emnapiOptions = {
   context: __emnapiContext,
   asyncWorkPoolSize: 4,
   wasi: __wasi,
@@ -97,14 +116,21 @@ const {
     return importObject
   },
   beforeInit({ instance }) {
-    __patchEmnapiMalloc(instance)
     for (const name of Object.keys(instance.exports)) {
       if (name.startsWith('__napi_register__')) {
         instance.exports[name]()
       }
     }
   },
-})
+}
+
+const __napiModule = __createPatchedNapiModule(__emnapiOptions)
+
+const {
+  instance: __napiInstance,
+  module: __wasiModule,
+} = await __emnapiLoadNapiModule(__napiModule, __wasmFile, __emnapiOptions)
+
 export default __napiModule.exports
 export const Assets = __napiModule.exports.Assets
 export const AsyncDependenciesBlock = __napiModule.exports.AsyncDependenciesBlock
