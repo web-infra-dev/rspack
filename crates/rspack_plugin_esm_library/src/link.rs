@@ -1668,12 +1668,24 @@ var {} = {{}};
 
     let mut exports = if collect_own_exports {
       let exports_info = exports_info_artifact.get_exports_info_data(&module_id);
-      exports_info
-        .exports()
-        .iter()
-        .filter(|(_, export_info)| matches!(export_info.provided(), Some(ExportProvided::Provided)))
-        .map(|(name, _)| Either::Left(name.clone()))
-        .collect()
+      let mut direct_exports = FxIndexSet::default();
+      let mut deferred_reexports = FxIndexSet::default();
+      for (name, export_info) in exports_info.exports().iter() {
+        if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
+          continue;
+        }
+        let export_name = Either::Left(name.clone());
+        if export_info.target_is_set()
+          && export_info.is_reexport()
+          && !export_info.terminal_binding()
+        {
+          deferred_reexports.insert(export_name);
+        } else {
+          direct_exports.insert(export_name);
+        }
+      }
+      direct_exports.extend(deferred_reexports);
+      direct_exports
     } else {
       FxIndexSet::default()
     };

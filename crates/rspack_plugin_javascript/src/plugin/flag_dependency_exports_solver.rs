@@ -338,10 +338,10 @@ pub(crate) fn execute_component_worklist(
   }
 
   while let Some(module_id) = queue.pop_front() {
-    if solve_once(module_id) {
-      if let Some(dependents) = component.dependents_within_component.get(&module_id) {
-        queue.extend(dependents.iter().copied());
-      }
+    if solve_once(module_id)
+      && let Some(dependents) = component.dependents_within_component.get(&module_id)
+    {
+      queue.extend(dependents.iter().copied());
     }
   }
 }

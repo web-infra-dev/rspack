@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -13,6 +15,16 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use swc_core::ecma::atoms::Atom;
+
+use super::flag_dependency_exports_solver::{
+  ExportsSolveStats, PlannedModule, build_solve_graph, execute_component_worklist,
+};
+
+#[derive(Debug, Default)]
+struct SolveModuleOutcome {
+  changed: bool,
+  changed_dependencies: Vec<(ModuleIdentifier, ModuleIdentifier)>,
+}
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
@@ -62,120 +74,167 @@ impl<'a> FlagDependencyExportsState<'a> {
       exports_info.set_has_provide_info();
     }
 
-    // collect the exports specs from all modules and their dependencies
-    // and then merge the exports specs to exports info data
-    // and collect the dependencies which will be used to backtrack when target exports info is changed
+    let planned_modules = modules
+      .par_iter()
+      .map(|module_id| {
+        build_planned_module(
+          module_id,
+          self.mg,
+          self.mg_cache,
+          self.exports_info_artifact,
+        )
+      })
+      .collect::<Vec<_>>();
+
+    let mut solve_stats = ExportsSolveStats {
+      planned_modules: planned_modules.len(),
+      provider_edges: planned_modules
+        .iter()
+        .map(|planned| planned.provider_modules.len())
+        .sum(),
+      ..Default::default()
+    };
+
+    let solve_graph = build_solve_graph(planned_modules);
+    solve_stats.scc_count = solve_graph.components.len();
+    solve_stats.fallback_components = solve_graph
+      .components
+      .iter()
+      .filter(|component| component.fallback)
+      .count();
+
     let mut batch = modules;
-    let mut dependencies: IdentifierMap<IdentifierSet> =
-      IdentifierMap::with_capacity_and_hasher(batch.len(), Default::default());
+    let mut dynamic_dependencies: IdentifierMap<IdentifierSet> =
+      IdentifierMap::with_capacity_and_hasher(solve_stats.planned_modules, Default::default());
+
     while !batch.is_empty() {
-      let modules = std::mem::take(&mut batch);
-
-      // collect the exports specs from modules by calling `dependency.get_exports`
-      let module_exports_specs = modules
-        .into_par_iter()
-        .map(|module_id| {
-          let exports_specs = collect_module_exports_specs(
-            &module_id,
-            self.mg,
-            self.mg_cache,
-            self.exports_info_artifact,
-          )
-          .unwrap_or_default();
-          (module_id, exports_specs)
-        })
-        .collect::<Vec<_>>();
-
+      let scheduled_modules = std::mem::take(&mut batch);
       let mut changed_modules =
-        IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
+        IdentifierSet::with_capacity_and_hasher(scheduled_modules.len(), Default::default());
 
-      // partition the exports specs into two parts:
-      // 1. if the exports info data do not have `redirect_to` and exports specs do not have nested `exports`,
-      // then the merging only affect the exports info data itself and can be done parallelly
-      // 2. if the exports info data have `redirect_to` or exports specs have nested `exports`,
-      // then the merging will affect the redirected exports info data or create a new exports info data
-      // and this merging can not be done parallelly
-      //
-      // There are two cases that the `redirect_to` or nested `exports` exist:
-      // 1. exports from json dependency which has nested json object data
-      // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
-      let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
-        .into_iter()
-        .partition(|(_mid, (_, has_nested_exports))| {
-          if *has_nested_exports {
-            return false;
+      for component_id in solve_graph.reverse_topo_order.iter().copied() {
+        let component = &solve_graph.components[component_id];
+        if component.fallback || component.is_cyclic {
+          let mut queue = component
+            .modules
+            .iter()
+            .filter(|module_id| scheduled_modules.contains(module_id))
+            .copied()
+            .collect::<VecDeque<_>>();
+          if queue.is_empty() {
+            continue;
           }
-          true
-        });
-
-      // parallelize the merging of exports specs to exports info data
-      let non_nested_tasks = non_nested_specs
-        .into_par_iter()
-        .map(|(module_id, (exports_specs, _))| {
-          let mut changed = false;
-          let mut exports_info = self
-            .exports_info_artifact
-            .get_exports_info_data(&module_id)
-            .clone();
-          let mut dependencies = Vec::with_capacity(exports_specs.len());
-          for (dep_id, exports_spec) in exports_specs {
-            let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
-              self.mg,
-              self.exports_info_artifact,
-              &module_id,
-              dep_id,
-              &exports_spec,
-              &mut exports_info,
-            );
-            changed |= is_changed;
-            dependencies.extend(changed_dependencies);
+          execute_component_worklist(component, &mut queue, |module_id| {
+            solve_stats.solve_module_once_calls += 1;
+            let outcome = self.solve_module_once(module_id);
+            for (provider_module, dependent_module) in outcome.changed_dependencies {
+              dynamic_dependencies
+                .entry(provider_module)
+                .or_default()
+                .insert(dependent_module);
+            }
+            if outcome.changed {
+              changed_modules.insert(module_id);
+              if let Some(dependents) = component.dependents_within_component.get(&module_id) {
+                solve_stats.local_requeues += dependents.len();
+              }
+            }
+            outcome.changed
+          });
+        } else if let Some(module_id) = component.modules.first().copied()
+          && scheduled_modules.contains(&module_id)
+        {
+          solve_stats.solve_module_once_calls += 1;
+          let outcome = self.solve_module_once(module_id);
+          for (provider_module, dependent_module) in outcome.changed_dependencies {
+            dynamic_dependencies
+              .entry(provider_module)
+              .or_default()
+              .insert(dependent_module);
           }
-          (module_id, changed, dependencies, exports_info)
-        })
-        .collect::<Vec<_>>();
-
-      // handle collected side effects and apply the merged exports info data to module graph
-      for (module_id, changed, changed_dependencies, exports_info) in non_nested_tasks {
-        if changed {
-          changed_modules.insert(module_id);
-        }
-        for (module_id, dep_id) in changed_dependencies {
-          dependencies.entry(module_id).or_default().insert(dep_id);
-        }
-        self
-          .exports_info_artifact
-          .set_exports_info_by_id(exports_info.id(), exports_info);
-      }
-
-      // serializing the merging of exports specs to nested exports info data
-      for (module_id, (exports_specs, _)) in has_nested_specs {
-        let mut changed = false;
-        for (dep_id, exports_spec) in exports_specs {
-          let (is_changed, changed_dependencies) = process_exports_spec(
-            self.mg,
-            self.exports_info_artifact,
-            &module_id,
-            dep_id,
-            &exports_spec,
-          );
-          changed |= is_changed;
-          for (module_id, dep_id) in changed_dependencies {
-            dependencies.entry(module_id).or_default().insert(dep_id);
+          if outcome.changed {
+            changed_modules.insert(module_id);
           }
-        }
-        if changed {
-          changed_modules.insert(module_id);
         }
       }
 
-      // collect the dependencies which will be used to backtrack when target exports info is changed
-      batch.extend(changed_modules.into_iter().flat_map(|m| {
-        dependencies
-          .get(&m)
-          .into_iter()
-          .flat_map(|d| d.iter())
-          .copied()
-      }));
+      let mut next_batch = IdentifierSet::default();
+      for module_id in changed_modules {
+        next_batch.extend(
+          dynamic_dependencies
+            .get(&module_id)
+            .into_iter()
+            .flat_map(|deps| deps.iter())
+            .copied(),
+        );
+      }
+      batch.extend(next_batch);
+    }
+
+    tracing::debug!(
+      planned_modules = solve_stats.planned_modules,
+      provider_edges = solve_stats.provider_edges,
+      scc_count = solve_stats.scc_count,
+      fallback_components = solve_stats.fallback_components,
+      solve_module_once_calls = solve_stats.solve_module_once_calls,
+      local_requeues = solve_stats.local_requeues
+    );
+  }
+
+  fn solve_module_once(&mut self, module_id: ModuleIdentifier) -> SolveModuleOutcome {
+    let (exports_specs, has_nested_exports) = collect_module_exports_specs(
+      &module_id,
+      self.mg,
+      self.mg_cache,
+      self.exports_info_artifact,
+    )
+    .unwrap_or_default();
+
+    if !has_nested_exports {
+      let mut changed = false;
+      let mut changed_dependencies = Vec::with_capacity(exports_specs.len());
+      let mut exports_info = self
+        .exports_info_artifact
+        .get_exports_info_data(&module_id)
+        .clone();
+      for (dep_id, exports_spec) in exports_specs {
+        let (is_changed, resolved_dependencies) = process_exports_spec_without_nested(
+          self.mg,
+          self.exports_info_artifact,
+          &module_id,
+          dep_id,
+          &exports_spec,
+          &mut exports_info,
+        );
+        changed |= is_changed;
+        changed_dependencies.extend(resolved_dependencies);
+      }
+      self
+        .exports_info_artifact
+        .set_exports_info_by_id(exports_info.id(), exports_info);
+
+      SolveModuleOutcome {
+        changed,
+        changed_dependencies,
+      }
+    } else {
+      let mut changed = false;
+      let mut changed_dependencies = Vec::with_capacity(exports_specs.len());
+      for (dep_id, exports_spec) in exports_specs {
+        let (is_changed, resolved_dependencies) = process_exports_spec(
+          self.mg,
+          self.exports_info_artifact,
+          &module_id,
+          dep_id,
+          &exports_spec,
+        );
+        changed |= is_changed;
+        changed_dependencies.extend(resolved_dependencies);
+      }
+      SolveModuleOutcome {
+        changed,
+        changed_dependencies,
+      }
     }
   }
 }
@@ -239,10 +298,6 @@ impl Plugin for FlagDependencyExportsPlugin {
   }
 }
 
-/**
- * Collect all exports specs from a module and its dependencies
- * by calling `dependency.get_exports` for each dependency.
- */
 fn collect_module_exports_specs(
   module_id: &ModuleIdentifier,
   mg: &ModuleGraph,
@@ -281,6 +336,43 @@ fn collect_module_exports_specs(
     .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
   // mg_cache.unfreeze();
   Some((res, has_nested_exports))
+}
+
+fn build_planned_module(
+  module_id: &ModuleIdentifier,
+  mg: &ModuleGraph,
+  mg_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> PlannedModule {
+  let mut provider_modules = IdentifierSet::default();
+  let mut has_unknown_provider = false;
+  if let Some((exports_specs, _)) =
+    collect_module_exports_specs(module_id, mg, mg_cache, exports_info_artifact)
+  {
+    for (_, exports_spec) in exports_specs {
+      if let Some(dependencies) = exports_spec.dependencies.as_ref() {
+        provider_modules.extend(dependencies.iter().copied());
+      }
+      if let Some(from) = exports_spec.from.as_ref() {
+        if !from
+          .active_state(mg, None, mg_cache, exports_info_artifact)
+          .is_true()
+        {
+          has_unknown_provider = true;
+        }
+        provider_modules.insert(*from.module_identifier());
+        provider_modules.insert(from.resolved_module);
+      }
+    }
+  } else {
+    has_unknown_provider = true;
+  }
+
+  PlannedModule {
+    module_id: *module_id,
+    provider_modules,
+    has_unknown_provider,
+  }
 }
 
 /// Merge exports specs to exports info data
