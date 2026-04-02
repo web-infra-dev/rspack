@@ -22,8 +22,7 @@ impl ModuleDependencyExportsAnalysis {
     self.dirty = dirty;
   }
 
-  #[cfg(test)]
-  fn with_targets(targets: impl IntoIterator<Item = ModuleIdentifier>) -> Self {
+  pub fn with_targets(targets: impl IntoIterator<Item = ModuleIdentifier>) -> Self {
     Self {
       targets: targets.into_iter().collect(),
       ..Default::default()
@@ -73,8 +72,7 @@ impl DependencyExportsAnalysisArtifact {
     self.topology_dirty = false;
   }
 
-  #[cfg(test)]
-  fn replace_module(
+  pub fn replace_module(
     &mut self,
     module_identifier: ModuleIdentifier,
     analysis: ModuleDependencyExportsAnalysis,
@@ -84,8 +82,7 @@ impl DependencyExportsAnalysisArtifact {
     previous
   }
 
-  #[cfg(test)]
-  fn remove_module(
+  pub fn remove_module(
     &mut self,
     module_identifier: &ModuleIdentifier,
   ) -> Option<ModuleDependencyExportsAnalysis> {

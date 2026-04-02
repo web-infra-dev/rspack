@@ -1,185 +1,84 @@
 mod collector;
+mod local_apply;
+mod propagation;
 mod types;
 
-use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
-  DependenciesBlock, DependencyExportsAnalysisArtifact, DependencyId, EvaluatedInlinableValue,
-  ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact,
+  DependencyExportsAnalysisArtifact, DependencyId, EvaluatedInlinableValue, ExportInfo,
+  ExportInfoData, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact,
   ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, get_target,
-  incremental::{self, IncrementalPasses},
+  ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, get_target,
+  incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxIndexSet;
 use swc_core::ecma::atoms::Atom;
 
-use self::collector::normalize_exports_spec;
-
-struct FlagDependencyExportsState<'a> {
-  mg: &'a ModuleGraph,
-  mg_cache: &'a ModuleGraphCacheArtifact,
-  exports_info_artifact: &'a mut ExportsInfoArtifact,
+fn collect_affected_modules(compilation: &Compilation) -> IdentifierSet {
+  let module_graph = compilation.get_module_graph();
+  if let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::FINISH_MODULES)
+  {
+    let modules = mutations.get_affected_modules_with_module_graph(module_graph);
+    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::FINISH_MODULES, %mutations, ?modules);
+    let logger = compilation.get_logger("rspack.incremental.finishModules");
+    logger.log(format!(
+      "{} modules are affected, {} in total",
+      modules.len(),
+      module_graph.modules_len()
+    ));
+    modules
+  } else {
+    module_graph.modules_keys().copied().collect()
+  }
 }
 
-impl<'a> FlagDependencyExportsState<'a> {
-  pub fn new(
-    mg: &'a ModuleGraph,
-    mg_cache: &'a ModuleGraphCacheArtifact,
-    exports_info_artifact: &'a mut ExportsInfoArtifact,
-  ) -> Self {
-    Self {
-      mg,
-      mg_cache,
-      exports_info_artifact,
-    }
-  }
-
-  pub fn apply(&mut self, modules: IdentifierSet) {
-    // initialize the exports info data and their provided info for all modules
-    for module_id in &modules {
-      let exports_type_unset = self
-        .mg
-        .module_by_identifier(module_id)
-        .expect("should have module")
-        .build_meta()
-        .exports_type
-        == BuildMetaExportsType::Unset;
-      let exports_info = self
-        .exports_info_artifact
-        .get_exports_info_data_mut(module_id);
-      // Reset exports provide info back to initial
-      exports_info.reset_provide_info();
-      if exports_type_unset
-        && !matches!(
-          exports_info.other_exports_info().provided(),
-          Some(ExportProvided::Unknown)
-        )
-      {
-        exports_info.set_has_provide_info();
-        exports_info.set_unknown_exports_provided(false, None, None, None, None);
-        continue;
-      }
-
+fn prepare_provide_info(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  affected_modules: &IdentifierSet,
+) {
+  for module_identifier in affected_modules {
+    let exports_type_unset = module_graph
+      .module_by_identifier(module_identifier)
+      .expect("should have module")
+      .build_meta()
+      .exports_type
+      == BuildMetaExportsType::Unset;
+    let exports_info = exports_info_artifact.get_exports_info_data_mut(module_identifier);
+    exports_info.reset_provide_info();
+    if exports_type_unset
+      && !matches!(
+        exports_info.other_exports_info().provided(),
+        Some(ExportProvided::Unknown)
+      )
+    {
       exports_info.set_has_provide_info();
+      exports_info.set_unknown_exports_provided(false, None, None, None, None);
+      continue;
     }
 
-    // collect the exports specs from all modules and their dependencies
-    // and then merge the exports specs to exports info data
-    // and collect the dependencies which will be used to backtrack when target exports info is changed
-    let mut batch = modules;
-    let mut dependencies: IdentifierMap<IdentifierSet> =
-      IdentifierMap::with_capacity_and_hasher(batch.len(), Default::default());
-    while !batch.is_empty() {
-      let modules = std::mem::take(&mut batch);
+    exports_info.set_has_provide_info();
+  }
+}
 
-      // collect the exports specs from modules by calling `dependency.get_exports`
-      let module_exports_specs = modules
-        .into_par_iter()
-        .map(|module_id| {
-          let collected_exports = collect_module_exports_specs(
-            &module_id,
-            self.mg,
-            self.mg_cache,
-            self.exports_info_artifact,
-          )
-          .unwrap_or_default();
-          (module_id, collected_exports)
-        })
-        .collect::<Vec<_>>();
+fn prune_removed_modules(
+  compilation: &Compilation,
+  dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
+) {
+  let Some(mutations) = compilation
+    .incremental
+    .mutations_read(IncrementalPasses::FINISH_MODULES)
+  else {
+    return;
+  };
 
-      let mut changed_modules =
-        IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
-
-      // partition the exports specs into two parts:
-      // 1. if the exports info data do not have `redirect_to` and exports specs do not have nested `exports`,
-      // then the merging only affect the exports info data itself and can be done parallelly
-      // 2. if the exports info data have `redirect_to` or exports specs have nested `exports`,
-      // then the merging will affect the redirected exports info data or create a new exports info data
-      // and this merging can not be done parallelly
-      //
-      // There are two cases that the `redirect_to` or nested `exports` exist:
-      // 1. exports from json dependency which has nested json object data
-      // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
-      let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
-        .into_iter()
-        .partition(|(_mid, collected)| {
-          if collected.has_nested_exports {
-            return false;
-          }
-          true
-        });
-
-      // parallelize the merging of exports specs to exports info data
-      let non_nested_tasks = non_nested_specs
-        .into_par_iter()
-        .map(|(module_id, collected)| {
-          let mut changed = false;
-          let mut exports_info = self
-            .exports_info_artifact
-            .get_exports_info_data(&module_id)
-            .clone();
-          let mut dependencies = Vec::with_capacity(collected.local_apply.len());
-          for (dep_id, exports_spec) in collected.local_apply {
-            let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
-              self.mg,
-              self.exports_info_artifact,
-              &module_id,
-              dep_id,
-              &exports_spec,
-              &mut exports_info,
-            );
-            changed |= is_changed;
-            dependencies.extend(changed_dependencies);
-          }
-          (module_id, changed, dependencies, exports_info)
-        })
-        .collect::<Vec<_>>();
-
-      // handle collected side effects and apply the merged exports info data to module graph
-      for (module_id, changed, changed_dependencies, exports_info) in non_nested_tasks {
-        if changed {
-          changed_modules.insert(module_id);
-        }
-        for (module_id, dep_id) in changed_dependencies {
-          dependencies.entry(module_id).or_default().insert(dep_id);
-        }
-        self
-          .exports_info_artifact
-          .set_exports_info_by_id(exports_info.id(), exports_info);
-      }
-
-      // serializing the merging of exports specs to nested exports info data
-      for (module_id, collected) in has_nested_specs {
-        let mut changed = false;
-        for (dep_id, exports_spec) in collected.local_apply {
-          let (is_changed, changed_dependencies) = process_exports_spec(
-            self.mg,
-            self.exports_info_artifact,
-            &module_id,
-            dep_id,
-            &exports_spec,
-          );
-          changed |= is_changed;
-          for (module_id, dep_id) in changed_dependencies {
-            dependencies.entry(module_id).or_default().insert(dep_id);
-          }
-        }
-        if changed {
-          changed_modules.insert(module_id);
-        }
-      }
-      // collect the dependencies which will be used to backtrack when target exports info is changed
-      batch.extend(changed_modules.into_iter().flat_map(|m| {
-        dependencies
-          .get(&m)
-          .into_iter()
-          .flat_map(|d| d.iter())
-          .copied()
-      }));
+  for mutation in mutations.iter() {
+    if let Mutation::ModuleRemove { module } = mutation {
+      dependency_exports_analysis_artifact.remove_module(module);
     }
   }
 }
@@ -203,29 +102,32 @@ async fn finish_modules(
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
-  _dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
+  dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let modules: IdentifierSet = if let Some(mutations) = compilation
-    .incremental
-    .mutations_read(IncrementalPasses::FINISH_MODULES)
-  {
-    let modules = mutations.get_affected_modules_with_module_graph(module_graph);
-    tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::FINISH_MODULES, %mutations, ?modules);
-    let logger = compilation.get_logger("rspack.incremental.finishModules");
-    logger.log(format!(
-      "{} modules are affected, {} in total",
-      modules.len(),
-      module_graph.modules_len()
-    ));
-    modules
-  } else {
-    module_graph.modules_keys().copied().collect()
-  };
+  let affected_modules = collect_affected_modules(compilation);
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
-
-  FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
-    .apply(modules);
+  prune_removed_modules(compilation, dependency_exports_analysis_artifact);
+  prepare_provide_info(module_graph, exports_info_artifact, &affected_modules);
+  let analysis = collector::collect_module_analysis(
+    module_graph,
+    &module_graph_cache,
+    exports_info_artifact,
+    dependency_exports_analysis_artifact,
+    &affected_modules,
+  )?;
+  local_apply::apply_local_exports(
+    module_graph,
+    exports_info_artifact,
+    &analysis,
+    &affected_modules,
+  )?;
+  propagation::propagate_deferred_reexports(
+    module_graph,
+    exports_info_artifact,
+    dependency_exports_analysis_artifact,
+    &analysis,
+  )?;
 
   Ok(())
 }
@@ -244,79 +146,10 @@ impl Plugin for FlagDependencyExportsPlugin {
   }
 }
 
-/**
- * Collect all exports specs from a module and its dependencies
- * by calling `dependency.get_exports` for each dependency.
- */
-fn collect_module_exports_specs(
-  module_id: &ModuleIdentifier,
-  mg: &ModuleGraph,
-  mg_cache: &ModuleGraphCacheArtifact,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<CollectedModuleExportsSpecs> {
-  fn walk_block<B: DependenciesBlock + ?Sized>(
-    block: &B,
-    dep_ids: &mut FxIndexSet<DependencyId>,
-    mg: &ModuleGraph,
-  ) {
-    dep_ids.extend(block.get_dependencies().iter().copied());
-    for block_id in block.get_blocks() {
-      if let Some(block) = mg.block_by_id(block_id) {
-        walk_block(block, dep_ids, mg);
-      }
-    }
-  }
-
-  let block = mg.module_by_identifier(module_id)?.as_ref();
-  let mut dep_ids = FxIndexSet::default();
-  walk_block(block, &mut dep_ids, mg);
-
-  // There is no need to use the cache here
-  // because the `get_exports` of each dependency will only be called once
-  // mg_cache.freeze();
-  let mut has_nested_exports = false;
-  let mut local_apply = Vec::new();
-  let mut deferred_reexports = Vec::new();
-  for id in dep_ids {
-    let dep = mg.dependency_by_id(&id);
-    let Some(exports_spec) = dep.get_exports(mg, mg_cache, exports_info_artifact) else {
-      continue;
-    };
-    let normalized = normalize_exports_spec(exports_spec);
-    let crate::plugin::flag_dependency_exports_plugin::types::NormalizedModuleAnalysis {
-      local_apply: normalized_local_apply,
-      deferred_reexports: normalized_deferred_reexports,
-    } = normalized;
-    has_nested_exports |= normalized_local_apply
-      .iter()
-      .any(ExportsSpec::has_nested_exports);
-    local_apply.extend(
-      crate::plugin::flag_dependency_exports_plugin::types::NormalizedModuleAnalysis::bind_local_apply_with_dep_id(
-        id,
-        normalized_local_apply,
-      ),
-    );
-    deferred_reexports.extend(normalized_deferred_reexports);
-  }
-  // mg_cache.unfreeze();
-  Some(CollectedModuleExportsSpecs {
-    local_apply,
-    _deferred_reexports: deferred_reexports,
-    has_nested_exports,
-  })
-}
-
-#[derive(Debug, Default)]
-struct CollectedModuleExportsSpecs {
-  local_apply: Vec<(DependencyId, ExportsSpec)>,
-  _deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
-  has_nested_exports: bool,
-}
-
 /// Merge exports specs to exports info data
 /// and also collect the dependencies
 /// which will be used to backtrack when target exports info is changed
-pub fn process_exports_spec(
+pub(super) fn process_exports_spec(
   mg: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
@@ -390,7 +223,7 @@ pub fn process_exports_spec(
 /// which will be used to backtrack when target exports info is changed
 /// This method is used for the case that the exports info data will not be nested modified
 /// that means this exports info can be modified parallelly
-fn process_exports_spec_without_nested(
+pub(super) fn process_exports_spec_without_nested(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   module_id: &ModuleIdentifier,
