@@ -69,7 +69,7 @@ pub struct ExportSpec {
   pub inlinable: Option<EvaluatedInlinableValue>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Nullable<T> {
   Null,
   Value(T),
@@ -104,10 +104,48 @@ pub enum ExportsOfExportsSpec {
   Names(Vec<ExportNameOrSpec>),
 }
 
+#[derive(Debug, Clone, Default)]
+pub enum ExportsProcessing {
+  #[default]
+  Immediate,
+  DeferredReexport(Vec<DeferredReexportSpec>),
+}
+
+#[derive(Debug, Clone)]
+pub struct DeferredReexportSpec {
+  pub target_module: ModuleIdentifier,
+  pub dep_id: DependencyId,
+  pub priority: Option<u8>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: bool,
+  pub items: Vec<DeferredReexportItem>,
+}
+
+impl Default for DeferredReexportSpec {
+  fn default() -> Self {
+    Self {
+      target_module: ModuleIdentifier::default(),
+      dep_id: DependencyId::from(0),
+      priority: None,
+      can_mangle: None,
+      terminal_binding: false,
+      items: Vec::new(),
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct DeferredReexportItem {
+  pub exposed_name: Atom,
+  pub target_path: Nullable<Vec<Atom>>,
+  pub hidden: bool,
+}
+
 #[derive(Debug, Default)]
 #[allow(unused)]
 pub struct ExportsSpec {
   pub exports: ExportsOfExportsSpec,
+  pub processing: ExportsProcessing,
   pub priority: Option<u8>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,

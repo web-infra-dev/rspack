@@ -1,3 +1,6 @@
+mod collector;
+mod types;
+
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -13,6 +16,8 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use swc_core::ecma::atoms::Atom;
+
+use self::collector::normalize_exports_spec;
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
@@ -75,16 +80,25 @@ impl<'a> FlagDependencyExportsState<'a> {
       let module_exports_specs = modules
         .into_par_iter()
         .map(|module_id| {
-          let exports_specs = collect_module_exports_specs(
+          let collected_exports = collect_module_exports_specs(
             &module_id,
             self.mg,
             self.mg_cache,
             self.exports_info_artifact,
           )
           .unwrap_or_default();
-          (module_id, exports_specs)
+          (module_id, collected_exports)
         })
         .collect::<Vec<_>>();
+
+      let mut _deferred_reexports_by_module =
+        IdentifierMap::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
+      for (module_id, collected_exports) in &module_exports_specs {
+        if !collected_exports.deferred_reexports.is_empty() {
+          _deferred_reexports_by_module
+            .insert(*module_id, collected_exports.deferred_reexports.clone());
+        }
+      }
 
       let mut changed_modules =
         IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
@@ -101,8 +115,8 @@ impl<'a> FlagDependencyExportsState<'a> {
       // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
       let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
         .into_iter()
-        .partition(|(_mid, (_, has_nested_exports))| {
-          if *has_nested_exports {
+        .partition(|(_mid, collected)| {
+          if collected.has_nested_exports {
             return false;
           }
           true
@@ -111,14 +125,14 @@ impl<'a> FlagDependencyExportsState<'a> {
       // parallelize the merging of exports specs to exports info data
       let non_nested_tasks = non_nested_specs
         .into_par_iter()
-        .map(|(module_id, (exports_specs, _))| {
+        .map(|(module_id, collected)| {
           let mut changed = false;
           let mut exports_info = self
             .exports_info_artifact
             .get_exports_info_data(&module_id)
             .clone();
-          let mut dependencies = Vec::with_capacity(exports_specs.len());
-          for (dep_id, exports_spec) in exports_specs {
+          let mut dependencies = Vec::with_capacity(collected.local_apply.len());
+          for (dep_id, exports_spec) in collected.local_apply {
             let (is_changed, changed_dependencies) = process_exports_spec_without_nested(
               self.mg,
               self.exports_info_artifact,
@@ -148,9 +162,9 @@ impl<'a> FlagDependencyExportsState<'a> {
       }
 
       // serializing the merging of exports specs to nested exports info data
-      for (module_id, (exports_specs, _)) in has_nested_specs {
+      for (module_id, collected) in has_nested_specs {
         let mut changed = false;
-        for (dep_id, exports_spec) in exports_specs {
+        for (dep_id, exports_spec) in collected.local_apply {
           let (is_changed, changed_dependencies) = process_exports_spec(
             self.mg,
             self.exports_info_artifact,
@@ -167,7 +181,6 @@ impl<'a> FlagDependencyExportsState<'a> {
           changed_modules.insert(module_id);
         }
       }
-
       // collect the dependencies which will be used to backtrack when target exports info is changed
       batch.extend(changed_modules.into_iter().flat_map(|m| {
         dependencies
@@ -249,8 +262,7 @@ fn collect_module_exports_specs(
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<(FxIndexMap<DependencyId, ExportsSpec>, bool)> {
-  let mut has_nested_exports = false;
+) -> Option<CollectedModuleExportsSpecs> {
   fn walk_block<B: DependenciesBlock + ?Sized>(
     block: &B,
     dep_ids: &mut FxIndexSet<DependencyId>,
@@ -271,17 +283,35 @@ fn collect_module_exports_specs(
   // There is no need to use the cache here
   // because the `get_exports` of each dependency will only be called once
   // mg_cache.freeze();
-  let res = dep_ids
-    .into_iter()
-    .filter_map(|id| {
-      let dep = mg.dependency_by_id(&id);
-      let exports_spec = dep.get_exports(mg, mg_cache, exports_info_artifact)?;
-      has_nested_exports |= exports_spec.has_nested_exports();
-      Some((id, exports_spec))
-    })
-    .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
+  let mut has_nested_exports = false;
+  let mut local_apply = FxIndexMap::default();
+  let mut deferred_reexports = Vec::new();
+  for id in dep_ids {
+    let dep = mg.dependency_by_id(&id);
+    let Some(exports_spec) = dep.get_exports(mg, mg_cache, exports_info_artifact) else {
+      continue;
+    };
+    let normalized = normalize_exports_spec(exports_spec);
+    has_nested_exports |= normalized
+      .local_apply
+      .iter()
+      .any(ExportsSpec::has_nested_exports);
+    local_apply.extend(normalized.local_apply.into_iter().map(|spec| (id, spec)));
+    deferred_reexports.extend(normalized.deferred_reexports);
+  }
   // mg_cache.unfreeze();
-  Some((res, has_nested_exports))
+  Some(CollectedModuleExportsSpecs {
+    local_apply,
+    deferred_reexports,
+    has_nested_exports,
+  })
+}
+
+#[derive(Debug, Default)]
+struct CollectedModuleExportsSpecs {
+  local_apply: FxIndexMap<DependencyId, ExportsSpec>,
+  deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
+  has_nested_exports: bool,
 }
 
 /// Merge exports specs to exports info data

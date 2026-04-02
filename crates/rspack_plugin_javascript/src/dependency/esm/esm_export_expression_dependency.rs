@@ -5,7 +5,7 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph,
+  ExportsOfExportsSpec, ExportsProcessing, ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph,
   ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
@@ -92,6 +92,7 @@ impl Dependency for ESMExportExpressionDependency {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
         JS_DEFAULT_KEYWORD.clone(),
       )]),
+      processing: ExportsProcessing::Immediate,
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),

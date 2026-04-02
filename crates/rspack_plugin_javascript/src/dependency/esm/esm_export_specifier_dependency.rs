@@ -5,8 +5,9 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportsProcessing, ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -91,6 +92,7 @@ impl Dependency for ESMExportSpecifierDependency {
         }),
         ..Default::default()
       })]),
+      processing: ExportsProcessing::Immediate,
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
