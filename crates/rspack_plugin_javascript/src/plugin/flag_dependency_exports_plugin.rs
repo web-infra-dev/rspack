@@ -109,7 +109,7 @@ async fn finish_modules(
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
   prune_removed_modules(compilation, dependency_exports_analysis_artifact);
   prepare_provide_info(module_graph, exports_info_artifact, &affected_modules);
-  let analysis = collector::collect_module_analysis(
+  collector::collect_module_analysis(
     module_graph,
     &module_graph_cache,
     exports_info_artifact,
@@ -119,14 +119,13 @@ async fn finish_modules(
   local_apply::apply_local_exports(
     module_graph,
     exports_info_artifact,
-    &analysis,
+    dependency_exports_analysis_artifact,
     &affected_modules,
   )?;
   propagation::propagate_deferred_reexports(
     module_graph,
     exports_info_artifact,
     dependency_exports_analysis_artifact,
-    &analysis,
   )?;
 
   Ok(())

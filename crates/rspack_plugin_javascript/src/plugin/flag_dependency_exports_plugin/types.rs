@@ -1,39 +1,11 @@
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   DeferredReexportSpec, DependencyId, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec,
-  ModuleIdentifier,
 };
 
 #[derive(Debug, Default)]
 pub(super) struct NormalizedModuleAnalysis {
   pub local_apply: Vec<ExportsSpec>,
   pub deferred_reexports: Vec<DeferredReexportSpec>,
-}
-
-#[derive(Debug, Default)]
-pub(super) struct ModuleCollectedAnalysis {
-  pub flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
-  pub structured_local_apply: Vec<(DependencyId, ExportsSpec)>,
-  pub deferred_reexports: Vec<DeferredReexportSpec>,
-}
-
-#[derive(Debug, Default)]
-pub(super) struct CollectedDependencyExportsAnalysis {
-  modules: IdentifierMap<ModuleCollectedAnalysis>,
-}
-
-impl CollectedDependencyExportsAnalysis {
-  pub fn insert(
-    &mut self,
-    module_identifier: ModuleIdentifier,
-    analysis: ModuleCollectedAnalysis,
-  ) -> Option<ModuleCollectedAnalysis> {
-    self.modules.insert(module_identifier, analysis)
-  }
-
-  pub fn get(&self, module_identifier: &ModuleIdentifier) -> Option<&ModuleCollectedAnalysis> {
-    self.modules.get(module_identifier)
-  }
 }
 
 impl NormalizedModuleAnalysis {

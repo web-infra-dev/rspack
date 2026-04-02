@@ -3,14 +3,17 @@ use std::collections::BTreeSet;
 use rspack_collections::IdentifierMap;
 
 use crate::{
-  ArtifactExt, ModuleIdentifier,
+  ArtifactExt, DeferredReexportSpec, DependencyId, ExportsSpec, ModuleIdentifier,
   incremental::{Incremental, IncrementalPasses},
 };
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ModuleDependencyExportsAnalysis {
   dirty: bool,
   targets: Vec<ModuleIdentifier>,
+  flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
+  structured_local_apply: Vec<(DependencyId, ExportsSpec)>,
+  deferred_reexports: Vec<DeferredReexportSpec>,
 }
 
 impl ModuleDependencyExportsAnalysis {
@@ -28,6 +31,33 @@ impl ModuleDependencyExportsAnalysis {
       ..Default::default()
     }
   }
+
+  pub fn with_staged_analysis(
+    targets: impl IntoIterator<Item = ModuleIdentifier>,
+    flat_local_apply: impl IntoIterator<Item = (DependencyId, ExportsSpec)>,
+    structured_local_apply: impl IntoIterator<Item = (DependencyId, ExportsSpec)>,
+    deferred_reexports: impl IntoIterator<Item = DeferredReexportSpec>,
+  ) -> Self {
+    Self {
+      targets: targets.into_iter().collect(),
+      flat_local_apply: flat_local_apply.into_iter().collect(),
+      structured_local_apply: structured_local_apply.into_iter().collect(),
+      deferred_reexports: deferred_reexports.into_iter().collect(),
+      ..Default::default()
+    }
+  }
+
+  pub fn flat_local_apply(&self) -> &[(DependencyId, ExportsSpec)] {
+    &self.flat_local_apply
+  }
+
+  pub fn structured_local_apply(&self) -> &[(DependencyId, ExportsSpec)] {
+    &self.structured_local_apply
+  }
+
+  pub fn deferred_reexports(&self) -> &[DeferredReexportSpec] {
+    &self.deferred_reexports
+  }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -43,7 +73,7 @@ pub struct DependencyExportsTopology {
   waves: Vec<Vec<usize>>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct DependencyExportsAnalysisArtifact {
   modules: IdentifierMap<ModuleDependencyExportsAnalysis>,
   topology: DependencyExportsTopology,
@@ -65,6 +95,13 @@ impl ArtifactExt for DependencyExportsAnalysisArtifact {
 impl DependencyExportsAnalysisArtifact {
   pub fn modules(&self) -> &IdentifierMap<ModuleDependencyExportsAnalysis> {
     &self.modules
+  }
+
+  pub fn module(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&ModuleDependencyExportsAnalysis> {
+    self.modules.get(module_identifier)
   }
 
   pub fn rebuild_topology(&mut self) {

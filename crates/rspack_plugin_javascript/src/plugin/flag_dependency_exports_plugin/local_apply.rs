@@ -1,29 +1,26 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
-use rspack_core::{ExportsInfoArtifact, ModuleGraph};
+use rspack_core::{DependencyExportsAnalysisArtifact, ExportsInfoArtifact, ModuleGraph};
 use rspack_error::Result;
 
-use super::{
-  process_exports_spec, process_exports_spec_without_nested,
-  types::CollectedDependencyExportsAnalysis,
-};
+use super::{process_exports_spec, process_exports_spec_without_nested};
 
 pub(super) fn apply_local_exports(
   module_graph: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
-  analysis: &CollectedDependencyExportsAnalysis,
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
   affected_modules: &IdentifierSet,
 ) -> Result<()> {
   apply_flat_local_exports_in_parallel(
     module_graph,
     exports_info_artifact,
-    analysis,
+    dependency_exports_analysis_artifact,
     affected_modules,
   )?;
   apply_structured_local_exports_sequentially(
     module_graph,
     exports_info_artifact,
-    analysis,
+    dependency_exports_analysis_artifact,
     affected_modules,
   )?;
   Ok(())
@@ -32,14 +29,14 @@ pub(super) fn apply_local_exports(
 fn apply_flat_local_exports_in_parallel(
   module_graph: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
-  analysis: &CollectedDependencyExportsAnalysis,
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
   affected_modules: &IdentifierSet,
 ) -> Result<()> {
   let flat_tasks = affected_modules
     .par_iter()
     .filter_map(|module_identifier| {
-      let module_analysis = analysis.get(module_identifier)?;
-      if module_analysis.flat_local_apply.is_empty() {
+      let module_analysis = dependency_exports_analysis_artifact.module(module_identifier)?;
+      if module_analysis.flat_local_apply().is_empty() {
         return None;
       }
 
@@ -47,7 +44,7 @@ fn apply_flat_local_exports_in_parallel(
       let mut exports_info = exports_info_artifact
         .get_exports_info_data(module_identifier)
         .clone();
-      for (dep_id, exports_spec) in &module_analysis.flat_local_apply {
+      for (dep_id, exports_spec) in module_analysis.flat_local_apply() {
         let (task_changed, _changed_dependencies) = process_exports_spec_without_nested(
           module_graph,
           exports_info_artifact,
@@ -73,14 +70,15 @@ fn apply_flat_local_exports_in_parallel(
 fn apply_structured_local_exports_sequentially(
   module_graph: &ModuleGraph,
   exports_info_artifact: &mut ExportsInfoArtifact,
-  analysis: &CollectedDependencyExportsAnalysis,
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
   affected_modules: &IdentifierSet,
 ) -> Result<()> {
   for module_identifier in affected_modules {
-    let Some(module_analysis) = analysis.get(module_identifier) else {
+    let Some(module_analysis) = dependency_exports_analysis_artifact.module(module_identifier)
+    else {
       continue;
     };
-    for (dep_id, exports_spec) in &module_analysis.structured_local_apply {
+    for (dep_id, exports_spec) in module_analysis.structured_local_apply() {
       let (_changed, _changed_dependencies) = process_exports_spec(
         module_graph,
         exports_info_artifact,

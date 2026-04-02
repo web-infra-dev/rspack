@@ -8,9 +8,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_util::fx_hash::FxIndexSet;
 
-use super::types::{
-  CollectedDependencyExportsAnalysis, ModuleCollectedAnalysis, NormalizedModuleAnalysis,
-};
+use super::types::NormalizedModuleAnalysis;
 
 pub(super) fn normalize_exports_spec(mut spec: ExportsSpec) -> NormalizedModuleAnalysis {
   match std::mem::take(&mut spec.processing) {
@@ -27,7 +25,7 @@ pub(super) fn collect_module_analysis(
   exports_info_artifact: &ExportsInfoArtifact,
   dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
   affected_modules: &IdentifierSet,
-) -> Result<CollectedDependencyExportsAnalysis> {
+) -> Result<()> {
   let module_analyses = affected_modules
     .par_iter()
     .map(|module_identifier| {
@@ -41,24 +39,28 @@ pub(super) fn collect_module_analysis(
     })
     .collect::<Vec<_>>();
 
-  let mut collected = CollectedDependencyExportsAnalysis::default();
   for (module_identifier, analysis) in module_analyses {
     let targets = analysis
       .deferred_reexports
       .iter()
-      .map(|reexport| reexport.target_module);
+      .map(|reexport| reexport.target_module)
+      .collect::<Vec<_>>();
     dependency_exports_analysis_artifact.replace_module(
       module_identifier,
-      ModuleDependencyExportsAnalysis::with_targets(targets),
+      ModuleDependencyExportsAnalysis::with_staged_analysis(
+        targets,
+        analysis.flat_local_apply,
+        analysis.structured_local_apply,
+        analysis.deferred_reexports,
+      ),
     );
-    collected.insert(module_identifier, analysis);
   }
 
   if dependency_exports_analysis_artifact.topology_dirty() {
     dependency_exports_analysis_artifact.rebuild_topology();
   }
 
-  Ok(collected)
+  Ok(())
 }
 
 fn collect_module_exports_specs(
@@ -118,6 +120,13 @@ fn collect_module_exports_specs(
   }
 
   analysis
+}
+
+#[derive(Debug, Default)]
+struct ModuleCollectedAnalysis {
+  flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
+  structured_local_apply: Vec<(DependencyId, ExportsSpec)>,
+  deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
 }
 
 #[cfg(test)]
