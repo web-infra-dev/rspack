@@ -127,6 +127,7 @@ fn prepare_seeded_case_with_invalidation() -> PreparedCase {
   case
 }
 
+#[allow(clippy::disallowed_methods)]
 fn mutate_leaf_module(project_dir: &Path) {
   let target = project_dir.join(INVALIDATION_TARGET);
   let source = fs::read_to_string(&target).unwrap();
