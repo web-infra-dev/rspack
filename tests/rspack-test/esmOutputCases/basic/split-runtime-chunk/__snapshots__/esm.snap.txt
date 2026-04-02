@@ -9,6 +9,7 @@ const other = __webpack_require__("./other.js");
 it('should have correct value', () => {
   expect((0,other.value)()).toBe(42)
 })
+export {};
 
 ```
 
@@ -25,6 +26,7 @@ exports.value = () => 42
 
 },
 });
+export {};
 
 ```
 

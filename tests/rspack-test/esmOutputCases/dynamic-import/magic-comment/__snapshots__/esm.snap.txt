@@ -31,6 +31,7 @@ it('should support dynamic import', async () => {
 	expect(value2).toHaveProperty('value', 2)
 })
 
+export {};
 
 ```
 

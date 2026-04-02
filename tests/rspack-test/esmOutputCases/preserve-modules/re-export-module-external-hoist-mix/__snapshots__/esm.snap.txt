@@ -57,6 +57,7 @@ it('should preserve module externals reexports for hoisted and wrapped modules',
 	expect(wrapped.readFileWrapped).toBe(fs.readFile)
 })
 
+export {};
 
 ```
 

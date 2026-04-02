@@ -6,6 +6,7 @@ it('should dynamically import module that re-exports from external', async () =>
 	expect(mod.fsDefault).toBeDefined()
 })
 
+export {};
 
 ```
 

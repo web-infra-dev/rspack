@@ -11,6 +11,7 @@ it('should not confuse default and named bindings for module externals in shared
 	expect(b.marker).toBe('ok')
 })
 
+export {};
 
 ```
 

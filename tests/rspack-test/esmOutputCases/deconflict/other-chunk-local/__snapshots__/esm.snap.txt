@@ -13,6 +13,7 @@ it('should have deconflicted symbol', async () => {
 	expect(v).toBe((/* inlined export .value */42))
 })
 
+export {};
 
 ```
 

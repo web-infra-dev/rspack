@@ -17,6 +17,7 @@ it('should keep named reexports distinct from default imports in module-external
 	expect(b.namedFoo).not.toBe('default-foo')
 })
 
+export {};
 
 ```
 

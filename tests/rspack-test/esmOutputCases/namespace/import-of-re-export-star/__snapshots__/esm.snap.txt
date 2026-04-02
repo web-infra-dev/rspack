@@ -10,5 +10,6 @@ it("should consume a namespace from a star re-export without capturing the objec
   expect(value).toBe(234);
 });
 
+export {};
 
 ```

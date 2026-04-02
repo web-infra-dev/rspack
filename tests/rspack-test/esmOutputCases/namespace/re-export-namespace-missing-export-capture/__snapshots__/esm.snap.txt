@@ -19,6 +19,7 @@ it("should keep an exported namespace binding when reading a missing property", 
   expect(bar_namespaceObject.foo).toBeUndefined();
 });
 
+export {};
 
 ```
 

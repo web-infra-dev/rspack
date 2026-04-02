@@ -26,6 +26,7 @@ it("should keep the namespace object for a module with an invalid named re-expor
   expect(bar_namespaceObject.foo).toBeUndefined();
 });
 
+export {};
 
 ```
 

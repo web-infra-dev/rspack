@@ -10,6 +10,7 @@ it('should dynamically import module that re-exports from cross-chunk module', a
 	expect(mod.helper()).toBe(1)
 })
 
+export {};
 
 ```
 

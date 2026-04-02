@@ -19,6 +19,7 @@ it("should keep the namespace object when reading a missing property through exp
   expect(foo_namespaceObject.foo).toBeUndefined();
 });
 
+export {};
 
 ```
 

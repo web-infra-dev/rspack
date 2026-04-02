@@ -21,6 +21,7 @@ it("should render a missing CommonJS namespace property as undefined without cap
   expect(foo.foo).toBeUndefined();
 });
 
+export {};
 
 ```
 
