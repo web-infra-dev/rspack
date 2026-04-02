@@ -41,16 +41,22 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
       b.iter_batched(
         || {
           cleanup_pending_workspaces(&pending_cleanup);
-          let case = prepare_seeded_case();
-          rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
-          assert_cache_materialized(&case.cache_dir);
-          let probe_case = clone_case_for_probe(&case);
+          let probe_case = prepare_seeded_case();
+          rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
+          assert_cache_materialized(&probe_case.cache_dir);
           rt.block_on(assert_restore_available(&probe_case, &[]));
           let _ = fs::remove_dir_all(probe_case.workspace_dir);
+
+          let measured_case = prepare_seeded_case();
+          rt.block_on(run_compiler(
+            &measured_case.project_dir,
+            &measured_case.cache_dir,
+          ));
+          assert_cache_materialized(&measured_case.cache_dir);
           pending_cleanup
             .borrow_mut()
-            .push(case.workspace_dir.clone());
-          case
+            .push(measured_case.workspace_dir.clone());
+          measured_case
         },
         |case| {
           rt.block_on(run_restore_build(&case));
@@ -66,25 +72,29 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
       b.iter_batched(
         || {
           cleanup_pending_workspaces(&pending_cleanup);
-          let case = prepare_seeded_case();
-          rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
-          assert_cache_materialized(&case.cache_dir);
+          let probe_case = prepare_seeded_case();
+          rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
+          assert_cache_materialized(&probe_case.cache_dir);
 
-          let warm_probe = clone_case_for_probe(&case);
-          rt.block_on(assert_restore_available(&warm_probe, &[]));
-          let _ = fs::remove_dir_all(warm_probe.workspace_dir);
-
-          mutate_leaf_module(&case.project_dir);
-          let invalidated_probe = clone_case_for_probe(&case);
+          mutate_leaf_module(&probe_case.project_dir);
           rt.block_on(assert_restore_available(
-            &invalidated_probe,
-            &[invalidated_probe.project_dir.join(INVALIDATION_TARGET)],
+            &probe_case,
+            &[probe_case.project_dir.join(INVALIDATION_TARGET)],
           ));
-          let _ = fs::remove_dir_all(invalidated_probe.workspace_dir);
+
+          let _ = fs::remove_dir_all(probe_case.workspace_dir);
+
+          let measured_case = prepare_seeded_case();
+          rt.block_on(run_compiler(
+            &measured_case.project_dir,
+            &measured_case.cache_dir,
+          ));
+          assert_cache_materialized(&measured_case.cache_dir);
+          mutate_leaf_module(&measured_case.project_dir);
           pending_cleanup
             .borrow_mut()
-            .push(case.workspace_dir.clone());
-          case
+            .push(measured_case.workspace_dir.clone());
+          measured_case
         },
         |case| {
           rt.block_on(run_restore_build(&case));
@@ -119,17 +129,6 @@ fn prepare_seeded_case() -> PreparedCase {
     workspace_dir,
     project_dir,
     cache_dir,
-  }
-}
-
-fn clone_case_for_probe(case: &PreparedCase) -> PreparedCase {
-  let workspace_dir = fresh_workspace_dir();
-  copy_dir_all(&case.workspace_dir, &workspace_dir).unwrap();
-
-  PreparedCase {
-    workspace_dir: workspace_dir.clone(),
-    project_dir: workspace_dir.clone(),
-    cache_dir: workspace_dir.join(".cache").join("persistent"),
   }
 }
 
