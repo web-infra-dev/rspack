@@ -1,6 +1,7 @@
-import { leftValue, rightValue } from "./root";
+import { leftValue, leftValueUsed, rightValueUsed } from "./root";
 
 it("should keep sibling reexport waves stable", () => {
   expect(leftValue).toBe("left");
-  expect(rightValue).toBe("right");
+  expect(leftValueUsed).toBe(true);
+  expect(rightValueUsed).toBe(false);
 });
