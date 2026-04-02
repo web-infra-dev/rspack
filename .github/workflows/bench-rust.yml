@@ -63,7 +63,7 @@ jobs:
         run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features codspeed
 
       - name: Run benchmark (simulation,memory)
-        uses: CodSpeedHQ/action@v4
+        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
         timeout-minutes: 30
         env:
           RAYON_NUM_THREADS: 1
