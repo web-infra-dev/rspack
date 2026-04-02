@@ -1,9 +1,9 @@
-var ProvidePlugin = require("@rspack/core").ProvidePlugin;
+var ProvidePlugin = require('@rspack/core').ProvidePlugin;
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	plugins: [
-		new ProvidePlugin({
-			"xxx.yyy": "aaa"
-		})
-	]
+  plugins: [
+    new ProvidePlugin({
+      'xxx.yyy': 'aaa',
+    }),
+  ],
 };

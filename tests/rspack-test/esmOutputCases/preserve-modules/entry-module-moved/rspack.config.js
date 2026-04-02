@@ -1,13 +1,13 @@
-const path = require('path')
+const path = require('path');
 /**@type {import('@rspack/core').Configuration} */
 module.exports = {
-	entry: {
-		index: './src/index.js',
-	},
-	output: {
-		library: {
-			type: "modern-module",
-			preserveModules: path.resolve(__dirname, 'src'),
-		}
-	}
-}
+  entry: {
+    index: './src/index.js',
+  },
+  output: {
+    library: {
+      type: 'modern-module',
+      preserveModules: path.resolve(__dirname, 'src'),
+    },
+  },
+};

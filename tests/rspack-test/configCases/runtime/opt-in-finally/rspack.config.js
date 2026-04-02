@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		strictModuleExceptionHandling: true
-	}
+  output: {
+    strictModuleExceptionHandling: true,
+  },
 };

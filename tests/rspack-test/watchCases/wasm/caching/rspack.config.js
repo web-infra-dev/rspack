@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	experiments: {
-		asyncWebAssembly: true
-	}
+  experiments: {
+    asyncWebAssembly: true,
+  },
 };

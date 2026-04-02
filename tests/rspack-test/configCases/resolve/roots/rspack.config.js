@@ -2,8 +2,6 @@
 module.exports = {
   context: __dirname,
   resolve: {
-    roots: [
-      __dirname
-    ]
-  }
+    roots: [__dirname],
+  },
 };

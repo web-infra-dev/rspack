@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: "browserslist: ie 9",
-	plugins: [
-		compiler => {
-			compiler.hooks.compilation.tap("Test", compilation => {
-				expect(compilation.outputOptions.environment).toMatchInlineSnapshot(`
+  target: 'browserslist: ie 9',
+  plugins: [
+    (compiler) => {
+      compiler.hooks.compilation.tap('Test', (compilation) => {
+        expect(compilation.outputOptions.environment).toMatchInlineSnapshot(`
 					Object {
 					  arrowFunction: false,
 					  asyncFunction: false,
@@ -24,7 +24,7 @@ module.exports = {
 					  templateLiteral: false,
 					}
 				`);
-				expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`
+        expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`
 			Object {
 			  electron: false,
 			  electronMain: false,
@@ -35,7 +35,7 @@ module.exports = {
 			  web: true,
 			}
 		`);
-			});
-		}
-	]
+      });
+    },
+  ],
 };

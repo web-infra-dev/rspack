@@ -3,10 +3,10 @@
  */
 module.exports = {
   experiments: {
-    outputModule: true
+    outputModule: true,
   },
   output: {
     module: true,
-    chunkFormat: "module"
-  }
+    chunkFormat: 'module',
+  },
 };

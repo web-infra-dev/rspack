@@ -1,10 +1,10 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	entry: {
-		bundle0: "./a",
-		other: "./b"
-	},
-	output: {
-		filename: "[name].js"
-	}
+  entry: {
+    bundle0: './a',
+    other: './b',
+  },
+  output: {
+    filename: '[name].js',
+  },
 };

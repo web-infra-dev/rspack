@@ -3,17 +3,17 @@ module.exports = {
     rules: [
       {
         test: /\.json$/,
-        type: 'json'
-      }
-    ]
+        type: 'json',
+      },
+    ],
   },
   optimization: {
-    splitChunks: { 
+    splitChunks: {
       cacheGroups: {
         lib: {
-          test: /lib\.js/
-        }
-      }
-    }
-  }
+          test: /lib\.js/,
+        },
+      },
+    },
+  },
 };

@@ -1,5 +1,5 @@
 module.exports = {
-	optimization: {
-		usedExports: false
-	}
+  optimization: {
+    usedExports: false,
+  },
 };

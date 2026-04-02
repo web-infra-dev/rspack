@@ -1,32 +1,32 @@
 module.exports = {
   entry: {
     main: {
-      import: "./index.js"
+      import: './index.js',
     },
     bundle: {
-      import: './index.json'
+      import: './index.json',
     },
     cjs: {
       import: './cjs.js',
-      filename: 'cjsBundle.mjs'
-    }
+      filename: 'cjsBundle.mjs',
+    },
   },
   module: {
     rules: [
       {
         test: /\.js$/,
-        type: 'javascript/auto'
-      }
-    ]
+        type: 'javascript/auto',
+      },
+    ],
   },
   optimization: {
     splitChunks: {
       cacheGroups: {
         json: {
           test: /index\.json/,
-          name: 'json'
-        }
-      }
-    }
-  }
-}
+          name: 'json',
+        },
+      },
+    },
+  },
+};

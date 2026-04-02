@@ -1,13 +1,13 @@
 // eslint-disable-next-line node/no-unpublished-require
-const { ModuleFederationPlugin } = require("@rspack/core").container;
+const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 /** @type {import("@rspack/core").Configuration} */
 
 module.exports = {
-	entry: './index.js',
-	output: {
-		ignoreBrowserWarnings: true
-	},
+  entry: './index.js',
+  output: {
+    ignoreBrowserWarnings: true,
+  },
   optimization: {
     minimize: true,
     chunkIds: 'named',

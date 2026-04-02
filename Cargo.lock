@@ -5242,6 +5242,7 @@ dependencies = [
  "itertools 0.14.0",
  "rspack_error",
  "rspack_fs",
+ "rspack_parallel",
  "rspack_paths",
  "rustc-hash",
  "tokio",

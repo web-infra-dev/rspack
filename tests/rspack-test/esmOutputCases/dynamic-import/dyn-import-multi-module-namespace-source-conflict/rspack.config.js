@@ -1,6 +1,6 @@
 module.exports = {
-	externals: {
-		fs: "module fs",
-		path: "module path"
-	}
+  externals: {
+    fs: 'module fs',
+    path: 'module path',
+  },
 };

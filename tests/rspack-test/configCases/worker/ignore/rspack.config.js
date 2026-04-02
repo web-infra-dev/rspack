@@ -1,39 +1,39 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const path = require("path");
+const fs = require('fs');
+const path = require('path');
 
 /** @type {import("../../../../").Configuration} */
 module.exports = {
-	output: {
-		assetModuleFilename: "worker-[name].mjs",
-		environment: {
-			nodePrefixForCoreModules: false
-		}
-	},
-	plugins: [
-		{
-			apply(compiler) {
-				compiler.hooks.compilation.tap("Test", (compilation) => {
-					compilation.hooks.processAssets.tap(
-						{
-							name: "copy-webpack-plugin",
-							stage:
-								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-						},
-						() => {
-							const data = fs.readFileSync(
-								path.resolve(__dirname, "./worker.js")
-							);
+  output: {
+    assetModuleFilename: 'worker-[name].mjs',
+    environment: {
+      nodePrefixForCoreModules: false,
+    },
+  },
+  plugins: [
+    {
+      apply(compiler) {
+        compiler.hooks.compilation.tap('Test', (compilation) => {
+          compilation.hooks.processAssets.tap(
+            {
+              name: 'copy-webpack-plugin',
+              stage:
+                compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+            },
+            () => {
+              const data = fs.readFileSync(
+                path.resolve(__dirname, './worker.js'),
+              );
 
-							compilation.emitAsset(
-								"worker.mjs",
-								new compiler.rspack.sources.RawSource(data)
-							);
-						}
-					);
-				});
-			}
-		}
-	]
+              compilation.emitAsset(
+                'worker.mjs',
+                new compiler.rspack.sources.RawSource(data),
+              );
+            },
+          );
+        });
+      },
+    },
+  ],
 };
