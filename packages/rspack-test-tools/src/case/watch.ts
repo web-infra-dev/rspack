@@ -112,8 +112,8 @@ export function createWatchInitialProcessor(
       // a watcher is created. Wait briefly so the kernel event log commits all
       // copyDiff writes, ensuring kFSEventStreamEventIdSinceNow excludes them.
       // See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
-      if (nativeWatcher) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+      if (nativeWatcher && process.platform === 'darwin') {
+        await new Promise((resolve) => setTimeout(resolve, 10));
       }
 
       const task = new Promise((resolve, reject) => {
