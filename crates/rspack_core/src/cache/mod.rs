@@ -34,7 +34,7 @@ pub trait Cache: Debug + Send + Sync {
 
   // BUILD_MODULE_GRAPH hooks
   async fn before_build_module_graph(&mut self, _compilation: &mut Compilation) {}
-  async fn after_build_module_graph(&self, _compilation: &Compilation) {}
+  async fn after_build_module_graph(&mut self, _compilation: &Compilation) {}
 
   // FINISH_MODULES hooks
   async fn before_finish_modules(&mut self, _compilation: &mut Compilation) {}

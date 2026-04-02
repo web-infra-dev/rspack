@@ -3,7 +3,7 @@ mod snapshot;
 
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_core::cache::persistent::storage::{Storage, StorageOptions, create_storage};
+use rspack_core::cache::persistent::storage::{BoxStorage, StorageOptions, create_storage};
 use rspack_error::{Result, error};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 use rspack_paths::Utf8PathBuf;
@@ -41,8 +41,8 @@ pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
 }
 
 /// Load all version storages from a directory path
-/// Returns a HashMap where key is version name and value is Storage
-pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, Arc<dyn Storage>> {
+/// Returns a HashMap where key is version name and value is BoxStorage
+pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage> {
   let fs = Arc::new(NativeFileSystem::new(false));
   let mut storages = HashMap::default();
 
@@ -123,8 +123,8 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
 
 /// Compare two storages and return whether they are equal
 async fn compare_storage(
-  storage1: Arc<dyn Storage>,
-  storage2: Arc<dyn Storage>,
+  storage1: BoxStorage,
+  storage2: BoxStorage,
   debug_info: DebugInfo,
 ) -> Result<()> {
   // Get scopes from both storages
@@ -140,10 +140,10 @@ async fn compare_storage(
 
     match scope.as_str() {
       occasion::meta::SCOPE => {
-        occasion::meta::compare(storage1.clone(), storage2.clone(), cur_debug_info).await?;
+        occasion::meta::compare(&*storage1, &*storage2, cur_debug_info).await?;
       }
       occasion::make::SCOPE => {
-        occasion::make::compare(storage1.clone(), storage2.clone(), cur_debug_info).await?;
+        occasion::make::compare(&*storage1, &*storage2, cur_debug_info).await?;
       }
       _ => {
         // TODO compare snapshot

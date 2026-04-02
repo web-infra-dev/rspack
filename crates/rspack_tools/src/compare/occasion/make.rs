@@ -14,8 +14,8 @@ use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 
 /// Compare make scope data between two storages
 pub async fn compare(
-  storage1: Arc<dyn Storage>,
-  storage2: Arc<dyn Storage>,
+  storage1: &dyn Storage,
+  storage2: &dyn Storage,
   debug_info: DebugInfo,
 ) -> Result<()> {
   // Load make data from both storages
@@ -32,11 +32,11 @@ pub async fn compare(
   // Convert stored data to BuildModuleGraphArtifact using MakeOccasion's recovery ability
   // Use a dummy path for codec since we're only deserializing
   let codec = Arc::new(CacheCodec::new(Some(Utf8PathBuf::from("/"))));
-  let occasion1 = MakeOccasion::new(storage1.clone(), codec.clone());
-  let occasion2 = MakeOccasion::new(storage2.clone(), codec.clone());
+  let occasion1 = MakeOccasion::new(codec.clone());
+  let occasion2 = MakeOccasion::new(codec.clone());
 
-  let artifact1 = occasion1.recovery().await?;
-  let artifact2 = occasion2.recovery().await?;
+  let artifact1 = occasion1.recovery(storage1).await?;
+  let artifact2 = occasion2.recovery(storage2).await?;
 
   let comparator = ArtifactComparator::new(&artifact1, &artifact2);
   comparator.compare(&debug_info)?;
