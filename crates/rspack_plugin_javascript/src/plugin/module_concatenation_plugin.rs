@@ -1356,6 +1356,15 @@ fn should_include_import_target(
   is_target_active && (has_imported_names || provided_names)
 }
 
+fn has_imported_names_from_referenced_exports(
+  referenced_exports: &[ExtendedReferencedExport],
+) -> bool {
+  referenced_exports.iter().all(|item| match item {
+    ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
+    ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
+  })
+}
+
 #[allow(dead_code)]
 #[derive(Debug)]
 struct OutgoingConnectionFacts {
@@ -1488,11 +1497,7 @@ fn build_module_concat_facts(
     );
     outgoing_esm_connections.push(OutgoingConnectionFacts {
       connection: connection.clone(),
-      has_imported_names: !imported_names.is_empty()
-        && imported_names.iter().all(|item| match item {
-          ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-          ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-        }),
+      has_imported_names: has_imported_names_from_referenced_exports(&imported_names),
       active_for_module_runtime: connection.is_target_active(
         module_graph,
         Some(&runtime),
@@ -2053,5 +2058,10 @@ mod tests {
   #[test]
   fn should_include_import_target_rejects_inactive_connections() {
     assert!(!should_include_import_target(true, true, false));
+  }
+
+  #[test]
+  fn has_imported_names_from_referenced_exports_accepts_empty_exports() {
+    assert!(has_imported_names_from_referenced_exports(&[]));
   }
 }
