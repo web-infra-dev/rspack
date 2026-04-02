@@ -77,6 +77,7 @@ jobs:
           script: |
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
             export WASM=1
+            export RSPACK_WASM_PTR_TRACE=1
             pnpm run build:js
             pnpm run test:e2e
 
@@ -171,6 +172,7 @@ jobs:
         env:
           NODE_NO_WARNINGS: 1
           WASM: 1
+          RSPACK_WASM_PTR_TRACE: 1
           RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
 
