@@ -98,7 +98,8 @@ __dirname
 
 The `import.meta` exposes context-specific metadata to a JavaScript module, such as the URL of the module. It is only available in modules that support ESM ([module type](/misc/glossary#module-type) is `javascript/auto` or `javascript/esm`).
 
-:::note
+Normally, unknown `import.meta` metadata is replaced with `undefined` by default. When using [ESM output](/guide/features/esm), [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) defaults to `'preserve-unknown'`, so unknown metadata is preserved for runtime evaluation.
+
 Rspack statically analyzes `import.meta` properties and replaces them with concrete values at compile time, so dynamic access to `import.meta` (e.g., `Object.keys(import.meta)`) is not supported and will emit a warning. You should access metadata on `import.meta` via property access or destructuring assignment.
 
 <Columns>
@@ -126,8 +127,6 @@ let { url } = { url: 'file:///project/index.js' };
 ```
 
 </Columns>
-
-:::
 
 ### import.meta.url
 

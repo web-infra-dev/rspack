@@ -98,7 +98,8 @@ __dirname
 
 `import.meta` 将特定上下文的元数据暴露给 JavaScript 模块，例如模块的 URL。它仅在支持 ESM（[模块类型](/misc/glossary#module-type模块类型)为 `javascript/auto` 或 `javascript/esm`）的模块中可用。
 
-:::note
+通常情况下，未知的 `import.meta` 元数据默认会被替换为 `undefined`。当使用 [ESM 格式](/guide/features/esm)输出时，[`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 的默认值为 `'preserve-unknown'`，因此未知的元数据会被保留并在运行时被计算。
+
 Rspack 在编译时会静态分析将 `import.meta` 的属性替换为具体值，因此不支持动态访问 `import.meta`（如 `Object.keys(import.meta)`），否则会抛出警告。你应该通过属性访问或解构赋值的方式来访问 `import.meta` 上的元数据。
 
 <Columns>
@@ -126,8 +127,6 @@ let { url } = { url: 'file:///project/index.js' };
 ```
 
 </Columns>
-
-:::
 
 ### import.meta.url
 

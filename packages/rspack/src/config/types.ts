@@ -1111,7 +1111,6 @@ export type JavascriptParserOptions = {
 
   /**
    * Enable or disable evaluating import.meta. Set to 'preserve-unknown' to preserve unknown properties for runtime evaluation.
-   * @default 'preserve-unknown'
    */
   importMeta?: boolean | 'preserve-unknown';
 
