@@ -51,12 +51,13 @@ jobs:
         run: pnpm run build:js
 
       - name: Run benchmark binding
-        uses: ./.github/actions/codspeed
+        uses: CodSpeedHQ/action@v4
         timeout-minutes: 30
         env:
           RAYON_NUM_THREADS: 1
+          CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
         with:
           mode: 'simulation'
           run: pnpm --filter bench run bench
           token: ${{ secrets.CODSPEED_TOKEN }}
-          runner-version: 4.12.1
+          runner-version: 4.13.0
