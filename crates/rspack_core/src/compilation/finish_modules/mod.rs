@@ -38,16 +38,20 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
   let mut async_modules_artifact = compilation.async_modules_artifact.steal();
   let mut exports_info_artifact = compilation.exports_info_artifact.steal();
+  let mut dependency_exports_analysis_artifact =
+    compilation.dependency_exports_analysis_artifact.steal();
   let diagnostics = finish_modules_inner(
     compilation,
     &mut dependencies_diagnostics_artifact,
     &mut async_modules_artifact,
     &mut exports_info_artifact,
+    &mut dependency_exports_analysis_artifact,
   )
   .await;
   compilation.dependencies_diagnostics_artifact = dependencies_diagnostics_artifact.into();
   compilation.async_modules_artifact = async_modules_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
+  compilation.dependency_exports_analysis_artifact = dependency_exports_analysis_artifact.into();
   let diagnostics = diagnostics?;
   compilation.extend_diagnostics(diagnostics);
 
@@ -60,6 +64,7 @@ pub async fn finish_modules_inner(
   dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
   async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
 ) -> Result<Vec<Diagnostic>> {
   let build_module_graph_artifact = &compilation.build_module_graph_artifact;
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
@@ -103,7 +108,12 @@ pub async fn finish_modules_inner(
     .clone()
     .compilation_hooks
     .finish_modules
-    .call(compilation, async_modules_artifact, exports_info_artifact)
+    .call(
+      compilation,
+      async_modules_artifact,
+      exports_info_artifact,
+      dependency_exports_analysis_artifact,
+    )
     .await?;
 
   // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988

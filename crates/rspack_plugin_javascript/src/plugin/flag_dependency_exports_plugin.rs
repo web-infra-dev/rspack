@@ -2,9 +2,9 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
-  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  DependenciesBlock, DependencyExportsAnalysisArtifact, DependencyId, EvaluatedInlinableValue,
+  ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
   PrefetchExportsInfoMode, get_target,
   incremental::{self, IncrementalPasses},
@@ -199,6 +199,7 @@ async fn finish_modules(
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  _dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let modules: IdentifierSet = if let Some(mutations) = compilation

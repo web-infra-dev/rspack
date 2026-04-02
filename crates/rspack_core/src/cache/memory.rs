@@ -55,6 +55,11 @@ impl Cache for MemoryCache {
         &mut compilation.dependencies_diagnostics_artifact,
         &mut old_compilation.dependencies_diagnostics_artifact,
       );
+      recover_artifact(
+        incremental,
+        &mut compilation.dependency_exports_analysis_artifact,
+        &mut old_compilation.dependency_exports_analysis_artifact,
+      );
     }
   }
 

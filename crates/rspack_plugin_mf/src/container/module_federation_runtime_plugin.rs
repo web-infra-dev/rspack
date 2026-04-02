@@ -98,6 +98,7 @@ async fn finish_modules(
   compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
+  _dependency_exports_analysis_artifact: &mut rspack_core::DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   if !self.options.experiments.async_startup {
     return Ok(());

@@ -67,14 +67,15 @@ use crate::{
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerateCacheArtifact,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
-  ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
-  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  DependenciesDiagnosticsArtifact, DependencyExportsAnalysisArtifact, DependencyId,
+  DependencyTemplate, DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions,
+  EntryRuntime, Entrypoint, ExecuteModuleId, ExportsInfoArtifact, ExtendedReferencedExport,
+  Filename, ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, MemoryGCStorage,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ResolverFactory,
+  RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap,
+  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats,
+  StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -91,7 +92,7 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact));
+define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact, dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact));
 define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
@@ -228,6 +229,8 @@ pub struct Compilation {
   pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
   // artifact for exports info
   pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
+  // artifact for dependency exports analysis
+  pub dependency_exports_analysis_artifact: StealCell<DependencyExportsAnalysisArtifact>,
   // artifact for side_effects_flag_plugin
   pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
@@ -365,6 +368,7 @@ impl Compilation {
       imported_by_defer_modules_artifact: StealCell::new(Default::default()),
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
       exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
+      dependency_exports_analysis_artifact: StealCell::new(Default::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),
       module_ids_artifact: StealCell::new(Default::default()),
       named_chunk_ids_artifact: StealCell::new(Default::default()),

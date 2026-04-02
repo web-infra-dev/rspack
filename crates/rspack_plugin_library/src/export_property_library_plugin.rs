@@ -117,6 +117,7 @@ async fn finish_modules(
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  _dependency_exports_analysis_artifact: &mut rspack_core::DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
