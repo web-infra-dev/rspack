@@ -10,7 +10,7 @@ use std::{
 
 use criterion::{BatchSize, Criterion, criterion_group};
 use rspack_core::{
-  CacheOptions, Mode,
+  BuildModuleGraphArtifactState, CacheOptions, Mode,
   cache::persistent::{PersistentCacheOptions, snapshot::SnapshotOptions, storage::StorageOptions},
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem};
@@ -44,7 +44,7 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
           cleanup_dirs.borrow_mut().push(case.workspace_dir.clone());
           rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
           assert_cache_materialized(&case.cache_dir);
-          rt.block_on(assert_restore_available(&case));
+          rt.block_on(assert_restore_available(&case, &[]));
           case
         },
         |case| {
@@ -60,13 +60,28 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
     |b| {
       b.iter_batched(
         || {
-          let case = prepare_seeded_case();
-          cleanup_dirs.borrow_mut().push(case.workspace_dir.clone());
-          rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
-          assert_cache_materialized(&case.cache_dir);
-          rt.block_on(assert_restore_available(&case));
-          mutate_leaf_module(&case.project_dir);
-          case
+          let warm_case = prepare_seeded_case();
+          cleanup_dirs
+            .borrow_mut()
+            .push(warm_case.workspace_dir.clone());
+          rt.block_on(run_compiler(&warm_case.project_dir, &warm_case.cache_dir));
+          assert_cache_materialized(&warm_case.cache_dir);
+          rt.block_on(assert_restore_available(&warm_case, &[]));
+
+          let invalidation_fixture = prepare_seeded_case_with_invalidation();
+          cleanup_dirs
+            .borrow_mut()
+            .push(invalidation_fixture.workspace_dir.clone());
+          fs::copy(
+            invalidation_fixture.project_dir.join(INVALIDATION_TARGET),
+            warm_case.project_dir.join(INVALIDATION_TARGET),
+          )
+          .unwrap();
+          rt.block_on(assert_restore_available(
+            &warm_case,
+            &[warm_case.project_dir.join(INVALIDATION_TARGET)],
+          ));
+          warm_case
         },
         |case| {
           rt.block_on(run_restore_build(&case));
@@ -106,7 +121,6 @@ fn prepare_seeded_case() -> PreparedCase {
   }
 }
 
-#[allow(dead_code)]
 fn prepare_seeded_case_with_invalidation() -> PreparedCase {
   let case = prepare_seeded_case();
   mutate_leaf_module(&case.project_dir);
@@ -129,7 +143,7 @@ fn mutate_leaf_module(project_dir: &Path) {
   fs::write(&target, updated).unwrap();
 }
 
-async fn assert_restore_available(case: &PreparedCase) {
+async fn assert_restore_available(case: &PreparedCase, expected_modified_files: &[PathBuf]) {
   let compiler_context = std::sync::Arc::new(CompilerContext::new());
   let mut compiler = within_compiler_context_sync(compiler_context.clone(), || {
     persistent_compiler(&case.project_dir, &case.cache_dir)
@@ -137,7 +151,7 @@ async fn assert_restore_available(case: &PreparedCase) {
       .unwrap()
   });
 
-  let (compiler, is_hot_start) = within_compiler_context(compiler_context, async move {
+  let (compiler, is_hot_start) = within_compiler_context(compiler_context.clone(), async move {
     let is_hot_start = compiler
       .cache
       .before_compile(&mut compiler.compilation)
@@ -151,8 +165,39 @@ async fn assert_restore_available(case: &PreparedCase) {
     "expected persistent cache restore to be available at {}",
     case.cache_dir.display()
   );
-  assert!(compiler.compilation.modified_files.is_empty());
+  assert_eq!(
+    compiler.compilation.modified_files.len(),
+    expected_modified_files.len(),
+    "unexpected modified file count for restored cache at {}",
+    case.project_dir.display()
+  );
+  for expected_modified_file in expected_modified_files {
+    assert!(
+      compiler
+        .compilation
+        .modified_files
+        .iter()
+        .any(|actual| actual.as_ref() == expected_modified_file.as_path()),
+      "expected modified file {} to be present after restore",
+      expected_modified_file.display()
+    );
+  }
   assert!(compiler.compilation.removed_files.is_empty());
+
+  let compiler = within_compiler_context(compiler_context, async move {
+    let mut compiler = compiler;
+    compiler
+      .cache
+      .before_build_module_graph(&mut compiler.compilation)
+      .await;
+    compiler
+  })
+  .await;
+
+  assert!(matches!(
+    compiler.compilation.build_module_graph_artifact.state,
+    BuildModuleGraphArtifactState::Initialized
+  ));
   compiler.close().await.unwrap();
 }
 
@@ -180,10 +225,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
     .context(project_dir.to_string_lossy().to_string())
     .mode(Mode::Development)
     .cache(CacheOptions::Persistent(PersistentCacheOptions {
-      build_dependencies: vec![
-        project_dir.join(CONFIG_FILE),
-        project_dir.join(INVALIDATION_TARGET),
-      ],
+      build_dependencies: vec![project_dir.join(CONFIG_FILE)],
       version: String::new(),
       snapshot: SnapshotOptions::default(),
       storage: StorageOptions::FileSystem {
