@@ -33,18 +33,23 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
     .max_blocking_threads(8)
     .build()
     .unwrap();
-  let cleanup_dirs = RefCell::new(Vec::new());
+  let pending_cleanup = RefCell::new(Vec::new());
 
   group.bench_function(
     "rust@persistent_cache_restore@basic-react-development",
     |b| {
       b.iter_batched(
         || {
+          cleanup_pending_workspaces(&pending_cleanup);
           let case = prepare_seeded_case();
-          cleanup_dirs.borrow_mut().push(case.workspace_dir.clone());
           rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
           assert_cache_materialized(&case.cache_dir);
-          rt.block_on(assert_restore_available(&case, &[]));
+          let probe_case = clone_case_for_probe(&case);
+          rt.block_on(assert_restore_available(&probe_case, &[]));
+          let _ = fs::remove_dir_all(probe_case.workspace_dir);
+          pending_cleanup
+            .borrow_mut()
+            .push(case.workspace_dir.clone());
           case
         },
         |case| {
@@ -60,28 +65,26 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
     |b| {
       b.iter_batched(
         || {
-          let warm_case = prepare_seeded_case();
-          cleanup_dirs
-            .borrow_mut()
-            .push(warm_case.workspace_dir.clone());
-          rt.block_on(run_compiler(&warm_case.project_dir, &warm_case.cache_dir));
-          assert_cache_materialized(&warm_case.cache_dir);
-          rt.block_on(assert_restore_available(&warm_case, &[]));
+          cleanup_pending_workspaces(&pending_cleanup);
+          let case = prepare_seeded_case();
+          rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
+          assert_cache_materialized(&case.cache_dir);
 
-          let invalidation_fixture = prepare_seeded_case_with_invalidation();
-          cleanup_dirs
-            .borrow_mut()
-            .push(invalidation_fixture.workspace_dir.clone());
-          fs::copy(
-            invalidation_fixture.project_dir.join(INVALIDATION_TARGET),
-            warm_case.project_dir.join(INVALIDATION_TARGET),
-          )
-          .unwrap();
+          let warm_probe = clone_case_for_probe(&case);
+          rt.block_on(assert_restore_available(&warm_probe, &[]));
+          let _ = fs::remove_dir_all(warm_probe.workspace_dir);
+
+          mutate_leaf_module(&case.project_dir);
+          let invalidated_probe = clone_case_for_probe(&case);
           rt.block_on(assert_restore_available(
-            &warm_case,
-            &[warm_case.project_dir.join(INVALIDATION_TARGET)],
+            &invalidated_probe,
+            &[invalidated_probe.project_dir.join(INVALIDATION_TARGET)],
           ));
-          warm_case
+          let _ = fs::remove_dir_all(invalidated_probe.workspace_dir);
+          pending_cleanup
+            .borrow_mut()
+            .push(case.workspace_dir.clone());
+          case
         },
         |case| {
           rt.block_on(run_restore_build(&case));
@@ -93,9 +96,7 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
 
   group.finish();
 
-  for workspace_dir in cleanup_dirs.into_inner() {
-    let _ = fs::remove_dir_all(workspace_dir);
-  }
+  cleanup_pending_workspaces(&pending_cleanup);
 }
 
 criterion_group!(persistent_cache, persistent_cache_benchmark);
@@ -121,10 +122,15 @@ fn prepare_seeded_case() -> PreparedCase {
   }
 }
 
-fn prepare_seeded_case_with_invalidation() -> PreparedCase {
-  let case = prepare_seeded_case();
-  mutate_leaf_module(&case.project_dir);
-  case
+fn clone_case_for_probe(case: &PreparedCase) -> PreparedCase {
+  let workspace_dir = fresh_workspace_dir();
+  copy_dir_all(&case.workspace_dir, &workspace_dir).unwrap();
+
+  PreparedCase {
+    workspace_dir: workspace_dir.clone(),
+    project_dir: workspace_dir.clone(),
+    cache_dir: workspace_dir.join(".cache").join("persistent"),
+  }
 }
 
 #[allow(clippy::disallowed_methods)]
@@ -248,6 +254,12 @@ fn benchcases_root_dir() -> PathBuf {
   let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
     .expect("RSPACK_BENCHCASES_DIR must be set to an absolute path");
   PathBuf::from(benchcases_dir).canonicalize().unwrap()
+}
+
+fn cleanup_pending_workspaces(pending_cleanup: &RefCell<Vec<PathBuf>>) {
+  for workspace_dir in pending_cleanup.borrow_mut().drain(..) {
+    let _ = fs::remove_dir_all(workspace_dir);
+  }
 }
 
 fn fresh_workspace_dir() -> PathBuf {
