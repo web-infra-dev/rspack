@@ -69,7 +69,7 @@ struct PreparedCase {
 
 fn prepare_seeded_case() -> PreparedCase {
   let workspace_dir = fresh_workspace_dir();
-  let project_dir = workspace_dir.join(BENCHCASE_NAME);
+  let project_dir = workspace_dir.clone();
   let source_dir = benchcase_dir();
   let cache_dir = workspace_dir.join(".cache").join("persistent");
 
