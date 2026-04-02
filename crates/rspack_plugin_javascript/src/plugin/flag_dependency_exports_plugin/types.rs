@@ -1,4 +1,6 @@
-use rspack_core::{DeferredReexportSpec, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec};
+use rspack_core::{
+  DeferredReexportSpec, DependencyId, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec,
+};
 
 #[derive(Debug, Default)]
 pub(super) struct NormalizedModuleAnalysis {
@@ -30,6 +32,13 @@ impl NormalizedModuleAnalysis {
       local_apply,
       deferred_reexports,
     }
+  }
+
+  pub(super) fn bind_local_apply_with_dep_id(
+    dep_id: DependencyId,
+    local_apply: Vec<ExportsSpec>,
+  ) -> Vec<(DependencyId, ExportsSpec)> {
+    local_apply.into_iter().map(|spec| (dep_id, spec)).collect()
   }
 }
 

@@ -121,15 +121,19 @@ pub struct DeferredReexportSpec {
   pub items: Vec<DeferredReexportItem>,
 }
 
-impl Default for DeferredReexportSpec {
-  fn default() -> Self {
+impl DeferredReexportSpec {
+  pub fn new(
+    target_module: ModuleIdentifier,
+    dep_id: DependencyId,
+    items: Vec<DeferredReexportItem>,
+  ) -> Self {
     Self {
-      target_module: ModuleIdentifier::default(),
-      dep_id: DependencyId::from(0),
+      target_module,
+      dep_id,
       priority: None,
       can_mangle: None,
       terminal_binding: false,
-      items: Vec::new(),
+      items,
     }
   }
 }

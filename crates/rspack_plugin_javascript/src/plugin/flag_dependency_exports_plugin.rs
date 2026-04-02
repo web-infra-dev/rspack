@@ -14,7 +14,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rspack_util::fx_hash::FxIndexSet;
 use swc_core::ecma::atoms::Atom;
 
 use self::collector::normalize_exports_spec;
@@ -90,15 +90,6 @@ impl<'a> FlagDependencyExportsState<'a> {
           (module_id, collected_exports)
         })
         .collect::<Vec<_>>();
-
-      let mut _deferred_reexports_by_module =
-        IdentifierMap::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
-      for (module_id, collected_exports) in &module_exports_specs {
-        if !collected_exports.deferred_reexports.is_empty() {
-          _deferred_reexports_by_module
-            .insert(*module_id, collected_exports.deferred_reexports.clone());
-        }
-      }
 
       let mut changed_modules =
         IdentifierSet::with_capacity_and_hasher(module_exports_specs.len(), Default::default());
@@ -284,7 +275,7 @@ fn collect_module_exports_specs(
   // because the `get_exports` of each dependency will only be called once
   // mg_cache.freeze();
   let mut has_nested_exports = false;
-  let mut local_apply = FxIndexMap::default();
+  let mut local_apply = Vec::new();
   let mut deferred_reexports = Vec::new();
   for id in dep_ids {
     let dep = mg.dependency_by_id(&id);
@@ -292,25 +283,33 @@ fn collect_module_exports_specs(
       continue;
     };
     let normalized = normalize_exports_spec(exports_spec);
-    has_nested_exports |= normalized
-      .local_apply
+    let crate::plugin::flag_dependency_exports_plugin::types::NormalizedModuleAnalysis {
+      local_apply: normalized_local_apply,
+      deferred_reexports: normalized_deferred_reexports,
+    } = normalized;
+    has_nested_exports |= normalized_local_apply
       .iter()
       .any(ExportsSpec::has_nested_exports);
-    local_apply.extend(normalized.local_apply.into_iter().map(|spec| (id, spec)));
-    deferred_reexports.extend(normalized.deferred_reexports);
+    local_apply.extend(
+      crate::plugin::flag_dependency_exports_plugin::types::NormalizedModuleAnalysis::bind_local_apply_with_dep_id(
+        id,
+        normalized_local_apply,
+      ),
+    );
+    deferred_reexports.extend(normalized_deferred_reexports);
   }
   // mg_cache.unfreeze();
   Some(CollectedModuleExportsSpecs {
     local_apply,
-    deferred_reexports,
+    _deferred_reexports: deferred_reexports,
     has_nested_exports,
   })
 }
 
 #[derive(Debug, Default)]
 struct CollectedModuleExportsSpecs {
-  local_apply: FxIndexMap<DependencyId, ExportsSpec>,
-  deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
+  local_apply: Vec<(DependencyId, ExportsSpec)>,
+  _deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
   has_nested_exports: bool,
 }
 
