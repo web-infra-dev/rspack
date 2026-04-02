@@ -22,6 +22,9 @@ use super::bundle::basic_react;
 static NEXT_CASE_ID: AtomicUsize = AtomicUsize::new(0);
 const BENCHCASE_NAME: &str = "basic-react";
 const CONFIG_FILE: &str = "rspack.config.js";
+const INVALIDATION_TARGET: &str = "src/d0/f0.jsx";
+const ORIGINAL_TEXT: &str = "Hello";
+const UPDATED_TEXT: &str = "Hello from cache";
 
 pub fn persistent_cache_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("persistent_cache");
@@ -42,6 +45,27 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
           rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
           assert_cache_materialized(&case.cache_dir);
           rt.block_on(assert_restore_available(&case));
+          case
+        },
+        |case| {
+          rt.block_on(run_restore_build(&case));
+        },
+        BatchSize::PerIteration,
+      );
+    },
+  );
+
+  group.bench_function(
+    "rust@persistent_cache_restore_after_single_file_change@basic-react-development",
+    |b| {
+      b.iter_batched(
+        || {
+          let case = prepare_seeded_case();
+          cleanup_dirs.borrow_mut().push(case.workspace_dir.clone());
+          rt.block_on(run_compiler(&case.project_dir, &case.cache_dir));
+          assert_cache_materialized(&case.cache_dir);
+          rt.block_on(assert_restore_available(&case));
+          mutate_leaf_module(&case.project_dir);
           case
         },
         |case| {
@@ -80,6 +104,29 @@ fn prepare_seeded_case() -> PreparedCase {
     project_dir,
     cache_dir,
   }
+}
+
+#[allow(dead_code)]
+fn prepare_seeded_case_with_invalidation() -> PreparedCase {
+  let case = prepare_seeded_case();
+  mutate_leaf_module(&case.project_dir);
+  case
+}
+
+fn mutate_leaf_module(project_dir: &Path) {
+  let target = project_dir.join(INVALIDATION_TARGET);
+  let source = fs::read_to_string(&target).unwrap();
+  let updated = source.replace(ORIGINAL_TEXT, UPDATED_TEXT);
+
+  assert_ne!(
+    source,
+    updated,
+    "expected {} to contain {}",
+    target.display(),
+    ORIGINAL_TEXT
+  );
+
+  fs::write(&target, updated).unwrap();
 }
 
 async fn assert_restore_available(case: &PreparedCase) {
@@ -133,7 +180,10 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
     .context(project_dir.to_string_lossy().to_string())
     .mode(Mode::Development)
     .cache(CacheOptions::Persistent(PersistentCacheOptions {
-      build_dependencies: vec![project_dir.join(CONFIG_FILE)],
+      build_dependencies: vec![
+        project_dir.join(CONFIG_FILE),
+        project_dir.join(INVALIDATION_TARGET),
+      ],
       version: String::new(),
       snapshot: SnapshotOptions::default(),
       storage: StorageOptions::FileSystem {
