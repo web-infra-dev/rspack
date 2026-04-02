@@ -1,3 +1,3 @@
 module.exports = [
-  /Following pure functions are not found[\s\S]*module\.rules\[\*\]\.parser\.sideEffectsFree/
+  /Following pure functions are not found[\s\S]*module\.rules\[\*\]\.parser\.pureFunctions/
 ];

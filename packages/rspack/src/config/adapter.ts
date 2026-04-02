@@ -600,7 +600,7 @@ function getRawJavascriptParserOptions(
     jsx: parser.jsx,
     deferImport: parser.deferImport,
     importMetaResolve: parser.importMetaResolve,
-    sideEffectsFree: parser.sideEffectsFree,
+    pureFunctions: parser.pureFunctions,
   };
 }
 

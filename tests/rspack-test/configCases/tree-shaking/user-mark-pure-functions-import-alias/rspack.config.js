@@ -14,13 +14,13 @@ module.exports = {
       {
         test: /dep-named\.js$/,
         parser: {
-          sideEffectsFree: ['pureNamed']
+          pureFunctions: ['pureNamed']
         }
       },
       {
         test: /dep-default\.js$/,
         parser: {
-          sideEffectsFree: ['default']
+          pureFunctions: ['default']
         }
       }
     ]

@@ -224,9 +224,9 @@ export function baz() {}
 
 如果一个函数被标记为无副作用且其返回值未被使用，Rspack 将移除该调用。
 
-## sideEffectsFree
+## pureFunctions
 
-`sideEffectsFree` 允许你在命中的模块中，手动将顶层导出函数标记为“调用无副作用”，供 advanced tree shaking 使用。这在处理无法修改源码的第三方库（例如 `node_modules` 中的包）时非常有用。
+`pureFunctions` 允许你在命中的模块中，手动将顶层导出函数标记为“调用无副作用”，供 advanced tree shaking 使用。这在处理无法修改源码的第三方库（例如 `node_modules` 中的包）时非常有用。
 
 :::warning
 该选项目前是实验能力，且只有在启用 `experiments.advancedTreeShaking` 时才会生效。
@@ -252,7 +252,7 @@ module.exports = {
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
-          sideEffectsFree: ['isString', 'default'],
+          pureFunctions: ['isString', 'default'],
         },
       },
     ],
@@ -260,4 +260,4 @@ module.exports = {
 };
 ```
 
-Rspack 会校验 `sideEffectsFree` 中配置的每个名字是否确实存在于命中的模块中；如果找不到对应的导出函数名，就会发出警告。
+Rspack 会校验 `pureFunctions` 中配置的每个名字是否确实存在于命中的模块中；如果找不到对应的导出函数名，就会发出警告。

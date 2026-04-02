@@ -676,7 +676,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
     // analyze if any function contains #__NO_SIDE_EFFECTS__ annotation
     // so that pure functions in current module can be marked as pure
     if self.analyze_side_effects_free {
-      // Build the explicit/implicit sideEffectsFree set in three steps:
+      // Build the explicit/implicit pureFunctions set in three steps:
       // 1. collect NO_SIDE_EFFECTS annotations already present in the module,
       // 2. keep only configured names that actually exist at top level,
       // 3. run a fixed-point top-level auto analysis so local pure helpers can
@@ -845,7 +845,7 @@ impl JavascriptParserPlugin for SideEffectsParserPlugin {
 
         let resource = parser.resource_data.resource();
         parser.add_warning(
-          rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[*].parser.sideEffectsFree`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
+          rspack_error::Diagnostic::warn("PURE_FUNCTION_NOT_FOUND".into(), format!("Following pure functions are not found in {resource}:\n[{}]\nRemove it from `module.rules[*].parser.pureFunctions`", not_defined.iter().map(|atom| format!("`{atom}`")).collect::<Vec<_>>().join(", ")))
         );
       }
     }

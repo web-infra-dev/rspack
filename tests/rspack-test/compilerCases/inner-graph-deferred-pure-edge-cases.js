@@ -26,43 +26,43 @@ module.exports = {
 					{
 						test: /dep-direct\.js$/,
 						parser: {
-							sideEffectsFree: ["pureDirect"]
+							pureFunctions: ["pureDirect"]
 						}
 					},
 					{
 						test: /dep-default-export\.js$/,
 						parser: {
-							sideEffectsFree: ["default"]
+							pureFunctions: ["default"]
 						}
 					},
 					{
 						test: /dep-reexport\.js$/,
 						parser: {
-							sideEffectsFree: ["pureReexport"]
+							pureFunctions: ["pureReexport"]
 						}
 					},
 					{
 						test: /dep-star\.js$/,
 						parser: {
-							sideEffectsFree: ["pureStar"]
+							pureFunctions: ["pureStar"]
 						}
 					},
 					{
 						test: /dep-all-pure-a\.js$/,
 						parser: {
-							sideEffectsFree: ["pureAllA"]
+							pureFunctions: ["pureAllA"]
 						}
 					},
 					{
 						test: /dep-all-pure-b\.js$/,
 						parser: {
-							sideEffectsFree: ["pureAllB"]
+							pureFunctions: ["pureAllB"]
 						}
 					},
 					{
 						test: /dep-mixed-a\.js$/,
 						parser: {
-							sideEffectsFree: ["pureMixedA"]
+							pureFunctions: ["pureMixedA"]
 						}
 					}
 				]

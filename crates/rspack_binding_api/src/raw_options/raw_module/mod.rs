@@ -321,7 +321,8 @@ pub struct RawJavascriptParserOptions {
   /// Flag top-level exported functions as side-effect-free for advanced tree shaking.
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
-  pub side_effects_free: Option<Vec<String>>,
+  #[napi(js_name = "pureFunctions")]
+  pub pure_functions: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -406,7 +407,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       defer_import: value.defer_import,
       import_meta_resolve: value.import_meta_resolve,
       side_effects_free: value
-        .side_effects_free
+        .pure_functions
         .map(|functions| functions.into_iter().collect()),
     }
   }

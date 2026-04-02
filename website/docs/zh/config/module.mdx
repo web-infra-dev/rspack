@@ -1672,7 +1672,7 @@ export default {
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
 
-### module.parser.javascript.sideEffectsFree
+### module.parser.javascript.pureFunctions
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -1690,7 +1690,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        sideEffectsFree: ['isString', 'default'],
+        pureFunctions: ['isString', 'default'],
       },
     },
   },

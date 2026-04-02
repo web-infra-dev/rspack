@@ -1227,7 +1227,7 @@ export type JavascriptParserOptions = {
    * Flag top-level exported functions as side-effect-free for advanced tree shaking.
    * @experimental
    */
-  sideEffectsFree?: string[];
+  pureFunctions?: string[];
 };
 
 export type JsonParserOptions = {

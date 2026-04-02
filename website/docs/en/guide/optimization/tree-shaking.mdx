@@ -223,9 +223,9 @@ export function baz() {}
 
 If a function is marked as side-effect-free and its return value is unused, Rspack can safely remove the call. Compared to `/*#__PURE__*/`, the advantage is that you only need to mark it once at the definition, and all call sites will benefit.
 
-## sideEffectsFree
+## pureFunctions
 
-`sideEffectsFree` lets you manually mark top-level exported functions in matched modules as side-effect-free for advanced tree shaking. This is useful for third-party libraries where source code cannot be modified, such as packages in `node_modules`.
+`pureFunctions` lets you manually mark top-level exported functions in matched modules as side-effect-free for advanced tree shaking. This is useful for third-party libraries where source code cannot be modified, such as packages in `node_modules`.
 
 :::warning
 This option is experimental and only takes effect when `experiments.advancedTreeShaking` is enabled.
@@ -251,7 +251,7 @@ module.exports = {
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
-          sideEffectsFree: ['isString', 'default'],
+          pureFunctions: ['isString', 'default'],
         },
       },
     ],
