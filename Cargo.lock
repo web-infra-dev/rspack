@@ -2552,9 +2552,9 @@ dependencies = [
 
 [[package]]
 name = "memchr"
-version = "2.7.6"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f52b00d39961fc5b2736ea853c9cc86238e165017a493d1d5c8eac6bdc4cc273"
+checksum = "33d852cb9b869c2a9b3df8b31a50b88a23a817dcd4f2bd0ee8fbba461d1f1c9d"
 
 [[package]]
 name = "memfd"

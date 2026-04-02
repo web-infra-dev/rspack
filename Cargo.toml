@@ -62,7 +62,7 @@ json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.0.1", default-features = false }
 lightningcss        = { version = "1.0.0-alpha.71", default-features = false, features = ["serde"] }
 md4                 = { version = "0.10.2", default-features = false }
-memchr              = { version = "2.7.6", default-features = false }
+memchr              = { version = "2.8.0", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.6.0", default-features = false }
 mimalloc            = { version = "0.1.48", default-features = false }
