@@ -131,14 +131,14 @@ rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.8", default-features = false }
-swc                 = { version = "57.0.0", default-features = false }
+swc                 = { version = "59.0.0", default-features = false }
 swc_config          = { version = "4.0.0", default-features = false }
-swc_core            = { version = "59.0.1", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "47.0.0", default-features = false }
-swc_error_reporters = { version = "21.0.0", default-features = false }
-swc_html            = { version = "31.0.0", default-features = false }
-swc_html_minifier   = { version = "47.0.0", default-features = false }
-swc_plugin_runner   = { version = "25.0.0", default-features = false }
+swc_core            = { version = "61.0.1", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "49.0.0", default-features = false }
+swc_error_reporters = { version = "22.0.0", default-features = false }
+swc_html            = { version = "32.0.0", default-features = false }
+swc_html_minifier   = { version = "49.0.0", default-features = false }
+swc_plugin_runner   = { version = "26.0.0", default-features = false }
 
 swc_experimental_ecma_ast      = { version = "0.6.1", default-features = false }
 swc_experimental_ecma_parser   = { version = "0.6.1", default-features = false }
