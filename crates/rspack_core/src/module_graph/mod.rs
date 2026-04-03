@@ -107,12 +107,17 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
+  pub(crate) modules:
+    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
+  blocks: std::collections::HashMap<
+    AsyncDependenciesBlockIdentifier,
+    Box<AsyncDependenciesBlock>,
+    BuildHasherDefault<IdentifierHasher>,
+  >,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -603,7 +608,13 @@ impl ModuleGraph {
       .expect("should insert block before get it")
   }
 
-  pub fn blocks(&self) -> &HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>> {
+  pub fn blocks(
+    &self,
+  ) -> &std::collections::HashMap<
+    AsyncDependenciesBlockIdentifier,
+    Box<AsyncDependenciesBlock>,
+    BuildHasherDefault<IdentifierHasher>,
+  > {
     &self.inner.blocks
   }
 
