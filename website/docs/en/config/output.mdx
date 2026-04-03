@@ -70,11 +70,26 @@ Used to inject the currently used Rspack information into the generated asset:
 
 - `version`: Used to specify the Rspack version, defaults to the `version` field in `@rspack/core/package.json`.
 - `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
-- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `true` to force injection. An array can be used to select the items to be forced injected.
+- `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `false`. An array can be used to select the items to be forced injected.
 
-#### Disable default injection
+#### Enable force injection
 
-The default injection can be disabled by setting `force` to `false`. Then injection will only occur when `__rspack_version__` and `__rspack_unique_id__` are detected in the code:
+By default, injection only occurs when `__rspack_version__` and `__rspack_unique_id__` are detected in the code. Set `force` to `true` to always inject them:
+
+- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
+- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: { force: true },
+  },
+};
+```
+
+#### Disable force injection
+
+If you enable force injection selectively, setting `force` back to `false` restores on-demand injection:
 
 - [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
 - [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
