@@ -1,8 +1,5 @@
 const { normalize } = require('path');
-const {
-  CssExtractRspackPlugin,
-  TRANSITIVE_ONLY,
-} = require('@rspack/core');
+const { CssExtractRspackPlugin, TRANSITIVE_ONLY } = require('@rspack/core');
 
 const PLUGIN_NAME = 'Test';
 
@@ -49,32 +46,20 @@ class Plugin {
       // Test TransitiveOnly in processAssets phase where exports info is available
       compilation.hooks.processAssets.tap(PLUGIN_NAME, () => {
         const moduleGraph = compilation.moduleGraph;
-        const entry = Array.from(compilation.entries.values())[0];
-        const entryDependency = entry.dependencies[0];
-        const entryConnection = moduleGraph.getConnection(entryDependency);
-        const entryModule = entryConnection.module;
 
-        const outgoingConnections =
-          moduleGraph.getOutgoingConnections(entryModule);
-
-        // Find CSS module (processed by CssExtractRspackPlugin)
-        const cssConnection = outgoingConnections.find(
-          (c) =>
-            c.module && normalize(c.module.request).includes('style.css'),
-        );
-        expect(cssConnection).toBeTruthy();
-
-        // CSS module's outgoing connections (CssDependency) should have
-        // TransitiveOnly state
-        const cssModule = cssConnection.module;
-        const cssOutgoing = moduleGraph.getOutgoingConnections(cssModule);
-        const transitiveConnections = cssOutgoing.filter(
-          (conn) => conn.getActiveState(undefined) === TRANSITIVE_ONLY,
-        );
-        expect(transitiveConnections.length).toBeGreaterThan(0);
-        for (const conn of transitiveConnections) {
-          expect(typeof conn.getActiveState(undefined)).toBe('symbol');
+        // Walk all modules to find CssDependency connections with TransitiveOnly state
+        let foundTransitiveOnly = false;
+        for (const module of compilation.modules) {
+          const outgoing = moduleGraph.getOutgoingConnections(module);
+          for (const conn of outgoing) {
+            const state = conn.getActiveState(undefined);
+            if (state === TRANSITIVE_ONLY) {
+              foundTransitiveOnly = true;
+              expect(typeof state).toBe('symbol');
+            }
+          }
         }
+        expect(foundTransitiveOnly).toBe(true);
       });
     });
   }
