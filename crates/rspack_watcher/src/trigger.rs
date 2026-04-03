@@ -113,6 +113,24 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
+    // written before the watcher was created. Stat the file and compare mtime
+    // against the recorded baseline to suppress events where nothing changed.
+    if kind == FsEventKind::Change && !self.path_manager.has_mtime_changed(path) {
+      return;
+    }
+
+    // For Create events, record the mtime baseline so subsequent stale
+    // Change events for the same file can be filtered.
+    if kind == FsEventKind::Create {
+      if let Ok(mtime) = path
+        .metadata()
+        .and_then(|m| m.modified().or_else(|_| m.created()))
+      {
+        self.path_manager.set_file_mtime(path.clone(), mtime);
+      }
+    }
+
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
     self.trigger_events(associated_event);

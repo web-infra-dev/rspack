@@ -179,11 +179,30 @@ impl FsWatcher {
     start_time: SystemTime,
   ) -> Result<()> {
     self.path_manager.update(files, directories, missing)?;
+
+    // Record baseline mtimes for all registered files BEFORE starting the disk
+    // watcher. This must be synchronous to avoid a race where FSEvents delivers
+    // stale events before the baseline is populated (causing has_mtime_changed
+    // to find no baseline and let the stale event through).
+    self.record_file_mtimes();
+
     self.scanner.scan(start_time);
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;
 
     Ok(())
+  }
+
+  fn record_file_mtimes(&self) {
+    let accessor = self.path_manager.access();
+    for path in accessor.files().0.iter() {
+      if let Ok(mtime) = path
+        .metadata()
+        .and_then(|m| m.modified().or_else(|_| m.created()))
+      {
+        self.path_manager.set_file_mtime(path.clone(), mtime);
+      }
+    }
   }
 }
