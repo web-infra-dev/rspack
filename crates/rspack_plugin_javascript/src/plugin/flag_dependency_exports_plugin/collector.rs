@@ -97,11 +97,14 @@ fn collect_module_analysis_inner(
   }
 
   for (module_identifier, analysis) in module_analyses {
-    let mut targets = analysis
+    let mut flat_dependency_targets = analysis
       .flat_local_apply
       .iter()
       .flat_map(|(_, exports_spec)| exports_spec.dependencies.iter().flatten().copied())
       .collect::<Vec<_>>();
+    flat_dependency_targets.sort_unstable();
+    flat_dependency_targets.dedup();
+    let mut targets = flat_dependency_targets.clone();
     targets.extend(
       analysis
         .deferred_reexports
@@ -112,6 +115,7 @@ fn collect_module_analysis_inner(
     targets.dedup();
     let mut module_analysis = ModuleDependencyExportsAnalysis::with_staged_analysis(
       targets,
+      flat_dependency_targets,
       analysis.flat_local_apply,
       analysis.structured_local_apply,
       analysis.deferred_reexports,

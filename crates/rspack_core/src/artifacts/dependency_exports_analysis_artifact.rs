@@ -11,6 +11,7 @@ use crate::{
 pub struct ModuleDependencyExportsAnalysis {
   dirty: bool,
   targets: Vec<ModuleIdentifier>,
+  flat_dependency_targets: Vec<ModuleIdentifier>,
   flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
   structured_local_apply: Vec<(DependencyId, ExportsSpec)>,
   deferred_reexports: Vec<DeferredReexportSpec>,
@@ -34,12 +35,14 @@ impl ModuleDependencyExportsAnalysis {
 
   pub fn with_staged_analysis(
     targets: impl IntoIterator<Item = ModuleIdentifier>,
+    flat_dependency_targets: impl IntoIterator<Item = ModuleIdentifier>,
     flat_local_apply: impl IntoIterator<Item = (DependencyId, ExportsSpec)>,
     structured_local_apply: impl IntoIterator<Item = (DependencyId, ExportsSpec)>,
     deferred_reexports: impl IntoIterator<Item = DeferredReexportSpec>,
   ) -> Self {
     Self {
       targets: targets.into_iter().collect(),
+      flat_dependency_targets: flat_dependency_targets.into_iter().collect(),
       flat_local_apply: flat_local_apply.into_iter().collect(),
       structured_local_apply: structured_local_apply.into_iter().collect(),
       deferred_reexports: deferred_reexports.into_iter().collect(),
@@ -53,6 +56,10 @@ impl ModuleDependencyExportsAnalysis {
 
   pub fn targets(&self) -> &[ModuleIdentifier] {
     &self.targets
+  }
+
+  pub fn flat_dependency_targets(&self) -> &[ModuleIdentifier] {
+    &self.flat_dependency_targets
   }
 
   pub fn structured_local_apply(&self) -> &[(DependencyId, ExportsSpec)] {

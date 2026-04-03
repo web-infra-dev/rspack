@@ -105,9 +105,8 @@ fn select_wave_local_refresh_modules(
             return true;
           }
           module_analysis
-            .flat_local_apply()
+            .flat_dependency_targets()
             .iter()
-            .flat_map(|(_, exports_spec)| exports_spec.dependencies.iter().flatten())
             .any(|dependency| changed_modules.contains(dependency))
         })
     })
@@ -395,6 +394,7 @@ mod tests {
       root,
       ModuleDependencyExportsAnalysis::with_staged_analysis(
         [left, right],
+        [],
         [],
         [],
         [DeferredReexportSpec::new(
