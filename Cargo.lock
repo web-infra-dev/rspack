@@ -3795,7 +3795,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sftrace-setup",
- "swc_core 61.0.1",
+ "swc_core",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3876,7 +3876,7 @@ dependencies = [
  "serde_json",
  "smol_str",
  "sugar_path",
- "swc_core 61.0.1",
+ "swc_core",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -3903,7 +3903,7 @@ dependencies = [
  "rspack_sources",
  "rustc-hash",
  "serde_json",
- "swc_core 61.0.1",
+ "swc_core",
  "ustr-fxhash",
  "xxhash-rust",
 ]
@@ -3977,7 +3977,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sugar_path",
- "swc_core 61.0.1",
+ "swc_core",
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
@@ -4083,7 +4083,7 @@ dependencies = [
  "serde",
  "stacker",
  "swc_config",
- "swc_core 61.0.1",
+ "swc_core",
  "swc_ecma_minifier",
  "swc_error_reporters",
  "url",
@@ -4187,7 +4187,7 @@ dependencies = [
  "sugar_path",
  "swc",
  "swc_config",
- "swc_core 61.0.1",
+ "swc_core",
  "tokio",
  "tracing",
 ]
@@ -4524,7 +4524,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sugar_path",
- "swc_core 61.0.1",
+ "swc_core",
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",
  "swc_experimental_ecma_semantic",
@@ -4613,7 +4613,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sugar_path",
- "swc_core 61.0.1",
+ "swc_core",
  "swc_html",
  "swc_html_minifier",
  "tracing",
@@ -4669,7 +4669,7 @@ dependencies = [
  "slotmap",
  "smallvec",
  "sugar_path",
- "swc_core 61.0.1",
+ "swc_core",
  "tokio",
  "tracing",
  "url",
@@ -4726,7 +4726,7 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_util",
  "serde_json",
- "swc_core 61.0.1",
+ "swc_core",
  "tracing",
 ]
 
@@ -4921,7 +4921,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simd-json",
- "swc_core 61.0.1",
+ "swc_core",
  "tokio",
  "tracing",
  "urlencoding",
@@ -4967,7 +4967,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "swc_core 61.0.1",
+ "swc_core",
  "tracing",
 ]
 
@@ -4985,7 +4985,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash",
- "swc_core 61.0.1",
+ "swc_core",
  "tracing",
 ]
 
@@ -5135,7 +5135,7 @@ dependencies = [
  "rspack_util",
  "serde_json",
  "swc_config",
- "swc_core 61.0.1",
+ "swc_core",
  "swc_ecma_minifier",
  "thread_local",
  "tracing",
@@ -5154,7 +5154,7 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_util",
- "swc_core 61.0.1",
+ "swc_core",
  "tokio",
  "tracing",
  "wasmparser 0.222.0",
@@ -5189,7 +5189,7 @@ dependencies = [
  "regress",
  "rspack_cacheable",
  "rspack_error",
- "swc_core 61.0.1",
+ "swc_core",
 ]
 
 [[package]]
@@ -5255,7 +5255,7 @@ dependencies = [
  "heck",
  "rustc-hash",
  "serde",
- "swc_core 61.0.1",
+ "swc_core",
 ]
 
 [[package]]
@@ -5266,7 +5266,7 @@ dependencies = [
  "insta",
  "rspack_javascript_compiler",
  "rustc-hash",
- "swc_core 61.0.1",
+ "swc_core",
 ]
 
 [[package]]
@@ -5343,7 +5343,7 @@ dependencies = [
  "signal-hook",
  "sugar_path",
  "swc_config",
- "swc_core 61.0.1",
+ "swc_core",
  "swc_plugin_runner",
  "unicase",
  "wasi-common",
@@ -6027,22 +6027,6 @@ dependencies = [
  "quote",
  "swc_macros_common",
  "syn 2.0.117",
-]
-
-[[package]]
-name = "swc_core"
-version = "59.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8acca6d8b73f36672a9b865faad33c75fc15875798c8f50f1583e11b1661d9af"
-dependencies = [
- "swc_allocator",
- "swc_atoms",
- "swc_common 19.0.0",
- "swc_ecma_ast 21.0.0",
- "swc_ecma_parser 36.0.0",
- "swc_ecma_transforms_base 39.0.0",
- "swc_ecma_visit 21.0.0",
- "vergen",
 ]
 
 [[package]]
@@ -7000,23 +6984,23 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_ast"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5efa4afcbdc79effc7bd36e1015ad8de25baa82f9ea9481a29161c105e592bb1"
+checksum = "2339b6a2d16005ededfd12be87b91737bd726bb89df29c0b5e5bf5baec16c2f8"
 dependencies = [
  "hashbrown 0.16.1",
  "num-bigint",
  "oxc_index",
- "swc_core 59.0.1",
+ "swc_core",
  "swc_experimental_ast_macros",
  "unicode-id-start",
 ]
 
 [[package]]
 name = "swc_experimental_ecma_parser"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78e58f9785c58a248149bfe7b58adc435508c6f7c5036a5c80c8bd5bf1cc2dcc"
+checksum = "dc8c9101fc9d079ad825716e7500d58154db28f5b887978682af128899386182"
 dependencies = [
  "bitflags 2.11.0",
  "either",
@@ -7024,20 +7008,20 @@ dependencies = [
  "rustc-hash",
  "seq-macro",
  "smartstring",
- "swc_core 59.0.1",
+ "swc_core",
  "swc_experimental_ecma_ast",
  "tracing",
 ]
 
 [[package]]
 name = "swc_experimental_ecma_semantic"
-version = "0.6.1"
+version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01cb139007224884944d56c449d5c192665e15752b3814f527261f9fa0fa217c"
+checksum = "8890c6d672a3ce55f517a35a7d04961a4afa5a1ac4326a6b2c4ad33fdb2adf39"
 dependencies = [
  "oxc_index",
  "rustc-hash",
- "swc_core 59.0.1",
+ "swc_core",
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_visit",
 ]
