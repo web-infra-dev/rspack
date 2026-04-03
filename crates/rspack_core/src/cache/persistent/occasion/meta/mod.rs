@@ -4,7 +4,7 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_tasks::{get_current_dependency_id, set_current_dependency_id};
 
-use super::super::{Storage, codec::CacheCodec};
+use super::super::{codec::CacheCodec, storage::Storage};
 
 pub const SCOPE: &str = "meta";
 
@@ -17,21 +17,20 @@ struct Meta {
 /// Meta Occasion is used to save compiler state.
 #[derive(Debug)]
 pub struct MetaOccasion {
-  storage: Arc<dyn Storage>,
   codec: Arc<CacheCodec>,
 }
 
 impl MetaOccasion {
-  pub fn new(storage: Arc<dyn Storage>, codec: Arc<CacheCodec>) -> Self {
-    Self { storage, codec }
+  pub fn new(codec: Arc<CacheCodec>) -> Self {
+    Self { codec }
   }
 
   #[tracing::instrument("Cache::Occasion::Meta::save", skip_all)]
-  pub fn save(&self) {
+  pub fn save(&self, storage: &mut dyn Storage) {
     let meta = Meta {
       max_dependencies_id: get_current_dependency_id(),
     };
-    self.storage.set(
+    storage.set(
       SCOPE,
       "default".as_bytes().to_vec(),
       self.codec.encode(&meta).expect("should encode success"),
@@ -39,8 +38,8 @@ impl MetaOccasion {
   }
 
   #[tracing::instrument("Cache::Occasion::Meta::recovery", skip_all)]
-  pub async fn recovery(&self) -> Result<()> {
-    let Some((_, value)) = self.storage.load(SCOPE).await?.pop() else {
+  pub async fn recovery(&self, storage: &dyn Storage) -> Result<()> {
+    let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
       return Ok(());
     };
 
