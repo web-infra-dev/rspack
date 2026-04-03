@@ -54,7 +54,7 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
       prev
         + format!(
           r#"{}: {value},"#,
-          rspack_util::json_stringify_str(cur.as_str())
+          rspack_util::json_stringify_chunk_id(cur.as_str())
         )
         .as_str()
     })
@@ -165,7 +165,7 @@ where
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
-          rspack_util::json_stringify_str(last_key),
+          rspack_util::json_stringify_chunk_id(last_key),
           result.get(last_key).expect("cannot find last key")
         )
       } else {
@@ -186,13 +186,13 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
-      serde_json::to_string(&chunk_ids.first()).expect("invalid json to_string")
+      rspack_util::json_stringify_chunk_id(chunk_ids.first().expect("should have chunk id"))
     )
   } else {
     let content = chunk_ids
       .iter()
       .sorted_unstable()
-      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify_str(chunk_id)))
+      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify_chunk_id(chunk_id)))
       .join(",");
     format!("{{ {content} }}[chunkId]")
   };
@@ -209,7 +209,7 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
         prev
           + format!(
             r#"{}: {},"#,
-            rspack_util::json_stringify_str(cur),
+            rspack_util::json_stringify_chunk_id(cur),
             map.get(cur).expect("get key from map")
           )
           .as_str()

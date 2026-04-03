@@ -81,6 +81,35 @@ pub fn json_stringify_str(s: &str) -> String {
   json_escape_simd::escape(s)
 }
 
+/// Stringify a chunk ID for JavaScript output.
+///
+/// If the string is a valid non-negative integer (no leading zeros except "0"),
+/// it is rendered as a number literal (e.g. `903`). Otherwise, it is rendered
+/// as a JSON string (e.g. `"main"`). This matches webpack's behavior where
+/// numeric chunk IDs are emitted without quotes.
+#[inline]
+pub fn json_stringify_chunk_id(s: &str) -> String {
+  if is_numeric_id(s) {
+    s.to_string()
+  } else {
+    json_stringify_str(s)
+  }
+}
+
+/// Check if a string represents a valid non-negative integer suitable for
+/// rendering as a JS number literal (no leading zeros except "0" itself).
+fn is_numeric_id(s: &str) -> bool {
+  if s.is_empty() {
+    return false;
+  }
+  let bytes = s.as_bytes();
+  // Reject leading zeros (e.g. "01") but allow "0"
+  if bytes.len() > 1 && bytes[0] == b'0' {
+    return false;
+  }
+  bytes.iter().all(|b| b.is_ascii_digit())
+}
+
 /// Get current time in milliseconds since Unix epoch
 pub fn current_time() -> u64 {
   SystemTime::now()

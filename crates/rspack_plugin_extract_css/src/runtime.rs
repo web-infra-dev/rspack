@@ -226,7 +226,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           Some(serde_json::json!({
             "_installed_chunks": format!(
               "{}: 0,\n",
-              rspack_util::json_stringify_str(chunk.expect_id().as_str())
+              rspack_util::json_stringify_chunk_id(chunk.expect_id().as_str())
             ),
             "_css_chunks": format!(
               "{{\n{}\n}}",
@@ -238,7 +238,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                   chunk.id().map(|id| {
                     format!(
                       "{}: 1,\n",
-                      rspack_util::json_stringify_str(id.as_str())
+                      rspack_util::json_stringify_chunk_id(id.as_str())
                     )
                   })
                 })
