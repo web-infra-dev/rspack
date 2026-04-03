@@ -72,7 +72,7 @@ Used to inject the currently used Rspack information into the generated asset:
 - `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
 - `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `false`. An array can be used to select the items to be forced injected.
 
-By default, injection only occurs when `__rspack_version__` and `__rspack_unique_id__` are detected in the code. Set `force` to `true` to always inject them:
+By default, injection occurs when either `__rspack_version__` or `__rspack_unique_id__` is detected in the code, and only the corresponding runtime module is injected. Set `force` to `true` to always inject both:
 
 - [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
 - [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
