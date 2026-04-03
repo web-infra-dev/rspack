@@ -1,4 +1,7 @@
 export { leftValue } from "./left";
-export { leftValueUsed } from "./left";
 export { rightValue } from "./right";
-export { rightValueUsed } from "./right";
+
+export const meta = {
+  leftValueUsed: __webpack_exports_info__.leftValue.used,
+  rightValueUsed: __webpack_exports_info__.rightValue.used,
+};

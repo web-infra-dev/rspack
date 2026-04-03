@@ -1,21 +1,49 @@
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   DeferredReexportSpec, DependencyExportsAnalysisArtifact, ExportNameOrSpec, ExportSpec,
   ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsInfoRead, ExportsOfExportsSpec,
-  ExportsSpec, ModuleGraph, ModuleIdentifier,
+  ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports,
 };
 use rspack_error::Result;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use super::process_exports_spec_without_nested;
+use super::{collector, local_apply, process_exports_spec_without_nested};
 
 pub(super) fn propagate_deferred_reexports(
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
   dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
-  for wave in dependency_exports_analysis_artifact.topology().waves() {
+  let waves = dependency_exports_analysis_artifact
+    .topology()
+    .waves()
+    .to_vec();
+  for wave in &waves {
+    let wave_modules: IdentifierSet = wave
+      .iter()
+      .flat_map(|scc_id| {
+        dependency_exports_analysis_artifact
+          .topology()
+          .scc_modules(*scc_id)
+          .iter()
+          .copied()
+      })
+      .collect();
+    collector::collect_module_analysis(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      dependency_exports_analysis_artifact,
+      &wave_modules,
+    )?;
+    local_apply::apply_local_exports_once(
+      module_graph,
+      exports_info_artifact,
+      dependency_exports_analysis_artifact,
+      &wave_modules,
+    )?;
     let wave_snapshot = snapshot_exports_info_artifact(module_graph, exports_info_artifact);
     let wave_updates = wave
       .par_iter()
@@ -148,7 +176,8 @@ fn resolve_scc_until_fixed_point(
       let exports_info_id = read_state.get_exports_info(module_identifier);
       let mut exports_info = read_state.get_exports_info_by_id(&exports_info_id).clone();
       for deferred_reexport in module_analysis.deferred_reexports() {
-        let Some(exports_spec) = deferred_reexport_as_exports_spec(module_graph, deferred_reexport)
+        let Some(exports_spec) =
+          deferred_reexport_as_exports_spec(module_graph, &read_state, deferred_reexport)
         else {
           continue;
         };
@@ -174,19 +203,94 @@ fn resolve_scc_until_fixed_point(
     }
 
     if !changed {
-      return Ok(updates);
+      return Ok(
+        patches
+          .into_values()
+          .map(|exports_info| PropagationModuleUpdate {
+            changed: true,
+            exports_info,
+          })
+          .collect(),
+      );
     }
     patches = next_patches;
   }
 }
 
-fn deferred_reexport_as_exports_spec(
+fn deferred_reexport_as_exports_spec<T: ExportsInfoRead>(
   module_graph: &ModuleGraph,
+  exports_info_read: &T,
   deferred_reexport: &DeferredReexportSpec,
 ) -> Option<ExportsSpec> {
   let from = module_graph
     .connection_by_dependency_id(&deferred_reexport.dep_id)
     .cloned()?;
+  if let Some(star_exports) = &deferred_reexport.star_exports {
+    let provided_exports = exports_info_read
+      .get_prefetched_exports_info(
+        &deferred_reexport.target_module,
+        rspack_core::PrefetchExportsInfoMode::Default,
+      )
+      .get_provided_exports();
+    let exports = match provided_exports {
+      ProvidedExports::Unknown | ProvidedExports::ProvidedAll => {
+        ExportsOfExportsSpec::UnknownExports
+      }
+      ProvidedExports::ProvidedNames(names) => {
+        let mut exports = names
+          .into_iter()
+          .filter(|name| {
+            !star_exports.ignored_exports.contains(name)
+              && !star_exports.hidden_exports.contains(name)
+          })
+          .map(|name| {
+            let mut export_path = star_exports.export_name_prefix.clone();
+            export_path.push(name.clone());
+            ExportNameOrSpec::ExportSpec(ExportSpec {
+              name,
+              from: Some(from.clone()),
+              export: Some(rspack_core::Nullable::Value(export_path)),
+              hidden: Some(false),
+              ..Default::default()
+            })
+          })
+          .collect::<Vec<_>>();
+
+        exports.extend(star_exports.hidden_exports.iter().cloned().map(|name| {
+          let mut export_path = star_exports.export_name_prefix.clone();
+          export_path.push(name.clone());
+          ExportNameOrSpec::ExportSpec(ExportSpec {
+            name,
+            from: Some(from.clone()),
+            export: Some(rspack_core::Nullable::Value(export_path)),
+            hidden: Some(true),
+            ..Default::default()
+          })
+        }));
+        ExportsOfExportsSpec::Names(exports)
+      }
+    };
+
+    let hide_export =
+      (!star_exports.hidden_exports.is_empty()).then(|| star_exports.hidden_exports.clone());
+    let exclude_exports = {
+      let mut excluded = star_exports.ignored_exports.clone();
+      excluded.extend(star_exports.hidden_exports.iter().cloned());
+      (!excluded.is_empty()).then_some(excluded)
+    };
+
+    return Some(ExportsSpec {
+      exports,
+      priority: deferred_reexport.priority,
+      can_mangle: deferred_reexport.can_mangle,
+      terminal_binding: Some(deferred_reexport.terminal_binding),
+      from: Some(from),
+      hide_export,
+      exclude_exports,
+      dependencies: Some(vec![deferred_reexport.target_module]),
+      ..Default::default()
+    });
+  }
   let exports = deferred_reexport
     .items
     .iter()

@@ -65,6 +65,7 @@ impl CommonJsExportRequireDependency {
   // NOTE:
   // webpack return checked set but never use it
   // https://github.com/webpack/webpack/blob/08770761c8c7aa1e6e18b77d3deee8cc9871bd87/lib/dependencies/CommonJsExportRequireDependency.js#L283
+  #[allow(dead_code)]
   fn get_star_reexports(
     &self,
     mg: &ModuleGraph,
@@ -221,8 +222,8 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_exports(
     &self,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
+    _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
@@ -251,16 +252,54 @@ impl Dependency for CommonJsExportRequireDependency {
             },
             hidden: false,
           }],
+          star_exports: None,
         }]),
         dependencies: Some(vec![*from.module_identifier()]),
         ..Default::default()
       })
     } else if self.names.is_empty() {
       let from = mg.connection_by_dependency_id(&self.id)?;
-      if let Some(reexport_info) = self.get_star_reexports(
+      if ids.is_empty() {
+        if let Some(reexport_info) = self.get_star_reexports(
+          mg,
+          _mg_cache,
+          _exports_info_artifact,
+          None,
+          from.module_identifier(),
+        ) {
+          Some(ExportsSpec {
+            exports: ExportsOfExportsSpec::Names(
+              reexport_info
+                .iter()
+                .map(|name| {
+                  let mut export = ids.to_vec();
+                  export.extend(vec![name.to_owned()]);
+                  ExportNameOrSpec::ExportSpec(ExportSpec {
+                    name: name.to_owned(),
+                    from: Some(from.to_owned()),
+                    export: Some(Nullable::Value(export)),
+                    can_mangle: Some(!self.is_all_exported_by_module_exports()),
+                    ..Default::default()
+                  })
+                })
+                .collect_vec(),
+            ),
+            dependencies: Some(vec![*from.module_identifier()]),
+            ..Default::default()
+          })
+        } else {
+          Some(ExportsSpec {
+            exports: ExportsOfExportsSpec::UnknownExports,
+            from: Some(from.to_owned()),
+            can_mangle: Some(!self.is_all_exported_by_module_exports()),
+            dependencies: Some(vec![*from.module_identifier()]),
+            ..Default::default()
+          })
+        }
+      } else if let Some(reexport_info) = self.get_star_reexports(
         mg,
-        mg_cache,
-        exports_info_artifact,
+        _mg_cache,
+        _exports_info_artifact,
         None,
         from.module_identifier(),
       ) {
@@ -289,6 +328,7 @@ impl Dependency for CommonJsExportRequireDependency {
               can_mangle: Some(!self.is_all_exported_by_module_exports()),
               terminal_binding: false,
               items: deferred_items,
+              star_exports: None,
             }])
           },
           dependencies: Some(vec![*from.module_identifier()]),
@@ -297,12 +337,6 @@ impl Dependency for CommonJsExportRequireDependency {
       } else {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::UnknownExports,
-          from: if ids.is_empty() {
-            Some(from.to_owned())
-          } else {
-            None
-          },
-          // `module.exports = require("./m")` can't be mangled
           can_mangle: Some(!self.is_all_exported_by_module_exports()),
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()

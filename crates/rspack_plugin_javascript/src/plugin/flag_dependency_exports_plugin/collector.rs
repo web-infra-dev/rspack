@@ -40,11 +40,19 @@ pub(super) fn collect_module_analysis(
     .collect::<Vec<_>>();
 
   for (module_identifier, analysis) in module_analyses {
-    let targets = analysis
-      .deferred_reexports
+    let mut targets = analysis
+      .flat_local_apply
       .iter()
-      .map(|reexport| reexport.target_module)
+      .flat_map(|(_, exports_spec)| exports_spec.dependencies.iter().flatten().copied())
       .collect::<Vec<_>>();
+    targets.extend(
+      analysis
+        .deferred_reexports
+        .iter()
+        .map(|reexport| reexport.target_module),
+    );
+    targets.sort_unstable();
+    targets.dedup();
     let mut module_analysis = ModuleDependencyExportsAnalysis::with_staged_analysis(
       targets,
       analysis.flat_local_apply,
@@ -52,7 +60,7 @@ pub(super) fn collect_module_analysis(
       analysis.deferred_reexports,
     );
     module_analysis.set_dirty(true);
-    dependency_exports_analysis_artifact.replace_module(module_identifier, module_analysis);
+    dependency_exports_analysis_artifact.upsert_module(module_identifier, module_analysis);
   }
 
   if dependency_exports_analysis_artifact.topology_dirty() {

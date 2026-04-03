@@ -130,6 +130,7 @@ async fn finish_modules(
   )?;
   propagation::propagate_deferred_reexports(
     module_graph,
+    &module_graph_cache,
     exports_info_artifact,
     dependency_exports_analysis_artifact,
   )?;

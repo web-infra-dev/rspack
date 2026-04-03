@@ -23,6 +23,28 @@ pub(super) fn apply_local_exports(
   apply_local_exports_with_driver(&mut driver, exports_info_artifact, initial_modules)
 }
 
+pub(super) fn apply_local_exports_once(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
+  modules: &IdentifierSet,
+) -> Result<IdentifierSet> {
+  let mut changed_modules =
+    IdentifierSet::with_capacity_and_hasher(modules.len(), Default::default());
+  let mut dependencies = IdentifierMap::default();
+
+  apply_flat_local_exports_in_parallel(
+    module_graph,
+    exports_info_artifact,
+    dependency_exports_analysis_artifact,
+    modules,
+    &mut changed_modules,
+    &mut dependencies,
+  )?;
+
+  Ok(changed_modules)
+}
+
 trait LocalApplyDriver {
   fn recollect(
     &mut self,

@@ -51,6 +51,10 @@ impl ModuleDependencyExportsAnalysis {
     &self.flat_local_apply
   }
 
+  pub fn targets(&self) -> &[ModuleIdentifier] {
+    &self.targets
+  }
+
   pub fn structured_local_apply(&self) -> &[(DependencyId, ExportsSpec)] {
     &self.structured_local_apply
   }
@@ -131,6 +135,21 @@ impl DependencyExportsAnalysisArtifact {
   ) -> Option<ModuleDependencyExportsAnalysis> {
     let previous = self.modules.insert(module_identifier, analysis);
     self.set_topology_dirty(true);
+    previous
+  }
+
+  pub fn upsert_module(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    analysis: ModuleDependencyExportsAnalysis,
+  ) -> Option<ModuleDependencyExportsAnalysis> {
+    let previous = self.modules.insert(module_identifier, analysis);
+    if previous
+      .as_ref()
+      .is_none_or(|previous| previous.targets() != self.modules[&module_identifier].targets())
+    {
+      self.set_topology_dirty(true);
+    }
     previous
   }
 

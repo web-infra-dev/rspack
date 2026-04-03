@@ -1,10 +1,9 @@
-import { leftValue, leftValueUsed, rightValueUsed } from "./root";
+import { leftValue, meta } from "./root";
+import { rightValue } from "./right";
 
-it("should keep sibling reexport waves stable", async () => {
-  const { rightValue } = await import("./root");
-
+it("should keep sibling reexport waves stable", () => {
   expect(leftValue).toBe("left");
   expect(rightValue).toBe("right");
-  expect(leftValueUsed).toBe(true);
-  expect(rightValueUsed).toBe(false);
+  expect(meta.leftValueUsed).toBe(true);
+  expect(meta.rightValueUsed).toBe(false);
 });
