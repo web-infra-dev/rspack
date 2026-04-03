@@ -23,7 +23,6 @@ pub(super) fn propagate_deferred_reexports(
   if dependency_exports_analysis_artifact.topology_dirty() {
     dependency_exports_analysis_artifact.rebuild_topology();
   }
-  let mut changed_modules = IdentifierSet::default();
   let waves = dependency_exports_analysis_artifact
     .topology()
     .waves()
@@ -39,33 +38,20 @@ pub(super) fn propagate_deferred_reexports(
           .copied()
       })
       .collect();
-    let refresh_modules = select_wave_local_refresh_modules(
-      dependency_exports_analysis_artifact,
-      &wave_modules,
-      &changed_modules,
-    );
-    let local_changed_modules = if refresh_modules.is_empty() {
-      IdentifierSet::default()
-    } else {
-      collector::collect_module_analysis(
-        module_graph,
-        module_graph_cache,
-        exports_info_artifact,
-        dependency_exports_analysis_artifact,
-        &refresh_modules,
-      )?;
-      local_apply::apply_local_exports_once(
-        module_graph,
-        exports_info_artifact,
-        dependency_exports_analysis_artifact,
-        &refresh_modules,
-      )?
-    };
-    let wave_snapshot = snapshot_exports_info_artifact(
+    collector::collect_module_analysis(
+      module_graph,
+      module_graph_cache,
       exports_info_artifact,
       dependency_exports_analysis_artifact,
       &wave_modules,
-    );
+    )?;
+    local_apply::apply_local_exports_once(
+      module_graph,
+      exports_info_artifact,
+      dependency_exports_analysis_artifact,
+      &wave_modules,
+    )?;
+    let wave_snapshot = snapshot_exports_info_artifact(module_graph, exports_info_artifact);
     let wave_updates = wave
       .par_iter()
       .map(|scc_id| {
@@ -78,10 +64,8 @@ pub(super) fn propagate_deferred_reexports(
       })
       .collect::<Result<Vec<_>>>()?;
 
-    changed_modules = local_changed_modules;
     for module_update in wave_updates.into_iter().flatten() {
       if module_update.changed {
-        changed_modules.insert(module_update.module_identifier);
         exports_info_artifact
           .set_exports_info_by_id(module_update.exports_info.id(), module_update.exports_info);
       }
@@ -90,32 +74,6 @@ pub(super) fn propagate_deferred_reexports(
   dependency_exports_analysis_artifact.clear_all_dirty();
 
   Ok(())
-}
-
-fn select_wave_local_refresh_modules(
-  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
-  wave_modules: &IdentifierSet,
-  changed_modules: &IdentifierSet,
-) -> IdentifierSet {
-  if changed_modules.is_empty() {
-    return IdentifierSet::default();
-  }
-
-  wave_modules
-    .iter()
-    .filter(|module_identifier| {
-      dependency_exports_analysis_artifact
-        .module(module_identifier)
-        .is_some_and(|module_analysis| {
-          module_analysis
-            .flat_local_apply()
-            .iter()
-            .flat_map(|(_, exports_spec)| exports_spec.dependencies.iter().flatten())
-            .any(|dependency| changed_modules.contains(dependency))
-        })
-    })
-    .copied()
-    .collect()
 }
 
 #[cfg(test)]
@@ -149,35 +107,32 @@ where
 
 struct PropagationModuleUpdate {
   changed: bool,
-  module_identifier: ModuleIdentifier,
   exports_info: ExportsInfoData,
 }
 
-struct WaveExportsInfoSnapshot<'a> {
-  source: &'a ExportsInfoArtifact,
+struct WaveExportsInfoSnapshot {
   module_exports_info: IdentifierMap<ExportsInfo>,
   exports_info_map: FxHashMap<ExportsInfo, ExportsInfoData>,
 }
 
-impl ExportsInfoRead for WaveExportsInfoSnapshot<'_> {
+impl ExportsInfoRead for WaveExportsInfoSnapshot {
   fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    self
+    *self
       .module_exports_info
       .get(module_identifier)
-      .copied()
-      .unwrap_or_else(|| self.source.get_exports_info(module_identifier))
+      .expect("should have module exports info")
   }
 
   fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .exports_info_map
       .get(id)
-      .unwrap_or_else(|| self.source.get_exports_info_by_id(id))
+      .expect("should have exports info snapshot")
   }
 }
 
 struct PatchedSccExportsInfoRead<'a> {
-  snapshot: &'a WaveExportsInfoSnapshot<'a>,
+  snapshot: &'a WaveExportsInfoSnapshot,
   patches: &'a FxHashMap<ExportsInfo, ExportsInfoData>,
 }
 
@@ -197,7 +152,7 @@ impl ExportsInfoRead for PatchedSccExportsInfoRead<'_> {
 fn resolve_scc_until_fixed_point(
   scc_id: usize,
   module_graph: &ModuleGraph,
-  wave_snapshot: &WaveExportsInfoSnapshot<'_>,
+  wave_snapshot: &WaveExportsInfoSnapshot,
   dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
 ) -> Result<Vec<PropagationModuleUpdate>> {
   let scc_modules = dependency_exports_analysis_artifact
@@ -250,7 +205,6 @@ fn resolve_scc_until_fixed_point(
       }
       updates.push(PropagationModuleUpdate {
         changed: module_changed,
-        module_identifier: *module_identifier,
         exports_info,
       });
     }
@@ -260,9 +214,9 @@ fn resolve_scc_until_fixed_point(
         updates
           .into_iter()
           .filter(|module_update| patches.contains_key(&module_update.exports_info.id()))
-          .map(|mut module_update| {
-            module_update.changed = true;
-            module_update
+          .map(|module_update| PropagationModuleUpdate {
+            changed: true,
+            ..module_update
           })
           .collect(),
       );
@@ -372,26 +326,17 @@ fn deferred_reexport_as_exports_spec<T: ExportsInfoRead>(
   })
 }
 
-fn snapshot_exports_info_artifact<'a>(
-  exports_info_artifact: &'a ExportsInfoArtifact,
-  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
-  wave_modules: &IdentifierSet,
-) -> WaveExportsInfoSnapshot<'a> {
+fn snapshot_exports_info_artifact(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> WaveExportsInfoSnapshot {
   let mut snapshot = WaveExportsInfoSnapshot {
-    source: exports_info_artifact,
     module_exports_info: IdentifierMap::default(),
     exports_info_map: FxHashMap::default(),
   };
   let mut copied = FxHashSet::default();
-  let mut snapshot_modules = wave_modules.clone();
 
-  for module_identifier in wave_modules {
-    if let Some(module_analysis) = dependency_exports_analysis_artifact.module(module_identifier) {
-      snapshot_modules.extend(module_analysis.targets().iter().copied());
-    }
-  }
-
-  for module_identifier in &snapshot_modules {
+  for module_identifier in module_graph.modules_keys() {
     let exports_info = exports_info_artifact.get_exports_info(module_identifier);
     snapshot
       .module_exports_info

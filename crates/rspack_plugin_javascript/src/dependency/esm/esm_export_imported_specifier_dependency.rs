@@ -1362,21 +1362,20 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         })
       }
       ExportMode::DynamicReexport(mode) => {
-        let from = mg
-          .connection_by_dependency_id(self.id())
-          .expect("should have module");
-        let mut deferred = DeferredReexportSpec::new_star(
-          *from.module_identifier(),
-          self.id,
-          Vec::new(),
-          mode.ignored.clone(),
-          mode.hidden.clone().unwrap_or_default(),
-        );
-        deferred.can_mangle = Some(false);
+        let from = mg.connection_by_dependency_id(self.id());
         Some(ExportsSpec {
-          exports: ExportsOfExportsSpec::Names(vec![]),
-          processing: ExportsProcessing::DeferredReexport(vec![deferred]),
-          dependencies: Some(vec![*from.module_identifier()]),
+          exports: ExportsOfExportsSpec::UnknownExports,
+          from: from.cloned(),
+          can_mangle: Some(false),
+          hide_export: mode.hidden.clone(),
+          exclude_exports: {
+            let mut exclude_exports = mode.ignored;
+            if let Some(hidden) = mode.hidden {
+              exclude_exports.extend(hidden);
+            }
+            Some(exclude_exports)
+          },
+          dependencies: Some(vec![*from.expect("should have module").module_identifier()]),
           ..Default::default()
         })
       }
