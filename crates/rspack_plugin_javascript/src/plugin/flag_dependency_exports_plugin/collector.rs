@@ -26,12 +26,49 @@ pub(super) fn collect_module_analysis(
   dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
   affected_modules: &IdentifierSet,
 ) -> Result<()> {
+  collect_module_analysis_inner(
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+    dependency_exports_analysis_artifact,
+    affected_modules,
+    false,
+  )
+}
+
+pub(super) fn collect_module_analysis_with_reuse(
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+  dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
+  affected_modules: &IdentifierSet,
+) -> Result<()> {
+  collect_module_analysis_inner(
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+    dependency_exports_analysis_artifact,
+    affected_modules,
+    true,
+  )
+}
+
+fn collect_module_analysis_inner(
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+  dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
+  affected_modules: &IdentifierSet,
+  allow_reuse: bool,
+) -> Result<()> {
   let reusable_modules = affected_modules
     .iter()
     .filter_map(|module_identifier| {
       dependency_exports_analysis_artifact
         .module(module_identifier)
-        .filter(|analysis| analysis.can_reuse_without_recollect())
+        .filter(|analysis| {
+          allow_reuse && !analysis.dirty() && analysis.can_reuse_without_recollect()
+        })
         .map(|_| *module_identifier)
     })
     .collect::<IdentifierSet>();

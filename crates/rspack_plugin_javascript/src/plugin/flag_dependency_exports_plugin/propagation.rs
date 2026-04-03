@@ -45,7 +45,7 @@ pub(super) fn propagate_deferred_reexports(
       &changed_modules,
     );
     if !refresh_modules.is_empty() {
-      collector::collect_module_analysis(
+      collector::collect_module_analysis_with_reuse(
         module_graph,
         module_graph_cache,
         exports_info_artifact,
