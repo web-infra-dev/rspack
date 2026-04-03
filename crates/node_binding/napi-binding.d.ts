@@ -645,6 +645,8 @@ export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
 
+export declare function getRegisterJsTapScopeKinds(): RegisterJsTapScopeKinds
+
 export interface JsAddingRuntimeModule {
   name: string
   generator: () => String
@@ -3188,6 +3190,11 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
+}
+
+export interface RegisterJsTapScopeKinds {
+  compiler: Array<RegisterJsTapKind>
+  compilation: Array<RegisterJsTapKind>
 }
 
 export interface ResolveResult {

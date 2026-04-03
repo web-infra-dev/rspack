@@ -47,7 +47,6 @@ import {
 import {
   COMPILER_HOOK_USAGE_TRACKERS,
   JsHookUsageTracker,
-  markHookInterceptorAsInternal,
   trackHookUsage,
 } from './HookUsageTracker';
 import type { FileSystemInfoEntry } from './FileSystemInfo';
@@ -983,11 +982,9 @@ class Compiler {
     // reassign new compilation in thisCompilation
     this.#compilation = undefined;
     // ensure thisCompilation must call
-    this.hooks.thisCompilation.intercept(
-      markHookInterceptorAsInternal({
-        call: () => {},
-      }),
-    );
+    this.hooks.thisCompilation.intercept({
+      call: () => {},
+    });
   }
 
   #newCompilationParams(): CompilationParams {
@@ -997,8 +994,10 @@ class Compiler {
       hookUsageTracker,
     );
     this.hooks.normalModuleFactory.call(normalModuleFactory);
+
     const contextModuleFactory = new ContextModuleFactory(hookUsageTracker);
     this.hooks.contextModuleFactory.call(contextModuleFactory);
+
     const params = {
       normalModuleFactory,
       contextModuleFactory,

@@ -2,10 +2,7 @@ use std::{
   ffi::c_void,
   hash::Hash,
   ptr::NonNull,
-  sync::{
-    Arc, RwLock,
-    atomic::{AtomicU8, Ordering},
-  },
+  sync::{Arc, RwLock},
 };
 
 use async_trait::async_trait;
@@ -190,49 +187,29 @@ type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutpu
 
 #[derive(Clone)]
 pub(super) struct HookUsageChecker {
-  inner: Arc<HookUsageCheckerInner>,
+  buffer: Arc<Buffer>,
 }
-
-struct HookUsageCheckerInner {
-  _buffer: Buffer,
-  bytes: NonNull<AtomicU8>,
-  len: usize,
-}
-
-unsafe impl Send for HookUsageCheckerInner {}
-unsafe impl Sync for HookUsageCheckerInner {}
 
 impl HookUsageChecker {
   pub(super) fn new(buffer: Buffer) -> Self {
+    assert_eq!(
+      buffer.len(),
+      HOOK_USAGE_BUFFER_BYTE_LENGTH,
+      "hook usage Buffer length mismatch",
+    );
     Self {
-      inner: {
-        let len = buffer.len();
-        #[allow(clippy::unwrap_used)]
-        let bytes = NonNull::new(buffer.as_ref().as_ptr() as *mut AtomicU8).unwrap();
-        Arc::new(HookUsageCheckerInner {
-          _buffer: buffer,
-          bytes,
-          len,
-        })
-      },
+      buffer: Arc::new(buffer),
     }
   }
 
-  pub(super) fn is_used(&self, kind: &RegisterJsTapKind) -> bool {
-    let inner = &self.inner;
-    let bit_index = *kind as usize;
+  #[inline(always)]
+  pub(super) fn is_used(&self, kind: RegisterJsTapKind) -> bool {
+    let bit_index = kind as usize;
     let byte_index = bit_index >> 3;
     let bit_mask = 1 << (bit_index & 7);
-    if byte_index >= inner.len {
-      return false;
-    }
-    let byte = unsafe { &*inner.bytes.as_ptr().add(byte_index) }.load(Ordering::Acquire);
+    let byte = self.buffer.as_ref()[byte_index];
     byte & bit_mask != 0
   }
-}
-
-fn should_skip_register(hook_usage_checker: &HookUsageChecker, kind: &RegisterJsTapKind) -> bool {
-  !hook_usage_checker.is_used(kind)
 }
 
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
@@ -399,7 +376,7 @@ macro_rules! define_register {
         &self,
         hook: &$tap_hook,
       ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
-        if should_skip_register(&self.inner.hook_usage_checker, &$kind) {
+        if !self.inner.hook_usage_checker.is_used($kind) {
           return Ok(Vec::new());
         }
         let js_taps = self.inner.call_register(hook).await?;
@@ -414,6 +391,7 @@ macro_rules! define_register {
 }
 
 #[napi]
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegisterJsTapKind {
   CompilerThisCompilation,
@@ -467,6 +445,80 @@ pub enum RegisterJsTapKind {
   RsdoctorPluginModuleIds,
   RsdoctorPluginModuleSources,
   RsdoctorPluginAssets,
+}
+
+const HOOK_USAGE_BUFFER_BYTE_LENGTH: usize =
+  ((RegisterJsTapKind::RsdoctorPluginAssets as usize) >> 3) + 1;
+
+const COMPILER_HOOKS: &[RegisterJsTapKind] = &[
+  RegisterJsTapKind::CompilerThisCompilation,
+  RegisterJsTapKind::CompilerCompilation,
+  RegisterJsTapKind::CompilerMake,
+  RegisterJsTapKind::CompilerFinishMake,
+  RegisterJsTapKind::CompilerShouldEmit,
+  RegisterJsTapKind::CompilerEmit,
+  RegisterJsTapKind::CompilerAfterEmit,
+  RegisterJsTapKind::CompilerAssetEmitted,
+];
+
+const COMPILATION_HOOKS: &[RegisterJsTapKind] = &[
+  RegisterJsTapKind::CompilationBuildModule,
+  RegisterJsTapKind::CompilationStillValidModule,
+  RegisterJsTapKind::CompilationSucceedModule,
+  RegisterJsTapKind::CompilationExecuteModule,
+  RegisterJsTapKind::CompilationFinishModules,
+  RegisterJsTapKind::CompilationOptimizeModules,
+  RegisterJsTapKind::CompilationAfterOptimizeModules,
+  RegisterJsTapKind::CompilationOptimizeTree,
+  RegisterJsTapKind::CompilationOptimizeChunkModules,
+  RegisterJsTapKind::CompilationBeforeModuleIds,
+  RegisterJsTapKind::CompilationAdditionalTreeRuntimeRequirements,
+  RegisterJsTapKind::CompilationRuntimeRequirementInTree,
+  RegisterJsTapKind::CompilationRuntimeModule,
+  RegisterJsTapKind::CompilationChunkHash,
+  RegisterJsTapKind::CompilationChunkAsset,
+  RegisterJsTapKind::CompilationProcessAssets,
+  RegisterJsTapKind::CompilationAfterProcessAssets,
+  RegisterJsTapKind::CompilationSeal,
+  RegisterJsTapKind::CompilationAfterSeal,
+  RegisterJsTapKind::NormalModuleFactoryBeforeResolve,
+  RegisterJsTapKind::NormalModuleFactoryFactorize,
+  RegisterJsTapKind::NormalModuleFactoryResolve,
+  RegisterJsTapKind::NormalModuleFactoryAfterResolve,
+  RegisterJsTapKind::NormalModuleFactoryCreateModule,
+  RegisterJsTapKind::NormalModuleFactoryResolveForScheme,
+  RegisterJsTapKind::ContextModuleFactoryBeforeResolve,
+  RegisterJsTapKind::ContextModuleFactoryAfterResolve,
+  RegisterJsTapKind::JavascriptModulesChunkHash,
+  RegisterJsTapKind::HtmlPluginBeforeAssetTagGeneration,
+  RegisterJsTapKind::HtmlPluginAlterAssetTags,
+  RegisterJsTapKind::HtmlPluginAlterAssetTagGroups,
+  RegisterJsTapKind::HtmlPluginAfterTemplateExecution,
+  RegisterJsTapKind::HtmlPluginBeforeEmit,
+  RegisterJsTapKind::HtmlPluginAfterEmit,
+  RegisterJsTapKind::RuntimePluginCreateScript,
+  RegisterJsTapKind::RuntimePluginCreateLink,
+  RegisterJsTapKind::RuntimePluginLinkPreload,
+  RegisterJsTapKind::RuntimePluginLinkPrefetch,
+  RegisterJsTapKind::RsdoctorPluginModuleGraph,
+  RegisterJsTapKind::RsdoctorPluginChunkGraph,
+  RegisterJsTapKind::RsdoctorPluginModuleIds,
+  RegisterJsTapKind::RsdoctorPluginModuleSources,
+  RegisterJsTapKind::RsdoctorPluginAssets,
+];
+
+#[napi(object)]
+pub struct RegisterJsTapScopeKinds {
+  pub compiler: Vec<RegisterJsTapKind>,
+  pub compilation: Vec<RegisterJsTapKind>,
+}
+
+#[napi]
+pub fn get_register_js_tap_scope_kinds() -> RegisterJsTapScopeKinds {
+  RegisterJsTapScopeKinds {
+    compiler: COMPILER_HOOKS.to_vec(),
+    compilation: COMPILATION_HOOKS.to_vec(),
+  }
 }
 
 #[derive(Clone)]
@@ -2025,47 +2077,5 @@ impl RsdoctorPluginAssets for RsdoctorPluginAssetsTap {
   }
   fn stage(&self) -> i32 {
     self.stage
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  fn checker_with_used_kinds(kinds: &[RegisterJsTapKind]) -> HookUsageChecker {
-    let byte_len = ((RegisterJsTapKind::RsdoctorPluginAssets as usize) >> 3) + 1;
-    let mut bytes = vec![0; byte_len];
-    for kind in kinds {
-      let bit_index = *kind as usize;
-      bytes[bit_index >> 3] |= 1 << (bit_index & 7);
-    }
-    HookUsageChecker::new(Buffer::from(bytes))
-  }
-
-  #[test]
-  fn hook_usage_checker_reads_bits() {
-    let checker = checker_with_used_kinds(&[
-      RegisterJsTapKind::CompilerCompilation,
-      RegisterJsTapKind::CompilationProcessAssets,
-    ]);
-
-    assert!(checker.is_used(&RegisterJsTapKind::CompilerCompilation));
-    assert!(checker.is_used(&RegisterJsTapKind::CompilationProcessAssets));
-    assert!(!checker.is_used(&RegisterJsTapKind::CompilerMake));
-  }
-
-  #[test]
-  fn checker_path_skips_unused_registers() {
-    let empty_checker = checker_with_used_kinds(&[]);
-    let used_checker = checker_with_used_kinds(&[RegisterJsTapKind::CompilerCompilation]);
-
-    assert!(should_skip_register(
-      &empty_checker,
-      &RegisterJsTapKind::CompilationBuildModule,
-    ));
-    assert!(!should_skip_register(
-      &used_checker,
-      &RegisterJsTapKind::CompilerCompilation,
-    ));
   }
 }

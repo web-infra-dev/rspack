@@ -37,7 +37,7 @@ export class NormalModuleFactory {
 
   constructor(
     resolverFactory: ResolverFactory,
-    hookUsageTracker?: JsHookUsageTracker,
+    hookUsageTracker: JsHookUsageTracker,
   ) {
     this.hooks = {
       resolveForScheme: new liteTapable.HookMap(
@@ -53,38 +53,36 @@ export class NormalModuleFactory {
       ]),
     };
 
-    if (hookUsageTracker) {
-      trackHookMapUsage(
-        this.hooks.resolveForScheme,
-        hookUsageTracker,
-        binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
-      );
-      trackHookUsage(
-        this.hooks.beforeResolve,
-        hookUsageTracker,
-        binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
-      );
-      trackHookUsage(
-        this.hooks.factorize,
-        hookUsageTracker,
-        binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
-      );
-      trackHookUsage(
-        this.hooks.resolve,
-        hookUsageTracker,
-        binding.RegisterJsTapKind.NormalModuleFactoryResolve,
-      );
-      trackHookUsage(
-        this.hooks.afterResolve,
-        hookUsageTracker,
-        binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
-      );
-      trackHookUsage(
-        this.hooks.createModule,
-        hookUsageTracker,
-        binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
-      );
-    }
+    trackHookMapUsage(
+      this.hooks.resolveForScheme,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
+    );
+    trackHookUsage(
+      this.hooks.beforeResolve,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
+    );
+    trackHookUsage(
+      this.hooks.factorize,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
+    );
+    trackHookUsage(
+      this.hooks.resolve,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.NormalModuleFactoryResolve,
+    );
+    trackHookUsage(
+      this.hooks.afterResolve,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
+    );
+    trackHookUsage(
+      this.hooks.createModule,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
+    );
 
     this.resolverFactory = resolverFactory;
   }
