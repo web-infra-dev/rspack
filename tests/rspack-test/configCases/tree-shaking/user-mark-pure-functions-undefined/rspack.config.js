@@ -4,7 +4,7 @@ module.exports = {
     sideEffects: true,
     innerGraph: true,
     usedExports: true,
-    concatenateModules: false
+    concatenateModules: false,
   },
   experiments: {
     advancedTreeShaking: true,
@@ -14,9 +14,9 @@ module.exports = {
       {
         test: /decl\.js/,
         parser: {
-          pureFunctions: ['notExistFunction', 'localOnly', 'importedOnly']
-        }
-      }
-    ]
+          pureFunctions: ['notExistFunction', 'localOnly', 'importedOnly'],
+        },
+      },
+    ],
   },
 };

@@ -1,12 +1,12 @@
 module.exports = {
-  mode: "production",
+  mode: 'production',
   optimization: {
     sideEffects: true,
     innerGraph: true,
     usedExports: true,
-    concatenateModules: false
+    concatenateModules: false,
   },
   experiments: {
-    advancedTreeShaking: true
-  }
+    advancedTreeShaking: true,
+  },
 };

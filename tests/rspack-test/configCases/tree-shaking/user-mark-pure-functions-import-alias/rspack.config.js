@@ -4,7 +4,7 @@ module.exports = {
     sideEffects: true,
     innerGraph: true,
     usedExports: true,
-    concatenateModules: false
+    concatenateModules: false,
   },
   experiments: {
     advancedTreeShaking: true,
@@ -14,15 +14,15 @@ module.exports = {
       {
         test: /dep-named\.js$/,
         parser: {
-          pureFunctions: ['pureNamed']
-        }
+          pureFunctions: ['pureNamed'],
+        },
       },
       {
         test: /dep-default\.js$/,
         parser: {
-          pureFunctions: ['default']
-        }
-      }
-    ]
+          pureFunctions: ['default'],
+        },
+      },
+    ],
   },
 };
