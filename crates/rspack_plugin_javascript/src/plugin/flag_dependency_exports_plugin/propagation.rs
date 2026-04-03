@@ -24,26 +24,21 @@ pub(super) fn propagate_deferred_reexports(
     dependency_exports_analysis_artifact.rebuild_topology();
   }
   let mut changed_modules = IdentifierSet::default();
-  let waves = dependency_exports_analysis_artifact
+  let wave_count = dependency_exports_analysis_artifact
     .topology()
     .waves()
-    .to_vec();
-  for wave in &waves {
-    let wave_modules: IdentifierSet = wave
-      .iter()
-      .flat_map(|scc_id| {
-        dependency_exports_analysis_artifact
-          .topology()
-          .scc_modules(*scc_id)
-          .iter()
-          .copied()
-      })
-      .collect();
-    let refresh_modules = select_wave_local_refresh_modules(
-      dependency_exports_analysis_artifact,
-      &wave_modules,
-      &changed_modules,
-    );
+    .len();
+  for wave_index in 0..wave_count {
+    let refresh_modules = {
+      let wave_modules = dependency_exports_analysis_artifact
+        .topology()
+        .wave_modules(wave_index);
+      select_wave_local_refresh_modules(
+        dependency_exports_analysis_artifact,
+        wave_modules,
+        &changed_modules,
+      )
+    };
     if !refresh_modules.is_empty() {
       collector::collect_module_analysis_with_reuse(
         module_graph,
@@ -61,7 +56,11 @@ pub(super) fn propagate_deferred_reexports(
     } else {
       changed_modules.clear();
     }
-    let wave_updates = wave
+    let deferred_wave = dependency_exports_analysis_artifact
+      .topology()
+      .deferred_wave(wave_index)
+      .to_vec();
+    let wave_updates = deferred_wave
       .par_iter()
       .map(|scc_id| {
         resolve_scc_until_fixed_point(

@@ -89,12 +89,15 @@ struct DependencyExportsSccNode {
   modules: Vec<ModuleIdentifier>,
   incoming_sccs: Vec<usize>,
   outgoing_sccs: Vec<usize>,
+  has_deferred_reexports: bool,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct DependencyExportsTopology {
   scc_nodes: Vec<DependencyExportsSccNode>,
   waves: Vec<Vec<usize>>,
+  wave_modules: Vec<IdentifierSet>,
+  deferred_waves: Vec<Vec<usize>>,
 }
 
 #[derive(Debug, Default)]
@@ -270,8 +273,32 @@ impl DependencyExportsTopology {
     let scc = compute_strongly_connected_components(modules);
     let scc_nodes = condense_scc_graph(modules, &scc);
     let waves = build_parallel_waves(&scc_nodes);
+    let wave_modules = waves
+      .iter()
+      .map(|wave| {
+        wave
+          .iter()
+          .flat_map(|scc_id| scc_nodes[*scc_id].modules.iter().copied())
+          .collect()
+      })
+      .collect();
+    let deferred_waves = waves
+      .iter()
+      .map(|wave| {
+        wave
+          .iter()
+          .copied()
+          .filter(|scc_id| scc_nodes[*scc_id].has_deferred_reexports)
+          .collect()
+      })
+      .collect();
 
-    Self { scc_nodes, waves }
+    Self {
+      scc_nodes,
+      waves,
+      wave_modules,
+      deferred_waves,
+    }
   }
 
   pub fn scc_modules(&self, scc_id: usize) -> &[ModuleIdentifier] {
@@ -283,6 +310,14 @@ impl DependencyExportsTopology {
 
   pub fn waves(&self) -> &[Vec<usize>] {
     &self.waves
+  }
+
+  pub fn wave_modules(&self, wave_index: usize) -> &IdentifierSet {
+    &self.wave_modules[wave_index]
+  }
+
+  pub fn deferred_wave(&self, wave_index: usize) -> &[usize] {
+    &self.deferred_waves[wave_index]
   }
 }
 
@@ -441,10 +476,15 @@ fn condense_scc_graph(
   let mut scc_nodes = scc
     .scc_modules
     .iter()
-    .map(|modules| DependencyExportsSccNode {
-      modules: modules.clone(),
+    .map(|scc_modules| DependencyExportsSccNode {
+      modules: scc_modules.clone(),
       incoming_sccs: Vec::new(),
       outgoing_sccs: Vec::new(),
+      has_deferred_reexports: scc_modules.iter().any(|module_identifier| {
+        modules
+          .get(module_identifier)
+          .is_some_and(|analysis| !analysis.deferred_reexports().is_empty())
+      }),
     })
     .collect::<Vec<_>>();
   let mut incoming_edges = vec![BTreeSet::new(); scc_nodes.len()];
