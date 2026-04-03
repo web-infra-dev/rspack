@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::Arc};
 
 use rspack_collections::{IdentifierMap, IdentifierSet};
 
@@ -10,6 +10,7 @@ use crate::{
 #[derive(Debug, Default)]
 pub struct ModuleDependencyExportsAnalysis {
   dirty: bool,
+  dependency_ids: Arc<[DependencyId]>,
   targets: Vec<ModuleIdentifier>,
   flat_dependency_targets: Vec<ModuleIdentifier>,
   flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
@@ -34,6 +35,7 @@ impl ModuleDependencyExportsAnalysis {
   }
 
   pub fn with_staged_analysis(
+    dependency_ids: Arc<[DependencyId]>,
     targets: impl IntoIterator<Item = ModuleIdentifier>,
     flat_dependency_targets: impl IntoIterator<Item = ModuleIdentifier>,
     flat_local_apply: impl IntoIterator<Item = (DependencyId, ExportsSpec)>,
@@ -41,6 +43,7 @@ impl ModuleDependencyExportsAnalysis {
     deferred_reexports: impl IntoIterator<Item = DeferredReexportSpec>,
   ) -> Self {
     Self {
+      dependency_ids,
       targets: targets.into_iter().collect(),
       flat_dependency_targets: flat_dependency_targets.into_iter().collect(),
       flat_local_apply: flat_local_apply.into_iter().collect(),
@@ -52,6 +55,14 @@ impl ModuleDependencyExportsAnalysis {
 
   pub fn flat_local_apply(&self) -> &[(DependencyId, ExportsSpec)] {
     &self.flat_local_apply
+  }
+
+  pub fn dependency_ids(&self) -> &[DependencyId] {
+    &self.dependency_ids
+  }
+
+  pub fn dependency_ids_arc(&self) -> &Arc<[DependencyId]> {
+    &self.dependency_ids
   }
 
   pub fn targets(&self) -> &[ModuleIdentifier] {

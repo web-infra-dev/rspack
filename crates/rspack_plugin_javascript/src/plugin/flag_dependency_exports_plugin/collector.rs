@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
@@ -61,6 +63,7 @@ fn collect_module_analysis_inner(
   affected_modules: &IdentifierSet,
   allow_reuse: bool,
 ) -> Result<()> {
+  let dependency_exports_analysis_artifact_ref = &*dependency_exports_analysis_artifact;
   let reusable_modules = affected_modules
     .iter()
     .filter_map(|module_identifier| {
@@ -83,6 +86,10 @@ fn collect_module_analysis_inner(
         module_graph,
         module_graph_cache,
         exports_info_artifact,
+        dependency_exports_analysis_artifact_ref
+          .module(module_identifier)
+          .filter(|analysis| !analysis.dirty())
+          .map(|analysis| Arc::clone(analysis.dependency_ids_arc())),
       );
       Some((*module_identifier, analysis))
     })
@@ -114,6 +121,7 @@ fn collect_module_analysis_inner(
     targets.sort_unstable();
     targets.dedup();
     let mut module_analysis = ModuleDependencyExportsAnalysis::with_staged_analysis(
+      analysis.dependency_ids,
       targets,
       flat_dependency_targets,
       analysis.flat_local_apply,
@@ -132,6 +140,7 @@ fn collect_module_exports_specs(
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
+  cached_dependency_ids: Option<Arc<[DependencyId]>>,
 ) -> ModuleCollectedAnalysis {
   fn walk_block<B: DependenciesBlock + ?Sized>(
     block: &B,
@@ -153,11 +162,17 @@ fn collect_module_exports_specs(
     return ModuleCollectedAnalysis::default();
   };
 
-  let mut dep_ids = FxIndexSet::default();
-  walk_block(block, &mut dep_ids, module_graph);
+  let dependency_ids = cached_dependency_ids.unwrap_or_else(|| {
+    let mut dep_ids = FxIndexSet::default();
+    walk_block(block, &mut dep_ids, module_graph);
+    dep_ids.into_iter().collect::<Vec<_>>().into()
+  });
 
-  let mut analysis = ModuleCollectedAnalysis::default();
-  for dep_id in dep_ids {
+  let mut analysis = ModuleCollectedAnalysis {
+    dependency_ids: Arc::clone(&dependency_ids),
+    ..Default::default()
+  };
+  for dep_id in dependency_ids.iter().copied() {
     let dep = module_graph.dependency_by_id(&dep_id);
     let Some(exports_spec) =
       dep.get_exports(module_graph, module_graph_cache, exports_info_artifact)
@@ -188,6 +203,7 @@ fn collect_module_exports_specs(
 
 #[derive(Debug, Default)]
 struct ModuleCollectedAnalysis {
+  dependency_ids: Arc<[DependencyId]>,
   flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
   structured_local_apply: Vec<(DependencyId, ExportsSpec)>,
   deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
