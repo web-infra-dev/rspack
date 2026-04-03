@@ -378,7 +378,7 @@ fn propagation_waves(
 #[cfg(test)]
 mod tests {
   use std::sync::{
-    Mutex,
+    Arc, Mutex,
     atomic::{AtomicUsize, Ordering},
   };
 
@@ -401,6 +401,7 @@ mod tests {
     artifact.replace_module(
       root,
       ModuleDependencyExportsAnalysis::with_staged_analysis(
+        Arc::<[DependencyId]>::from([]),
         [left, right],
         [],
         [],
