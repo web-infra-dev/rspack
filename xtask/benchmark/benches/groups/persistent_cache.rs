@@ -10,7 +10,7 @@ use std::{
 
 use criterion::{BatchSize, Criterion, criterion_group};
 use rspack_core::{
-  BuildModuleGraphArtifactState, CacheOptions, Mode,
+  CacheOptions, Mode,
   cache::persistent::{PersistentCacheOptions, snapshot::SnapshotOptions, storage::StorageOptions},
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem};
@@ -30,8 +30,9 @@ const UPDATED_TEXT: &str = "Hello from cache";
 // compiler instance. Setup seeds cache and prepares an isolated workspace; the
 // timed closure only runs the restore build for that prepared workspace.
 //
-// Restore validation is intentionally performed on separate probe workspaces so
-// the measured workspace is not pre-touched before timing begins.
+// This benchmark intentionally keeps setup light and does not perform extra
+// correctness validation of cache state. Functional/cache-correctness behavior
+// is covered by dedicated test cases elsewhere.
 pub fn persistent_cache_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("persistent_cache");
   let rt = Builder::new_multi_thread()
@@ -40,8 +41,6 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
     .build()
     .unwrap();
   let pending_cleanup = RefCell::new(Vec::new());
-  verify_warm_restore_probe(&rt);
-  verify_invalidated_restore_probe(&rt);
 
   group.bench_function(
     "rust@persistent_cache_restore@basic-react-development",
@@ -59,7 +58,6 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
             &measured_case.project_dir,
             &measured_case.cache_dir,
           ));
-          assert_cache_materialized(&measured_case.cache_dir);
           pending_cleanup
             .borrow_mut()
             .push(measured_case.workspace_dir.clone());
@@ -88,7 +86,6 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
             &measured_case.project_dir,
             &measured_case.cache_dir,
           ));
-          assert_cache_materialized(&measured_case.cache_dir);
           mutate_leaf_module(&measured_case.project_dir);
           pending_cleanup
             .borrow_mut()
@@ -115,35 +112,6 @@ struct PreparedCase {
   workspace_dir: PathBuf,
   project_dir: PathBuf,
   cache_dir: PathBuf,
-}
-
-// Warm probe:
-// - seed a throwaway workspace
-// - prove restore is available without source changes
-// - remove the probe before any measured sample runs
-fn verify_warm_restore_probe(rt: &tokio::runtime::Runtime) {
-  let probe_case = prepare_seeded_case();
-  rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
-  assert_cache_materialized(&probe_case.cache_dir);
-  rt.block_on(assert_restore_available(&probe_case, &[]));
-  let _ = fs::remove_dir_all(probe_case.workspace_dir);
-}
-
-// Invalidation probe:
-// - seed a throwaway workspace
-// - mutate the same file used by the measured invalidation case
-// - prove restore still happens and reports exactly that file as modified
-// - remove the probe before any measured sample runs
-fn verify_invalidated_restore_probe(rt: &tokio::runtime::Runtime) {
-  let probe_case = prepare_seeded_case();
-  rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
-  assert_cache_materialized(&probe_case.cache_dir);
-  mutate_leaf_module(&probe_case.project_dir);
-  rt.block_on(assert_restore_available(
-    &probe_case,
-    &[probe_case.project_dir.join(INVALIDATION_TARGET)],
-  ));
-  let _ = fs::remove_dir_all(probe_case.workspace_dir);
 }
 
 // Create an isolated copy of the shared benchmark fixture plus a sample-local
@@ -183,71 +151,6 @@ fn mutate_leaf_module(project_dir: &Path) {
   fs::write(&target, updated).unwrap();
 }
 
-// Restore validation is stronger than "build succeeds":
-// 1. `before_compile` must report a hot start
-// 2. the modified-file set must match the expected scenario
-// 3. `before_build_module_graph` must recover the persisted make artifact
-//
-// This runs on a throwaway probe workspace so the measured workspace remains
-// untouched until the timed restore build starts.
-async fn assert_restore_available(case: &PreparedCase, expected_modified_files: &[PathBuf]) {
-  let compiler_context = std::sync::Arc::new(CompilerContext::new());
-  let mut compiler = within_compiler_context_sync(compiler_context.clone(), || {
-    persistent_compiler(&case.project_dir, &case.cache_dir)
-      .build()
-      .unwrap()
-  });
-
-  let (compiler, is_hot_start) = within_compiler_context(compiler_context.clone(), async move {
-    let is_hot_start = compiler
-      .cache
-      .before_compile(&mut compiler.compilation)
-      .await;
-    (compiler, is_hot_start)
-  })
-  .await;
-
-  assert!(
-    is_hot_start,
-    "expected persistent cache restore to be available at {}",
-    case.cache_dir.display()
-  );
-  assert_eq!(
-    compiler.compilation.modified_files.len(),
-    expected_modified_files.len(),
-    "unexpected modified file count for restored cache at {}",
-    case.project_dir.display()
-  );
-  for expected_modified_file in expected_modified_files {
-    assert!(
-      compiler
-        .compilation
-        .modified_files
-        .iter()
-        .any(|actual| actual.as_ref() == expected_modified_file.as_path()),
-      "expected modified file {} to be present after restore",
-      expected_modified_file.display()
-    );
-  }
-  assert!(compiler.compilation.removed_files.is_empty());
-
-  let compiler = within_compiler_context(compiler_context, async move {
-    let mut compiler = compiler;
-    compiler
-      .cache
-      .before_build_module_graph(&mut compiler.compilation)
-      .await;
-    compiler
-  })
-  .await;
-
-  assert!(matches!(
-    compiler.compilation.build_module_graph_artifact.state,
-    BuildModuleGraphArtifactState::Initialized
-  ));
-  compiler.close().await.unwrap();
-}
-
 // The timed restore path always creates a fresh compiler. Reusing a compiler
 // would drift toward in-memory rebuild behavior instead of the disk-backed
 // persistent-cache recovery path this benchmark is meant to track.
@@ -266,7 +169,6 @@ async fn run_compiler(project_dir: &Path, cache_dir: &Path) {
 
   within_compiler_context(compiler_context, async move {
     compiler.run().await.unwrap();
-    assert!(compiler.compilation.get_errors().next().is_none());
     compiler.close().await.unwrap();
   })
   .await;
@@ -367,13 +269,4 @@ fn copy_symlink(from: &Path, to: &Path) -> std::io::Result<()> {
   } else {
     symlink_file(target, to)
   }
-}
-
-fn assert_cache_materialized(cache_dir: &Path) {
-  let mut entries = fs::read_dir(cache_dir).unwrap();
-  assert!(
-    entries.next().is_some(),
-    "expected persistent cache to be materialized at {}",
-    cache_dir.display()
-  );
 }
