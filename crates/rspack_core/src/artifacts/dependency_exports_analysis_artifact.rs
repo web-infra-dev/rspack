@@ -100,6 +100,7 @@ pub struct DependencyExportsTopology {
 #[derive(Debug, Default)]
 pub struct DependencyExportsAnalysisArtifact {
   modules: IdentifierMap<ModuleDependencyExportsAnalysis>,
+  target_dependents: IdentifierMap<IdentifierSet>,
   topology: DependencyExportsTopology,
   topology_dirty: bool,
 }
@@ -126,6 +127,10 @@ impl DependencyExportsAnalysisArtifact {
     module_identifier: &ModuleIdentifier,
   ) -> Option<&ModuleDependencyExportsAnalysis> {
     self.modules.get(module_identifier)
+  }
+
+  pub fn dependents_of(&self, module_identifier: &ModuleIdentifier) -> Option<&IdentifierSet> {
+    self.target_dependents.get(module_identifier)
   }
 
   pub fn module_mut(
@@ -168,6 +173,7 @@ impl DependencyExportsAnalysisArtifact {
     analysis: ModuleDependencyExportsAnalysis,
   ) -> Option<ModuleDependencyExportsAnalysis> {
     let previous = self.modules.insert(module_identifier, analysis);
+    self.update_target_dependents(module_identifier, previous.as_ref());
     self.set_topology_dirty(true);
     previous
   }
@@ -178,6 +184,7 @@ impl DependencyExportsAnalysisArtifact {
     analysis: ModuleDependencyExportsAnalysis,
   ) -> Option<ModuleDependencyExportsAnalysis> {
     let previous = self.modules.insert(module_identifier, analysis);
+    self.update_target_dependents(module_identifier, previous.as_ref());
     if previous
       .as_ref()
       .is_none_or(|previous| previous.targets() != self.modules[&module_identifier].targets())
@@ -193,6 +200,7 @@ impl DependencyExportsAnalysisArtifact {
   ) -> Option<ModuleDependencyExportsAnalysis> {
     let previous = self.modules.remove(module_identifier);
     if previous.is_some() {
+      self.remove_target_dependents(*module_identifier, previous.as_ref());
       self.set_topology_dirty(true);
     }
     previous
@@ -215,6 +223,44 @@ impl DependencyExportsAnalysisArtifact {
 
   fn set_topology_dirty(&mut self, topology_dirty: bool) {
     self.topology_dirty = topology_dirty;
+  }
+
+  fn update_target_dependents(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    previous: Option<&ModuleDependencyExportsAnalysis>,
+  ) {
+    self.remove_target_dependents(module_identifier, previous);
+    if let Some(analysis) = self.modules.get(&module_identifier) {
+      for target in analysis.targets() {
+        self
+          .target_dependents
+          .entry(*target)
+          .or_default()
+          .insert(module_identifier);
+      }
+    }
+  }
+
+  fn remove_target_dependents(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    previous: Option<&ModuleDependencyExportsAnalysis>,
+  ) {
+    let Some(previous) = previous else {
+      return;
+    };
+    for target in previous.targets() {
+      let should_remove_entry = if let Some(dependents) = self.target_dependents.get_mut(target) {
+        dependents.remove(&module_identifier);
+        dependents.is_empty()
+      } else {
+        false
+      };
+      if should_remove_entry {
+        self.target_dependents.remove(target);
+      }
+    }
   }
 }
 
