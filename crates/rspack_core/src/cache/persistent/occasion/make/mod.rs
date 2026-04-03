@@ -8,7 +8,10 @@ use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::super::{codec::CacheCodec, storage::Storage};
+use super::{
+  super::{codec::CacheCodec, storage::Storage},
+  Occasion,
+};
 use crate::{
   FactorizeInfo,
   compilation::build_module_graph::BuildModuleGraphArtifact,
@@ -25,9 +28,19 @@ impl MakeOccasion {
   pub fn new(codec: Arc<CacheCodec>) -> Self {
     Self { codec }
   }
+}
+
+#[async_trait::async_trait]
+impl Occasion for MakeOccasion {
+  type Artifact = BuildModuleGraphArtifact;
+
+  #[tracing::instrument(name = "Cache::Occasion::Make::reset", skip_all)]
+  fn reset(&self, storage: &mut dyn Storage) {
+    storage.reset(module_graph::SCOPE);
+  }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
-  pub fn save(&self, storage: &mut dyn Storage, artifact: &BuildModuleGraphArtifact) {
+  fn save(&self, storage: &mut dyn Storage, artifact: &BuildModuleGraphArtifact) {
     let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
@@ -69,7 +82,7 @@ impl MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  pub async fn recovery(&self, storage: &dyn Storage) -> Result<BuildModuleGraphArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<BuildModuleGraphArtifact> {
     let (mg, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(storage, &self.codec).await?;
 
