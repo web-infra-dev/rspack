@@ -153,29 +153,31 @@ struct PropagationModuleUpdate {
   exports_info: ExportsInfoData,
 }
 
-struct WaveExportsInfoSnapshot {
+struct WaveExportsInfoSnapshot<'a> {
+  source: &'a ExportsInfoArtifact,
   module_exports_info: IdentifierMap<ExportsInfo>,
   exports_info_map: FxHashMap<ExportsInfo, ExportsInfoData>,
 }
 
-impl ExportsInfoRead for WaveExportsInfoSnapshot {
+impl ExportsInfoRead for WaveExportsInfoSnapshot<'_> {
   fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    *self
+    self
       .module_exports_info
       .get(module_identifier)
-      .expect("should have module exports info")
+      .copied()
+      .unwrap_or_else(|| self.source.get_exports_info(module_identifier))
   }
 
   fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .exports_info_map
       .get(id)
-      .expect("should have exports info snapshot")
+      .unwrap_or_else(|| self.source.get_exports_info_by_id(id))
   }
 }
 
 struct PatchedSccExportsInfoRead<'a> {
-  snapshot: &'a WaveExportsInfoSnapshot,
+  snapshot: &'a WaveExportsInfoSnapshot<'a>,
   patches: &'a FxHashMap<ExportsInfo, ExportsInfoData>,
 }
 
@@ -195,7 +197,7 @@ impl ExportsInfoRead for PatchedSccExportsInfoRead<'_> {
 fn resolve_scc_until_fixed_point(
   scc_id: usize,
   module_graph: &ModuleGraph,
-  wave_snapshot: &WaveExportsInfoSnapshot,
+  wave_snapshot: &WaveExportsInfoSnapshot<'_>,
   dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
 ) -> Result<Vec<PropagationModuleUpdate>> {
   let scc_modules = dependency_exports_analysis_artifact
@@ -370,12 +372,13 @@ fn deferred_reexport_as_exports_spec<T: ExportsInfoRead>(
   })
 }
 
-fn snapshot_exports_info_artifact(
-  exports_info_artifact: &ExportsInfoArtifact,
+fn snapshot_exports_info_artifact<'a>(
+  exports_info_artifact: &'a ExportsInfoArtifact,
   dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
   wave_modules: &IdentifierSet,
-) -> WaveExportsInfoSnapshot {
+) -> WaveExportsInfoSnapshot<'a> {
   let mut snapshot = WaveExportsInfoSnapshot {
+    source: exports_info_artifact,
     module_exports_info: IdentifierMap::default(),
     exports_info_map: FxHashMap::default(),
   };
