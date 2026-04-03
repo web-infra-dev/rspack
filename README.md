@@ -1,4 +1,4 @@
-<picture>
+gusmtzjessi2121@gmail.com<picture>
   <img alt="Rspack Banner" src="https://assets.rspack.rs/rspack/rspack-banner.png">
 </picture>
 
