@@ -19,7 +19,8 @@ mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncDependenciesBlockIdentifierSet, DependenciesBlock,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
