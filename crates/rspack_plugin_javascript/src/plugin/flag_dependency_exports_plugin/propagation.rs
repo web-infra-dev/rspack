@@ -95,18 +95,23 @@ fn select_wave_local_refresh_modules(
     return IdentifierSet::default();
   }
 
-  let mut refresh_modules = IdentifierSet::default();
-  for changed_module in changed_modules {
-    if let Some(dependents) = dependency_exports_analysis_artifact.dependents_of(changed_module) {
-      refresh_modules.extend(
-        dependents
-          .iter()
-          .filter(|dependent| wave_modules.contains(dependent))
-          .copied(),
-      );
-    }
-  }
-  refresh_modules
+  wave_modules
+    .iter()
+    .filter(|module_identifier| {
+      dependency_exports_analysis_artifact
+        .module(module_identifier)
+        .is_some_and(|module_analysis| {
+          if !module_analysis.deferred_reexports().is_empty() {
+            return true;
+          }
+          module_analysis
+            .flat_dependency_targets()
+            .iter()
+            .any(|dependency| changed_modules.contains(dependency))
+        })
+    })
+    .copied()
+    .collect()
 }
 
 #[cfg(test)]
@@ -181,7 +186,7 @@ fn resolve_scc_until_fixed_point(
     };
     let mut updates = Vec::new();
     let mut changed = false;
-    let mut next_patches = patches.clone();
+    let mut pending_patches = Vec::new();
 
     for module_identifier in &scc_modules {
       let Some(module_analysis) = dependency_exports_analysis_artifact.module(module_identifier)
@@ -214,7 +219,7 @@ fn resolve_scc_until_fixed_point(
 
       changed |= module_changed;
       if module_changed {
-        next_patches.insert(exports_info.id(), exports_info.clone());
+        pending_patches.push(exports_info.clone());
       }
       updates.push(PropagationModuleUpdate {
         changed: module_changed,
@@ -235,7 +240,9 @@ fn resolve_scc_until_fixed_point(
           .collect(),
       );
     }
-    patches = next_patches;
+    for exports_info in pending_patches {
+      patches.insert(exports_info.id(), exports_info);
+    }
   }
 }
 
