@@ -235,6 +235,20 @@ export default {
 };
 ```
 
+### Changed default value of output.bundlerInfo.force
+
+The default value of [output.bundlerInfo.force](/config/output#outputbundlerinfo) changed from `true` to `false`. In Rspack 2.0, `__rspack_version__` and `__rspack_unique_id__` are injected on demand by default instead of always being added as runtime modules. If your application depends on the previous always-injected behavior, configure it explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: {
+      force: true,
+    },
+  },
+};
+```
+
 ### Changed default fallback value of output.trustedTypes.policyName
 
 The fallback value of [output.trustedTypes.policyName](/config/output#outputtrustedtypes) changed from `'webpack'` to `'rspack'`. `policyName` still defaults to `output.uniqueName`, and the fallback is only used when `uniqueName` is not set. If your project relies on the old fallback, update your CSP configuration or set it explicitly:
