@@ -318,7 +318,7 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_meta_resolve: Option<bool>,
-  /// Flag top-level exported functions as side-effect-free for advanced tree shaking.
+  /// Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   #[napi(js_name = "pureFunctions")]

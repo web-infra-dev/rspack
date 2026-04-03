@@ -2240,7 +2240,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
-  advancedTreeShaking: boolean
+  pureFunctions: boolean
 }
 
 export interface RawExposeOptions {

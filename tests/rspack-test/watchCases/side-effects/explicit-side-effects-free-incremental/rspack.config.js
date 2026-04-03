@@ -12,7 +12,7 @@ module.exports = {
     concatenateModules: false,
   },
   experiments: {
-    advancedTreeShaking: true,
+    pureFunctions: true,
     cache: {
       type: 'memory',
     },

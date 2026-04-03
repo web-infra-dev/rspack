@@ -19,7 +19,7 @@ module.exports = {
 			context: path.resolve(__dirname, "../fixtures", CASE_DIR),
 			entry: "./index.js",
 			experiments: {
-				advancedTreeShaking: true
+				pureFunctions: true
 			},
 			module: {
 				rules: [

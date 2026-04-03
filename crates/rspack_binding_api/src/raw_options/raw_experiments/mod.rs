@@ -14,7 +14,7 @@ pub struct RawExperiments {
   pub use_input_file_system: Option<WithFalse<Vec<RspackRegex>>>,
   pub css: Option<bool>,
   pub defer_import: bool,
-  pub advanced_tree_shaking: bool,
+  pub pure_functions: bool,
 }
 
 impl From<RawExperiments> for Experiments {
@@ -22,7 +22,7 @@ impl From<RawExperiments> for Experiments {
     Self {
       css: value.css.unwrap_or(false),
       defer_import: value.defer_import,
-      advanced_tree_shaking: value.advanced_tree_shaking,
+      pure_functions: value.pure_functions,
     }
   }
 }

@@ -513,14 +513,14 @@ impl<'parser> JavascriptParser<'parser> {
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
         unresolved_mark,
-        compiler_options.experiments.advanced_tree_shaking,
+        compiler_options.experiments.pure_functions,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
-        compiler_options.experiments.advanced_tree_shaking,
+        compiler_options.experiments.pure_functions,
       )));
     }
 

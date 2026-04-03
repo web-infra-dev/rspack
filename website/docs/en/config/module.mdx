@@ -1681,14 +1681,14 @@ This option is experimental in Rspack and may change or be removed.
 
 <PropertyType type="string[]" />
 
-Manually mark top-level exported functions in matched modules as side-effect-free for advanced tree shaking.
+Manually mark top-level exported functions in matched modules as side-effect-free for pure-function-based tree shaking.
 
 This option is mainly intended for third-party libraries whose source cannot be annotated directly, such as packages in `node_modules`.
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    advancedTreeShaking: true,
+    pureFunctions: true,
   },
   module: {
     parser: {
@@ -1705,7 +1705,7 @@ Only top-level exported function definitions are supported. For default exports,
 :::
 
 :::warning
-This option only takes effect when `experiments.advancedTreeShaking` is enabled, and Rspack emits a warning if a configured exported function name cannot be found in the matched module.
+This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured exported function name cannot be found in the matched module.
 :::
 
 ### module.parser["javascript/auto"]

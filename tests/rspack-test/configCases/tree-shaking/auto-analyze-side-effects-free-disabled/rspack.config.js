@@ -7,6 +7,6 @@ module.exports = {
     concatenateModules: false,
   },
   experiments: {
-    advancedTreeShaking: false,
+    pureFunctions: false,
   },
 };

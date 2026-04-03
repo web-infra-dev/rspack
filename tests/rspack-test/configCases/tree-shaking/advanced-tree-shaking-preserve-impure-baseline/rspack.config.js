@@ -2,6 +2,6 @@
 module.exports = {
   mode: 'production',
   experiments: {
-    advancedTreeShaking: true,
+    pureFunctions: true,
   },
 };

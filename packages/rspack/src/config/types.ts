@@ -1224,7 +1224,7 @@ export type JavascriptParserOptions = {
    */
   importMetaResolve?: boolean;
   /**
-   * Flag top-level exported functions as side-effect-free for advanced tree shaking.
+   * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
    * @experimental
    */
   pureFunctions?: string[];
@@ -2894,10 +2894,10 @@ export type Experiments = {
    */
   deferImport?: boolean;
   /**
-   * Enable advanced tree shaking for no-side-effects function analysis.
+   * Enable pure-function-based side-effects analysis.
    * @default false
    */
-  advancedTreeShaking?: boolean;
+  pureFunctions?: boolean;
 };
 //#endregion
 

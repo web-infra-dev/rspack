@@ -3571,7 +3571,7 @@ impl OptimizationOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
-          experiments.advanced_tree_shaking,
+          experiments.pure_functions,
         ));
     }
 
@@ -3698,7 +3698,7 @@ pub struct ExperimentsBuilder {
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
-  advanced_tree_shaking: Option<bool>,
+  pure_functions: Option<bool>,
 }
 
 impl From<Experiments> for ExperimentsBuilder {
@@ -3707,7 +3707,7 @@ impl From<Experiments> for ExperimentsBuilder {
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
-      advanced_tree_shaking: Some(value.advanced_tree_shaking),
+      pure_functions: Some(value.pure_functions),
     }
   }
 }
@@ -3718,7 +3718,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
-      advanced_tree_shaking: value.advanced_tree_shaking.take(),
+      pure_functions: value.pure_functions.take(),
     }
   }
 }
@@ -3759,7 +3759,7 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       css: d!(self.css, false),
       defer_import: false,
-      advanced_tree_shaking: d!(self.advanced_tree_shaking, false),
+      pure_functions: d!(self.pure_functions, false),
     })
   }
 }
@@ -3814,20 +3814,20 @@ mod test {
   }
 
   #[test]
-  fn side_effects_flag_plugin_respects_advanced_tree_shaking() {
+  fn side_effects_flag_plugin_respects_pure_functions() {
     within_compiler_context_for_testing_sync(|| {
       let mut context: BuilderContext = Default::default();
       let compiler_options = CompilerOptions::builder()
         .mode(Mode::Production)
         .target(vec!["web".to_string()])
         .experiments(ExperimentsBuilder {
-          advanced_tree_shaking: Some(true),
+          pure_functions: Some(true),
           ..Default::default()
         })
         .build(&mut context)
         .unwrap();
 
-      assert!(compiler_options.experiments.advanced_tree_shaking);
+      assert!(compiler_options.experiments.pure_functions);
       assert!(
         context
           .plugins

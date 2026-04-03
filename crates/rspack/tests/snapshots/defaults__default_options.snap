@@ -1686,7 +1686,7 @@ CompilerOptions {
     experiments: Experiments {
         css: false,
         defer_import: false,
-        advanced_tree_shaking: false,
+        pure_functions: false,
     },
     incremental: IncrementalOptions {
         silent: true,

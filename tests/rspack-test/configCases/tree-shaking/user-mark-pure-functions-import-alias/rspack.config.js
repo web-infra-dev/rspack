@@ -7,7 +7,7 @@ module.exports = {
     concatenateModules: false,
   },
   experiments: {
-    advancedTreeShaking: true,
+    pureFunctions: true,
   },
   module: {
     rules: [

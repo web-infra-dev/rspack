@@ -20,11 +20,11 @@ module.exports = {
 			    },
 			  },
 			  experiments: Object {
-			    advancedTreeShaking: false,
 			    asyncWebAssembly: true,
 			    buildHttp: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
+			    pureFunctions: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,

@@ -1678,14 +1678,14 @@ export default {
 
 <PropertyType type="string[]" />
 
-手动将命中模块中的顶层导出函数标记为“调用无副作用”，供 advanced tree shaking 使用。
+手动将命中模块中的顶层导出函数标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。
 
 这个选项主要面向无法直接修改源码的第三方库，例如 `node_modules` 中的包。
 
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
-    advancedTreeShaking: true,
+    pureFunctions: true,
   },
   module: {
     parser: {
@@ -1702,7 +1702,7 @@ export default {
 :::
 
 :::warning
-该选项只有在启用 `experiments.advancedTreeShaking` 时才会生效；如果在命中的模块中找不到配置的导出函数名，Rspack 会发出警告。
+该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到配置的导出函数名，Rspack 会发出警告。
 :::
 
 ### module.parser["javascript/auto"]

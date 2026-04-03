@@ -310,7 +310,7 @@ async fn optimize_dependencies(
   if self.analyze_side_effects_free {
     // `finish_modules` may change the side-effect state of modules that were not part of the
     // incremental mutation frontier. Reuse of the previous optimize artifact can therefore keep
-    // stale connection rewrites alive, so advanced tree shaking falls back to a full refresh here.
+    // stale connection rewrites alive, so pure-function analysis falls back to a full refresh here.
     side_effects_optimize_artifact.clear();
   }
 
