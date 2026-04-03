@@ -13,5 +13,6 @@ it('should have correct inline export', async () => {
   expect(value).toBe(42)
 })
 
+export {};
 
 ```

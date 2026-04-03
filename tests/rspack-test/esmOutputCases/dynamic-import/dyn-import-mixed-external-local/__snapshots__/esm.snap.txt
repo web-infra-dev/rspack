@@ -7,6 +7,7 @@ it('should dynamically import module with mixed external re-exports and local ex
 	expect(mod.localFn()).toBe('hello')
 })
 
+export {};
 
 ```
 

@@ -42,5 +42,6 @@ it('should render external correctly', async () => {
   expect(fs).toBe(other).toBe(fs).toBe(ns.default)
   expect(readFile).toBe(readFile).toBe(readFile).toBe(ns.readFile)
 })
+export {};
 
 ```

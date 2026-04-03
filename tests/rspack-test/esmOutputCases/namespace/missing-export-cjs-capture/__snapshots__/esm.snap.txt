@@ -23,6 +23,7 @@ it("should keep a CommonJS namespace object when reading a missing property", ()
   expect(foo.foo).toBeUndefined();
 });
 
+export {};
 
 ```
 

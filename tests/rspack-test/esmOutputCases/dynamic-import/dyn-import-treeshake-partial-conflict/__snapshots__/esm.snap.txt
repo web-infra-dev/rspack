@@ -11,6 +11,7 @@ it('should skip namespace when tree-shaking removes one side of a conflict', asy
 	expect(bar).toBe('b-bar')
 })
 
+export {};
 
 ```
 

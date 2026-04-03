@@ -23,7 +23,7 @@ pub struct FileSystemStorage {
   db: DB,
   /// In-memory staged update operations, grouped by scope
   /// Value of Some(value) indicates write, None indicates deletion
-  updates: Mutex<HashMap<String, BucketChangesMap>>,
+  updates: HashMap<String, BucketChangesMap>,
   /// Storage options
   options: FileSystemOptions,
   /// Next scheduled time for metadata refresh (cleanup + access time update)
@@ -52,21 +52,19 @@ impl Storage for FileSystemStorage {
     Ok(data)
   }
 
-  fn set(&self, scope: &'static str, key: Vec<u8>, value: Vec<u8>) {
-    let mut updates = self.updates.lock().expect("should get lock");
-    let scope_update = updates.entry(scope.to_string()).or_default();
+  fn set(&mut self, scope: &'static str, key: Vec<u8>, value: Vec<u8>) {
+    let scope_update = self.updates.entry(scope.to_string()).or_default();
     scope_update.insert(key, Some(value));
   }
 
-  fn remove(&self, scope: &'static str, key: &[u8]) {
-    let mut updates = self.updates.lock().expect("should get lock");
-    let scope_update = updates.entry(scope.to_string()).or_default();
+  fn remove(&mut self, scope: &'static str, key: &[u8]) {
+    let scope_update = self.updates.entry(scope.to_string()).or_default();
     scope_update.insert(key.to_vec(), None);
   }
 
-  async fn save(&self) -> Result<()> {
+  async fn save(&mut self) -> Result<()> {
     // Take all pending updates and clear the memory buffer
-    let updates = std::mem::take(&mut *self.updates.lock().expect("should get lock"));
+    let updates = std::mem::take(&mut self.updates);
 
     // Enqueue the write to the background task queue; errors are reported internally.
     // Call flush() to wait until the write has fully completed.
@@ -120,7 +118,7 @@ impl Storage for FileSystemStorage {
     Ok(())
   }
 
-  async fn reset(&self) {
+  async fn reset(&mut self) {
     let _ = self.db.reset().await;
   }
 

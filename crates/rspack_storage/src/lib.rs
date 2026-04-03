@@ -8,8 +8,6 @@ mod error;
 mod filesystem;
 mod memory;
 
-use std::sync::Arc;
-
 pub use self::{
   error::{Error, Result},
   filesystem::{FileSystemOptions, FileSystemStorage},
@@ -25,16 +23,16 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>>;
 
   /// Sets a key-value pair in the specified scope (staged in memory)
-  fn set(&self, scope: &'static str, key: Vec<u8>, value: Vec<u8>);
+  fn set(&mut self, scope: &'static str, key: Vec<u8>, value: Vec<u8>);
 
   /// Removes a key from the specified scope (staged in memory)
-  fn remove(&self, scope: &'static str, key: &[u8]);
+  fn remove(&mut self, scope: &'static str, key: &[u8]);
 
   /// Enqueues a persistence operation, writing all staged memory changes to storage.
   ///
   /// The write is performed asynchronously in the background. Call [`Storage::flush`]
   /// to wait until all enqueued writes have completed.
-  async fn save(&self) -> Result<()>;
+  async fn save(&mut self) -> Result<()>;
 
   /// Waits until all previously enqueued [`Storage::save`] operations have completed.
   ///
@@ -42,11 +40,11 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   async fn flush(&self);
 
   /// Resets the storage, clearing all data
-  async fn reset(&self);
+  async fn reset(&mut self);
 
   /// Gets a list of all available scopes in the storage
   async fn scopes(&self) -> Result<Vec<String>>;
 }
 
-/// Arc-wrapped Storage trait object
-pub type ArcStorage = Arc<dyn Storage>;
+/// Box-wrapped Storage trait object
+pub type BoxStorage = Box<dyn Storage>;

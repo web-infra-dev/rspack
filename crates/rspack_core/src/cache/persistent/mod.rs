@@ -23,7 +23,7 @@ use self::{
   codec::CacheCodec,
   occasion::{MakeOccasion, MetaOccasion},
   snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
-  storage::{Storage, StorageOptions, create_storage},
+  storage::{BoxStorage, StorageOptions, create_storage},
 };
 use super::Cache;
 use crate::{BuildModuleGraphArtifactState, Compilation, CompilerOptions, Logger};
@@ -51,7 +51,7 @@ pub struct PersistentCache {
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
-  storage: Arc<dyn Storage>,
+  storage: BoxStorage,
   // TODO replace to logger and output warnings directly.
   warnings: Vec<String>,
 }
@@ -88,7 +88,6 @@ impl PersistentCache {
     let snapshot = Arc::new(Snapshot::new(
       option.snapshot.clone(),
       input_filesystem.clone(),
-      storage.clone(),
       codec.clone(),
     ));
 
@@ -102,8 +101,8 @@ impl PersistentCache {
         snapshot.clone(),
       ),
       snapshot,
-      make_occasion: MakeOccasion::new(storage.clone(), codec.clone()),
-      meta_occasion: MetaOccasion::new(storage.clone(), codec),
+      make_occasion: MakeOccasion::new(codec.clone()),
+      meta_occasion: MetaOccasion::new(codec),
       warnings: Default::default(),
       storage,
     }
@@ -115,7 +114,7 @@ impl PersistentCache {
     }
     self.initialized = true;
 
-    match self.build_deps.validate().await {
+    match self.build_deps.validate(&*self.storage).await {
       Ok(success) => {
         self.valid = success;
       }
@@ -124,7 +123,7 @@ impl PersistentCache {
         self.warnings.push(err.to_string());
       }
     }
-    if let Err(err) = self.meta_occasion.recovery().await {
+    if let Err(err) = self.meta_occasion.recovery(&*self.storage).await {
       self.warnings.push(err.to_string());
     }
   }
@@ -148,14 +147,17 @@ impl Cache for PersistentCache {
       let mut modified_paths = ArcPathSet::default();
       let mut removed_paths = ArcPathSet::default();
       let data = vec![
-        self.snapshot.calc_modified_paths(SnapshotScope::FILE).await,
         self
           .snapshot
-          .calc_modified_paths(SnapshotScope::CONTEXT)
+          .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
           .await,
         self
           .snapshot
-          .calc_modified_paths(SnapshotScope::MISSING)
+          .calc_modified_paths(&*self.storage, SnapshotScope::CONTEXT)
+          .await,
+        self
+          .snapshot
+          .calc_modified_paths(&*self.storage, SnapshotScope::MISSING)
           .await,
       ];
       for item in data {
@@ -189,7 +191,7 @@ impl Cache for PersistentCache {
         self.valid = true;
       }
       // save meta
-      self.meta_occasion.save();
+      self.meta_occasion.save(&mut *self.storage);
 
       // save snapshot
       // TODO add a all_dependencies to collect dependencies
@@ -197,22 +199,33 @@ impl Cache for PersistentCache {
       let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
       let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
       let (_, build_added, build_updated, _) = compilation.build_dependencies();
+      self.snapshot.remove(
+        &mut *self.storage,
+        SnapshotScope::FILE,
+        file_removed.cloned(),
+      );
+      self.snapshot.remove(
+        &mut *self.storage,
+        SnapshotScope::CONTEXT,
+        context_removed.cloned(),
+      );
+      self.snapshot.remove(
+        &mut *self.storage,
+        SnapshotScope::MISSING,
+        missing_removed.cloned(),
+      );
       self
         .snapshot
-        .remove(SnapshotScope::FILE, file_removed.cloned());
-      self
-        .snapshot
-        .remove(SnapshotScope::CONTEXT, context_removed.cloned());
-      self
-        .snapshot
-        .remove(SnapshotScope::MISSING, missing_removed.cloned());
-      self
-        .snapshot
-        .add(SnapshotScope::FILE, file_added.chain(file_updated).cloned())
+        .add(
+          &mut *self.storage,
+          SnapshotScope::FILE,
+          file_added.chain(file_updated).cloned(),
+        )
         .await;
       self
         .snapshot
         .add(
+          &mut *self.storage,
           SnapshotScope::CONTEXT,
           context_added.chain(context_updated).cloned(),
         )
@@ -220,6 +233,7 @@ impl Cache for PersistentCache {
       self
         .snapshot
         .add(
+          &mut *self.storage,
           SnapshotScope::MISSING,
           missing_added.chain(missing_updated).cloned(),
         )
@@ -227,7 +241,10 @@ impl Cache for PersistentCache {
       self.warnings.extend(
         self
           .build_deps
-          .add(build_added.chain(build_updated).cloned())
+          .add(
+            &mut *self.storage,
+            build_added.chain(build_updated).cloned(),
+          )
           .await,
       );
 
@@ -248,7 +265,7 @@ impl Cache for PersistentCache {
         BuildModuleGraphArtifactState::Uninitialized
       )
     {
-      match self.make_occasion.recovery().await {
+      match self.make_occasion.recovery(&*self.storage).await {
         Ok(artifact) => {
           *compilation.build_module_graph_artifact = artifact;
           for (module, _) in compilation
@@ -264,11 +281,11 @@ impl Cache for PersistentCache {
     }
   }
 
-  async fn after_build_module_graph(&self, compilation: &Compilation) {
+  async fn after_build_module_graph(&mut self, compilation: &Compilation) {
     if !self.readonly {
       self
         .make_occasion
-        .save(&compilation.build_module_graph_artifact);
+        .save(&mut *self.storage, &compilation.build_module_graph_artifact);
     }
   }
 

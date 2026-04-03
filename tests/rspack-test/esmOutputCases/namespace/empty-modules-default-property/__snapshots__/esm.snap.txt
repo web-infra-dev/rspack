@@ -41,6 +41,7 @@ it("should keep default namespace semantics for empty modules", () => {
   expect(typeof (empty_default())).toBe("object");
 });
 
+export {};
 
 ```
 

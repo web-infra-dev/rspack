@@ -9,6 +9,7 @@ it('should not produce duplicate chunk names when entry module is moved', () => 
   expect((/* inlined export .value */"lib")).toBe('lib')
 })
 
+export {};
 
 ```
 
@@ -19,5 +20,6 @@ it('should not produce duplicate chunk names when entry module is moved', () => 
 // retain the entry name after the entry module is moved out.
 console.log.bind(console)
 
+export {};
 
 ```

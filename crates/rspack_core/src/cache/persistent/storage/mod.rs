@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
+pub use rspack_storage::{BoxStorage, MemoryStorage, Storage};
 use rspack_storage::{FileSystemOptions, FileSystemStorage};
-pub use rspack_storage::{MemoryStorage, Storage};
 
 /// Storage Options
 ///
@@ -22,7 +22,7 @@ pub fn create_storage(
   options: StorageOptions,
   version: String,
   fs: Arc<dyn IntermediateFileSystem>,
-) -> Arc<dyn Storage> {
+) -> BoxStorage {
   match options {
     StorageOptions::FileSystem { directory } => {
       let option = FileSystemOptions {
@@ -32,7 +32,7 @@ pub fn create_storage(
         expire: 7 * 24 * 60 * 60,
         fs,
       };
-      Arc::new(FileSystemStorage::new(option))
+      Box::new(FileSystemStorage::new(option))
     }
   }
 }

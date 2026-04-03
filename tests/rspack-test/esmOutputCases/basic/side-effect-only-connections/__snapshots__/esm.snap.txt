@@ -26,6 +26,7 @@ exports.foo = () => 42
 });
 __webpack_require__("./index.js");
 
+export {};
 
 ```
 

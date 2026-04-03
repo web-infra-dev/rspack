@@ -48,7 +48,7 @@ export default {
 
 ### 可选值
 
-- `true`：替换为源文件的文件路径，相对于 [`context`](/config/context) 选项
+- `true`：替换为源文件相对于 [`context`](/config/context) 的相对文件路径
 - `false`：不做任何处理，保持原生行为
 - `'mock'`：替换为 `'/index.js'`
 - `'eval-only'`：等同于 `false`
@@ -57,7 +57,7 @@ export default {
 
 ### 示例
 
-例如，不对 `__filename` 和 `import.meta.filename` 进行任何处理：
+例如，不对 `__filename` 和 `import.meta.filename` 进行任何处理，在产物中保留原内容：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -67,7 +67,7 @@ export default {
 };
 ```
 
-将 ESM 产物中的 `__filename` 替换为 `fileURLToPath(import.meta.url)`：
+将 ESM 产物中的 `__filename` 和 `import.meta.filename` 替换为 `fileURLToPath(import.meta.url)`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -101,7 +101,7 @@ export default {
 
 ### 示例
 
-例如，不对 `__dirname` 和 `import.meta.dirname` 进行任何处理：
+例如，不对 `__dirname` 和 `import.meta.dirname` 进行任何处理，在产物中保留原内容：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -111,7 +111,7 @@ export default {
 };
 ```
 
-将 ESM 产物中的 `__dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`：
+将 ESM 产物中的 `__dirname` 和 `import.meta.dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`：
 
 ```js title="rspack.config.mjs"
 export default {

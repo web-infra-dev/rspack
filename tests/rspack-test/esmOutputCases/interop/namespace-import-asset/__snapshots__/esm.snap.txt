@@ -14,6 +14,7 @@ it('should have ns', () => {
 	expect(foo_namespaceObject2).toBeDefined()
 })
 
+export {};
 
 ```
 

@@ -12,5 +12,6 @@ it("should render hidden folder", async () => {
 
   expect(value()).toBe(42)
 })
+export {};
 
 ```

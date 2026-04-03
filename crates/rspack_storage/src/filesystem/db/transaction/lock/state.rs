@@ -79,6 +79,11 @@ impl StateLock {
     Ok(())
   }
 
+  /// Remove state lock from filesystem
+  pub async fn remove(fs: &ScopeFileSystem) -> Result<()> {
+    fs.remove_file(STATE_LOCK_FILE).await
+  }
+
   /// Checks if the process recorded in this lock is currently running.
   pub fn is_running(&self) -> bool {
     let Some(actual_name) = get_process_name(self.pid) else {
