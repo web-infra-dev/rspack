@@ -228,6 +228,8 @@ jobs:
     name: Run ecosystem CI per commit
     needs: [check-changed, build-linux]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
     steps:
       - name: Trigger Ecosystem CI
