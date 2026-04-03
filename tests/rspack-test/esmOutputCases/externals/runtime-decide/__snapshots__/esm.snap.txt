@@ -1,7 +1,7 @@
 ```mjs title=main.mjs
+import { readFile } from "fs";
 import { __webpack_require__ } from "./runtime.mjs";
 
-import * as __rspack_external_fs from "fs";
 export * from "fs";
 export * from "path";
 __webpack_require__.add({
@@ -18,36 +18,17 @@ def(exports)
 
 
 },
-"./runtime-decide.js"
-/*!***************************!*\
-  !*** ./runtime-decide.js ***!
-  \***************************/
-(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-/* import */ var _dynamic_exports__rspack_import_0 = __webpack_require__(/*! ./dynamic-exports */ "./dynamic-exports.js");
-/* import */ var _dynamic_exports__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_dynamic_exports__rspack_import_0);
-if(__webpack_require__.o(_dynamic_exports__rspack_import_0, "readFile")) __webpack_require__.d(__webpack_exports__, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });
-/* import */ var fs__rspack_import_1 = __webpack_require__(/*! fs */ "fs");
-if(__webpack_require__.o(fs__rspack_import_1, "readFile")) __webpack_require__.d(__webpack_exports__, { readFile: function() { return fs__rspack_import_1.readFile; } });
+});
+// fs
+
+// ./runtime-decide.js
 
 
 // side effects
 console.log.bind()
 
-
-},
-"fs"
-/*!*********************!*\
-  !*** external "fs" ***!
-  \*********************/
-(module) {
-
-module.exports = __rspack_external_fs;
-
-
-},
-});
 // ./index.js
-const runtime_decide = __webpack_require__("./runtime-decide.js");
+const dynamic_exports = __webpack_require__("./dynamic-exports.js");
 
 
 
@@ -58,7 +39,7 @@ it('should have correct exports as its exports is decided at runtime', async () 
   const { resolve: nodeResolve } = await import(/* webpackIgnore: true */ 'path');
 
   expect(resolve).toBe(nodeResolve)
-  expect(runtime_decide.readFile()).toBe(42)
+  expect(dynamic_exports.readFile()).toBe(42)
 })
 
 
@@ -89,36 +70,10 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
-// webpack/runtime/define_property_getters
-(() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
-};
-})();
 // webpack/runtime/esm_register_module
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
-})();
-// webpack/runtime/has_own_property
-(() => {
-__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
 })();
 
 export { __webpack_require__ };

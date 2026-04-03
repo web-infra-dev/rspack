@@ -1,12 +1,12 @@
 use rayon::prelude::*;
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   DeferredReexportSpec, DependencyExportsAnalysisArtifact, ExportNameOrSpec, ExportSpec,
   ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsInfoRead, ExportsOfExportsSpec,
   ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ProvidedExports,
 };
 use rspack_error::Result;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 
 use super::{collector, local_apply, process_exports_spec_without_nested};
 
@@ -23,6 +23,7 @@ pub(super) fn propagate_deferred_reexports(
   if dependency_exports_analysis_artifact.topology_dirty() {
     dependency_exports_analysis_artifact.rebuild_topology();
   }
+  let mut changed_modules = IdentifierSet::default();
   let waves = dependency_exports_analysis_artifact
     .topology()
     .waves()
@@ -38,27 +39,35 @@ pub(super) fn propagate_deferred_reexports(
           .copied()
       })
       .collect();
-    collector::collect_module_analysis(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
+    let refresh_modules = select_wave_local_refresh_modules(
       dependency_exports_analysis_artifact,
       &wave_modules,
-    )?;
-    local_apply::apply_local_exports_once(
-      module_graph,
-      exports_info_artifact,
-      dependency_exports_analysis_artifact,
-      &wave_modules,
-    )?;
-    let wave_snapshot = snapshot_exports_info_artifact(module_graph, exports_info_artifact);
+      &changed_modules,
+    );
+    if !refresh_modules.is_empty() {
+      collector::collect_module_analysis(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        dependency_exports_analysis_artifact,
+        &refresh_modules,
+      )?;
+      changed_modules = local_apply::apply_local_exports_once(
+        module_graph,
+        exports_info_artifact,
+        dependency_exports_analysis_artifact,
+        &refresh_modules,
+      )?;
+    } else {
+      changed_modules.clear();
+    }
     let wave_updates = wave
       .par_iter()
       .map(|scc_id| {
         resolve_scc_until_fixed_point(
           *scc_id,
           module_graph,
-          &wave_snapshot,
+          exports_info_artifact,
           dependency_exports_analysis_artifact,
         )
       })
@@ -66,6 +75,7 @@ pub(super) fn propagate_deferred_reexports(
 
     for module_update in wave_updates.into_iter().flatten() {
       if module_update.changed {
+        changed_modules.insert(module_update.module_identifier);
         exports_info_artifact
           .set_exports_info_by_id(module_update.exports_info.id(), module_update.exports_info);
       }
@@ -74,6 +84,35 @@ pub(super) fn propagate_deferred_reexports(
   dependency_exports_analysis_artifact.clear_all_dirty();
 
   Ok(())
+}
+
+fn select_wave_local_refresh_modules(
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
+  wave_modules: &IdentifierSet,
+  changed_modules: &IdentifierSet,
+) -> IdentifierSet {
+  if changed_modules.is_empty() {
+    return IdentifierSet::default();
+  }
+
+  wave_modules
+    .iter()
+    .filter(|module_identifier| {
+      dependency_exports_analysis_artifact
+        .module(module_identifier)
+        .is_some_and(|module_analysis| {
+          if !module_analysis.deferred_reexports().is_empty() {
+            return true;
+          }
+          module_analysis
+            .flat_local_apply()
+            .iter()
+            .flat_map(|(_, exports_spec)| exports_spec.dependencies.iter().flatten())
+            .any(|dependency| changed_modules.contains(dependency))
+        })
+    })
+    .copied()
+    .collect()
 }
 
 #[cfg(test)]
@@ -107,52 +146,32 @@ where
 
 struct PropagationModuleUpdate {
   changed: bool,
+  module_identifier: ModuleIdentifier,
   exports_info: ExportsInfoData,
 }
 
-struct WaveExportsInfoSnapshot {
-  module_exports_info: IdentifierMap<ExportsInfo>,
-  exports_info_map: FxHashMap<ExportsInfo, ExportsInfoData>,
-}
-
-impl ExportsInfoRead for WaveExportsInfoSnapshot {
-  fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    *self
-      .module_exports_info
-      .get(module_identifier)
-      .expect("should have module exports info")
-  }
-
-  fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
-    self
-      .exports_info_map
-      .get(id)
-      .expect("should have exports info snapshot")
-  }
-}
-
 struct PatchedSccExportsInfoRead<'a> {
-  snapshot: &'a WaveExportsInfoSnapshot,
+  source: &'a ExportsInfoArtifact,
   patches: &'a FxHashMap<ExportsInfo, ExportsInfoData>,
 }
 
 impl ExportsInfoRead for PatchedSccExportsInfoRead<'_> {
   fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo {
-    self.snapshot.get_exports_info(module_identifier)
+    self.source.get_exports_info(module_identifier)
   }
 
   fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData {
     self
       .patches
       .get(id)
-      .unwrap_or_else(|| self.snapshot.get_exports_info_by_id(id))
+      .unwrap_or_else(|| self.source.get_exports_info_by_id(id))
   }
 }
 
 fn resolve_scc_until_fixed_point(
   scc_id: usize,
   module_graph: &ModuleGraph,
-  wave_snapshot: &WaveExportsInfoSnapshot,
+  exports_info_artifact: &ExportsInfoArtifact,
   dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
 ) -> Result<Vec<PropagationModuleUpdate>> {
   let scc_modules = dependency_exports_analysis_artifact
@@ -163,7 +182,7 @@ fn resolve_scc_until_fixed_point(
 
   loop {
     let read_state = PatchedSccExportsInfoRead {
-      snapshot: wave_snapshot,
+      source: exports_info_artifact,
       patches: &patches,
     };
     let mut updates = Vec::new();
@@ -205,6 +224,7 @@ fn resolve_scc_until_fixed_point(
       }
       updates.push(PropagationModuleUpdate {
         changed: module_changed,
+        module_identifier: *module_identifier,
         exports_info,
       });
     }
@@ -324,57 +344,6 @@ fn deferred_reexport_as_exports_spec<T: ExportsInfoRead>(
     dependencies: Some(vec![deferred_reexport.target_module]),
     ..Default::default()
   })
-}
-
-fn snapshot_exports_info_artifact(
-  module_graph: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
-) -> WaveExportsInfoSnapshot {
-  let mut snapshot = WaveExportsInfoSnapshot {
-    module_exports_info: IdentifierMap::default(),
-    exports_info_map: FxHashMap::default(),
-  };
-  let mut copied = FxHashSet::default();
-
-  for module_identifier in module_graph.modules_keys() {
-    let exports_info = exports_info_artifact.get_exports_info(module_identifier);
-    snapshot
-      .module_exports_info
-      .insert(*module_identifier, exports_info);
-    copy_exports_info_recursive(
-      exports_info,
-      exports_info_artifact,
-      &mut snapshot,
-      &mut copied,
-    );
-  }
-
-  snapshot
-}
-
-fn copy_exports_info_recursive(
-  exports_info: ExportsInfo,
-  source: &ExportsInfoArtifact,
-  snapshot: &mut WaveExportsInfoSnapshot,
-  copied: &mut FxHashSet<ExportsInfo>,
-) {
-  if !copied.insert(exports_info) {
-    return;
-  }
-
-  let exports_info_data = source.get_exports_info_by_id(&exports_info).clone();
-  let nested_exports_infos = exports_info_data
-    .exports()
-    .values()
-    .filter_map(|export_info| export_info.exports_info())
-    .collect::<Vec<_>>();
-  snapshot
-    .exports_info_map
-    .insert(exports_info, exports_info_data);
-
-  for nested_exports_info in nested_exports_infos {
-    copy_exports_info_recursive(nested_exports_info, source, snapshot, copied);
-  }
 }
 
 #[cfg(test)]

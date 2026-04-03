@@ -1,8 +1,26 @@
 ```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./reexport.js"
+/*!*********************!*\
+  !*** ./reexport.js ***!
+  \*********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  p: () => (/* reexport safe */ (/* inlined export _first_js__rspack_import_0 */1))
+});
+
+
+
+
+},
+});
 // ./index.js
+const reexport = __webpack_require__("./reexport.js");
 
 
-/* export default */ const index = ((/* inlined export .foo */1));
+/* export default */ const index = (reexport.p);
 
 it("should keep the first conflicting namespace export under a warning", async () => {
   const mod = await import(/* webpackIgnore: true */ "./main.mjs");
@@ -11,5 +29,54 @@ it("should keep the first conflicting namespace export under a warning", async (
 });
 
 export default index;
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
 
 ```
