@@ -103,27 +103,15 @@ fn collect_module_analysis_inner(
     }
   }
 
-  for (module_identifier, analysis) in module_analyses {
-    let mut flat_dependency_targets = analysis
-      .flat_local_apply
-      .iter()
-      .flat_map(|(_, exports_spec)| exports_spec.dependencies.iter().flatten().copied())
-      .collect::<Vec<_>>();
-    flat_dependency_targets.sort_unstable();
-    flat_dependency_targets.dedup();
-    let mut targets = flat_dependency_targets.clone();
-    targets.extend(
-      analysis
-        .deferred_reexports
-        .iter()
-        .map(|reexport| reexport.target_module),
-    );
-    targets.sort_unstable();
-    targets.dedup();
+  for (module_identifier, mut analysis) in module_analyses {
+    analysis.flat_dependency_targets.sort_unstable();
+    analysis.flat_dependency_targets.dedup();
+    analysis.targets.sort_unstable();
+    analysis.targets.dedup();
     let mut module_analysis = ModuleDependencyExportsAnalysis::with_staged_analysis(
       analysis.dependency_ids,
-      targets,
-      flat_dependency_targets,
+      analysis.targets,
+      analysis.flat_dependency_targets,
       analysis.flat_local_apply,
       analysis.structured_local_apply,
       analysis.deferred_reexports,
@@ -192,9 +180,20 @@ fn collect_module_exports_specs(
           .structured_local_apply
           .push((bound_dep_id, exports_spec));
       } else {
+        if let Some(dependencies) = exports_spec.dependencies.as_ref() {
+          analysis
+            .flat_dependency_targets
+            .extend(dependencies.iter().copied());
+          analysis.targets.extend(dependencies.iter().copied());
+        }
         analysis.flat_local_apply.push((bound_dep_id, exports_spec));
       }
     }
+    analysis.targets.extend(
+      deferred_reexports
+        .iter()
+        .map(|reexport| reexport.target_module),
+    );
     analysis.deferred_reexports.extend(deferred_reexports);
   }
 
@@ -204,6 +203,8 @@ fn collect_module_exports_specs(
 #[derive(Debug, Default)]
 struct ModuleCollectedAnalysis {
   dependency_ids: Arc<[DependencyId]>,
+  targets: Vec<ModuleIdentifier>,
+  flat_dependency_targets: Vec<ModuleIdentifier>,
   flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
   structured_local_apply: Vec<(DependencyId, ExportsSpec)>,
   deferred_reexports: Vec<rspack_core::DeferredReexportSpec>,
