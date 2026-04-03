@@ -62,6 +62,19 @@ impl ModuleDependencyExportsAnalysis {
   pub fn deferred_reexports(&self) -> &[DeferredReexportSpec] {
     &self.deferred_reexports
   }
+
+  pub fn can_reuse_without_recollect(&self) -> bool {
+    self.targets.is_empty()
+      && self.structured_local_apply.is_empty()
+      && self.deferred_reexports.is_empty()
+      && self.flat_local_apply.iter().all(|(_, exports_spec)| {
+        exports_spec.from.is_none()
+          && exports_spec
+            .dependencies
+            .as_ref()
+            .is_none_or(|dependencies| dependencies.is_empty())
+      })
+  }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -106,6 +119,13 @@ impl DependencyExportsAnalysisArtifact {
     module_identifier: &ModuleIdentifier,
   ) -> Option<&ModuleDependencyExportsAnalysis> {
     self.modules.get(module_identifier)
+  }
+
+  pub fn module_mut(
+    &mut self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&mut ModuleDependencyExportsAnalysis> {
+    self.modules.get_mut(module_identifier)
   }
 
   pub fn dirty_modules(&self) -> IdentifierSet {

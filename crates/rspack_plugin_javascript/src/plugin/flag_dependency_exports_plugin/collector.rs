@@ -26,18 +26,38 @@ pub(super) fn collect_module_analysis(
   dependency_exports_analysis_artifact: &mut DependencyExportsAnalysisArtifact,
   affected_modules: &IdentifierSet,
 ) -> Result<()> {
+  let reusable_modules = affected_modules
+    .iter()
+    .filter_map(|module_identifier| {
+      dependency_exports_analysis_artifact
+        .module(module_identifier)
+        .filter(|analysis| analysis.can_reuse_without_recollect())
+        .map(|_| *module_identifier)
+    })
+    .collect::<IdentifierSet>();
   let module_analyses = affected_modules
     .par_iter()
-    .map(|module_identifier| {
+    .filter_map(|module_identifier| {
+      if reusable_modules.contains(module_identifier) {
+        return None;
+      }
       let analysis = collect_module_exports_specs(
         module_identifier,
         module_graph,
         module_graph_cache,
         exports_info_artifact,
       );
-      (*module_identifier, analysis)
+      Some((*module_identifier, analysis))
     })
     .collect::<Vec<_>>();
+
+  for module_identifier in &reusable_modules {
+    if let Some(module_analysis) =
+      dependency_exports_analysis_artifact.module_mut(module_identifier)
+    {
+      module_analysis.set_dirty(true);
+    }
+  }
 
   for (module_identifier, analysis) in module_analyses {
     let mut targets = analysis
