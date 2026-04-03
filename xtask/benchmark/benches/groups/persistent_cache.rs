@@ -26,6 +26,12 @@ const INVALIDATION_TARGET: &str = "src/d0/f0.jsx";
 const ORIGINAL_TEXT: &str = "Hello";
 const UPDATED_TEXT: &str = "Hello from cache";
 
+// This group measures filesystem-backed persistent-cache behavior with a fresh
+// compiler instance. Setup seeds cache and prepares an isolated workspace; the
+// timed closure only runs the restore build for that prepared workspace.
+//
+// Restore validation is intentionally performed on separate probe workspaces so
+// the measured workspace is not pre-touched before timing begins.
 pub fn persistent_cache_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("persistent_cache");
   let rt = Builder::new_multi_thread()
@@ -42,7 +48,12 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
     |b| {
       b.iter_batched(
         || {
+          // Clear the previous measured workspace outside the next sample's
+          // timed region so cleanup cost never lands in benchmark results.
           cleanup_pending_workspaces(&pending_cleanup);
+
+          // The measured workspace is seeded once here and then left untouched
+          // until the timed restore build runs.
           let measured_case = prepare_seeded_case();
           rt.block_on(run_compiler(
             &measured_case.project_dir,
@@ -55,6 +66,7 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
           measured_case
         },
         |case| {
+          // Criterion/CodSpeed reports the time for this restore build only.
           rt.block_on(run_restore_build(&case));
         },
         BatchSize::PerIteration,
@@ -68,6 +80,9 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
       b.iter_batched(
         || {
           cleanup_pending_workspaces(&pending_cleanup);
+
+          // Seed a fresh workspace first, then apply one deterministic source
+          // edit before entering the timed restore path.
           let measured_case = prepare_seeded_case();
           rt.block_on(run_compiler(
             &measured_case.project_dir,
@@ -81,6 +96,7 @@ pub fn persistent_cache_benchmark(c: &mut Criterion) {
           measured_case
         },
         |case| {
+          // Timed path for "persistent cache restore after a single-file edit".
           rt.block_on(run_restore_build(&case));
         },
         BatchSize::PerIteration,
@@ -101,6 +117,10 @@ struct PreparedCase {
   cache_dir: PathBuf,
 }
 
+// Warm probe:
+// - seed a throwaway workspace
+// - prove restore is available without source changes
+// - remove the probe before any measured sample runs
 fn verify_warm_restore_probe(rt: &tokio::runtime::Runtime) {
   let probe_case = prepare_seeded_case();
   rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
@@ -109,6 +129,11 @@ fn verify_warm_restore_probe(rt: &tokio::runtime::Runtime) {
   let _ = fs::remove_dir_all(probe_case.workspace_dir);
 }
 
+// Invalidation probe:
+// - seed a throwaway workspace
+// - mutate the same file used by the measured invalidation case
+// - prove restore still happens and reports exactly that file as modified
+// - remove the probe before any measured sample runs
 fn verify_invalidated_restore_probe(rt: &tokio::runtime::Runtime) {
   let probe_case = prepare_seeded_case();
   rt.block_on(run_compiler(&probe_case.project_dir, &probe_case.cache_dir));
@@ -121,6 +146,9 @@ fn verify_invalidated_restore_probe(rt: &tokio::runtime::Runtime) {
   let _ = fs::remove_dir_all(probe_case.workspace_dir);
 }
 
+// Create an isolated copy of the shared benchmark fixture plus a sample-local
+// cache directory. Each sample gets its own workspace so source edits and cache
+// contents never bleed across samples.
 fn prepare_seeded_case() -> PreparedCase {
   let workspace_dir = fresh_workspace_dir();
   let project_dir = workspace_dir.clone();
@@ -137,6 +165,8 @@ fn prepare_seeded_case() -> PreparedCase {
 }
 
 #[allow(clippy::disallowed_methods)]
+// The invalidation scenario intentionally uses a tiny deterministic text change:
+// it is cheap to apply during setup and represents a narrow single-file edit.
 fn mutate_leaf_module(project_dir: &Path) {
   let target = project_dir.join(INVALIDATION_TARGET);
   let source = fs::read_to_string(&target).unwrap();
@@ -153,6 +183,13 @@ fn mutate_leaf_module(project_dir: &Path) {
   fs::write(&target, updated).unwrap();
 }
 
+// Restore validation is stronger than "build succeeds":
+// 1. `before_compile` must report a hot start
+// 2. the modified-file set must match the expected scenario
+// 3. `before_build_module_graph` must recover the persisted make artifact
+//
+// This runs on a throwaway probe workspace so the measured workspace remains
+// untouched until the timed restore build starts.
 async fn assert_restore_available(case: &PreparedCase, expected_modified_files: &[PathBuf]) {
   let compiler_context = std::sync::Arc::new(CompilerContext::new());
   let mut compiler = within_compiler_context_sync(compiler_context.clone(), || {
@@ -211,10 +248,16 @@ async fn assert_restore_available(case: &PreparedCase, expected_modified_files: 
   compiler.close().await.unwrap();
 }
 
+// The timed restore path always creates a fresh compiler. Reusing a compiler
+// would drift toward in-memory rebuild behavior instead of the disk-backed
+// persistent-cache recovery path this benchmark is meant to track.
 async fn run_restore_build(case: &PreparedCase) {
   run_compiler(&case.project_dir, &case.cache_dir).await;
 }
 
+// Run one full compiler build and flush cache writes before returning. Setup
+// uses this to seed cache; the timed closure uses the same helper for the
+// actual restore build.
 async fn run_compiler(project_dir: &Path, cache_dir: &Path) {
   let compiler_context = std::sync::Arc::new(CompilerContext::new());
   let mut compiler = within_compiler_context_sync(compiler_context.clone(), || {
@@ -229,6 +272,9 @@ async fn run_compiler(project_dir: &Path, cache_dir: &Path) {
   .await;
 }
 
+// Reuse the existing `basic-react` benchmark builder, but replace the cache
+// configuration so all builds go through filesystem-backed persistent cache in
+// the sample-local cache directory.
 fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder::CompilerBuilder {
   let mut builder = basic_react::compiler();
   builder
@@ -259,12 +305,16 @@ fn benchcases_root_dir() -> PathBuf {
   PathBuf::from(benchcases_dir).canonicalize().unwrap()
 }
 
+// Cleanup happens during setup/finalization rather than in the measured closure
+// so filesystem deletion does not distort the reported benchmark time.
 fn cleanup_pending_workspaces(pending_cleanup: &RefCell<Vec<PathBuf>>) {
   for workspace_dir in pending_cleanup.borrow_mut().drain(..) {
     let _ = fs::remove_dir_all(workspace_dir);
   }
 }
 
+// Workspaces are created under the shared benchcases root so fixture-internal
+// relative symlinks resolve the same way they do in the original checkout.
 fn fresh_workspace_dir() -> PathBuf {
   let workspace_dir = benchcases_root_dir().join(format!(
     ".persistent-cache-bench-{}-{}",
@@ -276,6 +326,9 @@ fn fresh_workspace_dir() -> PathBuf {
   workspace_dir
 }
 
+// Recursive copy that preserves symlinks. The bench fixture uses symlinked
+// `node_modules` entries, so following links here would silently change the
+// layout being benchmarked.
 fn copy_dir_all(from: &Path, to: &Path) -> std::io::Result<()> {
   fs::create_dir_all(to)?;
 
