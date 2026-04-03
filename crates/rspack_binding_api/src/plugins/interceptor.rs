@@ -2,7 +2,10 @@ use std::{
   ffi::c_void,
   hash::Hash,
   ptr::NonNull,
-  sync::{Arc, RwLock},
+  sync::{
+    Arc, RwLock,
+    atomic::{AtomicU8, Ordering},
+  },
 };
 
 use async_trait::async_trait;
@@ -185,10 +188,57 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
 type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
 type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
+#[derive(Clone)]
+pub(super) struct HookUsageChecker {
+  inner: Arc<HookUsageCheckerInner>,
+}
+
+struct HookUsageCheckerInner {
+  _buffer: Buffer,
+  bytes: NonNull<AtomicU8>,
+  len: usize,
+}
+
+unsafe impl Send for HookUsageCheckerInner {}
+unsafe impl Sync for HookUsageCheckerInner {}
+
+impl HookUsageChecker {
+  pub(super) fn new(buffer: Buffer) -> Self {
+    Self {
+      inner: {
+        let len = buffer.len();
+        #[allow(clippy::unwrap_used)]
+        let bytes = NonNull::new(buffer.as_ref().as_ptr() as *mut AtomicU8).unwrap();
+        Arc::new(HookUsageCheckerInner {
+          _buffer: buffer,
+          bytes,
+          len,
+        })
+      },
+    }
+  }
+
+  pub(super) fn is_used(&self, kind: &RegisterJsTapKind) -> bool {
+    let inner = &self.inner;
+    let bit_index = *kind as usize;
+    let byte_index = bit_index >> 3;
+    let bit_mask = 1 << (bit_index & 7);
+    if byte_index >= inner.len {
+      return false;
+    }
+    let byte = unsafe { &*inner.bytes.as_ptr().add(byte_index) }.load(Ordering::Acquire);
+    byte & bit_mask != 0
+  }
+}
+
+fn should_skip_register(hook_usage_checker: &HookUsageChecker, kind: &RegisterJsTapKind) -> bool {
+  !hook_usage_checker.is_used(kind)
+}
+
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
   register: RegisterFunction<T, R>,
   cache: RegisterJsTapsCache<T, R>,
-  non_skippable_registers: Option<NonSkippableRegisters>,
+  hook_usage_checker: HookUsageChecker,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsInner<T, R> {
@@ -196,7 +246,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsInner<T, R> {
     Self {
       register: self.register.clone(),
       cache: self.cache.clone(),
-      non_skippable_registers: self.non_skippable_registers.clone(),
+      hook_usage_checker: self.hook_usage_checker.clone(),
     }
   }
 }
@@ -228,13 +278,13 @@ impl<T: 'static + JsValuesTupleIntoVec, R> RegisterJsTapsCache<T, R> {
 impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T, R> {
   pub fn new(
     register: RegisterFunction<T, R>,
-    non_skippable_registers: Option<NonSkippableRegisters>,
+    hook_usage_checker: HookUsageChecker,
     cache: bool,
   ) -> Self {
     Self {
       register,
       cache: RegisterJsTapsCache::new(cache),
-      non_skippable_registers,
+      hook_usage_checker,
     }
   }
 
@@ -328,9 +378,16 @@ macro_rules! define_register {
   };
   (@SKIP $name:ident, $arg:ty, $ret:ty, $cache:literal, $skip:literal) => {
     impl $name {
-      pub fn new(register: RegisterFunction<$arg, $ret>, non_skippable_registers: NonSkippableRegisters) -> Self {
+      pub(super) fn new(
+        register: RegisterFunction<$arg, $ret>,
+        hook_usage_checker: HookUsageChecker,
+      ) -> Self {
         Self {
-          inner: RegisterJsTapsInner::new(register, $skip.then_some(non_skippable_registers), $cache),
+          inner: RegisterJsTapsInner::new(
+            register,
+            hook_usage_checker,
+            $cache,
+          ),
         }
       }
     }
@@ -342,7 +399,7 @@ macro_rules! define_register {
         &self,
         hook: &$tap_hook,
       ) -> rspack_error::Result<Vec<<$tap_hook as Hook>::Tap>> {
-        if let Some(non_skippable_registers) = &self.inner.non_skippable_registers && !non_skippable_registers.is_non_skippable(&$kind) {
+        if should_skip_register(&self.inner.hook_usage_checker, &$kind) {
           return Ok(Vec::new());
         }
         let js_taps = self.inner.call_register(hook).await?;
@@ -357,7 +414,7 @@ macro_rules! define_register {
 }
 
 #[napi]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegisterJsTapKind {
   CompilerThisCompilation,
   CompilerCompilation,
@@ -410,20 +467,6 @@ pub enum RegisterJsTapKind {
   RsdoctorPluginModuleIds,
   RsdoctorPluginModuleSources,
   RsdoctorPluginAssets,
-}
-
-#[derive(Default, Clone)]
-pub struct NonSkippableRegisters(Arc<RwLock<Vec<RegisterJsTapKind>>>);
-
-impl NonSkippableRegisters {
-  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    let mut ks = self.0.write().expect("failed to write lock");
-    *ks = kinds;
-  }
-
-  pub fn is_non_skippable(&self, kind: &RegisterJsTapKind) -> bool {
-    self.0.read().expect("should lock").contains(kind)
-  }
 }
 
 #[derive(Clone)]
@@ -2033,5 +2076,47 @@ impl RsdoctorPluginAssets for RsdoctorPluginAssetsTap {
   }
   fn stage(&self) -> i32 {
     self.stage
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn checker_with_used_kinds(kinds: &[RegisterJsTapKind]) -> HookUsageChecker {
+    let byte_len = ((RegisterJsTapKind::RsdoctorPluginAssets as usize) >> 3) + 1;
+    let mut bytes = vec![0; byte_len];
+    for kind in kinds {
+      let bit_index = *kind as usize;
+      bytes[bit_index >> 3] |= 1 << (bit_index & 7);
+    }
+    HookUsageChecker::new(Buffer::from(bytes))
+  }
+
+  #[test]
+  fn hook_usage_checker_reads_bits() {
+    let checker = checker_with_used_kinds(&[
+      RegisterJsTapKind::CompilerCompilation,
+      RegisterJsTapKind::CompilationProcessAssets,
+    ]);
+
+    assert!(checker.is_used(&RegisterJsTapKind::CompilerCompilation));
+    assert!(checker.is_used(&RegisterJsTapKind::CompilationProcessAssets));
+    assert!(!checker.is_used(&RegisterJsTapKind::CompilerMake));
+  }
+
+  #[test]
+  fn checker_path_skips_unused_registers() {
+    let empty_checker = checker_with_used_kinds(&[]);
+    let used_checker = checker_with_used_kinds(&[RegisterJsTapKind::CompilerCompilation]);
+
+    assert!(should_skip_register(
+      &empty_checker,
+      &RegisterJsTapKind::CompilationBuildModule,
+    ));
+    assert!(!should_skip_register(
+      &used_checker,
+      &RegisterJsTapKind::CompilerCompilation,
+    ));
   }
 }

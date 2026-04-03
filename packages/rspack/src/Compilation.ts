@@ -69,6 +69,11 @@ import './ChunkGraph';
 // patch CodeGenerationResults
 import './CodeGenerationResults';
 import { createDiagnosticArray } from './Diagnostics';
+import {
+  COMPILER_HOOK_USAGE_TRACKERS,
+  trackHookMapUsage,
+  trackHookUsage,
+} from './HookUsageTracker';
 import type { CodeGenerationResult } from './taps/compilation';
 
 export type Assets = Record<string, Source>;
@@ -391,6 +396,103 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       afterSeal: new liteTapable.AsyncSeriesHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
+
+    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(compiler)!;
+    trackHookUsage(
+      this.hooks.processAssets,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationProcessAssets,
+    );
+    trackHookUsage(
+      this.hooks.afterProcessAssets,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationAfterProcessAssets,
+    );
+    trackHookUsage(
+      this.hooks.optimizeModules,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationOptimizeModules,
+    );
+    trackHookUsage(
+      this.hooks.afterOptimizeModules,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
+    );
+    trackHookUsage(
+      this.hooks.optimizeTree,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationOptimizeTree,
+    );
+    trackHookUsage(
+      this.hooks.optimizeChunkModules,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
+    );
+    trackHookUsage(
+      this.hooks.beforeModuleIds,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationBeforeModuleIds,
+    );
+    trackHookUsage(
+      this.hooks.finishModules,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationFinishModules,
+    );
+    trackHookUsage(
+      this.hooks.chunkHash,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationChunkHash,
+    );
+    trackHookUsage(
+      this.hooks.chunkAsset,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationChunkAsset,
+    );
+    trackHookUsage(
+      this.hooks.succeedModule,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationSucceedModule,
+    );
+    trackHookUsage(
+      this.hooks.stillValidModule,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationStillValidModule,
+    );
+    trackHookUsage(
+      this.hooks.buildModule,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationBuildModule,
+    );
+    trackHookUsage(
+      this.hooks.executeModule,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationExecuteModule,
+    );
+    trackHookUsage(
+      this.hooks.additionalTreeRuntimeRequirements,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationAdditionalTreeRuntimeRequirements,
+    );
+    trackHookMapUsage(
+      this.hooks.runtimeRequirementInTree,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
+    );
+    trackHookUsage(
+      this.hooks.runtimeModule,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationRuntimeModule,
+    );
+    trackHookUsage(
+      this.hooks.seal,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationSeal,
+    );
+    trackHookUsage(
+      this.hooks.afterSeal,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilationAfterSeal,
+    );
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack

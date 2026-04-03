@@ -129,9 +129,7 @@ use crate::{
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
   platform::RawCompilerPlatform,
-  plugins::{
-    JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
-  },
+  plugins::{JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTaps, buildtime_plugins},
   raw_options::{BuiltinPlugin, RawOptions, WithFalse},
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
@@ -185,6 +183,7 @@ impl JsCompiler {
     mut options: RawOptions,
     builtin_plugins: Vec<BuiltinPlugin>,
     register_js_taps: RegisterJsTaps,
+    hook_usage_buffer: Buffer,
     output_filesystem: ThreadsafeNodeFS,
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     input_filesystem: Option<ThreadsafeNodeFS>,
@@ -197,7 +196,8 @@ impl JsCompiler {
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
       let mut plugins = Vec::with_capacity(builtin_plugins.len());
-      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
+      let js_hooks_plugin =
+        JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps, hook_usage_buffer)?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
       // Register builtin loader plugins
@@ -332,11 +332,6 @@ impl JsCompiler {
       })
     })
   }
-  #[napi]
-  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    self.js_hooks_plugin.set_non_skippable_registers(kinds)
-  }
-
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(

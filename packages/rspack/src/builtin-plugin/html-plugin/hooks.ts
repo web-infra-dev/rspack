@@ -6,8 +6,13 @@ import type {
   JsBeforeAssetTagGenerationData,
   JsBeforeEmitData,
 } from '@rspack/binding';
+import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, checkCompilation } from '../../Compilation';
+import {
+  COMPILER_HOOK_USAGE_TRACKERS,
+  trackHookUsage,
+} from '../../HookUsageTracker';
 import type { HtmlRspackPluginOptions } from './options';
 
 const compilationHooksMap: WeakMap<Compilation, HtmlRspackPluginHooks> =
@@ -57,6 +62,39 @@ export const getPluginHooks = (compilation: Compilation) => {
       beforeEmit: new liteTapable.AsyncSeriesWaterfallHook(['data']),
       afterEmit: new liteTapable.AsyncSeriesWaterfallHook(['data']),
     };
+    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(
+      compilation.compiler,
+    )!;
+    trackHookUsage(
+      hooks.beforeAssetTagGeneration,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
+    );
+    trackHookUsage(
+      hooks.alterAssetTags,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
+    );
+    trackHookUsage(
+      hooks.alterAssetTagGroups,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
+    );
+    trackHookUsage(
+      hooks.afterTemplateExecution,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
+    );
+    trackHookUsage(
+      hooks.beforeEmit,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
+    );
+    trackHookUsage(
+      hooks.afterEmit,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.HtmlPluginAfterEmit,
+    );
     compilationHooksMap.set(compilation, hooks);
   }
   return hooks;

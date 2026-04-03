@@ -9,7 +9,7 @@
  */
 
 import { createRequire } from 'node:module';
-import type binding from '@rspack/binding';
+import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
@@ -44,6 +44,12 @@ import {
   ThreadsafeIntermediateNodeFS,
   ThreadsafeOutputNodeFS,
 } from './FileSystem';
+import {
+  COMPILER_HOOK_USAGE_TRACKERS,
+  JsHookUsageTracker,
+  markHookInterceptorAsInternal,
+  trackHookUsage,
+} from './HookUsageTracker';
 import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
@@ -147,7 +153,6 @@ class Compiler {
 
   #moduleExecutionResultsMap: Map<number, any>;
 
-  #nonSkippableRegisters: binding.RegisterJsTapKind[];
   #registers?: binding.RegisterJsTaps;
 
   #ruleSet: RuleSetCompiler;
@@ -209,7 +214,8 @@ class Compiler {
 
     this.#builtinPlugins = [];
 
-    this.#nonSkippableRegisters = [];
+    const hookUsageTracker = new JsHookUsageTracker();
+    COMPILER_HOOK_USAGE_TRACKERS.set(this, hookUsageTracker);
     this.#moduleExecutionResultsMap = new Map();
 
     this.#ruleSet = new RuleSetCompiler();
@@ -259,6 +265,47 @@ class Compiler {
       entryOption: new liteTapable.SyncBailHook(['context', 'entry']),
       additionalPass: new liteTapable.AsyncSeriesHook([]),
     };
+
+    trackHookUsage(
+      this.hooks.thisCompilation,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerThisCompilation,
+    );
+    trackHookUsage(
+      this.hooks.compilation,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerCompilation,
+    );
+    trackHookUsage(
+      this.hooks.make,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerMake,
+    );
+    trackHookUsage(
+      this.hooks.finishMake,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerFinishMake,
+    );
+    trackHookUsage(
+      this.hooks.shouldEmit,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerShouldEmit,
+    );
+    trackHookUsage(
+      this.hooks.emit,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerEmit,
+    );
+    trackHookUsage(
+      this.hooks.afterEmit,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerAfterEmit,
+    );
+    trackHookUsage(
+      this.hooks.assetEmitted,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.CompilerAssetEmitted,
+    );
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack
@@ -757,6 +804,30 @@ class Compiler {
       if (canInherentFromParent(name)) {
         if (childCompiler.hooks[name]) {
           childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
+          if (childCompiler.hooks[name].taps.length > 0) {
+            switch (name) {
+              case 'compilation':
+                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
+                  binding.RegisterJsTapKind.CompilerCompilation,
+                );
+                break;
+              case 'finishMake':
+                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
+                  binding.RegisterJsTapKind.CompilerFinishMake,
+                );
+                break;
+              case 'shouldEmit':
+                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
+                  binding.RegisterJsTapKind.CompilerShouldEmit,
+                );
+                break;
+              case 'assetEmitted':
+                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
+                  binding.RegisterJsTapKind.CompilerAssetEmitted,
+                );
+                break;
+            }
+          }
         }
       }
     }
@@ -782,6 +853,7 @@ class Compiler {
    */
   compile(callback: liteTapable.Callback<Error, Compilation>) {
     const startTime = Date.now();
+    COMPILER_HOOK_USAGE_TRACKERS.get(this)!.resetCompilationScopedBits();
     const params = this.#newCompilationParams();
     this.hooks.beforeCompile.callAsync(params, (err: any) => {
       if (err) {
@@ -824,6 +896,7 @@ class Compiler {
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
       this.cache.shutdown(() => {
+        COMPILER_HOOK_USAGE_TRACKERS.get(this)!.resetAllBits();
         const closePromise = this.#instance?.close();
         if (closePromise) {
           closePromise.then(() => callback(), callback);
@@ -861,6 +934,7 @@ class Compiler {
     removedFiles?: ReadonlySet<string>,
     callback?: (error: Error | null) => void,
   ) {
+    COMPILER_HOOK_USAGE_TRACKERS.get(this)!.resetCompilationScopedBits();
     this.#getInstance((error, instance) => {
       if (error) {
         return callback?.(error);
@@ -909,15 +983,21 @@ class Compiler {
     // reassign new compilation in thisCompilation
     this.#compilation = undefined;
     // ensure thisCompilation must call
-    this.hooks.thisCompilation.intercept({
-      call: () => {},
-    });
+    this.hooks.thisCompilation.intercept(
+      markHookInterceptorAsInternal({
+        call: () => {},
+      }),
+    );
   }
 
   #newCompilationParams(): CompilationParams {
-    const normalModuleFactory = new NormalModuleFactory(this.resolverFactory);
+    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(this)!;
+    const normalModuleFactory = new NormalModuleFactory(
+      this.resolverFactory,
+      hookUsageTracker,
+    );
     this.hooks.normalModuleFactory.call(normalModuleFactory);
-    const contextModuleFactory = new ContextModuleFactory();
+    const contextModuleFactory = new ContextModuleFactory(hookUsageTracker);
     this.hooks.contextModuleFactory.call(contextModuleFactory);
     const params = {
       normalModuleFactory,
@@ -967,6 +1047,7 @@ class Compiler {
         rawOptions,
         this.#builtinPlugins,
         this.#registers,
+        COMPILER_HOOK_USAGE_TRACKERS.get(this)!.getBuffer(),
         ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
         this.intermediateFileSystem
           ? ThreadsafeIntermediateNodeFS.__to_binding(
@@ -1031,43 +1112,6 @@ class Compiler {
     };
   }
 
-  #updateNonSkippableRegisters() {
-    const kinds: binding.RegisterJsTapKind[] = [];
-    for (const { getHook, getHookMap, registerKind } of Object.values(
-      this.#registers!,
-    )) {
-      const get = getHook ?? getHookMap;
-      const hookOrMap = get();
-      if (hookOrMap.isUsed()) {
-        kinds.push(registerKind);
-      }
-    }
-    if (this.#nonSkippableRegisters.join() !== kinds.join()) {
-      this.#getInstance((_error, instance) => {
-        instance!.setNonSkippableRegisters(kinds);
-        this.#nonSkippableRegisters = kinds;
-      });
-    }
-  }
-
-  #decorateJsTaps(jsTaps: binding.JsTap[]) {
-    if (jsTaps.length > 0) {
-      const last = jsTaps[jsTaps.length - 1];
-      const old = last.function;
-      last.function = (...args: any[]) => {
-        const result = old(...args);
-        if (result && typeof result.then === 'function') {
-          return result.then((r: any) => {
-            this.#updateNonSkippableRegisters();
-            return r;
-          });
-        }
-        this.#updateNonSkippableRegisters();
-        return result;
-      };
-    }
-  }
-
   /**
    * Note: This is not a webpack public API, maybe removed in future.
    * @internal
@@ -1077,9 +1121,7 @@ class Compiler {
     getHook: () => liteTapable.Hook<T, R, A>,
     createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any,
   ): (stages: number[]) => binding.JsTap[] {
-    const that = new WeakRef(this);
     const getTaps = (stages: number[]) => {
-      const compiler = that.deref()!;
       const hook = getHook();
       if (!hook.isUsed()) return [];
       const breakpoints = [
@@ -1099,7 +1141,6 @@ class Compiler {
           stage: liteTapable.safeStage(from + 1),
         });
       }
-      compiler.#decorateJsTaps(jsTaps);
       return jsTaps;
     };
     getTaps.registerKind = registerKind;
@@ -1116,9 +1157,7 @@ class Compiler {
     getHookMap: () => liteTapable.HookMap<H>,
     createTap: (queried: liteTapable.QueriedHookMap<H>) => any,
   ): (stages: number[]) => binding.JsTap[] {
-    const that = new WeakRef(this);
     const getTaps = (stages: number[]) => {
-      const compiler = that.deref()!;
       const map = getHookMap();
       if (!map.isUsed()) return [];
       const breakpoints = [
@@ -1138,7 +1177,6 @@ class Compiler {
           stage: liteTapable.safeStage(from + 1),
         });
       }
-      compiler.#decorateJsTaps(jsTaps);
       return jsTaps;
     };
     getTaps.registerKind = registerKind;

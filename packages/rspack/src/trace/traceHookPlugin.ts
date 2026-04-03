@@ -1,5 +1,6 @@
 // adjust from webpack's ProfilingPlugin https://github.com/webpack/webpack/blob/dec18718be5dfba28f067fb3827dd620a1f33667/lib/debug/ProfilingPlugin.js#L1
 import type { Compiler } from '../exports';
+import { markHookInterceptorAsInternal } from '../HookUsageTracker';
 import { JavaScriptTracer } from '.';
 
 const PLUGIN_NAME = 'TraceHookPlugin';
@@ -44,7 +45,11 @@ const interceptAllHooksFor = (
     for (const hookName of Object.keys(instance.hooks)) {
       const hook = instance.hooks[hookName];
       if (hook && !hook._fakeHook) {
-        hook.intercept(makeInterceptorFor(logLabel, tracer)(hookName));
+        hook.intercept(
+          markHookInterceptorAsInternal(
+            makeInterceptorFor(logLabel, tracer)(hookName),
+          ),
+        );
       }
     }
   }
@@ -190,7 +195,9 @@ export class TraceHookPlugin {
       const hook = compiler.hooks[hookName as keyof Compiler['hooks']];
       if (hook) {
         hook.intercept(
-          makeInterceptorFor(compilerName, JavaScriptTracer)(hookName),
+          markHookInterceptorAsInternal(
+            makeInterceptorFor(compilerName, JavaScriptTracer)(hookName),
+          ),
         );
       }
     }

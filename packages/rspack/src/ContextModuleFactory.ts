@@ -1,4 +1,6 @@
+import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
+import { type JsHookUsageTracker, trackHookUsage } from './HookUsageTracker';
 import type {
   ContextModuleFactoryAfterResolveResult,
   ContextModuleFactoryBeforeResolveResult,
@@ -15,10 +17,23 @@ export class ContextModuleFactory {
       ContextModuleFactoryAfterResolveResult | void
     >;
   };
-  constructor() {
+  constructor(hookUsageTracker?: JsHookUsageTracker) {
     this.hooks = {
       beforeResolve: new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
       afterResolve: new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
     };
+
+    if (hookUsageTracker) {
+      trackHookUsage(
+        this.hooks.beforeResolve,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
+      );
+      trackHookUsage(
+        this.hooks.afterResolve,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
+      );
+    }
   }
 }

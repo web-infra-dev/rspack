@@ -29,6 +29,10 @@ import {
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, checkCompilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
+import {
+  COMPILER_HOOK_USAGE_TRACKERS,
+  trackHookUsage,
+} from '../HookUsageTracker';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
 
@@ -141,6 +145,34 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
         false | void
       >(['assetPatch']),
     };
+    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(
+      compilation.compiler,
+    )!;
+    trackHookUsage(
+      hooks.moduleGraph,
+      hookUsageTracker,
+      RegisterJsTapKind.RsdoctorPluginModuleGraph,
+    );
+    trackHookUsage(
+      hooks.chunkGraph,
+      hookUsageTracker,
+      RegisterJsTapKind.RsdoctorPluginChunkGraph,
+    );
+    trackHookUsage(
+      hooks.moduleIds,
+      hookUsageTracker,
+      RegisterJsTapKind.RsdoctorPluginModuleIds,
+    );
+    trackHookUsage(
+      hooks.moduleSources,
+      hookUsageTracker,
+      RegisterJsTapKind.RsdoctorPluginModuleSources,
+    );
+    trackHookUsage(
+      hooks.assets,
+      hookUsageTracker,
+      RegisterJsTapKind.RsdoctorPluginAssets,
+    );
     compilationHooksMap.set(compilation, hooks);
   }
   return hooks;

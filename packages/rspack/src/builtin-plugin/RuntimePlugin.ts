@@ -3,6 +3,10 @@ import * as liteTapable from '@rspack/lite-tapable';
 
 import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
+import {
+  COMPILER_HOOK_USAGE_TRACKERS,
+  trackHookUsage,
+} from '../HookUsageTracker';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
 
@@ -37,6 +41,29 @@ RuntimePlugin.getCompilationHooks = (compilation: Compilation) => {
       linkPreload: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
       linkPrefetch: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
     };
+    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(
+      compilation.compiler,
+    )!;
+    trackHookUsage(
+      hooks.createScript,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.RuntimePluginCreateScript,
+    );
+    trackHookUsage(
+      hooks.createLink,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.RuntimePluginCreateLink,
+    );
+    trackHookUsage(
+      hooks.linkPreload,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.RuntimePluginLinkPreload,
+    );
+    trackHookUsage(
+      hooks.linkPrefetch,
+      hookUsageTracker,
+      binding.RegisterJsTapKind.RuntimePluginLinkPrefetch,
+    );
     compilationHooksMap.set(compilation, hooks);
   }
   return hooks;

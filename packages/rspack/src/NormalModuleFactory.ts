@@ -1,6 +1,11 @@
-import type binding from '@rspack/binding';
+import binding from '@rspack/binding';
 
 import * as liteTapable from '@rspack/lite-tapable';
+import {
+  type JsHookUsageTracker,
+  trackHookMapUsage,
+  trackHookUsage,
+} from './HookUsageTracker';
 import type { ResolveData, ResourceDataWithData } from './Module';
 import type {
   ResolveOptionsWithDependencyType,
@@ -30,7 +35,10 @@ export class NormalModuleFactory {
 
   resolverFactory: ResolverFactory;
 
-  constructor(resolverFactory: ResolverFactory) {
+  constructor(
+    resolverFactory: ResolverFactory,
+    hookUsageTracker?: JsHookUsageTracker,
+  ) {
     this.hooks = {
       resolveForScheme: new liteTapable.HookMap(
         () => new liteTapable.AsyncSeriesBailHook(['resourceData']),
@@ -44,6 +52,40 @@ export class NormalModuleFactory {
         'resolveData',
       ]),
     };
+
+    if (hookUsageTracker) {
+      trackHookMapUsage(
+        this.hooks.resolveForScheme,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
+      );
+      trackHookUsage(
+        this.hooks.beforeResolve,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
+      );
+      trackHookUsage(
+        this.hooks.factorize,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
+      );
+      trackHookUsage(
+        this.hooks.resolve,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.NormalModuleFactoryResolve,
+      );
+      trackHookUsage(
+        this.hooks.afterResolve,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
+      );
+      trackHookUsage(
+        this.hooks.createModule,
+        hookUsageTracker,
+        binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
+      );
+    }
+
     this.resolverFactory = resolverFactory;
   }
 
