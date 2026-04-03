@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Stress-run the config case that has been observed to trip WASM loader deserialization
-# (`RuntimeError: memory access out of bounds` in `Promise<JsLoaderContext>` / emnapi Worker).
+# Stress-run the config case that used to trip WASM loader deserialization when multiple
+# module builds overlapped the JS loader bridge (`RuntimeError: memory access out of bounds`
+# in `Promise<JsLoaderContext>` / emnapi Worker). `loader_yield` is now serialized on WASM.
 #
 # Prereqs: same as CI "Test WASM" — prebuilt wasm bindings under crates/node_binding/,
 # `pnpm i` at repo root. From repo root:

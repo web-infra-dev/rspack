@@ -154,6 +154,12 @@ pub(crate) struct JsLoaderRspackPlugin {
   /// See: https://github.com/web-infra-dev/rspack/pull/10632
   pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
   pub(crate) loaders_without_pitch: RwLock<FxHashSet<String>>,
+  /// On `wasm32-*`, emnapi runs threadsafe callbacks on a worker while napi-rs materializes
+  /// `Promise<JsLoaderContext>` via `Promise::then` → `JsLoaderContext::from_napi_value`. Multiple
+  /// concurrent `loader_yield` calls (parallel module builds) can overlap those bridges and corrupt
+  /// WASM linear memory (`RuntimeError: memory access out of bounds`). Serialize the JS round-trip
+  /// on WASM only; native Node-API is left unchanged.
+  pub(crate) wasm_loader_js_bridge_lock: Option<std::sync::Arc<tokio::sync::Mutex<()>>>,
 }
 
 impl JsLoaderRspackPlugin {
@@ -163,6 +169,16 @@ impl JsLoaderRspackPlugin {
       runner_getter,
       Mutex::default(),
       RwLock::new(FxHashSet::default()),
+      {
+        #[cfg(target_family = "wasm")]
+        {
+          Some(std::sync::Arc::new(tokio::sync::Mutex::new(())))
+        }
+        #[cfg(not(target_family = "wasm"))]
+        {
+          None
+        }
+      },
     )
   }
 }

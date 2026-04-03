@@ -61,6 +61,12 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
+  let _wasm_loader_js_bridge_guard = if let Some(lock) = &self.wasm_loader_js_bridge_lock {
+    Some(lock.lock().await)
+  } else {
+    None
+  };
+
   let new_cx = runner
     .call_async(loader_context.try_into()?)
     .await
