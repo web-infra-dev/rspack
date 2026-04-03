@@ -64,6 +64,8 @@ async fn read_resource(
         .map_err(|e| error!("{e}, spawn task failed"))?
     };
     #[cfg(target_family = "wasm")]
+    // Keep WASI filesystem access on the current thread. Under node:wasi,
+    // blocking workers may observe a different host-side WASI environment.
     let result = fs.read(resource_path_owned.as_path()).await;
     let result = result.map_err(|e| error!("{e}, failed to read {resource_path}"))?;
     return Ok(Some(Content::from(result)));

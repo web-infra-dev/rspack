@@ -16,5 +16,7 @@ where
     mem::drop(old);
   });
   #[cfg(target_family = "wasm")]
+  // Avoid handing destruction to a Tokio blocking worker on wasm, because
+  // the worker can run under a different node:wasi host environment.
   mem::drop(old);
 }
