@@ -63,10 +63,6 @@ pub(super) fn collect_module_analysis(
     dependency_exports_analysis_artifact.upsert_module(module_identifier, module_analysis);
   }
 
-  if dependency_exports_analysis_artifact.topology_dirty() {
-    dependency_exports_analysis_artifact.rebuild_topology();
-  }
-
   Ok(())
 }
 

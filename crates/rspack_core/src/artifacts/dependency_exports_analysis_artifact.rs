@@ -123,6 +123,13 @@ impl DependencyExportsAnalysisArtifact {
       .for_each(|analysis| analysis.set_dirty(false));
   }
 
+  pub fn has_deferred_reexports(&self) -> bool {
+    self
+      .modules
+      .values()
+      .any(|analysis| !analysis.deferred_reexports().is_empty())
+  }
+
   pub fn rebuild_topology(&mut self) {
     self.topology = DependencyExportsTopology::from_modules(&self.modules);
     self.topology_dirty = false;
