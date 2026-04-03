@@ -11,7 +11,7 @@ use rustc_hash::FxHashSet;
 use super::super::{codec::CacheCodec, storage::Storage};
 use crate::{
   FactorizeInfo,
-  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
+  compilation::build_module_graph::BuildModuleGraphArtifact,
   utils::{FileCounter, ResourceId},
 };
 
@@ -43,7 +43,6 @@ impl MakeOccasion {
       context_dependencies: _,
       missing_dependencies: _,
       build_dependencies: _,
-      state: _,
       make_failed_dependencies: _,
       make_failed_module: _,
     } = artifact;
@@ -115,7 +114,6 @@ impl MakeOccasion {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
 
-      state: BuildModuleGraphArtifactState::Initialized,
       side_effects_state_artifact: Default::default(),
       module_graph: mg,
       module_to_lazy_make,

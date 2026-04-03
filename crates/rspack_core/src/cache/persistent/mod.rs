@@ -26,7 +26,7 @@ use self::{
   storage::{BoxStorage, StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{BuildModuleGraphArtifactState, Compilation, CompilerOptions, Logger};
+use crate::{Compilation, CompilerOptions, Logger};
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -258,13 +258,7 @@ impl Cache for PersistentCache {
   }
 
   async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
-    // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if self.valid
-      && matches!(
-        compilation.build_module_graph_artifact.state,
-        BuildModuleGraphArtifactState::Uninitialized
-      )
-    {
+    if self.valid && !compilation.is_rebuild {
       match self.make_occasion.recovery(&*self.storage).await {
         Ok(artifact) => {
           *compilation.build_module_graph_artifact = artifact;
