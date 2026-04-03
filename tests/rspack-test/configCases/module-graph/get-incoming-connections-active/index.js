@@ -1,4 +1,5 @@
-import { value } from "./used";
-import "./unused";
+import { value } from './used';
+import './unused';
+import './style.css';
 
 export default value;

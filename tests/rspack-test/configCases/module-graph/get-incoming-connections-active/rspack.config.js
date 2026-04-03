@@ -1,4 +1,8 @@
 const { normalize } = require('path');
+const {
+  CssExtractRspackPlugin,
+  TRANSITIVE_ONLY,
+} = require('@rspack/core');
 
 const PLUGIN_NAME = 'Test';
 
@@ -8,6 +12,7 @@ class Plugin {
    */
   apply(compiler) {
     compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+      // Test active connections in finishModules phase
       compilation.hooks.finishModules.tap(PLUGIN_NAME, () => {
         const moduleGraph = compilation.moduleGraph;
         const entry = Array.from(compilation.entries.values())[0];
@@ -15,7 +20,6 @@ class Plugin {
         const entryConnection = moduleGraph.getConnection(entryDependency);
         const entryModule = entryConnection.module;
 
-        // Get outgoing connections from entry module
         const outgoingConnections =
           moduleGraph.getOutgoingConnections(entryModule);
 
@@ -25,23 +29,51 @@ class Plugin {
         );
         expect(usedConnection).toBeTruthy();
 
-        // Test getActiveState on outgoing connection returns true (boolean)
+        // Active connection should return true (boolean)
         const outgoingState = usedConnection.getActiveState(undefined);
         expect(outgoingState).toBe(true);
         expect(typeof outgoingState).toBe('boolean');
 
-        // Get incoming connections for "used.js" module
+        // Incoming connections to "used.js" should all be active
         const usedModule = usedConnection.module;
         const incomingConnections =
           moduleGraph.getIncomingConnections(usedModule);
         expect(incomingConnections.length).toBeGreaterThan(0);
-
-        // Verify all incoming connections to "used.js" are active
         for (const connection of incomingConnections) {
           const state = connection.getActiveState(undefined);
           expect(state).toBe(true);
-          expect(typeof state).toBe('boolean');
           expect(connection.originModule).toBeTruthy();
+        }
+      });
+
+      // Test TransitiveOnly in processAssets phase where exports info is available
+      compilation.hooks.processAssets.tap(PLUGIN_NAME, () => {
+        const moduleGraph = compilation.moduleGraph;
+        const entry = Array.from(compilation.entries.values())[0];
+        const entryDependency = entry.dependencies[0];
+        const entryConnection = moduleGraph.getConnection(entryDependency);
+        const entryModule = entryConnection.module;
+
+        const outgoingConnections =
+          moduleGraph.getOutgoingConnections(entryModule);
+
+        // Find CSS module (processed by CssExtractRspackPlugin)
+        const cssConnection = outgoingConnections.find(
+          (c) =>
+            c.module && normalize(c.module.request).includes('style.css'),
+        );
+        expect(cssConnection).toBeTruthy();
+
+        // CSS module's outgoing connections (CssDependency) should have
+        // TransitiveOnly state
+        const cssModule = cssConnection.module;
+        const cssOutgoing = moduleGraph.getOutgoingConnections(cssModule);
+        const transitiveConnections = cssOutgoing.filter(
+          (conn) => conn.getActiveState(undefined) === TRANSITIVE_ONLY,
+        );
+        expect(transitiveConnections.length).toBeGreaterThan(0);
+        for (const conn of transitiveConnections) {
+          expect(typeof conn.getActiveState(undefined)).toBe('symbol');
         }
       });
     });
@@ -55,5 +87,14 @@ module.exports = {
     __dirname: false,
     __filename: false,
   },
-  plugins: [new Plugin()],
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        use: [CssExtractRspackPlugin.loader, 'css-loader'],
+        type: 'javascript/auto',
+      },
+    ],
+  },
+  plugins: [new CssExtractRspackPlugin(), new Plugin()],
 };
