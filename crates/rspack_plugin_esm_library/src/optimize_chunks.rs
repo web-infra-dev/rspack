@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
@@ -5,7 +6,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
-  ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
+  ModuleGraph, ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
 use rspack_util::{
@@ -14,6 +15,182 @@ use rspack_util::{
 };
 
 use crate::EsmLibraryPlugin;
+
+/// Scan async (TLA) chunks for dependencies that reside in ancestor chunks.
+/// When an async chunk with TLA imports a module from its ancestor, a circular
+/// dependency is created (ancestor awaits the async chunk, which imports back
+/// from the ancestor). This function extracts such shared modules into separate
+/// chunks to break the cycle.
+///
+/// Returns `true` if any module uses top-level await, `false` otherwise.
+/// When returning `false`, no computation was performed.
+pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool {
+  let module_graph = compilation.get_module_graph();
+
+  // Early exit: if no module uses TLA, skip all computation
+  let has_tla = module_graph
+    .modules()
+    .any(|(_, m)| m.build_meta().has_top_level_await);
+  if !has_tla {
+    return false;
+  }
+
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+
+  // 1. Find async chunks: non-initial chunks containing at least one async module
+  let async_chunks: Vec<ChunkUkey> = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .iter()
+    .filter(|(_, chunk)| !chunk.can_be_initial(chunk_group_by_ukey))
+    .filter(|(ukey, _)| {
+      chunk_graph
+        .get_chunk_modules_identifier(ukey)
+        .iter()
+        .any(|m| ModuleGraph::is_async(&compilation.async_modules_artifact, m))
+    })
+    .map(|(ukey, _)| *ukey)
+    .collect();
+
+  if async_chunks.is_empty() {
+    return true;
+  }
+
+  // 2. For each async chunk, find ancestor chunks and scan for cross-chunk deps
+  let mut modules_to_extract: FxHashMap<ChunkUkey, IdentifierSet> = FxHashMap::default();
+
+  for async_chunk_ukey in &async_chunks {
+    // Get all ancestor chunk group ukeys
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(async_chunk_ukey);
+    let mut ancestor_group_ukeys = FxHashSet::default();
+    for group_ukey in chunk.groups() {
+      let group = chunk_group_by_ukey.expect_get(group_ukey);
+      ancestor_group_ukeys.extend(group.ancestors(chunk_group_by_ukey));
+    }
+
+    // Collect ancestor chunk ukeys from ancestor groups
+    let ancestor_chunks: FxHashSet<ChunkUkey> = ancestor_group_ukeys
+      .iter()
+      .flat_map(|g| chunk_group_by_ukey.expect_get(g).chunks.iter().copied())
+      .collect();
+
+    if ancestor_chunks.is_empty() {
+      continue;
+    }
+
+    let chunk_modules = chunk_graph.get_chunk_modules_identifier(async_chunk_ukey);
+
+    // BFS through all outgoing dependencies of modules in async chunk
+    let mut visited = IdentifierSet::default();
+    let mut queue: VecDeque<ModuleIdentifier> = chunk_modules.iter().copied().collect();
+
+    while let Some(module_id) = queue.pop_front() {
+      if !visited.insert(module_id) {
+        continue;
+      }
+
+      for conn in module_graph.get_outgoing_connections(&module_id) {
+        let Some(target) = module_graph.module_identifier_by_dependency_id(&conn.dependency_id)
+        else {
+          continue;
+        };
+
+        let target_chunks = chunk_graph.get_module_chunks(*target);
+
+        // Check if target is in an ancestor chunk → circular dep
+        for &target_chunk in target_chunks {
+          if ancestor_chunks.contains(&target_chunk) {
+            modules_to_extract
+              .entry(target_chunk)
+              .or_default()
+              .insert(*target);
+          }
+        }
+
+        // Continue BFS if target is in the same async chunk
+        if target_chunks.contains(async_chunk_ukey) {
+          queue.push_back(*target);
+        }
+      }
+    }
+  }
+
+  if modules_to_extract.is_empty() {
+    return true;
+  }
+
+  // 3. Extract modules: for each source chunk, create new chunk and move modules
+  for (source_chunk_ukey, modules) in modules_to_extract {
+    let new_chunk_ukey =
+      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
+
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
+      mutations.add(Mutation::ChunkAdd {
+        chunk: new_chunk_ukey,
+      });
+    }
+
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_chunk(new_chunk_ukey);
+
+    // Collect entry modules in source chunk
+    let entry_modules: IdentifierSet = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_entry_modules(&source_chunk_ukey)
+      .into_iter()
+      .collect();
+
+    // Move modules from source chunk to new chunk
+    for module_id in &modules {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .disconnect_chunk_and_module(&source_chunk_ukey, *module_id);
+
+      if entry_modules.contains(module_id) {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .disconnect_chunk_and_entry_module(&source_chunk_ukey, *module_id);
+      }
+
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .connect_chunk_and_module(new_chunk_ukey, *module_id);
+    }
+
+    // Establish chunk group relationship via split
+    let [Some(source_chunk), Some(new_chunk)] = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get_many_mut([&source_chunk_ukey, &new_chunk_ukey])
+    else {
+      unreachable!("source_chunk and new_chunk should both exist")
+    };
+
+    source_chunk.split(
+      new_chunk,
+      &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+    );
+
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
+      mutations.add(Mutation::ChunkSplit {
+        from: source_chunk_ukey,
+        to: new_chunk_ukey,
+      });
+    }
+  }
+
+  true
+}
 
 /// Ensure that all entry chunks only export the exports used by other chunks,
 /// this requires no other chunks depend on the entry chunk to get exports
