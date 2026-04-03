@@ -12,6 +12,7 @@ exports.value = 42
 
 },
 });
+export {};
 
 ```
 

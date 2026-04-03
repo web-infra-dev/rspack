@@ -121,12 +121,7 @@ impl Bucket {
     }
     let hot_pack = std::mem::take(&mut self.hot_pack);
     pack_generator.extend(hot_pack.data());
-    pack_generator.extend(
-      data
-        .into_iter()
-        .filter_map(|(k, v)| v.map(|v| (k, v)))
-        .collect(),
-    );
+    pack_generator.extend(data.into_iter().filter_map(|(k, v)| v.map(|v| (k, v))));
     let (hot_pack, new_packs) = pack_generator.finish();
 
     // Alloc id for packs

@@ -12,6 +12,7 @@ it('should keep namespace when both conflicting exports are used', async () => {
 	expect(bar).toBe('b-bar')
 })
 
+export {};
 
 ```
 

@@ -617,6 +617,14 @@ var {} = {{}};
       }
     }
 
+    // Keep side-effect-only Node chunks explicitly in ESM form.
+    // We only emit `export {};` when the chunk would otherwise render no export syntax at all.
+    let should_render_empty_export = compilation.platform.is_node()
+      && export_specifiers.is_empty()
+      && chunk_link.raw_star_exports.is_empty()
+      && chunk_link.re_exports().is_empty()
+      && export_default.is_none();
+
     if !export_specifiers.is_empty() {
       let mut export_str = String::with_capacity(export_specifiers.len() * 20);
       export_str.push_str("export { ");
@@ -693,6 +701,10 @@ var {} = {{}};
       final_source.add(RawStringSource::from(format!(
         "export default {default_export};\n",
       )));
+    }
+
+    if should_render_empty_export {
+      final_source.add(RawStringSource::from_static("export {};\n"));
     }
 
     let final_source = if replace_auto_public_path {

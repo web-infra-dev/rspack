@@ -11,5 +11,6 @@ it("should keep namespace and named external imports aligned", () => {
   expect(__rspack_external_fs.readFileSync).toBe(__rspack_external_fs.readFileSync);
 });
 
+export {};
 
 ```

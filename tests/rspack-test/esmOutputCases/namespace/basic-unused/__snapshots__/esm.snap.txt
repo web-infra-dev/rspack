@@ -8,5 +8,6 @@ it("should tree-shake an unused direct namespace import", () => {
   expect(value).toBe(234);
 });
 
+export {};
 
 ```

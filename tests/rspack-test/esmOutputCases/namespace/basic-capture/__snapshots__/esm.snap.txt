@@ -21,6 +21,7 @@ it("should keep the namespace object when a direct import is captured", () => {
   expect(value).toBe(234);
 });
 
+export {};
 
 ```
 

@@ -9,6 +9,7 @@ const cjs = __webpack_require__("./cjs.js");
 
 cjs.foo;
 
+export {};
 
 ```
 

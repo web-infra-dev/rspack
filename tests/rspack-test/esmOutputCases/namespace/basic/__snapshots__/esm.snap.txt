@@ -21,6 +21,7 @@ it('should import namespace', () => {
 	expect(foo.p).toBe(123);
 })
 
+export {};
 
 ```
 

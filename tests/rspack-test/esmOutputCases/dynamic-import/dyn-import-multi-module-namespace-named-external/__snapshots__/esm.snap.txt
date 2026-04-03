@@ -10,6 +10,7 @@ it("should avoid namespace and named binding collisions for duplicate externals"
 	expect(modB.marker).toBe("b");
 });
 
+export {};
 
 ```
 

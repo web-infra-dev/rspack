@@ -29,6 +29,7 @@ it('should preserve nested dynamic import modules and shared outside chunks', as
 	expect(feature.answer).toBe(42)
 })
 
+export {};
 
 ```
 

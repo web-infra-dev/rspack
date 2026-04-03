@@ -55,7 +55,7 @@ impl Cache for MixedCache {
     self.persistent.before_build_module_graph(compilation).await;
   }
 
-  async fn after_build_module_graph(&self, compilation: &Compilation) {
+  async fn after_build_module_graph(&mut self, compilation: &Compilation) {
     // Save to persistent cache
     self.persistent.after_build_module_graph(compilation).await;
   }

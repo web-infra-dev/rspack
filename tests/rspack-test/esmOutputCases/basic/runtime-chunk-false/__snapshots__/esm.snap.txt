@@ -48,5 +48,6 @@ it('should have correct value', () => {
   expect(lib.U).toBe(42)
 })
 
+export {};
 
 ```

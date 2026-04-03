@@ -62,7 +62,7 @@ json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.0.1", default-features = false }
 lightningcss        = { version = "1.0.0-alpha.71", default-features = false, features = ["serde"] }
 md4                 = { version = "0.10.2", default-features = false }
-memchr              = { version = "2.7.6", default-features = false }
+memchr              = { version = "2.8.0", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.6.0", default-features = false }
 mimalloc            = { version = "0.1.48", default-features = false }
@@ -85,8 +85,8 @@ regex               = { version = "1.12.3", default-features = false, features =
 regex-syntax        = { version = "0.8.10", default-features = false, features = ["std"] }
 regress             = { version = "0.10.5", default-features = false, features = ["pattern"] }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "=0.7.0", default-features = false }
-rspack_sources      = { version = "=0.4.20", default-features = false }
-rustc-hash          = { version = "2.1.1", default-features = false }
+rspack_sources      = { version = "=0.4.21", default-features = false }
+rustc-hash          = { version = "2.1.2", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
 serde               = { version = "1.0.228", default-features = false, features = ["derive"] }

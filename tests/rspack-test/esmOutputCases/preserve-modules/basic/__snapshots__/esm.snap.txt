@@ -22,6 +22,7 @@ it('should preserve modules', () => {
   expect(src_demo()).toBe('demo')
 })
 
+export {};
 
 ```
 
@@ -34,5 +35,6 @@ console.log.bind(console)
 // other1
 console.log.bind(console)
 
+export {};
 
 ```

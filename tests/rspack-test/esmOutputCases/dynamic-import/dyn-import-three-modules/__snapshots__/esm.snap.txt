@@ -18,6 +18,7 @@ it('should handle three modules in one chunk with conflicting exports', async ()
 	expect(c).toHaveProperty('id', 3)
 })
 
+export {};
 
 ```
 

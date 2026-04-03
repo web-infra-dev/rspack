@@ -10,5 +10,6 @@ it("should resolve a namespace import through nested index re-export chains", ()
   expect(foo()).toBe("hi there");
 });
 
+export {};
 
 ```
