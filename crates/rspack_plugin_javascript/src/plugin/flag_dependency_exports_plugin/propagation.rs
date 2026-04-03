@@ -95,23 +95,30 @@ fn select_wave_local_refresh_modules(
     return IdentifierSet::default();
   }
 
-  wave_modules
+  let mut refresh_modules = wave_modules
     .iter()
     .filter(|module_identifier| {
       dependency_exports_analysis_artifact
         .module(module_identifier)
-        .is_some_and(|module_analysis| {
-          if !module_analysis.deferred_reexports().is_empty() {
-            return true;
-          }
-          module_analysis
-            .flat_dependency_targets()
-            .iter()
-            .any(|dependency| changed_modules.contains(dependency))
-        })
+        .is_some_and(|module_analysis| !module_analysis.deferred_reexports().is_empty())
     })
     .copied()
-    .collect()
+    .collect::<IdentifierSet>();
+
+  for changed_module in changed_modules {
+    if let Some(dependents) =
+      dependency_exports_analysis_artifact.flat_dependents_of(changed_module)
+    {
+      refresh_modules.extend(
+        dependents
+          .iter()
+          .filter(|dependent| wave_modules.contains(dependent))
+          .copied(),
+      );
+    }
+  }
+
+  refresh_modules
 }
 
 #[cfg(test)]
