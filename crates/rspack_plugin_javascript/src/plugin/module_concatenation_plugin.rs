@@ -34,6 +34,29 @@ enum BailoutWitness {
   NotInAnyChunk,
   EntryPoint,
   Deferred,
+  MissingChunk {
+    module: String,
+    expected_chunk: String,
+    actual_chunk: String,
+  },
+  NonModuleReference {
+    module: String,
+  },
+  CrossChunkImporter {
+    module: String,
+    importer: String,
+  },
+  UnsupportedSyntaxImporter {
+    module: String,
+    importer: String,
+    syntax: String,
+  },
+  RuntimeDependentImporter {
+    module: String,
+    importer: String,
+    expected_runtime: String,
+    referenced_runtime: String,
+  },
   UnknownReexport {
     export_name: Option<Atom>,
     used_info: String,
@@ -60,6 +83,32 @@ impl BailoutWitness {
       Self::NotInAnyChunk => Cow::Borrowed("Module is not in any chunk"),
       Self::EntryPoint => Cow::Borrowed("Module is an entry point"),
       Self::Deferred => Cow::Borrowed("Module is deferred"),
+      Self::MissingChunk {
+        module,
+        expected_chunk,
+        actual_chunk,
+      } => Cow::Owned(format!(
+        "Module {module} is not in the same chunk(s) (expected in chunk(s) {expected_chunk}, module is in chunk(s) {actual_chunk})"
+      )),
+      Self::NonModuleReference { module } => Cow::Owned(format!("Module {module} is referenced")),
+      Self::CrossChunkImporter { module, importer } => Cow::Owned(format!(
+        "Module {module} is referenced from a different chunk by {importer}"
+      )),
+      Self::UnsupportedSyntaxImporter {
+        module,
+        importer,
+        syntax,
+      } => Cow::Owned(format!(
+        "Module {module} is referenced from {importer} with unsupported syntax ({syntax})"
+      )),
+      Self::RuntimeDependentImporter {
+        module,
+        importer,
+        expected_runtime,
+        referenced_runtime,
+      } => Cow::Owned(format!(
+        "Module {module} is runtime-dependent referenced by {importer} (expected runtime {expected_runtime}, module is only referenced in {referenced_runtime})"
+      )),
       Self::UnknownReexport {
         export_name,
         used_info,
@@ -85,8 +134,6 @@ impl BailoutWitness {
 #[derive(Clone, Debug)]
 enum Warning {
   Id(ModuleIdentifier),
-  Problem(String),
-  #[allow(dead_code)]
   Witness(BailoutWitness),
 }
 
@@ -197,9 +244,6 @@ impl<T> RuntimeIdentifierCache<T> {
 impl ModuleConcatenationPlugin {
   fn format_bailout_warning(&self, module: ModuleIdentifier, warning: &Warning) -> String {
     match warning {
-      Warning::Problem(problem) => {
-        format_bailout_reason(&format!("Cannot concat with {module}: {problem}"))
-      }
       Warning::Witness(witness) => format_bailout_reason(&format!(
         "Cannot concat with {module}: {}",
         witness.format_reason()
@@ -384,36 +428,39 @@ impl ModuleConcatenationPlugin {
         .collect();
 
       if !missing_chunks.is_empty() {
-        let problem_string = {
-          let mut missing_chunks_list = missing_chunks
-            .iter()
-            .map(|&chunk| {
-              let chunk = chunk_by_ukey.expect_get(chunk);
-              chunk.name().unwrap_or("unnamed chunk(s)")
-            })
-            .collect::<Vec<_>>();
-          missing_chunks_list.sort_unstable();
-
-          let mut chunks = chunk_graph
-            .get_module_chunks(*module_id)
-            .iter()
-            .map(|&chunk| {
-              let chunk = chunk_by_ukey.expect_get(&chunk);
-              chunk.name().unwrap_or("unnamed chunk(s)")
-            })
-            .collect::<Vec<_>>();
-          chunks.sort_unstable();
-
-          format!(
-            "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
-            module_readable_identifier,
-            missing_chunks_list.join(", "),
-            chunks.join(", ")
-          )
-        };
-
         statistics.incorrect_chunks += 1;
-        let problem = Warning::Problem(problem_string);
+        let mut missing_chunks_list = missing_chunks
+          .iter()
+          .map(|&chunk| {
+            let chunk = chunk_by_ukey.expect_get(chunk);
+            chunk.name().unwrap_or("unnamed chunk(s)")
+          })
+          .collect::<Vec<_>>();
+        missing_chunks_list.sort_unstable();
+
+        let mut chunks = chunk_graph
+          .get_module_chunks(*module_id)
+          .iter()
+          .map(|&chunk| {
+            let chunk = chunk_by_ukey.expect_get(&chunk);
+            chunk.name().unwrap_or("unnamed chunk(s)")
+          })
+          .collect::<Vec<_>>();
+        chunks.sort_unstable();
+
+        let problem = Warning::Witness(BailoutWitness::MissingChunk {
+          module: module_readable_identifier,
+          expected_chunk: missing_chunks_list
+            .first()
+            .copied()
+            .unwrap_or("unnamed chunk(s)")
+            .to_string(),
+          actual_chunk: chunks
+            .first()
+            .copied()
+            .unwrap_or("unnamed chunk(s)")
+            .to_string(),
+        });
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
@@ -442,23 +489,9 @@ impl ModuleConcatenationPlugin {
 
         // TODO: ADD module connection explanations
         if has_active_non_modules_connections {
-          let problem = {
-            // let importing_explanations = active_non_modules_connections
-            //   .iter()
-            //   .flat_map(|&c| c.explanation())
-            //   .collect::<HashSet<_>>();
-            // let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
-            // explanations.sort();
-            format!(
-              "Module {module_readable_identifier} is referenced",
-              // if !explanations.is_empty() {
-              //   format!("by: {}", explanations.join(", "))
-              // } else {
-              //   "in an unsupported way".to_string()
-              // }
-            )
-          };
-          let problem = Warning::Problem(problem);
+          let problem = Warning::Witness(BailoutWitness::NonModuleReference {
+            module: module_readable_identifier,
+          });
           statistics.incorrect_dependency += 1;
           failure_cache.insert(*module_id, problem.clone());
           return Some(problem);
@@ -518,7 +551,7 @@ impl ModuleConcatenationPlugin {
         .keys()
         .copied()
         .collect::<Vec<_>>();
-      let other_chunk_modules = incoming_modules
+      let other_chunk_witness = incoming_modules
         .iter()
         .filter(|&origin_module| {
           chunk_graph
@@ -526,84 +559,73 @@ impl ModuleConcatenationPlugin {
             .iter()
             .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
         })
-        .collect::<Vec<_>>();
-
-      if !other_chunk_modules.is_empty() {
-        let problem = {
-          let mut names: Vec<_> = other_chunk_modules
-            .into_iter()
-            .map(|mid| {
-              get_cached_readable_identifier(
-                mid,
-                module_graph,
-                &compilation.module_static_cache,
-                &compilation.options.context,
-              )
-            })
-            .collect();
-          names.sort();
-          format!(
-            "Module {} is referenced from different chunks by these modules: {}",
-            module_readable_identifier,
-            names.join(", ")
+        .map(|origin_module| {
+          (
+            get_cached_readable_identifier(
+              origin_module,
+              module_graph,
+              &compilation.module_static_cache,
+              &compilation.options.context,
+            ),
+            *origin_module,
           )
-        };
+        })
+        .min_by(|(left_name, left_id), (right_name, right_id)| {
+          left_name
+            .cmp(right_name)
+            .then_with(|| left_id.cmp(right_id))
+        });
 
+      if let Some((importer, _)) = other_chunk_witness {
         statistics.incorrect_chunks_of_importer += 1;
-        let problem = Warning::Problem(problem);
+        let problem = Warning::Witness(BailoutWitness::CrossChunkImporter {
+          module: module_readable_identifier,
+          importer,
+        });
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
 
-      let mut non_esm_connections = IdentifierMap::with_capacity_and_hasher(
-        incoming_connections_from_modules.len(),
-        Default::default(),
-      );
-      for (origin_module, connections) in incoming_connections_from_modules.iter() {
-        let has_non_esm_connections = connections.iter().any(|connection| {
-          let dep = module_graph.dependency_by_id(&connection.dependency_id);
-          !is_esm_dep_like(dep)
-        });
-
-        if has_non_esm_connections {
-          non_esm_connections.insert(*origin_module, connections);
-        }
-      }
-
-      if !non_esm_connections.is_empty() {
-        let problem = {
-          let names: Vec<_> = non_esm_connections
+      let non_esm_witness = incoming_connections_from_modules
+        .iter()
+        .filter_map(|(origin_module, connections)| {
+          let mut syntaxes = connections
             .iter()
-            .map(|(origin_module, connections)| {
-              let readable_identifier = get_cached_readable_identifier(
+            .filter_map(|connection| {
+              let dep = module_graph.dependency_by_id(&connection.dependency_id);
+              (!is_esm_dep_like(dep)).then(|| dep.dependency_type().to_string())
+            })
+            .collect::<Vec<_>>();
+          syntaxes.sort();
+          syntaxes.dedup();
+          syntaxes.first().cloned().map(|syntax| {
+            (
+              get_cached_readable_identifier(
                 origin_module,
                 module_graph,
                 &compilation.module_static_cache,
                 &compilation.options.context,
-              );
-              let mut names = connections
-                .iter()
-                .map(|item| {
-                  let dep = module_graph.dependency_by_id(&item.dependency_id);
-                  dep.dependency_type().to_string()
-                })
-                .collect::<Vec<_>>();
-              names.sort();
-              format!(
-                "{} (referenced with {})",
-                readable_identifier,
-                names.join(",")
-              )
-            })
-            .collect();
+              ),
+              *origin_module,
+              syntax,
+            )
+          })
+        })
+        .min_by(
+          |(left_name, left_id, left_syntax), (right_name, right_id, right_syntax)| {
+            left_name
+              .cmp(right_name)
+              .then_with(|| left_syntax.cmp(right_syntax))
+              .then_with(|| left_id.cmp(right_id))
+          },
+        );
 
-          format!(
-            "Module {} is referenced from these modules with unsupported syntax: {}",
-            module_readable_identifier,
-            names.join(", ")
-          )
-        };
-        let problem = Warning::Problem(problem);
+      if let Some((importer, _, syntax)) = non_esm_witness {
+        let problem = Warning::Witness(BailoutWitness::UnsupportedSyntaxImporter {
+          module: module_readable_identifier,
+          importer,
+          syntax,
+        });
         statistics.incorrect_module_dependency += 1;
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
@@ -613,7 +635,7 @@ impl ModuleConcatenationPlugin {
         && runtime.len() > 1
       {
         let mut other_runtime_connections = Vec::new();
-        'outer: for (origin_module, connections) in incoming_connections_from_modules {
+        'outer: for (origin_module, connections) in incoming_connections_from_modules.iter() {
           let mut current_runtime_condition = RuntimeCondition::Boolean(false);
           for connection in connections {
             let runtime_condition = filter_runtime(Some(runtime), |runtime| {
@@ -648,37 +670,43 @@ impl ModuleConcatenationPlugin {
           }
 
           if current_runtime_condition != RuntimeCondition::Boolean(false) {
-            other_runtime_connections.push((origin_module, current_runtime_condition));
+            other_runtime_connections.push((*origin_module, current_runtime_condition));
           }
         }
 
-        if !other_runtime_connections.is_empty() {
-          let problem = {
-            format!(
-              "Module {} is runtime-dependent referenced by these modules: {}",
-              module_readable_identifier,
-              other_runtime_connections
-                .iter()
-                .map(|(origin_module, runtime_condition)| {
-                  let readable_identifier = get_cached_readable_identifier(
-                    origin_module,
-                    module_graph,
-                    &compilation.module_static_cache,
-                    &compilation.options.context,
-                  );
-                  format!(
-                    "{} (expected runtime {}, module is only referenced in {})",
-                    readable_identifier,
-                    runtime,
-                    runtime_condition.as_spec().expect("should be spec")
-                  )
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
+        let runtime_witness = other_runtime_connections
+          .into_iter()
+          .map(|(origin_module, runtime_condition)| {
+            (
+              get_cached_readable_identifier(
+                &origin_module,
+                module_graph,
+                &compilation.module_static_cache,
+                &compilation.options.context,
+              ),
+              origin_module,
+              runtime_condition
+                .as_spec()
+                .expect("should be spec")
+                .to_string(),
             )
-          };
+          })
+          .min_by(
+            |(left_name, left_id, left_runtime), (right_name, right_id, right_runtime)| {
+              left_name
+                .cmp(right_name)
+                .then_with(|| left_runtime.cmp(right_runtime))
+                .then_with(|| left_id.cmp(right_id))
+            },
+          );
 
-          let problem = Warning::Problem(problem);
+        if let Some((importer, _, referenced_runtime)) = runtime_witness {
+          let problem = Warning::Witness(BailoutWitness::RuntimeDependentImporter {
+            module: module_readable_identifier,
+            importer,
+            expected_runtime: runtime.to_string(),
+            referenced_runtime,
+          });
           statistics.incorrect_runtime_condition += 1;
           failure_cache.insert(*module_id, problem.clone());
           return Some(problem);
