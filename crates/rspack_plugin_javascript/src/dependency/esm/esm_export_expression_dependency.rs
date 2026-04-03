@@ -5,9 +5,10 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsProcessing, ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource,
-  UsedName, property_access, rspack_sources::ReplacementEnforce,
+  ExportsOfExportsSpec, ExportsProcessing, ExportsSpec, ForwardId, GetExportsCacheability,
+  GetUsedNameParam, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode,
+  TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
 
@@ -115,6 +116,14 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
+  }
+
+  fn get_exports_cacheability(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> GetExportsCacheability {
+    GetExportsCacheability::Static
   }
 
   fn forward_id(&self) -> ForwardId {

@@ -402,6 +402,7 @@ mod tests {
       root,
       ModuleDependencyExportsAnalysis::with_staged_analysis(
         Arc::<[DependencyId]>::from([]),
+        false,
         [left, right],
         [],
         [],

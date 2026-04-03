@@ -24,6 +24,12 @@ pub enum AffectType {
   Transitive,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GetExportsCacheability {
+  Dynamic,
+  Static,
+}
+
 #[cacheable_dyn]
 pub trait Dependency:
   AsDependencyCodeGeneration
@@ -70,6 +76,14 @@ pub trait Dependency:
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     None
+  }
+
+  fn get_exports_cacheability(
+    &self,
+    _mg: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+  ) -> GetExportsCacheability {
+    GetExportsCacheability::Dynamic
   }
 
   fn get_module_evaluation_side_effects_state(

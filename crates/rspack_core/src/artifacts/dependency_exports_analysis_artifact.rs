@@ -11,6 +11,7 @@ use crate::{
 pub struct ModuleDependencyExportsAnalysis {
   dirty: bool,
   dependency_ids: Arc<[DependencyId]>,
+  fully_static: bool,
   targets: Vec<ModuleIdentifier>,
   flat_dependency_targets: Vec<ModuleIdentifier>,
   flat_local_apply: Vec<(DependencyId, ExportsSpec)>,
@@ -36,6 +37,7 @@ impl ModuleDependencyExportsAnalysis {
 
   pub fn with_staged_analysis(
     dependency_ids: Arc<[DependencyId]>,
+    fully_static: bool,
     targets: impl IntoIterator<Item = ModuleIdentifier>,
     flat_dependency_targets: impl IntoIterator<Item = ModuleIdentifier>,
     flat_local_apply: impl IntoIterator<Item = (DependencyId, ExportsSpec)>,
@@ -44,6 +46,7 @@ impl ModuleDependencyExportsAnalysis {
   ) -> Self {
     Self {
       dependency_ids,
+      fully_static,
       targets: targets.into_iter().collect(),
       flat_dependency_targets: flat_dependency_targets.into_iter().collect(),
       flat_local_apply: flat_local_apply.into_iter().collect(),
@@ -63,6 +66,10 @@ impl ModuleDependencyExportsAnalysis {
 
   pub fn dependency_ids_arc(&self) -> &Arc<[DependencyId]> {
     &self.dependency_ids
+  }
+
+  pub fn fully_static(&self) -> bool {
+    self.fully_static
   }
 
   pub fn targets(&self) -> &[ModuleIdentifier] {
@@ -92,6 +99,10 @@ impl ModuleDependencyExportsAnalysis {
             .as_ref()
             .is_none_or(|dependencies| dependencies.is_empty())
       })
+  }
+
+  pub fn can_reuse_collected_exports(&self) -> bool {
+    self.fully_static
   }
 }
 

@@ -4,8 +4,8 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   DependenciesBlock, DependencyExportsAnalysisArtifact, DependencyId, ExportsInfoArtifact,
-  ExportsProcessing, ExportsSpec, ModuleDependencyExportsAnalysis, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier,
+  ExportsProcessing, ExportsSpec, GetExportsCacheability, ModuleDependencyExportsAnalysis,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
 };
 use rspack_error::Result;
 use rspack_util::fx_hash::FxIndexSet;
@@ -70,7 +70,9 @@ fn collect_module_analysis_inner(
       dependency_exports_analysis_artifact
         .module(module_identifier)
         .filter(|analysis| {
-          allow_reuse && !analysis.dirty() && analysis.can_reuse_without_recollect()
+          !analysis.dirty()
+            && ((allow_reuse && analysis.can_reuse_without_recollect())
+              || analysis.can_reuse_collected_exports())
         })
         .map(|_| *module_identifier)
     })
@@ -110,6 +112,7 @@ fn collect_module_analysis_inner(
     analysis.targets.dedup();
     let mut module_analysis = ModuleDependencyExportsAnalysis::with_staged_analysis(
       analysis.dependency_ids,
+      analysis.fully_static,
       analysis.targets,
       analysis.flat_dependency_targets,
       analysis.flat_local_apply,
@@ -158,10 +161,15 @@ fn collect_module_exports_specs(
 
   let mut analysis = ModuleCollectedAnalysis {
     dependency_ids: Arc::clone(&dependency_ids),
+    fully_static: true,
     ..Default::default()
   };
   for dep_id in dependency_ids.iter().copied() {
     let dep = module_graph.dependency_by_id(&dep_id);
+    analysis.fully_static &= matches!(
+      dep.get_exports_cacheability(module_graph, module_graph_cache),
+      GetExportsCacheability::Static
+    );
     let Some(exports_spec) =
       dep.get_exports(module_graph, module_graph_cache, exports_info_artifact)
     else {
@@ -203,6 +211,7 @@ fn collect_module_exports_specs(
 #[derive(Debug, Default)]
 struct ModuleCollectedAnalysis {
   dependency_ids: Arc<[DependencyId]>,
+  fully_static: bool,
   targets: Vec<ModuleIdentifier>,
   flat_dependency_targets: Vec<ModuleIdentifier>,
   flat_local_apply: Vec<(DependencyId, ExportsSpec)>,

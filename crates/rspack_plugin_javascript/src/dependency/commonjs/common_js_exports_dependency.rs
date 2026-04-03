@@ -6,9 +6,10 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetExportsCacheability, GetUsedNameParam,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact,
+  NormalInitFragment, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access,
 };
 use swc_core::atoms::Atom;
 
@@ -122,6 +123,14 @@ impl Dependency for CommonJsExportsDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
+  }
+
+  fn get_exports_cacheability(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> GetExportsCacheability {
+    GetExportsCacheability::Static
   }
 }
 

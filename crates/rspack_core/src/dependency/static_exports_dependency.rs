@@ -4,7 +4,7 @@ use rspack_cacheable::{
 };
 use swc_core::ecma::atoms::Atom;
 
-use super::AffectType;
+use super::{AffectType, GetExportsCacheability};
 use crate::{
   AsContextDependency, AsDependencyCodeGeneration, AsModuleDependency, Dependency, DependencyId,
   DependencyType, ExportNameOrSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec,
@@ -69,6 +69,14 @@ impl Dependency for StaticExportsDependency {
 
   fn could_affect_referencing_module(&self) -> AffectType {
     AffectType::True
+  }
+
+  fn get_exports_cacheability(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> GetExportsCacheability {
+    GetExportsCacheability::Static
   }
 }
 
