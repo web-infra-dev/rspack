@@ -237,6 +237,46 @@ pub(super) fn process_exports_spec_without_nested<T: ExportsInfoRead>(
   export_desc: &ExportsSpec,
   exports_info: &mut ExportsInfoData,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
+  process_exports_spec_without_nested_impl(
+    mg,
+    exports_info_artifact,
+    module_id,
+    dep_id,
+    export_desc,
+    exports_info,
+    true,
+  )
+}
+
+pub(super) fn process_exports_spec_without_nested_no_deps<T: ExportsInfoRead>(
+  mg: &ModuleGraph,
+  exports_info_artifact: &T,
+  module_id: &ModuleIdentifier,
+  dep_id: DependencyId,
+  export_desc: &ExportsSpec,
+  exports_info: &mut ExportsInfoData,
+) -> bool {
+  process_exports_spec_without_nested_impl(
+    mg,
+    exports_info_artifact,
+    module_id,
+    dep_id,
+    export_desc,
+    exports_info,
+    false,
+  )
+  .0
+}
+
+fn process_exports_spec_without_nested_impl<T: ExportsInfoRead>(
+  mg: &ModuleGraph,
+  exports_info_artifact: &T,
+  module_id: &ModuleIdentifier,
+  dep_id: DependencyId,
+  export_desc: &ExportsSpec,
+  exports_info: &mut ExportsInfoData,
+  collect_dependencies: bool,
+) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
   let mut changed = false;
   let mut dependencies = vec![];
 
@@ -278,13 +318,16 @@ pub(super) fn process_exports_spec_without_nested<T: ExportsInfoRead>(
           priority: *global_priority,
         },
         dep_id,
+        collect_dependencies,
       );
       changed |= merge_changed;
-      dependencies.extend(merge_dependencies);
+      if collect_dependencies {
+        dependencies.extend(merge_dependencies);
+      }
     }
   }
 
-  if let Some(export_dependencies) = export_dependencies {
+  if collect_dependencies && let Some(export_dependencies) = export_dependencies {
     for export_dep in export_dependencies {
       dependencies.push((*export_dep, *module_id));
     }
@@ -351,6 +394,7 @@ fn merge_exports_without_nested<T: ExportsInfoRead>(
   exports: &[ExportNameOrSpec],
   global_export_info: DefaultExportInfo,
   dep_id: DependencyId,
+  collect_dependencies: bool,
 ) -> (bool, Vec<(ModuleIdentifier, ModuleIdentifier)>) {
   let mut changed = false;
   let mut dependencies = vec![];
@@ -382,7 +426,7 @@ fn merge_exports_without_nested<T: ExportsInfoRead>(
 
     let (target_exports_info, target_module) =
       find_target_exports_info(mg, exports_info_artifact, export_info);
-    if let Some(target_module) = target_module {
+    if collect_dependencies && let Some(target_module) = target_module {
       dependencies.push((target_module, *module_id));
     }
 

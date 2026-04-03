@@ -5,7 +5,10 @@ use rspack_core::{
 };
 use rspack_error::Result;
 
-use super::{collector, process_exports_spec, process_exports_spec_without_nested};
+use super::{
+  collector, process_exports_spec, process_exports_spec_without_nested,
+  process_exports_spec_without_nested_no_deps,
+};
 
 pub(super) fn apply_local_exports(
   module_graph: &ModuleGraph,
@@ -31,15 +34,12 @@ pub(super) fn apply_local_exports_once(
 ) -> Result<IdentifierSet> {
   let mut changed_modules =
     IdentifierSet::with_capacity_and_hasher(modules.len(), Default::default());
-  let mut dependencies = IdentifierMap::default();
-
-  apply_flat_local_exports_in_parallel(
+  apply_flat_local_exports_in_parallel_no_deps(
     module_graph,
     exports_info_artifact,
     dependency_exports_analysis_artifact,
     modules,
     &mut changed_modules,
-    &mut dependencies,
   )?;
 
   Ok(changed_modules)
@@ -310,6 +310,50 @@ fn apply_flat_local_exports_in_parallel(
         .entry(target_module)
         .or_default()
         .insert(dependent_module);
+    }
+    exports_info_artifact.set_exports_info_by_id(exports_info.id(), exports_info);
+  }
+
+  Ok(())
+}
+
+fn apply_flat_local_exports_in_parallel_no_deps(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  dependency_exports_analysis_artifact: &DependencyExportsAnalysisArtifact,
+  modules: &IdentifierSet,
+  changed_modules: &mut IdentifierSet,
+) -> Result<()> {
+  let flat_tasks = modules
+    .par_iter()
+    .filter_map(|module_identifier| {
+      let module_analysis = dependency_exports_analysis_artifact.module(module_identifier)?;
+      if module_analysis.flat_local_apply().is_empty() {
+        return None;
+      }
+
+      let mut changed = false;
+      let mut exports_info = exports_info_artifact
+        .get_exports_info_data(module_identifier)
+        .clone();
+      for (dep_id, exports_spec) in module_analysis.flat_local_apply() {
+        changed |= process_exports_spec_without_nested_no_deps(
+          module_graph,
+          exports_info_artifact,
+          module_identifier,
+          *dep_id,
+          exports_spec,
+          &mut exports_info,
+        );
+      }
+
+      Some((*module_identifier, changed, exports_info))
+    })
+    .collect::<Vec<_>>();
+
+  for (module_identifier, changed, exports_info) in flat_tasks {
+    if changed {
+      changed_modules.insert(module_identifier);
     }
     exports_info_artifact.set_exports_info_by_id(exports_info.id(), exports_info);
   }
