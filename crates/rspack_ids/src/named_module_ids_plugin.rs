@@ -183,7 +183,7 @@ async fn module_ids(
   let context: &str = compilation.options.context.as_ref();
   let mut mutations = compilation
     .incremental
-    .mutations_writeable()
+    .mutations_writable()
     .then(Mutations::default);
 
   let unnamed_modules = assign_named_module_ids(

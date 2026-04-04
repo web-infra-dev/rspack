@@ -245,7 +245,7 @@ async fn chunk_ids(
 
   let mut mutations = compilation
     .incremental
-    .mutations_writeable()
+    .mutations_writable()
     .then(Mutations::default);
 
   let mut used_ids: ChunkIdMap<ChunkUkey> = Default::default();
