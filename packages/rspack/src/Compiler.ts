@@ -45,9 +45,14 @@ import {
   ThreadsafeOutputNodeFS,
 } from './FileSystem';
 import {
+  BindingAsyncParallelHook,
+  BindingAsyncSeriesHook,
+  BindingSyncBailHook,
+  BindingSyncHook,
+  COMPILATION_HOOK_USAGE_TRACKERS,
   COMPILER_HOOK_USAGE_TRACKERS,
-  JsHookUsageTracker,
-  trackHookUsage,
+  createCompilationHookUsageTracker,
+  createCompilerHookUsageTracker,
 } from './HookUsageTracker';
 import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
@@ -138,6 +143,15 @@ export type CompilerHooks = {
 
 export const GET_COMPILER_ID = Symbol('getCompilerId');
 
+const CHILD_COMPILER_INHERITED_HOOK_USAGE_KINDS: Partial<
+  Record<keyof CompilerHooks, binding.CompilerHooks>
+> = {
+  compilation: binding.CompilerHooks.Compilation,
+  finishMake: binding.CompilerHooks.FinishMake,
+  shouldEmit: binding.CompilerHooks.ShouldEmit,
+  assetEmitted: binding.CompilerHooks.AssetEmitted,
+};
+
 class Compiler {
   #instance?: binding.JsCompiler;
   #initial: boolean;
@@ -212,30 +226,50 @@ class Compiler {
     this.#initial = true;
 
     this.#builtinPlugins = [];
-
-    const hookUsageTracker = new JsHookUsageTracker();
-    COMPILER_HOOK_USAGE_TRACKERS.set(this, hookUsageTracker);
+    const compilerHookUsageTracker = createCompilerHookUsageTracker();
+    const compilationHookUsageTracker = createCompilationHookUsageTracker();
+    COMPILER_HOOK_USAGE_TRACKERS.set(this, compilerHookUsageTracker);
+    COMPILATION_HOOK_USAGE_TRACKERS.set(this, compilationHookUsageTracker);
     this.#moduleExecutionResultsMap = new Map();
 
     this.#ruleSet = new RuleSetCompiler();
 
     this.hooks = {
       initialize: new liteTapable.SyncHook([]),
-      shouldEmit: new liteTapable.SyncBailHook(['compilation']),
+      shouldEmit: new BindingSyncBailHook(
+        ['compilation'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.ShouldEmit,
+      ),
       done: new liteTapable.AsyncSeriesHook<Stats>(['stats']),
       afterDone: new liteTapable.SyncHook<Stats>(['stats']),
       beforeRun: new liteTapable.AsyncSeriesHook(['compiler']),
       run: new liteTapable.AsyncSeriesHook(['compiler']),
-      emit: new liteTapable.AsyncSeriesHook(['compilation']),
-      assetEmitted: new liteTapable.AsyncSeriesHook(['file', 'info']),
-      afterEmit: new liteTapable.AsyncSeriesHook(['compilation']),
-      thisCompilation: new liteTapable.SyncHook<
-        [Compilation, CompilationParams]
-      >(['compilation', 'params']),
-      compilation: new liteTapable.SyncHook<[Compilation, CompilationParams]>([
-        'compilation',
-        'params',
-      ]),
+      emit: new BindingAsyncSeriesHook(
+        ['compilation'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.Emit,
+      ),
+      assetEmitted: new BindingAsyncSeriesHook(
+        ['file', 'info'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.AssetEmitted,
+      ),
+      afterEmit: new BindingAsyncSeriesHook(
+        ['compilation'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.AfterEmit,
+      ),
+      thisCompilation: new BindingSyncHook<[Compilation, CompilationParams]>(
+        ['compilation', 'params'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.ThisCompilation,
+      ),
+      compilation: new BindingSyncHook<[Compilation, CompilationParams]>(
+        ['compilation', 'params'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.Compilation,
+      ),
       invalid: new liteTapable.SyncHook(['filename', 'changeTime']),
       compile: new liteTapable.SyncHook(['params']),
       infrastructureLog: new liteTapable.SyncBailHook([
@@ -257,54 +291,21 @@ class Compiler {
       afterEnvironment: new liteTapable.SyncHook([]),
       afterPlugins: new liteTapable.SyncHook(['compiler']),
       afterResolvers: new liteTapable.SyncHook(['compiler']),
-      make: new liteTapable.AsyncParallelHook(['compilation']),
+      make: new BindingAsyncParallelHook(
+        ['compilation'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.Make,
+      ),
       beforeCompile: new liteTapable.AsyncSeriesHook(['params']),
       afterCompile: new liteTapable.AsyncSeriesHook(['compilation']),
-      finishMake: new liteTapable.AsyncSeriesHook(['compilation']),
+      finishMake: new BindingAsyncSeriesHook(
+        ['compilation'],
+        compilerHookUsageTracker,
+        binding.CompilerHooks.FinishMake,
+      ),
       entryOption: new liteTapable.SyncBailHook(['context', 'entry']),
       additionalPass: new liteTapable.AsyncSeriesHook([]),
     };
-
-    trackHookUsage(
-      this.hooks.thisCompilation,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerThisCompilation,
-    );
-    trackHookUsage(
-      this.hooks.compilation,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerCompilation,
-    );
-    trackHookUsage(
-      this.hooks.make,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerMake,
-    );
-    trackHookUsage(
-      this.hooks.finishMake,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerFinishMake,
-    );
-    trackHookUsage(
-      this.hooks.shouldEmit,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerShouldEmit,
-    );
-    trackHookUsage(
-      this.hooks.emit,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerEmit,
-    );
-    trackHookUsage(
-      this.hooks.afterEmit,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerAfterEmit,
-    );
-    trackHookUsage(
-      this.hooks.assetEmitted,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilerAssetEmitted,
-    );
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack
@@ -804,27 +805,12 @@ class Compiler {
         if (childCompiler.hooks[name]) {
           childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
           if (childCompiler.hooks[name].taps.length > 0) {
-            switch (name) {
-              case 'compilation':
-                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
-                  binding.RegisterJsTapKind.CompilerCompilation,
-                );
-                break;
-              case 'finishMake':
-                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
-                  binding.RegisterJsTapKind.CompilerFinishMake,
-                );
-                break;
-              case 'shouldEmit':
-                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
-                  binding.RegisterJsTapKind.CompilerShouldEmit,
-                );
-                break;
-              case 'assetEmitted':
-                COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.mark(
-                  binding.RegisterJsTapKind.CompilerAssetEmitted,
-                );
-                break;
+            const registerKind =
+              CHILD_COMPILER_INHERITED_HOOK_USAGE_KINDS[name];
+            if (registerKind) {
+              COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.markUsed(
+                registerKind,
+              );
             }
           }
         }
@@ -852,7 +838,7 @@ class Compiler {
    */
   compile(callback: liteTapable.Callback<Error, Compilation>) {
     const startTime = Date.now();
-    COMPILER_HOOK_USAGE_TRACKERS.get(this)!.resetCompilationScopedBits();
+    COMPILATION_HOOK_USAGE_TRACKERS.get(this)!.clear();
     const params = this.#newCompilationParams();
     this.hooks.beforeCompile.callAsync(params, (err: any) => {
       if (err) {
@@ -895,7 +881,6 @@ class Compiler {
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
       this.cache.shutdown(() => {
-        COMPILER_HOOK_USAGE_TRACKERS.get(this)!.resetAllBits();
         const closePromise = this.#instance?.close();
         if (closePromise) {
           closePromise.then(() => callback(), callback);
@@ -933,7 +918,7 @@ class Compiler {
     removedFiles?: ReadonlySet<string>,
     callback?: (error: Error | null) => void,
   ) {
-    COMPILER_HOOK_USAGE_TRACKERS.get(this)!.resetCompilationScopedBits();
+    COMPILATION_HOOK_USAGE_TRACKERS.get(this)!.clear();
     this.#getInstance((error, instance) => {
       if (error) {
         return callback?.(error);
@@ -988,14 +973,17 @@ class Compiler {
   }
 
   #newCompilationParams(): CompilationParams {
-    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(this)!;
+    const compilationHookUsageTracker =
+      COMPILATION_HOOK_USAGE_TRACKERS.get(this)!;
     const normalModuleFactory = new NormalModuleFactory(
       this.resolverFactory,
-      hookUsageTracker,
+      compilationHookUsageTracker,
     );
     this.hooks.normalModuleFactory.call(normalModuleFactory);
 
-    const contextModuleFactory = new ContextModuleFactory(hookUsageTracker);
+    const contextModuleFactory = new ContextModuleFactory(
+      compilationHookUsageTracker,
+    );
     this.hooks.contextModuleFactory.call(contextModuleFactory);
 
     const params = {
@@ -1041,23 +1029,29 @@ class Compiler {
         : undefined;
 
     try {
-      this.#instance = new instanceBinding.JsCompiler(
-        this.compilerPath,
-        rawOptions,
-        this.#builtinPlugins,
-        this.#registers,
-        COMPILER_HOOK_USAGE_TRACKERS.get(this)!.getBuffer(),
-        ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-        this.intermediateFileSystem
+      this.#instance = new instanceBinding.JsCompiler({
+        compilerPath: this.compilerPath,
+        options: rawOptions,
+        builtinPlugins: this.#builtinPlugins,
+        registerJsTaps: this.#registers,
+        compilerHookUsageBuffer: COMPILER_HOOK_USAGE_TRACKERS.get(this)!.buffer,
+        compilationHookUsageBuffer:
+          COMPILATION_HOOK_USAGE_TRACKERS.get(this)!.buffer,
+        outputFilesystem: ThreadsafeOutputNodeFS.__to_binding(
+          this.outputFileSystem!,
+        ),
+        intermediateFilesystem: this.intermediateFileSystem
           ? ThreadsafeIntermediateNodeFS.__to_binding(
               this.intermediateFileSystem,
             )
           : undefined,
-        inputFileSystem,
-        ResolverFactory.__to_binding(this.resolverFactory),
-        this.unsafeFastDrop,
-        this.#platform,
-      );
+        inputFilesystem: inputFileSystem,
+        resolverFactoryReference: ResolverFactory.__to_binding(
+          this.resolverFactory,
+        ),
+        unsafeFastDrop: this.unsafeFastDrop,
+        platform: this.#platform,
+      });
 
       callback(null, this.#instance);
     } catch (err) {
@@ -1116,7 +1110,7 @@ class Compiler {
    * @internal
    */
   #createHookRegisterTaps<T, R, A>(
-    registerKind: binding.RegisterJsTapKind,
+    registerKind: binding.CompilerHooks | binding.CompilationHooks,
     getHook: () => liteTapable.Hook<T, R, A>,
     createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any,
   ): (stages: number[]) => binding.JsTap[] {
@@ -1152,7 +1146,7 @@ class Compiler {
    * @internal
    */
   #createHookMapRegisterTaps<H extends liteTapable.Hook<any, any, any>>(
-    registerKind: binding.RegisterJsTapKind,
+    registerKind: binding.CompilerHooks | binding.CompilationHooks,
     getHookMap: () => liteTapable.HookMap<H>,
     createTap: (queried: liteTapable.QueriedHookMap<H>) => any,
   ): (stages: number[]) => binding.JsTap[] {

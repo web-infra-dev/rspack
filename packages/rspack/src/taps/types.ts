@@ -2,14 +2,16 @@ import type binding from '@rspack/binding';
 import type * as liteTapable from '@rspack/lite-tapable';
 import type { Compiler } from '../Compiler';
 
+type BindingHookKind = binding.CompilerHooks | binding.CompilationHooks;
+
 type CreateHookMapRegisterTaps = <H extends liteTapable.Hook<any, any, any>>(
-  registerKind: binding.RegisterJsTapKind,
+  registerKind: BindingHookKind,
   getHookMap: () => liteTapable.HookMap<H>,
   createTap: (queried: liteTapable.QueriedHookMap<H>) => any,
 ) => (stages: number[]) => binding.JsTap[];
 
 type CreateHookRegisterTaps = <T, R, A>(
-  registerKind: binding.RegisterJsTapKind,
+  registerKind: BindingHookKind,
   getHook: () => liteTapable.Hook<T, R, A>,
   createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any,
 ) => (stages: number[]) => binding.JsTap[];

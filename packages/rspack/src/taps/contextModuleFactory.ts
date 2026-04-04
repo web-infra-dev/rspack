@@ -10,7 +10,7 @@ export const createContextModuleFactoryHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerContextModuleFactoryBeforeResolveTaps: createTap(
-      binding.RegisterJsTapKind.ContextModuleFactoryBeforeResolve,
+      binding.CompilationHooks.ContextModuleFactoryBeforeResolve,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!
@@ -32,7 +32,7 @@ export const createContextModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerContextModuleFactoryAfterResolveTaps: createTap(
-      binding.RegisterJsTapKind.ContextModuleFactoryAfterResolve,
+      binding.CompilationHooks.ContextModuleFactoryAfterResolve,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!

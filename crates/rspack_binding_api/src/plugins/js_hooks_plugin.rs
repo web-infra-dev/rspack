@@ -478,229 +478,232 @@ impl JsHooksAdapterPlugin {
   pub fn from_js_hooks(
     _env: Env,
     register_js_taps: RegisterJsTaps,
-    hook_usage_buffer: Buffer,
+    compiler_hook_usage_buffer: Buffer,
+    compilation_hook_usage_buffer: Buffer,
   ) -> Result<Self> {
-    let hook_usage_checker = HookUsageChecker::new(hook_usage_buffer);
+    let compiler_hook_usage_checker = HookUsageChecker::compiler(compiler_hook_usage_buffer);
+    let compilation_hook_usage_checker =
+      HookUsageChecker::compilation(compilation_hook_usage_buffer);
     Ok(JsHooksAdapterPlugin {
       inner: JsHooksAdapterPluginInner {
         register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps::new(
           register_js_taps.register_compiler_this_compilation_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_compilation_taps: RegisterCompilerCompilationTaps::new(
           register_js_taps.register_compiler_compilation_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_make_taps: RegisterCompilerMakeTaps::new(
           register_js_taps.register_compiler_make_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps::new(
           register_js_taps.register_compiler_finish_make_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
           register_js_taps.register_compiler_should_emit_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_emit_taps: RegisterCompilerEmitTaps::new(
           register_js_taps.register_compiler_emit_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps::new(
           register_js_taps.register_compiler_after_emit_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker.clone(),
         ),
         register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps::new(
           register_js_taps.register_compiler_asset_emitted_taps,
-          hook_usage_checker.clone(),
+          compiler_hook_usage_checker,
         ),
         register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps::new(
           register_js_taps.register_compilation_build_module_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps::new(
           register_js_taps.register_compilation_still_valid_module_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps::new(
           register_js_taps.register_compilation_succeed_module_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
           register_js_taps.register_compilation_execute_module_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps::new(
           register_js_taps.register_compilation_finish_modules_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_optimize_modules_taps: RegisterCompilationOptimizeModulesTaps::new(
           register_js_taps.register_compilation_optimize_modules_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_after_optimize_modules_taps:
           RegisterCompilationAfterOptimizeModulesTaps::new(
             register_js_taps.register_compilation_after_optimize_modules_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps::new(
           register_js_taps.register_compilation_optimize_tree_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_optimize_chunk_modules_taps:
           RegisterCompilationOptimizeChunkModulesTaps::new(
             register_js_taps.register_compilation_optimize_chunk_modules_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_compilation_before_module_ids_taps: RegisterCompilationBeforeModuleIdsTaps::new(
           register_js_taps.register_compilation_before_module_ids_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_additional_tree_runtime_requirements_taps:
           RegisterCompilationAdditionalTreeRuntimeRequirementsTaps::new(
             register_js_taps.register_compilation_additional_tree_runtime_requirements_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_compilation_runtime_requirement_in_tree_taps:
           RegisterCompilationRuntimeRequirementInTreeTaps::new(
             register_js_taps.register_compilation_runtime_requirement_in_tree_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
           register_js_taps.register_compilation_runtime_module_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_chunk_hash_taps: RegisterCompilationChunkHashTaps::new(
           register_js_taps.register_compilation_chunk_hash_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps::new(
           register_js_taps.register_compilation_chunk_asset_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
           register_js_taps.register_compilation_process_assets_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_after_process_assets_taps:
           RegisterCompilationAfterProcessAssetsTaps::new(
             register_js_taps.register_compilation_after_process_assets_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_compilation_seal_taps: RegisterCompilationSealTaps::new(
           register_js_taps.register_compilation_seal_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps::new(
           register_js_taps.register_compilation_after_seal_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_normal_module_factory_before_resolve_taps:
           RegisterNormalModuleFactoryBeforeResolveTaps::new(
             register_js_taps.register_normal_module_factory_before_resolve_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_normal_module_factory_factorize_taps:
           RegisterNormalModuleFactoryFactorizeTaps::new(
             register_js_taps.register_normal_module_factory_factorize_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_normal_module_factory_resolve_taps: RegisterNormalModuleFactoryResolveTaps::new(
           register_js_taps.register_normal_module_factory_resolve_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_normal_module_factory_resolve_for_scheme_taps:
           RegisterNormalModuleFactoryResolveForSchemeTaps::new(
             register_js_taps.register_normal_module_factory_resolve_for_scheme_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_normal_module_factory_after_resolve_taps:
           RegisterNormalModuleFactoryAfterResolveTaps::new(
             register_js_taps.register_normal_module_factory_after_resolve_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_normal_module_factory_create_module_taps:
           RegisterNormalModuleFactoryCreateModuleTaps::new(
             register_js_taps.register_normal_module_factory_create_module_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_context_module_factory_before_resolve_taps:
           RegisterContextModuleFactoryBeforeResolveTaps::new(
             register_js_taps.register_context_module_factory_before_resolve_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_context_module_factory_after_resolve_taps:
           RegisterContextModuleFactoryAfterResolveTaps::new(
             register_js_taps.register_context_module_factory_after_resolve_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps::new(
           register_js_taps.register_javascript_modules_chunk_hash_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_html_plugin_before_asset_tag_generation_taps:
           RegisterHtmlPluginBeforeAssetTagGenerationTaps::new(
             register_js_taps.register_html_plugin_before_asset_tag_generation_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_html_plugin_alter_asset_tags_taps: RegisterHtmlPluginAlterAssetTagsTaps::new(
           register_js_taps.register_html_plugin_alter_asset_tags_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_html_plugin_alter_asset_tag_groups_taps:
           RegisterHtmlPluginAlterAssetTagGroupsTaps::new(
             register_js_taps.register_html_plugin_alter_asset_tag_groups_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_html_plugin_after_template_execution_taps:
           RegisterHtmlPluginAfterTemplateExecutionTaps::new(
             register_js_taps.register_html_plugin_after_template_execution_taps,
-            hook_usage_checker.clone(),
+            compilation_hook_usage_checker.clone(),
           ),
         register_html_plugin_before_emit_taps: RegisterHtmlPluginBeforeEmitTaps::new(
           register_js_taps.register_html_plugin_before_emit_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps::new(
           register_js_taps.register_html_plugin_after_emit_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps::new(
           register_js_taps.register_runtime_plugin_create_script_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_runtime_plugin_create_link_taps: RegisterRuntimePluginCreateLinkTaps::new(
           register_js_taps.register_runtime_plugin_create_link_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps::new(
           register_js_taps.register_runtime_plugin_link_preload_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps::new(
           register_js_taps.register_runtime_plugin_link_prefetch_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_graph_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_rsdoctor_plugin_chunk_graph_taps: RegisterRsdoctorPluginChunkGraphTaps::new(
           register_js_taps.register_rsdoctor_plugin_chunk_graph_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_rsdoctor_plugin_assets_taps: RegisterRsdoctorPluginAssetsTaps::new(
           register_js_taps.register_rsdoctor_plugin_assets_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_rsdoctor_plugin_module_ids_taps: RegisterRsdoctorPluginModuleIdsTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_ids_taps,
-          hook_usage_checker.clone(),
+          compilation_hook_usage_checker.clone(),
         ),
         register_rsdoctor_plugin_module_sources_taps: RegisterRsdoctorPluginModuleSourcesTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_sources_taps,
-          hook_usage_checker,
+          compilation_hook_usage_checker,
         ),
       }
       .into(),

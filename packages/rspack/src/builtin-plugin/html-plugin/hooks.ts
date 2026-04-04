@@ -10,8 +10,8 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, checkCompilation } from '../../Compilation';
 import {
-  COMPILER_HOOK_USAGE_TRACKERS,
-  trackHookUsage,
+  BindingAsyncSeriesWaterfallHook,
+  COMPILATION_HOOK_USAGE_TRACKERS,
 } from '../../HookUsageTracker';
 import type { HtmlRspackPluginOptions } from './options';
 
@@ -50,51 +50,41 @@ export const getPluginHooks = (compilation: Compilation) => {
 
   let hooks = compilationHooksMap.get(compilation);
   if (hooks === undefined) {
-    hooks = {
-      beforeAssetTagGeneration: new liteTapable.AsyncSeriesWaterfallHook([
-        'data',
-      ]),
-      alterAssetTags: new liteTapable.AsyncSeriesWaterfallHook(['data']),
-      alterAssetTagGroups: new liteTapable.AsyncSeriesWaterfallHook(['data']),
-      afterTemplateExecution: new liteTapable.AsyncSeriesWaterfallHook([
-        'data',
-      ]),
-      beforeEmit: new liteTapable.AsyncSeriesWaterfallHook(['data']),
-      afterEmit: new liteTapable.AsyncSeriesWaterfallHook(['data']),
-    };
-    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(
+    const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(
       compilation.compiler,
     )!;
-    trackHookUsage(
-      hooks.beforeAssetTagGeneration,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
-    );
-    trackHookUsage(
-      hooks.alterAssetTags,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
-    );
-    trackHookUsage(
-      hooks.alterAssetTagGroups,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
-    );
-    trackHookUsage(
-      hooks.afterTemplateExecution,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
-    );
-    trackHookUsage(
-      hooks.beforeEmit,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
-    );
-    trackHookUsage(
-      hooks.afterEmit,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.HtmlPluginAfterEmit,
-    );
+    hooks = {
+      beforeAssetTagGeneration: new BindingAsyncSeriesWaterfallHook(
+        ['data'],
+        hookUsageTracker,
+        binding.CompilationHooks.HtmlPluginBeforeAssetTagGeneration,
+      ),
+      alterAssetTags: new BindingAsyncSeriesWaterfallHook(
+        ['data'],
+        hookUsageTracker,
+        binding.CompilationHooks.HtmlPluginAlterAssetTags,
+      ),
+      alterAssetTagGroups: new BindingAsyncSeriesWaterfallHook(
+        ['data'],
+        hookUsageTracker,
+        binding.CompilationHooks.HtmlPluginAlterAssetTagGroups,
+      ),
+      afterTemplateExecution: new BindingAsyncSeriesWaterfallHook(
+        ['data'],
+        hookUsageTracker,
+        binding.CompilationHooks.HtmlPluginAfterTemplateExecution,
+      ),
+      beforeEmit: new BindingAsyncSeriesWaterfallHook(
+        ['data'],
+        hookUsageTracker,
+        binding.CompilationHooks.HtmlPluginBeforeEmit,
+      ),
+      afterEmit: new BindingAsyncSeriesWaterfallHook(
+        ['data'],
+        hookUsageTracker,
+        binding.CompilationHooks.HtmlPluginAfterEmit,
+      ),
+    };
     compilationHooksMap.set(compilation, hooks);
   }
   return hooks;

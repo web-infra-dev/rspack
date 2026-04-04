@@ -7,7 +7,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap, createMapTap) => {
   return {
     registerNormalModuleFactoryBeforeResolveTaps: createTap(
-      binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
+      binding.CompilationHooks.NormalModuleFactoryBeforeResolve,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!
@@ -22,7 +22,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerNormalModuleFactoryFactorizeTaps: createTap(
-      binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
+      binding.CompilationHooks.NormalModuleFactoryFactorize,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!
@@ -37,7 +37,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerNormalModuleFactoryResolveTaps: createTap(
-      binding.RegisterJsTapKind.NormalModuleFactoryResolve,
+      binding.CompilationHooks.NormalModuleFactoryResolve,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!
@@ -52,7 +52,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerNormalModuleFactoryResolveForSchemeTaps: createMapTap(
-      binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
+      binding.CompilationHooks.NormalModuleFactoryResolveForScheme,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!
@@ -67,7 +67,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerNormalModuleFactoryAfterResolveTaps: createTap(
-      binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
+      binding.CompilationHooks.NormalModuleFactoryAfterResolve,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!
@@ -82,7 +82,7 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerNormalModuleFactoryCreateModuleTaps: createTap(
-      binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
+      binding.CompilationHooks.NormalModuleFactoryCreateModule,
 
       function () {
         return getCompiler().__internal__get_compilation_params()!

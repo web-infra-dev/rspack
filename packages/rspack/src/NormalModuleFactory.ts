@@ -2,9 +2,8 @@ import binding from '@rspack/binding';
 
 import * as liteTapable from '@rspack/lite-tapable';
 import {
-  type JsHookUsageTracker,
-  trackHookMapUsage,
-  trackHookUsage,
+  BindingAsyncSeriesBailHook,
+  type HookUsageTracker,
 } from './HookUsageTracker';
 import type { ResolveData, ResourceDataWithData } from './Module';
 import type {
@@ -21,7 +20,7 @@ export class NormalModuleFactory {
   hooks: {
     // TODO: second param resolveData
     resolveForScheme: liteTapable.HookMap<
-      liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>
+      BindingAsyncSeriesBailHook<[ResourceDataWithData], true | void>
     >;
     beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
     factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
@@ -37,52 +36,43 @@ export class NormalModuleFactory {
 
   constructor(
     resolverFactory: ResolverFactory,
-    hookUsageTracker: JsHookUsageTracker,
+    hookUsageTracker: HookUsageTracker,
   ) {
     this.hooks = {
       resolveForScheme: new liteTapable.HookMap(
-        () => new liteTapable.AsyncSeriesBailHook(['resourceData']),
+        () =>
+          new BindingAsyncSeriesBailHook(
+            ['resourceData'],
+            hookUsageTracker,
+            binding.CompilationHooks.NormalModuleFactoryResolveForScheme,
+          ),
       ),
-      beforeResolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
-      factorize: new liteTapable.AsyncSeriesBailHook(['resolveData']),
-      resolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
-      afterResolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
-      createModule: new liteTapable.AsyncSeriesBailHook([
-        'createData',
-        'resolveData',
-      ]),
+      beforeResolve: new BindingAsyncSeriesBailHook(
+        ['resolveData'],
+        hookUsageTracker,
+        binding.CompilationHooks.NormalModuleFactoryBeforeResolve,
+      ),
+      factorize: new BindingAsyncSeriesBailHook(
+        ['resolveData'],
+        hookUsageTracker,
+        binding.CompilationHooks.NormalModuleFactoryFactorize,
+      ),
+      resolve: new BindingAsyncSeriesBailHook(
+        ['resolveData'],
+        hookUsageTracker,
+        binding.CompilationHooks.NormalModuleFactoryResolve,
+      ),
+      afterResolve: new BindingAsyncSeriesBailHook(
+        ['resolveData'],
+        hookUsageTracker,
+        binding.CompilationHooks.NormalModuleFactoryAfterResolve,
+      ),
+      createModule: new BindingAsyncSeriesBailHook(
+        ['createData', 'resolveData'],
+        hookUsageTracker,
+        binding.CompilationHooks.NormalModuleFactoryCreateModule,
+      ),
     };
-
-    trackHookMapUsage(
-      this.hooks.resolveForScheme,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
-    );
-    trackHookUsage(
-      this.hooks.beforeResolve,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.NormalModuleFactoryBeforeResolve,
-    );
-    trackHookUsage(
-      this.hooks.factorize,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.NormalModuleFactoryFactorize,
-    );
-    trackHookUsage(
-      this.hooks.resolve,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.NormalModuleFactoryResolve,
-    );
-    trackHookUsage(
-      this.hooks.afterResolve,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.NormalModuleFactoryAfterResolve,
-    );
-    trackHookUsage(
-      this.hooks.createModule,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.NormalModuleFactoryCreateModule,
-    );
 
     this.resolverFactory = resolverFactory;
   }

@@ -11,7 +11,7 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
   };
   return {
     registerHtmlPluginBeforeAssetTagGenerationTaps: createTap(
-      binding.RegisterJsTapKind.HtmlPluginBeforeAssetTagGeneration,
+      binding.CompilationHooks.HtmlPluginBeforeAssetTagGeneration,
       function () {
         return HtmlRspackPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -33,7 +33,7 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerHtmlPluginAlterAssetTagsTaps: createTap(
-      binding.RegisterJsTapKind.HtmlPluginAlterAssetTags,
+      binding.CompilationHooks.HtmlPluginAlterAssetTags,
       function () {
         return HtmlRspackPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -55,7 +55,7 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerHtmlPluginAlterAssetTagGroupsTaps: createTap(
-      binding.RegisterJsTapKind.HtmlPluginAlterAssetTagGroups,
+      binding.CompilationHooks.HtmlPluginAlterAssetTagGroups,
       function () {
         return HtmlRspackPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -77,7 +77,7 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerHtmlPluginAfterTemplateExecutionTaps: createTap(
-      binding.RegisterJsTapKind.HtmlPluginAfterTemplateExecution,
+      binding.CompilationHooks.HtmlPluginAfterTemplateExecution,
       function () {
         return HtmlRspackPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -98,7 +98,7 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerHtmlPluginBeforeEmitTaps: createTap(
-      binding.RegisterJsTapKind.HtmlPluginBeforeEmit,
+      binding.CompilationHooks.HtmlPluginBeforeEmit,
       function () {
         return HtmlRspackPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -120,7 +120,7 @@ export const createHtmlPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerHtmlPluginAfterEmitTaps: createTap(
-      binding.RegisterJsTapKind.HtmlPluginAfterEmit,
+      binding.CompilationHooks.HtmlPluginAfterEmit,
       function () {
         return HtmlRspackPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,

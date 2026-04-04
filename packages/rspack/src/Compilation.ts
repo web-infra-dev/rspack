@@ -70,9 +70,11 @@ import './ChunkGraph';
 import './CodeGenerationResults';
 import { createDiagnosticArray } from './Diagnostics';
 import {
-  COMPILER_HOOK_USAGE_TRACKERS,
-  trackHookMapUsage,
-  trackHookUsage,
+  BindingAsyncSeriesBailHook,
+  BindingAsyncSeriesHook,
+  COMPILATION_HOOK_USAGE_TRACKERS,
+  BindingSyncBailHook,
+  BindingSyncHook,
 } from './HookUsageTracker';
 import type { CodeGenerationResult } from './taps/compilation';
 
@@ -255,7 +257,7 @@ export class Compilation {
       [Chunk, Set<string>]
     >;
     runtimeRequirementInTree: liteTapable.HookMap<
-      liteTapable.SyncBailHook<[Chunk, Set<string>], void>
+      BindingSyncBailHook<[Chunk, Set<string>], void>
     >;
     runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
     seal: liteTapable.SyncHook<[]>;
@@ -296,9 +298,12 @@ export class Compilation {
     this.#inner = inner;
     this.#shutdown = false;
 
-    const processAssetsHook = new liteTapable.AsyncSeriesHook<Assets>([
-      'assets',
-    ]);
+    const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(compiler)!;
+    const processAssetsHook = new BindingAsyncSeriesHook<Assets>(
+      ['assets'],
+      hookUsageTracker,
+      binding.CompilationHooks.ProcessAssets,
+    );
     const createProcessAssetsHook = <T>(
       name: string,
       stage: number,
@@ -347,7 +352,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     };
     this.hooks = {
       processAssets: processAssetsHook,
-      afterProcessAssets: new liteTapable.SyncHook(['assets']),
+      afterProcessAssets: new BindingSyncHook(
+        ['assets'],
+        hookUsageTracker,
+        binding.CompilationHooks.AfterProcessAssets,
+      ),
       /** @deprecated */
       additionalAssets: createProcessAssetsHook(
         'additionalAssets',
@@ -360,20 +369,57 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
         'compilerIndex',
       ]),
       log: new liteTapable.SyncBailHook(['origin', 'logEntry']),
-      optimizeModules: new liteTapable.SyncBailHook(['modules']),
-      afterOptimizeModules: new liteTapable.SyncBailHook(['modules']),
-      optimizeTree: new liteTapable.AsyncSeriesHook(['chunks', 'modules']),
-      optimizeChunkModules: new liteTapable.AsyncSeriesBailHook([
-        'chunks',
-        'modules',
-      ]),
-      beforeModuleIds: new liteTapable.SyncHook(['modules']),
-      finishModules: new liteTapable.AsyncSeriesHook(['modules']),
-      chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
-      chunkAsset: new liteTapable.SyncHook(['chunk', 'filename']),
+      optimizeModules: new BindingSyncBailHook(
+        ['modules'],
+        hookUsageTracker,
+        binding.CompilationHooks.OptimizeModules,
+      ),
+      afterOptimizeModules: new BindingSyncHook(
+        ['modules'],
+        hookUsageTracker,
+        binding.CompilationHooks.AfterOptimizeModules,
+      ),
+      optimizeTree: new BindingAsyncSeriesHook(
+        ['chunks', 'modules'],
+        hookUsageTracker,
+        binding.CompilationHooks.OptimizeTree,
+      ),
+      optimizeChunkModules: new BindingAsyncSeriesBailHook(
+        ['chunks', 'modules'],
+        hookUsageTracker,
+        binding.CompilationHooks.OptimizeChunkModules,
+      ),
+      beforeModuleIds: new BindingSyncHook(
+        ['modules'],
+        hookUsageTracker,
+        binding.CompilationHooks.BeforeModuleIds,
+      ),
+      finishModules: new BindingAsyncSeriesHook(
+        ['modules'],
+        hookUsageTracker,
+        binding.CompilationHooks.FinishModules,
+      ),
+      chunkHash: new BindingSyncHook(
+        ['chunk', 'hash'],
+        hookUsageTracker,
+        binding.CompilationHooks.ChunkHash,
+      ),
+      chunkAsset: new BindingSyncHook(
+        ['chunk', 'filename'],
+        hookUsageTracker,
+        binding.CompilationHooks.ChunkAsset,
+      ),
       processWarnings: new liteTapable.SyncWaterfallHook(['warnings']),
-      succeedModule: new liteTapable.SyncHook(['module']),
-      stillValidModule: new liteTapable.SyncHook(['module']),
+      succeedModule: new BindingSyncHook(
+        ['module'],
+        hookUsageTracker,
+        binding.CompilationHooks.SucceedModule,
+      ),
+      stillValidModule: new BindingSyncHook(
+        ['module'],
+        hookUsageTracker,
+        binding.CompilationHooks.StillValidModule,
+      ),
 
       statsPreset: new liteTapable.HookMap(
         () => new liteTapable.SyncHook(['options', 'context']),
@@ -382,117 +428,46 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       statsFactory: new liteTapable.SyncHook(['statsFactory', 'options']),
       statsPrinter: new liteTapable.SyncHook(['statsPrinter', 'options']),
 
-      buildModule: new liteTapable.SyncHook(['module']),
-      executeModule: new liteTapable.SyncHook(['options', 'context']),
-      additionalTreeRuntimeRequirements: new liteTapable.SyncHook([
-        'chunk',
-        'runtimeRequirements',
-      ]),
-      runtimeRequirementInTree: new liteTapable.HookMap(
-        () => new liteTapable.SyncBailHook(['chunk', 'runtimeRequirements']),
+      buildModule: new BindingSyncHook(
+        ['module'],
+        hookUsageTracker,
+        binding.CompilationHooks.BuildModule,
       ),
-      runtimeModule: new liteTapable.SyncHook(['module', 'chunk']),
-      seal: new liteTapable.SyncHook([]),
-      afterSeal: new liteTapable.AsyncSeriesHook([]),
+      executeModule: new BindingSyncHook(
+        ['options', 'context'],
+        hookUsageTracker,
+        binding.CompilationHooks.ExecuteModule,
+      ),
+      additionalTreeRuntimeRequirements: new BindingSyncHook(
+        ['chunk', 'runtimeRequirements'],
+        hookUsageTracker,
+        binding.CompilationHooks.AdditionalTreeRuntimeRequirements,
+      ),
+      runtimeRequirementInTree: new liteTapable.HookMap(
+        () =>
+          new BindingSyncBailHook(
+            ['chunk', 'runtimeRequirements'],
+            hookUsageTracker,
+            binding.CompilationHooks.RuntimeRequirementInTree,
+          ),
+      ),
+      runtimeModule: new BindingSyncHook(
+        ['module', 'chunk'],
+        hookUsageTracker,
+        binding.CompilationHooks.RuntimeModule,
+      ),
+      seal: new BindingSyncHook(
+        [],
+        hookUsageTracker,
+        binding.CompilationHooks.Seal,
+      ),
+      afterSeal: new BindingAsyncSeriesHook(
+        [],
+        hookUsageTracker,
+        binding.CompilationHooks.AfterSeal,
+      ),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
-
-    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(compiler)!;
-    trackHookUsage(
-      this.hooks.processAssets,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationProcessAssets,
-    );
-    trackHookUsage(
-      this.hooks.afterProcessAssets,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationAfterProcessAssets,
-    );
-    trackHookUsage(
-      this.hooks.optimizeModules,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationOptimizeModules,
-    );
-    trackHookUsage(
-      this.hooks.afterOptimizeModules,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
-    );
-    trackHookUsage(
-      this.hooks.optimizeTree,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationOptimizeTree,
-    );
-    trackHookUsage(
-      this.hooks.optimizeChunkModules,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
-    );
-    trackHookUsage(
-      this.hooks.beforeModuleIds,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationBeforeModuleIds,
-    );
-    trackHookUsage(
-      this.hooks.finishModules,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationFinishModules,
-    );
-    trackHookUsage(
-      this.hooks.chunkHash,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationChunkHash,
-    );
-    trackHookUsage(
-      this.hooks.chunkAsset,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationChunkAsset,
-    );
-    trackHookUsage(
-      this.hooks.succeedModule,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationSucceedModule,
-    );
-    trackHookUsage(
-      this.hooks.stillValidModule,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationStillValidModule,
-    );
-    trackHookUsage(
-      this.hooks.buildModule,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationBuildModule,
-    );
-    trackHookUsage(
-      this.hooks.executeModule,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationExecuteModule,
-    );
-    trackHookUsage(
-      this.hooks.additionalTreeRuntimeRequirements,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationAdditionalTreeRuntimeRequirements,
-    );
-    trackHookMapUsage(
-      this.hooks.runtimeRequirementInTree,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
-    );
-    trackHookUsage(
-      this.hooks.runtimeModule,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationRuntimeModule,
-    );
-    trackHookUsage(
-      this.hooks.seal,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationSeal,
-    );
-    trackHookUsage(
-      this.hooks.afterSeal,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.CompilationAfterSeal,
-    );
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack

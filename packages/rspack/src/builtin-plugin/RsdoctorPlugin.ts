@@ -24,14 +24,14 @@ import {
   type JsRsdoctorStatement,
   type JsRsdoctorVariable,
   type RawRsdoctorPluginOptions,
-  RegisterJsTapKind,
+  CompilationHooks,
 } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, checkCompilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
-  COMPILER_HOOK_USAGE_TRACKERS,
-  trackHookUsage,
+  BindingAsyncSeriesBailHook,
+  COMPILATION_HOOK_USAGE_TRACKERS,
 } from '../HookUsageTracker';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
@@ -121,60 +121,53 @@ const RsdoctorPlugin = RsdoctorPluginImpl as typeof RsdoctorPluginImpl & {
 RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
   checkCompilation(compilation);
 
-  let hooks = compilationHooksMap.get(compilation);
-  if (hooks === undefined) {
-    hooks = {
-      moduleGraph: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorModuleGraph],
-        false | void
-      >(['moduleGraph']),
-      chunkGraph: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorChunkGraph],
-        false | void
-      >(['chunkGraph']),
-      moduleIds: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorModuleIdsPatch],
-        false | void
-      >(['moduleIdsPatch']),
-      moduleSources: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorModuleSourcesPatch],
-        false | void
-      >(['moduleSourcesPatch']),
-      assets: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorAssetPatch],
-        false | void
-      >(['assetPatch']),
-    };
-    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(
-      compilation.compiler,
-    )!;
-    trackHookUsage(
-      hooks.moduleGraph,
-      hookUsageTracker,
-      RegisterJsTapKind.RsdoctorPluginModuleGraph,
-    );
-    trackHookUsage(
-      hooks.chunkGraph,
-      hookUsageTracker,
-      RegisterJsTapKind.RsdoctorPluginChunkGraph,
-    );
-    trackHookUsage(
-      hooks.moduleIds,
-      hookUsageTracker,
-      RegisterJsTapKind.RsdoctorPluginModuleIds,
-    );
-    trackHookUsage(
-      hooks.moduleSources,
-      hookUsageTracker,
-      RegisterJsTapKind.RsdoctorPluginModuleSources,
-    );
-    trackHookUsage(
-      hooks.assets,
-      hookUsageTracker,
-      RegisterJsTapKind.RsdoctorPluginAssets,
-    );
-    compilationHooksMap.set(compilation, hooks);
+  const existingHooks = compilationHooksMap.get(compilation);
+  if (existingHooks) {
+    return existingHooks;
   }
+
+  const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(
+    compilation.compiler,
+  )!;
+  const hooks: RsdoctorPluginHooks = {
+    moduleGraph: new BindingAsyncSeriesBailHook<
+      [JsRsdoctorModuleGraph],
+      false | void
+    >(
+      ['moduleGraph'],
+      hookUsageTracker,
+      CompilationHooks.RsdoctorPluginModuleGraph,
+    ),
+    chunkGraph: new BindingAsyncSeriesBailHook<
+      [JsRsdoctorChunkGraph],
+      false | void
+    >(
+      ['chunkGraph'],
+      hookUsageTracker,
+      CompilationHooks.RsdoctorPluginChunkGraph,
+    ),
+    moduleIds: new BindingAsyncSeriesBailHook<
+      [JsRsdoctorModuleIdsPatch],
+      false | void
+    >(
+      ['moduleIdsPatch'],
+      hookUsageTracker,
+      CompilationHooks.RsdoctorPluginModuleIds,
+    ),
+    moduleSources: new BindingAsyncSeriesBailHook<
+      [JsRsdoctorModuleSourcesPatch],
+      false | void
+    >(
+      ['moduleSourcesPatch'],
+      hookUsageTracker,
+      CompilationHooks.RsdoctorPluginModuleSources,
+    ),
+    assets: new BindingAsyncSeriesBailHook<
+      [JsRsdoctorAssetPatch],
+      false | void
+    >(['assetPatch'], hookUsageTracker, CompilationHooks.RsdoctorPluginAssets),
+  };
+  compilationHooksMap.set(compilation, hooks);
   return hooks;
 };
 
@@ -183,7 +176,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerRsdoctorPluginModuleGraphTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginModuleGraph,
+      CompilationHooks.RsdoctorPluginModuleGraph,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -196,7 +189,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginChunkGraphTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginChunkGraph,
+      CompilationHooks.RsdoctorPluginChunkGraph,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -209,7 +202,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginModuleIdsTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginModuleIds,
+      CompilationHooks.RsdoctorPluginModuleIds,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -222,7 +215,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginModuleSourcesTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginModuleSources,
+      CompilationHooks.RsdoctorPluginModuleSources,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -235,7 +228,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginAssetsTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginAssets,
+      CompilationHooks.RsdoctorPluginAssets,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,

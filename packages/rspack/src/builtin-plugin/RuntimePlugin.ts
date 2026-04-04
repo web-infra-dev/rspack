@@ -4,8 +4,8 @@ import * as liteTapable from '@rspack/lite-tapable';
 import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
 import {
-  COMPILER_HOOK_USAGE_TRACKERS,
-  trackHookUsage,
+  BindingSyncWaterfallHook,
+  COMPILATION_HOOK_USAGE_TRACKERS,
 } from '../HookUsageTracker';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
@@ -35,35 +35,31 @@ RuntimePlugin.getCompilationHooks = (compilation: Compilation) => {
 
   let hooks = compilationHooksMap.get(compilation);
   if (hooks === undefined) {
-    hooks = {
-      createScript: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
-      createLink: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
-      linkPreload: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
-      linkPrefetch: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
-    };
-    const hookUsageTracker = COMPILER_HOOK_USAGE_TRACKERS.get(
+    const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(
       compilation.compiler,
     )!;
-    trackHookUsage(
-      hooks.createScript,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.RuntimePluginCreateScript,
-    );
-    trackHookUsage(
-      hooks.createLink,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.RuntimePluginCreateLink,
-    );
-    trackHookUsage(
-      hooks.linkPreload,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.RuntimePluginLinkPreload,
-    );
-    trackHookUsage(
-      hooks.linkPrefetch,
-      hookUsageTracker,
-      binding.RegisterJsTapKind.RuntimePluginLinkPrefetch,
-    );
+    hooks = {
+      createScript: new BindingSyncWaterfallHook(
+        ['code', 'chunk'],
+        hookUsageTracker,
+        binding.CompilationHooks.RuntimePluginCreateScript,
+      ),
+      createLink: new BindingSyncWaterfallHook(
+        ['code', 'chunk'],
+        hookUsageTracker,
+        binding.CompilationHooks.RuntimePluginCreateLink,
+      ),
+      linkPreload: new BindingSyncWaterfallHook(
+        ['code', 'chunk'],
+        hookUsageTracker,
+        binding.CompilationHooks.RuntimePluginLinkPreload,
+      ),
+      linkPrefetch: new BindingSyncWaterfallHook(
+        ['code', 'chunk'],
+        hookUsageTracker,
+        binding.CompilationHooks.RuntimePluginLinkPrefetch,
+      ),
+    };
     compilationHooksMap.set(compilation, hooks);
   }
   return hooks;
@@ -74,7 +70,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerRuntimePluginCreateScriptTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginCreateScript,
+      binding.CompilationHooks.RuntimePluginCreateScript,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -87,7 +83,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRuntimePluginCreateLinkTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginCreateLink,
+      binding.CompilationHooks.RuntimePluginCreateLink,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -100,7 +96,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRuntimePluginLinkPreloadTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginLinkPreload,
+      binding.CompilationHooks.RuntimePluginLinkPreload,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -113,7 +109,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRuntimePluginLinkPrefetchTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginLinkPrefetch,
+      binding.CompilationHooks.RuntimePluginLinkPrefetch,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,

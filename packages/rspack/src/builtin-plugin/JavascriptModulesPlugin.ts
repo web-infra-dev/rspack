@@ -7,8 +7,8 @@ import * as liteTapable from '@rspack/lite-tapable';
 import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
 import {
-  COMPILER_HOOK_USAGE_TRACKERS,
-  trackHookUsage,
+  BindingSyncHook,
+  COMPILATION_HOOK_USAGE_TRACKERS,
 } from '../HookUsageTracker';
 import type Hash from '../util/hash';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
@@ -34,13 +34,12 @@ export class JavascriptModulesPlugin extends RspackBuiltinPlugin {
     let hooks = compilationHooksMap.get(compilation);
     if (hooks === undefined) {
       hooks = {
-        chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
+        chunkHash: new BindingSyncHook(
+          ['chunk', 'hash'],
+          COMPILATION_HOOK_USAGE_TRACKERS.get(compilation.compiler)!,
+          binding.CompilationHooks.JavascriptModulesChunkHash,
+        ),
       };
-      trackHookUsage(
-        hooks.chunkHash,
-        COMPILER_HOOK_USAGE_TRACKERS.get(compilation.compiler)!,
-        binding.RegisterJsTapKind.JavascriptModulesChunkHash,
-      );
       compilationHooksMap.set(compilation, hooks);
     }
     return hooks;

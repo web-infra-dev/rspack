@@ -27,7 +27,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap, createMapTap) => {
   return {
     registerCompilationAdditionalTreeRuntimeRequirementsTaps: createTap(
-      binding.RegisterJsTapKind.CompilationAdditionalTreeRuntimeRequirements,
+      binding.CompilationHooks.AdditionalTreeRuntimeRequirements,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -60,7 +60,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationRuntimeRequirementInTreeTaps: createMapTap(
-      binding.RegisterJsTapKind.CompilationRuntimeRequirementInTree,
+      binding.CompilationHooks.RuntimeRequirementInTree,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -126,7 +126,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationRuntimeModuleTaps: createTap(
-      binding.RegisterJsTapKind.CompilationRuntimeModule,
+      binding.CompilationHooks.RuntimeModule,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.runtimeModule;
@@ -148,7 +148,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationBuildModuleTaps: createTap(
-      binding.RegisterJsTapKind.CompilationBuildModule,
+      binding.CompilationHooks.BuildModule,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.buildModule;
@@ -161,7 +161,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationStillValidModuleTaps: createTap(
-      binding.RegisterJsTapKind.CompilationStillValidModule,
+      binding.CompilationHooks.StillValidModule,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -175,7 +175,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationSucceedModuleTaps: createTap(
-      binding.RegisterJsTapKind.CompilationSucceedModule,
+      binding.CompilationHooks.SucceedModule,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.succeedModule;
@@ -188,7 +188,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationExecuteModuleTaps: createTap(
-      binding.RegisterJsTapKind.CompilationExecuteModule,
+      binding.CompilationHooks.ExecuteModule,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.executeModule;
@@ -278,7 +278,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationFinishModulesTaps: createTap(
-      binding.RegisterJsTapKind.CompilationFinishModules,
+      binding.CompilationHooks.FinishModules,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.finishModules;
@@ -293,7 +293,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationOptimizeModulesTaps: createTap(
-      binding.RegisterJsTapKind.CompilationOptimizeModules,
+      binding.CompilationHooks.OptimizeModules,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -309,7 +309,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationAfterOptimizeModulesTaps: createTap(
-      binding.RegisterJsTapKind.CompilationAfterOptimizeModules,
+      binding.CompilationHooks.AfterOptimizeModules,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -325,7 +325,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationOptimizeTreeTaps: createTap(
-      binding.RegisterJsTapKind.CompilationOptimizeTree,
+      binding.CompilationHooks.OptimizeTree,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.optimizeTree;
@@ -341,7 +341,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationOptimizeChunkModulesTaps: createTap(
-      binding.RegisterJsTapKind.CompilationOptimizeChunkModules,
+      binding.CompilationHooks.OptimizeChunkModules,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -358,7 +358,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationBeforeModuleIdsTaps: createTap(
-      binding.RegisterJsTapKind.CompilationBeforeModuleIds,
+      binding.CompilationHooks.BeforeModuleIds,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -416,7 +416,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationChunkHashTaps: createTap(
-      binding.RegisterJsTapKind.CompilationChunkHash,
+      binding.CompilationHooks.ChunkHash,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.chunkHash;
@@ -444,7 +444,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationChunkAssetTaps: createTap(
-      binding.RegisterJsTapKind.CompilationChunkAsset,
+      binding.CompilationHooks.ChunkAsset,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.chunkAsset;
@@ -457,7 +457,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationProcessAssetsTaps: createTap(
-      binding.RegisterJsTapKind.CompilationProcessAssets,
+      binding.CompilationHooks.ProcessAssets,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.processAssets;
@@ -472,7 +472,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationAfterProcessAssetsTaps: createTap(
-      binding.RegisterJsTapKind.CompilationAfterProcessAssets,
+      binding.CompilationHooks.AfterProcessAssets,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks
@@ -488,7 +488,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationSealTaps: createTap(
-      binding.RegisterJsTapKind.CompilationSeal,
+      binding.CompilationHooks.Seal,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.seal;
@@ -501,7 +501,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilationAfterSealTaps: createTap(
-      binding.RegisterJsTapKind.CompilationAfterSeal,
+      binding.CompilationHooks.AfterSeal,
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.afterSeal;

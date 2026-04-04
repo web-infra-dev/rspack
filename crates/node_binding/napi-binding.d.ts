@@ -333,7 +333,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, hookUsageBuffer: Buffer, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform)
+  constructor(options: JsCompilerOptions)
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
   /** Rebuild with the given option passed to the constructor */
@@ -626,6 +626,63 @@ export declare enum BuiltinPluginName {
 
 export declare function cleanupGlobalTrace(): void
 
+export declare enum CompilationHooks {
+  BuildModule = 0,
+  StillValidModule = 1,
+  SucceedModule = 2,
+  ExecuteModule = 3,
+  FinishModules = 4,
+  OptimizeModules = 5,
+  AfterOptimizeModules = 6,
+  OptimizeTree = 7,
+  OptimizeChunkModules = 8,
+  BeforeModuleIds = 9,
+  AdditionalTreeRuntimeRequirements = 10,
+  RuntimeRequirementInTree = 11,
+  RuntimeModule = 12,
+  ChunkHash = 13,
+  ChunkAsset = 14,
+  ProcessAssets = 15,
+  AfterProcessAssets = 16,
+  Seal = 17,
+  AfterSeal = 18,
+  NormalModuleFactoryBeforeResolve = 19,
+  NormalModuleFactoryFactorize = 20,
+  NormalModuleFactoryResolve = 21,
+  NormalModuleFactoryAfterResolve = 22,
+  NormalModuleFactoryCreateModule = 23,
+  NormalModuleFactoryResolveForScheme = 24,
+  ContextModuleFactoryBeforeResolve = 25,
+  ContextModuleFactoryAfterResolve = 26,
+  JavascriptModulesChunkHash = 27,
+  HtmlPluginBeforeAssetTagGeneration = 28,
+  HtmlPluginAlterAssetTags = 29,
+  HtmlPluginAlterAssetTagGroups = 30,
+  HtmlPluginAfterTemplateExecution = 31,
+  HtmlPluginBeforeEmit = 32,
+  HtmlPluginAfterEmit = 33,
+  RuntimePluginCreateScript = 34,
+  RuntimePluginCreateLink = 35,
+  RuntimePluginLinkPreload = 36,
+  RuntimePluginLinkPrefetch = 37,
+  RsdoctorPluginModuleGraph = 38,
+  RsdoctorPluginChunkGraph = 39,
+  RsdoctorPluginModuleIds = 40,
+  RsdoctorPluginModuleSources = 41,
+  RsdoctorPluginAssets = 42
+}
+
+export declare enum CompilerHooks {
+  ThisCompilation = 0,
+  Compilation = 1,
+  Make = 2,
+  FinishMake = 3,
+  ShouldEmit = 4,
+  Emit = 5,
+  AfterEmit = 6,
+  AssetEmitted = 7
+}
+
 export interface ContextInfo {
   issuer: string
   issuerLayer?: string
@@ -644,8 +701,6 @@ export declare enum EnforceExtension {
 export const EXPECTED_RSPACK_CORE_VERSION: string
 
 export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObject<'Diagnostic'>
-
-export declare function getRegisterJsTapScopeKinds(): RegisterJsTapScopeKinds
 
 export interface JsAddingRuntimeModule {
   name: string
@@ -793,6 +848,21 @@ export interface JsCodegenerationResult {
 
 export interface JsCodegenerationResults {
   map: Record<string, Record<string, JsCodegenerationResult>>
+}
+
+export interface JsCompilerOptions {
+  compilerPath: string
+  options: RawOptions
+  builtinPlugins: Array<BuiltinPlugin>
+  registerJsTaps: RegisterJsTaps
+  compilerHookUsageBuffer: Buffer
+  compilationHookUsageBuffer: Buffer
+  outputFilesystem: ThreadsafeNodeFS
+  intermediateFilesystem?: ThreadsafeNodeFS
+  inputFilesystem?: ThreadsafeNodeFS
+  resolverFactoryReference: JsResolverFactory
+  unsafeFastDrop: boolean
+  platform: RawCompilerPlatform
 }
 
 export interface JsCreateData {
@@ -3084,60 +3154,6 @@ export interface RealDependencyLocation {
  */
 export declare function registerGlobalTrace(filter: string, layer:  "logger" | "perfetto" , output: string): void
 
-export declare enum RegisterJsTapKind {
-  CompilerThisCompilation = 0,
-  CompilerCompilation = 1,
-  CompilerMake = 2,
-  CompilerFinishMake = 3,
-  CompilerShouldEmit = 4,
-  CompilerEmit = 5,
-  CompilerAfterEmit = 6,
-  CompilerAssetEmitted = 7,
-  CompilationBuildModule = 8,
-  CompilationStillValidModule = 9,
-  CompilationSucceedModule = 10,
-  CompilationExecuteModule = 11,
-  CompilationFinishModules = 12,
-  CompilationOptimizeModules = 13,
-  CompilationAfterOptimizeModules = 14,
-  CompilationOptimizeTree = 15,
-  CompilationOptimizeChunkModules = 16,
-  CompilationBeforeModuleIds = 17,
-  CompilationAdditionalTreeRuntimeRequirements = 18,
-  CompilationRuntimeRequirementInTree = 19,
-  CompilationRuntimeModule = 20,
-  CompilationChunkHash = 21,
-  CompilationChunkAsset = 22,
-  CompilationProcessAssets = 23,
-  CompilationAfterProcessAssets = 24,
-  CompilationSeal = 25,
-  CompilationAfterSeal = 26,
-  NormalModuleFactoryBeforeResolve = 27,
-  NormalModuleFactoryFactorize = 28,
-  NormalModuleFactoryResolve = 29,
-  NormalModuleFactoryAfterResolve = 30,
-  NormalModuleFactoryCreateModule = 31,
-  NormalModuleFactoryResolveForScheme = 32,
-  ContextModuleFactoryBeforeResolve = 33,
-  ContextModuleFactoryAfterResolve = 34,
-  JavascriptModulesChunkHash = 35,
-  HtmlPluginBeforeAssetTagGeneration = 36,
-  HtmlPluginAlterAssetTags = 37,
-  HtmlPluginAlterAssetTagGroups = 38,
-  HtmlPluginAfterTemplateExecution = 39,
-  HtmlPluginBeforeEmit = 40,
-  HtmlPluginAfterEmit = 41,
-  RuntimePluginCreateScript = 42,
-  RuntimePluginCreateLink = 43,
-  RuntimePluginLinkPreload = 44,
-  RuntimePluginLinkPrefetch = 45,
-  RsdoctorPluginModuleGraph = 46,
-  RsdoctorPluginChunkGraph = 47,
-  RsdoctorPluginModuleIds = 48,
-  RsdoctorPluginModuleSources = 49,
-  RsdoctorPluginAssets = 50
-}
-
 export interface RegisterJsTaps {
   registerCompilerThisCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilerCompilationTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
@@ -3190,11 +3206,6 @@ export interface RegisterJsTaps {
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleSourcesTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleSourcesPatch) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorAssetPatch) => Promise<boolean | undefined>); stage: number; }>
-}
-
-export interface RegisterJsTapScopeKinds {
-  compiler: Array<RegisterJsTapKind>
-  compilation: Array<RegisterJsTapKind>
 }
 
 export interface ResolveResult {
