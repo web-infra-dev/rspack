@@ -870,8 +870,7 @@ const applyOutputDefaults = (
   if (typeof output.bundlerInfo === 'object') {
     D(output.bundlerInfo, 'version', RSPACK_VERSION);
     D(output.bundlerInfo, 'bundler', 'rspack');
-    // don't inject for library mode
-    D(output.bundlerInfo, 'force', !output.library);
+    D(output.bundlerInfo, 'force', false);
   }
 };
 

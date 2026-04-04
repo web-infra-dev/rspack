@@ -348,7 +348,7 @@ module.exports = {
 			    asyncChunks: true,
 			    bundlerInfo: Object {
 			      bundler: rspack,
-			      force: true,
+			      force: false,
 			      version: $version$,
 			    },
 			    chunkFilename: [name].js,
