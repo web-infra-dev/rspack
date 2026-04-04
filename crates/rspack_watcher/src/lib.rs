@@ -197,7 +197,6 @@ impl FsWatcher {
   fn record_file_mtimes(&self) {
     let accessor = self.path_manager.access();
     let paths: Vec<_> = accessor.files().0.iter().map(|p| p.clone()).collect();
-    drop(accessor);
     for path in paths {
       if let Ok(mtime) = path
         .metadata()
