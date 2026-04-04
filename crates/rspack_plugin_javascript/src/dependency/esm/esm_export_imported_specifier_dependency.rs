@@ -16,15 +16,15 @@ use rspack_core::{
   ExportModeReexportNamedDefault, ExportModeReexportNamespaceObject, ExportModeReexportUndefined,
   ExportModeUnused, ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec,
   ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec,
-  ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId, GetUsedNameParam,
-  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, NormalInitFragment, NormalReexportItem, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, ReferencedExport, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId, GetExportsCacheability,
+  GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ReferencedExport, ResourceIdentifier,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -1398,6 +1398,18 @@ impl Dependency for ESMExportImportedSpecifierDependency {
 
   fn source_order(&self) -> Option<i32> {
     Some(self.source_order)
+  }
+
+  fn get_exports_cacheability(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> GetExportsCacheability {
+    if self.name.is_some() && self.other_star_exports.is_none() && !self.lazy_make {
+      GetExportsCacheability::Static
+    } else {
+      GetExportsCacheability::Dynamic
+    }
   }
 
   // #[tracing::instrument(skip_all)]
