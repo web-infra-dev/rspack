@@ -194,7 +194,7 @@ impl HookSubscriptionBitsetView {
   pub(super) fn compiler(bitset: Buffer) -> Self {
     Self::new(
       bitset,
-      COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH,
+      COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH as usize,
       "compiler hook subscription bitset length mismatch",
     )
   }
@@ -202,7 +202,7 @@ impl HookSubscriptionBitsetView {
   pub(super) fn compilation(bitset: Buffer) -> Self {
     Self::new(
       bitset,
-      COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH,
+      COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH as usize,
       "compilation hook subscription bitset length mismatch",
     )
   }
@@ -431,6 +431,10 @@ pub enum CompilerHooks {
 const COMPILER_HOOK_COUNT: usize = (CompilerHooks::AssetEmitted as usize) + 1;
 
 #[napi]
+pub const COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: u32 =
+  ((COMPILER_HOOK_COUNT as u32 - 1) >> 3) + 1;
+
+#[napi]
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CompilationHooks {
@@ -481,18 +485,9 @@ pub enum CompilationHooks {
 
 const COMPILATION_HOOK_COUNT: usize = (CompilationHooks::RsdoctorPluginAssets as usize) + 1;
 
-const fn hook_subscription_bitset_byte_length(kind_count: usize) -> usize {
-  if kind_count == 0 {
-    return 0;
-  }
-  ((kind_count - 1) >> 3) + 1
-}
-
-const COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: usize =
-  hook_subscription_bitset_byte_length(COMPILER_HOOK_COUNT);
-
-const COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: usize =
-  hook_subscription_bitset_byte_length(COMPILATION_HOOK_COUNT);
+#[napi]
+pub const COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: u32 =
+  ((COMPILATION_HOOK_COUNT as u32 - 1) >> 3) + 1;
 
 #[derive(Clone)]
 #[napi(object, object_to_js = false)]

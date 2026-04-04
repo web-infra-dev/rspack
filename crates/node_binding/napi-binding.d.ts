@@ -626,6 +626,8 @@ export declare enum BuiltinPluginName {
 
 export declare function cleanupGlobalTrace(): void
 
+export const COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: number
+
 export declare enum CompilationHooks {
   BuildModule = 0,
   StillValidModule = 1,
@@ -671,6 +673,8 @@ export declare enum CompilationHooks {
   RsdoctorPluginModuleSources = 41,
   RsdoctorPluginAssets = 42
 }
+
+export const COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: number
 
 export declare enum CompilerHooks {
   ThisCompilation = 0,

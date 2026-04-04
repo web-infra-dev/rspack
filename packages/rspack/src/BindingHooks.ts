@@ -16,18 +16,11 @@ type DefaultAdditionalOptions =
     ? A
     : never;
 
-const COMPILER_HOOK_COUNT = binding.CompilerHooks.AssetEmitted + 1;
-const COMPILATION_HOOK_COUNT =
-  binding.CompilationHooks.RsdoctorPluginAssets + 1;
-
-const getHookSubscriptionBitsetByteLength = (kindCount: number) =>
-  Math.max((kindCount - 1) >> 3, 0) + 1;
-
 export class HookSubscriptionBitset {
   readonly buffer: Buffer;
 
-  constructor(kindCount: number) {
-    this.buffer = Buffer.alloc(getHookSubscriptionBitsetByteLength(kindCount));
+  constructor(byteLength: number) {
+    this.buffer = Buffer.alloc(byteLength);
   }
 
   markSubscribed(bitIndex: number) {
@@ -50,10 +43,14 @@ export const COMPILATION_HOOK_SUBSCRIPTION_BITSETS = new WeakMap<
 >();
 
 export const createCompilerHookSubscriptionBitset = () =>
-  new HookSubscriptionBitset(COMPILER_HOOK_COUNT);
+  new HookSubscriptionBitset(
+    binding.COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH,
+  );
 
 export const createCompilationHookSubscriptionBitset = () =>
-  new HookSubscriptionBitset(COMPILATION_HOOK_COUNT);
+  new HookSubscriptionBitset(
+    binding.COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH,
+  );
 
 export class BindingSyncHook<
   T = any,
