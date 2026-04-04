@@ -178,8 +178,8 @@ pub struct JsCompilerOptions<'a> {
   pub options: RawOptions,
   pub builtin_plugins: Vec<BuiltinPlugin<'a>>,
   pub register_js_taps: RegisterJsTaps,
-  pub compiler_hook_usage_buffer: Buffer,
-  pub compilation_hook_usage_buffer: Buffer,
+  pub compiler_hook_subscription_bitset: Buffer,
+  pub compilation_hook_subscription_bitset: Buffer,
   pub output_filesystem: ThreadsafeNodeFS,
   pub intermediate_filesystem: Option<ThreadsafeNodeFS>,
   pub input_filesystem: Option<ThreadsafeNodeFS>,
@@ -197,8 +197,8 @@ impl JsCompiler {
       mut options,
       builtin_plugins,
       register_js_taps,
-      compiler_hook_usage_buffer,
-      compilation_hook_usage_buffer,
+      compiler_hook_subscription_bitset,
+      compilation_hook_subscription_bitset,
       output_filesystem,
       intermediate_filesystem,
       input_filesystem,
@@ -214,8 +214,8 @@ impl JsCompiler {
       let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(
         env,
         register_js_taps,
-        compiler_hook_usage_buffer,
-        compilation_hook_usage_buffer,
+        compiler_hook_subscription_bitset,
+        compilation_hook_subscription_bitset,
       )?;
       plugins.push(js_hooks_plugin.clone().boxed());
 

@@ -72,10 +72,10 @@ import { createDiagnosticArray } from './Diagnostics';
 import {
   BindingAsyncSeriesBailHook,
   BindingAsyncSeriesHook,
-  COMPILATION_HOOK_USAGE_TRACKERS,
+  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
   BindingSyncBailHook,
   BindingSyncHook,
-} from './HookUsageTracker';
+} from './BindingHooks';
 import type { CodeGenerationResult } from './taps/compilation';
 
 export type Assets = Record<string, Source>;
@@ -298,10 +298,11 @@ export class Compilation {
     this.#inner = inner;
     this.#shutdown = false;
 
-    const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(compiler)!;
+    const hookSubscriptionBitset =
+      COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(compiler)!;
     const processAssetsHook = new BindingAsyncSeriesHook<Assets>(
       ['assets'],
-      hookUsageTracker,
+      hookSubscriptionBitset,
       binding.CompilationHooks.ProcessAssets,
     );
     const createProcessAssetsHook = <T>(
@@ -354,7 +355,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       processAssets: processAssetsHook,
       afterProcessAssets: new BindingSyncHook(
         ['assets'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.AfterProcessAssets,
       ),
       /** @deprecated */
@@ -371,53 +372,53 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       log: new liteTapable.SyncBailHook(['origin', 'logEntry']),
       optimizeModules: new BindingSyncBailHook(
         ['modules'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.OptimizeModules,
       ),
       afterOptimizeModules: new BindingSyncHook(
         ['modules'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.AfterOptimizeModules,
       ),
       optimizeTree: new BindingAsyncSeriesHook(
         ['chunks', 'modules'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.OptimizeTree,
       ),
       optimizeChunkModules: new BindingAsyncSeriesBailHook(
         ['chunks', 'modules'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.OptimizeChunkModules,
       ),
       beforeModuleIds: new BindingSyncHook(
         ['modules'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.BeforeModuleIds,
       ),
       finishModules: new BindingAsyncSeriesHook(
         ['modules'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.FinishModules,
       ),
       chunkHash: new BindingSyncHook(
         ['chunk', 'hash'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.ChunkHash,
       ),
       chunkAsset: new BindingSyncHook(
         ['chunk', 'filename'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.ChunkAsset,
       ),
       processWarnings: new liteTapable.SyncWaterfallHook(['warnings']),
       succeedModule: new BindingSyncHook(
         ['module'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.SucceedModule,
       ),
       stillValidModule: new BindingSyncHook(
         ['module'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.StillValidModule,
       ),
 
@@ -430,40 +431,40 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
       buildModule: new BindingSyncHook(
         ['module'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.BuildModule,
       ),
       executeModule: new BindingSyncHook(
         ['options', 'context'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.ExecuteModule,
       ),
       additionalTreeRuntimeRequirements: new BindingSyncHook(
         ['chunk', 'runtimeRequirements'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.AdditionalTreeRuntimeRequirements,
       ),
       runtimeRequirementInTree: new liteTapable.HookMap(
         () =>
           new BindingSyncBailHook(
             ['chunk', 'runtimeRequirements'],
-            hookUsageTracker,
+            hookSubscriptionBitset,
             binding.CompilationHooks.RuntimeRequirementInTree,
           ),
       ),
       runtimeModule: new BindingSyncHook(
         ['module', 'chunk'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.RuntimeModule,
       ),
       seal: new BindingSyncHook(
         [],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.Seal,
       ),
       afterSeal: new BindingAsyncSeriesHook(
         [],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.AfterSeal,
       ),
       needAdditionalPass: new liteTapable.SyncBailHook([]),

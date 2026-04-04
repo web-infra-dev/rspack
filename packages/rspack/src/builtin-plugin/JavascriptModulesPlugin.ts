@@ -8,8 +8,8 @@ import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
 import {
   BindingSyncHook,
-  COMPILATION_HOOK_USAGE_TRACKERS,
-} from '../HookUsageTracker';
+  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
+} from '../BindingHooks';
 import type Hash from '../util/hash';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
@@ -36,7 +36,7 @@ export class JavascriptModulesPlugin extends RspackBuiltinPlugin {
       hooks = {
         chunkHash: new BindingSyncHook(
           ['chunk', 'hash'],
-          COMPILATION_HOOK_USAGE_TRACKERS.get(compilation.compiler)!,
+          COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(compilation.compiler)!,
           binding.CompilationHooks.JavascriptModulesChunkHash,
         ),
       };

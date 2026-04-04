@@ -49,11 +49,11 @@ import {
   BindingAsyncSeriesHook,
   BindingSyncBailHook,
   BindingSyncHook,
-  COMPILATION_HOOK_USAGE_TRACKERS,
-  COMPILER_HOOK_USAGE_TRACKERS,
-  createCompilationHookUsageTracker,
-  createCompilerHookUsageTracker,
-} from './HookUsageTracker';
+  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
+  COMPILER_HOOK_SUBSCRIPTION_BITSETS,
+  createCompilationHookSubscriptionBitset,
+  createCompilerHookSubscriptionBitset,
+} from './BindingHooks';
 import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
@@ -73,7 +73,8 @@ import {
   createJavaScriptModulesHooksRegisters,
   createNormalModuleFactoryHooksRegisters,
 } from './taps';
-import { TraceHookPlugin } from './trace/traceHookPlugin';
+// TODO: why need this plugin
+// import { TraceHookPlugin } from './trace/traceHookPlugin';
 import { unsupported } from './util';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
@@ -225,11 +226,20 @@ class Compiler {
   constructor(context: string, options: RspackOptionsNormalized) {
     this.#initial = true;
 
+    const compilerHookSubscriptionBitset =
+      createCompilerHookSubscriptionBitset();
+    const compilationHookSubscriptionBitset =
+      createCompilationHookSubscriptionBitset();
+    COMPILER_HOOK_SUBSCRIPTION_BITSETS.set(
+      this,
+      compilerHookSubscriptionBitset,
+    );
+    COMPILATION_HOOK_SUBSCRIPTION_BITSETS.set(
+      this,
+      compilationHookSubscriptionBitset,
+    );
+
     this.#builtinPlugins = [];
-    const compilerHookUsageTracker = createCompilerHookUsageTracker();
-    const compilationHookUsageTracker = createCompilationHookUsageTracker();
-    COMPILER_HOOK_USAGE_TRACKERS.set(this, compilerHookUsageTracker);
-    COMPILATION_HOOK_USAGE_TRACKERS.set(this, compilationHookUsageTracker);
     this.#moduleExecutionResultsMap = new Map();
 
     this.#ruleSet = new RuleSetCompiler();
@@ -238,7 +248,7 @@ class Compiler {
       initialize: new liteTapable.SyncHook([]),
       shouldEmit: new BindingSyncBailHook(
         ['compilation'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.ShouldEmit,
       ),
       done: new liteTapable.AsyncSeriesHook<Stats>(['stats']),
@@ -247,27 +257,27 @@ class Compiler {
       run: new liteTapable.AsyncSeriesHook(['compiler']),
       emit: new BindingAsyncSeriesHook(
         ['compilation'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.Emit,
       ),
       assetEmitted: new BindingAsyncSeriesHook(
         ['file', 'info'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.AssetEmitted,
       ),
       afterEmit: new BindingAsyncSeriesHook(
         ['compilation'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.AfterEmit,
       ),
       thisCompilation: new BindingSyncHook<[Compilation, CompilationParams]>(
         ['compilation', 'params'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.ThisCompilation,
       ),
       compilation: new BindingSyncHook<[Compilation, CompilationParams]>(
         ['compilation', 'params'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.Compilation,
       ),
       invalid: new liteTapable.SyncHook(['filename', 'changeTime']),
@@ -293,14 +303,14 @@ class Compiler {
       afterResolvers: new liteTapable.SyncHook(['compiler']),
       make: new BindingAsyncParallelHook(
         ['compilation'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.Make,
       ),
       beforeCompile: new liteTapable.AsyncSeriesHook(['params']),
       afterCompile: new liteTapable.AsyncSeriesHook(['compilation']),
       finishMake: new BindingAsyncSeriesHook(
         ['compilation'],
-        compilerHookUsageTracker,
+        compilerHookSubscriptionBitset,
         binding.CompilerHooks.FinishMake,
       ),
       entryOption: new liteTapable.SyncBailHook(['context', 'entry']),
@@ -383,7 +393,7 @@ class Compiler {
     new JsLoaderRspackPlugin(this).apply(this);
     new ExecuteModulePlugin().apply(this);
     if (!IS_BROWSER) {
-      new TraceHookPlugin().apply(this);
+      // new TraceHookPlugin().apply(this);
     }
 
     // this.hooks.shutdown.tap("rspack:cleanup", () => {
@@ -808,9 +818,9 @@ class Compiler {
             const registerKind =
               CHILD_COMPILER_INHERITED_HOOK_USAGE_KINDS[name];
             if (registerKind) {
-              COMPILER_HOOK_USAGE_TRACKERS.get(childCompiler)!.markUsed(
-                registerKind,
-              );
+              COMPILER_HOOK_SUBSCRIPTION_BITSETS.get(
+                childCompiler,
+              )!.markSubscribed(registerKind);
             }
           }
         }
@@ -838,7 +848,7 @@ class Compiler {
    */
   compile(callback: liteTapable.Callback<Error, Compilation>) {
     const startTime = Date.now();
-    COMPILATION_HOOK_USAGE_TRACKERS.get(this)!.clear();
+    COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!.clear();
     const params = this.#newCompilationParams();
     this.hooks.beforeCompile.callAsync(params, (err: any) => {
       if (err) {
@@ -918,7 +928,7 @@ class Compiler {
     removedFiles?: ReadonlySet<string>,
     callback?: (error: Error | null) => void,
   ) {
-    COMPILATION_HOOK_USAGE_TRACKERS.get(this)!.clear();
+    COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!.clear();
     this.#getInstance((error, instance) => {
       if (error) {
         return callback?.(error);
@@ -973,16 +983,16 @@ class Compiler {
   }
 
   #newCompilationParams(): CompilationParams {
-    const compilationHookUsageTracker =
-      COMPILATION_HOOK_USAGE_TRACKERS.get(this)!;
+    const compilationHookSubscriptionBitset =
+      COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!;
     const normalModuleFactory = new NormalModuleFactory(
       this.resolverFactory,
-      compilationHookUsageTracker,
+      compilationHookSubscriptionBitset,
     );
     this.hooks.normalModuleFactory.call(normalModuleFactory);
 
     const contextModuleFactory = new ContextModuleFactory(
-      compilationHookUsageTracker,
+      compilationHookSubscriptionBitset,
     );
     this.hooks.contextModuleFactory.call(contextModuleFactory);
 
@@ -1034,9 +1044,10 @@ class Compiler {
         options: rawOptions,
         builtinPlugins: this.#builtinPlugins,
         registerJsTaps: this.#registers,
-        compilerHookUsageBuffer: COMPILER_HOOK_USAGE_TRACKERS.get(this)!.buffer,
-        compilationHookUsageBuffer:
-          COMPILATION_HOOK_USAGE_TRACKERS.get(this)!.buffer,
+        compilerHookSubscriptionBitset:
+          COMPILER_HOOK_SUBSCRIPTION_BITSETS.get(this)!.buffer,
+        compilationHookSubscriptionBitset:
+          COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!.buffer,
         outputFilesystem: ThreadsafeOutputNodeFS.__to_binding(
           this.outputFileSystem!,
         ),

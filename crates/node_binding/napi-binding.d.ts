@@ -855,8 +855,8 @@ export interface JsCompilerOptions {
   options: RawOptions
   builtinPlugins: Array<BuiltinPlugin>
   registerJsTaps: RegisterJsTaps
-  compilerHookUsageBuffer: Buffer
-  compilationHookUsageBuffer: Buffer
+  compilerHookSubscriptionBitset: Buffer
+  compilationHookSubscriptionBitset: Buffer
   outputFilesystem: ThreadsafeNodeFS
   intermediateFilesystem?: ThreadsafeNodeFS
   inputFilesystem?: ThreadsafeNodeFS

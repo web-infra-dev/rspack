@@ -20,68 +20,64 @@ const COMPILER_HOOK_COUNT = binding.CompilerHooks.AssetEmitted + 1;
 const COMPILATION_HOOK_COUNT =
   binding.CompilationHooks.RsdoctorPluginAssets + 1;
 
-const getHookUsageBufferByteLength = (kindCount: number) =>
+const getHookSubscriptionBitsetByteLength = (kindCount: number) =>
   Math.max((kindCount - 1) >> 3, 0) + 1;
 
-export type HookUsageTracker = {
+export class HookSubscriptionBitset {
   readonly buffer: Buffer;
-  markUsed(bitIndex: number): void;
-  clear(): void;
-};
 
-export const COMPILER_HOOK_USAGE_TRACKERS = new WeakMap<
+  constructor(kindCount: number) {
+    this.buffer = Buffer.alloc(getHookSubscriptionBitsetByteLength(kindCount));
+  }
+
+  markSubscribed(bitIndex: number) {
+    this.buffer[bitIndex >> 3] |= 1 << (bitIndex & 7);
+  }
+
+  clear() {
+    this.buffer.fill(0);
+  }
+}
+
+export const COMPILER_HOOK_SUBSCRIPTION_BITSETS = new WeakMap<
   Compiler,
-  HookUsageTracker
+  HookSubscriptionBitset
 >();
 
-export const COMPILATION_HOOK_USAGE_TRACKERS = new WeakMap<
+export const COMPILATION_HOOK_SUBSCRIPTION_BITSETS = new WeakMap<
   Compiler,
-  HookUsageTracker
+  HookSubscriptionBitset
 >();
 
-const createHookUsageTracker = (kindCount: number): HookUsageTracker => {
-  const buffer = Buffer.alloc(getHookUsageBufferByteLength(kindCount));
+export const createCompilerHookSubscriptionBitset = () =>
+  new HookSubscriptionBitset(COMPILER_HOOK_COUNT);
 
-  return {
-    buffer,
-    markUsed(bitIndex) {
-      buffer[bitIndex >> 3] |= 1 << (bitIndex & 7);
-    },
-    clear() {
-      buffer.fill(0);
-    },
-  };
-};
-
-export const createCompilerHookUsageTracker = () =>
-  createHookUsageTracker(COMPILER_HOOK_COUNT);
-
-export const createCompilationHookUsageTracker = () =>
-  createHookUsageTracker(COMPILATION_HOOK_COUNT);
+export const createCompilationHookSubscriptionBitset = () =>
+  new HookSubscriptionBitset(COMPILATION_HOOK_COUNT);
 
 export class BindingSyncHook<
   T = any,
   R = void,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.SyncHook<T, R, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
   override tap(
     ...args: Parameters<liteTapable.SyncHook<T, R, AdditionalOptions>['tap']>
   ): ReturnType<liteTapable.SyncHook<T, R, AdditionalOptions>['tap']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -90,7 +86,7 @@ export class BindingSyncHook<
       liteTapable.SyncHook<T, R, AdditionalOptions>['intercept']
     >
   ): ReturnType<liteTapable.SyncHook<T, R, AdditionalOptions>['intercept']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }
@@ -100,17 +96,17 @@ export class BindingSyncBailHook<
   R = any,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.SyncBailHook<T, R, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
@@ -119,7 +115,7 @@ export class BindingSyncBailHook<
       liteTapable.SyncBailHook<T, R, AdditionalOptions>['tap']
     >
   ): ReturnType<liteTapable.SyncBailHook<T, R, AdditionalOptions>['tap']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -130,7 +126,7 @@ export class BindingSyncBailHook<
   ): ReturnType<
     liteTapable.SyncBailHook<T, R, AdditionalOptions>['intercept']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }
@@ -139,17 +135,17 @@ export class BindingSyncWaterfallHook<
   T = any,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.SyncWaterfallHook<T, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
@@ -158,7 +154,7 @@ export class BindingSyncWaterfallHook<
       liteTapable.SyncWaterfallHook<T, AdditionalOptions>['tap']
     >
   ): ReturnType<liteTapable.SyncWaterfallHook<T, AdditionalOptions>['tap']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -169,7 +165,7 @@ export class BindingSyncWaterfallHook<
   ): ReturnType<
     liteTapable.SyncWaterfallHook<T, AdditionalOptions>['intercept']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }
@@ -178,17 +174,17 @@ export class BindingAsyncParallelHook<
   T = any,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.AsyncParallelHook<T, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
@@ -197,7 +193,7 @@ export class BindingAsyncParallelHook<
       liteTapable.AsyncParallelHook<T, AdditionalOptions>['tap']
     >
   ): ReturnType<liteTapable.AsyncParallelHook<T, AdditionalOptions>['tap']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -208,7 +204,7 @@ export class BindingAsyncParallelHook<
   ): ReturnType<
     liteTapable.AsyncParallelHook<T, AdditionalOptions>['tapAsync']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapAsync(...args);
   }
 
@@ -219,7 +215,7 @@ export class BindingAsyncParallelHook<
   ): ReturnType<
     liteTapable.AsyncParallelHook<T, AdditionalOptions>['tapPromise']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapPromise(...args);
   }
 
@@ -230,7 +226,7 @@ export class BindingAsyncParallelHook<
   ): ReturnType<
     liteTapable.AsyncParallelHook<T, AdditionalOptions>['intercept']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }
@@ -239,17 +235,17 @@ export class BindingAsyncSeriesHook<
   T = any,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.AsyncSeriesHook<T, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
@@ -258,7 +254,7 @@ export class BindingAsyncSeriesHook<
       liteTapable.AsyncSeriesHook<T, AdditionalOptions>['tap']
     >
   ): ReturnType<liteTapable.AsyncSeriesHook<T, AdditionalOptions>['tap']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -267,7 +263,7 @@ export class BindingAsyncSeriesHook<
       liteTapable.AsyncSeriesHook<T, AdditionalOptions>['tapAsync']
     >
   ): ReturnType<liteTapable.AsyncSeriesHook<T, AdditionalOptions>['tapAsync']> {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapAsync(...args);
   }
 
@@ -278,7 +274,7 @@ export class BindingAsyncSeriesHook<
   ): ReturnType<
     liteTapable.AsyncSeriesHook<T, AdditionalOptions>['tapPromise']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapPromise(...args);
   }
 
@@ -289,7 +285,7 @@ export class BindingAsyncSeriesHook<
   ): ReturnType<
     liteTapable.AsyncSeriesHook<T, AdditionalOptions>['intercept']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }
@@ -299,17 +295,17 @@ export class BindingAsyncSeriesBailHook<
   R = any,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.AsyncSeriesBailHook<T, R, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
@@ -320,7 +316,7 @@ export class BindingAsyncSeriesBailHook<
   ): ReturnType<
     liteTapable.AsyncSeriesBailHook<T, R, AdditionalOptions>['tap']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -331,7 +327,7 @@ export class BindingAsyncSeriesBailHook<
   ): ReturnType<
     liteTapable.AsyncSeriesBailHook<T, R, AdditionalOptions>['tapAsync']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapAsync(...args);
   }
 
@@ -342,7 +338,7 @@ export class BindingAsyncSeriesBailHook<
   ): ReturnType<
     liteTapable.AsyncSeriesBailHook<T, R, AdditionalOptions>['tapPromise']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapPromise(...args);
   }
 
@@ -353,7 +349,7 @@ export class BindingAsyncSeriesBailHook<
   ): ReturnType<
     liteTapable.AsyncSeriesBailHook<T, R, AdditionalOptions>['intercept']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }
@@ -362,17 +358,17 @@ export class BindingAsyncSeriesWaterfallHook<
   T = any,
   AdditionalOptions = DefaultAdditionalOptions,
 > extends liteTapable.AsyncSeriesWaterfallHook<T, AdditionalOptions> {
-  #usageTracker: HookUsageTracker;
+  #subscriptionBitset: HookSubscriptionBitset;
   #bitIndex: number;
 
   constructor(
     args: ArgumentNames<AsArray<T>> | undefined,
-    usageTracker: HookUsageTracker,
+    subscriptionBitset: HookSubscriptionBitset,
     bitIndex: number,
     name?: string,
   ) {
     super(args, name);
-    this.#usageTracker = usageTracker;
+    this.#subscriptionBitset = subscriptionBitset;
     this.#bitIndex = bitIndex;
   }
 
@@ -383,7 +379,7 @@ export class BindingAsyncSeriesWaterfallHook<
   ): ReturnType<
     liteTapable.AsyncSeriesWaterfallHook<T, AdditionalOptions>['tap']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tap(...args);
   }
 
@@ -394,7 +390,7 @@ export class BindingAsyncSeriesWaterfallHook<
   ): ReturnType<
     liteTapable.AsyncSeriesWaterfallHook<T, AdditionalOptions>['tapAsync']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapAsync(...args);
   }
 
@@ -405,7 +401,7 @@ export class BindingAsyncSeriesWaterfallHook<
   ): ReturnType<
     liteTapable.AsyncSeriesWaterfallHook<T, AdditionalOptions>['tapPromise']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.tapPromise(...args);
   }
 
@@ -416,7 +412,7 @@ export class BindingAsyncSeriesWaterfallHook<
   ): ReturnType<
     liteTapable.AsyncSeriesWaterfallHook<T, AdditionalOptions>['intercept']
   > {
-    this.#usageTracker.markUsed(this.#bitIndex);
+    this.#subscriptionBitset.markSubscribed(this.#bitIndex);
     return super.intercept(...args);
   }
 }

@@ -186,40 +186,40 @@ type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
 type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
 #[derive(Clone)]
-pub(super) struct HookUsageChecker {
-  buffer: Arc<Buffer>,
+pub(super) struct HookSubscriptionBitsetView {
+  bitset: Arc<Buffer>,
 }
 
-impl HookUsageChecker {
-  pub(super) fn compiler(buffer: Buffer) -> Self {
+impl HookSubscriptionBitsetView {
+  pub(super) fn compiler(bitset: Buffer) -> Self {
     Self::new(
-      buffer,
-      COMPILER_HOOK_USAGE_BUFFER_BYTE_LENGTH,
-      "compiler hook usage Buffer length mismatch",
+      bitset,
+      COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH,
+      "compiler hook subscription bitset length mismatch",
     )
   }
 
-  pub(super) fn compilation(buffer: Buffer) -> Self {
+  pub(super) fn compilation(bitset: Buffer) -> Self {
     Self::new(
-      buffer,
-      COMPILATION_HOOK_USAGE_BUFFER_BYTE_LENGTH,
-      "compilation hook usage Buffer length mismatch",
+      bitset,
+      COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH,
+      "compilation hook subscription bitset length mismatch",
     )
   }
 
-  fn new(buffer: Buffer, expected_buffer_len: usize, assert_message: &'static str) -> Self {
-    assert_eq!(buffer.len(), expected_buffer_len, "{assert_message}",);
+  fn new(bitset: Buffer, expected_buffer_len: usize, assert_message: &'static str) -> Self {
+    assert_eq!(bitset.len(), expected_buffer_len, "{assert_message}",);
     Self {
-      buffer: Arc::new(buffer),
+      bitset: Arc::new(bitset),
     }
   }
 
   #[inline(always)]
-  pub(super) fn is_used(&self, bit_index: u8) -> bool {
+  pub(super) fn has_subscription(&self, bit_index: u8) -> bool {
     let bit_index = bit_index as usize;
     let byte_index = bit_index >> 3;
     let bit_mask = 1 << (bit_index & 7);
-    let byte = self.buffer.as_ref()[byte_index];
+    let byte = self.bitset.as_ref()[byte_index];
     byte & bit_mask != 0
   }
 }
@@ -227,8 +227,8 @@ impl HookUsageChecker {
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
   register: RegisterFunction<T, R>,
   cache: RegisterJsTapsCache<T, R>,
-  hook_usage_checker: HookUsageChecker,
-  hook_usage_bit_index: u8,
+  hook_subscription_bitset_view: HookSubscriptionBitsetView,
+  hook_subscription_bit_index: u8,
 }
 
 impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsInner<T, R> {
@@ -236,8 +236,8 @@ impl<T: 'static + JsValuesTupleIntoVec, R> Clone for RegisterJsTapsInner<T, R> {
     Self {
       register: self.register.clone(),
       cache: self.cache.clone(),
-      hook_usage_checker: self.hook_usage_checker.clone(),
-      hook_usage_bit_index: self.hook_usage_bit_index,
+      hook_subscription_bitset_view: self.hook_subscription_bitset_view.clone(),
+      hook_subscription_bit_index: self.hook_subscription_bit_index,
     }
   }
 }
@@ -269,21 +269,23 @@ impl<T: 'static + JsValuesTupleIntoVec, R> RegisterJsTapsCache<T, R> {
 impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T, R> {
   pub fn new(
     register: RegisterFunction<T, R>,
-    hook_usage_checker: HookUsageChecker,
-    hook_usage_bit_index: u8,
+    hook_subscription_bitset_view: HookSubscriptionBitsetView,
+    hook_subscription_bit_index: u8,
     cache: bool,
   ) -> Self {
     Self {
       register,
       cache: RegisterJsTapsCache::new(cache),
-      hook_usage_checker,
-      hook_usage_bit_index,
+      hook_subscription_bitset_view,
+      hook_subscription_bit_index,
     }
   }
 
   #[inline(always)]
   fn has_js_taps(&self) -> bool {
-    self.hook_usage_checker.is_used(self.hook_usage_bit_index)
+    self
+      .hook_subscription_bitset_view
+      .has_subscription(self.hook_subscription_bit_index)
   }
 
   pub async fn call_register(
@@ -378,12 +380,12 @@ macro_rules! define_register {
     impl $name {
       pub(super) fn new(
         register: RegisterFunction<$arg, $ret>,
-        hook_usage_checker: HookUsageChecker,
+        hook_subscription_bitset_view: HookSubscriptionBitsetView,
       ) -> Self {
         Self {
           inner: RegisterJsTapsInner::new(
             register,
-            hook_usage_checker,
+            hook_subscription_bitset_view,
             $kind as u8,
             $cache,
           ),
@@ -479,18 +481,18 @@ pub enum CompilationHooks {
 
 const COMPILATION_HOOK_COUNT: usize = (CompilationHooks::RsdoctorPluginAssets as usize) + 1;
 
-const fn hook_usage_buffer_byte_length(kind_count: usize) -> usize {
+const fn hook_subscription_bitset_byte_length(kind_count: usize) -> usize {
   if kind_count == 0 {
     return 0;
   }
   ((kind_count - 1) >> 3) + 1
 }
 
-const COMPILER_HOOK_USAGE_BUFFER_BYTE_LENGTH: usize =
-  hook_usage_buffer_byte_length(COMPILER_HOOK_COUNT);
+const COMPILER_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: usize =
+  hook_subscription_bitset_byte_length(COMPILER_HOOK_COUNT);
 
-const COMPILATION_HOOK_USAGE_BUFFER_BYTE_LENGTH: usize =
-  hook_usage_buffer_byte_length(COMPILATION_HOOK_COUNT);
+const COMPILATION_HOOK_SUBSCRIPTION_BITSET_BYTE_LENGTH: usize =
+  hook_subscription_bitset_byte_length(COMPILATION_HOOK_COUNT);
 
 #[derive(Clone)]
 #[napi(object, object_to_js = false)]

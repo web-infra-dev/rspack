@@ -3,8 +3,8 @@ import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import {
   BindingAsyncSeriesBailHook,
-  type HookUsageTracker,
-} from './HookUsageTracker';
+  type HookSubscriptionBitset,
+} from './BindingHooks';
 import type { ResolveData, ResourceDataWithData } from './Module';
 import type {
   ResolveOptionsWithDependencyType,
@@ -36,40 +36,40 @@ export class NormalModuleFactory {
 
   constructor(
     resolverFactory: ResolverFactory,
-    hookUsageTracker: HookUsageTracker,
+    hookSubscriptionBitset: HookSubscriptionBitset,
   ) {
     this.hooks = {
       resolveForScheme: new liteTapable.HookMap(
         () =>
           new BindingAsyncSeriesBailHook(
             ['resourceData'],
-            hookUsageTracker,
+            hookSubscriptionBitset,
             binding.CompilationHooks.NormalModuleFactoryResolveForScheme,
           ),
       ),
       beforeResolve: new BindingAsyncSeriesBailHook(
         ['resolveData'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.NormalModuleFactoryBeforeResolve,
       ),
       factorize: new BindingAsyncSeriesBailHook(
         ['resolveData'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.NormalModuleFactoryFactorize,
       ),
       resolve: new BindingAsyncSeriesBailHook(
         ['resolveData'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.NormalModuleFactoryResolve,
       ),
       afterResolve: new BindingAsyncSeriesBailHook(
         ['resolveData'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.NormalModuleFactoryAfterResolve,
       ),
       createModule: new BindingAsyncSeriesBailHook(
         ['createData', 'resolveData'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.NormalModuleFactoryCreateModule,
       ),
     };

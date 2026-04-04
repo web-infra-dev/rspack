@@ -5,8 +5,8 @@ import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
 import {
   BindingSyncWaterfallHook,
-  COMPILATION_HOOK_USAGE_TRACKERS,
-} from '../HookUsageTracker';
+  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
+} from '../BindingHooks';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
 
@@ -35,28 +35,28 @@ RuntimePlugin.getCompilationHooks = (compilation: Compilation) => {
 
   let hooks = compilationHooksMap.get(compilation);
   if (hooks === undefined) {
-    const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(
+    const hookSubscriptionBitset = COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(
       compilation.compiler,
     )!;
     hooks = {
       createScript: new BindingSyncWaterfallHook(
         ['code', 'chunk'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.RuntimePluginCreateScript,
       ),
       createLink: new BindingSyncWaterfallHook(
         ['code', 'chunk'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.RuntimePluginCreateLink,
       ),
       linkPreload: new BindingSyncWaterfallHook(
         ['code', 'chunk'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.RuntimePluginLinkPreload,
       ),
       linkPrefetch: new BindingSyncWaterfallHook(
         ['code', 'chunk'],
-        hookUsageTracker,
+        hookSubscriptionBitset,
         binding.CompilationHooks.RuntimePluginLinkPrefetch,
       ),
     };

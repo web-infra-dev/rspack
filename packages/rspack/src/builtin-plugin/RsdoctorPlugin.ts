@@ -31,8 +31,8 @@ import { type Compilation, checkCompilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import {
   BindingAsyncSeriesBailHook,
-  COMPILATION_HOOK_USAGE_TRACKERS,
-} from '../HookUsageTracker';
+  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
+} from '../BindingHooks';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
 
@@ -126,7 +126,7 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
     return existingHooks;
   }
 
-  const hookUsageTracker = COMPILATION_HOOK_USAGE_TRACKERS.get(
+  const hookSubscriptionBitset = COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(
     compilation.compiler,
   )!;
   const hooks: RsdoctorPluginHooks = {
@@ -135,7 +135,7 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
       false | void
     >(
       ['moduleGraph'],
-      hookUsageTracker,
+      hookSubscriptionBitset,
       CompilationHooks.RsdoctorPluginModuleGraph,
     ),
     chunkGraph: new BindingAsyncSeriesBailHook<
@@ -143,7 +143,7 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
       false | void
     >(
       ['chunkGraph'],
-      hookUsageTracker,
+      hookSubscriptionBitset,
       CompilationHooks.RsdoctorPluginChunkGraph,
     ),
     moduleIds: new BindingAsyncSeriesBailHook<
@@ -151,7 +151,7 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
       false | void
     >(
       ['moduleIdsPatch'],
-      hookUsageTracker,
+      hookSubscriptionBitset,
       CompilationHooks.RsdoctorPluginModuleIds,
     ),
     moduleSources: new BindingAsyncSeriesBailHook<
@@ -159,13 +159,17 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
       false | void
     >(
       ['moduleSourcesPatch'],
-      hookUsageTracker,
+      hookSubscriptionBitset,
       CompilationHooks.RsdoctorPluginModuleSources,
     ),
     assets: new BindingAsyncSeriesBailHook<
       [JsRsdoctorAssetPatch],
       false | void
-    >(['assetPatch'], hookUsageTracker, CompilationHooks.RsdoctorPluginAssets),
+    >(
+      ['assetPatch'],
+      hookSubscriptionBitset,
+      CompilationHooks.RsdoctorPluginAssets,
+    ),
   };
   compilationHooksMap.set(compilation, hooks);
   return hooks;
