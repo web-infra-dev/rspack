@@ -1,8 +1,8 @@
 use std::{fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
 
-use dashmap::{DashMap, setref::multiple::RefMulti};
+use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{ArcPath, ArcPathDashSet};
+use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
 use super::FsWatcherIgnored;
 
@@ -189,7 +189,7 @@ pub(crate) struct PathManager {
   /// Baseline mtime for registered files, captured at scan time.
   /// Used to filter stale FSEvents that arrive for files not actually modified.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
-  file_mtimes: DashMap<ArcPath, SystemTime>,
+  file_mtimes: ArcPathDashMap<SystemTime>,
 }
 
 impl PathManager {
@@ -200,7 +200,7 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored,
-      file_mtimes: DashMap::default(),
+      file_mtimes: ArcPathDashMap::default(),
     }
   }
 

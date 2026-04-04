@@ -196,12 +196,14 @@ impl FsWatcher {
 
   fn record_file_mtimes(&self) {
     let accessor = self.path_manager.access();
-    for path in accessor.files().0.iter() {
+    let paths: Vec<_> = accessor.files().0.iter().map(|p| p.clone()).collect();
+    drop(accessor);
+    for path in paths {
       if let Ok(mtime) = path
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_mtime(path.clone(), mtime);
+        self.path_manager.set_file_mtime(path, mtime);
       }
     }
   }
