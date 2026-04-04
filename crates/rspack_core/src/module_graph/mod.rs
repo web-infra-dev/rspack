@@ -14,7 +14,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
   DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem, get_runtime_key,
 };
 mod module;
 pub use module::*;
@@ -241,26 +241,52 @@ impl ModuleGraph {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
-    let connections = self
-      .module_graph_module_by_identifier(module_id)
-      .expect("should have mgm")
-      .outgoing_connections();
+    let active_connections = module_graph_cache.cached_get_active_outgoing_connections(
+      (
+        *module_id,
+        runtime.map(|runtime| get_runtime_key(runtime).clone()),
+      ),
+      || {
+        let connections = self
+          .module_graph_module_by_identifier(module_id)
+          .expect("should have mgm")
+          .outgoing_connections();
+
+        let mut map: IdentifierMap<Vec<DependencyId>> =
+          IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
+        for dep_id in connections {
+          let con = self
+            .connection_by_dependency_id(dep_id)
+            .expect("should have connection");
+          if !con.is_active(
+            module_graph,
+            runtime,
+            module_graph_cache,
+            exports_info_artifact,
+          ) {
+            continue;
+          }
+          map
+            .entry(*con.module_identifier())
+            .or_default()
+            .push(con.dependency_id);
+        }
+        map
+      },
+    );
 
     let mut map: IdentifierMap<Vec<&ModuleGraphConnection>> =
-      IdentifierMap::with_capacity_and_hasher(connections.len(), Default::default());
-    for dep_id in connections {
-      let con = self
-        .connection_by_dependency_id(dep_id)
-        .expect("should have connection");
-      if !con.is_active(
-        module_graph,
-        runtime,
-        module_graph_cache,
-        exports_info_artifact,
-      ) {
-        continue;
-      }
-      map.entry(*con.module_identifier()).or_default().push(con);
+      IdentifierMap::with_capacity_and_hasher(active_connections.len(), Default::default());
+    for (target_module_id, dep_ids) in active_connections {
+      let connections = dep_ids
+        .into_iter()
+        .map(|dep_id| {
+          self
+            .connection_by_dependency_id(&dep_id)
+            .expect("should have connection")
+        })
+        .collect();
+      map.insert(target_module_id, connections);
     }
     map
   }
@@ -1183,5 +1209,164 @@ impl ModuleGraph {
         }
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+  };
+
+  use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+
+  use super::*;
+  use crate::{
+    AffectType, AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCondition,
+    DependencyConditionFn, DependencyId, DependencyType, FactorizeInfo, ModuleDependency,
+    ModuleExt, RawModule, RuntimeGlobals,
+  };
+
+  #[cacheable]
+  #[derive(Debug, Clone)]
+  struct TestConditionalDependency {
+    id: DependencyId,
+    request: String,
+    factorize_info: FactorizeInfo,
+    #[cacheable(with=Skip)]
+    calls: Arc<AtomicUsize>,
+  }
+
+  impl TestConditionalDependency {
+    fn new(id: DependencyId, request: &str, calls: Arc<AtomicUsize>) -> Self {
+      Self {
+        id,
+        request: request.to_string(),
+        factorize_info: Default::default(),
+        calls,
+      }
+    }
+  }
+
+  #[cacheable_dyn]
+  impl Dependency for TestConditionalDependency {
+    fn id(&self) -> &DependencyId {
+      &self.id
+    }
+
+    fn dependency_type(&self) -> &DependencyType {
+      &DependencyType::Unknown
+    }
+
+    fn could_affect_referencing_module(&self) -> AffectType {
+      AffectType::True
+    }
+  }
+
+  #[cacheable_dyn]
+  impl ModuleDependency for TestConditionalDependency {
+    fn request(&self) -> &str {
+      &self.request
+    }
+
+    fn get_condition(&self) -> Option<DependencyCondition> {
+      Some(DependencyCondition::new(TestDependencyCondition {
+        calls: self.calls.clone(),
+      }))
+    }
+
+    fn factorize_info(&self) -> &FactorizeInfo {
+      &self.factorize_info
+    }
+
+    fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+      &mut self.factorize_info
+    }
+  }
+
+  impl AsDependencyCodeGeneration for TestConditionalDependency {}
+  impl AsContextDependency for TestConditionalDependency {}
+
+  #[derive(Debug)]
+  struct TestDependencyCondition {
+    calls: Arc<AtomicUsize>,
+  }
+
+  impl DependencyConditionFn for TestDependencyCondition {
+    fn get_connection_state(
+      &self,
+      _conn: &ModuleGraphConnection,
+      _runtime: Option<&RuntimeSpec>,
+      _module_graph: &ModuleGraph,
+      _module_graph_cache: &ModuleGraphCacheArtifact,
+      _exports_info_artifact: &ExportsInfoArtifact,
+    ) -> ConnectionState {
+      self.calls.fetch_add(1, Ordering::SeqCst);
+      ConnectionState::Active(true)
+    }
+  }
+
+  fn add_test_module(module_graph: &mut ModuleGraph, module_id: ModuleIdentifier) {
+    module_graph.add_module_graph_module(ModuleGraphModule::new(module_id));
+    module_graph.add_module(
+      RawModule::new(
+        String::new(),
+        module_id,
+        module_id.to_string(),
+        RuntimeGlobals::empty(),
+      )
+      .boxed(),
+    );
+  }
+
+  #[test]
+  fn get_active_outcoming_connections_by_module_reuses_cached_condition_results() {
+    let mut module_graph = ModuleGraph::default();
+    let module_graph_cache = ModuleGraphCacheArtifact::default();
+    let exports_info_artifact = ExportsInfoArtifact::default();
+
+    let source_module: ModuleIdentifier = "source".into();
+    let target_module: ModuleIdentifier = "target".into();
+    add_test_module(&mut module_graph, source_module);
+    add_test_module(&mut module_graph, target_module);
+
+    let calls = Arc::new(AtomicUsize::new(0));
+    let dependency =
+      TestConditionalDependency::new(DependencyId::from(1), "./target", calls.clone());
+    let dependency_id = *dependency.id();
+    module_graph.add_dependency(Box::new(dependency));
+    module_graph.set_parents(
+      dependency_id,
+      DependencyParents {
+        block: None,
+        module: source_module,
+        index_in_block: 0,
+      },
+    );
+    module_graph
+      .set_resolved_module(Some(source_module), dependency_id, target_module)
+      .expect("should add resolved module");
+
+    module_graph_cache.freeze();
+
+    let first = module_graph.get_active_outcoming_connections_by_module(
+      &source_module,
+      None,
+      &module_graph,
+      &module_graph_cache,
+      &exports_info_artifact,
+    );
+    let second = module_graph.get_active_outcoming_connections_by_module(
+      &source_module,
+      None,
+      &module_graph,
+      &module_graph_cache,
+      &exports_info_artifact,
+    );
+
+    assert_eq!(first.len(), 1);
+    assert_eq!(second.len(), 1);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
   }
 }
