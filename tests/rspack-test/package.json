@@ -68,7 +68,6 @@
     "react-server-dom-rspack": "0.0.2",
     "rimraf": "^5.0.10",
     "sass-loader": "^16.0.7",
-    "sharp": "^0.33.0",
     "source-map": "^0.7.6",
     "source-map-loader": "^5.0.0",
     "style-loader": "^4.0.0",

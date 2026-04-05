@@ -16,12 +16,7 @@ module.exports = {
     minimizer: [
       new ImageMinimizerPlugin({
         minimizer: {
-          implementation: ImageMinimizerPlugin.sharpMinify,
-          options: {
-            encodeOptions: {
-              png: { quality: 50 },
-            },
-          },
+          implementation: async (original) => original,
         },
         loader: false,
       }),
