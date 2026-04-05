@@ -216,7 +216,7 @@ export interface LoaderContext<OptionsType = {}> {
    */
   request: string;
   /**
-   * An array of all the loaders. It is writeable in the pitch phase.
+   * An array of all the loaders. It is writable in the pitch phase.
    * loaders = [{request: string, path: string, query: string, module: function}]
    *
    * In the example:

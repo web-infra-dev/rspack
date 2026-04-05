@@ -51,7 +51,7 @@ async fn finish_modules(
 
   let mut mutations = compilation
     .incremental
-    .mutations_writeable()
+    .mutations_writable()
     .then(Mutations::default);
 
   set_sync_modules(

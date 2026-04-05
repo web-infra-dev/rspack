@@ -234,7 +234,7 @@ impl Incremental {
     self.passes().allow_read(passes)
   }
 
-  pub fn mutations_writeable(&self) -> bool {
+  pub fn mutations_writable(&self) -> bool {
     if matches!(self.state, IncrementalState::Hot { .. }) {
       return self.passes().allow_write();
     }
