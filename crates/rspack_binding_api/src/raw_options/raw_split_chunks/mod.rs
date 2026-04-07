@@ -137,19 +137,33 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
       .map(|size_type: String| SourceType::from(size_type.as_str()))
       .collect::<Vec<_>>();
 
-    let create_sizes = |size: Option<Either<f64, RawSplitChunkSizes>>| match size {
-      Some(Either::A(size)) => SplitChunkSizes::with_initial_value(&default_size_types, size),
-      Some(Either::B(sizes)) => sizes.into(),
-      None => SplitChunkSizes::default(),
+    let create_sizes = |size: Either<f64, RawSplitChunkSizes>| match size {
+      Either::A(size) => SplitChunkSizes::with_initial_value(&default_size_types, size),
+      Either::B(sizes) => sizes.into(),
+    };
+    let merge_sizes = |primary: Option<Either<f64, RawSplitChunkSizes>>,
+                       secondary: Option<&SplitChunkSizes>,
+                       tertiary: Option<&SplitChunkSizes>| {
+      let has_primary = primary.is_some();
+      let Some(mut sizes) = primary.map(create_sizes).or_else(|| secondary.cloned()) else {
+        return tertiary.cloned().unwrap_or_default();
+      };
+      if has_primary && let Some(secondary) = secondary {
+        sizes = sizes.merge(secondary);
+      }
+      if let Some(tertiary) = tertiary {
+        sizes = sizes.merge(tertiary);
+      }
+      sizes
     };
 
     let empty_sizes = SplitChunkSizes::empty();
 
-    let overall_min_size = create_sizes(min_size);
-    let overall_min_size_reduction = create_sizes(min_size_reduction);
-    let overall_max_size = create_sizes(max_size);
-    let overall_max_async_size = create_sizes(max_async_size).merge(&overall_max_size);
-    let overall_max_initial_size = create_sizes(max_initial_size).merge(&overall_max_size);
+    let overall_min_size = min_size.map(create_sizes).unwrap_or_default();
+    let overall_min_size_reduction = min_size_reduction.map(create_sizes).unwrap_or_default();
+    let overall_max_size = max_size.map(create_sizes).unwrap_or_default();
+    let overall_max_async_size = merge_sizes(max_async_size, Some(&overall_max_size), None);
+    let overall_max_initial_size = merge_sizes(max_initial_size, Some(&overall_max_size), None);
     let overall_automatic_name_delimiter =
       automatic_name_delimiter.unwrap_or(DEFAULT_DELIMITER.to_string());
 
@@ -190,32 +204,40 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
       } = cache_group;
 
       let enforce = enforce.unwrap_or_default();
-      let min_size = create_sizes(min_size).merge(if enforce {
+      let inherited_min_size = if enforce {
         &empty_sizes
       } else {
         &overall_min_size
-      });
-      let min_size_reduction = create_sizes(min_size_reduction).merge(if enforce {
+      };
+      let inherited_min_size_reduction = if enforce {
         &empty_sizes
       } else {
         &overall_min_size_reduction
-      });
-
-      let max_size = create_sizes(max_size);
-      let max_async_size = create_sizes(max_async_size)
-        .merge(&max_size)
-        .merge(if enforce {
-          &empty_sizes
-        } else {
-          &overall_max_async_size
-        });
-      let max_initial_size = create_sizes(max_initial_size)
-        .merge(&max_size)
-        .merge(if enforce {
-          &empty_sizes
-        } else {
-          &overall_max_initial_size
-        });
+      };
+      let inherited_max_async_size = if enforce {
+        &empty_sizes
+      } else {
+        &overall_max_async_size
+      };
+      let inherited_initial_size = if enforce {
+        &empty_sizes
+      } else {
+        &overall_max_initial_size
+      };
+      let min_size = merge_sizes(min_size, Some(inherited_min_size), None);
+      let min_size_reduction =
+        merge_sizes(min_size_reduction, Some(inherited_min_size_reduction), None);
+      let max_size = max_size.map(create_sizes).unwrap_or_default();
+      let max_async_size = merge_sizes(
+        max_async_size,
+        Some(&max_size),
+        Some(inherited_max_async_size),
+      );
+      let max_initial_size = merge_sizes(
+        max_initial_size,
+        Some(&max_size),
+        Some(inherited_initial_size),
+      );
 
       let min_chunks = min_chunks.unwrap_or(if enforce { 1 } else { overall_min_chunks });
       let r#type = match r#type {
@@ -274,20 +296,28 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
       .map(create_chunks_filter)
       .transpose()?;
 
-    let fallback_min_size =
-      create_sizes(raw_fallback_cache_group.min_size).merge(&overall_min_size);
+    let fallback_min_size = merge_sizes(
+      raw_fallback_cache_group.min_size,
+      Some(&overall_min_size),
+      None,
+    );
 
-    let fallback_max_size = create_sizes(raw_fallback_cache_group.max_size);
+    let fallback_max_size = raw_fallback_cache_group
+      .max_size
+      .map(create_sizes)
+      .unwrap_or_default();
 
-    let fallback_max_async_size = create_sizes(raw_fallback_cache_group.max_async_size)
-      .merge(&fallback_max_size)
-      .merge(&overall_max_async_size)
-      .merge(&overall_max_size);
+    let fallback_max_async_size = merge_sizes(
+      raw_fallback_cache_group.max_async_size,
+      Some(&fallback_max_size),
+      Some(&overall_max_async_size),
+    );
 
-    let fallback_max_initial_size = create_sizes(raw_fallback_cache_group.max_initial_size)
-      .merge(&fallback_max_size)
-      .merge(&overall_max_initial_size)
-      .merge(&overall_max_size);
+    let fallback_max_initial_size = merge_sizes(
+      raw_fallback_cache_group.max_initial_size,
+      Some(&fallback_max_size),
+      Some(&overall_max_initial_size),
+    );
 
     let default_fallback_chunk_filter =
       overall_chunk_filter.unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter);

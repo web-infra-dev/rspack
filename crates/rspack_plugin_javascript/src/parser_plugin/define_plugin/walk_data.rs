@@ -1,6 +1,5 @@
 use std::{borrow::Cow, sync::Arc};
 
-use itertools::Itertools as _;
 use memchr::memchr_iter;
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify;
@@ -203,45 +202,11 @@ pub struct WalkData {
 impl WalkData {
   pub fn new(definitions: &DefineValue) -> Self {
     let mut data = Self::default();
-    data.setup_value_cache(definitions.iter(), "".into());
-    data.setup_record(definitions);
+    data.setup(definitions);
     data
   }
 
-  fn setup_value_cache<'d, 's>(
-    &mut self,
-    definitions: impl Iterator<Item = (&'d String, &'d Value)>,
-    prefix: Cow<'s, str>,
-  ) {
-    definitions.for_each(|(key, value)| {
-      let name = format!("{prefix}{key}");
-      let value_str = value.to_string();
-      if let Some(prev) = self.tiling_definitions.get(&name)
-        && !prev.eq(&value_str)
-      {
-        self.diagnostics.push(
-          ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .into_diagnostic(),
-        );
-      } else {
-        self.tiling_definitions.insert(name, value_str);
-      }
-      if let Some(value) = value.as_object() {
-        self.setup_value_cache(value.iter(), Cow::Owned(format!("{prefix}{key}.")))
-      } else if let Some(value) = value.as_array() {
-        let indexes = (0..value.len())
-          .map(|index| {
-            let mut index_buffer = rspack_util::itoa::Buffer::new();
-            index_buffer.format(index).to_string()
-          })
-          .collect_vec();
-        let iter = indexes.iter().zip(value.iter());
-        self.setup_value_cache(iter, Cow::Owned(format!("{prefix}{key}.")))
-      }
-    });
-  }
-
-  fn setup_record(&mut self, definitions: &DefineValue) {
+  fn setup(&mut self, definitions: &DefineValue) {
     fn apply_define_key(prefix: &str, key: &str, walk_data: &mut WalkData) {
       let mut separator_indices = memchr_iter(b'.', key.as_bytes());
       let Some(first_index) = separator_indices.next() else {
@@ -343,6 +308,21 @@ impl WalkData {
       }
     }
 
+    fn insert_tiling_definition(name: &str, value: &Value, walk_data: &mut WalkData) {
+      let value_str = value.to_string();
+      if let Some(prev) = walk_data.tiling_definitions.get(name)
+        && !prev.eq(&value_str)
+      {
+        walk_data.diagnostics.push(
+          ConflictingValuesError(name.to_string(), prev.clone(), value_str).into_diagnostic(),
+        );
+      } else {
+        walk_data
+          .tiling_definitions
+          .insert(name.to_string(), value_str);
+      }
+    }
+
     fn object_evaluate_identifier(start: u32, end: u32) -> BasicEvaluatedExpression<'static> {
       let mut evaluated = BasicEvaluatedExpression::new();
       evaluated.set_truthy();
@@ -395,23 +375,22 @@ impl WalkData {
 
     fn walk_code(code: &Value, prefix: &mut String, key: &str, walk_data: &mut WalkData) {
       let prefix_len = prefix.len();
+      prefix.push_str(key);
+      insert_tiling_definition(prefix.as_str(), code, walk_data);
       if let Some(array) = code.as_array() {
-        prefix.push_str(key);
         let key_len = prefix.len();
         prefix.push('.');
         walk_array(array, prefix, walk_data);
         prefix.truncate(key_len);
         apply_array_define(prefix.as_str(), array, walk_data);
       } else if let Some(obj) = code.as_object() {
-        prefix.push_str(key);
         let key_len = prefix.len();
         prefix.push('.');
         walk_object(obj, prefix, walk_data);
         prefix.truncate(key_len);
         apply_object_define(prefix.as_str(), obj, walk_data);
       } else {
-        apply_define_key(prefix.as_str(), key, walk_data);
-        prefix.push_str(key);
+        apply_define_key(&prefix[..prefix_len], key, walk_data);
         apply_define(prefix.as_str(), code, walk_data);
       }
       prefix.truncate(prefix_len);

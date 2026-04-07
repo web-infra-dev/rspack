@@ -38,16 +38,14 @@ pub struct ProvidePlugin {
 
 impl ProvidePlugin {
   pub fn new(provide: ProvideValue) -> Self {
-    let names = provide
-      .keys()
-      .flat_map(|name| {
-        let splitted: Vec<&str> = name.split('.').collect();
-        // splitted.len() is always greater than 0
-        (0..splitted.len() - 1)
-          .map(|i| splitted[0..i + 1].join("."))
-          .collect::<Vec<_>>()
-      })
-      .collect::<HashSet<_>>();
+    let mut names = HashSet::default();
+    for name in provide.keys() {
+      for (index, byte) in name.bytes().enumerate() {
+        if byte == b'.' {
+          names.insert(name[..index].to_string());
+        }
+      }
+    }
     Self::new_inner(provide.into(), names.into())
   }
 }
