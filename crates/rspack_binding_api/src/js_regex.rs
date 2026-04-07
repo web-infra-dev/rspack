@@ -30,13 +30,6 @@ impl FromNapiValue for JsRegExp {
   ) -> napi::Result<Self> {
     let unknown = unsafe { Unknown::from_raw_unchecked(raw_env, napi_val) };
 
-    if unknown.get_type()? != ValueType::Object {
-      return Err(napi::Error::new(
-        napi::Status::ObjectExpected,
-        "Expected a RegExp-like object as input value.",
-      ));
-    }
-
     let object = unknown.coerce_to_object()?;
     let pattern = object
       .get_named_property::<String>("pattern")

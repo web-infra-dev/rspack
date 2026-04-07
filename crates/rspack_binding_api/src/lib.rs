@@ -197,7 +197,8 @@ impl JsCompiler {
     tracing::info!(name:"raw_options", options=?&options);
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
-      let initial_plugins_capacity = 10 + builtin_plugins.len();
+      const FIXED_PLUGIN_COUNT: usize = 7;
+      let initial_plugins_capacity = FIXED_PLUGIN_COUNT + builtin_plugins.len() * 2;
 
       let mut plugins = Vec::with_capacity(initial_plugins_capacity);
       let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
