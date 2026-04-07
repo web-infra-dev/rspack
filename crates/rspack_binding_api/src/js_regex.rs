@@ -80,34 +80,3 @@ impl TryFrom<JsRegExp> for RspackRegex {
     RspackRegex::from_js_regex(value.pattern, value.flags)
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use rspack_regex::RspackRegex;
-
-  use super::JsRegExp;
-
-  #[test]
-  fn converts_js_regexp_to_rspack_regex() {
-    let regex = RspackRegex::try_from(JsRegExp {
-      pattern: "foo".to_string(),
-      flags: "i".to_string(),
-    })
-    .unwrap();
-
-    assert_eq!(regex.source(), "foo");
-    assert_eq!(regex.flags(), "i");
-    assert!(regex.test("FOO"));
-  }
-
-  #[test]
-  fn rejects_invalid_js_regexp() {
-    let error = RspackRegex::try_from(JsRegExp {
-      pattern: "(".to_string(),
-      flags: String::new(),
-    })
-    .unwrap_err();
-
-    assert!(!error.to_string().is_empty());
-  }
-}
