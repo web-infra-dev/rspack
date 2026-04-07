@@ -12,9 +12,9 @@ use rustc_hash::{FxHashMap as HashMap, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
-  DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
+  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -107,12 +107,13 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
+  pub(crate) modules:
+    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
+  blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -603,7 +604,7 @@ impl ModuleGraph {
       .expect("should insert block before get it")
   }
 
-  pub fn blocks(&self) -> &HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>> {
+  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>> {
     &self.inner.blocks
   }
 
