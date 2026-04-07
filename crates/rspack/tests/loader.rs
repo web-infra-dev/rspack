@@ -1,5 +1,7 @@
 #![allow(unused_imports)]
 
+use std::sync::Arc;
+
 use rspack::builder::Builder as _;
 use rspack_core::{
   Compiler, Experiments, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,

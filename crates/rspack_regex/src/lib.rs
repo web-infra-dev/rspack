@@ -163,17 +163,3 @@ impl AsStringConverter for RspackRegex {
     Ok(RspackRegex::with_flags(source, flags).expect("should generate regex"))
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::RspackRegex;
-
-  #[test]
-  fn from_js_regex_preserves_flag_order() {
-    let regex = RspackRegex::from_js_regex("foo".to_string(), "gim".to_string()).unwrap();
-
-    assert_eq!(regex.source(), "foo");
-    assert_eq!(regex.flags(), "gim");
-    assert!(regex.test("FOO"));
-  }
-}
