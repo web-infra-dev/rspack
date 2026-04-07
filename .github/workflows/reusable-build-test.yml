@@ -176,8 +176,7 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
-          NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
-        run: pnpm run build:js && pnpm --filter "@rspack/cli" test && pnpm --filter "@rspack/tests" test
+        run: pnpm run test:ci
 
       - name: Upload Test Reporter
         if: always()
