@@ -514,8 +514,7 @@ impl ModuleConcatenationPlugin {
                 active_incomings,
                 cached_module_runtime,
                 module_graph,
-                module_graph_cache,
-                &compilation.exports_info_artifact,
+                &module_graph_artifacts,
               )
             });
 
@@ -597,8 +596,9 @@ impl ModuleConcatenationPlugin {
                 connection.is_target_active(
                   module_graph,
                   runtime,
-                  module_graph_cache,
-                  &compilation.exports_info_artifact,
+                  module_graph_artifacts.mg_cache,
+                  module_graph_artifacts.side_effects_state_artifact,
+                  module_graph_artifacts.exports_info_artifact,
                 )
               });
 
@@ -1349,15 +1349,15 @@ impl ModuleConcatenationPlugin {
           side_effects_state_artifact: &side_effects_state_artifact,
           exports_info_artifact: &compilation.exports_info_artifact,
         };
-
-      let imports = Self::get_imports(
-        module_graph,
-        &module_graph_artifacts,
-        *current_root,
-        active_runtime.as_ref(),
-        &mut imports_cache,
-        &modules_without_runtime_cache,
-      );
+        Self::get_imports(
+          module_graph,
+          &module_graph_artifacts,
+          *current_root,
+          active_runtime.as_ref(),
+          &mut imports_cache,
+          &modules_without_runtime_cache,
+        )
+      };
       for import in imports.iter().copied() {
         candidates.push_back(import);
       }
