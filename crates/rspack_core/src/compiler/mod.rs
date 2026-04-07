@@ -99,6 +99,7 @@ pub struct Compiler {
   pub emitted_asset_versions: HashMap<String, String>,
   pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
+  last_records: Option<Arc<CompilationRecords>>,
 }
 
 impl Compiler {
@@ -195,6 +196,7 @@ impl Compiler {
       input_filesystem,
       platform,
       compiler_context,
+      last_records: None,
     }
   }
 
