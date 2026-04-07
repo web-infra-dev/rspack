@@ -230,7 +230,7 @@ impl JsCompiler {
       let pnp = options.resolve.pnp.unwrap_or(false);
       let virtual_files = options.__virtual_files.take();
       let use_input_fs = options.experiments.use_input_file_system.take();
-      let (compiler_options_tx, mut compiler_options_rx) = tokio::sync::oneshot::channel();
+      let (compiler_options_tx, compiler_options_rx) = sync_channel(1);
 
       rayon::spawn(move || {
         let _ = compiler_options_tx.send(options.try_into());
@@ -241,7 +241,7 @@ impl JsCompiler {
       }
 
       let compiler_options: rspack_core::CompilerOptions = compiler_options_rx
-        .try_recv()
+        .recv()
         .map_err(|_| {
           napi::Error::from_reason("Failed to receive CompilerOptions from background worker")
         })?
@@ -359,7 +359,6 @@ impl JsCompiler {
       })
     })
   }
-
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
