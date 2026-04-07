@@ -106,7 +106,7 @@ export const getRawOptions = (
     node: getRawNode(options.node),
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,
-    __references: {},
+    __references: compiler.__internal__ruleSet.builtinReferences,
   };
 };
 

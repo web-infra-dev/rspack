@@ -266,13 +266,7 @@ impl NormalModuleFactory {
           });
           ModuleRuleUseLoader {
             loader: r.to_owned(),
-            options: ident.and_then(|ident| {
-              data
-                .options
-                .__references
-                .get(ident)
-                .map(|object| object.to_string())
-            }),
+            options: ident.and_then(|ident| data.options.__references.get(ident).cloned()),
           }
         }));
         scheme = get_scheme(unresolved_resource);

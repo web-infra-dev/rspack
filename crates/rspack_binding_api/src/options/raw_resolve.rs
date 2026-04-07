@@ -61,43 +61,37 @@ pub struct RawResolveOptions {
 fn normalize_alias(
   alias: Option<Either<Vec<RawAliasOptionItem>, bool>>,
 ) -> rspack_error::Result<Option<Alias>> {
-  alias
-    .map(|alias| match alias {
-      Either::A(alias) => {
-        let alias = alias
-          .into_iter()
-          .map(|alias_item| {
-            alias_item
-              .redirect
-              .into_iter()
-              .map(|value| {
-                if let Some(s) = value.as_str() {
-                  Ok(AliasMap::Path(s.to_string()))
-                } else if let Some(b) = value.as_bool() {
-                  if b {
-                    Err(error!("Alias should not be true in {}", alias_item.path))
-                  } else {
-                    Ok(AliasMap::Ignore)
-                  }
-                } else {
-                  Err(error!(
-                    "Alias should be false or string in {}",
-                    alias_item.path
-                  ))
-                }
-              })
-              .collect::<rspack_error::Result<Vec<_>>>()
-              .map(|value| (alias_item.path, value))
-          })
-          .collect::<rspack_error::Result<Vec<_>>>();
-        alias.map(Alias::MergeAlias)
+  let Some(alias) = alias else {
+    return Ok(None);
+  };
+
+  match alias {
+    Either::A(alias_items) => {
+      let mut normalized_aliases = Vec::with_capacity(alias_items.len());
+      for alias_item in alias_items {
+        let RawAliasOptionItem { path, redirect } = alias_item;
+        let mut normalized_redirect = Vec::with_capacity(redirect.len());
+        for value in redirect {
+          match value {
+            AliasValue::String(string) => normalized_redirect.push(AliasMap::Path(string)),
+            AliasValue::Bool(false) => normalized_redirect.push(AliasMap::Ignore),
+            AliasValue::Bool(true) => {
+              return Err(error!("Alias should not be true in {}", path));
+            }
+            _ => {
+              return Err(error!("Alias should be false or string in {}", path));
+            }
+          }
+        }
+        normalized_aliases.push((path, normalized_redirect));
       }
-      Either::B(falsy) => {
-        assert!(!falsy, "Alias should not be true");
-        Ok(Alias::OverwriteToNoAlias)
-      }
-    })
-    .map_or(Ok(None), |v| v.map(Some))
+      Ok(Some(Alias::MergeAlias(normalized_aliases)))
+    }
+    Either::B(falsy) => {
+      assert!(!falsy, "Alias should not be true");
+      Ok(Some(Alias::OverwriteToNoAlias))
+    }
+  }
 }
 
 impl TryFrom<RawResolveOptions> for Resolve {

@@ -196,7 +196,9 @@ impl JsCompiler {
     tracing::info!(name:"raw_options", options=?&options);
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
-      let mut plugins = Vec::with_capacity(builtin_plugins.len());
+      let initial_plugins_capacity = 10 + builtin_plugins.len();
+
+      let mut plugins = Vec::with_capacity(initial_plugins_capacity);
       let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
@@ -301,6 +303,13 @@ impl JsCompiler {
         };
 
       let platform = Arc::new(CompilerPlatform::from(platform));
+
+      debug_assert!(
+        plugins.capacity() == initial_plugins_capacity,
+        "plugins reallocated while collecting builtin plugins; \
+         increase the requested capacity lower bound \
+         (FIXED_PLUGIN_COUNT + builtin_plugins.len()) or update FIXED_PLUGIN_COUNT"
+      );
 
       let rspack = rspack_core::Compiler::new(
         compiler_path,

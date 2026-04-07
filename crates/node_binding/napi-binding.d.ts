@@ -2723,7 +2723,7 @@ incremental?: false | { [key: string]: boolean }
 node?: RawNodeOption
 amd?: string
 bail: boolean
-__references: Record<string, any>
+__references: Record<string, string>
 __virtual_files?: Array<JsVirtualFile>
 }
 

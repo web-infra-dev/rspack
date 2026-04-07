@@ -944,9 +944,6 @@ class Compiler {
 
     const { options } = this;
     const rawOptions = getRawOptions(options, this);
-    rawOptions.__references = Object.fromEntries(
-      this.#ruleSet.builtinReferences.entries(),
-    );
 
     rawOptions.__virtual_files =
       VirtualModulesPlugin.__internal__take_virtual_files(this);

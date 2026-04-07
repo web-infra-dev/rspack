@@ -513,7 +513,7 @@ function createRawModuleRuleUsesImpl(
 
   return uses.filter(Boolean).map((use, index) => {
     let o: string | undefined;
-    let isBuiltin = false;
+    let builtinReference: string | undefined;
     if (use.loader.startsWith(BUILTIN_LOADER_PREFIX)) {
       const temp = getBuiltinLoaderOptions(use.loader, use.options, options);
       // keep json with indent so miette can show pretty error
@@ -522,7 +522,7 @@ function createRawModuleRuleUsesImpl(
         : typeof temp === 'string'
           ? temp
           : JSON.stringify(temp, null, 2);
-      isBuiltin = true;
+      builtinReference = o;
     }
 
     return {
@@ -530,7 +530,7 @@ function createRawModuleRuleUsesImpl(
         use,
         `${path}[${index}]`,
         options.compiler,
-        isBuiltin,
+        builtinReference,
       ),
       options: o,
     };
@@ -541,7 +541,7 @@ function resolveStringifyLoaders(
   use: RuleSetLoaderWithOptions,
   path: string,
   compiler: Compiler,
-  isBuiltin: boolean,
+  builtinReference?: string,
 ) {
   const obj = parsePathQueryFragment(use.loader);
   let ident = use.ident;
@@ -570,8 +570,8 @@ function resolveStringifyLoaders(
       `${ident}$$parallelism`,
       parallelism,
     );
-    if (isBuiltin) {
-      compiler.__internal__ruleSet.builtinReferences.set(ident, use.options);
+    if (builtinReference !== undefined) {
+      compiler.__internal__ruleSet.builtinReferences[ident] = builtinReference;
     }
   }
 

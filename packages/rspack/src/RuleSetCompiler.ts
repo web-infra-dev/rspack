@@ -3,10 +3,10 @@ class RuleSetCompiler {
   /**
    * builtin references that should be serializable and passed to Rust.
    */
-  builtinReferences: Map<string, any>;
+  builtinReferences: Record<string, string>;
   constructor() {
     this.references = new Map();
-    this.builtinReferences = new Map();
+    this.builtinReferences = Object.create(null);
   }
 }
 

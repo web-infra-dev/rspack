@@ -1,13 +1,11 @@
-use std::{
-  borrow::Cow,
-  sync::{Arc, LazyLock},
-};
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools as _;
-use regex::Regex;
+use memchr::memchr_iter;
 use rspack_error::Diagnostic;
+use rspack_util::json_stringify;
 use rustc_hash::FxHashMap;
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use swc_core::common::Span;
 
 use super::{
@@ -16,8 +14,17 @@ use super::{
 };
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
-static TYPEOF_OPERATOR_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new("^typeof\\s+").expect("should init `TYPEOF_OPERATOR_REGEXP`"));
+#[inline]
+fn strip_typeof_operator_prefix(key: &str) -> Option<&str> {
+  let rest = key.strip_prefix("typeof")?;
+  let whitespace_end = rest
+    .find(|ch: char| !ch.is_whitespace())
+    .unwrap_or(rest.len());
+  if whitespace_end == 0 {
+    return None;
+  }
+  Some(&rest[whitespace_end..])
+}
 
 type OnEvaluateIdentifier = dyn Fn(
     &DefineRecord,
@@ -235,27 +242,31 @@ impl WalkData {
   }
 
   fn setup_record(&mut self, definitions: &DefineValue) {
-    fn apply_define_key(prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
-      let splitted: Vec<&str> = key.split('.').collect();
-      if !splitted.is_empty() {
-        let iter = (0..splitted.len() - 1).map(|i| {
-          let full_key = Arc::<str>::from(format!("{prefix}{}", splitted[0..i + 1].join(".")));
-          let first_key = Some(Arc::<str>::from(splitted[0]));
-          (full_key, first_key)
-        });
-        walk_data.can_rename.extend(iter)
+    fn apply_define_key(prefix: &str, key: &str, walk_data: &mut WalkData) {
+      let mut separator_indices = memchr_iter(b'.', key.as_bytes());
+      let Some(first_index) = separator_indices.next() else {
+        return;
+      };
+
+      let mut full_key = String::with_capacity(prefix.len() + key.len());
+      full_key.push_str(prefix);
+      let mut segment_start = 0;
+      let first_key: Arc<str> = Arc::from(&key[..first_index]);
+
+      for index in std::iter::once(first_index).chain(separator_indices) {
+        full_key.push_str(&key[segment_start..index]);
+        walk_data
+          .can_rename
+          .insert(Arc::from(full_key.as_str()), Some(first_key.clone()));
+        full_key.push('.');
+        segment_start = index + 1;
       }
     }
 
-    fn apply_define(key: Cow<str>, code: &Value, walk_data: &mut WalkData) {
-      let is_typeof = TYPEOF_OPERATOR_REGEXP.is_match(&key);
-      let original_key = key;
-      let key = if is_typeof {
-        TYPEOF_OPERATOR_REGEXP.replace(&original_key, "")
-      } else {
-        original_key
-      };
-      let key = Arc::<str>::from(key);
+    fn apply_define(key: &str, code: &Value, walk_data: &mut WalkData) {
+      let stripped_typeof_key = strip_typeof_operator_prefix(key);
+      let is_typeof = stripped_typeof_key.is_some();
+      let key: Arc<str> = Arc::from(stripped_typeof_key.unwrap_or(key));
       let mut define_record = DefineRecord::from_code(code.clone());
       if !is_typeof {
         walk_data.can_rename.insert(key.clone(), None);
@@ -314,7 +325,7 @@ impl WalkData {
               debug_assert!(!parser.in_short_hand);
               for dep in gen_const_dep(
                 parser,
-                Cow::Owned(format!("{}", json!(evaluated.string()))),
+                Cow::Owned(json_stringify(evaluated.string())),
                 "",
                 start,
                 end,
@@ -340,7 +351,7 @@ impl WalkData {
       evaluated
     }
 
-    fn apply_array_define(key: Cow<str>, obj: &[Value], walk_data: &mut WalkData) {
+    fn apply_array_define(key: &str, obj: &[Value], walk_data: &mut WalkData) {
       let key = Arc::<str>::from(key);
       walk_data.can_rename.insert(key.clone(), None);
       let define_record = ObjectDefineRecord::from_code(Value::Array(obj.to_owned()))
@@ -359,7 +370,7 @@ impl WalkData {
       walk_data.object_define_record.insert(key, define_record);
     }
 
-    fn apply_object_define(key: Cow<str>, obj: &Map<String, Value>, walk_data: &mut WalkData) {
+    fn apply_object_define(key: &str, obj: &Map<String, Value>, walk_data: &mut WalkData) {
       let key = Arc::<str>::from(key);
       walk_data.can_rename.insert(key.clone(), None);
       let define_record = ObjectDefineRecord::from_code(Value::Object(obj.clone()))
@@ -382,33 +393,119 @@ impl WalkData {
       walk_data.object_define_record.insert(key, define_record);
     }
 
-    fn walk_code(code: &Value, prefix: Cow<str>, key: Cow<str>, walk_data: &mut WalkData) {
-      let prefix_for_object = || Cow::Owned(format!("{prefix}{key}."));
+    fn walk_code(code: &Value, prefix: &mut String, key: &str, walk_data: &mut WalkData) {
+      let prefix_len = prefix.len();
       if let Some(array) = code.as_array() {
-        walk_array(array, prefix_for_object(), walk_data);
-        apply_array_define(Cow::Owned(format!("{prefix}{key}")), array, walk_data);
+        prefix.push_str(key);
+        let key_len = prefix.len();
+        prefix.push('.');
+        walk_array(array, prefix, walk_data);
+        prefix.truncate(key_len);
+        apply_array_define(prefix.as_str(), array, walk_data);
       } else if let Some(obj) = code.as_object() {
-        walk_object(obj, prefix_for_object(), walk_data);
-        apply_object_define(Cow::Owned(format!("{prefix}{key}")), obj, walk_data);
+        prefix.push_str(key);
+        let key_len = prefix.len();
+        prefix.push('.');
+        walk_object(obj, prefix, walk_data);
+        prefix.truncate(key_len);
+        apply_object_define(prefix.as_str(), obj, walk_data);
       } else {
-        apply_define_key(prefix.clone(), Cow::Owned(key.to_string()), walk_data);
-        apply_define(Cow::Owned(format!("{prefix}{key}")), code, walk_data);
+        apply_define_key(prefix.as_str(), key, walk_data);
+        prefix.push_str(key);
+        apply_define(prefix.as_str(), code, walk_data);
+      }
+      prefix.truncate(prefix_len);
+    }
+
+    fn walk_array(arr: &[Value], prefix: &mut String, walk_data: &mut WalkData) {
+      let mut index_buffer = rspack_util::itoa::Buffer::new();
+      for (index, code) in arr.iter().enumerate() {
+        walk_code(code, prefix, index_buffer.format(index), walk_data);
       }
     }
 
-    fn walk_array(arr: &[Value], prefix: Cow<str>, walk_data: &mut WalkData) {
-      arr.iter().enumerate().for_each(|(key, code)| {
-        walk_code(code, prefix.clone(), Cow::Owned(key.to_string()), walk_data)
-      })
+    fn walk_object(obj: &Map<String, Value>, prefix: &mut String, walk_data: &mut WalkData) {
+      for (key, code) in obj {
+        walk_code(code, prefix, key, walk_data);
+      }
     }
 
-    fn walk_object(obj: &Map<String, Value>, prefix: Cow<str>, walk_data: &mut WalkData) {
-      obj
-        .iter()
-        .for_each(|(key, code)| walk_code(code, prefix.clone(), Cow::Owned(key.clone()), walk_data))
+    let mut prefix = String::new();
+    for (key, code) in definitions {
+      walk_code(code, &mut prefix, key, self);
     }
+  }
+}
 
-    let object = definitions.clone().into_iter().collect();
-    walk_object(&object, "".into(), self);
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use serde_json::{Value, json};
+
+  use super::{DefineValue, WalkData, strip_typeof_operator_prefix};
+
+  #[test]
+  fn strips_typeof_operator_prefix() {
+    assert_eq!(strip_typeof_operator_prefix("typeof foo"), Some("foo"));
+    assert_eq!(
+      strip_typeof_operator_prefix("typeof\t foo.bar"),
+      Some("foo.bar")
+    );
+    assert_eq!(
+      strip_typeof_operator_prefix("typeof\u{3000}value"),
+      Some("value")
+    );
+    assert_eq!(strip_typeof_operator_prefix("typeof   "), Some(""));
+    assert_eq!(strip_typeof_operator_prefix("typeof"), None);
+    assert_eq!(strip_typeof_operator_prefix("typeoffoo"), None);
+  }
+
+  #[test]
+  fn setup_record_adds_can_rename_entries_for_dotted_leaf_keys() {
+    let definitions = DefineValue::from_iter([(
+      "process.env.NODE_ENV".to_string(),
+      Value::String("production".to_string()),
+    )]);
+
+    let walk_data = WalkData::new(&definitions);
+
+    assert_eq!(
+      walk_data.can_rename.get("process"),
+      Some(&Some(Arc::<str>::from("process")))
+    );
+    assert_eq!(
+      walk_data.can_rename.get("process.env"),
+      Some(&Some(Arc::<str>::from("process")))
+    );
+    assert_eq!(
+      walk_data.can_rename.get("process.env.NODE_ENV"),
+      Some(&None)
+    );
+    assert!(walk_data.define_record.contains_key("process.env.NODE_ENV"));
+  }
+
+  #[test]
+  fn setup_record_keeps_dotted_object_keys_out_of_parent_can_rename_entries() {
+    let definitions = DefineValue::from_iter([(
+      "process.env".to_string(),
+      json!({
+        "NODE_ENV": "production",
+        "FLAGS": [true]
+      }),
+    )]);
+
+    let walk_data = WalkData::new(&definitions);
+
+    assert_eq!(walk_data.can_rename.get("process"), None);
+    assert_eq!(walk_data.can_rename.get("process.env"), Some(&None));
+    assert!(walk_data.object_define_record.contains_key("process.env"));
+    assert!(walk_data.define_record.contains_key("process.env.NODE_ENV"));
+    assert!(
+      walk_data
+        .object_define_record
+        .contains_key("process.env.FLAGS")
+    );
+    assert!(walk_data.define_record.contains_key("process.env.FLAGS.0"));
   }
 }
