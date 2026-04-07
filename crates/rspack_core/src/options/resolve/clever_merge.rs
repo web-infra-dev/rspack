@@ -40,6 +40,7 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(roots)
     && is_none!(tsconfig)
     && is_none!(by_dependency)
+    && is_none!(node_path)
 }
 
 #[derive(Default, Debug)]
@@ -71,6 +72,7 @@ struct ResolveWithEntry {
   restrictions: Entry<Restrictions>,
   roots: Entry<Roots>,
   pnp: Entry<bool>,
+  node_path: Entry<bool>,
 }
 
 fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
@@ -104,6 +106,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
     restrictions: entry!(restrictions),
     roots: entry!(roots),
     pnp: entry!(pnp),
+    node_path: entry!(node_path),
   };
   let Some(by_dependency) = resolve.by_dependency else {
     return res;
@@ -162,6 +165,7 @@ fn parse_resolve(resolve: Resolve) -> ResolveWithEntry {
   update_by_value!(restrictions, |i: Option<&_>| i.is_some());
   update_by_value!(roots, |i: Option<&_>| i.is_some());
   update_by_value!(tsconfig, |i: Option<&_>| i.is_some());
+  update_by_value!(node_path, |i: Option<&_>| i.is_some());
 
   res
 }
@@ -362,6 +366,12 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     alias_fields: merge!(alias_fields, ValueType::Other, |_| false, |_, b| b),
     restrictions: merge!(restrictions, ValueType::Other, |_| false, |_, b| b),
     roots: merge!(roots, ValueType::Other, |_| false, |_, b| b),
+    node_path: merge!(
+      node_path,
+      second.node_path.base.get_value_type(),
+      |_| true,
+      |_, b| b
+    ),
   };
 
   let mut by_dependency: FxLinkedHashMap<DependencyCategoryStr, Resolve> =
@@ -399,6 +409,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   setup_by_values!(alias_fields);
   setup_by_values!(restrictions);
   setup_by_values!(roots);
+  setup_by_values!(node_path);
 
   macro_rules! to_resolve {
     ($ident: ident) => {
@@ -432,6 +443,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
   to_resolve!(alias_fields);
   to_resolve!(restrictions);
   to_resolve!(roots);
+  to_resolve!(node_path);
 
   let by_dependency = if by_dependency.iter().all(|(_, by_value)| is_empty(by_value)) {
     None
@@ -463,6 +475,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
     builtin_modules: false,
+    node_path: result_entry.node_path.base,
   }
 }
 

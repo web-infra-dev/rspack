@@ -542,6 +542,21 @@ export default {
 
 解析依赖时的目录名。
 
+## resolve.nodePath
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用后，resolver 会在 `node_modules` 目录之后，继续搜索 [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders) 环境变量中指定的目录。这遵循了 Node.js 从全局文件夹加载模块的行为。
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    nodePath: true,
+  },
+};
+```
+
 ## resolve.pnp
 
 - **类型:** `boolean`

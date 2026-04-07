@@ -830,6 +830,14 @@ export type ResolveOptions = {
   byDependency?: Record<string, ResolveOptions>;
   /** enable Yarn PnP */
   pnp?: boolean;
+
+  /**
+   * When enabled, the resolver also searches
+   * [NODE_PATH](https://nodejs.org/api/modules.html#loading-from-the-global-folders)
+   * entries after `node_modules`.
+   * @default false
+   */
+  nodePath?: boolean;
 };
 
 /** Used to configure the Rspack module resolution */

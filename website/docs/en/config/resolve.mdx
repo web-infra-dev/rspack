@@ -542,6 +542,21 @@ export default {
 
 The name of the directory to use when resolving dependencies.
 
+## resolve.nodePath
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, the resolver also searches [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders) entries after `node_modules` directories. This follows the Node.js behavior of loading modules from global folders specified via the `NODE_PATH` environment variable.
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    nodePath: true,
+  },
+};
+```
+
 ## resolve.pnp
 
 - **Type:** `boolean`
