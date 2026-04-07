@@ -1,5 +1,6 @@
 use std::{
   fmt,
+  path::Path,
   sync::{Arc, LazyLock},
 };
 
@@ -101,6 +102,41 @@ impl ProvideSharedPlugin {
     )
   }
 
+  /// For secondary entry points (e.g. `@mui/material/styles`) whose own
+  /// `package.json` has no `version`, walk up to the parent package and use
+  /// its version — but only when the shared key matches
+  /// `<parent_name>/<relative_path>`.
+  fn find_parent_package_version(description_path: &Path, key: &str) -> Option<String> {
+    let entry_dir = description_path;
+    let mut search_dir = entry_dir.parent();
+
+    while let Some(dir) = search_dir {
+      if dir.file_name().is_some_and(|n| n == "node_modules") {
+        break;
+      }
+
+      let parent_pkg = dir.join("package.json");
+      if parent_pkg.exists() {
+        if let Ok(data) = std::fs::read(&parent_pkg)
+          && let Ok(parent) = serde_json::from_slice::<serde_json::Value>(&data)
+          && let Some(parent_name) = parent.get("name").and_then(|n| n.as_str())
+          && let Some(parent_version) = parent.get("version").and_then(|v| v.as_str())
+        {
+          if let Ok(rel) = entry_dir.strip_prefix(dir) {
+            let rel_posix: String = rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/");
+            let expected_key = format!("{parent_name}/{rel_posix}");
+            if key == expected_key {
+              return Some(parent_version.to_string());
+            }
+          }
+        }
+      }
+      search_dir = dir.parent();
+    }
+
+    None
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub async fn provide_shared_module(
     &self,
@@ -134,16 +170,21 @@ impl ProvideSharedPlugin {
         },
       );
     } else if let Some(description) = resource_data.description() {
-      if let Some(description) = description.json().as_object()
-        && let Some(version) = description.get("version")
-        && let Some(version) = version.as_str()
-      {
+      let version = description
+        .json()
+        .as_object()
+        .and_then(|d| d.get("version"))
+        .and_then(|v| v.as_str())
+        .map(|v| v.to_string())
+        .or_else(|| Self::find_parent_package_version(description.path(), key));
+
+      if let Some(version) = version {
         self.resolved_provide_map.write().await.insert(
           resource.to_string(),
           VersionedProvideOptions {
             share_key: share_key.to_string(),
             share_scope: share_scope.clone(),
-            version: ProvideVersion::Version(version.to_string()),
+            version: ProvideVersion::Version(version),
             eager,
             singleton,
             strict_version,
