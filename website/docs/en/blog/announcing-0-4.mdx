@@ -120,7 +120,7 @@ Check out our previous discussion [here](https://github.com/web-infra-dev/rspack
 With `experiments.rspackFuture.disableTransformByDefault` is enabled by default in v0.4.0, `builtin.react.refresh` has also been deprecated. Now we recommend using `@rspack/plugin-react-refresh` to enable react fast refresh.
 
 ```diff title="rspack.config.mjs"
-+ import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
++ import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
 const isDev = process.env.NODE_ENV === 'development';
 
