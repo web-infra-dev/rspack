@@ -5,10 +5,6 @@ const wasmConfig: RstestConfig | undefined = process.env.WASM
       exclude: [
         '**/*/profile.test.ts', // Skip due to lack of system api support
       ],
-      pool: {
-        maxWorkers: 1,
-      },
-      maxConcurrency: 1,
     }
   : undefined;
 
