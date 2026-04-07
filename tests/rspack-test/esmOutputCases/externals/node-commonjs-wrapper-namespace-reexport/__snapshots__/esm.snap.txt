@@ -9,7 +9,7 @@ __webpack_require__.d(exports_namespaceObject, {
   sources: () => (index_js_namespaceObject) });
 
 
-// webpack-sources
+// webpack-sources/lib/index.js
 const index_js_namespaceObject = __rspack_createRequire_require("webpack-sources/lib/index.js");
 // ./exports.js
 

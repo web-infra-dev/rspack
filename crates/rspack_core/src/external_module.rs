@@ -978,7 +978,7 @@ impl Module for ExternalModule {
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
-    Some(Cow::Borrowed(self.user_request.as_str()))
+    Some(Cow::Borrowed(self.get_request().primary()))
   }
 
   async fn get_runtime_hash(
