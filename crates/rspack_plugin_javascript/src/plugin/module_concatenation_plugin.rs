@@ -758,7 +758,7 @@ impl ModuleConcatenationPlugin {
     RootConcatSearchResult {
       configuration: current_configuration,
       statistics,
-      candidates_count: candidates.len(),
+      candidates_count: candidates_visited.len(),
     }
   }
 
@@ -1310,17 +1310,40 @@ impl ModuleConcatenationPlugin {
     );
     modules_without_runtime_cache.extend(modules_without_runtime_cache_entries);
 
-    let root_results = relevant_modules
-      .par_iter()
-      .map(|current_root| {
-        Self::compute_root_concat_search_result(
-          compilation,
-          *current_root,
-          &possible_inners,
-          &modules_without_runtime_cache,
-        )
-      })
-      .collect::<Vec<_>>();
+    let mut used_as_inner = IdentifierSet::default();
+    let mut root_search_selection = RootConcatSearchSelection::default();
+    let search_chunk_size = rayon::current_num_threads().max(1);
+
+    for roots in relevant_modules.chunks(search_chunk_size) {
+      let roots_to_search = roots
+        .iter()
+        .filter(|root| !used_as_inner.contains(*root))
+        .copied()
+        .collect::<Vec<_>>();
+      if roots_to_search.is_empty() {
+        continue;
+      }
+
+      let root_results = roots_to_search
+        .par_iter()
+        .map(|current_root| {
+          Self::compute_root_concat_search_result(
+            compilation,
+            *current_root,
+            &possible_inners,
+            &modules_without_runtime_cache,
+          )
+        })
+        .collect::<Vec<_>>();
+
+      let batch_selection =
+        fold_root_search_results_with_initial_used_as_inner(root_results, &used_as_inner);
+      merge_root_search_selection(
+        &mut root_search_selection,
+        batch_selection,
+        &mut used_as_inner,
+      );
+    }
 
     let RootConcatSearchSelection {
       mut concat_configurations,
@@ -1329,7 +1352,7 @@ impl ModuleConcatenationPlugin {
       stats_candidates,
       stats_size_sum,
       stats_empty_configurations,
-    } = fold_root_search_results(root_results);
+    } = root_search_selection;
 
     if !empty_configurations.is_empty() {
       let module_graph = compilation.get_module_graph_mut();
@@ -1575,7 +1598,7 @@ struct EmptyRootConcatConfiguration {
   warnings: Vec<(ModuleIdentifier, Warning)>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct RootConcatSearchSelection {
   concat_configurations: Vec<ConcatConfiguration>,
   empty_configurations: Vec<EmptyRootConcatConfiguration>,
@@ -1585,12 +1608,20 @@ struct RootConcatSearchSelection {
   stats_empty_configurations: usize,
 }
 
+#[cfg(test)]
 fn fold_root_search_results(
   root_results: Vec<RootConcatSearchResult>,
 ) -> RootConcatSearchSelection {
+  fold_root_search_results_with_initial_used_as_inner(root_results, &IdentifierSet::default())
+}
+
+fn fold_root_search_results_with_initial_used_as_inner(
+  root_results: Vec<RootConcatSearchResult>,
+  initial_used_as_inner: &IdentifierSet,
+) -> RootConcatSearchSelection {
   let mut concat_configurations = Vec::new();
   let mut empty_configurations = Vec::new();
-  let mut used_as_inner = IdentifierSet::default();
+  let mut used_as_inner = initial_used_as_inner.clone();
   let mut statistics = Statistics::default();
   let mut stats_candidates = 0;
   let mut stats_size_sum = 0;
@@ -1631,6 +1662,30 @@ fn fold_root_search_results(
     stats_candidates,
     stats_size_sum,
     stats_empty_configurations,
+  }
+}
+
+fn merge_root_search_selection(
+  aggregate: &mut RootConcatSearchSelection,
+  selection: RootConcatSearchSelection,
+  used_as_inner: &mut IdentifierSet,
+) {
+  aggregate.statistics.merge(selection.statistics);
+  aggregate.stats_candidates += selection.stats_candidates;
+  aggregate.stats_size_sum += selection.stats_size_sum;
+  aggregate.stats_empty_configurations += selection.stats_empty_configurations;
+  aggregate
+    .empty_configurations
+    .extend(selection.empty_configurations);
+
+  for config in selection.concat_configurations {
+    let root_module = config.root_module;
+    for module in config.get_modules() {
+      if *module != root_module {
+        used_as_inner.insert(*module);
+      }
+    }
+    aggregate.concat_configurations.push(config);
   }
 }
 
@@ -1946,9 +2001,13 @@ fn is_connection_active_in_runtime(
 
 #[cfg(test)]
 mod tests {
+  use rspack_collections::IdentifierSet;
   use rspack_core::ModuleIdentifier;
 
-  use super::{ConcatConfiguration, RootConcatSearchResult, Statistics, fold_root_search_results};
+  use super::{
+    ConcatConfiguration, RootConcatSearchResult, Statistics, fold_root_search_results,
+    fold_root_search_results_with_initial_used_as_inner,
+  };
 
   fn module_id(id: &str) -> ModuleIdentifier {
     ModuleIdentifier::from(id)
@@ -2032,5 +2091,49 @@ mod tests {
     assert_eq!(folded.statistics.invalid_module, 0);
     assert_eq!(folded.stats_empty_configurations, 1);
     assert_eq!(folded.stats_size_sum, 2);
+  }
+
+  #[test]
+  fn fold_root_search_results_respects_prior_used_as_inner() {
+    let mut initial_used_as_inner = IdentifierSet::default();
+    initial_used_as_inner.insert(module_id("shared"));
+
+    let folded = fold_root_search_results_with_initial_used_as_inner(
+      vec![
+        make_result(
+          "shared",
+          &["leaf"],
+          Statistics {
+            invalid_module: 7,
+            ..Default::default()
+          },
+          4,
+        ),
+        make_result(
+          "root-c",
+          &[],
+          Statistics {
+            cached: 2,
+            ..Default::default()
+          },
+          6,
+        ),
+      ],
+      &initial_used_as_inner,
+    );
+
+    assert!(folded.concat_configurations.is_empty());
+    assert_eq!(
+      folded
+        .empty_configurations
+        .iter()
+        .map(|config| config.root_module)
+        .collect::<Vec<_>>(),
+      vec![module_id("root-c")]
+    );
+    assert_eq!(folded.statistics.cached, 2);
+    assert_eq!(folded.statistics.invalid_module, 0);
+    assert_eq!(folded.stats_candidates, 6);
+    assert_eq!(folded.stats_empty_configurations, 1);
   }
 }
