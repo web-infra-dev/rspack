@@ -1,5 +1,4 @@
-use std::collections::VecDeque;
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
 use rayon::prelude::*;
@@ -22,8 +21,8 @@ use crate::EsmLibraryPlugin;
 /// from the ancestor). This function extracts such shared modules into separate
 /// chunks to break the cycle.
 ///
-/// Returns `true` if any module uses top-level await, `false` otherwise.
-/// When returning `false`, no chunk-graph scanning was performed.
+/// Returns `true` if shared modules were actually extracted (circular dep found),
+/// `false` otherwise (no TLA or no circular deps detected).
 pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool {
   let module_graph = compilation.get_module_graph();
 
@@ -54,7 +53,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     .collect();
 
   if async_chunks.is_empty() {
-    return true;
+    return false;
   }
 
   // 2. For each async chunk, find ancestor chunks and scan for cross-chunk deps.
@@ -133,13 +132,12 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
   }
 
   if modules_to_extract.is_empty() {
-    return true;
+    return false;
   }
 
   // 3. Group modules by their sorted set of source chunks, so modules that share
   //    the same source chunks are moved to the same new chunk (like RemoveDuplicateModulesPlugin).
-  let mut chunk_group_map: FxHashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> =
-    FxHashMap::default();
+  let mut chunk_group_map: FxHashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxHashMap::default();
   for (module_id, source_chunks) in &modules_to_extract {
     let mut sorted_chunks: Vec<ChunkUkey> = source_chunks.iter().copied().collect();
     sorted_chunks.sort();
