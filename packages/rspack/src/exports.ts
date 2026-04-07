@@ -33,8 +33,7 @@ export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
 export {
-  TRANSITIVE_ONLY,
-  CIRCULAR_CONNECTION,
+  ModuleGraphConnection,
   type ConnectionState,
 } from './ModuleGraphConnection';
 export { MultiStats } from './MultiStats';
