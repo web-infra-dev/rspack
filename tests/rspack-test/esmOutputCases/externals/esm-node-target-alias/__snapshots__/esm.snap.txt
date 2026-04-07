@@ -1,22 +1,88 @@
 ```mjs title=main.mjs
 import { resolve } from "node:path";
+import { __webpack_require__ } from "./runtime.mjs";
 
-// node:fs
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"node:fs?815c"
+/*!****************************!*\
+  !*** external "node:path" ***!
+  \****************************/
+(module) {
+module.exports = __rspack_createRequire_require("node:path");
+
+},
+"./cjs-consumer.cjs"
+/*!**************************!*\
+  !*** ./cjs-consumer.cjs ***!
+  \**************************/
+(__unused_rspack_module, exports, __webpack_require__) {
+const nodePath = __webpack_require__(/*! node:fs */ "node:fs?815c");
+exports.n = nodePath.resolve;
+
+
+},
+});
+// node:fs?16c7
 
 // ./index.js
+const cjs_consumer = __webpack_require__("./cjs-consumer.cjs");
+var n = cjs_consumer.n;
+
 
 
 it("should use aliased external request with correct external type", async () => {
 	const main = await import(/* webpackIgnore: true */ "./main.mjs");
 	const nodePath = await import(/* webpackIgnore: true */ "node:path");
 
-	// "node:fs" is aliased to "node:path", so resolve should come from node:path
+	// "node:fs" is aliased to "node:path" via externals config
+	// ESM import should use "module" external type
 	expect(resolve).toBe(nodePath.resolve);
 	expect(main.resolve).toBe(nodePath.resolve);
+
+	// CJS require should be downgraded to "node-commonjs" external type
+	expect(cjs_consumer.n).toBe(nodePath.resolve);
+	expect(main.cjsResolve).toBe(nodePath.resolve);
 });
 
 
 
-export { resolve };
+export { n as cjsResolve, resolve };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
 
 ```

@@ -5,7 +5,7 @@ const {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   externals: {
-    'node:fs': 'node:path',
+    'node:fs': 'module node:path',
   },
   plugins: [
     new RslibPlugin({
