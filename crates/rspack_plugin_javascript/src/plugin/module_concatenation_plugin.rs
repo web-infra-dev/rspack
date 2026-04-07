@@ -674,6 +674,94 @@ impl ModuleConcatenationPlugin {
     None
   }
 
+  fn compute_root_concat_search_result(
+    compilation: &Compilation,
+    current_root: ModuleIdentifier,
+    possible_inners: &IdentifierSet,
+    module_cache: &IdentifierMap<NoRuntimeModuleCache>,
+  ) -> RootConcatSearchResult {
+    let NoRuntimeModuleCache { runtime, .. } = module_cache
+      .get(&current_root)
+      .expect("should have module cache");
+    let module_graph = compilation.get_module_graph();
+    let module_graph_artifacts = ModuleGraphArtifacts {
+      mg_cache: &compilation.module_graph_cache_artifact,
+      side_effects_state_artifact: &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
+      exports_info_artifact: &compilation.exports_info_artifact,
+    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_prefetched_exports_info(&current_root, PrefetchExportsInfoMode::Default);
+    let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
+    let active_runtime = match filtered_runtime {
+      RuntimeCondition::Boolean(true) => Some(runtime.clone()),
+      RuntimeCondition::Boolean(false) => None,
+      RuntimeCondition::Spec(spec) => Some(spec),
+    };
+
+    let mut current_configuration = ConcatConfiguration::new(current_root, active_runtime.clone());
+    let mut failure_cache = IdentifierMap::default();
+    let mut success_cache = RuntimeIdentifierCache::default();
+    let mut imports_cache = RuntimeIdentifierCache::<IdentifierIndexSet>::default();
+    let mut statistics = Statistics::default();
+    let mut candidates_visited = IdentifierSet::default();
+    let mut candidates = VecDeque::new();
+
+    let imports = Self::get_imports(
+      module_graph,
+      &module_graph_artifacts,
+      current_root,
+      active_runtime.as_ref(),
+      &mut imports_cache,
+      module_cache,
+    );
+    for import in imports {
+      candidates.push_back(import);
+    }
+
+    let mut import_candidates = IdentifierSet::default();
+    while let Some(imp) = candidates.pop_front() {
+      if candidates_visited.contains(&imp) {
+        continue;
+      }
+      candidates_visited.insert(imp);
+      import_candidates.clear();
+      match Self::try_to_add(
+        compilation,
+        &mut current_configuration,
+        &imp,
+        Some(runtime),
+        active_runtime.as_ref(),
+        possible_inners,
+        &mut import_candidates,
+        &mut failure_cache,
+        &mut success_cache,
+        true,
+        &mut statistics,
+        &mut imports_cache,
+        module_cache,
+      ) {
+        Some(problem) => {
+          failure_cache.insert(imp, problem.clone());
+          current_configuration.add_warning(imp, problem);
+        }
+        None => {
+          import_candidates.iter().for_each(|candidate| {
+            candidates.push_back(*candidate);
+          });
+        }
+      }
+    }
+
+    RootConcatSearchResult {
+      configuration: current_configuration,
+      statistics,
+      candidates_count: candidates.len(),
+    }
+  }
+
   pub async fn process_concatenated_configuration(
     compilation: &mut Compilation,
     config: ConcatConfiguration,
@@ -1079,16 +1167,7 @@ impl ModuleConcatenationPlugin {
     });
 
     logger.time_end(start);
-    let mut statistics = Statistics::default();
-    let mut stats_candidates = 0;
-    let mut stats_size_sum = 0;
-    let mut stats_empty_configurations = 0;
-
     let start = logger.time("find modules to concatenate");
-    let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
-    let mut used_as_inner: IdentifierSet = IdentifierSet::default();
-    let mut imports_cache = RuntimeIdentifierCache::<IdentifierIndexSet>::default();
-
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
     let module_static_cache = &compilation.module_static_cache;
@@ -1231,107 +1310,33 @@ impl ModuleConcatenationPlugin {
     );
     modules_without_runtime_cache.extend(modules_without_runtime_cache_entries);
 
-    for current_root in relevant_modules.iter() {
-      if used_as_inner.contains(current_root) {
-        continue;
-      }
-
-      let NoRuntimeModuleCache { runtime, .. } = modules_without_runtime_cache
-        .get(current_root)
-        .expect("should have module");
-      let module_graph = compilation.get_module_graph();
-      let module_graph_cache = &compilation.module_graph_cache_artifact;
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
-      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
-      let active_runtime = match filtered_runtime {
-        RuntimeCondition::Boolean(true) => Some(runtime.clone()),
-        RuntimeCondition::Boolean(false) => None,
-        RuntimeCondition::Spec(spec) => Some(spec),
-      };
-
-      let mut current_configuration =
-        ConcatConfiguration::new(*current_root, active_runtime.clone());
-
-      let mut failure_cache = IdentifierMap::default();
-      let mut success_cache = RuntimeIdentifierCache::default();
-      let mut candidates_visited = IdentifierSet::default();
-      let mut candidates = VecDeque::new();
-      let imports = {
-        let side_effects_state_artifact = compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact
-          .clone();
-        let module_graph_artifacts = ModuleGraphArtifacts {
-          mg_cache: module_graph_cache,
-          side_effects_state_artifact: &side_effects_state_artifact,
-          exports_info_artifact: &compilation.exports_info_artifact,
-        };
-
-        Self::get_imports(
-          module_graph,
-          &module_graph_artifacts,
+    let root_results = relevant_modules
+      .par_iter()
+      .map(|current_root| {
+        Self::compute_root_concat_search_result(
+          compilation,
           *current_root,
-          active_runtime.as_ref(),
-          &mut imports_cache,
+          &possible_inners,
           &modules_without_runtime_cache,
         )
-      };
-      for import in imports {
-        candidates.push_back(import);
-      }
+      })
+      .collect::<Vec<_>>();
 
-      let mut import_candidates = IdentifierSet::default();
-      while let Some(imp) = candidates.pop_front() {
-        if candidates_visited.contains(&imp) {
-          continue;
-        }
-        candidates_visited.insert(imp);
-        import_candidates.clear();
-        match Self::try_to_add(
-          compilation,
-          &mut current_configuration,
-          &imp,
-          Some(runtime),
-          active_runtime.as_ref(),
-          &possible_inners,
-          &mut import_candidates,
-          &mut failure_cache,
-          &mut success_cache,
-          true,
-          &mut statistics,
-          &mut imports_cache,
-          &modules_without_runtime_cache,
-        ) {
-          Some(problem) => {
-            failure_cache.insert(imp, problem.clone());
-            current_configuration.add_warning(imp, problem);
-          }
-          _ => {
-            import_candidates.iter().for_each(|c: &ModuleIdentifier| {
-              candidates.push_back(*c);
-            });
-          }
-        }
-      }
-      stats_candidates += candidates.len();
-      if !current_configuration.is_empty() {
-        let modules = current_configuration.get_modules();
-        stats_size_sum += modules.len();
-        let root_module = current_configuration.root_module;
+    let RootConcatSearchSelection {
+      mut concat_configurations,
+      empty_configurations,
+      statistics,
+      stats_candidates,
+      stats_size_sum,
+      stats_empty_configurations,
+    } = fold_root_search_results(root_results);
 
-        modules.iter().for_each(|module| {
-          if *module != root_module {
-            used_as_inner.insert(*module);
-          }
-        });
-        concat_configurations.push(current_configuration);
-      } else {
-        stats_empty_configurations += 1;
-        let module_graph = compilation.get_module_graph_mut();
-        let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
-        for warning in current_configuration.get_warnings_sorted() {
+    if !empty_configurations.is_empty() {
+      let module_graph = compilation.get_module_graph_mut();
+      for empty_configuration in empty_configurations {
+        let optimization_bailouts =
+          module_graph.get_optimization_bailout_mut(&empty_configuration.root_module);
+        for warning in empty_configuration.warnings {
           optimization_bailouts.push(OptimizationBailoutItem::Message(
             self.format_bailout_warning(warning.0, &warning.1),
           ));
@@ -1531,6 +1536,102 @@ struct Statistics {
   cache_hit: u32,
   module_visit: IdentifierMap<usize>,
   added: u32,
+}
+
+impl Statistics {
+  fn merge(&mut self, other: Statistics) {
+    self.cached += other.cached;
+    self.already_in_config += other.already_in_config;
+    self.invalid_module += other.invalid_module;
+    self.incorrect_chunks += other.incorrect_chunks;
+    self.incorrect_dependency += other.incorrect_dependency;
+    self.incorrect_module_dependency += other.incorrect_module_dependency;
+    self.incorrect_chunks_of_importer += other.incorrect_chunks_of_importer;
+    self.incorrect_runtime_condition += other.incorrect_runtime_condition;
+    self.importer_failed += other.importer_failed;
+    self.cache_hit += other.cache_hit;
+    self.added += other.added;
+
+    for (module_id, count) in other.module_visit {
+      self
+        .module_visit
+        .entry(module_id)
+        .and_modify(|existing| *existing += count)
+        .or_insert(count);
+    }
+  }
+}
+
+#[derive(Debug)]
+struct RootConcatSearchResult {
+  configuration: ConcatConfiguration,
+  statistics: Statistics,
+  candidates_count: usize,
+}
+
+#[derive(Debug)]
+struct EmptyRootConcatConfiguration {
+  root_module: ModuleIdentifier,
+  warnings: Vec<(ModuleIdentifier, Warning)>,
+}
+
+#[derive(Debug)]
+struct RootConcatSearchSelection {
+  concat_configurations: Vec<ConcatConfiguration>,
+  empty_configurations: Vec<EmptyRootConcatConfiguration>,
+  statistics: Statistics,
+  stats_candidates: usize,
+  stats_size_sum: usize,
+  stats_empty_configurations: usize,
+}
+
+fn fold_root_search_results(
+  root_results: Vec<RootConcatSearchResult>,
+) -> RootConcatSearchSelection {
+  let mut concat_configurations = Vec::new();
+  let mut empty_configurations = Vec::new();
+  let mut used_as_inner = IdentifierSet::default();
+  let mut statistics = Statistics::default();
+  let mut stats_candidates = 0;
+  let mut stats_size_sum = 0;
+  let mut stats_empty_configurations = 0;
+
+  for result in root_results {
+    let root_module = result.configuration.root_module;
+    if used_as_inner.contains(&root_module) {
+      continue;
+    }
+
+    stats_candidates += result.candidates_count;
+    statistics.merge(result.statistics);
+
+    if result.configuration.is_empty() {
+      stats_empty_configurations += 1;
+      empty_configurations.push(EmptyRootConcatConfiguration {
+        root_module,
+        warnings: result.configuration.get_warnings_sorted(),
+      });
+      continue;
+    }
+
+    let modules = result.configuration.get_modules();
+    stats_size_sum += modules.len();
+    for module in modules {
+      if *module != root_module {
+        used_as_inner.insert(*module);
+      }
+    }
+    concat_configurations.push(result.configuration);
+  }
+
+  RootConcatSearchSelection {
+    concat_configurations,
+    empty_configurations,
+    statistics,
+    stats_candidates,
+    stats_size_sum,
+    stats_empty_configurations,
+  }
 }
 
 #[derive(Debug, Default)]
@@ -1841,4 +1942,95 @@ fn is_connection_active_in_runtime(
     artifacts.side_effects_state_artifact,
     artifacts.exports_info_artifact,
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::ModuleIdentifier;
+
+  use super::{ConcatConfiguration, RootConcatSearchResult, Statistics, fold_root_search_results};
+
+  fn module_id(id: &str) -> ModuleIdentifier {
+    ModuleIdentifier::from(id)
+  }
+
+  fn make_result(
+    root: &str,
+    inners: &[&str],
+    statistics: Statistics,
+    candidates_count: usize,
+  ) -> RootConcatSearchResult {
+    let mut configuration = ConcatConfiguration::new(module_id(root), None);
+    for inner in inners {
+      configuration.add(module_id(inner));
+    }
+    RootConcatSearchResult {
+      configuration,
+      statistics,
+      candidates_count,
+    }
+  }
+
+  #[test]
+  fn fold_root_search_results_skips_roots_consumed_as_inner() {
+    let folded = fold_root_search_results(vec![
+      make_result("root-a", &["shared"], Statistics::default(), 3),
+      make_result("shared", &["leaf"], Statistics::default(), 5),
+      make_result("root-c", &[], Statistics::default(), 7),
+    ]);
+
+    let selected_roots = folded
+      .concat_configurations
+      .iter()
+      .map(|config| config.root_module)
+      .collect::<Vec<_>>();
+    let empty_roots = folded
+      .empty_configurations
+      .iter()
+      .map(|config| config.root_module)
+      .collect::<Vec<_>>();
+
+    assert_eq!(selected_roots, vec![module_id("root-a")]);
+    assert_eq!(empty_roots, vec![module_id("root-c")]);
+    assert_eq!(folded.stats_candidates, 10);
+  }
+
+  #[test]
+  fn fold_root_search_results_aggregates_only_non_skipped_stats() {
+    let folded = fold_root_search_results(vec![
+      make_result(
+        "root-a",
+        &["shared"],
+        Statistics {
+          added: 1,
+          ..Default::default()
+        },
+        2,
+      ),
+      make_result(
+        "shared",
+        &["leaf"],
+        Statistics {
+          invalid_module: 7,
+          ..Default::default()
+        },
+        4,
+      ),
+      make_result(
+        "root-c",
+        &[],
+        Statistics {
+          cached: 2,
+          ..Default::default()
+        },
+        6,
+      ),
+    ]);
+
+    assert_eq!(folded.statistics.added, 1);
+    assert_eq!(folded.statistics.cached, 2);
+    assert_eq!(folded.statistics.invalid_module, 0);
+    assert_eq!(folded.stats_empty_configurations, 1);
+    assert_eq!(folded.stats_size_sum, 2);
+  }
 }
