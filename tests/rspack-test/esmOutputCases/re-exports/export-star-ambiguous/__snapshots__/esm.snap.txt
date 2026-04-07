@@ -1,9 +1,29 @@
 ```mjs title=main.mjs
-// ./b.js
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./b.js"
+/*!**************!*\
+  !*** ./b.js ***!
+  \**************/
+() {
 const shared = 'from-b';
 const onlyB = 'only-b';
 
-// ./index.js
+
+},
+"./index.js"
+/*!******************!*\
+  !*** ./index.js ***!
+  \******************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  onlyA: () => (/* reexport safe */ (/* inlined export _a__rspack_import_0 */"only-a")),
+  onlyB: () => (/* reexport safe */ (/* inlined export _b__rspack_import_1 */"only-b")),
+  shared: () => (/* reexport safe */ (/* inlined export _a__rspack_import_0 */"from-a"))
+});
+/* import */ var _b__rspack_import_1 = __webpack_require__(/*! ./b */ "./b.js");
 // Both a.js and b.js export 'shared'. Rspack resolves the ambiguity by
 // picking the first source (a.js) rather than excluding it per strict ES spec.
 // Non-overlapping names should still be re-exported normally.
@@ -18,9 +38,73 @@ it('should handle ambiguous export star without crashing', async () => {
 	expect(mod.shared).toBe('from-a');
 });
 
-var index_onlyA = (/* inlined export .onlyA */"only-a");
-var index_onlyB = (/* inlined export .onlyB */"only-b");
-var index_shared = (/* inlined export .shared */"from-a");
-export { index_onlyA as onlyA, index_onlyB as onlyB, index_shared as shared };
+
+},
+});
+const index = __webpack_require__("./index.js");
+var onlyA = index.onlyA;
+var onlyB = index.onlyB;
+var shared = index.shared;
+
+export { onlyA, onlyB, shared };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+
+export { __webpack_require__ };
 
 ```

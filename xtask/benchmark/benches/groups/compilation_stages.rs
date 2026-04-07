@@ -702,6 +702,8 @@ async fn prepare_for_concatenate_module(compiler: &mut Compiler) -> Result<()> {
 async fn run_finish_modules_hook(compilation: &mut Compilation) -> Result<()> {
   let mut async_modules_artifact = compilation.async_modules_artifact.steal();
   let mut exports_info_artifact = compilation.exports_info_artifact.steal();
+  let mut dependency_exports_analysis_artifact =
+    compilation.dependency_exports_analysis_artifact.steal();
   compilation
     .plugin_driver
     .clone()
@@ -711,10 +713,12 @@ async fn run_finish_modules_hook(compilation: &mut Compilation) -> Result<()> {
       compilation,
       &mut async_modules_artifact,
       &mut exports_info_artifact,
+      &mut dependency_exports_analysis_artifact,
     )
     .await?;
   compilation.async_modules_artifact = async_modules_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
+  compilation.dependency_exports_analysis_artifact = dependency_exports_analysis_artifact.into();
   Ok(())
 }
 

@@ -41,7 +41,8 @@ impl Cache for MemoryCache {
     }
   }
 
-  // FINISH_MODULES: async_modules_artifact, dependencies_diagnostics_artifact
+  // FINISH_MODULES: async_modules_artifact, dependencies_diagnostics_artifact,
+  // dependency_exports_analysis_artifact
   async fn before_finish_modules(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
       let incremental = &compilation.incremental;
@@ -54,6 +55,11 @@ impl Cache for MemoryCache {
         incremental,
         &mut compilation.dependencies_diagnostics_artifact,
         &mut old_compilation.dependencies_diagnostics_artifact,
+      );
+      recover_artifact(
+        incremental,
+        &mut compilation.dependency_exports_analysis_artifact,
+        &mut old_compilation.dependency_exports_analysis_artifact,
       );
     }
   }

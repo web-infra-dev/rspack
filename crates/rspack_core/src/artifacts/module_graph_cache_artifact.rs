@@ -386,6 +386,7 @@ pub struct ExportModeUnused {
 
 #[derive(Debug, Clone)]
 pub struct ExportModeEmptyStar {
+  pub ignored_exports: HashSet<Atom>,
   pub hidden: Option<HashSet<Atom>>,
 }
 
@@ -421,6 +422,8 @@ pub struct ExportModeReexportUndefined {
 #[derive(Debug, Clone)]
 pub struct ExportModeNormalReexport {
   pub items: Vec<NormalReexportItem>,
+  pub is_star_reexport: bool,
+  pub ignored_exports: HashSet<Atom>,
 }
 
 #[derive(Debug, Clone)]

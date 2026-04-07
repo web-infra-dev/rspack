@@ -5,8 +5,9 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportsProcessing, ExportsSpec, GetExportsCacheability, GetUsedNameParam, LazyUntil, ModuleGraph,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -91,6 +92,7 @@ impl Dependency for ESMExportSpecifierDependency {
         }),
         ..Default::default()
       })]),
+      processing: ExportsProcessing::Immediate,
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -113,6 +115,14 @@ impl Dependency for ESMExportSpecifierDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
+  }
+
+  fn get_exports_cacheability(
+    &self,
+    _mg: &ModuleGraph,
+    _mg_cache: &ModuleGraphCacheArtifact,
+  ) -> GetExportsCacheability {
+    GetExportsCacheability::Static
   }
 
   fn lazy(&self) -> Option<LazyUntil> {

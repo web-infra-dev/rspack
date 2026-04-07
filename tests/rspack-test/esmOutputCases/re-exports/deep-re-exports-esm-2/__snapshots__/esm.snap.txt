@@ -114,8 +114,8 @@ it('should re-export esm correctly', async () => {
 
 const lib_0 = __webpack_require__("./lib.js");
 var lib_1 = lib_0.lib;
-var lib2_0 = lib_0.lib2;
 var fs_0 = lib_0.fs;
+var lib2_0 = lib_0.lib2;
 var lib3_0 = lib_0.lib3;
 var lib4_0 = lib_0.lib4;
 

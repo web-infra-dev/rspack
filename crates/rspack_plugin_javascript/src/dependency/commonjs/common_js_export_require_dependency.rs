@@ -4,14 +4,15 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
-  ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
-  PrefetchExportsInfoMode, ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, property_access, to_normal_comment,
+  AsContextDependency, DeferredReexportItem, DeferredReexportSpec, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportProvided, ExportSpec,
+  ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec, ExportsProcessing, ExportsSpec,
+  ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode,
+  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  property_access, to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
@@ -64,6 +65,7 @@ impl CommonJsExportRequireDependency {
   // NOTE:
   // webpack return checked set but never use it
   // https://github.com/webpack/webpack/blob/08770761c8c7aa1e6e18b77d3deee8cc9871bd87/lib/dependencies/CommonJsExportRequireDependency.js#L283
+  #[allow(dead_code)]
   fn get_star_reexports(
     &self,
     mg: &ModuleGraph,
@@ -220,8 +222,8 @@ impl Dependency for CommonJsExportRequireDependency {
   fn get_exports(
     &self,
     mg: &ModuleGraph,
-    mg_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
+    _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
@@ -231,59 +233,110 @@ impl Dependency for CommonJsExportRequireDependency {
       };
       let from = mg.connection_by_dependency_id(&self.id)?;
       Some(ExportsSpec {
-        exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-          name: name.to_owned(),
-          from: Some(from.to_owned()),
-          can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
-          export: Some(if ids.is_empty() {
-            Nullable::Null
-          } else {
-            Nullable::Value(ids.to_vec())
-          }),
-          ..Default::default()
-        })]),
+        exports: ExportsOfExportsSpec::Names(vec![]),
+        processing: ExportsProcessing::DeferredReexport(vec![DeferredReexportSpec {
+          target_module: *from.module_identifier(),
+          dep_id: self.id,
+          priority: None,
+          can_mangle: Some(
+            !OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())
+              && !self.is_all_exported_by_module_exports(),
+          ),
+          terminal_binding: false,
+          items: vec![DeferredReexportItem {
+            exposed_name: name.to_owned(),
+            target_path: if ids.is_empty() {
+              Nullable::Null
+            } else {
+              Nullable::Value(ids.to_vec())
+            },
+            hidden: false,
+          }],
+          star_exports: None,
+        }]),
         dependencies: Some(vec![*from.module_identifier()]),
         ..Default::default()
       })
     } else if self.names.is_empty() {
       let from = mg.connection_by_dependency_id(&self.id)?;
-      if let Some(reexport_info) = self.get_star_reexports(
+      if ids.is_empty() {
+        if let Some(reexport_info) = self.get_star_reexports(
+          mg,
+          _mg_cache,
+          _exports_info_artifact,
+          None,
+          from.module_identifier(),
+        ) {
+          Some(ExportsSpec {
+            exports: ExportsOfExportsSpec::Names(
+              reexport_info
+                .iter()
+                .map(|name| {
+                  let mut export = ids.to_vec();
+                  export.extend(vec![name.to_owned()]);
+                  ExportNameOrSpec::ExportSpec(ExportSpec {
+                    name: name.to_owned(),
+                    from: Some(from.to_owned()),
+                    export: Some(Nullable::Value(export)),
+                    can_mangle: Some(!self.is_all_exported_by_module_exports()),
+                    ..Default::default()
+                  })
+                })
+                .collect_vec(),
+            ),
+            dependencies: Some(vec![*from.module_identifier()]),
+            ..Default::default()
+          })
+        } else {
+          Some(ExportsSpec {
+            exports: ExportsOfExportsSpec::UnknownExports,
+            from: Some(from.to_owned()),
+            can_mangle: Some(!self.is_all_exported_by_module_exports()),
+            dependencies: Some(vec![*from.module_identifier()]),
+            ..Default::default()
+          })
+        }
+      } else if let Some(reexport_info) = self.get_star_reexports(
         mg,
-        mg_cache,
-        exports_info_artifact,
+        _mg_cache,
+        _exports_info_artifact,
         None,
         from.module_identifier(),
       ) {
+        let deferred_items = reexport_info
+          .iter()
+          .map(|name| {
+            let mut target_path = ids.to_vec();
+            target_path.push(name.to_owned());
+            DeferredReexportItem {
+              exposed_name: name.to_owned(),
+              target_path: Nullable::Value(target_path),
+              hidden: false,
+            }
+          })
+          .collect_vec();
+
         Some(ExportsSpec {
-          exports: ExportsOfExportsSpec::Names(
-            reexport_info
-              .iter()
-              .map(|name| {
-                let mut export = ids.to_vec();
-                export.extend(vec![name.to_owned()]);
-                ExportNameOrSpec::ExportSpec(ExportSpec {
-                  name: name.to_owned(),
-                  from: Some(from.to_owned()),
-                  export: Some(Nullable::Value(export)),
-                  // `module.exports = require("./m")` can't be mangled
-                  can_mangle: Some(!self.is_all_exported_by_module_exports()),
-                  ..Default::default()
-                })
-              })
-              .collect_vec(),
-          ),
+          exports: ExportsOfExportsSpec::Names(vec![]),
+          processing: if deferred_items.is_empty() {
+            ExportsProcessing::Immediate
+          } else {
+            ExportsProcessing::DeferredReexport(vec![DeferredReexportSpec {
+              target_module: *from.module_identifier(),
+              dep_id: self.id,
+              priority: None,
+              can_mangle: Some(!self.is_all_exported_by_module_exports()),
+              terminal_binding: false,
+              items: deferred_items,
+              star_exports: None,
+            }])
+          },
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
       } else {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::UnknownExports,
-          from: if ids.is_empty() {
-            Some(from.to_owned())
-          } else {
-            None
-          },
-          // `module.exports = require("./m")` can't be mangled
           can_mangle: Some(!self.is_all_exported_by_module_exports()),
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()

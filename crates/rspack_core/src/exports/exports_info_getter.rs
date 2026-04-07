@@ -9,7 +9,8 @@ use super::{
   ExportInfoData, ExportProvided, ExportsInfo, ProvidedExports, UsageState, UsedName, UsedNameItem,
 };
 use crate::{
-  ExportsInfoArtifact, ExportsInfoData, InlinedUsedName, RuntimeSpec, UsageKey, UsedExports,
+  ExportsInfoArtifact, ExportsInfoData, InlinedUsedName, ModuleIdentifier, RuntimeSpec, UsageKey,
+  UsedExports,
 };
 
 #[derive(Debug, Clone)]
@@ -17,6 +18,24 @@ pub enum PrefetchExportsInfoMode<'a> {
   Default,            // prefetch with all export items
   Nested(&'a [Atom]), // prefetch with all export items and all the export items on its chain
   Full, // prefetch with all related data, this should only be used in hash calculation
+}
+
+pub trait ExportsInfoRead {
+  fn get_exports_info(&self, module_identifier: &ModuleIdentifier) -> ExportsInfo;
+
+  fn get_exports_info_by_id(&self, id: &ExportsInfo) -> &ExportsInfoData;
+
+  fn get_prefetched_exports_info<'a>(
+    &'a self,
+    module_identifier: &ModuleIdentifier,
+    mode: PrefetchExportsInfoMode<'a>,
+  ) -> PrefetchedExportsInfoWrapper<'a>
+  where
+    Self: Sized,
+  {
+    let exports_info = self.get_exports_info(module_identifier);
+    ExportsInfoGetter::prefetch(&exports_info, self, mode)
+  }
 }
 
 /**
@@ -543,14 +562,14 @@ impl ExportsInfoGetter {
    * if names is provided, it will pre-fetch the exports info data of the export info items of specific names
    * if names is not provided, it will not pre-fetch any export info item
    */
-  pub fn prefetch<'a>(
+  pub fn prefetch<'a, T: ExportsInfoRead + ?Sized>(
     id: &ExportsInfo,
-    exports_info_artifact: &'a ExportsInfoArtifact,
+    exports_info_artifact: &'a T,
     mode: PrefetchExportsInfoMode<'a>,
   ) -> PrefetchedExportsInfoWrapper<'a> {
-    fn prefetch_exports<'a>(
+    fn prefetch_exports<'a, T: ExportsInfoRead + ?Sized>(
       id: &ExportsInfo,
-      exports_info_artifact: &'a ExportsInfoArtifact,
+      exports_info_artifact: &'a T,
       res: &mut FxHashMap<ExportsInfo, &'a ExportsInfoData>,
       mode: PrefetchExportsInfoMode<'a>,
     ) {
@@ -558,7 +577,7 @@ impl ExportsInfoGetter {
         return;
       }
 
-      let exports_info = id.as_data(exports_info_artifact);
+      let exports_info = exports_info_artifact.get_exports_info_by_id(id);
       res.insert(*id, exports_info);
 
       match mode {
@@ -611,7 +630,7 @@ impl ExportsInfoGetter {
     }
 
     let initial_capacity = {
-      let exports_info = id.as_data(exports_info_artifact);
+      let exports_info = exports_info_artifact.get_exports_info_by_id(id);
       let extra_nested_exports =
         usize::from(exports_info.other_exports_info().exports_info().is_some())
           + usize::from(

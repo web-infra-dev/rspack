@@ -69,7 +69,7 @@ pub struct ExportSpec {
   pub inlinable: Option<EvaluatedInlinableValue>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Nullable<T> {
   Null,
   Value(T),
@@ -104,10 +104,83 @@ pub enum ExportsOfExportsSpec {
   Names(Vec<ExportNameOrSpec>),
 }
 
+#[derive(Debug, Clone, Default)]
+pub enum ExportsProcessing {
+  #[default]
+  Immediate,
+  DeferredReexport(Vec<DeferredReexportSpec>),
+}
+
+#[derive(Debug, Clone)]
+pub struct DeferredReexportSpec {
+  pub target_module: ModuleIdentifier,
+  pub dep_id: DependencyId,
+  pub priority: Option<u8>,
+  pub can_mangle: Option<bool>,
+  pub terminal_binding: bool,
+  pub items: Vec<DeferredReexportItem>,
+  pub star_exports: Option<DeferredStarReexport>,
+}
+
+impl DeferredReexportSpec {
+  pub fn new(
+    target_module: ModuleIdentifier,
+    dep_id: DependencyId,
+    items: Vec<DeferredReexportItem>,
+  ) -> Self {
+    Self {
+      target_module,
+      dep_id,
+      priority: None,
+      can_mangle: None,
+      terminal_binding: false,
+      items,
+      star_exports: None,
+    }
+  }
+
+  pub fn new_star(
+    target_module: ModuleIdentifier,
+    dep_id: DependencyId,
+    export_name_prefix: Vec<Atom>,
+    ignored_exports: FxHashSet<Atom>,
+    hidden_exports: FxHashSet<Atom>,
+  ) -> Self {
+    Self {
+      target_module,
+      dep_id,
+      priority: None,
+      can_mangle: None,
+      terminal_binding: false,
+      items: Vec::new(),
+      star_exports: Some(DeferredStarReexport {
+        export_name_prefix,
+        ignored_exports,
+        hidden_exports,
+      }),
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
+pub struct DeferredReexportItem {
+  pub exposed_name: Atom,
+  pub target_path: Nullable<Vec<Atom>>,
+  pub hidden: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct DeferredStarReexport {
+  pub export_name_prefix: Vec<Atom>,
+  pub ignored_exports: FxHashSet<Atom>,
+  pub hidden_exports: FxHashSet<Atom>,
+}
+
 #[derive(Debug, Default)]
 #[allow(unused)]
 pub struct ExportsSpec {
   pub exports: ExportsOfExportsSpec,
+  pub processing: ExportsProcessing,
   pub priority: Option<u8>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,

@@ -442,6 +442,7 @@ async fn finish_modules(
   _compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
+  _dependency_exports_analysis_artifact: &mut rspack_core::DependencyExportsAnalysisArtifact,
 ) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await
 }

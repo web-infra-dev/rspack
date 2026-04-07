@@ -5,7 +5,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   DependencyId, ExportInfo, ExportInfoData, ExportInfoHashKey, ExportsInfo, ExportsInfoArtifact,
-  ExportsInfoGetter, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
+  ExportsInfoGetter, ExportsInfoRead, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
 };
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -56,10 +56,10 @@ pub struct FindTargetResultItem {
   pub defer: bool,
 }
 
-pub fn get_terminal_binding(
+pub fn get_terminal_binding<T: ExportsInfoRead>(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
 ) -> Option<TerminalBinding> {
   if export_info.terminal_binding() {
     return Some(TerminalBinding::ExportInfo(export_info.id()));
@@ -86,10 +86,10 @@ pub fn get_terminal_binding(
   .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
-pub fn find_target(
+pub fn find_target<T: ExportsInfoRead>(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
   visited: &mut HashSet<ExportInfoHashKey>,
 ) -> FindTargetResult {
@@ -168,10 +168,10 @@ pub fn find_target(
   }
 }
 
-pub fn get_target(
+pub fn get_target<T: ExportsInfoRead>(
   export_info: &ExportInfoData,
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
   resolve_filter: &ResolveFilterFnTy<'_>,
   already_visited: &mut HashSet<ExportInfoHashKey>,
 ) -> Option<GetTargetResult> {
@@ -217,12 +217,12 @@ pub fn get_target(
   target
 }
 
-fn resolve_target(
+fn resolve_target<T: ExportsInfoRead>(
   input_target: UnResolvedExportInfoTarget,
   already_visited: &mut HashSet<ExportInfoHashKey>,
   resolve_filter: &ResolveFilterFnTy<'_>,
   mg: &ModuleGraph,
-  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info_artifact: &T,
 ) -> Option<GetTargetResult> {
   let mut target = ResolvedExportInfoTarget {
     module: *input_target
