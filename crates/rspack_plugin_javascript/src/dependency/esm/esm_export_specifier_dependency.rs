@@ -6,7 +6,8 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
   ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
   ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  PrefetchExportsInfoMode, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -105,6 +106,7 @@ impl Dependency for ESMExportSpecifierDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {

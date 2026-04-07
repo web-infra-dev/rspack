@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, FactorizeInfo, JavascriptParserUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, URLStaticMode, UsedByExports,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, URLStaticMode, UsedByExports,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -195,6 +195,7 @@ impl DependencyConditionFn for URLDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let dependency = module_graph.dependency_by_id(&connection.dependency_id);

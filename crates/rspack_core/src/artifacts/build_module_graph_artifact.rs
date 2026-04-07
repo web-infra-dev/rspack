@@ -6,23 +6,12 @@ use rustc_hash::FxHashSet;
 
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
+  SideEffectsStateArtifact,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
 };
-
-/// Enum used to mark whether module graph has been built.
-///
-/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`.
-/// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
-/// the previous MakeArtifact, so persistent cache will never recovery again.
-#[derive(Debug, Default)]
-pub enum BuildModuleGraphArtifactState {
-  #[default]
-  Uninitialized,
-  Initialized,
-}
 
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug)]
@@ -42,13 +31,9 @@ pub struct BuildModuleGraphArtifact {
   pub issuer_update_modules: IdentifierSet,
 
   // data
-  /// Field to mark whether artifact has been initialized.
-  ///
-  /// Only `BuildModuleGraphArtifact::new()` is Uninitialized, `update_module_graph` will set this field to Initialized
-  /// Persistent cache will update BuildModuleGraphArtifact and set force_build_deps to this field when this is Uninitialized.
-  pub state: BuildModuleGraphArtifactState,
   /// Module graph data
   pub module_graph: ModuleGraph,
+  pub side_effects_state_artifact: SideEffectsStateArtifact,
   pub module_to_lazy_make: ModuleToLazyMake,
 
   // statistical data, which can be regenerated from module_graph_partial and used as index.
@@ -75,8 +60,8 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
-      state: BuildModuleGraphArtifactState::Uninitialized,
       module_graph: Default::default(),
+      side_effects_state_artifact: Default::default(),
       module_to_lazy_make: Default::default(),
       make_failed_module: Default::default(),
       make_failed_dependencies: Default::default(),
@@ -93,6 +78,17 @@ impl BuildModuleGraphArtifact {
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     &mut self.module_graph
+  }
+
+  pub fn steal_side_effects_state_artifact(&mut self) -> SideEffectsStateArtifact {
+    std::mem::take(&mut self.side_effects_state_artifact)
+  }
+
+  pub fn set_side_effects_state_artifact(
+    &mut self,
+    side_effects_state_artifact: SideEffectsStateArtifact,
+  ) {
+    self.side_effects_state_artifact = side_effects_state_artifact;
   }
 
   /// revoke a module and return multiple parent ModuleIdentifier and DependencyId pair that can generate it.
@@ -225,6 +221,7 @@ impl BuildModuleGraphArtifact {
   pub fn reset_temporary_data(&mut self) {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
+    self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();
     self.context_dependencies.reset_incremental_info();
@@ -246,6 +243,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
       new.get_module_graph_mut().reset();
+      new.side_effects_state_artifact = Default::default();
     }
   }
 }

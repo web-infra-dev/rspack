@@ -36,9 +36,9 @@ use crate::{
   ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
   PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  value_cache_versions::ValueCacheVersions,
+  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -104,6 +104,8 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
+  pub side_effects_free: Option<HashSet<Atom>>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
@@ -115,6 +117,8 @@ pub struct BuildInfo {
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
+  #[cacheable(with=AsVec)]
+  pub deferred_pure_checks: HashSet<DeferredPureCheck>,
 }
 
 impl Default for BuildInfo {
@@ -134,6 +138,7 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
@@ -142,6 +147,7 @@ impl Default for BuildInfo {
       collected_typescript_info: None,
       rsc: None,
       extras: Default::default(),
+      deferred_pure_checks: HashSet::default(),
     }
   }
 }
@@ -194,6 +200,16 @@ pub enum BuildMetaDefaultObject {
     // For example, JSON named exports.
     ignore: bool,
   },
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeferredPureCheck {
+  #[cacheable(with=AsPreset)]
+  pub atom: Atom,
+  pub dep_id: DependencyId,
+  pub start: u32,
+  pub end: u32,
 }
 
 #[cacheable]
@@ -418,6 +434,7 @@ pub trait Module:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {

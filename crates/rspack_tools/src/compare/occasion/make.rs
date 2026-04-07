@@ -4,7 +4,11 @@ pub use rspack_core::cache::persistent::occasion::make::SCOPE;
 use rspack_core::{
   DependencyId,
   build_module_graph::BuildModuleGraphArtifact,
-  cache::persistent::{codec::CacheCodec, occasion::make::MakeOccasion, storage::Storage},
+  cache::persistent::{
+    codec::CacheCodec,
+    occasion::{Occasion, make::MakeOccasion},
+    storage::Storage,
+  },
 };
 use rspack_error::Result;
 use rspack_paths::Utf8PathBuf;

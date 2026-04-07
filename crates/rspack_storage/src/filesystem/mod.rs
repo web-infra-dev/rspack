@@ -62,7 +62,7 @@ impl Storage for FileSystemStorage {
     scope_update.insert(key.to_vec(), None);
   }
 
-  async fn save(&mut self) -> Result<()> {
+  fn save(&mut self) {
     // Take all pending updates and clear the memory buffer
     let updates = std::mem::take(&mut self.updates);
 
@@ -114,12 +114,13 @@ impl Storage for FileSystemStorage {
         *next_time = next_refresh_time;
       }
     });
-
-    Ok(())
   }
 
-  async fn reset(&mut self) {
-    let _ = self.db.reset().await;
+  fn reset(&mut self, scope: &'static str) {
+    // Discard any pending writes for this scope so they don't race with the reset
+    self.updates.remove(scope);
+    // Enqueue the directory deletion immediately into the task queue
+    self.db.reset(scope);
   }
 
   async fn flush(&self) {

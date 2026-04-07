@@ -24,6 +24,7 @@ module.exports = {
 			    buildHttp: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
+			    pureFunctions: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,

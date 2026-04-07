@@ -63,6 +63,13 @@ impl Snapshot {
     })
   }
 
+  #[tracing::instrument("Cache::Snapshot::reset", skip_all)]
+  pub fn reset(&self, storage: &mut dyn Storage) {
+    storage.reset(SnapshotScope::FILE.name());
+    storage.reset(SnapshotScope::CONTEXT.name());
+    storage.reset(SnapshotScope::MISSING.name());
+  }
+
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
   pub async fn add(
     &self,

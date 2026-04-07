@@ -702,6 +702,11 @@ async fn prepare_for_concatenate_module(compiler: &mut Compiler) -> Result<()> {
 async fn run_finish_modules_hook(compilation: &mut Compilation) -> Result<()> {
   let mut async_modules_artifact = compilation.async_modules_artifact.steal();
   let mut exports_info_artifact = compilation.exports_info_artifact.steal();
+  let mut side_effects_state_artifact = std::mem::take(
+    &mut compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact,
+  );
   compilation
     .plugin_driver
     .clone()
@@ -711,10 +716,14 @@ async fn run_finish_modules_hook(compilation: &mut Compilation) -> Result<()> {
       compilation,
       &mut async_modules_artifact,
       &mut exports_info_artifact,
+      &mut side_effects_state_artifact,
     )
     .await?;
   compilation.async_modules_artifact = async_modules_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
+  compilation
+    .build_module_graph_artifact
+    .side_effects_state_artifact = side_effects_state_artifact;
   Ok(())
 }
 

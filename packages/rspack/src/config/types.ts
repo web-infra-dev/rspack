@@ -1223,6 +1223,11 @@ export type JavascriptParserOptions = {
    * @default false
    */
   importMetaResolve?: boolean;
+  /**
+   * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+   * @experimental
+   */
+  pureFunctions?: string[];
 };
 
 export type JsonParserOptions = {
@@ -2888,6 +2893,11 @@ export type Experiments = {
    * @default false
    */
   deferImport?: boolean;
+  /**
+   * Enable pure-function-based side-effects analysis.
+   * @default false
+   */
+  pureFunctions?: boolean;
 };
 //#endregion
 

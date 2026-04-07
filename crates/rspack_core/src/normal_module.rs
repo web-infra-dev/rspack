@@ -37,9 +37,10 @@ use crate::{
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SourceType, contextify,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
-  get_context, module_update_hash,
+  get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
+  module_update_hash,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -260,6 +261,10 @@ impl NormalModule {
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
     &*self.parser_and_generator
+  }
+
+  pub fn parser_and_generator_mut(&mut self) -> &mut dyn ParserAndGenerator {
+    &mut *self.parser_and_generator
   }
 
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
@@ -747,6 +752,7 @@ impl Module for NormalModule {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -755,10 +761,11 @@ impl Module for NormalModule {
         return *state;
       }
 
-      if let Some(side_effect_free) = self.factory_meta().and_then(|m| m.side_effect_free) {
+      if let Some(side_effect_free) = module_declared_side_effect_free(self) {
         return ConnectionState::Active(!side_effect_free);
       }
-      if Some(true) == self.build_meta().side_effect_free {
+
+      if module_analyzed_side_effect_free(self, side_effects_state_artifact) == Some(true) {
         // use module chain instead of is_evaluating_side_effects to mut module graph
         if module_chain.contains(&self.identifier()) {
           return ConnectionState::CircularConnection;
@@ -770,6 +777,7 @@ impl Module for NormalModule {
           let state = dependency.get_module_evaluation_side_effects_state(
             module_graph,
             module_graph_cache,
+            side_effects_state_artifact,
             module_chain,
             connection_state_cache,
           );

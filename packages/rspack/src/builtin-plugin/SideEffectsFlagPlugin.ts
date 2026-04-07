@@ -1,9 +1,16 @@
-import { BuiltinPluginName } from '@rspack/binding';
+import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 
-import { create } from './base';
+import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
-export const SideEffectsFlagPlugin = create(
-  BuiltinPluginName.SideEffectsFlagPlugin,
-  () => {},
-  'compilation',
-);
+export class SideEffectsFlagPlugin extends RspackBuiltinPlugin {
+  name = BuiltinPluginName.SideEffectsFlagPlugin;
+  affectedHooks = 'compilation' as const;
+
+  constructor(private analyzeSideEffectsFree = false) {
+    super();
+  }
+
+  raw(): BuiltinPlugin {
+    return createBuiltinPlugin(this.name, this.analyzeSideEffectsFree);
+  }
+}
