@@ -8,6 +8,12 @@ use crate::node_builtins::is_node_builtin;
 #[derive(Debug)]
 pub struct EsmNodeTargetPlugin;
 
+impl Default for EsmNodeTargetPlugin {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 impl EsmNodeTargetPlugin {
   pub fn new() -> Self {
     Self::new_inner()
