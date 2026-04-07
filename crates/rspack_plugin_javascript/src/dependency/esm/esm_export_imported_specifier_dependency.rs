@@ -1405,7 +1405,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
   ) -> GetExportsCacheability {
-    if self.name.is_some() && self.other_star_exports.is_none() && !self.lazy_make {
+    if self.name.is_some() && !self.lazy_make {
       GetExportsCacheability::Static
     } else {
       GetExportsCacheability::Dynamic
