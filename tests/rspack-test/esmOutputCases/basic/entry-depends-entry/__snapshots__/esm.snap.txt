@@ -43,5 +43,6 @@ export { entry3 } from "./entry3.mjs";
 // ./shared.js
 // side effects
 console.log.bind()
+export {};
 
 ```

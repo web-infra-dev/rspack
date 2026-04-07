@@ -2,21 +2,21 @@ const nullValue = null;
 const undefinedValue = undefined;
 const falseValue = false;
 const zeroValue = 0;
-const emptyStringValue = "";
+const emptyStringValue = '';
 
 class FailPlugin {
-	apply() {
-		throw new Error("FailedPlugin");
-	}
+  apply() {
+    throw new Error('FailedPlugin');
+  }
 }
 
 /** @type {import("@rspack/coresrc/index").RspackOptions} */
 module.exports = {
-	plugins: [
-		undefinedValue && new FailPlugin(),
-		nullValue && new FailPlugin(),
-		falseValue && new FailPlugin(),
-		zeroValue && new FailPlugin(),
-		emptyStringValue && new FailPlugin()
-	]
+  plugins: [
+    undefinedValue && new FailPlugin(),
+    nullValue && new FailPlugin(),
+    falseValue && new FailPlugin(),
+    zeroValue && new FailPlugin(),
+    emptyStringValue && new FailPlugin(),
+  ],
 };

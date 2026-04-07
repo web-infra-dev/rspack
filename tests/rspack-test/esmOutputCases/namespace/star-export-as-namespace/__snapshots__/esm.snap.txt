@@ -21,6 +21,7 @@ it('should compile', () => {
 })
 
 
+export {};
 
 ```
 

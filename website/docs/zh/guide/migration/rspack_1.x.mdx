@@ -235,6 +235,20 @@ export default {
 };
 ```
 
+### 修改 output.bundlerInfo.force 的默认值
+
+[output.bundlerInfo.force](/config/output#outputbundlerinfo) 的默认值已从 `true` 改为 `false`。在 Rspack 2.0 中，`__rspack_version__` 和 `__rspack_unique_id__` 默认改为按需注入，而不是始终作为 runtime modules 注入。如果你的应用依赖之前始终注入的行为，可显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: {
+      force: true,
+    },
+  },
+};
+```
+
 ### 修改 output.trustedTypes.policyName 的默认值
 
 [output.trustedTypes.policyName](/config/output#outputtrustedtypes) 的打底值已从 `'webpack'` 改为 `'rspack'`。`policyName` 的默认值仍是 `output.uniqueName`，只有未设置 `uniqueName` 时才会使用打底值。如果你的项目依赖旧的打底值，需要更新 CSP 配置或显式设置：

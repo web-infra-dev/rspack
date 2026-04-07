@@ -48,16 +48,16 @@ Controls how Rspack handles the Node.js [`__filename`](https://nodejs.org/api/mo
 
 ### Available values
 
-- `true`: Replace with the source file path, relative to the [`context`](/config/context) option
+- `true`: Replace with the relative file path of the source file, relative to the [`context`](/config/context) option
 - `false`: Do nothing and keep the native behavior
-- `'mock'`: Replace with `/index.js`
 - `'mock'`: Replace with `'/index.js'`
+- `'eval-only'`: Equivalent to `false`
 - `'warn-mock'`: Replace with `'/index.js'`, and emit a warning to indicate a potential Node.js dependency in the code
 - `'node-module'`: Only used when [output.module](/config/output#outputmodule) is enabled. Replace `__filename` in CommonJS with an equivalent implementation based on `import.meta.url`, suitable for ESM output
 
 ### Examples
 
-For example, to leave `__filename` and `import.meta.filename` as it is:
+For example, to avoid processing `__filename` and `import.meta.filename`, preserving the original content in the output:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -67,7 +67,7 @@ export default {
 };
 ```
 
-To replace `__filename` in ESM output with `fileURLToPath(import.meta.url)`:
+To replace `__filename` and `import.meta.filename` in ESM output with `fileURLToPath(import.meta.url)`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -101,7 +101,7 @@ Controls how Rspack handles the Node.js [`__dirname`](https://nodejs.org/api/mod
 
 ### Examples
 
-For example, to leave `__dirname` and `import.meta.dirname` as it is:
+For example, to avoid processing `__dirname` and `import.meta.dirname`, preserving the original content in the output:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -111,7 +111,7 @@ export default {
 };
 ```
 
-To replace `__dirname` in ESM output with `fileURLToPath(import.meta.url + "/..")`:
+To replace `__dirname` and `import.meta.dirname` in ESM output with `fileURLToPath(import.meta.url + "/..")`:
 
 ```js title="rspack.config.mjs"
 export default {

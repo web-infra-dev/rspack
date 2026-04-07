@@ -1,22 +1,21 @@
-const { DefinePlugin } = require("@rspack/core");
+const { DefinePlugin } = require('@rspack/core');
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		parser: {
-			"css/auto": {
-				namedExports: false
-			}
-		},
-		rules: [
-			{
-				test: /\.module\.css/,
-				type: "css/auto"
-			},
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
-	},
-
+  module: {
+    parser: {
+      'css/auto': {
+        namedExports: false,
+      },
+    },
+    rules: [
+      {
+        test: /\.module\.css/,
+        type: 'css/auto',
+      },
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
 };

@@ -982,7 +982,7 @@ impl Module for ConcatenatedModule {
 
     let arc_map = Arc::new(module_to_info_map);
 
-    let tmp = rspack_futures::scope::<_, Result<_>>(|token| {
+    let tmp = rspack_parallel::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
         let concatenation_scope = if let ModuleInfo::Concatenated(info) = &info {
           let concatenation_scope =
@@ -2021,7 +2021,7 @@ impl Module for ConcatenatedModule {
       &compilation.exports_info_artifact,
     );
 
-    let hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+    let hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
       concatenation_entries.into_iter().for_each(|job| {
         let s = unsafe { token.used((job, compilation, generation_runtime)) };
 

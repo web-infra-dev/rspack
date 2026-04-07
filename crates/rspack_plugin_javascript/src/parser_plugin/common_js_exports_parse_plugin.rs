@@ -247,7 +247,7 @@ fn handle_access_export(
     base,
     remaining.to_vec(),
     remaining_optionals.to_vec(),
-    true,
+    call_args.is_some(),
   )));
   if let Some(call_args) = call_args {
     parser.walk_expr_or_spread(call_args);

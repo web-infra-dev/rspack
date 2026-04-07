@@ -40,6 +40,7 @@ it("should render missing namespace properties as undefined for side-effect-free
   expect(no_side_effects.nope).toBeUndefined();
 });
 
+export {};
 
 ```
 

@@ -10,6 +10,7 @@ it("should merge duplicate externals inside a dynamic multi-module chunk", async
 	expect(modB.marker).toBe("b");
 });
 
+export {};
 
 ```
 

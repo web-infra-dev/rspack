@@ -11,5 +11,6 @@ it("should export and resolve internal namespaces as names", () => {
   expect((/* inlined export .bar */"bar2")).toBe((/* inlined export .bar */"bar2"));
 });
 
+export {};
 
 ```

@@ -32,6 +32,11 @@ export { ExternalModule } from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
+export {
+  TRANSITIVE_ONLY,
+  CIRCULAR_CONNECTION,
+  type ConnectionState,
+} from './ModuleGraphConnection';
 export { MultiStats } from './MultiStats';
 export { NormalModule } from './NormalModule';
 export type { NormalModuleFactory } from './NormalModuleFactory';
@@ -174,6 +179,14 @@ interface Electron {
 }
 
 export const electron: Electron = { ElectronTargetPlugin };
+
+import { HashedModuleIdsPlugin } from './builtin-plugin';
+
+interface Ids {
+  HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
+}
+
+export const ids: Ids = { HashedModuleIdsPlugin };
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 

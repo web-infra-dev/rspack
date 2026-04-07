@@ -1,13 +1,13 @@
 module.exports = {
-  mode: "development",
+  mode: 'development',
   entry: {
-    main: "./index.js"
+    main: './index.js',
   },
   optimization: {
     concatenateModules: true,
-    minimize: false
+    minimize: false,
   },
   stats: {
-    modules: true
-  }
+    modules: true,
+  },
 };

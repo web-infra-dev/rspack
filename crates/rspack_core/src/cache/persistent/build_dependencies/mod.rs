@@ -8,7 +8,10 @@ use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
 use rustc_hash::FxHashSet as HashSet;
 
 use self::helper::{Helper, is_node_package_path};
-use super::snapshot::{Snapshot, SnapshotScope};
+use super::{
+  snapshot::{Snapshot, SnapshotScope},
+  storage::Storage,
+};
 
 pub const SCOPE: &str = "build_dependencies";
 
@@ -47,7 +50,11 @@ impl BuildDeps {
   /// Add build dependencies
   ///
   /// For performance reasons, recursive searches will stop for build dependencies in node_modules.
-  pub async fn add(&mut self, data: impl Iterator<Item = ArcPath>) -> Vec<String> {
+  pub async fn add(
+    &mut self,
+    storage: &mut dyn Storage,
+    data: impl Iterator<Item = ArcPath>,
+  ) -> Vec<String> {
     let mut helper = Helper::new(self.fs.clone());
     let mut new_deps = HashSet::default();
     let mut queue = VecDeque::new();
@@ -72,7 +79,7 @@ impl BuildDeps {
 
     self
       .snapshot
-      .add(SnapshotScope::BUILD, new_deps.into_iter())
+      .add(storage, SnapshotScope::BUILD, new_deps.into_iter())
       .await;
     helper.into_warnings()
   }
@@ -80,10 +87,10 @@ impl BuildDeps {
   /// Validate build dependencies
   ///
   /// If any build dependencies have changed, this method will return false.
-  pub async fn validate(&mut self) -> Result<bool> {
+  pub async fn validate(&mut self, storage: &dyn Storage) -> Result<bool> {
     let (_, modified_files, removed_files, no_changed_files) = self
       .snapshot
-      .calc_modified_paths(SnapshotScope::BUILD)
+      .calc_modified_paths(storage, SnapshotScope::BUILD)
       .await?;
 
     if !modified_files.is_empty() || !removed_files.is_empty() {
@@ -102,13 +109,12 @@ mod test {
   use std::{path::PathBuf, sync::Arc};
 
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-  use rspack_storage::Storage;
 
   use super::{
     super::{
       codec::CacheCodec,
       snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
-      storage::MemoryStorage,
+      storage::{MemoryStorage, Storage},
     },
     BuildDeps,
   };
@@ -149,18 +155,13 @@ mod test {
       .unwrap();
 
     let options = vec![PathBuf::from("/index.js"), PathBuf::from("/configs")];
-    let storage = Arc::new(MemoryStorage::default());
+    let mut storage = MemoryStorage::default();
     let codec = Arc::new(CacheCodec::new(None));
-    let snapshot = Arc::new(Snapshot::new(
-      SnapshotOptions::default(),
-      fs.clone(),
-      storage.clone(),
-      codec,
-    ));
+    let snapshot = Arc::new(Snapshot::new(SnapshotOptions::default(), fs.clone(), codec));
 
     let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
 
-    let warnings = build_deps.add(vec![].into_iter()).await;
+    let warnings = build_deps.add(&mut storage, vec![].into_iter()).await;
     assert_eq!(warnings.len(), 1);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
@@ -171,7 +172,7 @@ mod test {
       .await
       .unwrap();
     let validate_result = build_deps
-      .validate()
+      .validate(&storage)
       .await
       .expect("should validate success");
     assert!(!validate_result);
@@ -179,7 +180,7 @@ mod test {
 
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 0);
-    let warnings = build_deps.add(vec![].into_iter()).await;
+    let warnings = build_deps.add(&mut storage, vec![].into_iter()).await;
     assert_eq!(warnings.len(), 0);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 10);

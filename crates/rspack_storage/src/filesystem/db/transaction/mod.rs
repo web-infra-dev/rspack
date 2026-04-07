@@ -22,55 +22,54 @@ pub struct Transaction {
 }
 
 impl Transaction {
-  /// Creates a new transaction, performing crash recovery if needed.
+  /// Creates a new transaction.
   pub async fn new(root_fs: &ScopeFileSystem) -> Result<Self> {
+    // Replay any interrupted commit from a previous crashed process.
+    Self::ensure_committed(root_fs).await?;
+
     let root_fs = root_fs.clone();
     let temp_fs = root_fs.child_fs(".temp");
+    temp_fs.ensure_exist().await?;
 
-    let transaction = Self { root_fs, temp_fs };
-    transaction.init().await?;
+    // Create state lock for current process
+    let state_lock = StateLock::default();
+    state_lock.save(&temp_fs).await?;
 
-    Ok(transaction)
+    Ok(Self { root_fs, temp_fs })
   }
 
-  /// Initializes the transaction, checking for stale locks and recovering crashed commits.
-  async fn init(&self) -> Result<()> {
-    // Try to load existing state lock
-    let state_lock = match StateLock::load(&self.temp_fs).await {
+  /// Ensures any previously interrupted commit is fully applied before reading.
+  pub async fn ensure_committed(root_fs: &ScopeFileSystem) -> Result<()> {
+    let temp_fs = root_fs.child_fs(".temp");
+    let state_lock = match StateLock::load(&temp_fs).await {
       Ok(lock) => Some(lock),
       Err(e) if e.is_not_found() => None,
       Err(e) => return Err(e),
     };
-
-    if let Some(state_lock) = state_lock {
-      if state_lock.is_running() {
-        // Another process is actively using this transaction
-        panic!(
-          "Transaction already in progress by process {} in directory '{}'",
-          state_lock, self.temp_fs
-        );
-      } else {
-        // Process crashed - attempt to recover
-        let commit_lock = match CommitLock::load(&self.temp_fs).await {
-          Ok(lock) => Some(lock),
-          Err(e) if e.is_not_found() => None,
-          Err(e) => return Err(e),
-        };
-
-        if let Some(commit_lock) = commit_lock {
-          // Recover incomplete commit
-          self.execute_commit(&commit_lock).await?;
-        }
-      }
+    if let Some(state_lock) = state_lock
+      && state_lock.is_running()
+    {
+      // Another process is actively using this transaction
+      panic!("Transaction already in progress by process {state_lock} in directory '{temp_fs}'",);
     }
 
-    // Clean up temp directory and prepare for new transaction
-    self.temp_fs.remove().await?;
-    self.temp_fs.ensure_exist().await?;
+    // Process crashed — check for a pending commit.lock
+    let commit_lock = match CommitLock::load(&temp_fs).await {
+      Ok(lock) => Some(lock),
+      Err(e) if e.is_not_found() => None,
+      Err(e) => return Err(e),
+    };
+    if let Some(commit_lock) = commit_lock {
+      let transaction = Self {
+        root_fs: root_fs.clone(),
+        temp_fs: temp_fs.clone(),
+      };
+      transaction.execute_commit(&commit_lock).await?;
+      // Clean up temp directory
+      temp_fs.remove().await?;
+    }
 
-    // Create state lock for current process
-    let state_lock = StateLock::default();
-    state_lock.save(&self.temp_fs).await
+    Ok(())
   }
 
   /// Returns the readable filesystem (committed files).
@@ -94,27 +93,39 @@ impl Transaction {
     removed_relative_path: Vec<String>,
   ) -> Result<()> {
     // Verify this transaction still belongs to current process
-    let state_lock = StateLock::load(&self.temp_fs).await?;
-
-    if !state_lock.is_current() {
-      panic!(
+    match StateLock::load(&self.temp_fs).await {
+      Ok(state_lock) if state_lock.is_current() => {}
+      Ok(state_lock) => panic!(
         "State lock mismatch in '{}': expected current process (pid={}), found {}. \
          This indicates a race condition.",
         self.temp_fs,
         std::process::id(),
         state_lock
-      );
+      ),
+      Err(e) => {
+        // Failed to read state lock — rollback and surface the error.
+        let _ = self.temp_fs.remove().await;
+        return Err(e);
+      }
     }
 
     // Write commit lock to record operations (for crash recovery)
     let commit_lock = CommitLock::new(added_relative_path, removed_relative_path);
-    commit_lock.save(&self.temp_fs).await?;
+    if let Err(e) = commit_lock.save(&self.temp_fs).await {
+      // Failed to write commit lock - rollback and surface the error.
+      let _ = self.temp_fs.remove().await;
+      return Err(e);
+    }
 
     // Execute the commit operations
-    self.execute_commit(&commit_lock).await?;
+    if let Err(e) = self.execute_commit(&commit_lock).await {
+      // Failed to commit, remove state lock
+      let _ = StateLock::remove(&self.temp_fs).await;
+      return Err(e);
+    }
 
-    // Clean up temp directory
-    self.temp_fs.remove().await?;
+    // Clean up temp directory and ignore error
+    let _ = self.temp_fs.remove().await;
     Ok(())
   }
 
@@ -131,6 +142,11 @@ impl Transaction {
     }
 
     Ok(())
+  }
+
+  /// Rollback the transaction, discard all changes.
+  pub async fn rollback(self) -> Result<()> {
+    self.temp_fs.remove().await
   }
 }
 

@@ -39,6 +39,7 @@ import {
   FileUriPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
+  HashedModuleIdsPlugin,
   HttpExternalsRspackPlugin,
   HttpUriPlugin,
   InferAsyncModulesPlugin,
@@ -343,6 +344,10 @@ export class RspackOptionsApply {
         }
         case 'deterministic': {
           new DeterministicModuleIdsPlugin().apply(compiler);
+          break;
+        }
+        case 'hashed': {
+          new HashedModuleIdsPlugin().apply(compiler);
           break;
         }
         default:

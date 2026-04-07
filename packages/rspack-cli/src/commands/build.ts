@@ -27,7 +27,9 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
   let createJsonStringifyStream: typeof import('@discoveryjs/json-ext').stringifyStream;
 
   if (options.json) {
-    const jsonExt = await import('@discoveryjs/json-ext');
+    const jsonExt = await import(
+      /* webpackChunkName: "json-ext" */ '@discoveryjs/json-ext'
+    );
     createJsonStringifyStream = jsonExt.default.stringifyStream;
   }
 
@@ -125,8 +127,10 @@ export class BuildCommand implements RspackCommand {
       'emit stats json',
     );
 
-    command.action(async (options: BuildOptions) => {
-      await runBuild(cli, options);
-    });
+    command.action(
+      cli.wrapAction(async (options: BuildOptions) => {
+        await runBuild(cli, options);
+      }),
+    );
   }
 }

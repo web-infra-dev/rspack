@@ -140,7 +140,7 @@ async fn after_emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let mut assets_over_size_limit = vec![];
 
-  let asset_sizes = rspack_futures::scope::<_, _>(|token| {
+  let asset_sizes = rspack_parallel::scope::<_, _>(|token| {
     compilation.assets().iter().for_each(|(name, asset)| {
       // SAFETY: await immediately and trust caller to poll future entirely
       let s = unsafe { token.used((&self, asset, name, max_asset_size)) };

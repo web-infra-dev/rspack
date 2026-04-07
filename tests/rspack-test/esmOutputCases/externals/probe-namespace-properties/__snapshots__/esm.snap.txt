@@ -15,5 +15,6 @@ it("should allow probing external namespace properties", () => {
   expect(Reflect.get(__rspack_external_fs, missingKey)).toBeUndefined();
 });
 
+export {};
 
 ```

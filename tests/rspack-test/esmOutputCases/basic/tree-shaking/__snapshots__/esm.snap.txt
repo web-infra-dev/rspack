@@ -57,6 +57,7 @@ module.exports = __rspack_external_fs;
 });
 __webpack_require__("./index.js");
 
+export {};
 
 ```
 

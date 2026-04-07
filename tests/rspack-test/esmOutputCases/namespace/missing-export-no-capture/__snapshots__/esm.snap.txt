@@ -16,6 +16,7 @@ it("should render a missing local namespace property as undefined without captur
   expect(foo_namespaceObject.foo).toBeUndefined();
 });
 
+export {};
 
 ```
 

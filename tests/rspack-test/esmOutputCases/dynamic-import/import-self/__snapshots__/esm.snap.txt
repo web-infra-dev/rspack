@@ -11,6 +11,7 @@ it('should have access to the value from the same file', async () => {
 	expect(c).toBe(24)
 })
 
+export {};
 
 ```
 

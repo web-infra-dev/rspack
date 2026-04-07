@@ -358,7 +358,7 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
-    rspack_futures::scope(|token| {
+    rspack_parallel::scope(|token| {
       self
         .compilation
         .assets()

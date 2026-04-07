@@ -2,6 +2,7 @@
 // ./foo.js
 console.log.bind('foo')
 
+export {};
 
 ```
 
@@ -11,5 +12,6 @@ it('should import chunk', async () => {
 	await import("./foo.mjs")
 })
 
+export {};
 
 ```

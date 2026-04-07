@@ -1,5 +1,5 @@
 module.exports = {
-	optimization: {
-		emitOnErrors: false
-	}
+  optimization: {
+    emitOnErrors: false,
+  },
 };

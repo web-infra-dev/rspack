@@ -9,5 +9,6 @@ it('should keep namespace import for external namespace member access', () => {
 	expect(__rspack_external_fs.readFile).toBeDefined()
 })
 
+export {};
 
 ```

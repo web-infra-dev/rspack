@@ -38,5 +38,6 @@ it('should dynamically import modules from multi-module chunk with mixed re-expo
 	expect(modB.join).toBeDefined()
 })
 
+export {};
 
 ```

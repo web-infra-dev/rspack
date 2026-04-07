@@ -1,5 +1,5 @@
 module.exports = {
-	optimization: {
-		sideEffects: true
-	}
+  optimization: {
+    sideEffects: true,
+  },
 };

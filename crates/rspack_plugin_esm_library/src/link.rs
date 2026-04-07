@@ -1368,7 +1368,7 @@ var {} = {{}};
     }
 
     let concate_modules_map = std::mem::take(orig_concate_modules_map);
-    let map = rspack_futures::scope::<_, _>(|token| {
+    let map = rspack_parallel::scope::<_, _>(|token| {
       for (m, info) in concate_modules_map {
         // SAFETY: caller will poll the futures
         let s = unsafe { token.used((compilation, m, info, &runtime_template)) };

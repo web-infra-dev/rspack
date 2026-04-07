@@ -55,7 +55,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.58.2-jammy
+          image: mcr.microsoft.com/playwright:v1.59.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -70,7 +70,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.58.2-jammy
+          image: mcr.microsoft.com/playwright:v1.59.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -172,7 +172,8 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
-        run: pnpm run test:ci
+          NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
+        run: pnpm run build:js && pnpm --filter "@rspack/cli" test && pnpm --filter "@rspack/tests" test
 
       - name: Upload Test Reporter
         if: always()

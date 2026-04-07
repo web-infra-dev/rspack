@@ -1,5 +1,5 @@
 module.exports = {
-	output: {
-		filename: "[name].js"
-	}
+  output: {
+    filename: '[name].js',
+  },
 };
