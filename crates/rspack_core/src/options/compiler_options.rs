@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -25,4 +27,4 @@ pub struct CompilerOptions {
   pub __references: References,
 }
 
-pub type References = HashMap<String, String>;
+pub type References = HashMap<String, Arc<str>>;

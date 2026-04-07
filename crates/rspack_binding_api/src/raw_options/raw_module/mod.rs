@@ -925,7 +925,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
           .into_iter()
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
-            options: rule_use.options,
+            options: rule_use.options.map(Arc::from),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -939,7 +939,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
                 .into_iter()
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
-                  options: rule_use.options,
+                  options: rule_use.options.map(Arc::from),
                 })
                 .collect::<Vec<_>>()
             })

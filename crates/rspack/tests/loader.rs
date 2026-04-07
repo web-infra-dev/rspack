@@ -25,9 +25,9 @@ async fn lightningcss() {
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:lightningcss-loader".to_string(),
-          options: Some(json!({
+          options: Some(Arc::from(json!({
             "include": 1 // lower nesting syntax
-          }).to_string()),
+          }).to_string())),
         }]),
           ..Default::default()
         },
@@ -62,7 +62,7 @@ async fn swc() {
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
-          options: Some(json!({
+          options: Some(Arc::from(json!({
             "jsc": {
               "parser": {
                 "syntax": "ecmascript",
@@ -78,7 +78,7 @@ async fn swc() {
                 }
               }
             }
-          }).to_string()),
+          }).to_string())),
         }]),
           ..Default::default()
         },
@@ -118,7 +118,7 @@ async fn react_refresh() {
           },
           ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
-          options: Some(json!({
+          options: Some(Arc::from(json!({
             "jsc": {
               "parser": {
                 "syntax": "ecmascript",
@@ -134,7 +134,7 @@ async fn react_refresh() {
                 }
               }
             }
-          }).to_string()),
+          }).to_string())),
         }]),
           ..Default::default()
         },
@@ -175,7 +175,7 @@ async fn preact_refresh() {
           },
           ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
-          options: Some(json!({
+          options: Some(Arc::from(json!({
             "jsc": {
               "parser": {
                 "syntax": "ecmascript",
@@ -191,7 +191,7 @@ async fn preact_refresh() {
                 }
               }
             }
-          }).to_string()),
+          }).to_string())),
         }]),
           ..Default::default()
         },

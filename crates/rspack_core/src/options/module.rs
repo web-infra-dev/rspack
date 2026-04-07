@@ -1052,7 +1052,7 @@ pub struct ModuleRuleUseLoader {
   pub loader: String,
   /// Loader options
   /// This only exists if the loader is a built-in loader.
-  pub options: Option<String>,
+  pub options: Option<Arc<str>>,
 }
 
 pub type FnUse =

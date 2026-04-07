@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::{
   Either,
   bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
@@ -9,6 +11,7 @@ use rspack_core::{
   incremental::{IncrementalOptions, IncrementalPasses},
 };
 use rspack_error::error;
+use rustc_hash::FxHashMap as HashMap;
 
 mod raw_builtins;
 mod raw_cache;
@@ -66,7 +69,7 @@ pub struct RawOptions {
   pub amd: Option<String>,
   pub bail: bool,
   #[napi(js_name = "__references", ts_type = "Record<string, string>")]
-  pub __references: References,
+  pub __references: HashMap<String, String>,
   #[napi(js_name = "__virtual_files")]
   pub __virtual_files: Option<Vec<JsVirtualFile>>,
 }
@@ -149,6 +152,10 @@ impl TryFrom<RawOptions> for CompilerOptions {
     }
     let stats = stats.into();
     let node = normalize_raw_node_option(node)?;
+    let __references: References = __references
+      .into_iter()
+      .map(|(key, value)| (key, Arc::<str>::from(value)))
+      .collect();
 
     let converted = rayon::join(
       || {

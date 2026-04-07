@@ -36,21 +36,21 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
       )),
       effect: ModuleRuleEffect {
         r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
-        loader: "builtin:swc-loader".to_string(),
-        options: Some(json!({
-            "jsc": {
-                "parser": {
-                    "syntax": "typescript",
-                    "tsx": true,
-                },
-                "transform": {
-                    "react": {
-                        "runtime": "automatic",
-                    },
-                }
-            },
-        }).to_string()),
-      }]),
+          loader: "builtin:swc-loader".to_string(),
+          options: Some(Arc::from(json!({
+              "jsc": {
+                  "parser": {
+                      "syntax": "typescript",
+                      "tsx": true,
+                  },
+                  "transform": {
+                      "react": {
+                          "runtime": "automatic",
+                      },
+                  }
+              },
+          }).to_string())),
+        }]),
         ..Default::default()
       },
       ..Default::default()
