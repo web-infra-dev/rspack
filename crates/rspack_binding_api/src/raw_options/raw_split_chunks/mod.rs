@@ -301,7 +301,7 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
         max_initial_size: fallback_max_initial_size,
         automatic_name_delimiter: raw_fallback_cache_group
           .automatic_name_delimiter
-          .unwrap_or(overall_automatic_name_delimiter.clone()),
+          .unwrap_or(overall_automatic_name_delimiter),
       },
       hide_path_info,
     })
