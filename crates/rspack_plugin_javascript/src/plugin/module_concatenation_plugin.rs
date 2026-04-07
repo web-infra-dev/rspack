@@ -261,25 +261,14 @@ impl ModuleConcatenationPlugin {
     failure_cache: &mut IdentifierMap<Warning>,
     success_cache: &mut RuntimeIdentifierCache<Vec<ModuleIdentifier>>,
     avoid_mutate_on_failure: bool,
-    statistics: &mut Statistics,
     imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
   ) -> Option<Warning> {
-    statistics
-      .module_visit
-      .entry(*module_id)
-      .and_modify(|count| {
-        *count += 1;
-      })
-      .or_insert(1);
-
     if let Some(cache_entry) = failure_cache.get(module_id) {
-      statistics.cached += 1;
       return Some(cache_entry.clone());
     }
 
     if config.has(module_id) {
-      statistics.already_in_config += 1;
       return None;
     }
 
@@ -297,7 +286,6 @@ impl ModuleConcatenationPlugin {
     };
 
     let incoming_modules = if let Some(incomings) = success_cache.get(module_id, runtime) {
-      statistics.cache_hit += 1;
       incomings.clone()
     } else {
       let module_readable_identifier = get_cached_readable_identifier(
@@ -308,7 +296,6 @@ impl ModuleConcatenationPlugin {
       );
 
       if !possible_modules.contains(module_id) {
-        statistics.invalid_module += 1;
         let problem = Warning::Id(*module_id);
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
@@ -349,7 +336,6 @@ impl ModuleConcatenationPlugin {
           )
         };
 
-        statistics.incorrect_chunks += 1;
         let problem = Warning::Problem(problem_string);
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
@@ -396,7 +382,6 @@ impl ModuleConcatenationPlugin {
             )
           };
           let problem = Warning::Problem(problem);
-          statistics.incorrect_dependency += 1;
           failure_cache.insert(*module_id, problem.clone());
           return Some(problem);
         }
@@ -486,7 +471,6 @@ impl ModuleConcatenationPlugin {
           )
         };
 
-        statistics.incorrect_chunks_of_importer += 1;
         let problem = Warning::Problem(problem);
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
@@ -541,7 +525,6 @@ impl ModuleConcatenationPlugin {
           )
         };
         let problem = Warning::Problem(problem);
-        statistics.incorrect_module_dependency += 1;
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
@@ -616,7 +599,6 @@ impl ModuleConcatenationPlugin {
           };
 
           let problem = Warning::Problem(problem);
-          statistics.incorrect_runtime_condition += 1;
           failure_cache.insert(*module_id, problem.clone());
           return Some(problem);
         }
@@ -647,14 +629,12 @@ impl ModuleConcatenationPlugin {
         failure_cache,
         success_cache,
         false,
-        statistics,
         imports_cache,
         module_cache,
       ) {
         if let Some(backup) = &backup {
           config.rollback(*backup);
         }
-        statistics.importer_failed += 1;
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
@@ -670,7 +650,6 @@ impl ModuleConcatenationPlugin {
     ) {
       candidates.insert(imp);
     }
-    statistics.added += 1;
     None
   }
 
@@ -1079,11 +1058,6 @@ impl ModuleConcatenationPlugin {
     });
 
     logger.time_end(start);
-    let mut statistics = Statistics::default();
-    let mut stats_candidates = 0;
-    let mut stats_size_sum = 0;
-    let mut stats_empty_configurations = 0;
-
     let start = logger.time("find modules to concatenate");
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
     let mut used_as_inner: IdentifierSet = IdentifierSet::default();
@@ -1300,7 +1274,6 @@ impl ModuleConcatenationPlugin {
           &mut failure_cache,
           &mut success_cache,
           true,
-          &mut statistics,
           &mut imports_cache,
           &modules_without_runtime_cache,
         ) {
@@ -1315,10 +1288,8 @@ impl ModuleConcatenationPlugin {
           }
         }
       }
-      stats_candidates += candidates.len();
       if !current_configuration.is_empty() {
         let modules = current_configuration.get_modules();
-        stats_size_sum += modules.len();
         let root_module = current_configuration.root_module;
 
         modules.iter().for_each(|module| {
@@ -1328,7 +1299,6 @@ impl ModuleConcatenationPlugin {
         });
         concat_configurations.push(current_configuration);
       } else {
-        stats_empty_configurations += 1;
         let module_graph = compilation.get_module_graph_mut();
         let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
         for warning in current_configuration.get_warnings_sorted() {
@@ -1342,48 +1312,6 @@ impl ModuleConcatenationPlugin {
     logger.time_end(start);
 
     rayon::spawn(move || drop(modules_without_runtime_cache));
-
-    if !concat_configurations.is_empty() {
-      let mut concat_len_buffer = itoa::Buffer::new();
-      let concat_len_str = concat_len_buffer.format(concat_configurations.len());
-      let mut avg_size_buffer = itoa::Buffer::new();
-      let avg_size_str = avg_size_buffer.format(stats_size_sum / concat_configurations.len());
-      let mut empty_configs_buffer = itoa::Buffer::new();
-      let empty_configs_str = empty_configs_buffer.format(stats_empty_configurations);
-      logger.debug(format!(
-        "{concat_len_str} successful concat configurations (avg size: {avg_size_str}), {empty_configs_str} bailed out completely"
-      ));
-    }
-
-    let mut candidates_buffer = itoa::Buffer::new();
-    let candidates_str = candidates_buffer.format(stats_candidates);
-    let mut cached_buffer = itoa::Buffer::new();
-    let cached_str = cached_buffer.format(statistics.cached);
-    let mut already_in_config_buffer = itoa::Buffer::new();
-    let already_in_config_str = already_in_config_buffer.format(statistics.already_in_config);
-    let mut invalid_module_buffer = itoa::Buffer::new();
-    let invalid_module_str = invalid_module_buffer.format(statistics.invalid_module);
-    let mut incorrect_chunks_buffer = itoa::Buffer::new();
-    let incorrect_chunks_str = incorrect_chunks_buffer.format(statistics.incorrect_chunks);
-    let mut incorrect_dependency_buffer = itoa::Buffer::new();
-    let incorrect_dependency_str =
-      incorrect_dependency_buffer.format(statistics.incorrect_dependency);
-    let mut incorrect_chunks_of_importer_buffer = itoa::Buffer::new();
-    let incorrect_chunks_of_importer_str =
-      incorrect_chunks_of_importer_buffer.format(statistics.incorrect_chunks_of_importer);
-    let mut incorrect_module_dependency_buffer = itoa::Buffer::new();
-    let incorrect_module_dependency_str =
-      incorrect_module_dependency_buffer.format(statistics.incorrect_module_dependency);
-    let mut incorrect_runtime_condition_buffer = itoa::Buffer::new();
-    let incorrect_runtime_condition_str =
-      incorrect_runtime_condition_buffer.format(statistics.incorrect_runtime_condition);
-    let mut importer_failed_buffer = itoa::Buffer::new();
-    let importer_failed_str = importer_failed_buffer.format(statistics.importer_failed);
-    let mut added_buffer = itoa::Buffer::new();
-    let added_str = added_buffer.format(statistics.added);
-    logger.debug(format!(
-        "{candidates_str} candidates were considered for adding ({cached_str} cached failure, {already_in_config_str} already in config, {invalid_module_str} invalid module, {incorrect_chunks_str} incorrect chunks, {incorrect_dependency_str} incorrect dependency, {incorrect_chunks_of_importer_str} incorrect chunks of importer, {incorrect_module_dependency_str} incorrect module dependency, {incorrect_runtime_condition_str} incorrect runtime condition, {importer_failed_str} importer failed, {added_str} added)"
-    ));
 
     // Copy from  https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L368-L371
     // HACK: Sort configurations by length and start with the longest one
@@ -1515,22 +1443,6 @@ impl Plugin for ModuleConcatenationPlugin {
       .tap(optimize_chunk_modules::new(self));
     Ok(())
   }
-}
-
-#[derive(Debug, Default)]
-struct Statistics {
-  cached: u32,
-  already_in_config: u32,
-  invalid_module: u32,
-  incorrect_chunks: u32,
-  incorrect_dependency: u32,
-  incorrect_module_dependency: u32,
-  incorrect_chunks_of_importer: u32,
-  incorrect_runtime_condition: u32,
-  importer_failed: u32,
-  cache_hit: u32,
-  module_visit: IdentifierMap<usize>,
-  added: u32,
 }
 
 #[derive(Debug, Default)]
