@@ -10,11 +10,11 @@ use rspack_core::{
   ResolveOptionsWithDependencyType, ResolverFactory,
 };
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   error::ErrorCode,
+  js_regex::JsRegExp,
   normal_module_factory::ContextInfo,
   options::raw_resolve::{
     RawResolveOptionsWithDependencyType, normalize_raw_resolve_options_with_dependency_type,
@@ -41,7 +41,7 @@ pub struct RawExternalsPluginOptions {
 
 type RawExternalItem = Either4<
   String,
-  RspackRegex,
+  JsRegExp,
   HashMap<String, RawExternalItemValue>,
   ThreadsafeFunction<RawExternalItemFnCtx, Promise<RawExternalItemFnResult>>,
 >;
@@ -222,7 +222,7 @@ impl TryFrom<RawExternalItemWrapper> for ExternalItem {
   fn try_from(value: RawExternalItemWrapper) -> rspack_error::Result<Self> {
     match value.0 {
       Either4::A(v) => Ok(Self::String(v)),
-      Either4::B(v) => Ok(Self::RegExp(v)),
+      Either4::B(v) => Ok(Self::RegExp(v.try_into()?)),
       Either4::C(v) => Ok(Self::Object(
         v.into_iter()
           .map(|(k, v)| (k, RawExternalItemValueWrapper(v).into()))

@@ -15,12 +15,14 @@ pub struct RawEnableLibraryPluginOptions<'a> {
   pub split_chunks: Option<RawSplitChunksOptions<'a>>,
 }
 
-impl<'a> From<RawSplitChunksOptions<'a>> for Vec<CacheGroup> {
-  fn from(value: RawSplitChunksOptions<'a>) -> Self {
-    let mut groups = rspack_plugin_split_chunks::PluginOptions::from(value).cache_groups;
+impl<'a> TryFrom<RawSplitChunksOptions<'a>> for Vec<CacheGroup> {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawSplitChunksOptions<'a>) -> Result<Self, Self::Error> {
+    let mut groups = rspack_plugin_split_chunks::PluginOptions::try_from(value)?.cache_groups;
 
     groups.sort_by(|a, b| b.priority.total_cmp(&a.priority));
 
-    groups
+    Ok(groups)
   }
 }

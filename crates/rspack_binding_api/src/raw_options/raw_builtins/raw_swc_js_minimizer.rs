@@ -7,7 +7,7 @@ use rspack_plugin_swc_js_minimizer::{
 use serde::de::DeserializeOwned;
 use swc_core::base::BoolOrDataConfig;
 
-use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
+use crate::asset_condition::{RawAssetConditions, try_into_asset_conditions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -92,9 +92,9 @@ impl TryFrom<RawSwcJsMinimizerRspackPluginOptions> for PluginOptions {
 
     Ok(Self {
       extract_comments: into_extract_comments(value.extract_comments),
-      test: value.test.map(into_asset_conditions),
-      include: value.include.map(into_asset_conditions),
-      exclude: value.exclude.map(into_asset_conditions),
+      test: value.test.map(try_into_asset_conditions).transpose()?,
+      include: value.include.map(try_into_asset_conditions).transpose()?,
+      exclude: value.exclude.map(try_into_asset_conditions).transpose()?,
       minimizer_options: MinimizerOptions {
         compress,
         mangle,

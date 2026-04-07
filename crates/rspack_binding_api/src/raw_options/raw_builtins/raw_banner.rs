@@ -6,7 +6,7 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};
 
 use crate::{
-  asset_condition::{RawAssetConditions, into_asset_conditions},
+  asset_condition::{RawAssetConditions, try_into_asset_conditions},
   chunk::ChunkWrapper,
 };
 
@@ -76,9 +76,9 @@ impl TryFrom<RawBannerPluginOptions> for BannerPluginOptions {
       footer: value.footer,
       raw: value.raw,
       stage: value.stage,
-      test: value.test.map(into_asset_conditions),
-      include: value.include.map(into_asset_conditions),
-      exclude: value.exclude.map(into_asset_conditions),
+      test: value.test.map(try_into_asset_conditions).transpose()?,
+      include: value.include.map(try_into_asset_conditions).transpose()?,
+      exclude: value.exclude.map(try_into_asset_conditions).transpose()?,
     })
   }
 }

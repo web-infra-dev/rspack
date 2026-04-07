@@ -4,12 +4,11 @@ use napi::bindgen_prelude::Either3;
 use napi_derive::napi;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
-use rspack_regex::RspackRegex;
 
-use crate::module::ModuleObject;
+use crate::{js_regex::JsRegExp, module::ModuleObject};
 
 pub(super) type RawCacheGroupTest =
-  Either3<String, RspackRegex, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
+  Either3<String, JsRegExp, ThreadsafeFunction<JsCacheGroupTestCtx, Option<bool>>>;
 
 #[napi(object, object_from_js = false)]
 pub struct JsCacheGroupTestCtx {
@@ -25,16 +24,18 @@ impl<'a> From<CacheGroupTestFnCtx<'a>> for JsCacheGroupTestCtx {
   }
 }
 
-pub(super) fn normalize_raw_cache_group_test(raw: RawCacheGroupTest) -> CacheGroupTest {
-  match raw {
+pub(super) fn normalize_raw_cache_group_test(
+  raw: RawCacheGroupTest,
+) -> rspack_error::Result<CacheGroupTest> {
+  Ok(match raw {
     Either3::A(str) => CacheGroupTest::String(str),
-    Either3::B(regexp) => CacheGroupTest::RegExp(regexp),
+    Either3::B(regexp) => CacheGroupTest::RegExp(regexp.try_into()?),
     Either3::C(v) => CacheGroupTest::Fn(Arc::new(move |ctx| {
       let ctx = ctx.into();
       let v = v.clone();
       Box::pin(async move { v.call_with_sync(ctx).await })
     })),
-  }
+  })
 }
 
 #[inline]

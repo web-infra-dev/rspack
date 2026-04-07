@@ -6,7 +6,7 @@ use rspack_plugin_lightning_css_minimizer::{
   Browsers, Draft, MinimizerOptions, NonStandard, PluginOptions, PseudoClasses,
 };
 
-use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
+use crate::asset_condition::{RawAssetConditions, try_into_asset_conditions};
 
 #[derive(Debug)]
 #[napi(object)]
@@ -77,9 +77,9 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
 
   fn try_from(value: RawLightningCssMinimizerRspackPluginOptions) -> Result<Self> {
     Ok(Self {
-      test: value.test.map(into_asset_conditions),
-      include: value.include.map(into_asset_conditions),
-      exclude: value.exclude.map(into_asset_conditions),
+      test: value.test.map(try_into_asset_conditions).transpose()?,
+      include: value.include.map(try_into_asset_conditions).transpose()?,
+      exclude: value.exclude.map(try_into_asset_conditions).transpose()?,
       remove_unused_local_idents: value.remove_unused_local_idents,
       minimizer_options: MinimizerOptions {
         error_recovery: value.minimizer_options.error_recovery,

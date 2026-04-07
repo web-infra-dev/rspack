@@ -72,6 +72,7 @@ mod filename;
 mod fs_node;
 mod html;
 mod identifier;
+mod js_regex;
 mod location;
 mod module;
 mod module_graph;
@@ -103,7 +104,7 @@ mod virtual_modules;
 use std::{
   cell::RefCell,
   mem::ManuallyDrop,
-  sync::{Arc, RwLock},
+  sync::{Arc, RwLock, mpsc::sync_channel},
 };
 
 use napi::{CallContext, bindgen_prelude::*};
@@ -225,38 +226,54 @@ impl JsCompiler {
       let js_cleanup_plugin = JsCleanupPlugin::new(tsfn);
       plugins.push(js_cleanup_plugin.boxed());
 
+      let pnp = options.resolve.pnp.unwrap_or(false);
+      let virtual_files = options.__virtual_files.take();
+      let use_input_fs = options.experiments.use_input_file_system.take();
+      let (compiler_options_tx, compiler_options_rx) = sync_channel(1);
+
+      rayon::spawn(move || {
+        let _ = compiler_options_tx.send(options.try_into());
+      });
+
       for bp in builtin_plugins {
         bp.append_to(env, &mut this, &mut plugins)?;
       }
 
-      let pnp = options.resolve.pnp.unwrap_or(false);
-      let virtual_files = options.__virtual_files.take();
-      let use_input_fs = options.experiments.use_input_file_system.take();
-      let compiler_options: rspack_core::CompilerOptions = options.try_into().to_napi_result()?;
+      let compiler_options: rspack_core::CompilerOptions = compiler_options_rx
+        .recv()
+        .map_err(|_| {
+          napi::Error::from_reason("Failed to receive CompilerOptions from background worker")
+        })?
+        .to_napi_result()?;
 
       tracing::debug!(name:"normalized_options", options=?&compiler_options);
 
-      let mut input_file_system: Option<Arc<dyn ReadableFileSystem>> =
-        input_filesystem.and_then(|fs| {
-          use_input_fs.and_then(|use_input_file_system| {
-            let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
+      let mut input_file_system: Option<Arc<dyn ReadableFileSystem>> = input_filesystem
+        .map(|fs| -> napi::Result<Option<Arc<dyn ReadableFileSystem>>> {
+          let node_fs = NodeFileSystem::new(fs).expect("Failed to create readable filesystem");
 
-            match use_input_file_system {
-              WithFalse::False => None,
-              WithFalse::True(allowlist) => {
-                if allowlist.is_empty() {
-                  return None;
-                }
-                let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
-                  allowlist,
-                  node_fs,
-                  NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
-                ));
-                Some(binding)
+          match use_input_fs {
+            None | Some(WithFalse::False) => Ok(None),
+            Some(WithFalse::True(allowlist)) => {
+              if allowlist.is_empty() {
+                return Ok(None);
               }
+              let allowlist = allowlist
+                .into_iter()
+                .map(rspack_regex::RspackRegex::try_from)
+                .collect::<rspack_error::Result<Vec<_>>>()
+                .map_err(|err| napi::Error::from_reason(err.to_string()))?;
+              let binding: Arc<dyn ReadableFileSystem> = Arc::new(HybridFileSystem::new(
+                allowlist,
+                node_fs,
+                NativeFileSystem::new(compiler_options.resolve.pnp.unwrap_or(false)),
+              ));
+              Ok(Some(binding))
             }
-          })
-        });
+          }
+        })
+        .transpose()?
+        .flatten();
 
       let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
       if let Some(list) = virtual_files {

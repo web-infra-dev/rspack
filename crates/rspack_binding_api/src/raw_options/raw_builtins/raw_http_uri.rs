@@ -8,9 +8,10 @@ use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
-use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::js_regex::JsRegExp;
 
 type HttpClientRequest =
   ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;
@@ -19,7 +20,7 @@ type HttpClientRequest =
 #[derive(Debug)]
 pub struct RawHttpUriPluginOptions {
   #[napi(ts_type = "(string | RegExp)[]")]
-  pub allowed_uris: Vec<Either<String, RspackRegex>>,
+  pub allowed_uris: Vec<Either<String, JsRegExp>>,
   pub lockfile_location: Option<String>,
   pub cache_location: Option<String>,
   pub upgrade: bool,
@@ -71,23 +72,23 @@ impl HttpClient for JsHttpClient {
 fn create_http_uri_plugin_options(
   options: RawHttpUriPluginOptions,
   filesystem: Arc<dyn WritableFileSystem>,
-) -> HttpUriPluginOptions {
+) -> rspack_error::Result<HttpUriPluginOptions> {
   let allowed_uris = HttpUriOptionsAllowedUris::new(AssetConditions::Multiple(
     options
       .allowed_uris
       .into_iter()
-      .map(|condition| match condition {
-        Either::A(string) => AssetCondition::String(string),
-        Either::B(regex) => AssetCondition::Regexp(regex),
+      .map(|condition: Either<String, JsRegExp>| match condition {
+        Either::A(string) => Ok(AssetCondition::String(string)),
+        Either::B(regex) => Ok(AssetCondition::Regexp(regex.try_into()?)),
       })
-      .collect(),
+      .collect::<rspack_error::Result<_>>()?,
   ));
 
   let http_client = Arc::new(JsHttpClient {
     function: options.http_client,
   });
 
-  HttpUriPluginOptions {
+  Ok(HttpUriPluginOptions {
     allowed_uris,
     lockfile_location: options.lockfile_location,
     cache_location: options.cache_location,
@@ -96,16 +97,18 @@ fn create_http_uri_plugin_options(
     // frozen: options.frozen,
     http_client,
     filesystem,
-  }
+  })
 }
 
-pub fn get_http_uri_plugin(options: RawHttpUriPluginOptions) -> Box<dyn rspack_core::Plugin> {
+pub fn get_http_uri_plugin(
+  options: RawHttpUriPluginOptions,
+) -> rspack_error::Result<Box<dyn rspack_core::Plugin>> {
   // Use NativeFileSystem for HTTP caching
   let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
 
   // Create the plugin with the provided options
-  let options = create_http_uri_plugin_options(options, fs);
+  let options = create_http_uri_plugin_options(options, fs)?;
   let plugin = HttpUriPlugin::new(options);
 
-  Box::new(plugin)
+  Ok(Box::new(plugin))
 }

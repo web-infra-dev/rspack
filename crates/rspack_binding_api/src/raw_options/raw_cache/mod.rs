@@ -23,9 +23,11 @@ pub struct RawCacheOptionsPersistent {
   pub readonly: Option<bool>,
 }
 
-impl From<RawCacheOptionsPersistent> for PersistentCacheOptions {
-  fn from(value: RawCacheOptionsPersistent) -> Self {
-    Self {
+impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawCacheOptionsPersistent) -> Result<Self, Self::Error> {
+    Ok(Self {
       build_dependencies: value
         .build_dependencies
         .unwrap_or_default()
@@ -33,11 +35,11 @@ impl From<RawCacheOptionsPersistent> for PersistentCacheOptions {
         .map(Into::into)
         .collect(),
       version: value.version.unwrap_or_default(),
-      snapshot: value.snapshot.unwrap_or_default().into(),
+      snapshot: value.snapshot.unwrap_or_default().try_into()?,
       storage: value.storage.unwrap_or_default().into(),
       portable: value.portable.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
-    }
+    })
   }
 }
 
@@ -93,8 +95,8 @@ impl FromNapiValue for InnerCacheOptions {
 
 pub type RawCacheOptions = Either<bool, InnerCacheOptions>;
 
-pub fn normalize_raw_cache(options: RawCacheOptions) -> CacheOptions {
-  match options {
+pub fn normalize_raw_cache(options: RawCacheOptions) -> rspack_error::Result<CacheOptions> {
+  Ok(match options {
     Either::A(options) => {
       if options {
         CacheOptions::Memory { max_generations: 1 }
@@ -103,10 +105,10 @@ pub fn normalize_raw_cache(options: RawCacheOptions) -> CacheOptions {
       }
     }
     Either::B(options) => match options {
-      InnerCacheOptions::Persistent(options) => CacheOptions::Persistent(options.into()),
+      InnerCacheOptions::Persistent(options) => CacheOptions::Persistent(options.try_into()?),
       InnerCacheOptions::Memory(options) => CacheOptions::Memory {
         max_generations: options.max_generations.unwrap_or(1),
       },
     },
-  }
+  })
 }

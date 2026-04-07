@@ -47,6 +47,26 @@ impl Debug for RspackRegex {
 }
 
 impl RspackRegex {
+  fn normalize_flags(flags: &str) -> String {
+    let mut chars = flags.chars().collect::<Vec<char>>();
+    chars.sort_unstable();
+    chars.into_iter().collect::<String>()
+  }
+
+  fn from_parts(source: String, flags: String, normalize_flags: bool) -> Result<Self, Error> {
+    let flags = if normalize_flags {
+      Self::normalize_flags(&flags)
+    } else {
+      flags
+    };
+
+    Ok(Self {
+      algo: Box::new(Algo::new(source.as_str(), flags.as_str())?),
+      flags,
+      source,
+    })
+  }
+
   #[inline]
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)
@@ -78,22 +98,20 @@ impl RspackRegex {
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
-    let mut chars = flags.chars().collect::<Vec<char>>();
-    chars.sort_unstable();
-    Ok(Self {
-      flags: chars.into_iter().collect::<String>(),
-      source: expr.to_string(),
-      algo: Box::new(Algo::new(expr, flags)?),
-    })
+    Self::from_parts(expr.to_string(), flags.to_string(), true)
+  }
+
+  pub fn from_js_regex(expr: String, flags: String) -> Result<Self, Error> {
+    Self::from_parts(expr, flags, false)
   }
 
   pub fn new_rust_regex(expr: &str, flags: &str) -> Result<Self, Error> {
-    let mut chars = flags.chars().collect::<Vec<char>>();
-    chars.sort_unstable();
+    let flags = Self::normalize_flags(flags);
+    let algo = Box::new(Algo::new_rust_regex(expr, flags.as_str())?);
     Ok(Self {
-      flags: chars.into_iter().collect::<String>(),
+      algo,
+      flags,
       source: expr.to_string(),
-      algo: Box::new(Algo::new_rust_regex(expr, flags)?),
     })
   }
 
@@ -143,5 +161,19 @@ impl AsStringConverter for RspackRegex {
   {
     let (flags, source) = s.split_once("#").expect("should have flags");
     Ok(RspackRegex::with_flags(source, flags).expect("should generate regex"))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::RspackRegex;
+
+  #[test]
+  fn from_js_regex_preserves_flag_order() {
+    let regex = RspackRegex::from_js_regex("foo".to_string(), "gim".to_string()).unwrap();
+
+    assert_eq!(regex.source(), "foo");
+    assert_eq!(regex.flags(), "gim");
+    assert!(regex.test("FOO"));
   }
 }

@@ -11,7 +11,7 @@ use rspack_plugin_devtool::{
   Append, EvalDevToolModulePluginOptions, ModuleFilenameTemplate, ModuleFilenameTemplateFnCtx,
 };
 
-use crate::asset_condition::{RawAssetConditions, into_asset_conditions};
+use crate::asset_condition::{RawAssetConditions, try_into_asset_conditions};
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;
 
@@ -124,8 +124,12 @@ pub struct SourceMapDevToolPluginOptions {
   pub debug_ids: Option<bool>,
 }
 
-impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDevToolPluginOptions {
-  fn from(opts: SourceMapDevToolPluginOptions) -> Self {
+impl TryFrom<SourceMapDevToolPluginOptions>
+  for rspack_plugin_devtool::SourceMapDevToolPluginOptions
+{
+  type Error = rspack_error::Error;
+
+  fn try_from(opts: SourceMapDevToolPluginOptions) -> Result<Self, Self::Error> {
     let append = opts.append.map(normalize_raw_append);
 
     let filename = opts.filename.and_then(|raw| match raw {
@@ -143,24 +147,27 @@ impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDev
     let columns = opts.columns.unwrap_or(true);
     let no_sources = opts.no_sources.unwrap_or(false);
 
-    Self {
+    Ok(Self {
       append,
       columns,
       fallback_module_filename_template,
       file_context: opts.file_context,
       filename,
-      ignore_list: opts.ignore_list.map(into_asset_conditions),
+      ignore_list: opts
+        .ignore_list
+        .map(try_into_asset_conditions)
+        .transpose()?,
       namespace: opts.namespace,
       no_sources,
       public_path: opts.public_path,
       module_filename_template,
       module: opts.module.unwrap_or(true),
       source_root: opts.source_root,
-      test: opts.test.map(into_asset_conditions),
-      include: opts.include.map(into_asset_conditions),
-      exclude: opts.exclude.map(into_asset_conditions),
+      test: opts.test.map(try_into_asset_conditions).transpose()?,
+      include: opts.include.map(try_into_asset_conditions).transpose()?,
+      exclude: opts.exclude.map(try_into_asset_conditions).transpose()?,
       debug_ids: opts.debug_ids.unwrap_or(false),
-    }
+    })
   }
 }
 

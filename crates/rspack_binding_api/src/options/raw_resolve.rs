@@ -5,8 +5,9 @@ use rspack_core::{
   Restriction, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::error;
-use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::js_regex::JsRegExp;
 
 pub type AliasValue = serde_json::Value;
 
@@ -53,7 +54,7 @@ pub struct RawResolveOptions {
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
   #[napi(ts_type = "(string | RegExp)[]")]
-  pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
+  pub restrictions: Option<Vec<Either<String, JsRegExp>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
 }
@@ -129,15 +130,18 @@ impl TryFrom<RawResolveOptions> for Resolve {
     let alias_fields = value
       .alias_fields
       .map(|v| v.into_iter().map(|s| vec![s]).collect());
-    let restrictions = value.restrictions.map(|restrictions| {
-      restrictions
-        .into_iter()
-        .map(|restriction| match restriction {
-          Either::A(s) => Restriction::Path(s),
-          Either::B(r) => Restriction::Regex(r),
-        })
-        .collect::<Vec<_>>()
-    });
+    let restrictions = value
+      .restrictions
+      .map(|restrictions| {
+        restrictions
+          .into_iter()
+          .map(|restriction| match restriction {
+            Either::A(s) => Ok(Restriction::Path(s)),
+            Either::B(r) => Ok(Restriction::Regex(r.try_into()?)),
+          })
+          .collect::<Result<Vec<_>, Self::Error>>()
+      })
+      .transpose()?;
     let roots = value.roots;
     let enforce_extension = value.enforce_extension;
     let description_files = value.description_files;
@@ -225,7 +229,7 @@ pub struct RawResolveOptionsWithDependencyType {
   pub extension_alias: Option<HashMap<String, Vec<String>>>,
   pub alias_fields: Option<Vec<String>>,
   #[napi(ts_type = "(string | RegExp)[]")]
-  pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
+  pub restrictions: Option<Vec<Either<String, JsRegExp>>>,
   pub roots: Option<Vec<String>>,
 
   pub dependency_type: Option<String>,
@@ -267,15 +271,18 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         })
         .transpose()?;
 
-      let restrictions = raw.restrictions.map(|restrictions| {
-        restrictions
-          .into_iter()
-          .map(|restriction| match restriction {
-            Either::A(s) => Restriction::Path(s),
-            Either::B(r) => Restriction::Regex(r),
-          })
-          .collect::<Vec<_>>()
-      });
+      let restrictions = raw
+        .restrictions
+        .map(|restrictions| {
+          restrictions
+            .into_iter()
+            .map(|restriction| match restriction {
+              Either::A(s) => Ok(Restriction::Path(s)),
+              Either::B(r) => Ok(Restriction::Regex(r.try_into()?)),
+            })
+            .collect::<rspack_error::Result<Vec<_>>>()
+        })
+        .transpose()?;
 
       let resolve_options = Resolve {
         extensions: raw.extensions,

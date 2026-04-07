@@ -6,18 +6,19 @@ use rspack_plugin_circular_dependencies::{
   CircularDependencyIgnoredConnection, CircularDependencyIgnoredConnectionEntry,
   CircularDependencyRspackPluginOptions, CompilationHookFn, CycleHandlerFn,
 };
-use rspack_regex::RspackRegex;
+
+use crate::js_regex::JsRegExp;
 
 fn ignore_pattern_to_entry(
-  pattern: Either<String, RspackRegex>,
-) -> CircularDependencyIgnoredConnectionEntry {
-  match pattern {
+  pattern: Either<String, JsRegExp>,
+) -> rspack_error::Result<CircularDependencyIgnoredConnectionEntry> {
+  Ok(match pattern {
     Either::A(string) => CircularDependencyIgnoredConnectionEntry::String(string),
-    Either::B(pattern) => CircularDependencyIgnoredConnectionEntry::Pattern(pattern),
-  }
+    Either::B(pattern) => CircularDependencyIgnoredConnectionEntry::Pattern(pattern.try_into()?),
+  })
 }
 
-type ConnectionPattern = Either<String, RspackRegex>;
+type ConnectionPattern = Either<String, JsRegExp>;
 type CycleHookParams = (String, Vec<String>);
 
 #[derive(Debug)]
@@ -25,7 +26,7 @@ type CycleHookParams = (String, Vec<String>);
 pub struct RawCircularDependencyRspackPluginOptions {
   pub fail_on_error: Option<bool>,
   #[napi(ts_type = "RegExp")]
-  pub exclude: Option<RspackRegex>,
+  pub exclude: Option<JsRegExp>,
   #[napi(ts_type = "Array<[string | RegExp, string | RegExp]>")]
   pub ignored_connections: Option<Vec<(ConnectionPattern, ConnectionPattern)>>,
   #[debug(skip)]
@@ -42,8 +43,10 @@ pub struct RawCircularDependencyRspackPluginOptions {
   pub on_end: Option<ThreadsafeFunction<(), ()>>,
 }
 
-impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspackPluginOptions {
-  fn from(value: RawCircularDependencyRspackPluginOptions) -> Self {
+impl TryFrom<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspackPluginOptions {
+  type Error = rspack_error::Error;
+
+  fn try_from(value: RawCircularDependencyRspackPluginOptions) -> Result<Self, Self::Error> {
     // This explicit cast is needed because Rust otherwise infers an incompatible type
     // for the closure compared to the field in the options object.
 
@@ -98,24 +101,27 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
       _ => None,
     };
 
-    Self {
+    Ok(Self {
       fail_on_error: value.fail_on_error.unwrap_or(false),
-      exclude: value.exclude,
-      ignored_connections: value.ignored_connections.map(|connections| {
-        connections
-          .into_iter()
-          .map(|(from, to)| {
-            CircularDependencyIgnoredConnection(
-              ignore_pattern_to_entry(from),
-              ignore_pattern_to_entry(to),
-            )
-          })
-          .collect()
-      }),
+      exclude: value.exclude.map(TryInto::try_into).transpose()?,
+      ignored_connections: value
+        .ignored_connections
+        .map(|connections: Vec<_>| {
+          connections
+            .into_iter()
+            .map(|(from, to)| {
+              Ok(CircularDependencyIgnoredConnection(
+                ignore_pattern_to_entry(from)?,
+                ignore_pattern_to_entry(to)?,
+              ))
+            })
+            .collect::<Result<_, Self::Error>>()
+        })
+        .transpose()?,
       on_detected,
       on_ignored,
       on_start,
       on_end,
-    }
+    })
   }
 }
