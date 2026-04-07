@@ -25,7 +25,7 @@ mod raw_swc_js_minimizer;
 use std::cell::RefCell;
 
 use napi::{
-  Either, Env, Unknown,
+  Either, Env, Unknown, ValueType,
   bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
@@ -665,7 +665,13 @@ impl<'a> BuiltinPlugin<'a> {
         );
       }
       BuiltinPluginName::SideEffectsFlagPlugin => {
-        plugins.push(SideEffectsFlagPlugin::default().boxed())
+        let analyze_side_effects_free = match self.options.get_type()? {
+          // Keep compatibility with older JS wrappers that serialized this builtin as `{}`.
+          ValueType::Object => false,
+          _ => downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        };
+        plugins.push(SideEffectsFlagPlugin::new(analyze_side_effects_free).boxed());
       }
       BuiltinPluginName::FlagDependencyExportsPlugin => {
         plugins.push(FlagDependencyExportsPlugin::default().boxed())

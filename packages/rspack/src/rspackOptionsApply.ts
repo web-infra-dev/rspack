@@ -260,7 +260,7 @@ export class RspackOptionsApply {
     }
 
     if (options.optimization.sideEffects) {
-      new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+      new SideEffectsFlagPlugin(options.experiments.pureFunctions).apply(
         compiler,
       );
     }

@@ -1264,6 +1264,7 @@ impl CompilationFinishModules for CompilationFinishModulesTap {
     compilation: &Compilation,
     _async_modules_artifact: &mut AsyncModulesArtifact,
     exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
+    _side_effects_state_artifact: &mut rspack_core::SideEffectsStateArtifact,
   ) -> rspack_error::Result<()> {
     let compiler_context = compilation.compiler_context.clone();
     let previous_ptr_addr = compiler_context

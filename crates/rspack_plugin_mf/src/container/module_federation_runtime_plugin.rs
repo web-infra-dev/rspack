@@ -8,6 +8,7 @@ use rspack_core::{
   AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
   CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilerFinishMake,
   EntryOptions, ExportsInfoArtifact, Plugin, RuntimeGlobals, RuntimeModule,
+  SideEffectsStateArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -98,6 +99,7 @@ async fn finish_modules(
   compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   if !self.options.experiments.async_startup {
     return Ok(());

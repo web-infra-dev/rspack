@@ -99,7 +99,6 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
-
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,

@@ -19,7 +19,8 @@ use ustr::Ustr;
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SourceType, find_graph_roots, merge_runtime,
+  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
+  find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -721,6 +722,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.expect_chunk_graph_chunk(chunk);
@@ -734,6 +736,7 @@ impl ChunkGraph {
         set: &mut IdentifierSet,
         module_graph: &ModuleGraph,
         module_graph_cache: &ModuleGraphCacheArtifact,
+        side_effects_state_artifact: &SideEffectsStateArtifact,
         exports_info_artifact: &ExportsInfoArtifact,
       ) {
         for connection in module_graph.get_outgoing_connections(&module) {
@@ -742,6 +745,7 @@ impl ChunkGraph {
             module_graph,
             None,
             module_graph_cache,
+            side_effects_state_artifact,
             exports_info_artifact,
           );
           match active_state {
@@ -754,6 +758,7 @@ impl ChunkGraph {
                 set,
                 module_graph,
                 module_graph_cache,
+                side_effects_state_artifact,
                 exports_info_artifact,
               );
               continue;
@@ -769,6 +774,7 @@ impl ChunkGraph {
         &mut set,
         module_graph,
         module_graph_cache,
+        side_effects_state_artifact,
         exports_info_artifact,
       );
       set.into_iter().collect()

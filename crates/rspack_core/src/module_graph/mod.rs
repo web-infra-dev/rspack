@@ -14,7 +14,8 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
-  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
+  UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -240,6 +241,7 @@ impl ModuleGraph {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
     let connections = self
@@ -257,6 +259,7 @@ impl ModuleGraph {
         module_graph,
         runtime,
         module_graph_cache,
+        side_effects_state_artifact,
         exports_info_artifact,
       ) {
         continue;
@@ -861,6 +864,7 @@ impl ModuleGraph {
     &self,
     module_id: &ModuleIdentifier,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let mut has_connections = false;
@@ -870,7 +874,13 @@ impl ModuleGraph {
         return false;
       };
       if !module_dependency.get_optional()
-        || !connection.is_target_active(self, None, module_graph_cache, exports_info_artifact)
+        || !connection.is_target_active(
+          self,
+          None,
+          module_graph_cache,
+          side_effects_state_artifact,
+          exports_info_artifact,
+        )
       {
         return false;
       }
@@ -1008,6 +1018,7 @@ impl ModuleGraph {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let condition = self
@@ -1020,6 +1031,7 @@ impl ModuleGraph {
       runtime,
       self,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
   }
@@ -1029,6 +1041,7 @@ impl ModuleGraph {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let condition = self
@@ -1041,6 +1054,7 @@ impl ModuleGraph {
       runtime,
       self,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
   }

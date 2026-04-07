@@ -620,6 +620,7 @@ impl Stats<'_> {
             &c.ukey(),
             module_graph,
             module_graph_cache,
+            &build_module_graph_artifact_for_module_graph.side_effects_state_artifact,
             exports_info_artifact,
           )
           .into_iter()
@@ -1279,8 +1280,13 @@ impl Stats<'_> {
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
       stats.cacheable = Some(module.build_info().cacheable);
-      stats.optional =
-        Some(module_graph.is_optional(&identifier, module_graph_cache, exports_info_artifact));
+      let side_effects_state_artifact = &build_module_graph_artifact.side_effects_state_artifact;
+      stats.optional = Some(module_graph.is_optional(
+        &identifier,
+        module_graph_cache,
+        side_effects_state_artifact,
+        exports_info_artifact,
+      ));
       stats.orphan = Some(orphan);
       stats.dependent = dependent;
       stats.issuer = issuer.map(|i| i.identifier());
@@ -1416,6 +1422,10 @@ impl Stats<'_> {
               module_graph,
               runtime,
               module_graph_cache,
+              &self
+                .try_build_module_graph_artifact()
+                .expect("build module graph artifact should be available for stats")
+                .side_effects_state_artifact,
               exports_info_artifact,
             ),
             loc,

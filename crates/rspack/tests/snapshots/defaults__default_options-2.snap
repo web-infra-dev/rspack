@@ -19,7 +19,9 @@ BuilderContext {
         MergeDuplicateChunksPlugin,
         NaturalModuleIdsPlugin,
         NaturalChunkIdsPlugin,
-        SideEffectsFlagPlugin,
+        SideEffectsFlagPlugin(
+            false,
+        ),
         FlagDependencyExportsPlugin,
         EntryPlugin(
             (

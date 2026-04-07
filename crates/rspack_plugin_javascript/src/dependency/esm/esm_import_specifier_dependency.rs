@@ -11,8 +11,9 @@ use rspack_core::{
   ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedByExports, UsedName,
-  create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports,
+  UsedByExportsCondition, UsedName, create_exports_object_referenced, get_exports_type,
+  property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify_str;
@@ -108,6 +109,14 @@ impl ESMImportSpecifierDependency {
       .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
+  pub fn name(&self) -> &Atom {
+    &self.name
+  }
+
+  pub fn imported_name(&self) -> &Atom {
+    self.ids.first().unwrap_or(&self.name)
+  }
+
   pub fn get_referenced_exports_in_destructuring(
     &self,
     ids: Option<&[Atom]>,
@@ -199,6 +208,7 @@ impl Dependency for ESMImportSpecifierDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -592,6 +602,9 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         module_graph,
         runtime,
         &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
         &compilation.exports_info_artifact,
       )
       && !is_export_inlined(
@@ -704,6 +717,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let dependency = module_graph.dependency_by_id(&connection.dependency_id);
@@ -711,17 +725,22 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");
     match dependency.used_by_exports.as_ref() {
-      Some(UsedByExports::Bool(false)) => false,
-      None | Some(UsedByExports::Bool(true)) => {
-        connection_active_inline_value_for_esm_import_specifier(
-          dependency,
-          connection,
-          runtime,
-          module_graph,
-          exports_info_artifact,
-        )
+      Some(used_by_exports)
+        if matches!(
+          used_by_exports.condition,
+          UsedByExportsCondition::Bool(false)
+        ) && used_by_exports.deferred_pure_checks.is_empty() =>
+      {
+        false
       }
-      Some(UsedByExports::Set(_)) => {
+      None => connection_active_inline_value_for_esm_import_specifier(
+        dependency,
+        connection,
+        runtime,
+        module_graph,
+        exports_info_artifact,
+      ),
+      Some(_) => {
         connection_active_used_by_exports(
           connection,
           runtime,
@@ -745,6 +764,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     ConnectionState::Active(self.is_connection_active(
@@ -752,6 +772,7 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
       runtime,
       module_graph,
       _module_graph_cache,
+      _side_effects_state_artifact,
       exports_info_artifact,
     ))
   }

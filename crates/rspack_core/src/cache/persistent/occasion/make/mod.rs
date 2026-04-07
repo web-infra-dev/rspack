@@ -32,6 +32,7 @@ impl MakeOccasion {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph,
+      side_effects_state_artifact: _,
       module_to_lazy_make,
       affected_modules,
       affected_dependencies,
@@ -115,6 +116,7 @@ impl MakeOccasion {
       issuer_update_modules: Default::default(),
 
       state: BuildModuleGraphArtifactState::Initialized,
+      side_effects_state_artifact: Default::default(),
       module_graph: mg,
       module_to_lazy_make,
 
