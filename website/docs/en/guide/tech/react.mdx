@@ -107,7 +107,7 @@ export default {
     ],
   },
   plugins: [
-    isDev && new ReactRefreshPlugin(),
+    isDev && new ReactRefreshRspackPlugin(),
     isDev && new rspack.HotModuleReplacementPlugin(),
   ],
 };

@@ -1,6 +1,6 @@
 const path = require('node:path');
 const { rspack } = require('@rspack/core');
-const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 
 module.exports = {
   context: __dirname,
@@ -10,7 +10,7 @@ module.exports = {
   },
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './src/index.html' }),
-    new ReactRefreshPlugin(),
+    new ReactRefreshRspackPlugin(),
   ],
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
