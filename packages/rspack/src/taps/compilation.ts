@@ -1,4 +1,5 @@
 import binding from '@rspack/binding';
+import { SyncBailHook } from '@rspack/lite-tapable';
 import { tryRunOrWebpackError } from '../lib/HookWebpackError';
 import type { Module } from '../Module';
 import {
@@ -493,6 +494,24 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
 
       function () {
         return getCompiler().__internal__get_compilation()!.hooks.seal;
+      },
+
+      function (queried) {
+        return function () {
+          return queried.call();
+        };
+      },
+    ),
+    registerCompilationShouldRecordTaps: createTap(
+      binding.RegisterJsTapKind.CompilationShouldRecord,
+
+      function () {
+        // shouldRecord is called in rebuild_inner on the old compilation
+        // before the new compilation is created, so guard against undefined.
+        return (
+          getCompiler().__internal__get_compilation()?.hooks.shouldRecord ??
+          new SyncBailHook<[], boolean>([])
+        );
       },
 
       function (queried) {
