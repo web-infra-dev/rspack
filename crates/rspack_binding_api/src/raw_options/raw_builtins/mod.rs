@@ -64,7 +64,7 @@ use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
-  ExternalsPlugin, electron_target_plugin, esm_node_target_plugin, http_externals_rspack_plugin,
+  EsmNodeTargetPlugin, ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin,
   node_target_plugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
@@ -404,7 +404,7 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
       BuiltinPluginName::EsmNodeTargetPlugin => {
-        plugins.push(esm_node_target_plugin());
+        plugins.push(EsmNodeTargetPlugin::new().boxed());
       }
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)
