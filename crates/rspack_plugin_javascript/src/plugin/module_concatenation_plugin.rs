@@ -290,6 +290,11 @@ impl<T> RuntimeIdentifierCache<T> {
       self.no_runtime_map.get(module)
     }
   }
+
+  fn clear(&mut self) {
+    self.no_runtime_map.clear();
+    self.runtime_map.clear();
+  }
 }
 
 impl ModuleConcatenationPlugin {
@@ -691,7 +696,6 @@ impl ModuleConcatenationPlugin {
           return Some(problem);
         }
 
-        incoming_modules.sort();
         let incoming_modules: Arc<[ModuleIdentifier]> = incoming_modules.into();
         success_cache.insert(*module_id, runtime, incoming_modules.clone());
         incoming_modules
@@ -1178,6 +1182,11 @@ impl ModuleConcatenationPlugin {
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
     let mut used_as_inner: IdentifierSet = IdentifierSet::default();
     let mut imports_cache = RuntimeIdentifierCache::<Arc<IdentifierIndexSet>>::default();
+    let mut failure_cache = IdentifierMap::default();
+    let mut success_cache = RuntimeIdentifierCache::<Arc<[ModuleIdentifier]>>::default();
+    let mut candidates_visited = IdentifierSet::default();
+    let mut candidates = VecDeque::new();
+    let mut import_candidates = IdentifierSet::default();
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -1251,31 +1260,34 @@ impl ModuleConcatenationPlugin {
           module_graph.get_incoming_connections_by_origin_module(&module_id);
         let (incoming_connections_from_non_modules, incoming_connections_from_modules) =
           incoming_connections.into_parts();
+        let mut incoming_connections_from_modules = incoming_connections_from_modules
+          .into_iter()
+          .map(|(origin_module, connections)| {
+            (origin_module, connections.into_iter().cloned().collect())
+          })
+          .collect::<Vec<_>>();
+        incoming_connections_from_modules.sort_by_key(|(origin_module, _)| *origin_module);
         let incomings = IncomingConnections {
           from_non_modules: incoming_connections_from_non_modules
             .into_iter()
             .cloned()
             .collect(),
-          from_modules: incoming_connections_from_modules
-            .into_iter()
-            .map(|(origin_module, connections)| {
-              (origin_module, connections.into_iter().cloned().collect())
-            })
-            .collect(),
+          from_modules: incoming_connections_from_modules,
         };
         let incoming_connections_len = incomings.from_non_modules.len()
           + incomings
             .from_modules
-            .values()
-            .map(std::vec::Vec::len)
+            .iter()
+            .map(|(_, connections)| connections.len())
             .sum::<usize>();
         let mut active_incomings =
           HashMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
-        for connection in incomings
-          .from_non_modules
-          .iter()
-          .chain(incomings.from_modules.values().flatten())
-        {
+        for connection in incomings.from_non_modules.iter().chain(
+          incomings
+            .from_modules
+            .iter()
+            .flat_map(|(_, connections)| connections.iter()),
+        ) {
           active_incomings.insert(
             connection.dependency_id,
             connection.is_active(
@@ -1335,18 +1347,16 @@ impl ModuleConcatenationPlugin {
       let mut current_configuration =
         ConcatConfiguration::new(*current_root, active_runtime.clone());
 
-      let mut failure_cache = IdentifierMap::default();
-      let mut success_cache = RuntimeIdentifierCache::<Arc<[ModuleIdentifier]>>::default();
-      let mut candidates_visited = IdentifierSet::default();
-      let mut candidates = VecDeque::new();
+      failure_cache.clear();
+      success_cache.clear();
+      candidates_visited.clear();
       let imports = {
-        let side_effects_state_artifact = compilation
+        let side_effects_state_artifact = &compilation
           .build_module_graph_artifact
-          .side_effects_state_artifact
-          .clone();
+          .side_effects_state_artifact;
         let module_graph_artifacts = ModuleGraphArtifacts {
           mg_cache: module_graph_cache,
-          side_effects_state_artifact: &side_effects_state_artifact,
+          side_effects_state_artifact,
           exports_info_artifact: &compilation.exports_info_artifact,
         };
         Self::get_imports(
@@ -1358,11 +1368,12 @@ impl ModuleConcatenationPlugin {
           &modules_without_runtime_cache,
         )
       };
+      candidates.clear();
       for import in imports.iter().copied() {
         candidates.push_back(import);
       }
 
-      let mut import_candidates = IdentifierSet::default();
+      import_candidates.clear();
       while let Some(imp) = candidates.pop_front() {
         if candidates_visited.contains(&imp) {
           continue;
@@ -1620,7 +1631,7 @@ struct Statistics {
 #[derive(Debug, Default)]
 struct IncomingConnections {
   from_non_modules: Vec<ModuleGraphConnection>,
-  from_modules: IdentifierMap<Vec<ModuleGraphConnection>>,
+  from_modules: Vec<(ModuleIdentifier, Vec<ModuleGraphConnection>)>,
 }
 
 #[derive(Debug)]
