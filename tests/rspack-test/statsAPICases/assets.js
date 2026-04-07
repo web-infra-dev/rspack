@@ -83,7 +83,7 @@ module.exports = {
 			        related: Object {},
 			      },
 			      name: chunkB.js,
-			      size: 132,
+			      size: 130,
 			      type: asset,
 			    },
 			  ],

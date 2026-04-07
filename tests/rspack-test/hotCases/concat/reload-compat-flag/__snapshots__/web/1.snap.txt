@@ -49,7 +49,6 @@ __webpack_require__.d(__webpack_exports__, {
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
-
 }
 );
 ```
