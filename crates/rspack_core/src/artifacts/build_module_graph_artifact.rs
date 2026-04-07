@@ -13,18 +13,6 @@ use crate::{
   utils::{FileCounter, ResourceId},
 };
 
-/// Enum used to mark whether module graph has been built.
-///
-/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`.
-/// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
-/// the previous MakeArtifact, so persistent cache will never recovery again.
-#[derive(Debug, Default)]
-pub enum BuildModuleGraphArtifactState {
-  #[default]
-  Uninitialized,
-  Initialized,
-}
-
 /// Make Artifact, including all side effects of the make stage.
 #[derive(Debug)]
 pub struct BuildModuleGraphArtifact {
@@ -43,11 +31,6 @@ pub struct BuildModuleGraphArtifact {
   pub issuer_update_modules: IdentifierSet,
 
   // data
-  /// Field to mark whether artifact has been initialized.
-  ///
-  /// Only `BuildModuleGraphArtifact::new()` is Uninitialized, `update_module_graph` will set this field to Initialized
-  /// Persistent cache will update BuildModuleGraphArtifact and set force_build_deps to this field when this is Uninitialized.
-  pub state: BuildModuleGraphArtifactState,
   /// Module graph data
   pub module_graph: ModuleGraph,
   pub side_effects_state_artifact: SideEffectsStateArtifact,
@@ -77,7 +60,6 @@ impl BuildModuleGraphArtifact {
       affected_modules: Default::default(),
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
-      state: BuildModuleGraphArtifactState::Uninitialized,
       module_graph: Default::default(),
       side_effects_state_artifact: Default::default(),
       module_to_lazy_make: Default::default(),
