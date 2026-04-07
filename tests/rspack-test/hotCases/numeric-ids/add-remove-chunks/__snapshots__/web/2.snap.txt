@@ -8,7 +8,7 @@
 - Bundle: 1e1.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 50
-- Update: 10.LAST_HASH.hot-update.js, size: 266
+- Update: 10.LAST_HASH.hot-update.js, size: 264
 - Update: main.LAST_HASH.hot-update.js, size: 586
 
 ## Manifest

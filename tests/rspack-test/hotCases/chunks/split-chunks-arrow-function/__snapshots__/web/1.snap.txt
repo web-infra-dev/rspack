@@ -7,8 +7,8 @@
 - Bundle: 0.js
 - Bundle: [runtime of 1].js
 - Manifest: [runtime of 1].LAST_HASH.hot-update.json, size: 29
-- Update: 0.LAST_HASH.hot-update.js, size: 99
-- Update: 1.LAST_HASH.hot-update.js, size: 178
+- Update: 0.LAST_HASH.hot-update.js, size: 97
+- Update: 1.LAST_HASH.hot-update.js, size: 176
 
 ## Manifest
 
