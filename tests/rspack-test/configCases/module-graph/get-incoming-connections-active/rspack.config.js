@@ -1,5 +1,5 @@
 const { normalize } = require('path');
-const { CssExtractRspackPlugin, TRANSITIVE_ONLY } = require('@rspack/core');
+const { CssExtractRspackPlugin, ModuleGraphConnection } = require('@rspack/core');
 
 const PLUGIN_NAME = 'Test';
 
@@ -53,7 +53,7 @@ class Plugin {
           const outgoing = moduleGraph.getOutgoingConnections(module);
           for (const conn of outgoing) {
             const state = conn.getActiveState(undefined);
-            if (state === TRANSITIVE_ONLY) {
+            if (state === ModuleGraphConnection.TRANSITIVE_ONLY) {
               foundTransitiveOnly = true;
               expect(typeof state).toBe('symbol');
             }
