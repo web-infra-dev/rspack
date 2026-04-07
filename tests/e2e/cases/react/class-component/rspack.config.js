@@ -1,5 +1,5 @@
 const { rspack } = require('@rspack/core');
-const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
@@ -40,7 +40,7 @@ module.exports = {
   },
   plugins: [
     new rspack.HtmlRspackPlugin({ template: './src/index.html' }),
-    new ReactRefreshPlugin(),
+    new ReactRefreshRspackPlugin(),
   ],
   devServer: {
     hot: true,
