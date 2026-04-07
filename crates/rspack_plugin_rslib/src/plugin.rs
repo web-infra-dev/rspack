@@ -35,7 +35,7 @@ use crate::{
 pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
   pub force_node_shims: bool,
-  pub external_esm_node_builtin: bool,
+  pub auto_cjs_node_builtin: bool,
 }
 
 #[derive(Debug)]
@@ -252,7 +252,7 @@ impl Plugin for RslibPlugin {
       .asset_emitted
       .tap(asset_emitted::new(self));
 
-    if self.options.external_esm_node_builtin {
+    if self.options.auto_cjs_node_builtin {
       EsmNodeTargetPlugin::new().apply(ctx)?;
     }
 

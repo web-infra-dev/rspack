@@ -6,10 +6,11 @@ const {
 module.exports = {
   externals: {
     'node:fs': 'module node:path',
+    'node:url': 'module-import node:path',
   },
   plugins: [
     new RslibPlugin({
-      externalEsmNodeBuiltin: true,
+      autoCjsNodeBuiltin: true,
     }),
   ],
 };

@@ -2902,10 +2902,10 @@ export interface RawRslibPluginOptions {
    */
   forceNodeShims?: boolean
   /**
-   * Externalize Node.js builtin modules with ESM-aware external types
+   * Auto downgrade module external type to node-commonjs for CJS require of node builtins
    * @default `false`
    */
-  externalEsmNodeBuiltin?: boolean
+  autoCjsNodeBuiltin?: boolean
 }
 
 export interface RawRstestPluginOptions {

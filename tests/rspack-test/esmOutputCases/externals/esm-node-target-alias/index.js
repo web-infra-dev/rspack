@@ -1,18 +1,26 @@
 import { resolve } from "node:fs";
-import { cjsResolve } from "./cjs-consumer.cjs";
+import { parse } from "node:url";
+import { cjsResolve, cjsParse } from "./cjs-consumer.cjs";
 
 it("should use aliased external request with correct external type", async () => {
 	const main = await import(/* webpackIgnore: true */ "./main.mjs");
 	const nodePath = await import(/* webpackIgnore: true */ "node:path");
 
-	// "node:fs" is aliased to "node:path" via externals config
-	// ESM import should use "module" external type
+	// ESM import of "module" external — keeps module type, uses aliased request
 	expect(resolve).toBe(nodePath.resolve);
 	expect(main.resolve).toBe(nodePath.resolve);
 
-	// CJS require should be downgraded to "node-commonjs" external type
+	// ESM import of "module-import" external — keeps module-import type
+	expect(parse).toBe(nodePath.parse);
+	expect(main.parse).toBe(nodePath.parse);
+
+	// CJS require of "module" external — downgraded to node-commonjs
 	expect(cjsResolve).toBe(nodePath.resolve);
 	expect(main.cjsResolve).toBe(nodePath.resolve);
+
+	// CJS require of "module-import" external — downgraded to node-commonjs
+	expect(cjsParse).toBe(nodePath.parse);
+	expect(main.cjsParse).toBe(nodePath.parse);
 });
 
-export { resolve, cjsResolve };
+export { resolve, parse, cjsResolve, cjsParse };

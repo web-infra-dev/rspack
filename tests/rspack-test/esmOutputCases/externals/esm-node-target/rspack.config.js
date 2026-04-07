@@ -7,7 +7,7 @@ module.exports = {
   externals: {},
   plugins: [
     new RslibPlugin({
-      externalEsmNodeBuiltin: true,
+      autoCjsNodeBuiltin: true,
     }),
   ],
 };
