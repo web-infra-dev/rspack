@@ -107,22 +107,34 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
   fn try_from(raw_opts: RawSplitChunksOptions) -> Result<Self, Self::Error> {
     use rspack_plugin_split_chunks::SplitChunkSizes;
 
-    let mut cache_groups = vec![];
+    let RawSplitChunksOptions {
+      fallback_cache_group,
+      name,
+      filename,
+      cache_groups,
+      chunks,
+      used_exports,
+      automatic_name_delimiter,
+      default_size_types,
+      min_chunks,
+      hide_path_info,
+      min_size,
+      min_size_reduction,
+      max_size,
+      max_async_size,
+      max_initial_size,
+      ..
+    } = raw_opts;
 
-    let overall_filename = raw_opts.filename.map(Filename::from);
+    let overall_filename = filename.map(Filename::from);
+    let overall_chunk_filter = chunks.map(create_chunks_filter).transpose()?;
+    let overall_min_chunks = min_chunks.unwrap_or(1);
+    let overall_used_exports = used_exports.unwrap_or_default();
+    let overall_name_getter = name.map_or_else(default_chunk_option_name, normalize_raw_chunk_name);
 
-    let overall_chunk_filter = raw_opts.chunks.map(create_chunks_filter).transpose()?;
-
-    let overall_min_chunks = raw_opts.min_chunks.unwrap_or(1);
-
-    let overall_name_getter = raw_opts.name.map_or(default_chunk_option_name(), |name| {
-      normalize_raw_chunk_name(name)
-    });
-
-    let default_size_types = raw_opts
-      .default_size_types
+    let default_size_types = default_size_types
       .into_iter()
-      .map(|size_type| SourceType::from(size_type.as_str()))
+      .map(|size_type: String| SourceType::from(size_type.as_str()))
       .collect::<Vec<_>>();
 
     let create_sizes = |size: Option<Either<f64, RawSplitChunkSizes>>| match size {
@@ -133,124 +145,129 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
 
     let empty_sizes = SplitChunkSizes::empty();
 
-    let overall_min_size = create_sizes(raw_opts.min_size);
+    let overall_min_size = create_sizes(min_size);
+    let overall_min_size_reduction = create_sizes(min_size_reduction);
+    let overall_max_size = create_sizes(max_size);
+    let overall_max_async_size = create_sizes(max_async_size).merge(&overall_max_size);
+    let overall_max_initial_size = create_sizes(max_initial_size).merge(&overall_max_size);
+    let overall_automatic_name_delimiter =
+      automatic_name_delimiter.unwrap_or(DEFAULT_DELIMITER.to_string());
 
-    let overall_min_size_reduction = create_sizes(raw_opts.min_size_reduction);
+    let default_cache_group_test = default_cache_group_test();
+    let default_module_type_filter =
+      rspack_plugin_split_chunks::create_default_module_type_filter();
+    let default_module_layer_filter =
+      rspack_plugin_split_chunks::create_default_module_layer_filter();
+    let default_group_chunk_filter = overall_chunk_filter
+      .clone()
+      .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter);
 
-    let overall_max_size = create_sizes(raw_opts.max_size);
+    let raw_cache_groups = cache_groups.unwrap_or_default();
+    let mut cache_groups = Vec::with_capacity(raw_cache_groups.len());
+    for cache_group in raw_cache_groups {
+      let RawCacheGroupOptions {
+        key,
+        priority,
+        test,
+        filename,
+        id_hint,
+        chunks,
+        r#type,
+        layer,
+        automatic_name_delimiter,
+        min_chunks,
+        min_size,
+        min_size_reduction,
+        max_size,
+        max_async_size,
+        max_initial_size,
+        max_async_requests,
+        max_initial_requests,
+        name,
+        reuse_existing_chunk,
+        enforce,
+        used_exports,
+      } = cache_group;
 
-    let overall_max_async_size = create_sizes(raw_opts.max_async_size).merge(&overall_max_size);
+      let enforce = enforce.unwrap_or_default();
+      let min_size = create_sizes(min_size).merge(if enforce {
+        &empty_sizes
+      } else {
+        &overall_min_size
+      });
+      let min_size_reduction = create_sizes(min_size_reduction).merge(if enforce {
+        &empty_sizes
+      } else {
+        &overall_min_size_reduction
+      });
 
-    let overall_max_initial_size = create_sizes(raw_opts.max_initial_size).merge(&overall_max_size);
+      let max_size = create_sizes(max_size);
+      let max_async_size = create_sizes(max_async_size)
+        .merge(&max_size)
+        .merge(if enforce {
+          &empty_sizes
+        } else {
+          &overall_max_async_size
+        });
+      let max_initial_size = create_sizes(max_initial_size)
+        .merge(&max_size)
+        .merge(if enforce {
+          &empty_sizes
+        } else {
+          &overall_max_initial_size
+        });
 
-    let overall_automatic_name_delimiter = raw_opts
-      .automatic_name_delimiter
-      .unwrap_or(DEFAULT_DELIMITER.to_string());
+      let min_chunks = min_chunks.unwrap_or(if enforce { 1 } else { overall_min_chunks });
+      let r#type = match r#type {
+        Some(raw) => create_module_type_filter(raw)?,
+        None => default_module_type_filter.clone(),
+      };
+      let layer = match layer {
+        Some(raw) => create_module_layer_filter(raw)?,
+        None => default_module_layer_filter.clone(),
+      };
 
-    cache_groups.extend(
-      raw_opts
-        .cache_groups
-        .unwrap_or_default()
-        .into_iter()
-        .map(|v| {
-          let enforce = v.enforce.unwrap_or_default();
+      let mut name = name.map_or_else(default_chunk_option_name, normalize_raw_chunk_name);
+      if matches!(name, ChunkNameGetter::Disabled) {
+        name = overall_name_getter.clone();
+      }
 
-          let min_size = create_sizes(v.min_size).merge(if enforce {
-            &empty_sizes
-          } else {
-            &overall_min_size
-          });
+      let test = match test {
+        Some(raw) => normalize_raw_cache_group_test(raw)?,
+        None => default_cache_group_test.clone(),
+      };
+      let chunk_filter = match chunks {
+        Some(raw) => create_chunks_filter(raw)?,
+        None => default_group_chunk_filter.clone(),
+      };
 
-          let min_size_reduction = create_sizes(v.min_size_reduction).merge(if enforce {
-            &empty_sizes
-          } else {
-            &overall_min_size_reduction
-          });
+      cache_groups.push(rspack_plugin_split_chunks::CacheGroup {
+        id_hint: id_hint.unwrap_or_else(|| key.clone()),
+        key,
+        name,
+        priority: priority.unwrap_or(0) as f64,
+        test,
+        chunk_filter,
+        min_chunks,
+        min_size,
+        min_size_reduction,
+        automatic_name_delimiter: automatic_name_delimiter
+          .unwrap_or_else(|| overall_automatic_name_delimiter.clone()),
+        filename: filename
+          .map(Filename::from)
+          .or_else(|| overall_filename.clone()),
+        reuse_existing_chunk: reuse_existing_chunk.unwrap_or(false),
+        max_async_requests: max_async_requests.unwrap_or(f64::INFINITY),
+        max_initial_requests: max_initial_requests.unwrap_or(f64::INFINITY),
+        max_async_size,
+        max_initial_size,
+        r#type,
+        layer,
+        used_exports: used_exports.unwrap_or(overall_used_exports),
+      });
+    }
 
-          let max_size = create_sizes(v.max_size);
-
-          let max_async_size = create_sizes(v.max_async_size)
-            .merge(&max_size)
-            .merge(if enforce {
-              &empty_sizes
-            } else {
-              &overall_max_async_size
-            });
-
-          let max_initial_size =
-            create_sizes(v.max_initial_size)
-              .merge(&max_size)
-              .merge(if enforce {
-                &empty_sizes
-              } else {
-                &overall_max_initial_size
-              });
-
-          let min_chunks = v
-            .min_chunks
-            .unwrap_or(if enforce { 1 } else { overall_min_chunks });
-
-          let r#type = v.r#type.map_or_else(
-            || Ok(rspack_plugin_split_chunks::create_default_module_type_filter()),
-            create_module_type_filter,
-          )?;
-
-          let layer = v.layer.map_or_else(
-            || Ok(rspack_plugin_split_chunks::create_default_module_layer_filter()),
-            create_module_layer_filter,
-          )?;
-
-          let mut name = v.name.map_or(default_chunk_option_name(), |name| {
-            normalize_raw_chunk_name(name)
-          });
-          if matches!(name, ChunkNameGetter::Disabled) {
-            name = overall_name_getter.clone();
-          }
-          Ok::<_, rspack_error::Error>(rspack_plugin_split_chunks::CacheGroup {
-            id_hint: v.id_hint.unwrap_or_else(|| v.key.clone()),
-            key: v.key,
-            name,
-            priority: v.priority.unwrap_or(0) as f64,
-            test: v.test.map_or_else(
-              || Ok(default_cache_group_test()),
-              normalize_raw_cache_group_test,
-            )?,
-            chunk_filter: v.chunks.map_or_else(
-              || {
-                Ok(
-                  overall_chunk_filter
-                    .clone()
-                    .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter),
-                )
-              },
-              create_chunks_filter,
-            )?,
-            min_chunks,
-            min_size,
-            min_size_reduction,
-            automatic_name_delimiter: v
-              .automatic_name_delimiter
-              .unwrap_or(overall_automatic_name_delimiter.clone()),
-            filename: v
-              .filename
-              .map(Filename::from)
-              .or_else(|| overall_filename.clone()),
-            reuse_existing_chunk: v.reuse_existing_chunk.unwrap_or(false),
-            max_async_requests: v.max_async_requests.unwrap_or(f64::INFINITY),
-            max_initial_requests: v.max_initial_requests.unwrap_or(f64::INFINITY),
-            max_async_size,
-            max_initial_size,
-            r#type,
-            layer,
-            used_exports: v
-              .used_exports
-              .unwrap_or_else(|| raw_opts.used_exports.unwrap_or_default()),
-          })
-        })
-        .collect::<Result<Vec<_>, _>>()?,
-    );
-
-    let raw_fallback_cache_group = raw_opts.fallback_cache_group.unwrap_or_default();
+    let raw_fallback_cache_group = fallback_cache_group.unwrap_or_default();
 
     let fallback_chunks_filter = raw_fallback_cache_group
       .chunks
@@ -272,14 +289,13 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
       .merge(&overall_max_initial_size)
       .merge(&overall_max_size);
 
+    let default_fallback_chunk_filter =
+      overall_chunk_filter.unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter);
+
     Ok(rspack_plugin_split_chunks::PluginOptions {
       cache_groups,
       fallback_cache_group: rspack_plugin_split_chunks::FallbackCacheGroup {
-        chunks_filter: fallback_chunks_filter.unwrap_or_else(|| {
-          overall_chunk_filter
-            .clone()
-            .unwrap_or_else(rspack_plugin_split_chunks::create_all_chunk_filter)
-        }),
+        chunks_filter: fallback_chunks_filter.unwrap_or(default_fallback_chunk_filter),
         min_size: fallback_min_size,
         max_async_size: fallback_max_async_size,
         max_initial_size: fallback_max_initial_size,
@@ -287,7 +303,7 @@ impl<'a> TryFrom<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::Plug
           .automatic_name_delimiter
           .unwrap_or(overall_automatic_name_delimiter.clone()),
       },
-      hide_path_info: raw_opts.hide_path_info,
+      hide_path_info,
     })
   }
 }
