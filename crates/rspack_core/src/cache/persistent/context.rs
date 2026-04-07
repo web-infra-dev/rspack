@@ -51,17 +51,20 @@ impl CacheContext {
   ///
   /// Normally called only once per compiler instance, guarded by the
   /// `initialized` flag in `PersistentCache::initialize`.
+  #[tracing::instrument("Cache::Context::load_build_deps", skip_all)]
   pub async fn load_build_deps(&mut self, build_deps: &mut BuildDeps) {
     match build_deps.validate(&*self.storage).await {
       Ok(is_success) => {
         self.invalid = !is_success;
         if self.invalid {
           self.load_failed = true;
+          tracing::debug!("build deps changed, cache invalidated");
         }
       }
       Err(err) => {
         self.load_failed = true;
         self.warnings.push(err.to_string());
+        tracing::warn!("build deps validation failed: {err}");
       }
     }
     if self.load_failed && !self.readonly {
@@ -70,6 +73,7 @@ impl CacheContext {
   }
 
   /// Saves build dependency hashes. No-op in readonly mode.
+  #[tracing::instrument("Cache::Context::save_build_deps", skip_all)]
   pub async fn save_build_deps(
     &mut self,
     build_deps: &mut BuildDeps,
@@ -89,6 +93,7 @@ impl CacheContext {
   /// Returns `None` when the cache is invalid or any scope fails to load.
   /// On failure all snapshot scopes are reset (unless readonly) so they
   /// are fully rewritten this build.
+  #[tracing::instrument("Cache::Context::load_snapshot", skip_all)]
   pub async fn load_snapshot(
     &mut self,
     snapshot: &Snapshot,
@@ -118,16 +123,22 @@ impl CacheContext {
           Err(err) => {
             self.warnings.push(err.to_string());
             self.load_failed = true;
+            tracing::warn!("snapshot scope load failed: {err}");
           }
         }
       }
       if !self.load_failed {
+        tracing::debug!(
+          is_hot_start,
+          modified = modified_paths.len(),
+          removed = removed_paths.len(),
+          "snapshot loaded"
+        );
         return Some((is_hot_start, modified_paths, removed_paths));
       }
     }
 
-    // valid=false: snapshot load is skipped; reset snapshot scopes so they are
-    // fully rewritten this build.
+    // load_failed: reset snapshot scopes so they are fully rewritten this build.
     if !self.readonly {
       snapshot.reset(&mut *self.storage);
     }
@@ -135,6 +146,7 @@ impl CacheContext {
   }
 
   /// Persists snapshot data for all three scopes. No-op in readonly mode.
+  #[tracing::instrument("Cache::Context::save_snapshot", skip_all)]
   pub async fn save_snapshot(
     &mut self,
     snapshot: &Snapshot,
@@ -167,13 +179,18 @@ impl CacheContext {
   ///
   /// Returns `None` and resets the occasion's scope when the cache is
   /// invalid or recovery fails.
+  #[tracing::instrument("Cache::Context::load_occasion", skip_all)]
   pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::Artifact> {
     if !self.load_failed {
       match occasion.recovery(&*self.storage).await {
-        Ok(artifact) => return Some(artifact),
+        Ok(artifact) => {
+          tracing::debug!("occasion recovery succeeded");
+          return Some(artifact);
+        }
         Err(err) => {
           self.warnings.push(err.to_string());
           self.load_failed = true;
+          tracing::warn!("occasion recovery failed: {err}");
         }
       }
     }
@@ -184,6 +201,7 @@ impl CacheContext {
   }
 
   /// Persists an occasion's artifact. No-op in readonly mode.
+  #[tracing::instrument("Cache::Context::save_occasion", skip_all)]
   pub fn save_occasion<O: Occasion>(&mut self, occasion: &O, artifact: &O::Artifact) {
     if self.readonly {
       return;
