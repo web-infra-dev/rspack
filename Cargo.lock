@@ -3795,7 +3795,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sftrace-setup",
- "simd-json",
  "swc_core",
  "tokio",
  "tracing",

@@ -74,73 +74,19 @@ pub struct RawOptions {
   pub __virtual_files: Option<Vec<JsVirtualFile>>,
 }
 
-fn normalize_raw_node_option(
-  node: Option<RawNodeOption>,
-) -> rspack_error::Result<Option<NodeOption>> {
-  node
-    .map(|n| {
-      let dirname = match n.dirname.as_str() {
-        "mock" => NodeDirnameOption::Mock,
-        "warn-mock" => NodeDirnameOption::WarnMock,
-        "eval-only" => NodeDirnameOption::EvalOnly,
-        "node-module" => NodeDirnameOption::NodeModule,
-        "true" => NodeDirnameOption::True,
-        "false" => NodeDirnameOption::False,
-        _ => return Err(error!("invalid node.dirname: {}", n.dirname.as_str())),
-      };
-      let filename = match n.filename.as_str() {
-        "mock" => NodeFilenameOption::Mock,
-        "warn-mock" => NodeFilenameOption::WarnMock,
-        "eval-only" => NodeFilenameOption::EvalOnly,
-        "node-module" => NodeFilenameOption::NodeModule,
-        "true" => NodeFilenameOption::True,
-        "false" => NodeFilenameOption::False,
-        _ => return Err(error!("invalid node.filename: {}", n.filename.as_str())),
-      };
-      let global = match n.global.as_str() {
-        "true" => NodeGlobalOption::True,
-        "warn" => NodeGlobalOption::Warn,
-        "false" => NodeGlobalOption::False,
-        _ => return Err(error!("invalid node.global: {}", n.global.as_str())),
-      };
-      Ok(NodeOption {
-        dirname,
-        filename,
-        global,
-      })
-    })
-    .transpose()
-}
-
 impl TryFrom<RawOptions> for CompilerOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawOptions) -> Result<Self, rspack_error::Error> {
-    let RawOptions {
-      name,
-      mode,
-      context,
-      output,
-      resolve,
-      resolve_loader,
-      module,
-      optimization,
-      stats,
-      cache,
-      experiments,
-      incremental,
-      node,
-      amd,
-      bail,
-      __references,
-      __virtual_files: _,
-    } = value;
-
-    let context: Context = context.into();
-    let mode = mode.unwrap_or_default().into();
-    let cache = normalize_raw_cache(cache);
-    let experiments: Experiments = experiments.into();
-    let mut incremental: IncrementalOptions = match incremental {
+    let context: Context = value.context.into();
+    let output: OutputOptions = value.output.try_into()?;
+    let resolve = value.resolve.try_into()?;
+    let resolve_loader = value.resolve_loader.try_into()?;
+    let mode = value.mode.unwrap_or_default().into();
+    let module: ModuleOptions = value.module.try_into()?;
+    let cache = normalize_raw_cache(value.cache);
+    let experiments: Experiments = value.experiments.into();
+    let mut incremental: IncrementalOptions = match value.incremental {
       Some(value) => match value {
         WithFalse::True(value) => value.into(),
         WithFalse::False => IncrementalOptions::empty_passes(),
@@ -150,36 +96,51 @@ impl TryFrom<RawOptions> for CompilerOptions {
     if let CacheOptions::Disabled = cache {
       incremental.passes = IncrementalPasses::empty();
     }
-    let stats = stats.into();
-    let node = normalize_raw_node_option(node)?;
-    let __references: References = __references
+    let optimization = value.optimization.try_into()?;
+    let stats = value.stats.into();
+    let node = value
+      .node
+      .map(|n| {
+        let dirname = match n.dirname.as_str() {
+          "mock" => NodeDirnameOption::Mock,
+          "warn-mock" => NodeDirnameOption::WarnMock,
+          "eval-only" => NodeDirnameOption::EvalOnly,
+          "node-module" => NodeDirnameOption::NodeModule,
+          "true" => NodeDirnameOption::True,
+          "false" => NodeDirnameOption::False,
+          _ => return Err(error!("invalid node.dirname: {}", n.dirname.as_str())),
+        };
+        let filename = match n.filename.as_str() {
+          "mock" => NodeFilenameOption::Mock,
+          "warn-mock" => NodeFilenameOption::WarnMock,
+          "eval-only" => NodeFilenameOption::EvalOnly,
+          "node-module" => NodeFilenameOption::NodeModule,
+          "true" => NodeFilenameOption::True,
+          "false" => NodeFilenameOption::False,
+          _ => return Err(error!("invalid node.filename: {}", n.filename.as_str())),
+        };
+        let global = match n.global.as_str() {
+          "true" => NodeGlobalOption::True,
+          "warn" => NodeGlobalOption::Warn,
+          "false" => NodeGlobalOption::False,
+          _ => return Err(error!("invalid node.global: {}", n.global.as_str())),
+        };
+        Ok(NodeOption {
+          dirname,
+          filename,
+          global,
+        })
+      })
+      .transpose()?;
+
+    let __references: References = value
+      .__references
       .into_iter()
       .map(|(key, value)| (key, Arc::<str>::from(value)))
       .collect();
 
-    let converted = rayon::join(
-      || {
-        rayon::join(
-          || output.try_into(),
-          || rayon::join(|| resolve.try_into(), || resolve_loader.try_into()),
-        )
-      },
-      || rayon::join(|| module.try_into(), || optimization.try_into()),
-    );
-
-    let (output, resolve, resolve_loader, module, optimization): (
-      OutputOptions,
-      _,
-      _,
-      ModuleOptions,
-      _,
-    ) = {
-      let ((output, (resolve, resolve_loader)), (module, optimization)) = converted;
-      (output?, resolve?, resolve_loader?, module?, optimization?)
-    };
-
     Ok(CompilerOptions {
-      name,
+      name: value.name,
       context,
       mode,
       module,
@@ -192,8 +153,8 @@ impl TryFrom<RawOptions> for CompilerOptions {
       cache,
       optimization,
       node,
-      amd,
-      bail,
+      amd: value.amd,
+      bail: value.bail,
       __references,
     })
   }

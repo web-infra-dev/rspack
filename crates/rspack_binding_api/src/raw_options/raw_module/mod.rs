@@ -11,7 +11,6 @@ use napi::{
   bindgen_prelude::{Buffer, Either3, FnArgs},
 };
 use napi_derive::napi;
-use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
@@ -33,12 +32,6 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{filename::JsFilename, module::ModuleObject, options::raw_resolve::RawResolveOptions};
-
-const RULES_PARALLEL_THRESHOLD: usize = 8;
-
-fn par_try_convert_rules(raw_rules: Vec<RawModuleRule>) -> rspack_error::Result<Vec<ModuleRule>> {
-  raw_rules.into_par_iter().map(TryInto::try_into).collect()
-}
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -950,9 +943,25 @@ impl TryFrom<RawModuleRule> for ModuleRule {
 
     let module_type = value.r#type.map(|t| (&*t).into());
 
-    let one_of = value.one_of.map(par_try_convert_rules).transpose()?;
+    let one_of = value
+      .one_of
+      .map(|one_of| {
+        one_of
+          .into_iter()
+          .map(|raw| raw.try_into())
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
 
-    let rules = value.rules.map(par_try_convert_rules).transpose()?;
+    let rules = value
+      .rules
+      .map(|rule| {
+        rule
+          .into_iter()
+          .map(|raw| raw.try_into())
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
 
     let description_data = value
       .description_data
@@ -1029,7 +1038,11 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawModuleOptions) -> rspack_error::Result<Self> {
-    let rules = par_try_convert_rules(value.rules)?;
+    let rules = value
+      .rules
+      .into_iter()
+      .map(|rule| rule.try_into())
+      .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
 
     Ok(ModuleOptions {
       rules,
