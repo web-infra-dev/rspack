@@ -14,8 +14,8 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
-  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec,
-  SideEffectsStateArtifact, UsedNameItem,
+  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
+  UsedNameItem,
 };
 mod module;
 pub use module::*;
