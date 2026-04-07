@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
@@ -57,7 +57,23 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let records = CompilationRecords::record(&self.compilation);
+    let should_record = !matches!(
+      self
+        .plugin_driver
+        .compilation_hooks
+        .should_record
+        .call(&self.compilation)
+        .await?,
+      Some(false)
+    );
+
+    let records = if should_record {
+      let records = Arc::new(CompilationRecords::record(&self.compilation));
+      self.last_records = Some(Arc::clone(&records));
+      Some(records)
+    } else {
+      self.last_records.clone()
+    };
 
     // build without stats
     {
@@ -79,7 +95,7 @@ impl Compiler {
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
-        Some(records),
+        records,
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         modified_files,

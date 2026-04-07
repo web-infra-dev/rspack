@@ -128,6 +128,7 @@ define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationShouldRecord: SeriesBail(compilation: &Compilation) -> bool);
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
 
 #[derive(Debug, Default)]
@@ -167,6 +168,7 @@ pub struct CompilationHooks {
   pub chunk_asset: CompilationChunkAssetHook,
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
+  pub should_record: CompilationShouldRecordHook,
   pub after_seal: CompilationAfterSealHook,
 }
 
@@ -202,7 +204,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
-  pub records: Option<CompilationRecords>,
+  pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
@@ -326,7 +328,7 @@ impl Compilation {
     buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
-    records: Option<CompilationRecords>,
+    records: Option<Arc<CompilationRecords>>,
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     modified_files: ArcPathSet,
