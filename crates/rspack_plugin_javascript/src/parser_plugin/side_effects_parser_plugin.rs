@@ -1662,20 +1662,17 @@ pub fn is_pure_expression<'a>(
         true
       }
       _ => {
-        let evaluated = parser.evaluate_expression(expr);
-        // could_have_side_effects is true by default,
-        // so here we test if could_have_side_effects is modified by other plugins to return false,
-        // if it's false, it means it's pure without side effects,
-        // if it's true, we need to do further check with may_have_side_effects to avoid false positive.
-        if !evaluated.could_have_side_effects() {
-          return true;
-        }
-        !expr.may_have_side_effects(ExprCtx {
+        if !expr.may_have_side_effects(ExprCtx {
           unresolved_ctxt,
           is_unresolved_ref_safe: true,
           in_strict: false,
           remaining_depth: 4,
-        })
+        }) {
+          return true;
+        }
+        // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
+        let evaluated = parser.evaluate_expression(expr);
+        !evaluated.could_have_side_effects()
       }
     }
   }
