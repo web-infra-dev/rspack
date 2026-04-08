@@ -3,7 +3,7 @@ import * as __rspack_external_path from "path";
 
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-// path
+// external
 
 // ./index.js
 
