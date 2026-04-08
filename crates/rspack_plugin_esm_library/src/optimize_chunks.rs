@@ -48,77 +48,88 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     return false;
   }
 
-  // 2. For each async chunk, find ancestor chunks and scan for cross-chunk deps.
-  //    Collect modules to extract keyed by module id → set of source chunks they
-  //    need to be removed from. This ensures each module is only extracted once
-  //    even if it appears in multiple ancestor chunks.
-  let mut modules_to_extract: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
+  // 2. Pre-compute: for each async chunk, its ancestor chunks; also build a
+  //    reverse lookup from chunk → which async chunks consider it an ancestor.
+  //    Then do a single BFS across all async chunks sharing one visited set.
+  let mut chunk_to_ancestor_of: FxHashMap<ChunkUkey, Vec<ChunkUkey>> = FxHashMap::default();
+  let mut module_to_async_chunk: IdentifierMap<ChunkUkey> = IdentifierMap::default();
+  let mut queue: VecDeque<ModuleIdentifier> = VecDeque::new();
 
-  for async_chunk_ukey in &async_chunks {
-    // Get all ancestor chunk group ukeys
+  for &async_chunk_ukey in &async_chunks {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(async_chunk_ukey);
+      .expect_get(&async_chunk_ukey);
     let mut ancestor_group_ukeys = FxHashSet::default();
     for group_ukey in chunk.groups() {
       let group = chunk_group_by_ukey.expect_get(group_ukey);
       ancestor_group_ukeys.extend(group.ancestors(chunk_group_by_ukey));
     }
+    for g in &ancestor_group_ukeys {
+      for &ancestor_chunk in &chunk_group_by_ukey.expect_get(g).chunks {
+        chunk_to_ancestor_of
+          .entry(ancestor_chunk)
+          .or_default()
+          .push(async_chunk_ukey);
+      }
+    }
 
-    // Collect ancestor chunk ukeys from ancestor groups
-    let ancestor_chunks: FxHashSet<ChunkUkey> = ancestor_group_ukeys
-      .iter()
-      .flat_map(|g| chunk_group_by_ukey.expect_get(g).chunks.iter().copied())
-      .collect();
+    // Seed BFS with all modules in this async chunk
+    for &m in chunk_graph.get_chunk_modules_identifier(&async_chunk_ukey) {
+      module_to_async_chunk.insert(m, async_chunk_ukey);
+      queue.push_back(m);
+    }
+  }
 
-    if ancestor_chunks.is_empty() {
+  // Single BFS across all async chunks with a shared visited set — O(N + E).
+  // Each module is visited at most once. When a target is in an ancestor chunk
+  // of the originating async chunk, we mark it for extraction.
+  let mut modules_to_extract: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
+  let mut visited = IdentifierSet::default();
+
+  while let Some(module_id) = queue.pop_front() {
+    if !visited.insert(module_id) {
       continue;
     }
 
-    let chunk_modules = chunk_graph.get_chunk_modules_identifier(async_chunk_ukey);
+    // Determine which async chunk this module belongs to
+    let Some(&origin_async_chunk) = module_to_async_chunk.get(&module_id) else {
+      continue;
+    };
 
-    // BFS through all outgoing dependencies of modules in async chunk
-    let mut visited = IdentifierSet::default();
-    let mut queue: VecDeque<ModuleIdentifier> = chunk_modules.iter().copied().collect();
-
-    while let Some(module_id) = queue.pop_front() {
-      if !visited.insert(module_id) {
+    for conn in module_graph.get_outgoing_connections(&module_id) {
+      if !conn.is_target_active(
+        module_graph,
+        None,
+        &compilation.module_graph_cache_artifact,
+        &compilation.exports_info_artifact,
+      ) {
         continue;
       }
 
-      for conn in module_graph.get_outgoing_connections(&module_id) {
-        // Skip inactive connections
-        if !conn.is_target_active(
-          module_graph,
-          None,
-          &compilation.module_graph_cache_artifact,
-          &compilation.exports_info_artifact,
-        ) {
-          continue;
-        }
+      let Some(target) = module_graph.module_identifier_by_dependency_id(&conn.dependency_id)
+      else {
+        continue;
+      };
 
-        let Some(target) = module_graph.module_identifier_by_dependency_id(&conn.dependency_id)
-        else {
-          continue;
-        };
+      let target_chunks = chunk_graph.get_module_chunks(*target);
 
-        let target_chunks = chunk_graph.get_module_chunks(*target);
-
-        // Check if target is in an ancestor chunk → circular dep
-        for &target_chunk in target_chunks {
-          if ancestor_chunks.contains(&target_chunk) {
+      // Check if target is in an ancestor chunk of origin_async_chunk → circular dep
+      for &target_chunk in target_chunks {
+        if let Some(ancestor_of) = chunk_to_ancestor_of.get(&target_chunk) {
+          if ancestor_of.contains(&origin_async_chunk) {
             modules_to_extract
               .entry(*target)
               .or_default()
               .insert(target_chunk);
           }
         }
+      }
 
-        // Continue BFS if target is in the same async chunk
-        if target_chunks.contains(async_chunk_ukey) {
-          queue.push_back(*target);
-        }
+      // Continue BFS if target is in the same async chunk
+      if target_chunks.contains(&origin_async_chunk) {
+        module_to_async_chunk.insert(*target, origin_async_chunk);
+        queue.push_back(*target);
       }
     }
   }
