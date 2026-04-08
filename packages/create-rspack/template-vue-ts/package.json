@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "rspack dev",
     "build": "rspack build",
+    "dev": "rspack dev",
     "preview": "rspack preview"
   },
   "dependencies": {
@@ -14,7 +14,7 @@
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "2.0.0-rc.2",
-    "typescript": "^6.0.2",
-    "rspack-vue-loader": "^17.5.0"
+    "rspack-vue-loader": "^17.5.0",
+    "typescript": "^6.0.2"
   }
 }

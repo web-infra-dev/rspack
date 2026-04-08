@@ -1,48 +1,44 @@
 // @ts-check
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
-import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
-
-const isDev = process.env.NODE_ENV === 'development';
+import { VueLoaderPlugin } from 'rspack-vue-loader';
 
 export default defineConfig({
   entry: {
-    main: './src/main.jsx',
+    main: './src/main.js',
   },
   target: ['browserslist:last 2 versions, > 0.2%, not dead, Firefox ESR'],
   resolve: {
-    extensions: ['...', '.jsx'],
+    extensions: ['...', '.vue'],
   },
   module: {
     rules: [
-      {
-        test: /\.svg$/,
-        type: 'asset',
-      },
       {
         test: /\.css$/,
         type: 'css/auto',
       },
       {
-        test: /\.(?:js|jsx|mjs|cjs)$/,
+        test: /\.vue$/,
+        loader: 'rspack-vue-loader',
+        options: {
+          experimentalInlineMatchResource: true,
+        },
+      },
+      {
+        test: /\.(?:js|mjs|cjs)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             /** @type {import('@rspack/core').SwcLoaderOptions} */
             options: {
               detectSyntax: 'auto',
-              jsc: {
-                transform: {
-                  react: {
-                    runtime: 'automatic',
-                    development: isDev,
-                    refresh: isDev,
-                  },
-                },
-              },
             },
           },
         ],
+      },
+      {
+        test: /\.svg/,
+        type: 'asset/resource',
       },
     ],
   },
@@ -50,6 +46,10 @@ export default defineConfig({
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
-    isDev && new ReactRefreshRspackPlugin(),
+    new rspack.DefinePlugin({
+      __VUE_OPTIONS_API__: true,
+      __VUE_PROD_DEVTOOLS__: false,
+    }),
+    new VueLoaderPlugin(),
   ],
 });
