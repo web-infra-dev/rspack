@@ -46,10 +46,13 @@ export function compile(sourcecode: string, filename: string) {
 }
 
 const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
+const shouldCompileAsCommonJs = (filename: string) =>
+  isTsFile(filename) && !isEsmFile(filename);
 
 // modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
 const registerLoader = (configPath: string) => {
-  // For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
+  // Leave TypeScript files that Node resolves as ESM on Node's loader path.
+  // The register hook only fills the CommonJS gap.
   if (isEsmFile(configPath) && isTsFile(configPath)) {
     return;
   }
@@ -71,6 +74,7 @@ const registerLoader = (configPath: string) => {
     },
     {
       exts: TS_EXTENSION,
+      matcher: shouldCompileAsCommonJs,
     },
   );
 };
