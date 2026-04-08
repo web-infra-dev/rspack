@@ -32,22 +32,23 @@ const __sharedMemory = new WebAssembly.Memory({
   shared: true,
 })
 
-let __wasmFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.wasm')
-const __wasmDebugFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.debug.wasm')
+let localWasmFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.wasm')
 
-if (__nodeFs.existsSync(__wasmDebugFilePath)) {
-  __wasmFilePath = __wasmDebugFilePath
-} else if (!__nodeFs.existsSync(__wasmFilePath)) {
-  try {
-    __wasmFilePath = require.resolve('@rspack/binding-wasm32-wasi/rspack.wasm32-wasi.wasm')
-  } catch {
+let __wasmFilePath;
+
+try {
+  __wasmFilePath = require.resolve('@rspack/binding-wasm32-wasi/rspack.wasm32-wasi.wasm')
+} catch {
+  if (__nodeFs.existsSync(localWasmFilePath)) {
+    __wasmFilePath = localWasmFilePath
+  } else {
     throw new Error('Cannot find rspack.wasm32-wasi.wasm file, and @rspack/binding-wasm32-wasi package is not installed.')
   }
 }
 
 const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule } = __emnapiInstantiateNapiModuleSync(__nodeFs.readFileSync(__wasmFilePath), {
   context: __emnapiContext,
-  asyncWorkPoolSize: (function() {
+  asyncWorkPoolSize: (function () {
     const threadsSizeFromEnv = Number(process.env.NAPI_RS_ASYNC_WORK_POOL_SIZE ?? process.env.UV_THREADPOOL_SIZE)
     // NaN > 0 is false
     if (threadsSizeFromEnv > 0) {
@@ -76,14 +77,14 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
         s.toString().includes("kPublicPort")
       );
       if (kPublicPort) {
-        worker[kPublicPort].ref = () => {};
+        worker[kPublicPort].ref = () => { };
       }
 
       const kHandle = Object.getOwnPropertySymbols(worker).find(s =>
         s.toString().includes("kHandle")
       );
       if (kHandle) {
-        worker[kHandle].ref = () => {};
+        worker[kHandle].ref = () => { };
       }
 
       worker.unref();
