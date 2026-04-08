@@ -102,6 +102,9 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
         module_graph,
         None,
         &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
         &compilation.exports_info_artifact,
       ) {
         continue;
