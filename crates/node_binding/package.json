@@ -26,7 +26,8 @@
     "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js",
     "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
-    "test": "tsc -p tsconfig.type-test.json"
+    "test": "tsc -p tsconfig.type-test.json",
+    "wasm-add-external-debug": "node scripts/add-external-debug-info.js rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
