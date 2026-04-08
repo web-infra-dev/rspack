@@ -1,16 +1,15 @@
 use napi::Either;
 use napi_derive::napi;
 use rspack_core::cache::persistent::snapshot::{PathMatcher, SnapshotOptions};
+use rspack_regex::RspackRegex;
 
-use crate::js_regex::JsRegExp;
+type RawPathMatcher = Either<String, RspackRegex>;
 
-type RawPathMatcher = Either<String, JsRegExp>;
-
-fn normalize_raw_path_matcher(value: RawPathMatcher) -> rspack_error::Result<PathMatcher> {
-  Ok(match value {
+fn normalize_raw_path_matcher(value: RawPathMatcher) -> PathMatcher {
+  match value {
     Either::A(s) => PathMatcher::String(s),
-    Either::B(reg) => PathMatcher::Regexp(reg.try_into()?),
-  })
+    Either::B(reg) => PathMatcher::Regexp(reg),
+  }
 }
 
 #[derive(Debug, Default)]
@@ -24,26 +23,24 @@ pub struct RawSnapshotOptions {
   pub managed_paths: Vec<RawPathMatcher>,
 }
 
-impl TryFrom<RawSnapshotOptions> for SnapshotOptions {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawSnapshotOptions) -> Result<Self, Self::Error> {
-    Ok(SnapshotOptions::new(
+impl From<RawSnapshotOptions> for SnapshotOptions {
+  fn from(value: RawSnapshotOptions) -> Self {
+    SnapshotOptions::new(
       value
         .immutable_paths
         .into_iter()
         .map(normalize_raw_path_matcher)
-        .collect::<Result<_, _>>()?,
+        .collect(),
       value
         .unmanaged_paths
         .into_iter()
         .map(normalize_raw_path_matcher)
-        .collect::<Result<_, _>>()?,
+        .collect(),
       value
         .managed_paths
         .into_iter()
         .map(normalize_raw_path_matcher)
-        .collect::<Result<_, _>>()?,
-    ))
+        .collect(),
+    )
   }
 }

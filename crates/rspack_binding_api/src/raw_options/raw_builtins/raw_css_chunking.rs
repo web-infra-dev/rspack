@@ -1,4 +1,4 @@
-use crate::js_regex::JsRegExp;
+use rspack_regex::RspackRegex;
 
 #[napi(object, object_to_js = false)]
 pub struct RawCssChunkingPluginOptions {
@@ -6,18 +6,16 @@ pub struct RawCssChunkingPluginOptions {
   pub min_size: Option<f64>,
   pub max_size: Option<f64>,
   #[napi(ts_type = "RegExp")]
-  pub exclude: Option<JsRegExp>,
+  pub exclude: Option<RspackRegex>,
 }
 
-impl TryFrom<RawCssChunkingPluginOptions> for rspack_plugin_css_chunking::CssChunkingPluginOptions {
-  type Error = rspack_error::Error;
-
-  fn try_from(options: RawCssChunkingPluginOptions) -> Result<Self, Self::Error> {
-    Ok(Self {
+impl From<RawCssChunkingPluginOptions> for rspack_plugin_css_chunking::CssChunkingPluginOptions {
+  fn from(options: RawCssChunkingPluginOptions) -> Self {
+    Self {
       strict: options.strict.unwrap_or(false),
       min_size: options.min_size,
       max_size: options.max_size,
-      exclude: options.exclude.map(TryInto::try_into).transpose()?,
-    })
+      exclude: options.exclude,
+    }
   }
 }

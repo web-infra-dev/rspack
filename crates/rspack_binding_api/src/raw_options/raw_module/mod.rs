@@ -28,12 +28,10 @@ use rspack_core::{
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
+use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{
-  filename::JsFilename, js_regex::JsRegExp, module::ModuleObject,
-  options::raw_resolve::RawResolveOptions,
-};
+use crate::{filename::JsFilename, module::ModuleObject, options::raw_resolve::RawResolveOptions};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -53,7 +51,7 @@ pub struct RawModuleRuleUse {
 pub enum RawRuleSetCondition {
   string(String),
   #[napi(ts_type = "RegExp")]
-  regexp(JsRegExp),
+  regexp(RspackRegex),
   logical(Vec<RawRuleSetLogicalConditions>),
   array(Vec<RawRuleSetCondition>),
   #[napi(ts_type = r#"(value: string) => boolean"#)]
@@ -112,7 +110,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
   fn try_from(x: RawRuleSetCondition) -> rspack_error::Result<Self> {
     let result = match x {
       RawRuleSetCondition::string(s) => Self::String(s),
-      RawRuleSetCondition::regexp(r) => Self::Regexp(r.try_into()?),
+      RawRuleSetCondition::regexp(r) => Self::Regexp(r),
       RawRuleSetCondition::logical(mut l) => {
         let l = l.get_mut(0).ok_or_else(|| {
           error!("TODO: use Box after https://github.com/napi-rs/napi-rs/issues/1500 landed")
@@ -204,11 +202,9 @@ pub struct RawParserOptions {
   pub json: Option<RawJsonParserOptions>,
 }
 
-impl TryFrom<RawParserOptions> for ParserOptions {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawParserOptions) -> Result<Self, Self::Error> {
-    Ok(match value.r#type.as_str() {
+impl From<RawParserOptions> for ParserOptions {
+  fn from(value: RawParserOptions) -> Self {
+    match value.r#type.as_str() {
       "asset" => Self::Asset(
         value
           .asset
@@ -219,13 +215,13 @@ impl TryFrom<RawParserOptions> for ParserOptions {
         value
           .javascript
           .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript\"")
-          .try_into()?,
+          .into(),
       ),
       "javascript/auto" => Self::JavascriptAuto(
         value
           .javascript
           .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript/auto\"")
-          .try_into()?,
+          .into(),
       ),
       "javascript/dynamic" => Self::JavascriptDynamic(
         value
@@ -233,13 +229,13 @@ impl TryFrom<RawParserOptions> for ParserOptions {
           .expect(
             "should have an \"javascript\" when RawParserOptions.type is \"javascript/dynamic\"",
           )
-          .try_into()?,
+          .into(),
       ),
       "javascript/esm" => Self::JavascriptEsm(
         value
           .javascript
           .expect("should have an \"javascript\" when RawParserOptions.type is \"javascript/esm\"")
-          .try_into()?,
+          .into(),
       ),
       "css" => Self::Css(
         value
@@ -269,7 +265,7 @@ impl TryFrom<RawParserOptions> for ParserOptions {
         "Failed to resolve the RawParserOptions.type {}.",
         value.r#type
       ),
-    })
+    }
   }
 }
 
@@ -286,7 +282,7 @@ pub struct RawJavascriptParserOptions {
   pub wrapped_context_critical: Option<bool>,
   pub strict_this_context_on_imports: Option<bool>,
   #[napi(ts_type = "RegExp")]
-  pub wrapped_context_reg_exp: Option<JsRegExp>,
+  pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<String>,
   pub import_exports_presence: Option<String>,
   pub reexport_exports_presence: Option<String>,
@@ -343,11 +339,9 @@ pub enum RawJavascriptParserCommonjsExports {
   SkipInEsm,
 }
 
-impl TryFrom<RawJavascriptParserOptions> for JavascriptParserOptions {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawJavascriptParserOptions) -> Result<Self, Self::Error> {
-    Ok(Self {
+impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
+  fn from(value: RawJavascriptParserOptions) -> Self {
+    Self {
       dynamic_import_mode: value
         .dynamic_import_mode
         .map(|v| DynamicImportMode::from(v.as_str())),
@@ -363,10 +357,7 @@ impl TryFrom<RawJavascriptParserOptions> for JavascriptParserOptions {
       url: value.url.map(|v| JavascriptParserUrl::from(v.as_str())),
       expr_context_critical: value.expr_context_critical,
       unknown_context_critical: value.unknown_context_critical,
-      wrapped_context_reg_exp: value
-        .wrapped_context_reg_exp
-        .map(TryInto::try_into)
-        .transpose()?,
+      wrapped_context_reg_exp: value.wrapped_context_reg_exp,
       wrapped_context_critical: value.wrapped_context_critical,
       strict_this_context_on_imports: value.strict_this_context_on_imports,
       exports_presence: value
@@ -418,7 +409,7 @@ impl TryFrom<RawJavascriptParserOptions> for JavascriptParserOptions {
       side_effects_free: value
         .pure_functions
         .map(|functions| functions.into_iter().collect()),
-    })
+    }
   }
 }
 
@@ -1039,7 +1030,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         r#use: uses.transpose()?.unwrap_or_default(),
         r#type: module_type,
         layer: value.layer,
-        parser: value.parser.map(TryInto::try_into).transpose()?,
+        parser: value.parser.map(|raw| raw.into()),
         generator: value.generator.map(|raw| raw.into()),
         resolve: value.resolve.map(|raw| raw.try_into()).transpose()?,
         side_effects: value.side_effects,
@@ -1067,7 +1058,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
         .parser
         .map(|x| {
           x.into_iter()
-            .map(|(k, v)| Ok((k, v.try_into()?)))
+            .map(|(k, v)| Ok((k, v.into())))
             .collect::<std::result::Result<ParserOptionsMap, rspack_error::Error>>()
         })
         .transpose()?,
@@ -1081,13 +1072,12 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
         .transpose()?,
       no_parse: value
         .no_parse
-        .map(|x| RawModuleNoParseRulesWrapper(x).try_into())
-        .transpose()?,
+        .map(|x| RawModuleNoParseRulesWrapper(x).into()),
     })
   }
 }
 
-type RawModuleNoParseRule = Either3<String, JsRegExp, ThreadsafeFunction<String, Option<bool>>>;
+type RawModuleNoParseRule = Either3<String, RspackRegex, ThreadsafeFunction<String, Option<bool>>>;
 type RawModuleNoParseRules = Either<RawModuleNoParseRule, Vec<RawModuleNoParseRule>>;
 
 struct RawModuleNoParseRuleWrapper(RawModuleNoParseRule);
@@ -1103,29 +1093,25 @@ fn js_func_to_no_parse_test_func(
   })
 }
 
-impl TryFrom<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
-  type Error = rspack_error::Error;
-
-  fn try_from(x: RawModuleNoParseRuleWrapper) -> Result<Self, Self::Error> {
+impl From<RawModuleNoParseRuleWrapper> for ModuleNoParseRule {
+  fn from(x: RawModuleNoParseRuleWrapper) -> Self {
     match x.0 {
-      Either3::A(v) => Ok(Self::AbsPathPrefix(v)),
-      Either3::B(v) => Ok(Self::Regexp(v.try_into()?)),
-      Either3::C(v) => Ok(Self::TestFn(js_func_to_no_parse_test_func(v))),
+      Either3::A(v) => Self::AbsPathPrefix(v),
+      Either3::B(v) => Self::Regexp(v),
+      Either3::C(v) => Self::TestFn(js_func_to_no_parse_test_func(v)),
     }
   }
 }
 
-impl TryFrom<RawModuleNoParseRulesWrapper> for ModuleNoParseRules {
-  type Error = rspack_error::Error;
-
-  fn try_from(x: RawModuleNoParseRulesWrapper) -> Result<Self, Self::Error> {
+impl From<RawModuleNoParseRulesWrapper> for ModuleNoParseRules {
+  fn from(x: RawModuleNoParseRulesWrapper) -> Self {
     match x.0 {
-      Either::A(v) => Ok(Self::Rule(RawModuleNoParseRuleWrapper(v).try_into()?)),
-      Either::B(v) => Ok(Self::Rules(
+      Either::A(v) => Self::Rule(RawModuleNoParseRuleWrapper(v).into()),
+      Either::B(v) => Self::Rules(
         v.into_iter()
-          .map(|r| RawModuleNoParseRuleWrapper(r).try_into())
-          .collect::<Result<_, _>>()?,
-      )),
+          .map(|r| RawModuleNoParseRuleWrapper(r).into())
+          .collect(),
+      ),
     }
   }
 }

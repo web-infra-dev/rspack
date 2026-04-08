@@ -9,26 +9,25 @@ use rspack_plugin_module_replacement::{
   NormalModuleReplacementPluginOptions, NormalModuleReplacer,
 };
 use rspack_plugin_runtime_chunk::RuntimeChunkName;
+use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;
 
-use crate::{js_regex::JsRegExp, normal_module_factory::JsResolveData};
+use crate::normal_module_factory::JsResolveData;
 
 #[napi(object, object_to_js = false)]
 pub struct RawNormalModuleReplacementPluginOptions {
   #[napi(ts_type = "RegExp")]
-  pub resource_reg_exp: JsRegExp,
+  pub resource_reg_exp: RspackRegex,
   #[napi(ts_type = "string | ((data: JsResolveData) => JsResolveData)")]
   pub new_resource: RawNormalModuleReplacer,
 }
 
-impl TryFrom<RawNormalModuleReplacementPluginOptions> for NormalModuleReplacementPluginOptions {
-  type Error = rspack_error::Error;
-
-  fn try_from(val: RawNormalModuleReplacementPluginOptions) -> Result<Self, Self::Error> {
-    Ok(Self {
-      resource_reg_exp: val.resource_reg_exp.try_into()?,
+impl From<RawNormalModuleReplacementPluginOptions> for NormalModuleReplacementPluginOptions {
+  fn from(val: RawNormalModuleReplacementPluginOptions) -> Self {
+    Self {
+      resource_reg_exp: val.resource_reg_exp,
       new_resource: RawNormalModuleReplacerWrapper(val.new_resource).into(),
-    })
+    }
   }
 }
 

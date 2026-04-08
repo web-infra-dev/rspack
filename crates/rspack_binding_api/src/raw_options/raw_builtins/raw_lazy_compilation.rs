@@ -9,13 +9,14 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{Backend, LazyCompilationTest, LazyCompilationTestCheck};
+use rspack_regex::RspackRegex;
 use rustc_hash::FxHashSet as HashSet;
 
-use crate::{js_regex::JsRegExp, module::ModuleObject};
+use crate::module::ModuleObject;
 
 #[derive(Debug)]
 pub struct RawLazyCompilationTest<F = ThreadsafeFunction<ModuleObject, Option<bool>>>(
-  pub Either<JsRegExp, F>,
+  pub Either<RspackRegex, F>,
 );
 
 impl<F: FromNapiValue + ValidateNapiValue> FromNapiValue for RawLazyCompilationTest<F> {
@@ -63,13 +64,16 @@ impl LazyCompilationTestCheck for LazyCompilationTestFn {
   }
 }
 
-impl TryFrom<RawLazyCompilationTest> for LazyCompilationTest<LazyCompilationTestFn> {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawLazyCompilationTest) -> Result<Self, Self::Error> {
+impl From<RawLazyCompilationTest> for LazyCompilationTest<LazyCompilationTestFn> {
+  fn from(value: RawLazyCompilationTest) -> Self {
     match value.0 {
-      Either::A(regex) => Ok(Self::Regex(regex.try_into()?)),
-      Either::B(tsfn) => Ok(Self::Fn(LazyCompilationTestFn { tsfn })),
+      Either::A(regex) => Self::Regex(
+        RspackRegex::with_flags(&regex.source, &regex.flags).unwrap_or_else(|_| {
+          let msg = format!("[lazyCompilation]incorrect regex {regex:?}");
+          panic!("{msg}");
+        }),
+      ),
+      Either::B(tsfn) => Self::Fn(LazyCompilationTestFn { tsfn }),
     }
   }
 }

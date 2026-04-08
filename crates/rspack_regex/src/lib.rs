@@ -47,26 +47,6 @@ impl Debug for RspackRegex {
 }
 
 impl RspackRegex {
-  fn normalize_flags(flags: &str) -> String {
-    let mut chars = flags.chars().collect::<Vec<char>>();
-    chars.sort_unstable();
-    chars.into_iter().collect::<String>()
-  }
-
-  fn from_parts(source: String, flags: String, normalize_flags: bool) -> Result<Self, Error> {
-    let flags = if normalize_flags {
-      Self::normalize_flags(&flags)
-    } else {
-      flags
-    };
-
-    Ok(Self {
-      algo: Box::new(Algo::new(source.as_str(), flags.as_str())?),
-      flags,
-      source,
-    })
-  }
-
   #[inline]
   pub fn test(&self, text: &str) -> bool {
     self.algo.test(text)
@@ -98,20 +78,22 @@ impl RspackRegex {
   }
 
   pub fn with_flags(expr: &str, flags: &str) -> Result<Self, Error> {
-    Self::from_parts(expr.to_string(), flags.to_string(), true)
-  }
-
-  pub fn from_js_regex(expr: String, flags: String) -> Result<Self, Error> {
-    Self::from_parts(expr, flags, false)
+    let mut chars = flags.chars().collect::<Vec<char>>();
+    chars.sort_unstable();
+    Ok(Self {
+      flags: chars.into_iter().collect::<String>(),
+      source: expr.to_string(),
+      algo: Box::new(Algo::new(expr, flags)?),
+    })
   }
 
   pub fn new_rust_regex(expr: &str, flags: &str) -> Result<Self, Error> {
-    let flags = Self::normalize_flags(flags);
-    let algo = Box::new(Algo::new_rust_regex(expr, flags.as_str())?);
+    let mut chars = flags.chars().collect::<Vec<char>>();
+    chars.sort_unstable();
     Ok(Self {
-      algo,
-      flags,
+      flags: chars.into_iter().collect::<String>(),
       source: expr.to_string(),
+      algo: Box::new(Algo::new_rust_regex(expr, flags)?),
     })
   }
 

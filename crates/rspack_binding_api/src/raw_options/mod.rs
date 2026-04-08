@@ -84,7 +84,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
     let resolve_loader = value.resolve_loader.try_into()?;
     let mode = value.mode.unwrap_or_default().into();
     let module: ModuleOptions = value.module.try_into()?;
-    let cache = normalize_raw_cache(value.cache)?;
+    let cache = normalize_raw_cache(value.cache);
     let experiments: Experiments = value.experiments.into();
     let mut incremental: IncrementalOptions = match value.incremental {
       Some(value) => match value {

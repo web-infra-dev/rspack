@@ -346,8 +346,7 @@ impl<'a> BuiltinPlugin<'a> {
         let plugin = IgnorePlugin::new(
           downcast_into::<RawIgnorePluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .try_into()
-            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
+            .into(),
         )
         .boxed();
         plugins.push(plugin);
@@ -423,11 +422,7 @@ impl<'a> BuiltinPlugin<'a> {
         enable_library_plugin(
           options.library_type,
           options.preserve_modules.as_deref().map(Into::into),
-          options
-            .split_chunks
-            .map(TryInto::try_into)
-            .transpose()
-            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
+          options.split_chunks.map(Into::into),
           plugins,
         );
       }
@@ -453,13 +448,7 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(
           EsmLibraryPlugin::new(
             options.preserve_modules.as_deref().map(Into::into),
-            options
-              .split_chunks
-              .map(TryInto::try_into)
-              .transpose()
-              .map_err(|report: rspack_error::Error| {
-                napi::Error::from_reason(report.to_string())
-              })?,
+            options.split_chunks.map(Into::into),
           )
           .boxed(),
         );
@@ -495,8 +484,7 @@ impl<'a> BuiltinPlugin<'a> {
         use rspack_plugin_split_chunks::SplitChunksPlugin;
         let options = downcast_into::<RawSplitChunksOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?
-          .try_into()
-          .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?;
+          .into();
         plugins.push(SplitChunksPlugin::new(options).boxed());
       }
       BuiltinPluginName::RemoveDuplicateModulesPlugin => {
@@ -626,10 +614,7 @@ impl<'a> BuiltinPlugin<'a> {
         let plugin_options =
           downcast_into::<self::raw_http_uri::RawHttpUriPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(
-          raw_http_uri::get_http_uri_plugin(plugin_options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
-        );
+        plugins.push(raw_http_uri::get_http_uri_plugin(plugin_options));
       }
       BuiltinPluginName::RuntimePlugin => plugins.push(RuntimePlugin::default().boxed()),
       BuiltinPluginName::JsonModulesPlugin => plugins.push(JsonPlugin.boxed()),
@@ -645,8 +630,7 @@ impl<'a> BuiltinPlugin<'a> {
         let options: rspack_plugin_devtool::SourceMapDevToolPluginOptions =
           downcast_into::<SourceMapDevToolPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .try_into()
-            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?;
+            .into();
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
@@ -660,8 +644,7 @@ impl<'a> BuiltinPlugin<'a> {
         let options: rspack_plugin_devtool::SourceMapDevToolPluginOptions =
           downcast_into::<SourceMapDevToolPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .try_into()
-            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?;
+            .into();
         plugins.push(
           SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
             module: options.module,
@@ -804,8 +787,7 @@ impl<'a> BuiltinPlugin<'a> {
         CircularDependencyRspackPlugin::new(
           downcast_into::<RawCircularDependencyRspackPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
-            .try_into()
-            .map_err(|report: rspack_error::Error| napi::Error::from_reason(report.to_string()))?,
+            .into(),
         )
         .boxed(),
       ),
@@ -823,9 +805,7 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(
           Box::new(rspack_plugin_lazy_compilation::LazyCompilationPlugin::new(
             js_backend,
-            options.test.map(TryInto::try_into).transpose().map_err(
-              |report: rspack_error::Error| napi::Error::from_reason(report.to_string()),
-            )?,
+            options.test.map(|test| test.into()),
             options.entries,
             options.imports,
             options.client,
@@ -838,16 +818,7 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::NormalModuleReplacementPlugin => {
         let raw_options = downcast_into::<RawNormalModuleReplacementPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(
-          NormalModuleReplacementPlugin::new(
-            raw_options
-              .try_into()
-              .map_err(|report: rspack_error::Error| {
-                napi::Error::from_reason(report.to_string())
-              })?,
-          )
-          .boxed(),
-        );
+        plugins.push(NormalModuleReplacementPlugin::new(raw_options.into()).boxed());
       }
       BuiltinPluginName::ContextReplacementPlugin => {
         let raw_options = downcast_into::<RawContextReplacementPluginOptions>(self.options)
@@ -932,14 +903,7 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::CssChunkingPlugin => {
         let options = downcast_into::<RawCssChunkingPluginOptions>(self.options)
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(
-          CssChunkingPlugin::new(
-            options.try_into().map_err(|report: rspack_error::Error| {
-              napi::Error::from_reason(report.to_string())
-            })?,
-          )
-          .boxed(),
-        );
+        plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::RscServerPlugin => {
         let options = &downcast_into::<JsRscServerPluginOptions>(self.options)

@@ -2,18 +2,17 @@ use napi::bindgen_prelude::Object;
 use napi_derive::napi;
 use rspack_error::{Error, ToStringResultToRspackResultExt};
 use rspack_plugin_module_replacement::ContextReplacementPluginOptions;
+use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;
-
-use crate::js_regex::JsRegExp;
 
 #[napi(object, object_to_js = false)]
 pub struct RawContextReplacementPluginOptions<'a> {
   #[napi(ts_type = "RegExp")]
-  pub resource_reg_exp: JsRegExp,
+  pub resource_reg_exp: RspackRegex,
   pub new_content_resource: Option<String>,
   pub new_content_recursive: Option<bool>,
   #[napi(ts_type = "RegExp")]
-  pub new_content_reg_exp: Option<JsRegExp>,
+  pub new_content_reg_exp: Option<RspackRegex>,
   #[napi(ts_type = "Record<string, string>")]
   pub new_content_create_context_map: Option<Object<'a>>,
   // new_content_callback
@@ -46,10 +45,10 @@ impl<'a> TryFrom<RawContextReplacementPluginOptions<'a>> for ContextReplacementP
     };
 
     Ok(Self {
-      resource_reg_exp: resource_reg_exp.try_into()?,
+      resource_reg_exp,
       new_content_resource,
       new_content_recursive,
-      new_content_reg_exp: new_content_reg_exp.map(TryInto::try_into).transpose()?,
+      new_content_reg_exp,
       new_content_create_context_map,
     })
   }
