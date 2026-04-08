@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{hash::Hash, sync::Arc};
 
 use napi::{
   Either,
-  bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
+  bindgen_prelude::{FromNapiValue, Object, TypeName, ValidateNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{
@@ -45,6 +45,32 @@ pub use crate::options::raw_resolve::*;
 use crate::virtual_modules::JsVirtualFile;
 
 #[derive(Debug)]
+pub struct JsReferneces(HashMap<String, Arc<str>>);
+
+impl FromNapiValue for JsReferneces {
+  unsafe fn from_napi_value(
+    env: napi::sys::napi_env,
+    napi_val: napi::sys::napi_value,
+  ) -> napi::Result<Self> {
+    let obj = unsafe { Object::from_napi_value(env, napi_val)? };
+    let keys = Object::keys(&obj)?;
+    let mut map = HashMap::with_capacity_and_hasher(keys.len(), Default::default());
+    for key in keys {
+      if let Some(val) = obj.get::<String>(&key)? {
+        map.insert(key, Arc::from(val));
+      }
+    }
+    Ok(Self(map))
+  }
+}
+
+impl From<JsReferneces> for HashMap<String, Arc<str>> {
+  fn from(value: JsReferneces) -> Self {
+    value.0
+  }
+}
+
+#[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawOptions {
   pub name: Option<String>,
@@ -69,7 +95,7 @@ pub struct RawOptions {
   pub amd: Option<String>,
   pub bail: bool,
   #[napi(js_name = "__references", ts_type = "Record<string, string>")]
-  pub __references: HashMap<String, String>,
+  pub __references: JsReferneces,
   #[napi(js_name = "__virtual_files")]
   pub __virtual_files: Option<Vec<JsVirtualFile>>,
 }
@@ -133,11 +159,7 @@ impl TryFrom<RawOptions> for CompilerOptions {
       })
       .transpose()?;
 
-    let __references: References = value
-      .__references
-      .into_iter()
-      .map(|(key, value)| (key, Arc::<str>::from(value)))
-      .collect();
+    let __references: References = value.__references.into();
 
     Ok(CompilerOptions {
       name: value.name,
