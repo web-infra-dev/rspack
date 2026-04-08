@@ -304,19 +304,6 @@ impl ExternalModule {
 
   pub fn set_external_type(&mut self, new_type: ExternalType) {
     self.external_type = new_type;
-    let resolved_type = resolve_external_type(self.external_type.as_str(), &self.dependency_meta);
-    let request_str = serde_json::to_string(&self.request).expect("invalid json to_string");
-    let attrs_str = self
-      .dependency_meta
-      .attributes
-      .as_ref()
-      .map_or(String::new(), |attrs| {
-        format!(
-          " {}",
-          serde_json::to_string(attrs).expect("invalid json to_string")
-        )
-      });
-    self.id = Identifier::from(format!("external {resolved_type} {request_str}{attrs_str}"));
   }
 
   pub fn get_request(&self) -> &ExternalRequestValue {
@@ -978,7 +965,7 @@ impl Module for ExternalModule {
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
-    Some(Cow::Borrowed(self.get_request().primary()))
+    Some(Cow::Borrowed(self.user_request.as_str()))
   }
 
   async fn get_runtime_hash(

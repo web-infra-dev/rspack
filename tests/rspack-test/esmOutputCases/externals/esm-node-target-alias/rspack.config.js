@@ -6,7 +6,7 @@ const {
 module.exports = {
   externals: {
     'node:fs': 'module node:path',
-    'node:url': 'module-import node:path',
+    'node:url': 'module-import node:url',
   },
   plugins: [
     new RslibPlugin({
