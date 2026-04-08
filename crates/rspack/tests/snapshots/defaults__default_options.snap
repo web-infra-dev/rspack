@@ -1,5 +1,6 @@
 ---
 source: crates/rspack/tests/defaults.rs
+assertion_line: 22
 expression: options
 ---
 CompilerOptions {
@@ -220,6 +221,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "esm": Resolve {
                         extensions: Some(
@@ -268,6 +270,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "loaderImport": Resolve {
                         extensions: Some(
@@ -316,6 +319,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "url": Resolve {
                         extensions: None,
@@ -343,6 +347,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "worker": Resolve {
                         extensions: Some(
@@ -393,6 +398,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "commonjs": Resolve {
                         extensions: Some(
@@ -441,6 +447,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "amd": Resolve {
                         extensions: Some(
@@ -489,6 +496,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "loader": Resolve {
                         extensions: Some(
@@ -537,6 +545,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                     "unknown": Resolve {
                         extensions: Some(
@@ -585,6 +594,7 @@ CompilerOptions {
                         enforce_extension: None,
                         pnp: None,
                         builtin_modules: false,
+                        node_path: None,
                     },
                 },
             ),
@@ -593,6 +603,7 @@ CompilerOptions {
         enforce_extension: None,
         pnp: None,
         builtin_modules: false,
+        node_path: None,
     },
     resolve_loader: Resolve {
         extensions: Some(
@@ -643,6 +654,7 @@ CompilerOptions {
         enforce_extension: None,
         pnp: None,
         builtin_modules: false,
+        node_path: None,
     },
     module: ModuleOptions {
         rules: [
@@ -853,6 +865,7 @@ CompilerOptions {
                                                         enforce_extension: None,
                                                         pnp: None,
                                                         builtin_modules: false,
+                                                        node_path: None,
                                                     },
                                                 },
                                             ),
@@ -861,6 +874,7 @@ CompilerOptions {
                                         enforce_extension: None,
                                         pnp: None,
                                         builtin_modules: false,
+                                        node_path: None,
                                     },
                                 ),
                                 enforce: Normal,
@@ -954,6 +968,7 @@ CompilerOptions {
                                                         enforce_extension: None,
                                                         pnp: None,
                                                         builtin_modules: false,
+                                                        node_path: None,
                                                     },
                                                 },
                                             ),
@@ -962,6 +977,7 @@ CompilerOptions {
                                         enforce_extension: None,
                                         pnp: None,
                                         builtin_modules: false,
+                                        node_path: None,
                                     },
                                 ),
                                 enforce: Normal,
@@ -1137,6 +1153,7 @@ CompilerOptions {
                                                         enforce_extension: None,
                                                         pnp: None,
                                                         builtin_modules: false,
+                                                        node_path: None,
                                                     },
                                                 },
                                             ),
@@ -1145,6 +1162,7 @@ CompilerOptions {
                                         enforce_extension: None,
                                         pnp: None,
                                         builtin_modules: false,
+                                        node_path: None,
                                     },
                                 ),
                                 enforce: Normal,
@@ -1232,6 +1250,7 @@ CompilerOptions {
                                                     enforce_extension: None,
                                                     pnp: None,
                                                     builtin_modules: false,
+                                                    node_path: None,
                                                 },
                                             ),
                                             enforce: Normal,
@@ -1341,6 +1360,7 @@ CompilerOptions {
                                                     enforce_extension: None,
                                                     pnp: None,
                                                     builtin_modules: false,
+                                                    node_path: None,
                                                 },
                                             ),
                                             enforce: Normal,
