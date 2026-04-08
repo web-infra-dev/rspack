@@ -1,4 +1,5 @@
-assets by status xx KiB [cached] 2 assets
+asset main-a9a0a6c721a50098.js xx KiB [emitted] [immutable] (name: main)
+asset 860-51401646dd4abc59.js xx bytes [emitted] [immutable]
 runtime modules xx KiB 4 modules
 cacheable modules xx bytes
   ./index.js xx bytes [built] [code generated]

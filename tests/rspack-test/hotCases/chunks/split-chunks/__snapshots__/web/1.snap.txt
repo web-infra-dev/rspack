@@ -60,7 +60,6 @@ self["rspackHotUpdate"](1, {},function(__webpack_require__) {
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
-
 }
 );
 ```
