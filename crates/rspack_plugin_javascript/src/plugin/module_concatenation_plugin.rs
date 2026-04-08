@@ -6,12 +6,12 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
-  DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
-  ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType,
+  BoxDependency, BoxModule, ChunkGraph, ChunkUkey, Compilation, CompilationOptimizeChunkModules,
+  DependencyId, DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport,
+  GetTargetResult, ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier,
+  OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition,
+  RuntimeSpec, SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -21,7 +21,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
@@ -109,6 +109,181 @@ struct ModuleGraphArtifacts<'a> {
   mg_cache: &'a ModuleGraphCacheArtifact,
   side_effects_state_artifact: &'a SideEffectsStateArtifact,
   exports_info_artifact: &'a ExportsInfoArtifact,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SingleSourceTypeBehavior {
+  DisconnectAlways,
+  PreserveCssOnly,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum ConcatenatedChunkModuleAction {
+  Disconnect,
+  SetSourceTypes(FxHashSet<SourceType>),
+}
+
+#[derive(Debug)]
+struct ConcatenatedChunkModuleUpdate {
+  chunk_ukey: ChunkUkey,
+  module_identifier: ModuleIdentifier,
+  action: ConcatenatedChunkModuleAction,
+}
+
+#[derive(Debug)]
+struct ConcatenatedRootAssetModuleUpdate {
+  chunk_ukey: ChunkUkey,
+  source_types: FxHashSet<SourceType>,
+}
+
+#[derive(Debug)]
+struct ConcatenatedChunkGraphPlan {
+  is_root_module_asset_module: bool,
+  inner_module_updates: Vec<ConcatenatedChunkModuleUpdate>,
+  root_asset_updates: Vec<ConcatenatedRootAssetModuleUpdate>,
+}
+
+fn filter_non_javascript_source_types<T>(source_types: T) -> FxHashSet<SourceType>
+where
+  T: IntoIterator<Item = SourceType>,
+{
+  source_types
+    .into_iter()
+    .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
+    .collect()
+}
+
+fn plan_concatenated_chunk_module_action(
+  source_types: FxHashSet<SourceType>,
+  single_source_type_behavior: SingleSourceTypeBehavior,
+) -> ConcatenatedChunkModuleAction {
+  if source_types.len() == 1 {
+    let should_disconnect = match single_source_type_behavior {
+      SingleSourceTypeBehavior::DisconnectAlways => true,
+      SingleSourceTypeBehavior::PreserveCssOnly => !source_types.contains(&SourceType::Css),
+    };
+
+    if should_disconnect {
+      return ConcatenatedChunkModuleAction::Disconnect;
+    }
+  }
+
+  ConcatenatedChunkModuleAction::SetSourceTypes(filter_non_javascript_source_types(source_types))
+}
+
+fn prepare_concatenated_chunk_graph_plan(
+  compilation: &Compilation,
+  root_module_id: ModuleIdentifier,
+  modules_set: &IdentifierIndexSet,
+  single_source_type_behavior: SingleSourceTypeBehavior,
+) -> ConcatenatedChunkGraphPlan {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let root_module = module_graph
+    .module_by_identifier(&root_module_id)
+    .expect("should have module");
+  let root_module_source_types = root_module.source_types(module_graph);
+  let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
+  let root_chunks = chunk_graph
+    .get_module_chunks(root_module_id)
+    .iter()
+    .copied()
+    .collect::<Vec<_>>();
+  let inner_module_ids = modules_set
+    .iter()
+    .copied()
+    .filter(|module_id| *module_id != root_module_id)
+    .collect::<Vec<_>>();
+
+  let inner_module_updates = inner_module_ids
+    .into_par_iter()
+    .map(|module_identifier| {
+      let module = module_graph
+        .module_by_identifier(&module_identifier)
+        .expect("should exist module");
+
+      root_chunks
+        .iter()
+        .copied()
+        .map(|chunk_ukey| {
+          let source_types =
+            chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+
+          ConcatenatedChunkModuleUpdate {
+            chunk_ukey,
+            module_identifier,
+            action: plan_concatenated_chunk_module_action(
+              source_types,
+              single_source_type_behavior,
+            ),
+          }
+        })
+        .collect::<Vec<_>>()
+    })
+    .collect::<Vec<_>>()
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+
+  let root_asset_updates = if is_root_module_asset_module {
+    root_chunks
+      .into_par_iter()
+      .map(|chunk_ukey| {
+        let source_types =
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, root_module, module_graph);
+
+        ConcatenatedRootAssetModuleUpdate {
+          chunk_ukey,
+          source_types: filter_non_javascript_source_types(source_types),
+        }
+      })
+      .collect()
+  } else {
+    vec![]
+  };
+
+  ConcatenatedChunkGraphPlan {
+    is_root_module_asset_module,
+    inner_module_updates,
+    root_asset_updates,
+  }
+}
+
+fn apply_concatenated_chunk_graph_plan(
+  chunk_graph: &mut ChunkGraph,
+  root_module_id: ModuleIdentifier,
+  new_module_id: ModuleIdentifier,
+  chunk_graph_plan: ConcatenatedChunkGraphPlan,
+) {
+  for update in chunk_graph_plan.inner_module_updates {
+    match update.action {
+      ConcatenatedChunkModuleAction::Disconnect => {
+        chunk_graph.disconnect_chunk_and_module(&update.chunk_ukey, update.module_identifier);
+      }
+      ConcatenatedChunkModuleAction::SetSourceTypes(source_types) => {
+        chunk_graph.set_chunk_modules_source_types(
+          &update.chunk_ukey,
+          update.module_identifier,
+          source_types,
+        );
+      }
+    }
+  }
+
+  if chunk_graph_plan.is_root_module_asset_module {
+    chunk_graph.replace_module(&root_module_id, &new_module_id);
+    chunk_graph.add_module(root_module_id);
+    for update in chunk_graph_plan.root_asset_updates {
+      chunk_graph.set_chunk_modules_source_types(
+        &update.chunk_ukey,
+        root_module_id,
+        update.source_types,
+      );
+      chunk_graph.connect_chunk_and_module(update.chunk_ukey, root_module_id);
+    }
+  } else {
+    chunk_graph.replace_module(&root_module_id, &new_module_id);
+  }
 }
 
 impl<T> RuntimeIdentifierCache<T> {
@@ -699,89 +874,13 @@ impl ModuleConcatenationPlugin {
     if is_root_module_asset_module && !root_module_source_types.contains(&SourceType::JavaScript) {
       return Ok(());
     }
-
-    let root_module_ctxt = RootModuleContext {
-      id: root_module_id,
-      readable_identifier: get_cached_readable_identifier(
-        &root_module_id,
-        module_graph,
-        &compilation.module_static_cache,
-        &compilation.options.context,
-      ),
-      name_for_condition: box_module.name_for_condition(),
-      lib_indent: box_module
-        .lib_ident(LibIdentOptions {
-          context: compilation.options.context.as_str(),
-        })
-        .map(|id| id.to_string()),
-      layer: box_module.get_layer().cloned(),
-      resolve_options: box_module.get_resolve_options(),
-      code_generation_dependencies: box_module
-        .get_code_generation_dependencies()
-        .map(|deps| deps.to_vec()),
-      presentational_dependencies: box_module
-        .get_presentational_dependencies()
-        .map(|deps| deps.to_vec()),
-      context: Some(compilation.options.context.clone()),
-      side_effect_connection_state: box_module.get_side_effects_connection_state(
-        module_graph,
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        &mut IdentifierSet::default(),
-        &mut IdentifierMap::default(),
-      ),
-      factory_meta: box_module.factory_meta().cloned(),
-      build_meta: box_module.build_meta().clone(),
-      module_argument: box_module.get_module_argument(),
-      exports_argument: box_module.get_exports_argument(),
-    };
-    let modules = modules_set
-      .iter()
-      .map(|id| {
-        let module = module_graph
-          .module_by_identifier(id)
-          .unwrap_or_else(|| panic!("should have module {id}"));
-
-        ConcatenatedInnerModule {
-          id: *id,
-          size: module.size(
-            Some(&rspack_core::SourceType::JavaScript),
-            Some(compilation),
-          ),
-          shorten_id: get_cached_readable_identifier(
-            id,
-            module_graph,
-            &compilation.module_static_cache,
-            &compilation.options.context,
-          ),
-        }
-      })
-      .collect::<Vec<_>>();
-
-    let mut new_module = BoxModule::new(Box::new(ConcatenatedModule::create(
-      root_module_ctxt,
-      modules,
-      Some(rspack_hash::HashFunction::MD4),
-      config.runtime.clone(),
+    let new_module = create_concatenated_module(compilation, &config).await?;
+    let chunk_graph_plan = prepare_concatenated_chunk_graph_plan(
       compilation,
-    )));
-    let build_result = new_module
-      .build(
-        rspack_core::BuildContext {
-          compiler_id: compilation.compiler_id(),
-          compilation_id: compilation.id(),
-          resolver_factory: compilation.resolver_factory.clone(),
-          plugin_driver: compilation.plugin_driver.clone(),
-          compiler_options: compilation.options.clone(),
-          fs: compilation.input_filesystem.clone(),
-          runtime_template: compilation.runtime_template.create_module_code_template(),
-        },
-        Some(compilation),
-      )
-      .await?;
-    new_module = build_result.module;
+      root_module_id,
+      modules_set,
+      SingleSourceTypeBehavior::PreserveCssOnly,
+    );
 
     let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
     let module_graph = compilation.get_module_graph_mut();
@@ -799,61 +898,13 @@ impl ModuleConcatenationPlugin {
         con.original_module_identifier.as_ref() == Some(m)
           && !(is_esm_dep_like(dep) && modules_set.contains(con.module_identifier()))
       });
-      // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-      for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
-        let module = module_graph
-          .module_by_identifier(m)
-          .expect("should exist module");
-
-        let source_types =
-          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
-
-        if source_types.len() == 1
-          && !matches!(
-            source_types.iter().next().expect("has length"),
-            SourceType::Css
-          )
-        {
-          chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
-        } else {
-          let new_source_types = source_types
-            .into_iter()
-            .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-            .collect();
-          chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
-        }
-      }
     }
-
-    // different from webpack
-    // Rspack: if entry is an asset module, outputs a js chunk and a asset chunk
-    // Webpack: if entry is an asset module, outputs an asset chunk
-    // these lines of codes fix a bug: when asset module (NormalModule) is concatenated into ConcatenatedModule, the asset will be lost
-    // because `chunk_graph.replace_module(&root_module_id, &new_module.id());` will remove the asset module from chunk, and I add this module back to fix this bug
-    if is_root_module_asset_module {
-      chunk_graph.replace_module(&root_module_id, &new_module.identifier());
-      chunk_graph.add_module(root_module_id);
-      for chunk_ukey in chunk_graph
-        .get_module_chunks(new_module.identifier())
-        .clone()
-      {
-        let module = module_graph
-          .module_by_identifier(&root_module_id)
-          .expect("should exist module");
-
-        let source_types =
-          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
-        let new_source_types = source_types
-          .iter()
-          .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-          .copied()
-          .collect();
-        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, root_module_id, new_source_types);
-        chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
-      }
-    } else {
-      chunk_graph.replace_module(&root_module_id, &new_module.identifier());
-    }
+    apply_concatenated_chunk_graph_plan(
+      &mut chunk_graph,
+      root_module_id,
+      new_module.identifier(),
+      chunk_graph_plan,
+    );
 
     module_graph.move_module_connections(&root_module_id, &new_module.identifier(), |c, dep| {
       let other_module = if *c.module_identifier() == root_module_id {
@@ -1413,6 +1464,12 @@ impl ModuleConcatenationPlugin {
           let modules_set = config.get_modules();
           let new_module = create_concatenated_module(compilation, &config).await?;
           let new_module_id = new_module.identifier();
+          let chunk_graph_plan = prepare_concatenated_chunk_graph_plan(
+            compilation,
+            config.root_module,
+            modules_set,
+            SingleSourceTypeBehavior::DisconnectAlways,
+          );
           let connections = prepare_concatenated_module_connections(
             compilation,
             &new_module_id,
@@ -1442,6 +1499,7 @@ impl ModuleConcatenationPlugin {
           );
           Ok((
             new_module,
+            chunk_graph_plan,
             connections,
             root_outgoings,
             root_incomings,
@@ -1461,10 +1519,10 @@ impl ModuleConcatenationPlugin {
     let mut remove_connection_tasks = vec![];
 
     for res in new_modules {
-      let (new_module, outgoings, root_outgoings, root_incomings, config) = res?;
+      let (new_module, chunk_graph_plan, outgoings, root_outgoings, root_incomings, config) = res?;
       let new_module_id = new_module.identifier();
       let root_module_id = config.root_module;
-      add_concatenated_module(compilation, new_module, config);
+      add_concatenated_module(compilation, new_module, config, chunk_graph_plan);
 
       for connection in outgoings.iter().chain(root_outgoings.iter()) {
         set_original_mid_tasks.push((*connection, new_module_id));
@@ -1730,80 +1788,26 @@ fn add_concatenated_module(
   compilation: &mut Compilation,
   new_module: BoxModule,
   config: ConcatConfiguration,
+  chunk_graph_plan: ConcatenatedChunkGraphPlan,
 ) {
   let root_module_id = config.root_module;
-  let modules_set = config.get_modules();
-
-  let module_graph = compilation.get_module_graph();
-  let box_module = module_graph
-    .module_by_identifier(&root_module_id)
-    .expect("should have module");
-  let root_module_source_types = box_module.source_types(module_graph);
-  let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
-  let module_graph = compilation.get_module_graph_mut();
-
-  let module_graph_module = ModuleGraphModule::new(new_module.identifier());
-  module_graph.add_module_graph_module(module_graph_module);
+  {
+    let module_graph = compilation.get_module_graph_mut();
+    let module_graph_module = ModuleGraphModule::new(new_module.identifier());
+    module_graph.add_module_graph_module(module_graph_module);
+  }
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate
-
   let module_graph = compilation.get_module_graph_mut();
 
-  for m in modules_set.iter() {
-    if *m == root_module_id {
-      continue;
-    }
-    let module = module_graph
-      .module_by_identifier(m)
-      .expect("should exist module");
-    // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-    for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
-      let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
-
-      if source_types.len() == 1 {
-        chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
-      } else {
-        let new_source_types = source_types
-          .into_iter()
-          .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-          .collect();
-        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
-      }
-    }
-  }
-
-  // different from webpack
-  // Rspack: if entry is an asset module, outputs a js chunk and a asset chunk
-  // Webpack: if entry is an asset module, outputs an asset chunk
-  // these lines of codes fix a bug: when asset module (NormalModule) is concatenated into ConcatenatedModule, the asset will be lost
-  // because `chunk_graph.replace_module(&root_module_id, &new_module.id());` will remove the asset module from chunk, and I add this module back to fix this bug
-  if is_root_module_asset_module {
-    chunk_graph.replace_module(&root_module_id, &new_module.identifier());
-    chunk_graph.add_module(root_module_id);
-    for chunk_ukey in chunk_graph
-      .get_module_chunks(new_module.identifier())
-      .clone()
-    {
-      let module = module_graph
-        .module_by_identifier(&root_module_id)
-        .expect("should exist module");
-
-      let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
-      let new_source_types = source_types
-        .iter()
-        .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-        .copied()
-        .collect();
-      chunk_graph.set_chunk_modules_source_types(&chunk_ukey, root_module_id, new_source_types);
-      chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
-    }
-  } else {
-    chunk_graph.replace_module(&root_module_id, &new_module.identifier());
-  }
+  apply_concatenated_chunk_graph_plan(
+    &mut chunk_graph,
+    root_module_id,
+    new_module.identifier(),
+    chunk_graph_plan,
+  );
 
   module_graph.add_module(new_module);
   compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
@@ -1841,4 +1845,52 @@ fn is_connection_active_in_runtime(
     artifacts.side_effects_state_artifact,
     artifacts.exports_info_artifact,
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn source_types(source_types: &[SourceType]) -> rustc_hash::FxHashSet<SourceType> {
+    source_types.iter().copied().collect()
+  }
+
+  #[test]
+  fn css_only_source_types_are_preserved_for_legacy_concat_path() {
+    let action = plan_concatenated_chunk_module_action(
+      source_types(&[SourceType::Css]),
+      SingleSourceTypeBehavior::PreserveCssOnly,
+    );
+
+    assert_eq!(
+      action,
+      ConcatenatedChunkModuleAction::SetSourceTypes(source_types(&[SourceType::Css]))
+    );
+  }
+
+  #[test]
+  fn css_only_source_types_are_disconnected_for_batch_concat_path() {
+    let action = plan_concatenated_chunk_module_action(
+      source_types(&[SourceType::Css]),
+      SingleSourceTypeBehavior::DisconnectAlways,
+    );
+
+    assert_eq!(action, ConcatenatedChunkModuleAction::Disconnect);
+  }
+
+  #[test]
+  fn javascript_is_filtered_from_multi_source_modules() {
+    let action = plan_concatenated_chunk_module_action(
+      source_types(&[SourceType::JavaScript, SourceType::Css, SourceType::Asset]),
+      SingleSourceTypeBehavior::DisconnectAlways,
+    );
+
+    assert_eq!(
+      action,
+      ConcatenatedChunkModuleAction::SetSourceTypes(source_types(&[
+        SourceType::Css,
+        SourceType::Asset
+      ]))
+    );
+  }
 }

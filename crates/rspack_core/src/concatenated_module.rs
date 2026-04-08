@@ -40,13 +40,13 @@ use crate::{
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfoHashKey,
-  ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter, ExportsType,
-  FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
+  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, CompilationAsset,
+  ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment, ConnectionState, Context,
+  DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType,
+  ExportInfoHashKey, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter,
+  ExportsType, FactoryMeta, GetUsedNameParam, ImportedByDeferModulesArtifact, InitFragment,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
   ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, PrefetchExportsInfoMode,
   Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set, filter_runtime,
@@ -112,6 +112,47 @@ pub struct SymbolBinding {
 pub enum Binding {
   Raw(RawBinding),
   Symbol(SymbolBinding),
+}
+
+#[derive(Debug)]
+struct ConcatenatedBuildModuleData {
+  cacheable: bool,
+  dependencies: Vec<DependencyId>,
+  blocks: Vec<AsyncDependenciesBlockIdentifier>,
+  diagnostics: Vec<Diagnostic>,
+  top_level_declarations: Option<HashSet<Atom>>,
+  need_create_require: bool,
+  assets: HashMap<String, CompilationAsset>,
+}
+
+fn merge_concatenated_build_module_data(
+  build_info: &mut BuildInfo,
+  dependencies: &mut Vec<DependencyId>,
+  blocks: &mut Vec<AsyncDependenciesBlockIdentifier>,
+  diagnostics: &mut Vec<Diagnostic>,
+  module_data: ConcatenatedBuildModuleData,
+) {
+  if !module_data.cacheable {
+    build_info.cacheable = false;
+  }
+
+  dependencies.extend(module_data.dependencies);
+  blocks.extend(module_data.blocks);
+  diagnostics.extend(module_data.diagnostics);
+
+  if let Some(decls) = module_data.top_level_declarations {
+    if let Some(top_level_declarations) = &mut build_info.top_level_declarations {
+      top_level_declarations.extend(decls);
+    }
+  } else {
+    build_info.top_level_declarations = None;
+  }
+
+  if module_data.need_create_require {
+    build_info.need_create_require = true;
+  }
+
+  build_info.assets.extend(module_data.assets);
 }
 
 #[derive(Debug)]
@@ -871,8 +912,8 @@ impl Module for ConcatenatedModule {
     let modules = self
       .modules
       .iter()
-      .map(|item| Some(&item.id))
-      .collect::<HashSet<_>>();
+      .map(|item| item.id)
+      .collect::<IdentifierSet>();
 
     let root_module = module_graph
       .module_by_identifier(&self.root_module_ctxt.id)
@@ -881,53 +922,22 @@ impl Module for ConcatenatedModule {
     // populate root inline_exports
     self.build_info.inline_exports = root_module.build_info().inline_exports;
 
-    for m in self.modules.iter() {
-      let module = module_graph
-        .module_by_identifier(&m.id)
-        .expect("should have module");
-      let cur_build_info = module.build_info();
+    let module_data = self
+      .modules
+      .par_iter()
+      .map(|module| Self::collect_build_module_data(module_graph, module.id, &modules))
+      .collect::<Vec<_>>();
 
-      // populate cacheable
-      if !cur_build_info.cacheable {
-        self.build_info.cacheable = false;
-      }
-
-      // populate dependencies
-      for dep_id in module.get_dependencies().iter() {
-        let dep = module_graph.dependency_by_id(dep_id);
-        let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
-          self.dependencies.push(*dep_id);
-        }
-      }
-
-      // populate blocks
-      for b in module.get_blocks() {
-        self.blocks.push(*b);
-      }
-      // populate diagnostic
-      self.diagnostics.extend(module.diagnostics().into_owned());
-
-      // populate topLevelDeclarations
-      let module_build_info = module.build_info();
-      if let Some(decls) = &module_build_info.top_level_declarations
-        && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
-      {
-        top_level_declarations.extend(decls.iter().cloned());
-      } else {
-        self.build_info.top_level_declarations = None;
-      }
-
-      if module_build_info.need_create_require {
-        self.build_info.need_create_require = true;
-      }
-
-      // populate assets
-      self
-        .build_info
-        .assets
-        .extend(module_build_info.assets.as_ref().clone());
+    for module_data in module_data {
+      merge_concatenated_build_module_data(
+        &mut self.build_info,
+        &mut self.dependencies,
+        &mut self.blocks,
+        &mut self.diagnostics,
+        module_data,
+      );
     }
+
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult {
       module: BoxModule::new(self),
@@ -2126,6 +2136,40 @@ struct ConcatenationArtifacts<'a> {
 }
 
 impl ConcatenatedModule {
+  fn collect_build_module_data(
+    module_graph: &ModuleGraph,
+    module_id: ModuleIdentifier,
+    modules: &IdentifierSet,
+  ) -> ConcatenatedBuildModuleData {
+    let module = module_graph
+      .module_by_identifier(&module_id)
+      .expect("should have module");
+    let build_info = module.build_info();
+    let dependencies = module
+      .get_dependencies()
+      .iter()
+      .filter_map(|dep_id| {
+        let dep = module_graph.dependency_by_id(dep_id);
+        let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
+        if !is_esm_dep_like(dep) || !module_id_of_dep.is_some_and(|id| modules.contains(id)) {
+          Some(*dep_id)
+        } else {
+          None
+        }
+      })
+      .collect();
+
+    ConcatenatedBuildModuleData {
+      cacheable: build_info.cacheable,
+      dependencies,
+      blocks: module.get_blocks().to_vec(),
+      diagnostics: module.diagnostics().into_owned(),
+      top_level_declarations: build_info.top_level_declarations.clone(),
+      need_create_require: build_info.need_create_require,
+      assets: build_info.assets.as_ref().clone(),
+    }
+  }
+
   // TODO: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
     &self,
@@ -3568,4 +3612,129 @@ pub fn collect_ident(
   };
   collector.visit_module(root);
   collector.ids
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn make_module_data(
+    dep: u32,
+    block: &str,
+    diagnostic: &str,
+    top_level_declarations: Option<&[&str]>,
+    cacheable: bool,
+    need_create_require: bool,
+    asset_name: &str,
+  ) -> ConcatenatedBuildModuleData {
+    ConcatenatedBuildModuleData {
+      cacheable,
+      dependencies: vec![DependencyId::from(dep)],
+      blocks: vec![AsyncDependenciesBlockIdentifier::from(block.to_string())],
+      diagnostics: vec![Diagnostic::warn("TEST".into(), diagnostic.into())],
+      top_level_declarations: top_level_declarations.map(|decls| {
+        decls
+          .iter()
+          .map(|decl| Atom::from(*decl))
+          .collect::<HashSet<_>>()
+      }),
+      need_create_require,
+      assets: HashMap::from_iter([(
+        asset_name.to_string(),
+        CompilationAsset::new(None, Default::default()),
+      )]),
+    }
+  }
+
+  #[test]
+  fn merge_concatenated_build_module_data_preserves_append_order_and_flags() {
+    let mut build_info = BuildInfo {
+      top_level_declarations: Some(HashSet::default()),
+      ..Default::default()
+    };
+    let mut dependencies = vec![];
+    let mut blocks = vec![];
+    let mut diagnostics = vec![];
+
+    merge_concatenated_build_module_data(
+      &mut build_info,
+      &mut dependencies,
+      &mut blocks,
+      &mut diagnostics,
+      make_module_data(1, "first", "first", Some(&["a"]), true, false, "a.js"),
+    );
+    merge_concatenated_build_module_data(
+      &mut build_info,
+      &mut dependencies,
+      &mut blocks,
+      &mut diagnostics,
+      make_module_data(2, "second", "second", Some(&["b"]), false, true, "b.js"),
+    );
+
+    assert_eq!(
+      dependencies,
+      vec![DependencyId::from(1), DependencyId::from(2)]
+    );
+    assert_eq!(
+      blocks,
+      vec![
+        AsyncDependenciesBlockIdentifier::from("first".to_string()),
+        AsyncDependenciesBlockIdentifier::from("second".to_string())
+      ]
+    );
+    assert_eq!(diagnostics.len(), 2);
+    assert!(!build_info.cacheable);
+    assert!(build_info.need_create_require);
+    assert!(
+      build_info
+        .top_level_declarations
+        .as_ref()
+        .expect("should keep declarations")
+        .contains(&Atom::from("a"))
+    );
+    assert!(
+      build_info
+        .top_level_declarations
+        .as_ref()
+        .expect("should keep declarations")
+        .contains(&Atom::from("b"))
+    );
+    assert!(build_info.assets.as_ref().contains_key("a.js"));
+    assert!(build_info.assets.as_ref().contains_key("b.js"));
+  }
+
+  #[test]
+  fn merge_concatenated_build_module_data_keeps_top_level_declarations_disabled() {
+    let mut build_info = BuildInfo {
+      top_level_declarations: Some(HashSet::default()),
+      ..Default::default()
+    };
+    let mut dependencies = vec![];
+    let mut blocks = vec![];
+    let mut diagnostics = vec![];
+
+    merge_concatenated_build_module_data(
+      &mut build_info,
+      &mut dependencies,
+      &mut blocks,
+      &mut diagnostics,
+      make_module_data(1, "first", "first", Some(&["a"]), true, false, "a.js"),
+    );
+    merge_concatenated_build_module_data(
+      &mut build_info,
+      &mut dependencies,
+      &mut blocks,
+      &mut diagnostics,
+      make_module_data(2, "second", "second", None, true, false, "b.js"),
+    );
+    merge_concatenated_build_module_data(
+      &mut build_info,
+      &mut dependencies,
+      &mut blocks,
+      &mut diagnostics,
+      make_module_data(3, "third", "third", Some(&["c"]), true, false, "c.js"),
+    );
+
+    assert!(build_info.top_level_declarations.is_none());
+  }
 }
