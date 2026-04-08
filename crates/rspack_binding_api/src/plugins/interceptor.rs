@@ -18,17 +18,18 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook, CompilationBuildModule,
-  CompilationBuildModuleHook, CompilationChunkAsset, CompilationChunkAssetHook,
-  CompilationChunkHash, CompilationChunkHashHook, CompilationExecuteModule,
-  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
-  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
-  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
-  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
-  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
-  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
-  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
-  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
+  CompilationAssetPath, CompilationAssetPathHook, CompilationBeforeModuleIds,
+  CompilationBeforeModuleIdsHook, CompilationBuildModule, CompilationBuildModuleHook,
+  CompilationChunkAsset, CompilationChunkAssetHook, CompilationChunkHash,
+  CompilationChunkHashHook, CompilationExecuteModule, CompilationExecuteModuleHook,
+  CompilationFinishModules, CompilationFinishModulesHook, CompilationId,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook, CompilationOptimizeModules,
+  CompilationOptimizeModulesHook, CompilationOptimizeTree, CompilationOptimizeTreeHook,
+  CompilationParams, CompilationProcessAssets, CompilationProcessAssetsHook,
+  CompilationRuntimeModule, CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
+  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
+  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
+  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
   CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
   CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId,
   CompilerMake, CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook,
@@ -41,8 +42,8 @@ use rspack_core::{
   NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
   NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
-  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
+  NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, PathData, ResourceData,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, Scheme,
   build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
@@ -132,6 +133,41 @@ impl JsBeforeModuleIdsArg {
 pub struct JsBeforeModuleIdsResult {
   #[napi(ts_type = "Record<string, string>")]
   pub assignments: FxHashMap<String, String>,
+}
+
+/// Data passed to `compilation.hooks.assetPath` taps, mirroring webpack's PathData.
+#[napi(object)]
+pub struct JsAssetPathData {
+  /// The resolved asset path (the value being transformed by the hook).
+  pub path: String,
+  pub chunk_name: Option<String>,
+  pub chunk_hash: Option<String>,
+  pub chunk_id: Option<String>,
+  pub module_id: Option<String>,
+  pub hash: Option<String>,
+  pub content_hash: Option<String>,
+  pub runtime: Option<String>,
+  pub url: Option<String>,
+  pub id: Option<String>,
+  pub filename: Option<String>,
+}
+
+impl JsAssetPathData {
+  pub fn new(path: &str, data: &PathData<'_>) -> Self {
+    Self {
+      path: path.to_string(),
+      chunk_name: data.chunk_name.map(|s| s.to_string()),
+      chunk_hash: data.chunk_hash.map(|s| s.to_string()),
+      chunk_id: data.chunk_id.map(|s| s.to_string()),
+      module_id: data.module_id.map(|s| s.to_string()),
+      hash: data.hash.map(|s| s.to_string()),
+      content_hash: data.content_hash.map(|s| s.to_string()),
+      runtime: data.runtime.map(|s| s.to_string()),
+      url: data.url.map(|s| s.to_string()),
+      id: data.id.map(|s| s.to_string()),
+      filename: data.filename.map(|s| s.to_string()),
+    }
+  }
 }
 
 #[napi(object)]
@@ -386,6 +422,7 @@ pub enum RegisterJsTapKind {
   CompilationAfterProcessAssets,
   CompilationSeal,
   CompilationAfterSeal,
+  CompilationAssetPath,
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryFactorize,
   NormalModuleFactoryResolve,
@@ -540,6 +577,10 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
   pub register_compilation_after_seal_taps: RegisterFunction<(), Promise<()>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAssetPathData) => string); stage: number; }>"
+  )]
+  pub register_compilation_asset_path_taps: RegisterFunction<JsAssetPathData, String>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
@@ -857,6 +898,13 @@ define_register!(
   tap = CompilationAfterSealTap<(), Promise<()>> @ CompilationAfterSealHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationAfterSeal,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationAssetPathTaps,
+  tap = CompilationAssetPathTap<JsAssetPathData, String> @ CompilationAssetPathHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationAssetPath,
   skip = true,
 );
 
@@ -1570,6 +1618,25 @@ impl CompilationSeal for CompilationSealTap {
 impl CompilationAfterSeal for CompilationAfterSealTap {
   async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<()> {
     self.function.call_with_promise(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationAssetPath for CompilationAssetPathTap {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    asset_path: &mut String,
+    data: &PathData<'_>,
+  ) -> rspack_error::Result<()> {
+    let arg = JsAssetPathData::new(asset_path.as_str(), data);
+    let new_path: String = self.function.call_with_sync(arg).await?;
+    *asset_path = new_path;
+    Ok(())
   }
 
   fn stage(&self) -> i32 {

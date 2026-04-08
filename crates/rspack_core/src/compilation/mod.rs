@@ -129,6 +129,7 @@ define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
 define_hook!(CompilationAfterProcessAssets: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterSeal: Series(compilation: &Compilation),tracing=true);
+define_hook!(CompilationAssetPath: Series(compilation: &Compilation, asset_path: &mut String, data: &PathData<'_>));
 
 #[derive(Debug, Default)]
 pub struct CompilationHooks {
@@ -168,6 +169,7 @@ pub struct CompilationHooks {
   pub process_assets: CompilationProcessAssetsHook,
   pub after_process_assets: CompilationAfterProcessAssetsHook,
   pub after_seal: CompilationAfterSealHook,
+  pub asset_path: CompilationAssetPathHook,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
@@ -1169,7 +1171,14 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    filename.render(data, None).await
+    let mut path = filename.render(data, None).await?;
+    self
+      .plugin_driver
+      .compilation_hooks
+      .asset_path
+      .call(self, &mut path, &data)
+      .await?;
+    Ok(path)
   }
 
   pub async fn get_path_with_info<'b, 'a: 'b>(
@@ -1181,12 +1190,25 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
-    let path = filename.render(data, Some(info)).await?;
+    let mut path = filename.render(data, Some(info)).await?;
+    self
+      .plugin_driver
+      .compilation_hooks
+      .asset_path
+      .call(self, &mut path, &data)
+      .await?;
     Ok(path)
   }
 
   pub async fn get_asset_path(&self, filename: &Filename, data: PathData<'_>) -> Result<String> {
-    filename.render(data, None).await
+    let mut path = filename.render(data, None).await?;
+    self
+      .plugin_driver
+      .compilation_hooks
+      .asset_path
+      .call(self, &mut path, &data)
+      .await?;
+    Ok(path)
   }
 
   pub async fn get_asset_path_with_info(
@@ -1195,7 +1217,13 @@ impl Compilation {
     data: PathData<'_>,
   ) -> Result<(String, AssetInfo)> {
     let mut info = AssetInfo::default();
-    let path = filename.render(data, Some(&mut info)).await?;
+    let mut path = filename.render(data, Some(&mut info)).await?;
+    self
+      .plugin_driver
+      .compilation_hooks
+      .asset_path
+      .call(self, &mut path, &data)
+      .await?;
     Ok((path, info))
   }
 
