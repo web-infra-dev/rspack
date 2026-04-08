@@ -47,6 +47,7 @@ var value = 2;
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
 })();
+
 }
 );
 ```

@@ -741,9 +741,8 @@ impl ModuleCodeTemplate {
       .collect::<Vec<_>>();
 
     if chunks.len() == 1 {
-      let chunk_id = rspack_util::json_stringify_chunk_id(
-        chunks[0].id().expect("should have chunk.id").as_str(),
-      );
+      let chunk_id =
+        rspack_util::json_stringify_str(chunks[0].id().expect("should have chunk.id").as_str());
 
       let fetch_priority = chunk_group
         .kind
@@ -782,7 +781,7 @@ impl ModuleCodeTemplate {
           .map(|c| format!(
             "{}({}{})",
             self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            rspack_util::json_stringify_chunk_id(c.id().expect("should have chunk.id").as_str()),
+            rspack_util::json_stringify_str(c.id().expect("should have chunk.id").as_str()),
             fetch_priority
               .map(|x| format!(r#", "{x}""#))
               .unwrap_or_default()

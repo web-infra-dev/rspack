@@ -73,13 +73,11 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
           })
           .collect_vec();
 
-        let group_ids_str: Vec<&str> = group_chunk_ids.iter().map(|id| id.as_str()).collect();
-        let child_ids_str: Vec<&str> = child_chunk_ids.iter().map(|id| id.as_str()).collect();
         let source = context.runtime_template.render(
           &self.id,
           Some(serde_json::json!({
-            "_chunk_ids": rspack_util::json_stringify_chunk_ids(&group_ids_str),
-            "_child_chunk_ids": rspack_util::json_stringify_chunk_ids(&child_ids_str),
+            "_chunk_ids": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
+            "_child_chunk_ids": serde_json::to_string(&child_chunk_ids).expect("invalid json tostring"),
           })),
         )?;
 
