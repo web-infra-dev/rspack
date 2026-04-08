@@ -302,6 +302,10 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn set_external_type(&mut self, new_type: ExternalType) {
+    self.external_type = new_type;
+  }
+
   pub fn get_request(&self) -> &ExternalRequestValue {
     match &self.request {
       ExternalRequest::Single(request) => request,
@@ -412,9 +416,13 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__rspack_external_{}", to_identifier(id));
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) {
           format!(
@@ -443,9 +451,13 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) && let Some(request) = request
         {
@@ -727,6 +739,9 @@ if(typeof {global} !== "undefined") return resolve();
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) {
           format!(
@@ -971,9 +986,13 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
     let is_optional = compilation.get_module_graph().is_optional(
       &self.id,
       &compilation.module_graph_cache_artifact,
+      side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
     is_optional.dyn_hash(&mut hasher);

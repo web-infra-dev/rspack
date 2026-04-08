@@ -202,6 +202,35 @@ export default {
 };
 ```
 
+### 新增 `experiments.pureFunctions`，用于函数粒度 tree shaking
+
+Rspack 2.0 新增了实验性的 `experiments.pureFunctions` 开关，用于在跨模块场景下进行更细粒度的 pure function tree shaking。
+
+启用后，可以根据代码是否可修改选择不同入口：
+
+- 对于无法直接修改源码的第三方模块，例如 `node_modules` 中的包，可使用 [module.parser.javascript.pureFunctions](/config/module#moduleparserjavascriptpurefunctions) 手动标记顶层导出函数。
+- 对于可以直接修改源码的业务代码，可在函数定义前使用 `/*#__NO_SIDE_EFFECTS__*/` 注解。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index.js/,
+        parser: {
+          pureFunctions: ['isString', 'default'],
+        },
+      },
+    ],
+  },
+};
+```
+
+更多说明可参考 [tree shaking 指南](/guide/optimization/tree-shaking#purefunctions)。
+
 ## 产物相关配置变更
 
 ### output.library 相关配置迁移
@@ -231,6 +260,20 @@ export default {
 export default {
   output: {
     hotUpdateGlobal: 'webpackHotUpdateMyApp',
+  },
+};
+```
+
+### 修改 output.bundlerInfo.force 的默认值
+
+[output.bundlerInfo.force](/config/output#outputbundlerinfo) 的默认值已从 `true` 改为 `false`。在 Rspack 2.0 中，`__rspack_version__` 和 `__rspack_unique_id__` 默认改为按需注入，而不是始终作为 runtime modules 注入。如果你的应用依赖之前始终注入的行为，可显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: {
+      force: true,
+    },
   },
 };
 ```

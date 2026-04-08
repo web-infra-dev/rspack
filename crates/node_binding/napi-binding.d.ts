@@ -25,6 +25,10 @@ export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 
 export const RUST_ERROR_SYMBOL: unique symbol;
 
+export const CIRCULAR_CONNECTION_SYMBOL: unique symbol;
+export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
+export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
+
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
 	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
@@ -452,6 +456,7 @@ export declare class ModuleGraphConnection {
   get module(): Module | null
   get resolvedModule(): Module | null
   get originModule(): Module | null
+  getActiveState(runtime: string | string[] | undefined): ConnectionState
 }
 
 export declare class NativeWatcher {
@@ -2235,6 +2240,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  pureFunctions: boolean
 }
 
 export interface RawExposeOptions {
@@ -2477,6 +2483,12 @@ jsx?: boolean
  * @experimental
  */
 importMetaResolve?: boolean
+/**
+ * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+pureFunctions?: Array<string>
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2902,10 +2914,10 @@ export interface RawRslibPluginOptions {
    */
   forceNodeShims?: boolean
   /**
-   * Externalize Node.js builtin modules with ESM-aware external types
+   * Auto downgrade module external type to node-commonjs for CJS require of node builtins
    * @default `false`
    */
-  externalEsmNodeBuiltin?: boolean
+  autoCjsNodeBuiltin?: boolean
 }
 
 export interface RawRstestPluginOptions {

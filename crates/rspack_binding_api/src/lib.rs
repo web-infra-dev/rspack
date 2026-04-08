@@ -676,5 +676,6 @@ fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;
   error::export_symbols(exports, env)?;
+  module_graph_connection::export_symbols(exports, env)?;
   Ok(())
 }

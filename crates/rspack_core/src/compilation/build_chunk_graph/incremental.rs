@@ -1,15 +1,15 @@
-use std::{collections::HashSet, hash::BuildHasherDefault, sync::Arc};
+use std::sync::Arc;
 
 use num_bigint::BigUint;
-use rspack_collections::{IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
-  GroupOptions, ModuleIdentifier, RuntimeSpec,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierSet, ChunkGroupKind,
+  ChunkGroupUkey, ChunkUkey, Compilation, GroupOptions, ModuleIdentifier, RuntimeSpec,
   incremental::{IncrementalPasses, Mutation},
   is_runtime_equal,
 };
@@ -326,13 +326,10 @@ impl CodeSplitter {
     &self,
     compilation: &Compilation,
     modules: impl Iterator<Item = ModuleIdentifier>,
-  ) -> HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
+  ) -> AsyncDependenciesBlockIdentifierSet {
     let chunk_graph: &crate::ChunkGraph = &compilation.build_chunk_graph_artifact.chunk_graph;
     let mut chunk_groups = FxHashSet::default();
-    let mut removed: HashSet<
-      AsyncDependenciesBlockIdentifier,
-      BuildHasherDefault<IdentifierHasher>,
-    > = Default::default();
+    let mut removed = AsyncDependenciesBlockIdentifierSet::default();
     for m in modules {
       let Some(cgm) = chunk_graph.chunk_graph_module_by_module_identifier.get(&m) else {
         continue;
@@ -859,10 +856,7 @@ struct CacheResult {
   pub pre_order_indices: IdentifierMap<u32>,
   pub post_order_indices: IdentifierMap<u32>,
   pub skipped_modules: IdentifierIndexSet,
-  pub outgoings: std::collections::HashSet<
-    AsyncDependenciesBlockIdentifier,
-    BuildHasherDefault<IdentifierHasher>,
-  >,
+  pub outgoings: AsyncDependenciesBlockIdentifierSet,
 }
 
 #[derive(Debug, Clone)]

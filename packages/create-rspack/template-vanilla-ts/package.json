@@ -1,16 +1,17 @@
 {
   "name": "rspack-vanilla-ts-starter",
-  "private": true,
   "version": "1.0.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "rspack dev",
     "build": "rspack build",
+    "dev": "rspack dev",
     "preview": "rspack preview"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "2.0.0-beta.7",
+    "@rspack/dev-server": "2.0.0-rc.2",
     "typescript": "^6.0.2"
   }
 }

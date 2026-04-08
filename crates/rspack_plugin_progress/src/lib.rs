@@ -20,7 +20,7 @@ use rspack_core::{
   CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
   CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
   CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
+  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact, SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
@@ -442,6 +442,7 @@ async fn finish_modules(
   _compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   self.sealing_hooks_report("finish modules", 0).await
 }

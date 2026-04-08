@@ -14,7 +14,7 @@ use super::{
 use crate::{
   AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ExtendedReferencedExport,
   ForwardId, ImportAttributes, ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleLayer, RuntimeSpec, create_exports_object_referenced,
+  ModuleLayer, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -76,6 +76,7 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {

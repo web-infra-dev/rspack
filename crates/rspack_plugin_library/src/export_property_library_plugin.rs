@@ -4,8 +4,8 @@ use rspack_core::{
   AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportsInfoArtifact, LibraryExport, LibraryOptions, LibraryType,
-  ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, UsageState,
-  get_entry_runtime, property_access,
+  ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  SideEffectsStateArtifact, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -117,6 +117,7 @@ async fn finish_modules(
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());

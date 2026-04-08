@@ -2,7 +2,9 @@ use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::*;
-use crate::{cache::Cache, logger::Logger, pass::PassExt};
+use crate::{
+  OptimizationBailoutItem, SideEffectsStateArtifact, cache::Cache, logger::Logger, pass::PassExt,
+};
 
 pub struct FinishModulesPhasePass;
 
@@ -38,8 +40,12 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   let mut dependencies_diagnostics_artifact = compilation.dependencies_diagnostics_artifact.steal();
   let mut async_modules_artifact = compilation.async_modules_artifact.steal();
   let mut exports_info_artifact = compilation.exports_info_artifact.steal();
+  let mut side_effects_state_artifact = compilation
+    .build_module_graph_artifact
+    .steal_side_effects_state_artifact();
   let diagnostics = finish_modules_inner(
     compilation,
+    &mut side_effects_state_artifact,
     &mut dependencies_diagnostics_artifact,
     &mut async_modules_artifact,
     &mut exports_info_artifact,
@@ -49,6 +55,13 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
   compilation.async_modules_artifact = async_modules_artifact.into();
   compilation.exports_info_artifact = exports_info_artifact.into();
   let diagnostics = diagnostics?;
+  apply_side_effects_state_artifact(
+    compilation.get_module_graph_mut(),
+    &side_effects_state_artifact,
+  );
+  compilation
+    .build_module_graph_artifact
+    .set_side_effects_state_artifact(side_effects_state_artifact);
   compilation.extend_diagnostics(diagnostics);
 
   Ok(())
@@ -57,12 +70,13 @@ pub async fn finish_modules_pass(compilation: &mut Compilation) -> Result<()> {
 #[tracing::instrument("Compilation:finish_modules_inner", skip_all)]
 pub async fn finish_modules_inner(
   compilation: &Compilation,
+  side_effects_state_artifact: &mut SideEffectsStateArtifact,
   dependencies_diagnostics_artifact: &mut DependenciesDiagnosticsArtifact,
   async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
 ) -> Result<Vec<Diagnostic>> {
-  let build_module_graph_artifact = &compilation.build_module_graph_artifact;
   if let Some(mut mutations) = compilation.incremental.mutations_write() {
+    let build_module_graph_artifact = &compilation.build_module_graph_artifact;
     mutations.extend(
       build_module_graph_artifact
         .affected_dependencies
@@ -103,7 +117,12 @@ pub async fn finish_modules_inner(
     .clone()
     .compilation_hooks
     .finish_modules
-    .call(compilation, async_modules_artifact, exports_info_artifact)
+    .call(
+      compilation,
+      async_modules_artifact,
+      exports_info_artifact,
+      side_effects_state_artifact,
+    )
     .await?;
 
   // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2988
@@ -119,7 +138,7 @@ pub async fn finish_modules_inner(
   compilation.module_graph_cache_artifact.unfreeze();
 
   // take make diagnostics
-  let diagnostics = build_module_graph_artifact.diagnostics();
+  let diagnostics = compilation.build_module_graph_artifact.diagnostics();
   all_diagnostics.extend(diagnostics);
   Ok(all_diagnostics)
 }
@@ -214,4 +233,62 @@ fn collect_dependencies_diagnostics(
     dependencies_diagnostics
   };
   all_modules_diagnostics.into_values().flatten().collect()
+}
+
+fn apply_side_effects_state_artifact(
+  module_graph: &mut ModuleGraph,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
+) {
+  if side_effects_state_artifact.is_empty() {
+    return;
+  }
+
+  for (module_id, state) in side_effects_state_artifact.iter() {
+    if module_graph.module_by_identifier(module_id).is_none() {
+      continue;
+    }
+
+    let bailouts = module_graph.get_optimization_bailout_mut(module_id);
+    bailouts.retain(|item| {
+      !state
+        .optimization_bailouts_to_remove
+        .iter()
+        .any(|target| optimization_bailout_item_eq(item, target))
+    });
+    for item in &state.optimization_bailouts_to_add {
+      if bailouts
+        .iter()
+        .any(|existing| optimization_bailout_item_eq(existing, item))
+      {
+        continue;
+      }
+      bailouts.push(item.clone());
+    }
+  }
+}
+
+fn optimization_bailout_item_eq(
+  left: &OptimizationBailoutItem,
+  right: &OptimizationBailoutItem,
+) -> bool {
+  match (left, right) {
+    (OptimizationBailoutItem::Message(left), OptimizationBailoutItem::Message(right)) => {
+      left == right
+    }
+    (
+      OptimizationBailoutItem::SideEffects {
+        node_type: left_node_type,
+        loc: left_loc,
+        short_id: left_short_id,
+      },
+      OptimizationBailoutItem::SideEffects {
+        node_type: right_node_type,
+        loc: right_loc,
+        short_id: right_short_id,
+      },
+    ) => {
+      left_node_type == right_node_type && left_loc == right_loc && left_short_id == right_short_id
+    }
+    _ => false,
+  }
 }

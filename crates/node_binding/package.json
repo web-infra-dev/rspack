@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "2.0.0-rc.0",
+  "version": "2.0.0-rc.1",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -26,7 +26,8 @@
     "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js",
     "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
-    "test": "tsc -p tsconfig.type-test.json"
+    "test": "tsc -p tsconfig.type-test.json",
+    "wasm-add-external-debug": "node scripts/add-external-debug-info.js rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -36,7 +37,7 @@
     "@emnapi/runtime": "1.9.2",
     "@napi-rs/cli": "3.6.0",
     "@napi-rs/wasm-runtime": "1.1.2",
-    "@types/node": "^20.19.37",
+    "@types/node": "^20.19.39",
     "emnapi": "1.9.2",
     "typescript": "^6.0.2"
   },

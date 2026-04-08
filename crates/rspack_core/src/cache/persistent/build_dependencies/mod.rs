@@ -47,6 +47,11 @@ impl BuildDeps {
     }
   }
 
+  /// Reset build dependencies scope in storage
+  pub fn reset(&self, storage: &mut dyn Storage) {
+    storage.reset(SnapshotScope::BUILD.name());
+  }
+
   /// Add build dependencies
   ///
   /// For performance reasons, recursive searches will stop for build dependencies in node_modules.
@@ -176,7 +181,7 @@ mod test {
       .await
       .expect("should validate success");
     assert!(!validate_result);
-    storage.reset().await;
+    storage.reset(scope);
 
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 0);

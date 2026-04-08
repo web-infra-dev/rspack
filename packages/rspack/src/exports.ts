@@ -32,6 +32,10 @@ export { ExternalModule } from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
+export {
+  ModuleGraphConnection,
+  type ConnectionState,
+} from './ModuleGraphConnection';
 export { MultiStats } from './MultiStats';
 export { NormalModule } from './NormalModule';
 export type { NormalModuleFactory } from './NormalModuleFactory';

@@ -24,6 +24,7 @@ module.exports = {
 			    buildHttp: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
+			    pureFunctions: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,
@@ -347,7 +348,7 @@ module.exports = {
 			    asyncChunks: true,
 			    bundlerInfo: Object {
 			      bundler: rspack,
-			      force: true,
+			      force: false,
 			      version: $version$,
 			    },
 			    chunkFilename: [name].js,

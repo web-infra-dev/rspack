@@ -2,11 +2,46 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, DependencyId, ModuleGraph, internal};
+use rspack_core::{
+  Compilation, CompilationId, ConnectionState, DependencyId, ModuleGraph, internal,
+};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
-use crate::{dependency::DependencyWrapper, module::ModuleObject};
+use crate::{define_symbols, dependency::DependencyWrapper, module::ModuleObject};
+
+define_symbols! {
+  CIRCULAR_CONNECTION_SYMBOL => "CIRCULAR_CONNECTION",
+  TRANSITIVE_ONLY_SYMBOL => "TRANSITIVE_ONLY",
+}
+
+/// Wrapper for ConnectionState that serializes to JS as `boolean | symbol`.
+pub enum JsConnectionState {
+  Bool(bool),
+  CircularConnection,
+  TransitiveOnly,
+}
+
+impl ToNapiValue for JsConnectionState {
+  unsafe fn to_napi_value(
+    env: napi::sys::napi_env,
+    val: Self,
+  ) -> napi::Result<napi::sys::napi_value> {
+    unsafe {
+      match val {
+        JsConnectionState::Bool(b) => ToNapiValue::to_napi_value(env, b),
+        JsConnectionState::CircularConnection => CIRCULAR_CONNECTION_SYMBOL.with(|once_cell| {
+          #[allow(clippy::unwrap_used)]
+          ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
+        }),
+        JsConnectionState::TransitiveOnly => TRANSITIVE_ONLY_SYMBOL.with(|once_cell| {
+          #[allow(clippy::unwrap_used)]
+          ToNapiValue::to_napi_value(env, once_cell.get().unwrap())
+        }),
+      }
+    }
+  }
+}
 
 #[napi]
 pub struct ModuleGraphConnection {
@@ -79,6 +114,65 @@ impl ModuleGraphConnection {
           .module_by_identifier(&original_module_identifier)
           .map(|m| ModuleObject::with_ref(m.as_ref(), compilation.compiler_id())),
         None => None,
+      })
+    } else {
+      Err(napi::Error::from_reason(format!(
+        "Unable to access ModuleGraphConnection with id = {:#?} now. The ModuleGraphConnection have been removed on the Rust side.",
+        self.dependency_id
+      )))
+    }
+  }
+
+  #[napi(
+    ts_args_type = "runtime: string | string[] | undefined",
+    ts_return_type = "ConnectionState"
+  )]
+  pub fn get_active_state(
+    &self,
+    runtime: Option<napi::Either<String, Vec<String>>>,
+  ) -> napi::Result<JsConnectionState> {
+    let (compilation, module_graph) = self.as_ref()?;
+    if let Some(connection) = module_graph.connection_by_dependency_id(&self.dependency_id) {
+      // When exports_info_artifact is stolen (e.g. during finishModules hook),
+      // we cannot evaluate conditional connections properly, so we need the
+      // real artifact to get accurate results.
+      let Some(exports_info_artifact) = compilation.exports_info_artifact.try_read() else {
+        // Fallback: without exports info, non-conditional connections return
+        // their raw active state; conditional ones are treated as active since
+        // the optimization phase hasn't run yet.
+        return Ok(JsConnectionState::Bool(true));
+      };
+      let runtime_spec = runtime.map(|r| {
+        let mut set = ustr::UstrSet::default();
+        match r {
+          napi::Either::A(s) => {
+            set.insert(s.into());
+          }
+          napi::Either::B(vec) => {
+            set.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
+          }
+        }
+        rspack_core::RuntimeSpec::new(set)
+      });
+      let default_mgc: rspack_core::ModuleGraphCacheArtifact = Default::default();
+      let module_graph_cache = compilation
+        .module_graph_cache_artifact
+        .try_read()
+        .unwrap_or(&default_mgc);
+      let side_effects_state_artifact = &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact;
+      let state = connection.active_state(
+        module_graph,
+        runtime_spec.as_ref(),
+        module_graph_cache,
+        side_effects_state_artifact,
+        exports_info_artifact,
+      );
+      Ok(match state {
+        ConnectionState::Active(active) => JsConnectionState::Bool(active),
+        ConnectionState::CircularConnection => JsConnectionState::CircularConnection,
+        ConnectionState::TransitiveOnly => JsConnectionState::TransitiveOnly,
       })
     } else {
       Err(napi::Error::from_reason(format!(

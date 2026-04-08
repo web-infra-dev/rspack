@@ -219,6 +219,9 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
+
+  // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
+  D(experiments, 'pureFunctions', false);
 };
 
 const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
@@ -870,8 +873,7 @@ const applyOutputDefaults = (
   if (typeof output.bundlerInfo === 'object') {
     D(output.bundlerInfo, 'version', RSPACK_VERSION);
     D(output.bundlerInfo, 'bundler', 'rspack');
-    // don't inject for library mode
-    D(output.bundlerInfo, 'force', !output.library);
+    D(output.bundlerInfo, 'force', false);
   }
 };
 

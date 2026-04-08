@@ -1,6 +1,6 @@
 use std::{
-  collections::{HashSet as RawHashSet, VecDeque},
-  hash::{BuildHasherDefault, Hash},
+  collections::VecDeque,
+  hash::BuildHasherDefault,
   sync::{Arc, atomic::AtomicU32},
 };
 
@@ -8,7 +8,7 @@ use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Error, Result, error};
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -18,11 +18,12 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 
 use super::incremental::ChunkCreateData;
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroup, ChunkGroupKind, ChunkGroupOptions, ChunkGroupUkey,
-  ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock, DependencyId,
-  DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact, GroupOptions, Logger,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec,
-  SyntheticDependencyLocation, assign_depths,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncDependenciesBlockIdentifierSet, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
+  ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
+  DependencyId, DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact,
+  GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  RuntimeSpec, SideEffectsStateArtifact, SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
@@ -31,13 +32,15 @@ use crate::{
 
 type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
 type IndexSet<K, H = FxHasher> = RawIndexSet<K, BuildHasherDefault<H>>;
+pub(crate) type DependenciesBlockIdentifierMap<V> =
+  std::collections::HashMap<DependenciesBlockIdentifier, V, BuildHasherDefault<FxHasher>>;
+pub(crate) type DependenciesBlockIdentifierSet =
+  std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
 type PreparedBlockConnectionMap =
   IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>;
-type BlockConnectionMap = HashMap<
-  DependenciesBlockIdentifier,
-  Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>,
->;
+type BlockConnectionMap =
+  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -64,8 +67,7 @@ pub struct ChunkGroupInfo {
   // A derived attribute, therefore utilizing interior mutability to manage updates
   resulting_available_modules: Option<Arc<BigUint>>,
 
-  pub outgoing_blocks:
-    RawHashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>,
+  pub outgoing_blocks: AsyncDependenciesBlockIdentifierSet,
 }
 
 impl ChunkGroupInfo {
@@ -213,7 +215,7 @@ pub(crate) struct CodeSplitter {
   pub(crate) chunk_group_info_map: HashMap<ChunkGroupUkey, CgiUkey>,
   pub(crate) chunk_group_infos: HashMap<CgiUkey, ChunkGroupInfo>,
   outdated_order_index_chunk_groups: HashSet<CgiUkey>,
-  pub(crate) incoming_blocks_by_cgi: HashMap<CgiUkey, HashSet<DependenciesBlockIdentifier>>,
+  pub(crate) incoming_blocks_by_cgi: HashMap<CgiUkey, DependenciesBlockIdentifierSet>,
   pub(crate) runtime_chunks: HashSet<ChunkUkey>,
   next_free_module_pre_order_index: u32,
   next_free_module_post_order_index: u32,
@@ -224,11 +226,11 @@ pub(crate) struct CodeSplitter {
   chunk_groups_for_combining: FxIndexSet<CgiUkey>,
   pub(crate) outdated_chunk_group_info: FxIndexSet<CgiUkey>,
   chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
-  pub(crate) block_to_chunk_group: HashMap<DependenciesBlockIdentifier, CgiUkey>,
+  pub(crate) block_to_chunk_group: DependenciesBlockIdentifierMap<CgiUkey>,
 
   // outgoing blocks for a chunk group
   // 2 direction map
-  pub(crate) block_owner: HashMap<AsyncDependenciesBlockIdentifier, HashSet<CgiUkey>>,
+  pub(crate) block_owner: AsyncDependenciesBlockIdentifierMap<HashSet<CgiUkey>>,
 
   pub(crate) named_chunk_groups: HashMap<String, CgiUkey>,
   pub(crate) named_async_entrypoints: HashMap<String, CgiUkey>,
@@ -253,14 +255,14 @@ pub(crate) struct CodeSplitter {
   pub(crate) stat_cache_miss_by_available_modules: u32,
 
   // represents the edge of how chunk is created
-  pub(crate) edges: HashMap<AsyncDependenciesBlockIdentifier, ModuleIdentifier>,
+  pub(crate) edges: AsyncDependenciesBlockIdentifierMap<ModuleIdentifier>,
 
   // created from edges
-  pub(crate) chunk_caches: HashMap<AsyncDependenciesBlockIdentifier, ChunkCreateData>,
+  pub(crate) chunk_caches: AsyncDependenciesBlockIdentifierMap<ChunkCreateData>,
 
   prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
 
-  prepared_blocks_map: HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
+  prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
 }
 
 fn add_chunk_in_group(
@@ -294,6 +296,7 @@ fn get_active_state_of_connections(
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> ConnectionState {
   let mut iter = connections.iter();
@@ -305,6 +308,7 @@ fn get_active_state_of_connections(
       module_graph,
       runtime,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     );
   if merged.is_true() {
@@ -319,6 +323,7 @@ fn get_active_state_of_connections(
           module_graph,
           runtime,
           module_graph_cache,
+          side_effects_state_artifact,
           exports_info_artifact,
         );
     if merged.is_true() {
@@ -1974,6 +1979,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let module_graph = compilation.get_module_graph();
         let module_graph_cache = &compilation.module_graph_cache_artifact;
         let exports_info_artifact = &compilation.exports_info_artifact;
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
 
         let mut queue_actions = Vec::new();
         let mut modules_to_skip = Vec::new();
@@ -1984,6 +1992,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             Some(&runtime),
             module_graph,
             module_graph_cache,
+            side_effects_state_artifact,
             exports_info_artifact,
           );
           if active_state.is_false() {
@@ -2284,7 +2293,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .par_iter()
       .map(|module| {
         let mut map =
-          HashMap::<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>::default();
+          DependenciesBlockIdentifierMap::<Vec<AsyncDependenciesBlockIdentifier>>::default();
 
         let mut queue = VecDeque::<DependenciesBlockIdentifier>::new();
 
@@ -2303,7 +2312,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         map
       })
       .reduce(
-        HashMap::<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>::default,
+        DependenciesBlockIdentifierMap::<Vec<AsyncDependenciesBlockIdentifier>>::default,
         |mut a, b| {
           a.extend(b);
           a
@@ -2426,15 +2435,14 @@ fn extract_block_modules(
   module: ModuleIdentifier,
   runtime: Option<Arc<RuntimeSpec>>,
   compilation: &Compilation,
-  prepared_blocks_map: &HashMap<DependenciesBlockIdentifier, Vec<AsyncDependenciesBlockIdentifier>>,
+  prepared_blocks_map: &DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
   prepared_connection_map: &IdentifierMap<PreparedBlockConnectionMap>,
   map: &mut BlockConnectionMap,
 ) {
   let block = module.into();
-  let mut module_map: HashMap<
-    DependenciesBlockIdentifier,
+  let mut module_map: DependenciesBlockIdentifierMap<
     Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>,
-  > = HashMap::default();
+  > = DependenciesBlockIdentifierMap::default();
   module_map.insert(block, Vec::new());
   for b in prepared_blocks_map
     .get(&block)
@@ -2457,6 +2465,9 @@ fn extract_block_modules(
       runtime.as_deref(),
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
     modules.push((*module_identifier, active_state, connections.clone()));

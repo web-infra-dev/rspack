@@ -48,8 +48,8 @@ use crate::{
   dependency::local_module::LocalModule,
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphState, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin, RequireReferencesState,
+    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
+    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -363,7 +363,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
-  pub(super) definitions: ScopeInfoId,
+  pub(crate) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
   pub(crate) current_tag_info: Option<TagInfoId>,
   pub in_try: bool,
@@ -511,14 +511,16 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphPlugin::new(
+      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
         unresolved_mark,
+        compiler_options.experiments.pure_functions,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
+        compiler_options.experiments.pure_functions,
       )));
     }
 
@@ -574,8 +576,12 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn into_results(self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
+  pub fn into_results(mut self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
     if self.errors.is_empty() {
+      InnerGraphParserPlugin::finalize_dependency_usage(
+        &mut self.inner_graph,
+        &mut self.dependencies,
+      );
       Ok(ScanDependenciesResult {
         dependencies: self.dependencies,
         blocks: self.blocks,
