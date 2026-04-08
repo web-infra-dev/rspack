@@ -740,13 +740,9 @@ export interface JsBuildMeta {
   hasTopLevelAwait?: boolean
   esm?: boolean
   exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  defaultObject?: undefined | 'false' | 'redirect' | 'redirect-warn'
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
-}
-
-export interface JsBuildMetaDefaultObjectRedirectWarn {
-  redirectWarn: JsDefaultObjectRedirectWarnObject
 }
 
 export interface JsBuildTimeExecutionOption {
@@ -808,10 +804,6 @@ export interface JsCreateLinkData {
 export interface JsCreateScriptData {
   code: string
   chunk: Chunk
-}
-
-export interface JsDefaultObjectRedirectWarnObject {
-  ignore: boolean
 }
 
 export interface JsDiagnostic {

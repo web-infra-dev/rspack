@@ -198,7 +198,7 @@ impl ContextModule {
       build_info: Default::default(),
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn { ignore: false },
+        default_object: BuildMetaDefaultObject::RedirectWarn,
         ..Default::default()
       },
       source_map_kind: SourceMapKind::empty(),

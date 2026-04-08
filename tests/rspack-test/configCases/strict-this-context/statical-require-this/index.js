@@ -10,7 +10,7 @@ it("should respect strictThisContextOnImports for member call", () => {
 
 it("should always correctly handle this for exportsType is DefaultWithNamed and DefaultOnly", () => {
 	const cjs = require("./cjs");
-	expect(cjs.that().value).toBe(42);
+	expect(cjs.that().value).toBe(STRICT_THIS_CONTEXT_ON_IMPORTS ? 42 : undefined);
 	const json = require("./data.json");
 	expect(json.map(d => d * 2)).toEqual([2, 4, 6]);
 })
