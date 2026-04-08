@@ -1742,11 +1742,17 @@ fn add_concatenated_module(
   let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
+  let new_module_id = new_module.identifier();
+  let root_chunks = chunk_graph
+    .get_module_chunks(root_module_id)
+    .iter()
+    .copied()
+    .collect::<Vec<_>>();
   let module_graph = compilation.get_module_graph_mut();
 
-  let module_graph_module = ModuleGraphModule::new(new_module.identifier());
+  let module_graph_module = ModuleGraphModule::new(new_module_id);
   module_graph.add_module_graph_module(module_graph_module);
-  ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
+  ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module_id);
   // integrate
 
   let module_graph = compilation.get_module_graph_mut();
@@ -1759,18 +1765,15 @@ fn add_concatenated_module(
       .module_by_identifier(m)
       .expect("should exist module");
     // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-    for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
-      let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+    for chunk_ukey in &root_chunks {
+      let mut source_types =
+        chunk_graph.get_chunk_module_source_types(chunk_ukey, module, module_graph);
 
       if source_types.len() == 1 {
-        chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
+        chunk_graph.disconnect_chunk_and_module(chunk_ukey, *m);
       } else {
-        let new_source_types = source_types
-          .into_iter()
-          .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-          .collect();
-        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
+        source_types.remove(&SourceType::JavaScript);
+        chunk_graph.set_chunk_modules_source_types(chunk_ukey, *m, source_types)
       }
     }
   }
@@ -1781,28 +1784,21 @@ fn add_concatenated_module(
   // these lines of codes fix a bug: when asset module (NormalModule) is concatenated into ConcatenatedModule, the asset will be lost
   // because `chunk_graph.replace_module(&root_module_id, &new_module.id());` will remove the asset module from chunk, and I add this module back to fix this bug
   if is_root_module_asset_module {
-    chunk_graph.replace_module(&root_module_id, &new_module.identifier());
+    chunk_graph.replace_module(&root_module_id, &new_module_id);
     chunk_graph.add_module(root_module_id);
-    for chunk_ukey in chunk_graph
-      .get_module_chunks(new_module.identifier())
-      .clone()
-    {
-      let module = module_graph
-        .module_by_identifier(&root_module_id)
-        .expect("should exist module");
+    let module = module_graph
+      .module_by_identifier(&root_module_id)
+      .expect("should exist module");
+    for chunk_ukey in &root_chunks {
+      let mut source_types =
+        chunk_graph.get_chunk_module_source_types(chunk_ukey, module, module_graph);
 
-      let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
-      let new_source_types = source_types
-        .iter()
-        .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-        .copied()
-        .collect();
-      chunk_graph.set_chunk_modules_source_types(&chunk_ukey, root_module_id, new_source_types);
-      chunk_graph.connect_chunk_and_module(chunk_ukey, root_module_id);
+      source_types.remove(&SourceType::JavaScript);
+      chunk_graph.set_chunk_modules_source_types(chunk_ukey, root_module_id, source_types);
+      chunk_graph.connect_chunk_and_module(*chunk_ukey, root_module_id);
     }
   } else {
-    chunk_graph.replace_module(&root_module_id, &new_module.identifier());
+    chunk_graph.replace_module(&root_module_id, &new_module_id);
   }
 
   module_graph.add_module(new_module);
