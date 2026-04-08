@@ -1200,65 +1200,58 @@ impl Module for ConcatenatedModule {
           }
 
           // Iterate over imported symbols
-          if let Some(import_map) = &info.import_map {
+          if let Some(import_map) = info.import_map.take() {
             for ((source, attr), imported) in import_map {
-              let specifiers = &imported.specifiers;
-              let entry = import_stmts.entry((source.clone(), attr.clone()));
-              let total_imported_atoms = entry.or_default();
+              let source_parts = escaped_identifiers
+                .get(&source)
+                .expect("should have escaped identifier");
+              let total_imported_atoms = import_stmts.entry((source, attr)).or_default();
 
-              if let Some(ns_import) = &imported.namespace {
+              if let Some(ns_import) = imported.namespace {
                 if let Some(internal_ns_import) = total_imported_atoms.ns_import.as_ref() {
                   info
                     .internal_names
-                    .insert(ns_import.clone(), internal_ns_import.clone());
+                    .insert(ns_import, internal_ns_import.clone());
                 } else {
-                  let new_name = if name_allocator.contains(ns_import) {
+                  let ns_import_key = ns_import.clone();
+                  let new_name = if name_allocator.contains(&ns_import) {
                     name_allocator.find_new_name(
                       escaped_names
-                        .get(ns_import)
+                        .get(&ns_import)
                         .expect("should have escaped name")
                         .as_ref(),
                       &[],
                     )
                   } else {
-                    name_allocator.insert(ns_import.clone());
-                    ns_import.clone()
+                    name_allocator.insert(ns_import);
+                    ns_import_key.clone()
                   };
 
-                  info
-                    .internal_names
-                    .insert(ns_import.clone(), new_name.clone());
+                  info.internal_names.insert(ns_import_key, new_name.clone());
                   total_imported_atoms.ns_import = Some(new_name);
                 }
               }
 
-              for atom in specifiers {
+              for atom in imported.specifiers {
                 // already import this symbol
-                if let Some(internal_atom) = total_imported_atoms.atoms.get(atom) {
-                  info
-                    .internal_names
-                    .insert(atom.clone(), internal_atom.clone());
+                if let Some(internal_atom) = total_imported_atoms.atoms.get(&atom) {
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
-                    && raw_export_map.contains_key(atom)
+                    && raw_export_map.contains_key(&atom)
                   {
                     raw_export_map.insert(atom.clone(), internal_atom.to_string());
                   }
+                  info.internal_names.insert(atom, internal_atom.clone());
                   continue;
                 }
 
-                let new_name = if name_allocator.contains(atom) {
+                let new_name = if name_allocator.contains(&atom) {
                   let new_name = if atom == "default" {
-                    name_allocator.find_new_name(
-                      "",
-                      escaped_identifiers
-                        .get(source)
-                        .expect("should have escaped identifier"),
-                    )
+                    name_allocator.find_new_name("", source_parts)
                   } else {
                     name_allocator.find_new_name(
                       escaped_names
-                        .get(atom)
+                        .get(&atom)
                         .expect("should have escaped name")
                         .as_ref(),
                       escaped_identifiers
@@ -1268,7 +1261,7 @@ impl Module for ConcatenatedModule {
                   };
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
-                    && raw_export_map.contains_key(atom)
+                    && raw_export_map.contains_key(&atom)
                   {
                     raw_export_map.insert(atom.clone(), new_name.to_string());
                   }
@@ -1278,8 +1271,6 @@ impl Module for ConcatenatedModule {
                   atom.clone()
                 };
 
-                info.internal_names.insert(atom.clone(), new_name.clone());
-
                 if atom == "default" {
                   total_imported_atoms.default_import = Some(new_name.clone());
                 } else {
@@ -1287,6 +1278,8 @@ impl Module for ConcatenatedModule {
                     .atoms
                     .insert(atom.clone(), new_name.clone());
                 }
+
+                info.internal_names.insert(atom, new_name);
               }
             }
           }
