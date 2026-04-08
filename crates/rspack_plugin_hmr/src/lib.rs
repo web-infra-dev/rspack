@@ -134,7 +134,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     if let Some(current_chunk) = current_chunk {
       new_runtime = current_chunk
         .runtime()
-        .intersection(&all_old_runtime)
+        .intersection(all_old_runtime)
         .copied()
         .collect();
 
