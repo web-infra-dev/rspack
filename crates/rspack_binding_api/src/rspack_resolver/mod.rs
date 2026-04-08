@@ -214,7 +214,7 @@ impl ResolverFactory {
       symlinks: op.symlinks.unwrap_or(default.symlinks),
       builtin_modules: op.builtin_modules.unwrap_or(default.builtin_modules),
       enable_pnp: op.enable_pnp.unwrap_or_default(),
-      node_path: op.node_path.unwrap_or(default.node_path),
+      node_path: true,
     }
   }
 }

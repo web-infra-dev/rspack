@@ -140,9 +140,6 @@ pub struct Resolve {
   pub pnp: Option<bool>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,
-  /// Whether to resolve from NODE_PATH entries after node_modules.
-  /// Default is `false`.
-  pub node_path: Option<bool>,
 }
 
 /// Tsconfig Options

@@ -160,11 +160,6 @@ pub struct NapiResolveOptions {
   ///
   /// Default `false`
   pub enable_pnp: Option<bool>,
-
-  /// Whether to resolve from NODE_PATH entries after node_modules.
-  ///
-  /// Default `false`
-  pub node_path: Option<bool>,
 }
 
 #[napi]

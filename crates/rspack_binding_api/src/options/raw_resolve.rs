@@ -56,7 +56,6 @@ pub struct RawResolveOptions {
   pub restrictions: Option<Vec<Either<String, RspackRegex>>>,
   pub roots: Option<Vec<String>>,
   pub pnp: Option<bool>,
-  pub node_path: Option<bool>,
 }
 
 fn normalize_alias(
@@ -176,7 +175,6 @@ impl TryFrom<RawResolveOptions> for Resolve {
       imports_fields,
       pnp,
       builtin_modules: false,
-      node_path: value.node_path,
     })
   }
 }
@@ -239,7 +237,6 @@ pub struct RawResolveOptionsWithDependencyType {
   pub dependency_type: Option<String>,
   pub resolve_to_context: Option<bool>,
   pub pnp: Option<bool>,
-  pub node_path: Option<bool>,
 }
 
 pub fn normalize_raw_resolve_options_with_dependency_type(
@@ -310,7 +307,6 @@ pub fn normalize_raw_resolve_options_with_dependency_type(
         description_files: raw.description_files,
         enforce_extension: raw.enforce_extension,
         builtin_modules: false,
-        node_path: raw.node_path,
       };
       Ok(ResolveOptionsWithDependencyType {
         resolve_options: Some(Box::new(resolve_options)),

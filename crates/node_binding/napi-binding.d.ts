@@ -1780,12 +1780,6 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
-  /**
-   * Whether to resolve from NODE_PATH entries after node_modules.
-   *
-   * Default `false`
-   */
-  nodePath?: boolean
 }
 
 export interface NativeWatcherOptions {
@@ -2860,7 +2854,6 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
-  nodePath?: boolean
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -2888,7 +2881,6 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
-  nodePath?: boolean
 }
 
 export interface RawResolveTsconfigOptions {

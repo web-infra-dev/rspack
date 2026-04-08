@@ -542,24 +542,16 @@ export default {
 
 The name of the directory to use when resolving dependencies.
 
-## resolve.nodePath
+## NODE_PATH
 
-- **Type:** `boolean`
-- **Default:** `false`
+Rspack's resolver supports the [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders) environment variable. After searching all `node_modules` directories, the resolver will also look through directories listed in `NODE_PATH` (semicolon-separated on Windows, colon-separated on POSIX).
 
-When enabled, the resolver also searches [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders) entries after `node_modules` directories. This follows the Node.js behavior of loading modules from global folders specified via the `NODE_PATH` environment variable.
+:::warning
 
-:::caution
-Enabling this option makes module resolution depend on the external `NODE_PATH` environment variable, which can reduce build determinism and may unexpectedly pull in globally installed modules. Keep `NODE_PATH` controlled or disabled in CI and production builds unless you explicitly need this behavior.
-:::
-
-```js title="rspack.config.mjs"
-export default {
-  resolve: {
-    nodePath: true,
-  },
-};
-```
+- `NODE_PATH` makes module resolution depend on an external environment variable, which can reduce build determinism.
+- Modules in `node_modules` always take precedence over `NODE_PATH` directories.
+- Avoid relying on `NODE_PATH` in CI and production builds unless you explicitly need this behavior.
+  :::
 
 ## resolve.pnp
 
