@@ -1,12 +1,10 @@
-import {
-  CIRCULAR_CONNECTION_SYMBOL,
+import binding, {
   ModuleGraphConnection as BindingModuleGraphConnection,
-  TRANSITIVE_ONLY_SYMBOL,
 } from '@rspack/binding';
 
 type ModuleGraphConnectionConstructor = typeof BindingModuleGraphConnection & {
-  readonly TRANSITIVE_ONLY: typeof TRANSITIVE_ONLY_SYMBOL;
-  readonly CIRCULAR_CONNECTION: typeof CIRCULAR_CONNECTION_SYMBOL;
+  readonly TRANSITIVE_ONLY: typeof binding.TRANSITIVE_ONLY_SYMBOL;
+  readonly CIRCULAR_CONNECTION: typeof binding.CIRCULAR_CONNECTION_SYMBOL;
 };
 
 export interface ModuleGraphConnection extends BindingModuleGraphConnection {}
@@ -16,11 +14,11 @@ export const ModuleGraphConnection =
 
 Object.defineProperties(ModuleGraphConnection, {
   TRANSITIVE_ONLY: {
-    value: TRANSITIVE_ONLY_SYMBOL,
+    value: binding.TRANSITIVE_ONLY_SYMBOL,
     enumerable: true,
   },
   CIRCULAR_CONNECTION: {
-    value: CIRCULAR_CONNECTION_SYMBOL,
+    value: binding.CIRCULAR_CONNECTION_SYMBOL,
     enumerable: true,
   },
 });
