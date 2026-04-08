@@ -552,6 +552,7 @@ When enabled, the resolver also searches [`NODE_PATH`](https://nodejs.org/api/mo
 :::caution
 Enabling this option makes module resolution depend on the external `NODE_PATH` environment variable, which can reduce build determinism and may unexpectedly pull in globally installed modules. Keep `NODE_PATH` controlled or disabled in CI and production builds unless you explicitly need this behavior.
 :::
+
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
