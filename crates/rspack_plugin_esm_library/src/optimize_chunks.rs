@@ -25,24 +25,16 @@ use crate::EsmLibraryPlugin;
 /// `false` otherwise (no TLA or no circular deps detected).
 pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool {
   let module_graph = compilation.get_module_graph();
-
-  // Early exit: if no module uses TLA, skip chunk-graph scanning
-  let has_tla = module_graph
-    .modules()
-    .any(|(_, m)| m.build_meta().has_top_level_await);
-  if !has_tla {
-    return false;
-  }
-
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
 
-  // 1. Find async chunks: non-initial chunks containing at least one async module
+  // 1. Find async chunks: chunks that belong to at least one non-initial group
+  //    and contain at least one async (TLA) module
   let async_chunks: Vec<ChunkUkey> = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .iter()
-    .filter(|(_, chunk)| !chunk.can_be_initial(chunk_group_by_ukey))
+    .filter(|(_, chunk)| !chunk.is_only_initial(chunk_group_by_ukey))
     .filter(|(ukey, _)| {
       chunk_graph
         .get_chunk_modules_identifier(ukey)
