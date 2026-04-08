@@ -16,6 +16,7 @@
     "webcontainer-fallback.cjs"
   ],
   "scripts": {
+    "addExternalDebug": "node scripts/add-external-debug-info.js rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm",
     "build:dev": "node scripts/build.js",
     "build:debug": "node scripts/build.js --profile release-debug",
     "build:ci": "node scripts/build.js --profile ci",

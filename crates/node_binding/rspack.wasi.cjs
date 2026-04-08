@@ -32,16 +32,16 @@ const __sharedMemory = new WebAssembly.Memory({
   shared: true,
 })
 
-let localWasmFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.wasm')
+const localWasmFilePath = __nodePath.join(__dirname, 'rspack.wasm32-wasi.wasm')
 
 let __wasmFilePath;
 
-try {
-  __wasmFilePath = require.resolve('@rspack/binding-wasm32-wasi/rspack.wasm32-wasi.wasm')
-} catch {
-  if (__nodeFs.existsSync(localWasmFilePath)) {
-    __wasmFilePath = localWasmFilePath
-  } else {
+if (__nodeFs.existsSync(localWasmFilePath)) {
+  __wasmFilePath = localWasmFilePath
+} else {
+  try {
+    __wasmFilePath = require.resolve('@rspack/binding-wasm32-wasi/rspack.wasm32-wasi.wasm')
+  } catch {
     throw new Error('Cannot find rspack.wasm32-wasi.wasm file, and @rspack/binding-wasm32-wasi package is not installed.')
   }
 }

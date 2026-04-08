@@ -1,23 +1,16 @@
 const path = require("node:path");
-const os = require("node:os");
 const { pathToFileURL } = require("node:url");
 const {
-	copyFileSync,
 	existsSync,
-	mkdtempSync,
-	rmSync,
+	readFileSync,
 	writeFileSync,
 } = require("node:fs");
-const { spawnSync } = require("node:child_process");
 
 // WebAssembly DWARF external file convention:
 // https://yurydelendik.github.io/webassembly-dwarf/#external-dwarf-file
 const SECTION_NAME = "external_debug_info";
-const LLVM_OBJCOPY_CANDIDATES = [
-	process.env.LLVM_OBJCOPY,
-	"llvm-objcopy",
-	"/opt/homebrew/opt/llvm@16/bin/llvm-objcopy",
-].filter(Boolean);
+const WASM_MAGIC = Buffer.from([0x00, 0x61, 0x73, 0x6d]);
+const WASM_VERSION = Buffer.from([0x01, 0x00, 0x00, 0x00]);
 
 function encodeULEB128(value) {
 	if (!Number.isInteger(value) || value < 0) {
@@ -46,22 +39,114 @@ function encodeWasmString(value) {
 	return Buffer.concat([encodeULEB128(content.length), content]);
 }
 
-function resolveLlvmObjcopy() {
-	for (const candidate of LLVM_OBJCOPY_CANDIDATES) {
-		const result = spawnSync(candidate, ["--version"], {
-			stdio: "ignore",
-		});
-		if (result.status === 0) {
-			return candidate;
+function decodeULEB128(buffer, offset, fieldName) {
+	let result = 0;
+	let shift = 0;
+	let cursor = offset;
+
+	for (let i = 0; i < 5; i++) {
+		const byte = buffer[cursor];
+		if (byte === undefined) {
+			throw new Error(`Unexpected EOF while reading ${fieldName}`);
 		}
+
+		cursor += 1;
+		result += (byte & 0x7f) * 2 ** shift;
+
+		if ((byte & 0x80) === 0) {
+			return {
+				value: result,
+				nextOffset: cursor,
+			};
+		}
+
+		shift += 7;
 	}
 
-	throw new Error(
-		[
-			"Unable to find llvm-objcopy for wasm external_debug_info.",
-			"Set LLVM_OBJCOPY or install llvm-objcopy locally.",
-		].join(" ")
-	);
+	throw new Error(`ULEB128 value for ${fieldName} is too large`);
+}
+
+function decodeWasmString(buffer, offset, fieldName) {
+	const { value: length, nextOffset } = decodeULEB128(buffer, offset, fieldName);
+	const endOffset = nextOffset + length;
+
+	if (endOffset > buffer.length) {
+		throw new Error(`Unexpected EOF while reading ${fieldName}`);
+	}
+
+	return {
+		value: buffer.toString("utf8", nextOffset, endOffset),
+		nextOffset: endOffset,
+	};
+}
+
+function createCustomSection(sectionName, sectionData) {
+	const payload = Buffer.concat([encodeWasmString(sectionName), sectionData]);
+	return Buffer.concat([
+		Buffer.from([0x00]),
+		encodeULEB128(payload.length),
+		payload,
+	]);
+}
+
+function stripCustomSection(wasmBuffer, sectionName) {
+	if (wasmBuffer.length < 8) {
+		throw new Error("Wasm file is too short");
+	}
+
+	if (!wasmBuffer.subarray(0, 4).equals(WASM_MAGIC)) {
+		throw new Error("Invalid wasm magic header");
+	}
+
+	if (!wasmBuffer.subarray(4, 8).equals(WASM_VERSION)) {
+		throw new Error("Unsupported wasm version");
+	}
+
+	const sections = [];
+	let offset = 8;
+
+	while (offset < wasmBuffer.length) {
+		const sectionStart = offset;
+		const sectionId = wasmBuffer[offset];
+
+		if (sectionId === undefined) {
+			throw new Error("Unexpected EOF while reading wasm section id");
+		}
+
+		offset += 1;
+
+		const { value: sectionSize, nextOffset: payloadStart } = decodeULEB128(
+			wasmBuffer,
+			offset,
+			"section size"
+		);
+		const sectionEnd = payloadStart + sectionSize;
+
+		if (sectionEnd > wasmBuffer.length) {
+			throw new Error("Unexpected EOF while reading wasm section payload");
+		}
+
+		if (sectionId === 0x00) {
+			const { value: customSectionName } = decodeWasmString(
+				wasmBuffer,
+				payloadStart,
+				"custom section name"
+			);
+
+			if (customSectionName !== sectionName) {
+				sections.push(wasmBuffer.subarray(sectionStart, sectionEnd));
+			}
+		} else {
+			sections.push(wasmBuffer.subarray(sectionStart, sectionEnd));
+		}
+
+		offset = sectionEnd;
+	}
+
+	return Buffer.concat([
+		wasmBuffer.subarray(0, 8),
+		...sections,
+	]);
 }
 
 function addExternalDebugInfo(wasmFile, debugFile) {
@@ -76,44 +161,26 @@ function addExternalDebugInfo(wasmFile, debugFile) {
 		throw new Error(`Debug wasm file not found: ${debugFilePath}`);
 	}
 
-	const llvmObjcopy = resolveLlvmObjcopy();
-	const tempDir = mkdtempSync(
-		path.join(os.tmpdir(), "rspack-external-debug-info-")
+	const wasmBuffer = readFileSync(wasmFilePath);
+	const wasmWithoutExternalDebugInfo = stripCustomSection(
+		wasmBuffer,
+		SECTION_NAME
 	);
-	const payloadFile = path.join(tempDir, `${SECTION_NAME}.bin`);
-	const outputFile = path.join(tempDir, path.basename(wasmFilePath));
 
-	try {
-		// The custom section payload is a UTF-8 URL string. We use a `file://` URL
-		// here because the sidecar debug wasm lives on disk next to the runtime wasm.
-		writeFileSync(
-			payloadFile,
-			encodeWasmString(pathToFileURL(debugFilePath).href)
-		);
+	// The custom section payload is a UTF-8 URL string. We use a `file://` URL
+	// here because the sidecar debug wasm lives on disk next to the runtime wasm.
+	const externalDebugInfoSection = createCustomSection(
+		SECTION_NAME,
+		encodeWasmString(pathToFileURL(debugFilePath).href)
+	);
 
-		const result = spawnSync(
-			llvmObjcopy,
-			[
-				`--remove-section=${SECTION_NAME}`,
-				`--add-section=${SECTION_NAME}=${payloadFile}`,
-				wasmFilePath,
-				outputFile,
-			],
-			{
-				stdio: "inherit",
-			}
-		);
-
-		if (result.status !== 0) {
-			throw new Error(
-				`llvm-objcopy failed while adding ${SECTION_NAME} to ${wasmFilePath}`
-			);
-		}
-
-		copyFileSync(outputFile, wasmFilePath);
-	} finally {
-		rmSync(tempDir, { recursive: true, force: true });
-	}
+	writeFileSync(
+		wasmFilePath,
+		Buffer.concat([
+			wasmWithoutExternalDebugInfo,
+			externalDebugInfoSection,
+		])
+	);
 }
 
 if (require.main === module) {

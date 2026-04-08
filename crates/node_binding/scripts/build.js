@@ -1,6 +1,5 @@
 const path = require("node:path");
 const { readFileSync, writeFileSync, renameSync } = require("node:fs");
-const { addExternalDebugInfo } = require("./add-external-debug-info");
 const { values, positionals } = require("node:util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
@@ -148,15 +147,6 @@ async function build() {
 				if (process.env.RSPACK_TARGET_BROWSER) {
 					renameSync("rspack.wasm32-wasi.debug.wasm", "rspack.browser.debug.wasm")
 					renameSync("rspack.wasm32-wasi.wasm", "rspack.browser.wasm")
-				}
-
-				// Keep DWARF in the sidecar `*.debug.wasm` and link it from the runtime
-				// wasm via the `external_debug_info` custom section.
-				if (!process.env.CI && process.env.RUST_TARGET === "wasm32-wasip1-threads" && !process.env.RSPACK_TARGET_BROWSER) {
-					addExternalDebugInfo(
-						path.resolve(__dirname, "..", "rspack.wasm32-wasi.wasm"),
-						path.resolve(__dirname, "..", "rspack.wasm32-wasi.debug.wasm")
-					);
 				}
 
 				if (process.env.TRACY) {
