@@ -1,6 +1,6 @@
 use rspack_core::{
-  ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency,
+  ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions, Dependency,
+  DependencyCategory, JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
 use swc_core::{
@@ -12,12 +12,11 @@ use swc_core::{
 };
 use url::Url;
 
-use super::JavascriptParserPlugin;
+use super::{JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation};
 use crate::{
-  InnerGraphPlugin,
+  InnerGraphParserPlugin,
   dependency::{URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
-  parser_plugin::inner_graph::state::InnerGraphUsageOperation,
   visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
@@ -162,9 +161,9 @@ impl JavascriptParserPlugin for URLPlugin {
         (start, end).into(),
         self.mode,
       );
-      let dep_idx = parser.next_dependency_idx();
+      let dep_id = *dep.id();
       parser.add_dependency(Box::new(dep));
-      InnerGraphPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
+      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_id));
       return Some(true);
     }
 

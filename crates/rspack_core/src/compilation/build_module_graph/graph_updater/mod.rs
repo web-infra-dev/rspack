@@ -7,7 +7,7 @@ use rspack_paths::ArcPathSet;
 use rustc_hash::FxHashSet;
 
 use self::{cutout::Cutout, repair::repair};
-use super::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
+use super::BuildModuleGraphArtifact;
 use crate::{Compilation, DependencyId, ExportsInfoArtifact};
 
 /// The param to update module graph
@@ -35,7 +35,6 @@ pub async fn update_module_graph(
   mut exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
-  artifact.state = BuildModuleGraphArtifactState::Initialized;
   let mut cutout = Cutout::default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);

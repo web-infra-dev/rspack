@@ -38,6 +38,6 @@ jobs:
         run: pnpm --dir website run check:spell
 
       - name: Typos Check
-        uses: crate-ci/typos@bb4666ad77b539a6b4ce4eda7ebb6de553704021 # v1.42.0
+        uses: crate-ci/typos@02ea592e44b3a53c302f697cddca7641cd051c3d # v1.45.0
         with:
           files: .

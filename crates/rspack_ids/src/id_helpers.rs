@@ -12,7 +12,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
   Compilation, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, compare_runtime,
+  ModuleIdsArtifact, SideEffectsStateArtifact, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -211,6 +211,7 @@ pub fn get_short_chunk_name(
   delimiter: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
@@ -226,6 +227,7 @@ pub fn get_short_chunk_name(
       &chunk.ukey(),
       module_graph,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
     .iter()
@@ -276,6 +278,7 @@ pub fn get_long_chunk_name(
   delimiter: &str,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
   named_chunk_ids_artifact: &ChunkNamedIdArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
@@ -288,6 +291,7 @@ pub fn get_long_chunk_name(
       &chunk.ukey(),
       module_graph,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
     .iter()
@@ -324,6 +328,7 @@ pub fn get_full_chunk_name(
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
   context: &str,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> String {
@@ -336,6 +341,7 @@ pub fn get_full_chunk_name(
       &chunk.ukey(),
       module_graph,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
     .iter()

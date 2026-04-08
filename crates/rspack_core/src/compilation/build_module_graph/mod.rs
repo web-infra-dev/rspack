@@ -16,7 +16,7 @@ pub use self::{
   },
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
-pub use crate::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState};
+pub use crate::BuildModuleGraphArtifact;
 use crate::{Compilation, ExportsInfoArtifact, logger::Logger};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
