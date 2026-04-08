@@ -8,6 +8,7 @@ use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
 };
+use rayon::prelude::*;
 use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkNamedIdArtifact, ChunkUkey,
@@ -128,20 +129,19 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
   hash_str
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn assign_deterministic_ids<T>(
-  mut items: Vec<T>,
-  get_name: impl Fn(&T) -> String,
-  comparator: impl FnMut(&T, &T) -> Ordering,
-  mut assign_id: impl FnMut(&T, usize) -> bool,
+pub struct DeterministicIdCandidate<T> {
+  pub item: T,
+  pub name: String,
+  pub initial_id: usize,
+}
+
+pub fn get_deterministic_id_range(
+  item_count: usize,
   ranges: &[usize],
   expand_factor: usize,
   extra_space: usize,
-  salt: usize,
-) {
-  items.sort_unstable_by(comparator);
-
-  let optimal_range = usize::min(items.len() * 20 + extra_space, usize::MAX);
+) -> usize {
+  let optimal_range = usize::min(item_count * 20 + extra_space, usize::MAX);
   let mut i = 0;
   debug_assert!(!ranges.is_empty());
   let mut range = ranges[i];
@@ -155,6 +155,50 @@ pub fn assign_deterministic_ids<T>(
       break;
     }
   }
+  range
+}
+
+pub fn precompute_deterministic_id_candidates<T>(
+  mut items: Vec<T>,
+  get_name: impl Fn(&T) -> String + Sync,
+  comparator: impl FnMut(&T, &T) -> Ordering,
+  range: usize,
+  salt: usize,
+) -> Vec<DeterministicIdCandidate<T>>
+where
+  T: Send,
+{
+  items.sort_unstable_by(comparator);
+
+  items
+    .into_par_iter()
+    .map(|item| {
+      let name = get_name(&item);
+      let mut i_buffer = itoa::Buffer::new();
+      let initial_id = get_number_hash(&format!("{name}{}", i_buffer.format(salt)), range);
+      DeterministicIdCandidate {
+        item,
+        name,
+        initial_id,
+      }
+    })
+    .collect()
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn assign_deterministic_ids<T>(
+  mut items: Vec<T>,
+  get_name: impl Fn(&T) -> String,
+  comparator: impl FnMut(&T, &T) -> Ordering,
+  mut assign_id: impl FnMut(&T, usize) -> bool,
+  ranges: &[usize],
+  expand_factor: usize,
+  extra_space: usize,
+  salt: usize,
+) {
+  items.sort_unstable_by(comparator);
+
+  let range = get_deterministic_id_range(items.len(), ranges, expand_factor, extra_space);
 
   for item in items {
     let ident = get_name(&item);

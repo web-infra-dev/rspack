@@ -1,15 +1,15 @@
-use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_util::number_hash::get_number_hash;
 
 use crate::id_helpers::{
-  assign_deterministic_ids, compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
-  get_used_module_ids_and_modules_with_artifact,
+  compare_modules_by_pre_order_index_or_identifier, get_deterministic_id_range,
+  get_full_module_name, get_used_module_ids_and_modules_with_artifact,
+  precompute_deterministic_id_candidates,
 };
 
 #[plugin]
@@ -51,20 +51,15 @@ async fn module_ids(
     .filter_map(|i| module_graph.module_by_identifier(&i))
     .collect::<Vec<_>>();
   let used_ids_len = used_ids.len();
-
-  let module_names = modules
-    .par_iter()
-    .map(|m| (m.identifier(), get_full_module_name(m, context)))
-    .collect::<IdentifierMap<String>>();
-
-  assign_deterministic_ids(
+  let range = get_deterministic_id_range(
+    modules.len(),
+    &[usize::pow(10, max_length)],
+    if fixed_length { 0 } else { 10 },
+    used_ids_len,
+  );
+  let prepared_modules = precompute_deterministic_id_candidates(
     modules,
-    |m| {
-      module_names
-        .get(&m.identifier())
-        .expect("should have generated full module name")
-        .clone()
-    },
+    |m| get_full_module_name(m, context),
     |a, b| {
       compare_modules_by_pre_order_index_or_identifier(
         module_graph,
@@ -72,23 +67,27 @@ async fn module_ids(
         &b.identifier(),
       )
     },
-    |module, id| {
-      if !used_ids.insert(id.to_string()) {
-        conflicts += 1;
-        return false;
-      }
-      ChunkGraph::set_module_id(
-        &mut module_ids_map,
-        module.identifier(),
-        id.to_string().into(),
-      );
-      true
-    },
-    &[usize::pow(10, max_length)],
-    if fixed_length { 0 } else { 10 },
-    used_ids_len,
+    range,
     salt,
   );
+
+  for prepared in prepared_modules {
+    let mut i = salt;
+    let mut id = prepared.initial_id;
+    while !used_ids.insert(id.to_string()) {
+      conflicts += 1;
+      i += 1;
+      let mut i_buffer = rspack_util::itoa::Buffer::new();
+      id = get_number_hash(&format!("{}{}", prepared.name, i_buffer.format(i)), range);
+    }
+
+    ChunkGraph::set_module_id(
+      &mut module_ids_map,
+      prepared.item.identifier(),
+      id.to_string().into(),
+    );
+  }
+
   *module_ids = module_ids_map;
   if fail_on_conflict && conflicts > 0 {
     // TODO: better error msg
