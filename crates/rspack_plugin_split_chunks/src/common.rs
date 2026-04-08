@@ -7,7 +7,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
-use rspack_core::{ChunkUkey, Compilation, Module, ModuleIdentifier, SourceType};
+use rspack_core::{ChunkUkey, Compilation, ModuleIdentifier, SourceType};
 use rspack_error::Result;
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -66,16 +66,69 @@ impl ChunkFilter {
   }
 }
 
-pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilter =
+#[derive(Clone)]
+pub enum ModuleTypeFilter {
+  All,
+  Regex(RspackRegex),
+  String(String),
+}
+
+impl ModuleTypeFilter {
+  pub fn test_internal(&self, module_type: &str) -> bool {
+    match self {
+      Self::All => true,
+      Self::Regex(re) => re.test(module_type),
+      Self::String(expected) => expected == module_type,
+    }
+  }
+}
+
+pub type ModuleLayerFilterFn =
   Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
+#[derive(Clone)]
+pub enum ModuleLayerFilter {
+  Func(ModuleLayerFilterFn),
+  All,
+  Regex(RspackRegex),
+  String(String),
+}
+
+impl ModuleLayerFilter {
+  pub fn is_func(&self) -> bool {
+    matches!(self, Self::Func(_))
+  }
+
+  pub async fn test_func(&self, layer: Option<String>) -> Result<bool> {
+    if let Self::Func(func) = self {
+      func(layer).await
+    } else {
+      panic!("ModuleLayerFilter is not a function");
+    }
+  }
+
+  pub fn test_internal(&self, layer: Option<&str>) -> bool {
+    match self {
+      Self::Func(_) => panic!("ModuleLayerFilter is a function"),
+      Self::All => true,
+      Self::Regex(re) => layer.is_some_and(|layer| re.test(layer)),
+      Self::String(test) => {
+        if let Some(layer) = layer {
+          layer.starts_with(test)
+        } else {
+          test.is_empty()
+        }
+      }
+    }
+  }
+}
+
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
-  Arc::new(|_| true)
+  ModuleTypeFilter::All
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Box::pin(async move { Ok(true) }))
+  ModuleLayerFilter::All
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {

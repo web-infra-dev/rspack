@@ -301,11 +301,8 @@ fn create_module_type_filter(
   raw: Either<RspackRegex, JsString>,
 ) -> rspack_plugin_split_chunks::ModuleTypeFilter {
   match raw {
-    Either::A(regex) => Arc::new(move |m| regex.test(m.module_type().as_str())),
-    Either::B(js_str) => {
-      let type_str = js_str.into_string();
-      Arc::new(move |m| m.module_type().as_str() == type_str.as_str())
-    }
+    Either::A(regex) => rspack_plugin_split_chunks::ModuleTypeFilter::Regex(regex),
+    Either::B(js_str) => rspack_plugin_split_chunks::ModuleTypeFilter::String(js_str.into_string()),
   }
 }
 
@@ -313,26 +310,13 @@ fn create_module_layer_filter(
   raw: Either3<RspackRegex, JsString, ThreadsafeFunction<Option<String>, bool>>,
 ) -> rspack_plugin_split_chunks::ModuleLayerFilter {
   match raw {
-    Either3::A(regex) => Arc::new(move |layer| {
-      let regex = regex.clone();
-      Box::pin(async move { Ok(layer.map(|layer| regex.test(&layer)).unwrap_or_default()) })
-    }),
+    Either3::A(regex) => rspack_plugin_split_chunks::ModuleLayerFilter::Regex(regex),
     Either3::B(js_str) => {
-      let test = js_str.into_string();
-      Arc::new(move |layer| {
-        let test = test.clone();
-        Box::pin(async move {
-          Ok(if let Some(layer) = layer {
-            layer.starts_with(&test)
-          } else {
-            test.is_empty()
-          })
-        })
-      })
+      rspack_plugin_split_chunks::ModuleLayerFilter::String(js_str.into_string())
     }
-    Either3::C(f) => Arc::new(move |layer| {
+    Either3::C(f) => rspack_plugin_split_chunks::ModuleLayerFilter::Func(Arc::new(move |layer| {
       let f = f.clone();
       Box::pin(async move { f.call_with_sync(layer).await })
-    }),
+    })),
   }
 }
