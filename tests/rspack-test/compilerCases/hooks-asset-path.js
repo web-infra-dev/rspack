@@ -29,9 +29,8 @@ module.exports = [
 			async check() {
 				expect(typeof capturedPath).toBe("string");
 				expect(capturedPath.length).toBeGreaterThan(0);
+				// data is JsPathData — path context separate from the waterfall path arg
 				expect(capturedData).toBeTruthy();
-				// data.path mirrors the path argument (matches webpack's PathData shape)
-				expect(typeof capturedData.path).toBe("string");
 			}
 		};
 	})(),
@@ -66,8 +65,9 @@ module.exports = [
 		};
 	})(),
 	(() => {
-		const firstTap = rstest.fn(path => path);
-		const secondTap = rstest.fn(path => path);
+		const callOrder = [];
+		const firstTap = rstest.fn(path => { callOrder.push("first"); return path; });
+		const secondTap = rstest.fn(path => { callOrder.push("second"); return path; });
 
 		return {
 			description: "compilation.hooks.assetPath should call multiple taps in stage order",
@@ -81,6 +81,7 @@ module.exports = [
 					plugins: [{
 						apply(compiler) {
 							compiler.hooks.compilation.tap("AssetPathPlugin", compilation => {
+								// Registered in reverse order — stage should determine execution order
 								compilation.hooks.assetPath.tap({ name: "Second", stage: 1 }, secondTap);
 								compilation.hooks.assetPath.tap({ name: "First", stage: 0 }, firstTap);
 							});
@@ -91,6 +92,8 @@ module.exports = [
 			async check() {
 				expect(firstTap).toHaveBeenCalled();
 				expect(secondTap).toHaveBeenCalled();
+				// stage 0 (First) must run before stage 1 (Second)
+				expect(callOrder.indexOf("first")).toBeLessThan(callOrder.indexOf("second"));
 			}
 		};
 	})()

@@ -79,6 +79,7 @@ use rustc_hash::FxHashMap;
 use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
+  path_data::JsPathData,
   compilation::JsCompilationWrapper,
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
@@ -135,39 +136,15 @@ pub struct JsBeforeModuleIdsResult {
   pub assignments: FxHashMap<String, String>,
 }
 
-/// Data passed to `compilation.hooks.assetPath` taps, mirroring webpack's PathData.
+/// Argument passed to `compilation.hooks.assetPath` taps.
+/// Separates the waterfall path from context data, matching webpack's hook signature:
+/// `SyncWaterfallHook(["path", "options", "assetInfo"])`.
 #[napi(object)]
-pub struct JsAssetPathData {
-  /// The resolved asset path (the value being transformed by the hook).
+pub struct JsAssetPathHookArg {
+  /// The current resolved path (waterfall value — modified by each tap in sequence).
   pub path: String,
-  pub chunk_name: Option<String>,
-  pub chunk_hash: Option<String>,
-  pub chunk_id: Option<String>,
-  pub module_id: Option<String>,
-  pub hash: Option<String>,
-  pub content_hash: Option<String>,
-  pub runtime: Option<String>,
-  pub url: Option<String>,
-  pub id: Option<String>,
-  pub filename: Option<String>,
-}
-
-impl JsAssetPathData {
-  pub fn new(path: &str, data: &PathData<'_>) -> Self {
-    Self {
-      path: path.to_string(),
-      chunk_name: data.chunk_name.map(|s| s.to_string()),
-      chunk_hash: data.chunk_hash.map(|s| s.to_string()),
-      chunk_id: data.chunk_id.map(|s| s.to_string()),
-      module_id: data.module_id.map(|s| s.to_string()),
-      hash: data.hash.map(|s| s.to_string()),
-      content_hash: data.content_hash.map(|s| s.to_string()),
-      runtime: data.runtime.map(|s| s.to_string()),
-      url: data.url.map(|s| s.to_string()),
-      id: data.id.map(|s| s.to_string()),
-      filename: data.filename.map(|s| s.to_string()),
-    }
-  }
+  /// Context data about the asset being resolved (mirrors webpack's PathData / options arg).
+  pub data: JsPathData,
 }
 
 #[napi(object)]
@@ -578,9 +555,9 @@ pub struct RegisterJsTaps {
   )]
   pub register_compilation_after_seal_taps: RegisterFunction<(), Promise<()>>,
   #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAssetPathData) => string); stage: number; }>"
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsAssetPathHookArg) => string); stage: number; }>"
   )]
-  pub register_compilation_asset_path_taps: RegisterFunction<JsAssetPathData, String>,
+  pub register_compilation_asset_path_taps: RegisterFunction<JsAssetPathHookArg, String>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
@@ -902,7 +879,7 @@ define_register!(
 );
 define_register!(
   RegisterCompilationAssetPathTaps,
-  tap = CompilationAssetPathTap<JsAssetPathData, String> @ CompilationAssetPathHook,
+  tap = CompilationAssetPathTap<JsAssetPathHookArg, String> @ CompilationAssetPathHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationAssetPath,
   skip = true,
@@ -1633,7 +1610,10 @@ impl CompilationAssetPath for CompilationAssetPathTap {
     asset_path: &mut String,
     data: &PathData<'_>,
   ) -> rspack_error::Result<()> {
-    let arg = JsAssetPathData::new(asset_path.as_str(), data);
+    let arg = JsAssetPathHookArg {
+      path: asset_path.clone(),
+      data: JsPathData::from_path_data(*data),
+    };
     let new_path: String = self.function.call_with_sync(arg).await?;
     *asset_path = new_path;
     Ok(())

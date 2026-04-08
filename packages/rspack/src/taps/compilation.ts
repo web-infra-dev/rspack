@@ -521,9 +521,9 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
       },
 
       function (queried) {
-        return function (data: binding.JsAssetPathData) {
+        return function (arg: binding.JsAssetPathHookArg) {
           // SyncWaterfallHook threads the path through each tap; return final path
-          return queried.call(data.path, data) ?? data.path;
+          return queried.call(arg.path, arg.data) ?? arg.path;
         };
       },
     ),
