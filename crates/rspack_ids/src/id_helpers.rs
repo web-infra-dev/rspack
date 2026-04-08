@@ -185,6 +185,31 @@ where
     .collect()
 }
 
+pub fn assign_deterministic_ids_from_precomputed_candidates<T>(
+  prepared_items: Vec<DeterministicIdCandidate<T>>,
+  used_ids: &mut FxHashSet<String>,
+  range: usize,
+  salt: usize,
+  mut assign_id: impl FnMut(T, usize),
+) -> usize {
+  let mut conflicts = 0;
+
+  for prepared in prepared_items {
+    let mut i = salt;
+    let mut id = prepared.initial_id;
+    while !used_ids.insert(id.to_string()) {
+      conflicts += 1;
+      i += 1;
+      let mut i_buffer = itoa::Buffer::new();
+      id = get_number_hash(&format!("{}{}", prepared.name, i_buffer.format(i)), range);
+    }
+
+    assign_id(prepared.item, id);
+  }
+
+  conflicts
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn assign_deterministic_ids<T>(
   mut items: Vec<T>,

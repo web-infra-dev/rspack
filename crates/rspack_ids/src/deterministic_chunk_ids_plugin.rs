@@ -1,4 +1,3 @@
-use rayon::prelude::*;
 use rspack_core::{
   ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
 };
@@ -7,7 +6,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::id_helpers::{
-  assign_deterministic_ids, compare_chunks_natural, get_full_chunk_name, get_used_chunk_ids,
+  assign_deterministic_ids_from_precomputed_candidates, compare_chunks_natural,
+  get_deterministic_id_range, get_full_chunk_name, get_used_chunk_ids,
+  precompute_deterministic_id_candidates,
 };
 
 #[plugin]
@@ -62,35 +63,27 @@ async fn chunk_ids(
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks.len(), FxBuildHasher::default());
 
-  let chunk_names = chunks
-    .par_iter()
-    .map(|chunk| {
-      (
-        chunk.ukey(),
-        get_full_chunk_name(
-          chunk,
-          chunk_graph,
-          module_graph,
-          module_graph_cache,
-          &compilation
-            .build_module_graph_artifact
-            .side_effects_state_artifact,
-          &context,
-          &compilation.exports_info_artifact,
-        ),
-      )
-    })
-    .collect::<FxHashMap<_, _>>();
-
   let mut ordered_chunk_modules_cache = Default::default();
-
-  assign_deterministic_ids(
+  let range = get_deterministic_id_range(
+    chunks.len(),
+    &[usize::pow(10, max_length)],
+    expand_factor,
+    used_ids_len,
+  );
+  let prepared_chunks = precompute_deterministic_id_candidates(
     chunks,
     |chunk| {
-      chunk_names
-        .get(&chunk.ukey())
-        .expect("should have generated full chunk name")
-        .clone()
+      get_full_chunk_name(
+        chunk,
+        chunk_graph,
+        module_graph,
+        module_graph_cache,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &context,
+        &compilation.exports_info_artifact,
+      )
     },
     |a, b| {
       compare_chunks_natural(
@@ -102,20 +95,18 @@ async fn chunk_ids(
         &mut ordered_chunk_modules_cache,
       )
     },
-    |chunk, id| {
-      let size = used_ids.len();
-      used_ids.insert(id.to_string());
-      if used_ids.len() == size {
-        return false;
-      }
-
-      chunk_key_to_id.insert(chunk.ukey(), id);
-      true
-    },
-    &[usize::pow(10, max_length)],
-    expand_factor,
-    used_ids_len,
+    range,
     salt,
+  );
+
+  assign_deterministic_ids_from_precomputed_candidates(
+    prepared_chunks,
+    &mut used_ids,
+    range,
+    salt,
+    |chunk, id| {
+      chunk_key_to_id.insert(chunk.ukey(), id);
+    },
   );
 
   for (chunk_ukey, id) in chunk_key_to_id {
