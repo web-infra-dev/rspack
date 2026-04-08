@@ -3407,10 +3407,10 @@ impl FinalNameResult {
     if let Some(value) = self.deferred_namespace_object_used {
       info.set_deferred_namespace_object_used(value);
     }
-    if let Some(value) = self.needed_namespace_object {
-      if needed_namespace_objects.insert(value) {
-        needed_namespace_objects_queue.push_back(value);
-      }
+    if let Some(value) = self.needed_namespace_object
+      && needed_namespace_objects.insert(value)
+    {
+      needed_namespace_objects_queue.push_back(value);
     }
   }
 }
