@@ -21,13 +21,29 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 安装后，让 Coding Agent 协助完成升级即可。
 
+## 升级 Rspack 到 v2
+
+- 将 `@rspack/core` 升级到 2.0 RC 版本。
+- 如果你使用了 `@rspack/cli`、`@rspack/dev-server` 或 `@rspack/plugin-react-refresh`，也需要将它们升级到最新版本，以保持与 `@rspack/core` 的版本兼容。例如：
+
+```json
+{
+  "devDependencies": {
+    "@rspack/core": "^2.0.0-rc.0",
+    "@rspack/cli": "^2.0.0-rc.0",
+    "@rspack/dev-server": "^2.0.0-rc.0",
+    "@rspack/plugin-react-refresh": "^2.0.0"
+  }
+}
+```
+
 ## 升级 Node.js
 
 Rspack 2.0 的最低 Node.js 版本要求为 **20.19+** 或 **22.12+**，并且不再支持 Node.js 18。
 
 ## Pure ESM 包
 
-`@rspack/core`、`@rspack/cli` 和 `@rspack/dev-server` 已以 **pure ESM** 形式发布，移除了 CommonJS 构建产物。
+`@rspack/core`、`@rspack/cli`、`@rspack/dev-server` 和 `@rspack/plugin-react-refresh` 已以 **pure ESM** 形式发布，移除了 CommonJS 构建产物。
 
 在 Node.js 20 及以上版本中，运行时已原生支持通过 [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require) 加载 ESM 模块。因此，对大多数仍通过 JavaScript API 使用 Rspack 的项目来说，这一变更通常不会带来实际影响，也无需额外修改现有代码。
 
