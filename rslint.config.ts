@@ -6,6 +6,7 @@ export default defineConfig([
     ignores: [
       'packages/rspack/src/runtime/moduleFederationDefaultRuntime.js',
       'packages/rspack/compiled/**',
+      '**/tests/**',
     ],
   },
   ts.configs.recommended,
@@ -27,8 +28,17 @@ export default defineConfig([
         'error',
         { allowBitwiseExpressions: true },
       ],
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/triple-slash-reference': 'off',
       'no-constant-binary-expression': 'off',
       'no-empty': 'off',
+      'prefer-const': 'off',
+    },
+  },
+  {
+    files: ['**/*.d.ts'],
+    rules: {
+      'no-var': 'off',
     },
   },
 ]);
