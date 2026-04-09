@@ -228,7 +228,8 @@ impl SwcLoader {
       );
     }
 
-    loader_context.finish_with((code, map));
+    let additional_data = loader_context.take_additional_data();
+    loader_context.finish_with((code, map, additional_data));
 
     Ok(())
   }
