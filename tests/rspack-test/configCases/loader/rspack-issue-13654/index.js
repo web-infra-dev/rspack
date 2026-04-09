@@ -20,8 +20,12 @@ it("should pass additional data through builtin:preact-refresh-loader", () => {
 });
 
 it("should pass additional data through builtin:lightningcss-loader", () => {
+	// Don't pass additional data through builtin:lightningcss-loader
+	// This is same behavior with https://github.com/fz6m/lightningcss-loader/blob/a7a9e32317414463b7e593b54d6d7b087b4e7956/src/loader.ts
+	// A possible case is:
+	//   css-loader <- builtin:lightningcss-loader <- postcss-loader
+	//   if we pass additional data then the ast from postcss-loader will be used by css-loader instead of the result of builtin:lightningcss-loader.
 	expect(require("./lightning.css")).toEqual({
-		fromLoader1: "lightning.css",
 		fromLoader2: true
 	});
 });
