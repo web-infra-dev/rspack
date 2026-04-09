@@ -101,11 +101,7 @@ export default {
         test: /\.ts$/, // 如果需要在 Vue SFC 里使用 TypeScript, 请添加该规则
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
         type: 'javascript/auto',
       },

@@ -221,12 +221,7 @@ const jsxRule = {
   use: {
     loader: 'builtin:swc-loader',
     options: {
-      jsc: {
-        parser: {
-          syntax: 'ecmascript',
-          jsx: true,
-        },
-      },
+      detectSyntax: 'auto',
     },
     rspackExperiments: {
       reactServerComponents: true,
@@ -240,12 +235,7 @@ const tsxRule = {
   use: {
     loader: 'builtin:swc-loader',
     options: {
-      jsc: {
-        parser: {
-          syntax: 'typescript',
-          tsx: true,
-        },
-      },
+      detectSyntax: 'auto',
     },
     rspackExperiments: {
       reactServerComponents: true,

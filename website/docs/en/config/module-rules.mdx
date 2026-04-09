@@ -445,12 +445,10 @@ export default {
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
             experimental: {
 +             keepImportAttributes: true,
-            },
-            parser: {
-              syntax: 'typescript',
             },
           },
         },
@@ -494,11 +492,7 @@ export default {
         test: /\.ts$/,
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
       },
     ],

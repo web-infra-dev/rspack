@@ -217,7 +217,7 @@ Rspack 与绝大多数 webpack loader 保持兼容，因此通常可以直接复
 
 如果你需要通过 babel 插件进行自定义转换逻辑，可以保留 `babel-loader`，但不建议对大量文件使用 `babel-loader`，因为这会导致显著的性能下降。
 
-- 将 [@babel/preset-typescript](http://npmjs.com/package/@babel/preset-typescript) 替换为 SWC 的 `syntax: 'typescript'` 选项：
+- 将 [@babel/preset-typescript](http://npmjs.com/package/@babel/preset-typescript) 替换为使用 `detectSyntax: 'auto'` 的 `builtin:swc-loader`：
 
 ```diff title="rspack.config.js"
 module.exports = {
@@ -232,12 +232,7 @@ module.exports = {
 -            loader: 'babel-loader',
 +            loader: 'builtin:swc-loader',
             options: {
--              presets: ['@babel/preset-typescript'],
-+              jsc: {
-+                parser: {
-+                  syntax: 'typescript',
-+                },
-+              },
++              detectSyntax: 'auto',
             },
           },
         ],
@@ -265,10 +260,6 @@ module.exports = {
             options: {
 -              presets: ['@babel/preset-typescript', '@babel/preset-react'],
 +              jsc: {
-+                parser: {
-+                  syntax: 'typescript',
-+                  tsx: true,
-+                },
 +                transform: {
 +                  react: {
 +                    runtime: 'automatic',
@@ -277,6 +268,7 @@ module.exports = {
 +                  },
 +                },
 +              },
++              detectSyntax: 'auto',
             },
           },
         ],

@@ -29,12 +29,7 @@ export default {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',
@@ -44,12 +39,7 @@ export default {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-                tsx: true,
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',
@@ -87,11 +77,8 @@ export default {
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
               transform: {
                 react: {
                   development: isDev,

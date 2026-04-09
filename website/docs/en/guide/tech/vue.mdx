@@ -103,11 +103,7 @@ export default {
         test: /\.ts$/, // add this rule when you use TypeScript in Vue SFC
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
         type: 'javascript/auto',
       },

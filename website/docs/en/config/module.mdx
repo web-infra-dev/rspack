@@ -1365,11 +1365,7 @@ export default {
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 typeExports: true, // Must be enabled in "tolerant" mode
               },

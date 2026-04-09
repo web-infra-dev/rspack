@@ -1362,11 +1362,7 @@ export default {
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
               },
