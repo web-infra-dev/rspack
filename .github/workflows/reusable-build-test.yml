@@ -129,7 +129,7 @@ jobs:
         run: pnpm run test:ci
 
       - name: Upload linux test cache
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '22' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '24' }}
         uses: ./.github/actions/artifact/upload
         with:
           name: testCase-persistentCache-linux
