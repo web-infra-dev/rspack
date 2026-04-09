@@ -15,7 +15,7 @@ it("should respect strictThisContextOnImports for member call via require contex
 it("should always correctly handle this for exportsType is DefaultWithNamed and DefaultOnly via require context module", () => {
 	const cjsName = "cjs";
 	const cjs = require("./modules/" + cjsName);
-	expect(cjs.that().value).toBe(42);
+	expect(cjs.that().value).toBe(STRICT_THIS_CONTEXT_ON_IMPORTS ? 42 : undefined);
 	const dataName = "data.json";
 	const json = require("./modules/" + dataName);
 	expect(json.map(d => d * 2)).toEqual([2, 4, 6]);

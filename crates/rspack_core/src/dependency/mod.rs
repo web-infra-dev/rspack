@@ -300,6 +300,7 @@ impl ReferencedSpecifier {
 pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
+  is_json: bool,
 ) -> Vec<ExtendedReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
@@ -311,12 +312,13 @@ pub fn create_referenced_exports_by_referenced_specifiers(
     let mut names = names.as_slice();
     let mut namespace_object_as_context = *namespace_object_as_context;
 
-    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
-    // because it's more common in cjs and json
+    // Force enable namespace object as context for json module, it's a common case:
+    // import json from "./array.json"; json.map(d => d * 2);
     if matches!(
       exports_type,
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) {
+    ) && is_json
+    {
       namespace_object_as_context = true;
     }
 

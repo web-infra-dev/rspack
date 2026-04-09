@@ -193,13 +193,7 @@ pub enum BuildMetaDefaultObject {
   #[default]
   False,
   Redirect,
-  RedirectWarn {
-    // Whether to ignore the warning, should use false for most cases
-    // Only ignore the cases that do not follow the standards but are
-    // widely used by the community, making it difficult to migrate.
-    // For example, JSON named exports.
-    ignore: bool,
-  },
+  RedirectWarn,
 }
 
 #[cacheable]
@@ -473,7 +467,7 @@ fn get_exports_type_impl(
     BuildMetaExportsType::Namespace => ExportsType::Namespace,
     BuildMetaExportsType::Default => match default_object {
       BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-      BuildMetaDefaultObject::RedirectWarn { .. } => {
+      BuildMetaDefaultObject::RedirectWarn => {
         if strict {
           ExportsType::DefaultOnly
         } else {
@@ -489,7 +483,7 @@ fn get_exports_type_impl(
         fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
           match default_object {
             BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-            BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
+            BuildMetaDefaultObject::RedirectWarn => ExportsType::DefaultWithNamed,
             _ => ExportsType::DefaultOnly,
           }
         }
