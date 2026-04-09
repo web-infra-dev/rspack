@@ -41,11 +41,8 @@ const baseConfig = {
         test: /\.(jsx|tsx)$/,
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
             transform: {
               react: {
                 runtime: 'preserve',

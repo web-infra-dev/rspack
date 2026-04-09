@@ -32,11 +32,8 @@ module.exports = {
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  jsx: true,
-                  syntax: 'ecmascript',
-                },
                 transform: {
                   react: {
                     development: true,

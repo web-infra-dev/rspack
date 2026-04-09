@@ -10,14 +10,7 @@ module.exports = {
         use: [
           {
             loader: 'builtin:swc-loader',
-            options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                  jsx: false,
-                },
-              },
-            },
+            options: { detectSyntax: 'auto' },
           },
         ],
         type: 'javascript/auto',
