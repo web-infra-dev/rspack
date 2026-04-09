@@ -1751,6 +1751,7 @@ fn add_concatenated_module(
 
   let module_graph = compilation.get_module_graph_mut();
 
+  let root_module_chunks = chunk_graph.get_module_chunks(root_module_id).clone();
   for m in modules_set.iter() {
     if *m == root_module_id {
       continue;
@@ -1759,18 +1760,16 @@ fn add_concatenated_module(
       .module_by_identifier(m)
       .expect("should exist module");
     // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-    for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
+    for chunk_ukey in root_module_chunks.iter() {
       let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+        chunk_graph.get_chunk_module_source_types(chunk_ukey, module, module_graph);
 
       if source_types.len() == 1 {
-        chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
+        chunk_graph.disconnect_chunk_and_module(chunk_ukey, *m);
       } else {
-        let new_source_types = source_types
-          .into_iter()
-          .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
-          .collect();
-        chunk_graph.set_chunk_modules_source_types(&chunk_ukey, *m, new_source_types)
+        let mut new_source_types = source_types.clone();
+        new_source_types.remove(&SourceType::JavaScript);
+        chunk_graph.set_chunk_modules_source_types(chunk_ukey, *m, new_source_types)
       }
     }
   }

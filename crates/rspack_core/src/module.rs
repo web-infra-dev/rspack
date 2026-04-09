@@ -84,6 +84,82 @@ pub struct RscMeta {
 }
 
 #[cacheable]
+#[derive(Debug, Default, Clone)]
+pub enum TopLevelDeclarations {
+  #[default]
+  Unknown,
+  Single(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
+  Multiple(#[cacheable(with=AsVec<AsVec<AsPreset>>)] Vec<HashSet<Atom>>),
+}
+
+impl TopLevelDeclarations {
+  pub fn is_unknown(&self) -> bool {
+    matches!(self, Self::Unknown)
+  }
+
+  pub fn contains(&self, atom: &Atom) -> bool {
+    match self {
+      Self::Unknown => false,
+      Self::Single(set) => set.contains(atom),
+      Self::Multiple(sets) => sets.iter().any(|set| set.contains(atom)),
+    }
+  }
+
+  pub fn insert(&mut self, atom: Atom) {
+    match self {
+      Self::Unknown => {
+        *self = Self::Single(HashSet::from_iter([atom]));
+      }
+      Self::Single(set) => {
+        set.insert(atom);
+      }
+      Self::Multiple(sets) => {
+        if let Some(set) = sets.last_mut() {
+          set.insert(atom);
+        } else {
+          *self = Self::Single(HashSet::from_iter([atom]));
+        }
+      }
+    }
+  }
+
+  fn into_known_sets(self) -> Option<Vec<HashSet<Atom>>> {
+    match self {
+      Self::Unknown => None,
+      Self::Single(set) => Some((!set.is_empty()).then_some(set).into_iter().collect()),
+      Self::Multiple(sets) => Some(
+        sets
+          .into_iter()
+          .filter(|set| !set.is_empty())
+          .collect::<Vec<_>>(),
+      ),
+    }
+  }
+
+  fn from_known_sets(sets: Vec<HashSet<Atom>>) -> Self {
+    match sets.len() {
+      0 => Self::Single(Default::default()),
+      1 => Self::Single(sets.into_iter().next().expect("should have set")),
+      _ => Self::Multiple(sets),
+    }
+  }
+
+  pub fn merge(&mut self, other: Self) {
+    let Some(mut own_sets) = std::mem::take(self).into_known_sets() else {
+      *self = Self::Unknown;
+      return;
+    };
+    let Some(other_sets) = other.into_known_sets() else {
+      *self = Self::Unknown;
+      return;
+    };
+
+    own_sets.extend(other_sets);
+    *self = Self::from_known_sets(own_sets);
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
@@ -105,8 +181,7 @@ pub struct BuildInfo {
   pub json_data: Option<JsonValue>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub side_effects_free: Option<HashSet<Atom>>,
-  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
-  pub top_level_declarations: Option<HashSet<Atom>>,
+  pub top_level_declarations: TopLevelDeclarations,
   pub module_concatenation_bailout: Option<String>,
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
@@ -139,7 +214,7 @@ impl Default for BuildInfo {
       need_create_require: false,
       json_data: None,
       side_effects_free: None,
-      top_level_declarations: None,
+      top_level_declarations: TopLevelDeclarations::Unknown,
       module_concatenation_bailout: None,
       assets: Default::default(),
       module: false,
@@ -756,9 +831,13 @@ mod test {
   use rspack_error::{Result, impl_empty_diagnosable_trait};
   use rspack_hash::RspackHashDigest;
   use rspack_sources::BoxSource;
-  use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
+  use rspack_util::{
+    atom::Atom,
+    source_map::{ModuleSourceMapConfig, SourceMapKind},
+  };
+  use rustc_hash::FxHashSet as HashSet;
 
-  use super::{BoxModule, Module};
+  use super::{BoxModule, Module, TopLevelDeclarations};
   use crate::{
     AsyncDependenciesBlockIdentifier, BuildContext, BuildResult, CodeGenerationResult, Compilation,
     Context, DependenciesBlock, DependencyId, ModuleCodeGenerationContext, ModuleExt, ModuleGraph,
@@ -906,5 +985,46 @@ mod test {
     let b = b.as_ref();
     assert!(a.downcast_ref::<ExternalModule>().is_some());
     assert!(b.downcast_ref::<RawModule>().is_some());
+  }
+
+  #[test]
+  fn top_level_declarations_merge_upgrades_to_multiple_without_flattening() {
+    let mut declarations = TopLevelDeclarations::Single(Default::default());
+
+    declarations.merge(TopLevelDeclarations::Single(HashSet::from_iter([
+      Atom::from("alpha"),
+    ])));
+    declarations.merge(TopLevelDeclarations::Single(HashSet::from_iter([
+      Atom::from("beta"),
+    ])));
+
+    match declarations {
+      TopLevelDeclarations::Multiple(sets) => {
+        assert_eq!(sets.len(), 2);
+        assert!(sets[0].contains(&Atom::from("alpha")));
+        assert!(sets[1].contains(&Atom::from("beta")));
+      }
+      other => panic!("expected multiple declarations, got {other:?}"),
+    }
+  }
+
+  #[test]
+  fn top_level_declarations_contains_checks_across_multiple_sets() {
+    let declarations = TopLevelDeclarations::Multiple(vec![
+      HashSet::from_iter([Atom::from("alpha")]),
+      HashSet::from_iter([Atom::from("beta")]),
+    ]);
+
+    assert!(declarations.contains(&Atom::from("alpha")));
+    assert!(declarations.contains(&Atom::from("beta")));
+    assert!(!declarations.contains(&Atom::from("gamma")));
+  }
+
+  #[test]
+  fn top_level_declarations_unknown_dominates_merge() {
+    let mut declarations = TopLevelDeclarations::Single(Default::default());
+    declarations.merge(TopLevelDeclarations::Unknown);
+
+    assert!(declarations.is_unknown());
   }
 }

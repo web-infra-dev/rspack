@@ -395,12 +395,11 @@ async fn embed_in_runtime_bailout(
   let codegen = compilation
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
-  let top_level_decls = codegen
+  if let Some(top_level_decls) = codegen
     .data
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
-    .or_else(|| module.build_info().top_level_declarations.as_ref());
-  if let Some(top_level_decls) = top_level_decls {
+  {
     let full_name = self
       .get_resolved_full_name(&options, compilation, chunk)
       .await?;
@@ -413,9 +412,26 @@ async fn embed_in_runtime_bailout(
     }
     return Ok(None);
   }
-  Ok(Some(
-    "it doesn't tell about top level declarations.".to_string(),
-  ))
+
+  let top_level_decls = &module.build_info().top_level_declarations;
+  if top_level_decls.is_unknown() {
+    return Ok(Some(
+      "it doesn't tell about top level declarations.".to_string(),
+    ));
+  }
+
+  let full_name = self
+    .get_resolved_full_name(&options, compilation, chunk)
+    .await?;
+  if let Some(base) = full_name.first()
+    && top_level_decls.contains(&Atom::new(base.as_str()))
+  {
+    return Ok(Some(format!(
+      "it declares '{base}' on top-level, which conflicts with the current library output."
+    )));
+  }
+
+  Ok(None)
 }
 
 #[plugin_hook(JavascriptModulesStrictRuntimeBailout for AssignLibraryPlugin)]

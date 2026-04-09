@@ -9,7 +9,8 @@ use rspack_core::{
   Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType,
-  contextify, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  TopLevelDeclarations, contextify, impl_module_meta_info, impl_source_map_config,
+  module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_comment,
 };
@@ -17,7 +18,6 @@ use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
-use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -76,7 +76,7 @@ impl RscEntryModule {
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: TopLevelDeclarations::Single(Default::default()),
         ..Default::default()
       },
       build_meta: BuildMeta {
