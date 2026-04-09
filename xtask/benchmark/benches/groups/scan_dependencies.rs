@@ -18,22 +18,27 @@ use rspack_javascript_compiler::{JavaScriptCompiler, ast::Program};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin,
   parser_and_generator::ParserRuntimeRequirementsData,
-  visitors::{ScanDependenciesResult, scan_dependencies as run_scan_dependencies},
+  visitors::{
+    ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
+    semicolon::InsertedSemicolons, swc_visitor::resolver,
+  },
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashSet;
 use swc_core::{
   base::config::IsModule,
-  common::{BytePos, FileName, GLOBALS, Globals, Mark},
+  common::{
+    BytePos, GLOBALS, Globals, Mark, comments::SingleThreadedComments, input::SourceFileInput,
+  },
   ecma::{
     ast::EsVersion,
-    parser::{EsSyntax, Syntax},
+    parser::{EsSyntax, Syntax, lexer::Lexer},
     transforms::base::fixer::paren_remover,
   },
 };
 
-const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three/build/three.module.js";
-const THREE_MODULE_RESOURCE_PATH: &str = "three/build/three.module.js";
+const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
+const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
 const THREE_MODULE_TARBALL_URL: &str = "https://registry.npmjs.org/three/-/three-0.183.2.tgz";
 const THREE_MODULE_TAR_ENTRY: &str = "package/build/three.module.js";
 
@@ -48,6 +53,7 @@ struct PreparedScanDependenciesBenchmarkCase {
   benchmark_id: &'static str,
   source_text: String,
   compiler_options: Arc<CompilerOptions>,
+  initial_semicolons: FxHashSet<BytePos>,
   parser_options: ParserOptions,
   program: Program,
   module_identifier: ModuleIdentifier,
@@ -55,6 +61,12 @@ struct PreparedScanDependenciesBenchmarkCase {
   resource_data: ResourceData,
   unresolved_mark: Mark,
   parser_runtime_requirements: ParserRuntimeRequirementsData,
+}
+
+struct PreparedScanDependenciesProgram {
+  program: Program,
+  unresolved_mark: Mark,
+  semicolons: FxHashSet<BytePos>,
 }
 
 #[derive(Default)]
@@ -93,7 +105,7 @@ fn register_scan_dependencies_benchmark_case(
 ) {
   c.bench_function(benchmark_case.benchmark_id, |b| {
     b.iter_batched_ref(
-      ScanDependenciesIterationState::default,
+      || benchmark_case.build_iteration_state(),
       |iteration_state| {
         let result = benchmark_case.execute_scan_dependencies(iteration_state);
         black_box(result);
@@ -138,8 +150,11 @@ fn prepare_scan_dependencies_benchmark_case(
     resource_path,
     module_type,
   } = case_spec;
-  let (program, unresolved_mark) =
-    parse_benchmark_program(resource_path, &source_text, &module_type);
+  let PreparedScanDependenciesProgram {
+    program,
+    unresolved_mark,
+    semicolons,
+  } = parse_benchmark_program(resource_path, &source_text, &module_type);
   let compiler_options = compiler.options.clone();
   let parser_options = compiler
     .options
@@ -154,6 +169,7 @@ fn prepare_scan_dependencies_benchmark_case(
     benchmark_id,
     source_text,
     compiler_options: compiler_options.clone(),
+    initial_semicolons: semicolons,
     parser_options,
     program,
     module_identifier: resource_path.into(),
@@ -170,33 +186,61 @@ fn parse_benchmark_program(
   resource_path: &str,
   source_text: &str,
   module_type: &ModuleType,
-) -> (Program, Mark) {
-  let compiler = JavaScriptCompiler::new();
-  let mut ast = compiler
-    .parse(
-      FileName::Real(resource_path.into()),
+) -> PreparedScanDependenciesProgram {
+  let comments = SingleThreadedComments::default();
+  let parser_lexer = Lexer::new(
+    Syntax::Es(EsSyntax {
+      jsx: resource_path.ends_with(".jsx"),
+      allow_return_outside_function: matches!(
+        module_type,
+        ModuleType::JsDynamic | ModuleType::JsAuto
+      ),
+      explicit_resource_management: true,
+      import_attributes: true,
+      ..Default::default()
+    }),
+    EsVersion::latest(),
+    SourceFileInput::new(
       source_text,
-      EsVersion::latest(),
-      Syntax::Es(EsSyntax {
-        jsx: resource_path.ends_with(".jsx"),
-        allow_return_outside_function: matches!(
-          module_type,
-          ModuleType::JsDynamic | ModuleType::JsAuto
-        ),
-        explicit_resource_management: true,
-        import_attributes: true,
-        ..Default::default()
-      }),
+      BytePos(1),
+      BytePos(source_text.len() as u32 + 1),
+    ),
+    Some(&comments),
+  );
+  let compiler = JavaScriptCompiler::new();
+  let (mut ast, tokens) = compiler
+    .parse_with_lexer(
+      source_text,
+      parser_lexer,
       resolve_parse_mode(module_type),
-      None,
+      Some(comments.clone()),
+      true,
     )
     .expect("scan_dependencies benchmark source should parse");
 
-  ast.transform(|program, _| {
-    program.visit_mut_with(&mut paren_remover(None));
+  let mut semicolons = FxHashSet::default();
+  ast.transform(|program, context| {
+    program.visit_mut_with(&mut paren_remover(Some(&comments)));
+    program.visit_mut_with(&mut resolver(
+      context.unresolved_mark,
+      context.top_level_mark,
+      false,
+    ));
+    program.visit_with(&mut InsertedSemicolons::new(
+      &mut semicolons,
+      tokens
+        .as_deref()
+        .expect("scan_dependencies benchmark parse should capture tokens"),
+    ));
   });
 
-  ast.visit(|program, context| (program.clone(), context.unresolved_mark))
+  let (program, unresolved_mark) =
+    ast.visit(|program, context| (program.clone(), context.unresolved_mark));
+  PreparedScanDependenciesProgram {
+    program,
+    unresolved_mark,
+    semicolons,
+  }
 }
 
 fn resolve_parse_mode(module_type: &ModuleType) -> IsModule {
@@ -208,6 +252,13 @@ fn resolve_parse_mode(module_type: &ModuleType) -> IsModule {
 }
 
 impl PreparedScanDependenciesBenchmarkCase {
+  fn build_iteration_state(&self) -> ScanDependenciesIterationState {
+    ScanDependenciesIterationState {
+      semicolons: self.initial_semicolons.clone(),
+      ..Default::default()
+    }
+  }
+
   fn execute_scan_dependencies(
     &self,
     iteration_state: &mut ScanDependenciesIterationState,
@@ -230,16 +281,16 @@ impl PreparedScanDependenciesBenchmarkCase {
       std::mem::take(&mut iteration_state.parse_meta),
       &self.parser_runtime_requirements,
     )
-    .unwrap_or_else(|_| {
+    .unwrap_or_else(|diagnostics| {
       panic!(
-        "{} should execute without scan diagnostics",
+        "{} should execute without scan errors. Diagnostics: {diagnostics:#?}",
         self.benchmark_id
       )
     })
   }
 
   fn assert_can_execute(&self) {
-    let mut iteration_state = ScanDependenciesIterationState::default();
+    let mut iteration_state = self.build_iteration_state();
     let _ = self.execute_scan_dependencies(&mut iteration_state);
   }
 }
