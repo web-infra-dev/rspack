@@ -229,11 +229,11 @@ module.exports = {
         exclude: [/[\\/]node_modules[\\/]/],
         use: [
           {
--            loader: 'babel-loader',
-+            loader: 'builtin:swc-loader',
-            options: {
-+              detectSyntax: 'auto',
-            },
+-           loader: 'babel-loader',
++           loader: 'builtin:swc-loader',
++           options: {
++             detectSyntax: 'auto',
++           },
           },
         ],
       },
