@@ -126,6 +126,7 @@ async function getPreviewConfig(
             path.join(item.context ?? process.cwd(), DEFAULT_ROOT)),
         publicPath: options.publicPath ?? '/',
       },
+      hot: false,
       port: options.port ?? 8080,
       proxy: devServer?.proxy,
       host: options.host ?? devServer?.host,
