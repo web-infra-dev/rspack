@@ -156,9 +156,6 @@ jobs:
       - name: Build wasm32-wasip1-threads with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-          wget https://github.com/CPunisher/wasi-sdk/releases/download/v32.0.0-fix.1/wasi-sdk-32.0+m-x86_64-linux.tar.gz
-          tar -xvf wasi-sdk-32.0+m-x86_64-linux.tar.gz
-          export WASI_SDK_PATH="$(pwd)/wasi-sdk-32.0+m-x86_64-linux"
 
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
