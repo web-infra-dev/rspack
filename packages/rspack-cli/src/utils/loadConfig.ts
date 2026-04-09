@@ -21,6 +21,109 @@ let isEsmLoaderRegistered = false;
 const shouldCompileAsCommonJs = (filename: string) =>
   isTsFile(filename) && !isEsmFile(filename);
 
+const ESM_TS_LOADER_SOURCE = `
+import fs from 'node:fs';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { rspack } from '@rspack/core';
+
+const TS_EXTENSION = ['.ts', '.cts', '.mts'];
+
+const isTsFile = (filePath) => TS_EXTENSION.includes(path.extname(filePath));
+
+const readPackageUp = (cwd) => {
+  let current = cwd;
+
+  while (true) {
+    const packageJsonPath = path.join(current, 'package.json');
+    if (fs.existsSync(packageJsonPath)) {
+      try {
+        return JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      } catch {
+        return undefined;
+      }
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      return undefined;
+    }
+    current = parent;
+  }
+};
+
+const isEsmFile = (filePath) => {
+  if (/\\.(mjs|mts)$/.test(filePath)) {
+    return true;
+  }
+  if (/\\.(cjs|cts)$/.test(filePath)) {
+    return false;
+  }
+  return readPackageUp(path.dirname(filePath))?.type === 'module';
+};
+
+const injectInlineSourceMap = ({ code, map }) => {
+  if (map) {
+    const base64Map = Buffer.from(map, 'utf8').toString('base64');
+    const sourceMapContent = \`//# sourceMappingURL=data:application/json;charset=utf-8;base64,\${base64Map}\`;
+    return \`\${code}\\n\${sourceMapContent}\`;
+  }
+  return code;
+};
+
+const compileTypeScript = (sourcecode, filename, moduleType) => {
+  const { code, map } = rspack.experiments.swc.transformSync(sourcecode, {
+    jsc: {
+      parser: {
+        syntax: 'typescript',
+        tsx: false,
+        decorators: true,
+        dynamicImport: true,
+      },
+    },
+    filename,
+    module: { type: moduleType },
+    sourceMaps: true,
+    isModule: true,
+  });
+
+  return injectInlineSourceMap({ code, map });
+};
+
+export async function load(url, context, nextLoad) {
+  if (!url.startsWith('file:')) {
+    return nextLoad(url, context);
+  }
+
+  const filename = fileURLToPath(url);
+  if (!isTsFile(filename)) {
+    return nextLoad(url, context);
+  }
+
+  const moduleType = isEsmFile(filename) ? 'es6' : 'commonjs';
+  const format = moduleType === 'es6' ? 'module' : 'commonjs';
+  const source = await readFile(new URL(url), 'utf8');
+
+  try {
+    return {
+      format,
+      shortCircuit: true,
+      source: compileTypeScript(source, filename, moduleType),
+    };
+  } catch (err) {
+    throw new Error(
+      \`Failed to transform file "\${filename}" when loading TypeScript config file:\\n \${err instanceof Error ? err.message : String(err)}\`,
+    );
+  }
+}
+`;
+
+const ESM_TS_LOADER_URL = `data:text/javascript;base64,${Buffer.from(
+  ESM_TS_LOADER_SOURCE,
+  'utf8',
+).toString('base64')}`;
+
 const registerCommonJsLoader = () => {
   if (isCommonJsLoaderRegistered) {
     return;
@@ -49,11 +152,11 @@ const registerEsmLoader = () => {
     return;
   }
 
-  registerModule(new URL('./tsConfigLoaderHooks.js', import.meta.url), import.meta.url);
+  registerModule(ESM_TS_LOADER_URL, import.meta.url);
   isEsmLoaderRegistered = true;
 };
 
-const loadConfigFile = async <T>(
+const loadConfigFile = async <T = LoadedRspackConfig>(
   configPath: string,
   options: CommonOptions,
 ): Promise<T> => {
@@ -78,6 +181,8 @@ export type LoadedRspackConfig =
       env: Record<string, any>,
       argv?: Record<string, any>,
     ) => RspackOptions | MultiRspackOptions);
+
+type ResolvedRspackConfig = RspackOptions | MultiRspackOptions;
 
 const checkIsMultiRspackOptions = (
   config: RspackOptions | MultiRspackOptions,
@@ -208,17 +313,32 @@ export async function loadExtendedConfig(
     }
 
     // Load the extended configuration
-    let loadedConfig = await loadConfigFile(resolvedPath, options);
+    let loadedConfig = await loadConfigFile<LoadedRspackConfig>(
+      resolvedPath,
+      options,
+    );
 
     // If the extended config is a function, execute it
     if (typeof loadedConfig === 'function') {
-      loadedConfig = loadedConfig(options.env, options);
+      loadedConfig = loadedConfig(options.env as Record<string, any>, options);
       // if return promise we should await its result
       if (
         typeof (loadedConfig as unknown as Promise<unknown>).then === 'function'
       ) {
-        loadedConfig = await loadedConfig;
+        loadedConfig = (await loadedConfig) as ResolvedRspackConfig;
       }
+    }
+
+    if (!loadedConfig) {
+      throw new Error(
+        `Extended configuration file "${resolvedPath}" must export a configuration object.`,
+      );
+    }
+
+    if (checkIsMultiRspackOptions(loadedConfig)) {
+      throw new Error(
+        `Extended configuration file "${resolvedPath}" must export a single configuration object.`,
+      );
     }
 
     // Recursively load extended configurations from the extended config
