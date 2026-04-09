@@ -3,7 +3,8 @@
 use criterion::criterion_main;
 use groups::{
   build_chunk_graph::chunk_graph, bundle::bundle, compilation_stages::compilation_stages,
-  module_graph_api::module_graph_api, persistent_cache::persistent_cache,
+  javascript_parser::javascript_parser, module_graph_api::module_graph_api,
+  persistent_cache::persistent_cache,
 };
 
 mod groups;
@@ -11,6 +12,7 @@ mod groups;
 criterion_main!(
   chunk_graph,
   module_graph_api,
+  javascript_parser,
   bundle,
   compilation_stages,
   persistent_cache
