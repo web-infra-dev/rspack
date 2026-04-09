@@ -3690,11 +3690,14 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_hash",
+ "rspack_javascript_compiler",
+ "rspack_plugin_javascript",
  "rspack_plugin_split_chunks",
  "rspack_regex",
  "rspack_tasks",
  "rustc-hash",
  "serde_json",
+ "swc_core",
  "tokio",
 ]
 
