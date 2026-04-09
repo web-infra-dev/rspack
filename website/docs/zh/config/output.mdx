@@ -1496,7 +1496,7 @@ define('MyLibrary', [], factory);
 
 当启用后，Rspack 会保留传入目录下模块的原始文件结构。每个模块会被输出为单独的文件，保持与源码相同的相对路径。
 
-`preserveModules` 是一种特殊的打包形式——可以将其理解为 **bundle + splitChunks，其中每个模块会被拆分为单独的 chunk**。与 no-bundle 工具不同，Rspack 仍然会执行完整的打包流程（tree-shaking、scope hoisting、代码压缩等），只是将输出拆分为每个模块对应一个输出文件。
+`preserveModules` 是一种特殊的打包形式——可以将其理解为 **bundle + splitChunks，其中每个模块会被拆分为单独的 chunk**。与 bundleless 工具不同，Rspack 仍然会执行完整的打包流程（tree shaking、scope hoisting、代码压缩等），只是将输出拆分为每个模块对应一个输出文件。
 
 :::warning
 **Barrel 文件的导出可见性可能与预期不一致。** 由于 `preserveModules` 仍然是一种打包形式，只有从 entry 可达的模块才会被输出。非 entry 的 barrel 文件（例如从其他模块重新导出的 `index.ts`）如果仍在依赖图中，依然可能作为单独文件输出并保留其 re-export；但作为库的“主入口”，最终对外暴露的仍然是 entry 的 exports。未被引用的 barrel/re-export 可能会被 tree-shaking 掉，或因为不可达而根本不会出现在输出中。如果需要稳定、明确地暴露某个模块的导出，请将对应模块设为 entry。
