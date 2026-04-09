@@ -248,16 +248,12 @@ impl LightningCssLoader {
         inner_source_map: loader_context.take_source_map(),
         remove_original_source: false,
       });
-      match source_map_source.map(&ObjectPool::default(), &MapOptions::default()) {
-        Some(source_map) => {
-          loader_context.finish_with((content.code, source_map));
-        }
-        None => {
-          loader_context.finish_with(content.code);
-        }
-      }
+      let source_map = source_map_source.map(&ObjectPool::default(), &MapOptions::default());
+      let additional_data = loader_context.take_additional_data();
+      loader_context.finish_with((content.code, source_map, additional_data));
     } else {
-      loader_context.finish_with(content.code);
+      let additional_data = loader_context.take_additional_data();
+      loader_context.finish_with((content.code, None, additional_data));
     }
 
     Ok(())
