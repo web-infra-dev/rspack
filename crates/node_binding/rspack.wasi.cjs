@@ -27,7 +27,7 @@ const __wasi = new __nodeWASI({
 const __emnapiContext = __emnapiGetDefaultContext()
 
 const __sharedMemory = new WebAssembly.Memory({
-  initial: 32768,
+  initial: 24576,
   maximum: 65536,
   shared: true,
 })
