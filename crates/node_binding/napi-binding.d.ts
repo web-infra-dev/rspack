@@ -701,6 +701,11 @@ export interface JsAsset {
   info: AssetInfo
 }
 
+export interface JsAssetPathHookArg {
+  path: string
+  data: JsPathData
+}
+
 export interface JsAssetEmittedArgs {
   filename: string
   outputPath: string
@@ -3141,7 +3146,8 @@ export declare enum RegisterJsTapKind {
   RsdoctorPluginChunkGraph = 47,
   RsdoctorPluginModuleIds = 48,
   RsdoctorPluginModuleSources = 49,
-  RsdoctorPluginAssets = 50
+  RsdoctorPluginAssets = 50,
+  CompilationAssetPath = 51
 }
 
 export interface RegisterJsTaps {
@@ -3172,6 +3178,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
+  registerCompilationAssetPathTaps: (stages: Array<number>) => Array<{ function: ((arg: JsAssetPathHookArg) => string); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
   registerNormalModuleFactoryResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>

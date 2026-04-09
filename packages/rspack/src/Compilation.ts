@@ -256,7 +256,10 @@ export class Compilation {
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
-    assetPath: liteTapable.SyncWaterfallHook<[string, binding.JsPathData], string>;
+    assetPath: liteTapable.SyncWaterfallHook<
+      [string, binding.JsPathData],
+      string
+    >;
   }>;
   name?: string;
   startTime?: number;

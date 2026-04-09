@@ -370,11 +370,7 @@ mod asset_path_tests {
       .chunk_name("main")
       .hash("abc123")
       .content_hash("def456");
-    let result = render_template(
-      Cow::Borrowed("[name].[contenthash:6].js"),
-      data,
-      None,
-    );
+    let result = render_template(Cow::Borrowed("[name].[contenthash:6].js"), data, None);
     assert_eq!(result, "main.def456.js");
   }
 
@@ -388,11 +384,7 @@ mod asset_path_tests {
       .content_hash("cafebabe")
       .hash("deadbeef")
       .runtime("web");
-    let result = render_template(
-      Cow::Borrowed("[name].[id].[runtime].js"),
-      data,
-      None,
-    );
+    let result = render_template(Cow::Borrowed("[name].[id].[runtime].js"), data, None);
     assert_eq!(result, "vendor.1.web.js");
   }
 
