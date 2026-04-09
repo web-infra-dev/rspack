@@ -1508,7 +1508,7 @@ When enabled, Rspack will preserve the original directory structure of modules w
 `preserveModules` is a special form of bundling — it can be thought of as **bundle + splitChunks where each module gets its own chunk**. Unlike a bundleless tool, Rspack still applies its full bundling pipeline (tree shaking, scope hoisting, minification, etc.), but splits the output so that each module in the specified directory becomes its own output file.
 
 :::warning
-**Barrel files may lose exports.** Since `preserveModules` is still a form of bundling, only exports from the entry point are preserved. If a barrel file (e.g., an `index.ts` that re-exports from other modules) is not the entry point, its re-exports will not be retained in the output. If you need to strictly expose exports from a barrel file, configure it as an entry point.
+**Barrel files may not be emitted or exposed as you expect.** Since `preserveModules` is still a form of bundling, Rspack only emits modules that are reachable from the configured entries. Non-entry barrel files (for example, an `index.ts` that re-exports from other modules) can still be emitted with their re-exports if they are part of the module graph, but only the configured entry exports are exposed through the main library entry. Unused barrel re-exports may be tree-shaken, and a barrel file may not be emitted at all if nothing references it. If you need to expose exports from a barrel file via your library entry, configure it as an entry point.
 :::
 
 ```js title="rspack.config.mjs"
