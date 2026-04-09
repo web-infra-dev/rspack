@@ -18,60 +18,16 @@ permissions:
   issues: write
 
 jobs:
-  build:
-    name: Build All Debug Bindings
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
-    uses: ./.github/workflows/reusable-build-all.yml
-    with:
-      ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
-      profile: debug
-
-  release:
+  release_debug:
     name: Release Debug
-    runs-on: ubuntu-latest
-    needs: build
-    environment: npm-canary
-    steps:
-      - name: Checkout Branch
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-        with:
-          fetch-depth: 1
-          ref: ${{inputs.commit || github.event.workflow_run.head_sha }}
-
-      - name: Pnpm Setup
-        uses: ./.github/actions/pnpm/setup
-
-      - name: Pnpm Install
-        run: pnpm i
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4.1.7
-        with:
-          path: artifacts
-          pattern: bindings-*
-
-      - name: Clean artifacts
-        run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
-
-      - name: Move artifacts
-        run: |
-          ls -R artifacts
-          node scripts/build-npm.cjs
-
-      - name: Show binding packages
-        run: ls -R npm
-
-      - name: Resolve dependencies for bindings
-        run: pnpm i --no-frozen-lockfile
-
-      # Update npm to the latest version to enable OIDC
-      - name: Update npm
-        run: |
-          npm install -g npm@latest
-          npm --version
-
-      - name: Release Debug
-        run: |
-          pnpm run build:js
-          ./x version debug
-          ./x publish stable --tag latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    uses: ./.github/workflows/reusable-release-npm.yml
+    with:
+      release_type: debug
+      ref: ${{ inputs.commit || github.event.workflow_run.head_sha }}
+      profile: debug
+      test: false
+      tag: latest
+      tag_confirm: latest
+      dry_run: false
+      push_tags: false

@@ -3,6 +3,11 @@ name: Reusable Release Npm
 on:
   workflow_call:
     inputs:
+      release_type:
+        type: string
+        description: 'Release flow type: full, canary, or debug'
+        required: false
+        default: full
       tag:
         type: string
         description: 'Release Npm Tag'
@@ -26,6 +31,15 @@ on:
         description: 'push tags to github'
         required: true
         default: true
+      profile:
+        type: string
+        description: 'Rust profile used for building bindings'
+        required: false
+        default: release
+      ref:
+        type: string
+        description: 'Git reference to checkout'
+        required: false
 
 permissions:
   # To publish packages with provenance
@@ -34,26 +48,52 @@ permissions:
   issues: write
 
 jobs:
+  validate_inputs:
+    name: Validate Inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release inputs
+        run: |
+          if [ "${{ inputs.tag }}" != "${{ inputs.tag_confirm }}" ]; then
+            echo "Error: tag and tag_confirm must match"
+            echo "tag: ${{ inputs.tag }}"
+            echo "tag_confirm: ${{ inputs.tag_confirm }}"
+            exit 1
+          fi
+
+          case "${{ inputs.release_type }}" in
+            full|canary|debug)
+              echo "Release type validation passed: ${{ inputs.release_type }}"
+              ;;
+            *)
+              echo "Error: unsupported release_type '${{ inputs.release_type }}'"
+              exit 1
+              ;;
+          esac
+
   get-runner-labels:
     name: Get Runner Labels
+    if: ${{ inputs.release_type != 'debug' }}
+    needs: [validate_inputs]
     uses: ./.github/workflows/get-runner-labels.yml
     with:
       force-use-github-runner: true
 
   build:
-    needs: [get-runner-labels]
+    if: ${{ inputs.release_type != 'debug' }}
+    needs: [validate_inputs, get-runner-labels]
     strategy:
       fail-fast: false # for better utilize ci runners
       matrix:
         array:
           - target: x86_64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ inputs.release_type == 'canary' && (vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: aarch64-unknown-linux-gnu
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ inputs.release_type == 'canary' && (vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: x86_64-unknown-linux-musl
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ inputs.release_type == 'canary' && (vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: aarch64-unknown-linux-musl
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ inputs.release_type == 'canary' && (vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-pc-windows-msvc
@@ -65,35 +105,47 @@ jobs:
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: wasm32-wasip1-threads
-            runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            runner: ${{ inputs.release_type == 'canary' && (vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       test: ${{ inputs.test }}
-      profile: 'release'
+      profile: ${{ inputs.profile }}
+      ref: ${{ inputs.ref }}
+
+  build_debug:
+    name: Build Debug Bindings
+    if: ${{ inputs.release_type == 'debug' }}
+    needs: [validate_inputs]
+    uses: ./.github/workflows/reusable-build-all.yml
+    with:
+      ref: ${{ inputs.ref }}
+      profile: ${{ inputs.profile }}
+      test: ${{ inputs.test }}
 
   release:
     name: Release
-    environment: npm
+    environment: ${{ inputs.release_type == 'full' && 'npm' || 'npm-canary' }}
     permissions:
       contents: write
       # To publish packages with provenance
       id-token: write
     runs-on: ubuntu-latest
-    needs: build
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: [validate_inputs, build, build_debug]
+    if: ${{ always() && needs.validate_inputs.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && (needs.build_debug.result == 'success' || needs.build_debug.result == 'skipped') }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           # This makes Actions fetch only one branch to release
           fetch-depth: 1
+          ref: ${{ inputs.ref }}
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
         with:
-          node-version: 24
+          node-version: ${{ inputs.release_type == 'full' && '24' || '22' }}
 
       - name: Pnpm Install
         run: pnpm i
@@ -107,8 +159,17 @@ jobs:
       - name: Clean artifacts
         run: find artifacts -type f -name '*.d.ts'  | xargs rm -f
 
+      - name: Prepare canary version
+        if: ${{ inputs.release_type == 'canary' }}
+        run: ./x version snapshot
+
       - name: Build node packages
-        run: pnpm run build:js
+        run: |
+          if [ "${{ inputs.release_type }}" = "canary" ]; then
+            pnpm run build:js:canary
+          else
+            pnpm run build:js
+          fi
 
       - name: Move artifacts
         run: |
@@ -118,6 +179,10 @@ jobs:
       - name: Show binding packages
         run: ls -R npm
 
+      - name: Resolve dependencies for debug bindings
+        if: ${{ inputs.release_type == 'debug' }}
+        run: pnpm i --no-frozen-lockfile
+
       # Update npm to the latest version to enable OIDC
       - name: Update npm
         run: |
@@ -126,7 +191,14 @@ jobs:
 
       - name: Release Npm
         run: |
-          ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
+          if [ "${{ inputs.release_type }}" = "canary" ]; then
+            ./x publish snapshot --tag latest
+          elif [ "${{ inputs.release_type }}" = "debug" ]; then
+            ./x version debug
+            ./x publish stable --tag latest
+          else
+            ./x publish stable --tag ${{inputs.tag}} ${{inputs.dry_run && '--dry-run' || '--no-dry-run'}} ${{inputs.push_tags && '--push-tags' || '--no-push-tags'}}
+          fi
         env:
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}

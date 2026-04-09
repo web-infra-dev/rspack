@@ -86,6 +86,7 @@ jobs:
     needs: [validate_inputs]
     uses: ./.github/workflows/reusable-release-npm.yml
     with:
+      release_type: full
       tag: ${{ inputs.npm_tag }}
       tag_confirm: ${{ inputs.npm_tag_confirm }}
       test: ${{ inputs.test }}
