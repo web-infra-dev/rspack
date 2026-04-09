@@ -207,6 +207,12 @@ importers:
 
   npm/wasm32-wasi:
     dependencies:
+      '@emnapi/core':
+        specifier: 1.9.2
+        version: 1.9.2
+      '@emnapi/runtime':
+        specifier: 1.9.2
+        version: 1.9.2
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
         version: 1.1.2(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
@@ -305,6 +311,12 @@ importers:
 
   packages/rspack-browser:
     dependencies:
+      '@emnapi/core':
+        specifier: 1.9.2
+        version: 1.9.2
+      '@emnapi/runtime':
+        specifier: 1.9.2
+        version: 1.9.2
       '@napi-rs/wasm-runtime':
         specifier: 1.1.2
         version: 1.1.2(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)
