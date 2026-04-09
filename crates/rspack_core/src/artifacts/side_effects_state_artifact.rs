@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut};
 
 use rspack_collections::IdentifierMap;
 
-use crate::{Module, ModuleIdentifier, OptimizationBailoutItem};
+use crate::{ConnectionState, Module, ModuleIdentifier, OptimizationBailoutItem};
 
 #[derive(Debug, Default, Clone)]
 pub struct SideEffectsState {
@@ -14,6 +14,7 @@ pub struct SideEffectsState {
 #[derive(Debug, Clone, Default)]
 pub struct SideEffectsStateArtifact {
   states: IdentifierMap<SideEffectsState>,
+  module_evaluation_states: IdentifierMap<ConnectionState>,
 }
 
 impl Deref for SideEffectsStateArtifact {
@@ -32,7 +33,10 @@ impl DerefMut for SideEffectsStateArtifact {
 
 impl From<IdentifierMap<SideEffectsState>> for SideEffectsStateArtifact {
   fn from(value: IdentifierMap<SideEffectsState>) -> Self {
-    Self { states: value }
+    Self {
+      states: value,
+      module_evaluation_states: Default::default(),
+    }
   }
 }
 
@@ -46,6 +50,7 @@ impl FromIterator<(ModuleIdentifier, SideEffectsState)> for SideEffectsStateArti
   fn from_iter<T: IntoIterator<Item = (ModuleIdentifier, SideEffectsState)>>(iter: T) -> Self {
     Self {
       states: IdentifierMap::from_iter(iter),
+      module_evaluation_states: Default::default(),
     }
   }
 }
@@ -57,6 +62,23 @@ impl SideEffectsStateArtifact {
     self
       .get(module_identifier)
       .map(|state| state.side_effect_free)
+  }
+
+  pub fn module_evaluation_side_effects_state(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<ConnectionState> {
+    self
+      .module_evaluation_states
+      .get(module_identifier)
+      .copied()
+  }
+
+  pub fn set_module_evaluation_side_effects_states(
+    &mut self,
+    states: IdentifierMap<ConnectionState>,
+  ) {
+    self.module_evaluation_states = states;
   }
 }
 
@@ -88,4 +110,25 @@ pub fn module_analyzed_side_effect_free(
   side_effects_state_artifact
     .analyzed_side_effect_free(&module.identifier())
     .or(module.build_meta().side_effect_free)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn module_evaluation_side_effects_states_round_trip() {
+    let module_identifier = ModuleIdentifier::from("module-a");
+    let mut artifact = SideEffectsStateArtifact::default();
+    artifact.set_module_evaluation_side_effects_states(IdentifierMap::from_iter([(
+      module_identifier,
+      ConnectionState::Active(false),
+    )]));
+
+    assert_eq!(
+      artifact.module_evaluation_side_effects_state(&module_identifier),
+      Some(ConnectionState::Active(false))
+    );
+    assert_eq!(artifact.analyzed_side_effect_free(&module_identifier), None);
+  }
 }

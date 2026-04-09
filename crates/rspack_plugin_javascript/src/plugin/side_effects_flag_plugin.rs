@@ -286,26 +286,32 @@ async fn optimize_dependencies(
   let logger = compilation.get_logger("rspack.SideEffectsFlagPlugin");
   let start = logger.time("update connections");
 
-  let module_graph = build_module_graph_artifact.get_module_graph();
-  let side_effects_state_artifact = build_module_graph_artifact
-    .side_effects_state_artifact
-    .clone();
+  let side_effects_state_map: IdentifierMap<ConnectionState> = {
+    let module_graph = build_module_graph_artifact.get_module_graph();
+    let side_effects_state_artifact = build_module_graph_artifact
+      .side_effects_state_artifact
+      .clone();
 
-  let side_effects_state_map: IdentifierMap<ConnectionState> = module_graph
-    .modules_par()
-    .map(|(module_identifier, module)| {
-      (
-        *module_identifier,
-        module.get_side_effects_connection_state(
-          module_graph,
-          &compilation.module_graph_cache_artifact,
-          &side_effects_state_artifact,
-          &mut Default::default(),
-          &mut Default::default(),
-        ),
-      )
-    })
-    .collect();
+    module_graph
+      .modules_par()
+      .map(|(module_identifier, module)| {
+        (
+          *module_identifier,
+          module.get_side_effects_connection_state(
+            module_graph,
+            &compilation.module_graph_cache_artifact,
+            &side_effects_state_artifact,
+            &mut Default::default(),
+            &mut Default::default(),
+          ),
+        )
+      })
+      .collect()
+  };
+  build_module_graph_artifact
+    .side_effects_state_artifact
+    .set_module_evaluation_side_effects_states(side_effects_state_map.clone());
+  let module_graph = build_module_graph_artifact.get_module_graph();
 
   if self.analyze_side_effects_free {
     // `finish_modules` may change the side-effect state of modules that were not part of the
