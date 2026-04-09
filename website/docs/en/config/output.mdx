@@ -1503,7 +1503,13 @@ define('MyLibrary', [], factory);
 Only available when `library.type` is set to `modern-module`.
 :::
 
-When enabled, Rspack will preserve the original directory structure of modules within the specified directory.
+When enabled, Rspack will preserve the original directory structure of modules within the specified directory. Each module will be emitted as a separate file, maintaining the same relative path as the source.
+
+`preserveModules` is a special form of bundling — it can be thought of as **bundle + splitChunks where each module gets its own chunk**. Unlike a no-bundle tool, Rspack still applies its full bundling pipeline (tree-shaking, scope hoisting, minification, etc.), but splits the output so that each module in the specified directory becomes its own output file.
+
+:::warning
+**Barrel files may lose exports.** Since `preserveModules` is still a form of bundling, only exports from the entry point are preserved. If a barrel file (e.g., an `index.ts` that re-exports from other modules) is not the entry point, its re-exports will not be retained in the output. If you need to strictly expose exports from a barrel file, configure it as an entry point.
+:::
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
