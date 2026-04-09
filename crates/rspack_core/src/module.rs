@@ -130,17 +130,25 @@ impl TopLevelDeclarations {
   pub fn merge(&mut self, other: Self) {
     if self.is_unknown() || other.is_unknown() {
       *self = Self::Unknown;
+      return;
     }
 
     if let Self::Single(set) = self {
-      *self = Self::Multiple(vec![std::mem::take(set)]);
+      if set.is_empty() {
+        *self = other;
+        return;
+      } else {
+        *self = Self::Multiple(vec![std::mem::take(set)]);
+      }
     }
 
     if let Self::Multiple(sets) = self {
       if let Self::Single(other_set) = other {
-        sets.push(other_set);
+        if !other_set.is_empty() {
+          sets.push(other_set);
+        }
       } else if let Self::Multiple(other_sets) = other {
-        sets.extend(other_sets);
+        sets.extend(other_sets.into_iter().filter(|set| !set.is_empty()));
       }
     }
   }
@@ -1013,5 +1021,20 @@ mod test {
     declarations.merge(TopLevelDeclarations::Unknown);
 
     assert!(declarations.is_unknown());
+  }
+
+  #[test]
+  fn top_level_declarations_merge_ignores_right_side_empty_single() {
+    let mut declarations = TopLevelDeclarations::Single(HashSet::from_iter([Atom::from("alpha")]));
+
+    declarations.merge(TopLevelDeclarations::Single(Default::default()));
+
+    match declarations {
+      TopLevelDeclarations::Multiple(sets) => {
+        assert_eq!(sets.len(), 1);
+        assert!(sets[0].contains(&Atom::from("alpha")));
+      }
+      other => panic!("expected multiple declarations, got {other:?}"),
+    }
   }
 }

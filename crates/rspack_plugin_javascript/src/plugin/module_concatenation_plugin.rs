@@ -1755,30 +1755,43 @@ fn add_concatenated_module(
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate
 
-  let module_graph = compilation.get_module_graph_mut();
-
   let root_module_chunks = chunk_graph.get_module_chunks(root_module_id).clone();
-  for m in modules_set.iter() {
-    if *m == root_module_id {
-      continue;
-    }
-    let module = module_graph
-      .module_by_identifier(m)
-      .expect("should exist module");
-    // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
-    for chunk_ukey in root_module_chunks.iter() {
-      let source_types =
-        chunk_graph.get_chunk_module_source_types(chunk_ukey, module, module_graph);
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph_mutations = modules_set
+    .par_iter()
+    .filter(|m| **m != root_module_id)
+    .map(|m| {
+      let module = module_graph
+        .module_by_identifier(m)
+        .expect("should exist module");
+      let mut disconnects = vec![];
+      let mut source_type_updates = vec![];
+      // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
+      for chunk_ukey in root_module_chunks.iter() {
+        let mut source_types =
+          chunk_graph.get_chunk_module_source_types(chunk_ukey, module, module_graph);
 
-      if source_types.len() == 1 {
-        chunk_graph.disconnect_chunk_and_module(chunk_ukey, *m);
-      } else {
-        let mut new_source_types = source_types.clone();
-        new_source_types.remove(&SourceType::JavaScript);
-        chunk_graph.set_chunk_modules_source_types(chunk_ukey, *m, new_source_types)
+        if source_types.len() == 1 {
+          disconnects.push((*chunk_ukey, *m));
+        } else {
+          source_types.remove(&SourceType::JavaScript);
+          source_type_updates.push((*chunk_ukey, *m, source_types));
+        }
       }
+      (disconnects, source_type_updates)
+    })
+    .collect::<Vec<_>>();
+
+  for (disconnects, source_type_updates) in chunk_graph_mutations {
+    for (chunk_ukey, module_identifier) in disconnects {
+      chunk_graph.disconnect_chunk_and_module(&chunk_ukey, module_identifier);
+    }
+    for (chunk_ukey, module_identifier, new_source_types) in source_type_updates {
+      chunk_graph.set_chunk_modules_source_types(&chunk_ukey, module_identifier, new_source_types);
     }
   }
+
+  let module_graph = compilation.get_module_graph_mut();
 
   // different from webpack
   // Rspack: if entry is an asset module, outputs a js chunk and a asset chunk
