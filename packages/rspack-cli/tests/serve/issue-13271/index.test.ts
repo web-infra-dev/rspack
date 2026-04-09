@@ -52,7 +52,7 @@ describe('issue-13271 serve', () => {
         clearTimeout(killTimer);
       }
 
-      const output = normalizeStdout(result.stdout ?? stdout);
+      const output = normalizeStdout(result.stdout || stdout);
 
       expect(output).toContain('"compiler":"web"');
       expect(output).toContain('"source":"web"');
@@ -89,7 +89,7 @@ describe('issue-13271 serve', () => {
       const result = await child;
       clearTimeout(hardTimeout);
 
-      const output = normalizeStdout(result.stdout ?? stdout);
+      const output = normalizeStdout(result.stdout || stdout);
 
       expect(output).toContain('Local:');
       expect(output).not.toContain(

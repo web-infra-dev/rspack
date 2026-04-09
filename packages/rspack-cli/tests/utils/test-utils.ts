@@ -155,10 +155,15 @@ const runWatch = (
 
     const process = createProcess(cwd, args, options, env);
     const outputKillStr = options.killString || /rspack \d+\.\d+\.\d/;
+    const stdoutChunks: Buffer[] = [];
+    const stderrChunks: Buffer[] = [];
 
     process.stdout.pipe(
       new Writable({
         write(chunk, encoding, callback) {
+          stdoutChunks.push(
+            Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding),
+          );
           const output = stripAnsi(chunk.toString('utf8'));
 
           if (outputKillStr.test(output)) {
@@ -173,6 +178,9 @@ const runWatch = (
     process.stderr.pipe(
       new Writable({
         write(chunk, encoding, callback) {
+          stderrChunks.push(
+            Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding),
+          );
           const output = stripAnsi(chunk.toString('utf8'));
 
           if (outputKillStr.test(output)) {
@@ -186,7 +194,11 @@ const runWatch = (
 
     process
       .then((result) => {
-        resolve(result);
+        resolve({
+          ...result,
+          stdout: Buffer.concat(stdoutChunks).toString('utf8'),
+          stderr: Buffer.concat(stderrChunks).toString('utf8'),
+        });
       })
       .catch((error) => {
         reject(error);

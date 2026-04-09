@@ -13,6 +13,7 @@ import isTsFile from './isTsFile';
 import type { CommonOptions } from './options';
 
 const require = createRequire(import.meta.url);
+const CORE_MODULE_URL = pathToFileURL(require.resolve('@rspack/core')).href;
 
 const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
 let isCommonJsLoaderRegistered = false;
@@ -26,7 +27,12 @@ import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { rspack } from '@rspack/core';
+
+let rspack;
+
+export async function initialize(data) {
+  ({ rspack } = await import(data.coreModuleUrl));
+}
 
 const TS_EXTENSION = ['.ts', '.cts', '.mts'];
 
@@ -152,7 +158,12 @@ const registerEsmLoader = () => {
     return;
   }
 
-  registerModule(ESM_TS_LOADER_URL, import.meta.url);
+  registerModule(ESM_TS_LOADER_URL, {
+    parentURL: import.meta.url,
+    data: {
+      coreModuleUrl: CORE_MODULE_URL,
+    },
+  });
   isEsmLoaderRegistered = true;
 };
 
