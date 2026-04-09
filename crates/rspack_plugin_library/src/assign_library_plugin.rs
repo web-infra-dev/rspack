@@ -416,7 +416,7 @@ async fn embed_in_runtime_bailout(
   let top_level_decls = &module.build_info().top_level_declarations;
   if top_level_decls.is_unknown() {
     return Ok(Some(
-      "it doesn't tell about top level declarations.".to_string(),
+      "it doesn't specify its top-level declarations.".to_string(),
     ));
   }
 

@@ -3740,7 +3740,7 @@ mod tests {
   }
 
   #[test]
-  fn merge_concatenated_build_partials_drops_top_level_declarations_when_any_partial_is_none() {
+  fn merge_concatenated_build_partials_drops_top_level_declarations_when_any_partial_is_unknown() {
     let mut build_info = BuildInfo {
       top_level_declarations: TopLevelDeclarations::Single(Default::default()),
       ..Default::default()

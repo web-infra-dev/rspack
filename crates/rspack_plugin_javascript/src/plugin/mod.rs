@@ -461,7 +461,10 @@ var {} = {{}};
                 .is_some_and(|m| !m.build_info().top_level_declarations.is_unknown());
             !has_top_level_decls
           } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+            buf2.push(
+              "// This entry module doesn't specify its top-level declarations so it can't be inlined"
+                .into(),
+            );
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
