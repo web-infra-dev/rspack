@@ -32,7 +32,7 @@ use swc_core::{
   },
 };
 
-const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
+const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three/build/three.module.js";
 const THREE_MODULE_RESOURCE_PATH: &str = "three/build/three.module.js";
 const THREE_MODULE_TARBALL_URL: &str = "https://registry.npmjs.org/three/-/three-0.183.2.tgz";
 const THREE_MODULE_TAR_ENTRY: &str = "package/build/three.module.js";
@@ -299,8 +299,7 @@ fn three_module_source_cache_path() -> PathBuf {
 
 fn benchmark_target_dir() -> PathBuf {
   std::env::var_os("CARGO_TARGET_DIR")
-    .map(PathBuf::from)
-    .unwrap_or_else(|| workspace_root().join("target"))
+    .map_or_else(|| workspace_root().join("target"), PathBuf::from)
 }
 
 fn workspace_root() -> PathBuf {
