@@ -20,13 +20,11 @@ module.exports = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
               experimental: {
                 keepImportAttributes: true,
                 emitAssertForImportAttributes: true,
-              },
-              parser: {
-                syntax: 'typescript',
               },
             },
           },

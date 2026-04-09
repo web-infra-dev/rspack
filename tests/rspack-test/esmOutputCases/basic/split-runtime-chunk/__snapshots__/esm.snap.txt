@@ -7,7 +7,7 @@ const other = __webpack_require__("./other.js");
 
 
 it('should have correct value', () => {
-  expect((0,other.value)()).toBe(42)
+  expect((0,other.U)()).toBe(42)
 })
 export {};
 
@@ -22,7 +22,7 @@ __webpack_require__.add({
   !*** ./other.js ***!
   \******************/
 (__unused_rspack_module, exports) {
-exports.value = () => 42
+exports.U = () => 42
 
 },
 });

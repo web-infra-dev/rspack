@@ -476,8 +476,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         && ids[0] != "default"
         && matches!(
           imported_module.build_meta().default_object,
-          BuildMetaDefaultObject::RedirectWarn { ignore: false }
+          BuildMetaDefaultObject::RedirectWarn
         )
+        // Ignore the JSON named exports warning: this doesn't follow the standards
+        // but it's widely used by the community, other bundlers also ignore the warning.
+        && imported_module.build_info().json_data.is_none()
       {
         let msg = format!(
           "Should not import the named export {} {} from default-exporting module (only default export is available soon)",

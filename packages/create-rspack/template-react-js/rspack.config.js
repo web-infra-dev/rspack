@@ -1,21 +1,17 @@
 // @ts-check
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rspack/cli';
 import { rspack } from '@rspack/core';
 import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const isDev = process.env.NODE_ENV === 'development';
 
 export default defineConfig({
-  context: __dirname,
   entry: {
     main: './src/main.jsx',
   },
   target: ['browserslist:last 2 versions, > 0.2%, not dead, Firefox ESR'],
   resolve: {
-    extensions: ['...', '.ts', '.tsx', '.jsx'],
+    extensions: ['...', '.jsx'],
   },
   module: {
     rules: [
@@ -28,17 +24,14 @@ export default defineConfig({
         type: 'css/auto',
       },
       {
-        test: /\.(jsx?|tsx?)$/,
+        test: /\.(?:js|jsx|mjs|cjs)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             /** @type {import('@rspack/core').SwcLoaderOptions} */
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  syntax: 'typescript',
-                  tsx: true,
-                },
                 transform: {
                   react: {
                     runtime: 'automatic',
@@ -57,6 +50,6 @@ export default defineConfig({
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
-    isDev ? new ReactRefreshRspackPlugin() : null,
+    isDev && new ReactRefreshRspackPlugin(),
   ],
 });

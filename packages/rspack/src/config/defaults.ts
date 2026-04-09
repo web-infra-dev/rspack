@@ -1047,7 +1047,7 @@ const applyOptimizationDefaults = (
     D(splitChunks, 'minChunks', 1);
     F(splitChunks, 'minSize', () => (production ? 20000 : 10000));
     // F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
-    // F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
+    F(splitChunks, 'enforceSizeThreshold', () => (production ? 50000 : 30000));
     F(splitChunks, 'maxAsyncRequests', () =>
       production ? 30 : Number.POSITIVE_INFINITY,
     );

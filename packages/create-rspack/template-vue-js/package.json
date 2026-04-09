@@ -2,9 +2,10 @@
   "name": "rspack-vue-starter",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "rspack dev",
     "build": "rspack build",
+    "dev": "rspack dev",
     "preview": "rspack preview"
   },
   "dependencies": {

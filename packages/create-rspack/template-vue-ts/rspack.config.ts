@@ -28,16 +28,12 @@ export default defineConfig({
         },
       },
       {
-        test: /\.(js|ts)$/,
+        test: /\.(?:js|mjs|cjs|ts|mts|cts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
             } satisfies SwcLoaderOptions,
           },
         ],

@@ -8,11 +8,8 @@ module.exports = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
-              parser: {
-                syntax: 'typescript',
-                jsx: true,
-              },
               experimental: {
                 plugins: [
                   [

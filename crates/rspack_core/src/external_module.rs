@@ -302,6 +302,10 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn set_external_type(&mut self, new_type: ExternalType) {
+    self.external_type = new_type;
+  }
+
   pub fn get_request(&self) -> &ExternalRequestValue {
     match &self.request {
       ExternalRequest::Single(request) => request,

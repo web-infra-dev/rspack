@@ -17,11 +17,7 @@ export const config = {
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',

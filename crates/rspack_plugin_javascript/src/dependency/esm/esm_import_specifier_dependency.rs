@@ -12,8 +12,8 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
   RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports,
-  UsedByExportsCondition, UsedName, create_exports_object_referenced, get_exports_type,
-  property_access, to_normal_comment,
+  UsedByExportsCondition, UsedName, create_exports_object_referenced, property_access,
+  to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify_str;
@@ -261,23 +261,31 @@ impl Dependency for ESMImportSpecifierDependency {
     }
 
     let mut namespace_object_as_context = self.namespace_object_as_context;
+
+    let module = module_graph
+      .get_module_by_dependency_id(&self.id)
+      .expect("should have module");
     let parent_module = module_graph
       .get_parent_module(&self.id)
       .expect("should have parent module");
-    let exports_type = get_exports_type(
+    let strict = module_graph
+      .module_by_identifier(parent_module)
+      .expect("should have parent module")
+      .get_strict_esm_module();
+    let exports_type = module.get_exports_type(
       module_graph,
       module_graph_cache,
       exports_info_artifact,
-      &self.id,
-      parent_module,
+      strict,
     );
 
-    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
-    // because it's more common in cjs and json
+    // Force enable namespace object as context for json module, it's a common case:
+    // import json from "./array.json"; json.map(d => d * 2);
     if matches!(
       exports_type,
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) {
+    ) && module.build_info().json_data.is_some()
+    {
       namespace_object_as_context = true;
     }
 
