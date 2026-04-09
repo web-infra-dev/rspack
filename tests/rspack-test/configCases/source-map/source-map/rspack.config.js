@@ -13,12 +13,7 @@ module.exports = {
         test: /\.jsx$/,
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'ecmascript',
-              jsx: true,
-            },
-          },
+          detectSyntax: 'auto',
         },
       },
     ],

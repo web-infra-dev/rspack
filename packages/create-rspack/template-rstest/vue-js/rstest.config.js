@@ -1,9 +1,8 @@
-import { pluginReact } from '@rsbuild/plugin-react';
+import { withRspackConfig } from '@rstest/adapter-rspack';
 import { defineConfig } from '@rstest/core';
 
 // Docs: https://rstest.rs/config/
 export default defineConfig({
-  plugins: [pluginReact()],
-  testEnvironment: 'happy-dom',
+  extends: withRspackConfig(),
   setupFiles: ['./tests/rstest.setup.js'],
 });

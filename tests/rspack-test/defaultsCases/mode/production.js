@@ -38,9 +38,11 @@ module.exports = {
 			-     "sideEffects": "flag",
 			+     "sideEffects": true,
 			@@ ... @@
+			-       "enforceSizeThreshold": 30000,
 			-       "hidePathInfo": false,
 			-       "maxAsyncRequests": Infinity,
 			-       "maxInitialRequests": Infinity,
+			+       "enforceSizeThreshold": 50000,
 			+       "hidePathInfo": true,
 			+       "maxAsyncRequests": 30,
 			+       "maxInitialRequests": 30,

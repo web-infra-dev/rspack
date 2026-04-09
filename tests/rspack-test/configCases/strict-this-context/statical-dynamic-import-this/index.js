@@ -22,7 +22,7 @@ it("should respect strictThisContextOnImports for member call in then", async ()
 
 it("should always correctly handle this for exportsType is DefaultWithNamed and DefaultOnly", async () => {
 	const cjs = await import("./cjs");
-	expect(cjs.that().value).toBe(42);
+	expect(cjs.that().value).toBe(STRICT_THIS_CONTEXT_ON_IMPORTS ? 42 : undefined);
 	const json = await import("./data.json");
 	expect(json.default.map(d => d * 2)).toEqual([2, 4, 6]);
 })

@@ -12,6 +12,7 @@ module.exports = {
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
                 externalHelpers: false,
                 target: 'es5',

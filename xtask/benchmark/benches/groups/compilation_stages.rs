@@ -1231,6 +1231,7 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
       priority: 0.0,
       min_size: js_zero_sizes.clone(),
       min_size_reduction: js_zero_sizes.clone(),
+      enforce_size_threshold: SplitChunkSizes::default(),
       reuse_existing_chunk: false,
       min_chunks: 2,
       id_hint: "shared-modules".to_string(),

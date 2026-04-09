@@ -8,7 +8,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedSpecifier, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_referenced_specifiers, get_exports_type,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 #[cacheable]
@@ -81,17 +81,20 @@ impl Dependency for CommonJsRequireDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
-      let parent_module = module_graph
-        .get_parent_module(&self.id)
-        .expect("should have parent module");
-      let exports_type = get_exports_type(
+      let module = module_graph
+        .get_module_by_dependency_id(&self.id)
+        .expect("should have module");
+      let exports_type = module.get_exports_type(
         module_graph,
         module_graph_cache,
         exports_info_artifact,
-        &self.id,
-        parent_module,
+        false,
       );
-      create_referenced_exports_by_referenced_specifiers(referenced_specifiers, exports_type)
+      create_referenced_exports_by_referenced_specifiers(
+        referenced_specifiers,
+        exports_type,
+        module.build_info().json_data.is_some(),
+      )
     } else {
       create_exports_object_referenced()
     }
