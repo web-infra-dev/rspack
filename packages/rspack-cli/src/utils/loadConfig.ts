@@ -1,71 +1,35 @@
 import fs from 'node:fs';
-import { createRequire } from 'node:module';
+import { createRequire, register as registerModule } from 'node:module';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
 import { rspack } from '@rspack/core';
 import { addHook } from 'pirates';
+import { compileTypeScript } from './compileTypeScript';
 import { crossImport } from './crossImport';
 import findConfig from './findConfig';
 import { isEsmFile } from './isEsmFile';
-import isTsFile, { TS_EXTENSION } from './isTsFile';
+import isTsFile from './isTsFile';
 import type { CommonOptions } from './options';
 
 const require = createRequire(import.meta.url);
 
-const injectInlineSourceMap = ({
-  code,
-  map,
-}: {
-  code: string;
-  map: string | undefined;
-}): string => {
-  if (map) {
-    const base64Map = Buffer.from(map, 'utf8').toString('base64');
-    const sourceMapContent = `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
-    return `${code}\n${sourceMapContent}`;
-  }
-  return code;
-};
-
-export function compile(sourcecode: string, filename: string) {
-  const { code, map } = rspack.experiments.swc.transformSync(sourcecode, {
-    jsc: {
-      parser: {
-        syntax: 'typescript',
-        tsx: false,
-        decorators: true,
-        dynamicImport: true,
-      },
-    },
-    filename: filename,
-    module: { type: 'commonjs' },
-    sourceMaps: true,
-    isModule: true,
-  });
-  return injectInlineSourceMap({ code, map });
-}
-
 const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
+let isCommonJsLoaderRegistered = false;
+let isEsmLoaderRegistered = false;
+
 const shouldCompileAsCommonJs = (filename: string) =>
   isTsFile(filename) && !isEsmFile(filename);
 
-// modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
-const registerLoader = (configPath: string) => {
-  // Leave TypeScript files that Node resolves as ESM on Node's loader path.
-  // The register hook only fills the CommonJS gap.
-  if (isEsmFile(configPath) && isTsFile(configPath)) {
+const registerCommonJsLoader = () => {
+  if (isCommonJsLoaderRegistered) {
     return;
-  }
-
-  // Only support TypeScript files with a CommonJS loader here
-  if (!isTsFile(configPath)) {
-    throw new Error(`config file "${configPath}" is not supported.`);
   }
 
   addHook(
     (code, filename) => {
       try {
-        return compile(code, filename);
+        return compileTypeScript(code, filename, 'commonjs');
       } catch (err) {
         throw new Error(
           `Failed to transform file "${filename}" when loading TypeScript config file:\n ${err instanceof Error ? err.message : String(err)}`,
@@ -73,10 +37,37 @@ const registerLoader = (configPath: string) => {
       }
     },
     {
-      exts: TS_EXTENSION,
+      exts: ['.ts', '.cts', '.mts'],
       matcher: shouldCompileAsCommonJs,
     },
   );
+  isCommonJsLoaderRegistered = true;
+};
+
+const registerEsmLoader = () => {
+  if (isEsmLoaderRegistered) {
+    return;
+  }
+
+  registerModule(new URL('./tsConfigLoaderHooks.js', import.meta.url), import.meta.url);
+  isEsmLoaderRegistered = true;
+};
+
+const loadConfigFile = async <T>(
+  configPath: string,
+  options: CommonOptions,
+): Promise<T> => {
+  if (isTsFile(configPath) && options.configLoader === 'register') {
+    if (isEsmFile(configPath)) {
+      registerEsmLoader();
+      const loaded = await import(pathToFileURL(configPath).href);
+      return loaded.default as T;
+    }
+
+    registerCommonJsLoader();
+  }
+
+  return crossImport<T>(configPath);
 };
 
 export type LoadedRspackConfig =
@@ -216,13 +207,8 @@ export async function loadExtendedConfig(
       );
     }
 
-    // Register loader for TypeScript files
-    if (isTsFile(resolvedPath) && options.configLoader === 'register') {
-      registerLoader(resolvedPath);
-    }
-
     // Load the extended configuration
-    let loadedConfig = await crossImport(resolvedPath);
+    let loadedConfig = await loadConfigFile(resolvedPath, options);
 
     // If the extended config is a function, execute it
     if (typeof loadedConfig === 'function') {
@@ -273,11 +259,7 @@ export async function loadRspackConfig(
     configPath = defaultConfig;
   }
 
-  // load config
-  if (isTsFile(configPath) && options.configLoader === 'register') {
-    registerLoader(configPath);
-  }
-  const loadedConfig = await crossImport(configPath);
+  const loadedConfig = await loadConfigFile(configPath, options);
 
   return { loadedConfig, configPath };
 }

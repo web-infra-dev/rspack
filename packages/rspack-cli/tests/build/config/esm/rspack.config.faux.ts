@@ -5,6 +5,6 @@ export default {
   entry: path.resolve(__dirname, 'main.ts'),
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'cts-faux-esm-helper.bundle.js',
+    filename: 'faux-ts.bundle.js',
   },
 };

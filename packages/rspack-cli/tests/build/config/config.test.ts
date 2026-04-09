@@ -2,8 +2,6 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { run } from '../../utils/test-utils';
 
-const supportsNativeTypeScript = Boolean((process as any).features?.typescript);
-
 describe('rspack cli', () => {
   describe('should config not found', () => {
     it('should throw an error when config file does not found', async () => {
@@ -47,37 +45,6 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main cjs file/);
     });
 
-    (supportsNativeTypeScript ? it : it.skip)(
-      'should keep real esm ts helper on the native loader path',
-      async () => {
-        const { exitCode, stderr, stdout } = await run(cwd, [
-          '-c',
-          'rspack.config.real-esm-helper.cts',
-        ]);
-        expect(stderr).toBeFalsy();
-        expect(stdout).toBeTruthy();
-        expect(exitCode).toBe(0);
-        await expect(
-          readFile(resolve(cwd, './dist/cts-real-esm-helper.bundle.js'), {
-            encoding: 'utf-8',
-          }),
-        ).resolves.toMatch(/Main cjs file/);
-      },
-    );
-
-    (supportsNativeTypeScript ? it : it.skip)(
-      'should not downlevel faux esm ts helper to commonjs',
-      async () => {
-        const { exitCode, stderr, stdout } = await run(cwd, [
-          '-c',
-          'rspack.config.faux-esm-helper.cts',
-        ]);
-        expect(stdout).toBeFalsy();
-        expect(stderr).toBeTruthy();
-        expect(stderr).toMatch(/__dirname is not defined in ES module scope/);
-        expect(exitCode).toBe(1);
-      },
-    );
   });
   describe('should load cjs config', () => {
     const cwd = resolve(__dirname, './cjs');
@@ -200,6 +167,25 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main esm file/);
     });
 
+    it('should load config.ts file with register loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+        '--config-loader',
+        'register',
+        '--output-path',
+        'dist/ts-register',
+      ]);
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/ts-register/ts.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main esm file/);
+    });
+
     it('should load config.mjs file', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, [
         '-c',
@@ -233,6 +219,40 @@ describe('rspack cli', () => {
           encoding: 'utf-8',
         }),
       ).resolves.toMatch(/Main esm file/);
+    });
+
+    it('should load config.mts file with register loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.mts',
+        '--config-loader',
+        'register',
+        '--output-path',
+        'dist/mts-register',
+      ]);
+
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/mts-register/mts.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main esm file/);
+    });
+
+    it('should reject faux esm config.ts with register loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.faux.ts',
+        '--config-loader',
+        'register',
+      ]);
+
+      expect(stdout).toBeFalsy();
+      expect(stderr).toBeTruthy();
+      expect(stderr).toMatch(/__dirname is not defined in ES module scope/);
+      expect(exitCode).toBe(1);
     });
   });
 
