@@ -220,7 +220,7 @@ const response = await handleRequest({
 
 ## 配置 JSX/TSX
 
-添加 `builtin:swc-loader` 处理 `.js`、`.mjs`、`.jsx`、`.ts` 和 `.tsx` 文件，并开启 `rspackExperiments.reactServerComponents`，以启用对 `"use client"`、`"use server"`、`"use server-entry"` 等 RSC 语法的解析与转换。
+添加 `builtin:swc-loader` 处理 `.jsx` / `.tsx`，并开启 `rspackExperiments.reactServerComponents`，以启用对 `"use client"`、`"use server"`、`"use server-entry"` 等 RSC 语法的解析与转换。
 
 ```js title="rspack.config.mjs"
 const rscRule = {
