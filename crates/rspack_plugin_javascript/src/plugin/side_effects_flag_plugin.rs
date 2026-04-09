@@ -287,10 +287,8 @@ async fn optimize_dependencies(
   let start = logger.time("update connections");
 
   let side_effects_state_map: IdentifierMap<ConnectionState> = {
-    let module_graph = build_module_graph_artifact.get_module_graph();
-    let side_effects_state_artifact = build_module_graph_artifact
-      .side_effects_state_artifact
-      .clone();
+    let module_graph = &build_module_graph_artifact.module_graph;
+    let side_effects_state_artifact = &build_module_graph_artifact.side_effects_state_artifact;
 
     module_graph
       .modules_par()
