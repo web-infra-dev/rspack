@@ -847,9 +847,8 @@ fn collect_concatenated_build_partial(
       let dep = module_graph.dependency_by_id(dep_id);
       let dependency_module = module_graph.module_identifier_by_dependency_id(dep_id);
       !is_esm_dep_like(dep)
-        || dependency_module.map_or(true, |dependency_module| {
-          !concatenated_modules.contains(dependency_module)
-        })
+        || dependency_module
+          .is_none_or(|dependency_module| !concatenated_modules.contains(dependency_module))
     })
     .copied()
     .collect();

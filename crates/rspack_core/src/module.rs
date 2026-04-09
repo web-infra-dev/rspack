@@ -93,6 +93,10 @@ pub enum TopLevelDeclarations {
 }
 
 impl TopLevelDeclarations {
+  pub fn empty() -> Self {
+    Self::Single(HashSet::default())
+  }
+
   pub fn is_unknown(&self) -> bool {
     matches!(self, Self::Unknown)
   }
@@ -123,39 +127,22 @@ impl TopLevelDeclarations {
     }
   }
 
-  fn into_known_sets(self) -> Option<Vec<HashSet<Atom>>> {
-    match self {
-      Self::Unknown => None,
-      Self::Single(set) => Some((!set.is_empty()).then_some(set).into_iter().collect()),
-      Self::Multiple(sets) => Some(
-        sets
-          .into_iter()
-          .filter(|set| !set.is_empty())
-          .collect::<Vec<_>>(),
-      ),
-    }
-  }
-
-  fn from_known_sets(sets: Vec<HashSet<Atom>>) -> Self {
-    match sets.len() {
-      0 => Self::Single(Default::default()),
-      1 => Self::Single(sets.into_iter().next().expect("should have set")),
-      _ => Self::Multiple(sets),
-    }
-  }
-
   pub fn merge(&mut self, other: Self) {
-    let Some(mut own_sets) = std::mem::take(self).into_known_sets() else {
+    if self.is_unknown() || other.is_unknown() {
       *self = Self::Unknown;
-      return;
-    };
-    let Some(other_sets) = other.into_known_sets() else {
-      *self = Self::Unknown;
-      return;
-    };
+    }
 
-    own_sets.extend(other_sets);
-    *self = Self::from_known_sets(own_sets);
+    if let Self::Single(set) = self {
+      *self = Self::Multiple(vec![std::mem::take(set)]);
+    }
+
+    if let Self::Multiple(sets) = self {
+      if let Self::Single(other_set) = other {
+        sets.push(other_set);
+      } else if let Self::Multiple(other_sets) = other {
+        sets.extend(other_sets);
+      }
+    }
   }
 }
 
@@ -989,7 +976,7 @@ mod test {
 
   #[test]
   fn top_level_declarations_merge_upgrades_to_multiple_without_flattening() {
-    let mut declarations = TopLevelDeclarations::Single(Default::default());
+    let mut declarations = TopLevelDeclarations::empty();
 
     declarations.merge(TopLevelDeclarations::Single(HashSet::from_iter([
       Atom::from("alpha"),
@@ -1022,7 +1009,7 @@ mod test {
 
   #[test]
   fn top_level_declarations_unknown_dominates_merge() {
-    let mut declarations = TopLevelDeclarations::Single(Default::default());
+    let mut declarations = TopLevelDeclarations::empty();
     declarations.merge(TopLevelDeclarations::Unknown);
 
     assert!(declarations.is_unknown());
