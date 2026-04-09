@@ -159,10 +159,14 @@ impl ModuleGraphConnection {
         .module_graph_cache_artifact
         .try_read()
         .unwrap_or(&default_mgc);
+      let side_effects_state_artifact = &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact;
       let state = connection.active_state(
         module_graph,
         runtime_spec.as_ref(),
         module_graph_cache,
+        side_effects_state_artifact,
         exports_info_artifact,
       );
       Ok(match state {

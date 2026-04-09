@@ -9,7 +9,8 @@ use rspack_core::{
   ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
-  SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
+  SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
+  TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
@@ -130,6 +131,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       module_graph,
       *runtime,
       module_graph_cache,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
       &compilation.exports_info_artifact,
     )
   } else {
@@ -164,6 +168,9 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
         module_graph,
         r,
         module_graph_cache,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
         &compilation.exports_info_artifact,
       )
     })
@@ -469,8 +476,11 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         && ids[0] != "default"
         && matches!(
           imported_module.build_meta().default_object,
-          BuildMetaDefaultObject::RedirectWarn { ignore: false }
+          BuildMetaDefaultObject::RedirectWarn
         )
+        // Ignore the JSON named exports warning: this doesn't follow the standards
+        // but it's widely used by the community, other bundlers also ignore the warning.
+        && imported_module.build_info().json_data.is_none()
       {
         let msg = format!(
           "Should not import the named export {} {} from default-exporting module (only default export is available soon)",
@@ -564,6 +574,7 @@ impl Dependency for ESMImportSideEffectDependency {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     module_chain: &mut IdentifierSet,
     connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -574,6 +585,7 @@ impl Dependency for ESMImportSideEffectDependency {
       module.get_side_effects_connection_state(
         module_graph,
         module_graph_cache,
+        side_effects_state_artifact,
         module_chain,
         connection_state_cache,
       )
@@ -657,6 +669,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     _runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
@@ -664,6 +677,7 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
       module.get_side_effects_connection_state(
         module_graph,
         module_graph_cache,
+        side_effects_state_artifact,
         &mut IdentifierSet::default(),
         &mut IdentifierMap::default(),
       )

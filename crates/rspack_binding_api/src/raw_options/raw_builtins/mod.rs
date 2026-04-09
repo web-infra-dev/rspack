@@ -25,7 +25,7 @@ mod raw_swc_js_minimizer;
 use std::cell::RefCell;
 
 use napi::{
-  Either, Env, Unknown,
+  Either, Env, Unknown, ValueType,
   bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
@@ -64,7 +64,7 @@ use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
-  ExternalsPlugin, electron_target_plugin, esm_node_target_plugin, http_externals_rspack_plugin,
+  EsmNodeTargetPlugin, ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin,
   node_target_plugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
@@ -404,7 +404,7 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
       BuiltinPluginName::EsmNodeTargetPlugin => {
-        plugins.push(esm_node_target_plugin());
+        plugins.push(EsmNodeTargetPlugin::new().boxed());
       }
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)
@@ -665,7 +665,13 @@ impl<'a> BuiltinPlugin<'a> {
         );
       }
       BuiltinPluginName::SideEffectsFlagPlugin => {
-        plugins.push(SideEffectsFlagPlugin::default().boxed())
+        let analyze_side_effects_free = match self.options.get_type()? {
+          // Keep compatibility with older JS wrappers that serialized this builtin as `{}`.
+          ValueType::Object => false,
+          _ => downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        };
+        plugins.push(SideEffectsFlagPlugin::new(analyze_side_effects_free).boxed());
       }
       BuiltinPluginName::FlagDependencyExportsPlugin => {
         plugins.push(FlagDependencyExportsPlugin::default().boxed())

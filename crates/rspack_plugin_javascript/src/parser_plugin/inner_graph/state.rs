@@ -1,71 +1,161 @@
-use std::collections::hash_map::Entry;
-
-use rspack_core::DependencyRange;
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::common::Span;
-
-use super::plugin::TopLevelSymbol;
-use crate::parser_plugin::inner_graph::plugin::{
-  InnerGraphMapSetValue, InnerGraphMapUsage, InnerGraphMapValue,
+use std::{
+  collections::hash_map::Entry,
+  sync::atomic::{AtomicUsize, Ordering},
 };
 
-/// The operation to be performed when processing inner graph usage.
+use rspack_core::DependencyId;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use swc_core::{atoms::Atom, common::Span};
+
+static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
+
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+pub(crate) struct TopLevelSymbol(usize);
+
+impl TopLevelSymbol {
+  pub fn is_global(&self) -> bool {
+    self.0 == 0
+  }
+
+  pub fn global() -> Self {
+    Self(0)
+  }
+
+  pub fn new() -> Self {
+    let id = TOP_LEVEL_SYMBOL_ID.fetch_add(1, Ordering::Relaxed);
+    Self(id)
+  }
+
+  pub(crate) fn add_depend_on(self, state: &mut InnerGraphState, depend_on: Atom, span: Span) {
+    let symbol = state.symbol_map.get_mut(&self).expect("should have symbol");
+    symbol.depend_on_pure.insert((depend_on, span));
+  }
+}
+
+impl Default for TopLevelSymbol {
+  fn default() -> Self {
+    Self::new()
+  }
+}
+
 #[derive(Debug, Clone)]
-pub enum InnerGraphUsageOperation {
-  /// Create PureExpressionDependency with the given range
-  PureExpression(DependencyRange),
-  /// Set used_by_exports on ESMImportSpecifierDependency at the given dependency index
-  ESMImportSpecifier(usize),
-  /// Set used_by_exports on URLDependency at the given dependency index
-  URLDependency(usize),
+pub(super) struct TopLevelSymbolData {
+  pub(super) name: Atom,
+  pub(super) depend_on_pure: HashSet<(Atom, Span)>,
+}
+
+#[derive(Default, Clone, PartialEq, Eq, Debug)]
+pub(super) enum InnerGraphMapValue {
+  Set(HashSet<InnerGraphMapSetValue>),
+  True,
+  #[default]
+  Nil,
+}
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub(super) enum InnerGraphMapSetValue {
+  TopLevel(TopLevelSymbol),
+  Str(Atom),
+}
+
+impl InnerGraphMapSetValue {
+  pub(super) fn to_atom(&self, symbol_map: &HashMap<TopLevelSymbol, TopLevelSymbolData>) -> Atom {
+    match self {
+      InnerGraphMapSetValue::TopLevel(v) => {
+        symbol_map.get(v).expect("should have symbol").name.clone()
+      }
+      InnerGraphMapSetValue::Str(v) => v.clone(),
+    }
+  }
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub(crate) enum InnerGraphMapUsage {
+  TopLevel(TopLevelSymbol),
+  Value(Atom),
+  True,
+}
+
+impl From<InnerGraphMapUsage> for InnerGraphMapSetValue {
+  fn from(val: InnerGraphMapUsage) -> Self {
+    match val {
+      InnerGraphMapUsage::TopLevel(s) => InnerGraphMapSetValue::TopLevel(s),
+      InnerGraphMapUsage::Value(v) => InnerGraphMapSetValue::Str(v),
+      InnerGraphMapUsage::True => unreachable!("InnerGraphMapUsage::True cannot be converted"),
+    }
+  }
 }
 
 #[derive(Default)]
-pub struct InnerGraphState {
-  pub(crate) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
-  pub(crate) usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
+pub(crate) struct InnerGraphState {
+  pub(super) symbol_map: HashMap<TopLevelSymbol, TopLevelSymbolData>,
+  pub(super) usage_map: HashMap<TopLevelSymbol, Vec<InnerGraphUsageOperation>>,
+  pub(super) inner_graph: HashMap<TopLevelSymbol, InnerGraphMapValue>,
   current_top_level_symbol: Option<TopLevelSymbol>,
   enable: bool,
-
-  pub(crate) statement_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(crate) statement_pure_part: HashMap<Span, Span>,
-  pub(crate) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(crate) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
-  pub(crate) pure_declarators: HashSet<Span>,
+  pub(super) statement_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) statement_pure_part: HashMap<Span, Span>,
+  pub(super) class_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) decl_with_top_level_symbol: HashMap<Span, TopLevelSymbol>,
+  pub(super) pure_declarators: HashSet<Span>,
 }
 
 impl InnerGraphState {
-  pub fn new() -> Self {
+  pub(crate) fn new() -> Self {
+    let mut symbol_map = HashMap::<TopLevelSymbol, TopLevelSymbolData>::default();
+
+    symbol_map.insert(
+      TopLevelSymbol::global(),
+      TopLevelSymbolData {
+        name: Atom::new(""),
+        depend_on_pure: Default::default(),
+      },
+    );
     Self {
+      symbol_map,
       ..Default::default()
     }
   }
 
-  pub fn enable(&mut self) {
+  pub(super) fn top_level_symbol(&self, name: &TopLevelSymbol) -> &TopLevelSymbolData {
+    &self.symbol_map[name]
+  }
+
+  pub(crate) fn new_top_level_symbol(&mut self, name: Atom) -> TopLevelSymbol {
+    let symbol = TopLevelSymbol::new();
+    let data = TopLevelSymbolData {
+      name,
+      depend_on_pure: Default::default(),
+    };
+    self.symbol_map.insert(symbol, data);
+    symbol
+  }
+
+  pub(crate) fn enable(&mut self) {
     self.enable = true;
   }
 
-  pub fn bailout(&mut self) {
+  pub(crate) fn bailout(&mut self) {
     self.enable = false;
   }
 
-  pub fn is_enabled(&self) -> bool {
+  pub(crate) fn is_enabled(&self) -> bool {
     self.enable
   }
 
-  pub fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
+  pub(crate) fn set_top_level_symbol(&mut self, symbol: Option<TopLevelSymbol>) {
     self.current_top_level_symbol = symbol;
   }
 
-  pub fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
+  pub(crate) fn get_top_level_symbol(&self) -> Option<TopLevelSymbol> {
     if self.is_enabled() {
-      self.current_top_level_symbol.clone()
+      self.current_top_level_symbol
     } else {
       None
     }
   }
 
-  pub fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
+  pub(crate) fn add_usage(&mut self, symbol: TopLevelSymbol, usage: InnerGraphMapUsage) {
     if !self.is_enabled() {
       return;
     }
@@ -75,7 +165,6 @@ impl InnerGraphState {
         self.inner_graph.insert(symbol, InnerGraphMapValue::True);
       }
       InnerGraphMapUsage::Value(_) | InnerGraphMapUsage::TopLevel(_) => {
-        // SAFETY: we can make sure that the usage is not a `InnerGraphMapSetValue::True` variant.
         let set_value: InnerGraphMapSetValue = usage.into();
         match self.inner_graph.entry(symbol) {
           Entry::Occupied(mut occ) => {
@@ -84,9 +173,7 @@ impl InnerGraphState {
               InnerGraphMapValue::Set(set) => {
                 set.insert(set_value);
               }
-              InnerGraphMapValue::True => {
-                // do nothing, https://github.com/webpack/webpack/blob/e381884115df2e7b8acd651d3bc2ee6fc35b188e/lib/optimize/InnerGraph.js#L92-L94
-              }
+              InnerGraphMapValue::True => {}
               InnerGraphMapValue::Nil => {
                 *val = InnerGraphMapValue::Set(HashSet::from_iter([set_value]));
               }
@@ -99,4 +186,11 @@ impl InnerGraphState {
       }
     }
   }
+}
+
+#[derive(Debug, Clone)]
+pub(crate) enum InnerGraphUsageOperation {
+  PureExpression(DependencyId),
+  ESMImportSpecifier(DependencyId),
+  URLDependency(DependencyId),
 }

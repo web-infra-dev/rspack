@@ -732,7 +732,7 @@ export interface JsBeforeModuleIdsArg {
 }
 
 export interface JsBeforeModuleIdsResult {
-  assignments: Record<string, string>
+  assignments: Record<string, string | number>
 }
 
 export interface JsBuildMeta {
@@ -740,13 +740,9 @@ export interface JsBuildMeta {
   hasTopLevelAwait?: boolean
   esm?: boolean
   exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  defaultObject?: undefined | 'false' | 'redirect' | 'redirect-warn'
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
-}
-
-export interface JsBuildMetaDefaultObjectRedirectWarn {
-  redirectWarn: JsDefaultObjectRedirectWarnObject
 }
 
 export interface JsBuildTimeExecutionOption {
@@ -808,10 +804,6 @@ export interface JsCreateLinkData {
 export interface JsCreateScriptData {
   code: string
   chunk: Chunk
-}
-
-export interface JsDefaultObjectRedirectWarnObject {
-  ignore: boolean
 }
 
 export interface JsDiagnostic {
@@ -1893,6 +1885,7 @@ export interface RawCacheGroupOptions {
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2240,6 +2233,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  pureFunctions: boolean
 }
 
 export interface RawExposeOptions {
@@ -2482,6 +2476,12 @@ jsx?: boolean
  * @experimental
  */
 importMetaResolve?: boolean
+/**
+ * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+pureFunctions?: Array<string>
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2907,10 +2907,10 @@ export interface RawRslibPluginOptions {
    */
   forceNodeShims?: boolean
   /**
-   * Externalize Node.js builtin modules with ESM-aware external types
+   * Auto downgrade module external type to node-commonjs for CJS require of node builtins
    * @default `false`
    */
-  externalEsmNodeBuiltin?: boolean
+  autoCjsNodeBuiltin?: boolean
 }
 
 export interface RawRstestPluginOptions {
@@ -3001,7 +3001,7 @@ export interface RawSplitChunksOptions {
   hidePathInfo?: boolean
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
-  enforceSizeThreshold?: number
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes

@@ -40,6 +40,8 @@ jobs:
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 24
 
       - name: Pnpm Install
         run: pnpm i

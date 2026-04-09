@@ -73,6 +73,9 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
           None,
           module_graph,
           &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
           &compilation.exports_info_artifact,
         );
         for outgoing in outgoings.keys() {
@@ -298,6 +301,9 @@ pub(crate) fn analyze_dyn_import_targets(
         module_graph,
         None,
         &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
         exports_info_artifact,
       ) {
         continue;
@@ -604,6 +610,9 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
         chunk_ukey,
         module_graph,
         &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
         &compilation.exports_info_artifact,
       );
     if root_modules.len() == 1 {

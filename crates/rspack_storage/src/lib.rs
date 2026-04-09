@@ -32,15 +32,18 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   ///
   /// The write is performed asynchronously in the background. Call [`Storage::flush`]
   /// to wait until all enqueued writes have completed.
-  async fn save(&mut self) -> Result<()>;
+  fn save(&mut self);
 
   /// Waits until all previously enqueued [`Storage::save`] operations have completed.
   ///
   /// Must be called before process exit to ensure no background I/O is lost.
   async fn flush(&self);
 
-  /// Resets the storage, clearing all data
-  async fn reset(&mut self);
+  /// Resets the specified scope, clearing all its data.
+  ///
+  /// The clean is performed asynchronously in the background. Call [`Storage::flush`]
+  /// to wait until all enqueued writes have completed.
+  fn reset(&mut self, scope: &'static str);
 
   /// Gets a list of all available scopes in the storage
   async fn scopes(&self) -> Result<Vec<String>>;

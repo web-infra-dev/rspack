@@ -92,7 +92,6 @@ impl ParserRuntimeRequirementsData {
 #[cacheable]
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
-  // TODO
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
 }
@@ -275,11 +274,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         context.top_level_mark,
         false,
       ));
-      program.visit_with(&mut semicolon::InsertedSemicolons {
-        semicolons: &mut semicolons,
+      program.visit_with(&mut semicolon::InsertedSemicolons::new(
+        &mut semicolons,
         // safety: it's safe to assert tokens is some since we pass with_tokens = true
-        tokens: &tokens.expect("should get tokens from parser"),
-      });
+        tokens.as_deref().expect("should get tokens from parser"),
+      ));
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;
@@ -321,7 +320,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {
-      build_meta.side_effect_free = Some(side_effects_item.is_none());
+      let has_side_effects = side_effects_item.is_some();
+      build_meta.side_effect_free = Some(!has_side_effects);
+      if has_side_effects {
+        build_info.deferred_pure_checks.clear();
+      }
       side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
         let msg = item.loc?.to_string();
         Some(SideEffectsBailoutItem { msg, ty: item.ty })

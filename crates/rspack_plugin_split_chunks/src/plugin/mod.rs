@@ -220,9 +220,18 @@ impl SplitChunksPlugin {
           module_group.chunks.remove(&new_chunk);
         }
 
+        // If the module group size exceeds enforceSizeThreshold, skip maxRequest constraints
+        // https://webpack.js.org/plugins/split-chunks-plugin/#splitchunksenforcesizethreshold
+        let enforce_size_exceeded = !cache_group.enforce_size_threshold.is_empty()
+          && module_group
+            .get_sizes(&module_sizes)
+            .bigger_than(&cache_group.enforce_size_threshold);
+
         let mut used_chunks = Cow::Borrowed(&module_group.chunks);
 
-        self.ensure_max_request_fit(compilation, cache_group, &mut used_chunks);
+        if !enforce_size_exceeded {
+          self.ensure_max_request_fit(compilation, cache_group, &mut used_chunks);
+        }
 
         if used_chunks.len() != module_group.chunks.len() {
           // There are some chunks removed by `ensure_max_request_fit`

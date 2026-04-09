@@ -275,17 +275,17 @@ const getRawModuleRule = (
 ): RawModuleRule => {
   // Rule.loader is a shortcut to Rule.use: [ { loader } ].
   // See: https://webpack.js.org/configuration/module/#ruleloader
-  if (rule.loader) {
-    rule.use = [
-      {
-        loader: rule.loader,
-        options: rule.options,
-      },
-    ];
-  }
+  const normalizedUse = rule.loader
+    ? [
+        {
+          loader: rule.loader,
+          options: rule.options,
+        },
+      ]
+    : rule.use;
   let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
-  if (typeof rule.use === 'function') {
-    const use = rule.use;
+  if (typeof normalizedUse === 'function') {
+    const use = normalizedUse;
     funcUse = (rawContext: RawFuncUseCtx) => {
       const context = {
         ...rawContext,
@@ -335,9 +335,9 @@ const getRawModuleRule = (
     mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
     sideEffects: rule.sideEffects,
     use:
-      typeof rule.use === 'function'
+      typeof normalizedUse === 'function'
         ? funcUse
-        : createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
+        : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
     layer: rule.layer,
     parser: rule.parser
@@ -600,6 +600,7 @@ function getRawJavascriptParserOptions(
     jsx: parser.jsx,
     deferImport: parser.deferImport,
     importMetaResolve: parser.importMetaResolve,
+    pureFunctions: parser.pureFunctions,
   };
 }
 
