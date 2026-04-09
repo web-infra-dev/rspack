@@ -399,8 +399,11 @@ var init = function(shareScope, initScope) {{
         share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
         share_scope = json_stringify_str(match &self.share_scope {
           ShareScope::Single(s) => s.as_str(),
+          ShareScope::Multiple(scopes) if scopes.len() == 1 => scopes[0].as_str(),
           ShareScope::Multiple(_) => {
-            panic!("ContainerEntryModule: enhanced=false only supports string share scope")
+            panic!(
+              "ContainerEntryModule: enhanced=false only supports string or single-item array share scope"
+            )
           }
         }),
         initialize_sharing =
