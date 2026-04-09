@@ -322,7 +322,7 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
-    node_path: true,
+    node_path: false,
   }
 }
 

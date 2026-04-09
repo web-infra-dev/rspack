@@ -542,17 +542,6 @@ export default {
 
 解析依赖时的目录名。
 
-## NODE_PATH
-
-Rspack 的 resolver 支持 [`NODE_PATH`](https://nodejs.org/api/modules.html#loading-from-the-global-folders) 环境变量。在搜索完所有 `node_modules` 目录后，resolver 还会查找 `NODE_PATH` 中列出的目录（Windows 上以分号分隔，POSIX 上以冒号分隔）。
-
-:::warning
-
-- `NODE_PATH` 使模块解析依赖外部环境变量，可能降低构建的确定性。
-- `node_modules` 中的模块始终优先于 `NODE_PATH` 目录中的模块。
-- 除非确有需要，否则请避免在 CI 和生产构建中依赖 `NODE_PATH`。
-  :::
-
 ## resolve.pnp
 
 - **类型:** `boolean`
