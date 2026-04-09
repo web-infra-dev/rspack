@@ -11,17 +11,28 @@ use rspack_core::{
 };
 use rspack_javascript_compiler::{JavaScriptCompiler, ast::Program};
 use rspack_plugin_javascript::{
-  parser_and_generator::ParserRuntimeRequirementsData, visitors::scan_dependencies,
+  parser_and_generator::ParserRuntimeRequirementsData,
+  visitors::scan_dependencies as run_scan_dependencies,
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashSet;
 use swc_core::{
   base::config::IsModule,
   common::{BytePos, FileName, GLOBALS, Globals, Mark},
-  ecma::{ast::EsVersion, parser::Syntax},
+  ecma::{
+    ast::EsVersion,
+    parser::{EsSyntax, Syntax},
+  },
 };
 
-struct PreparedParserCase {
+struct ScanDependenciesCaseDefinition {
+  name: &'static str,
+  source: &'static str,
+  resource: &'static str,
+  module_type: ModuleType,
+}
+
+struct PreparedScanDependenciesCase {
   name: &'static str,
   source: &'static str,
   compiler_options: Arc<CompilerOptions>,
@@ -34,74 +45,62 @@ struct PreparedParserCase {
   parser_runtime_requirements: ParserRuntimeRequirementsData,
 }
 
-pub fn javascript_parser_benchmark(c: &mut Criterion) {
+pub fn scan_dependencies_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
-    javascript_parser_benchmark_inner(c);
+    scan_dependencies_benchmark_inner(c);
   })
 }
 
-fn javascript_parser_benchmark_inner(c: &mut Criterion) {
+fn scan_dependencies_benchmark_inner(c: &mut Criterion) {
   GLOBALS.set(&Globals::new(), || {
     let compiler = create_benchmark_compiler();
-    let esm_case = prepare_case(
-      "rust@javascript_parser_esm",
+    let cases = [prepare_case(
       &compiler,
-      ModuleType::JsEsm,
-      "/src/esm.js",
-      r#"
-        import value, { named as alias } from "./dep.js";
-        export { alias };
-        export * from "./other.js";
-        const metaUrl = import.meta.url;
-        const asset = new URL("./asset.svg", import.meta.url);
-        const lazy = import("./async.js");
-        export default value ?? asset.href ?? metaUrl;
-      "#,
-    );
-    let cjs_case = prepare_case(
-      "rust@javascript_parser_cjs",
-      &compiler,
-      ModuleType::JsDynamic,
-      "/src/cjs.js",
-      r#"
-        const fs = require("fs");
-        const ctx = require.context("./dir", false, /\.js$/);
-        const ensured = require.ensure(["./async.js"], function () {
-          return require("./other.js");
-        });
-        module.exports = fs ? ctx : ensured;
-        exports.named = require("./named.js");
-        require.resolve("./maybe.js");
-      "#,
-    );
-    let mixed_case = prepare_case(
-      "rust@javascript_parser_mixed",
-      &compiler,
-      ModuleType::JsAuto,
-      "/src/mixed.js",
-      r#"
-        import { value } from "./esm.js";
-        export { value };
-        const runtime = require("./runtime.js");
-        const asset = new URL("./asset.txt", import.meta.url);
-        const worker = new Worker(new URL("./worker.js", import.meta.url));
-        if (typeof require !== "undefined") {
-          module.exports = runtime;
-        }
-        class Derived extends runtime.Base {
-          field = import("./async.js");
-        }
-        export const finalValue = /*#__PURE__*/ runtime.make(asset, worker);
-      "#,
-    );
+      ScanDependenciesCaseDefinition {
+        name: "rust@scan_dependencies@react_navbar",
+        source: r#"import React from 'react';
+import Icon from '@icon-park/react/es/all';
 
-    for case in [&esm_case, &cjs_case, &mixed_case] {
+import Component__0 from './d0/f0.jsx';
+import Component__1 from './d0/f1.jsx';
+import Component__2 from './d0/f2.jsx';
+import Component__3 from './d0/f3.jsx';
+import Component__4 from './d0/f4.jsx';
+import Component__5 from './d0/f5.jsx';
+import Component__6 from './d0/f6.jsx';
+import Component__7 from './d0/f7.jsx';
+import Component__8 from './d0/f8.jsx';
+
+function Navbar({ show }) {
+  return (
+    <div>
+      9
+      <Component__0 />
+      <Component__1 />
+      <Component__2 />
+      <Component__3 />
+      <Component__4 />
+      <Component__5 />
+      <Component__6 />
+      <Component__7 />
+      <Component__8 />
+    </div>
+  );
+}
+
+export default Navbar;"#,
+        resource: "/src/index.jsx",
+        module_type: ModuleType::JsEsm,
+      },
+    )];
+
+    for case in &cases {
       bench_case(c, case);
     }
   });
 }
 
-fn bench_case(c: &mut Criterion, case: &PreparedParserCase) {
+fn bench_case(c: &mut Criterion, case: &PreparedScanDependenciesCase) {
   c.bench_function(case.name, |b| {
     b.iter_batched_ref(
       || {
@@ -114,7 +113,7 @@ fn bench_case(c: &mut Criterion, case: &PreparedParserCase) {
         )
       },
       |(build_meta, build_info, semicolons, parser_plugins, parse_meta)| {
-        let result = scan_dependencies(
+        let result = run_scan_dependencies(
           case.program_source(),
           &case.program,
           &case.resource_data,
@@ -132,7 +131,7 @@ fn bench_case(c: &mut Criterion, case: &PreparedParserCase) {
           std::mem::take(parse_meta),
           &case.parser_runtime_requirements,
         )
-        .expect("javascript parser benchmark should not produce diagnostics");
+        .expect("scan_dependencies benchmark should not produce diagnostics");
 
         black_box(result);
       },
@@ -158,12 +157,15 @@ fn create_benchmark_compiler() -> Compiler {
 }
 
 fn prepare_case(
-  name: &'static str,
   compiler: &Compiler,
-  module_type: ModuleType,
-  resource: &str,
-  source: &'static str,
-) -> PreparedParserCase {
+  definition: ScanDependenciesCaseDefinition,
+) -> PreparedScanDependenciesCase {
+  let ScanDependenciesCaseDefinition {
+    name,
+    source,
+    resource,
+    module_type,
+  } = definition;
   let (program, unresolved_mark) = parse_program(resource, source, &module_type);
   let parser_options = compiler
     .options
@@ -174,7 +176,7 @@ fn prepare_case(
     .cloned()
     .expect("benchmark compiler should include javascript parser options");
 
-  PreparedParserCase {
+  PreparedScanDependenciesCase {
     name,
     source,
     compiler_options: compiler.options.clone(),
@@ -197,7 +199,16 @@ fn parse_program(resource: &str, source: &str, module_type: &ModuleType) -> (Pro
       FileName::Real(resource.into()),
       source,
       EsVersion::latest(),
-      Syntax::Es(Default::default()),
+      Syntax::Es(EsSyntax {
+        jsx: resource.ends_with(".jsx"),
+        allow_return_outside_function: matches!(
+          module_type,
+          ModuleType::JsDynamic | ModuleType::JsAuto
+        ),
+        explicit_resource_management: true,
+        import_attributes: true,
+        ..Default::default()
+      }),
       module_type_to_is_module(module_type),
       None,
     )
@@ -214,10 +225,10 @@ fn module_type_to_is_module(module_type: &ModuleType) -> IsModule {
   }
 }
 
-impl PreparedParserCase {
+impl PreparedScanDependenciesCase {
   fn program_source(&self) -> &str {
     self.source
   }
 }
 
-criterion_group!(javascript_parser, javascript_parser_benchmark);
+criterion_group!(scan_dependencies, scan_dependencies_benchmark);
