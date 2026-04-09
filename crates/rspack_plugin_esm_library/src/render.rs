@@ -27,6 +27,26 @@ use crate::{
   runtime::EsmRegisterModuleRuntimeModule,
 };
 
+/// Returns `true` when the module produces only CSS output (native CSS via
+/// `experiments.css` or the synthetic `CssModule` from `CssExtractRspackPlugin`).
+/// These modules have no JS factory and must be skipped in the ESM render paths
+/// that emit `__webpack_require__` / cross-chunk `import` placeholders.
+///
+/// This deliberately checks for CSS source types rather than `!JavaScript` so
+/// that other non-JS module kinds (e.g. `RemoteModule` from Module Federation
+/// whose source types are `Remote/ShareInit`) are **not** skipped.
+fn is_css_only_module(
+  module: &dyn rspack_core::Module,
+  module_graph: &rspack_core::ModuleGraph,
+) -> bool {
+  let source_types = module.source_types(module_graph);
+  !source_types.is_empty()
+    && source_types
+      .iter()
+      .all(|t| matches!(t, SourceType::Css | SourceType::CssImport))
+    || module.identifier().starts_with("css|")
+}
+
 #[inline]
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
   compilation
@@ -404,6 +424,13 @@ var {} = {{}};
     }
 
     for (m, required_info) in &chunk_link.required {
+      // Skip CSS-only modules (native CSS or extract-css CssModule). They
+      // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
+      if let Some(module) = module_graph.module_by_identifier(m)
+        && is_css_only_module(module.as_ref(), module_graph)
+      {
+        continue;
+      }
       if already_required.insert(*m) {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         render_source.add(required_info.render(compilation, runtime_template));
@@ -416,6 +443,16 @@ var {} = {{}};
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
       let target_chunk = Self::get_module_chunk(required_module, compilation)?;
       if &target_chunk != chunk_ukey {
+        // Skip chunks that have no JavaScript modules. CSS-only chunks
+        // produced by `preserveModules` are loaded by the CSS plugin
+        // runtime, not by importing the chunk's JS file (it has none).
+        if !compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .has_chunk_module_by_source_type(&target_chunk, SourceType::JavaScript, module_graph)
+        {
+          continue;
+        }
         imported_chunks.entry(target_chunk).or_default();
       }
     }
@@ -499,6 +536,18 @@ var {} = {{}};
       let chunk = Self::get_module_chunk(*id, compilation)?;
       if &chunk == chunk_ukey {
         // ignore self import
+        continue;
+      }
+
+      // Skip chunks that have no JavaScript modules (e.g. CSS-only chunks
+      // produced by `preserveModules` for native CSS or extract-css). The
+      // CSS chunk is handled by the CSS plugin's own runtime, not via a
+      // JS-side bare import.
+      if !compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .has_chunk_module_by_source_type(&chunk, SourceType::JavaScript, module_graph)
+      {
         continue;
       }
 
@@ -923,9 +972,17 @@ var {} = {{}};
     runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
+    let module_graph = compilation.get_module_graph();
 
     for (id, interop_info) in &chunk_link.required {
       if !interop_info.from_module.contains(&root) {
+        continue;
+      }
+      // Skip CSS-only modules (native CSS or extract-css CssModule). They
+      // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
+      if let Some(module) = module_graph.module_by_identifier(id)
+        && is_css_only_module(module.as_ref(), module_graph)
+      {
         continue;
       }
       if !already_required.insert(*id) {
