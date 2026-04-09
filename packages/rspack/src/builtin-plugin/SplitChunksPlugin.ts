@@ -101,8 +101,6 @@ export function toRawSplitChunksOptions(
     cacheGroups: Object.entries(cacheGroups)
       .filter(([_key, group]) => group !== false)
       .map(([key, group]) => {
-        group = group as Exclude<typeof group, false>;
-
         const {
           test,
           name,
@@ -113,7 +111,7 @@ export function toRawSplitChunksOptions(
           maxAsyncSize,
           maxInitialSize,
           ...passThrough
-        } = group;
+        } = group as Exclude<typeof group, false>;
         const rawGroup: RawCacheGroupOptions = {
           key,
           test: getTest(test),
