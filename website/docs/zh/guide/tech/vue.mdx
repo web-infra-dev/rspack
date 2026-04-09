@@ -98,7 +98,7 @@ export default {
         type: 'javascript/auto',
       },
       {
-        test: /\.ts$/, // 如果需要在 Vue SFC 里使用 TypeScript, 请添加该规则
+        test: /\.(?:js|mjs|ts)$/, // 如果需要在 Vue SFC 里使用 TypeScript, 请添加该规则
         loader: 'builtin:swc-loader',
         options: {
           detectSyntax: 'auto',

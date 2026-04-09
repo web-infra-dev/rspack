@@ -227,7 +227,7 @@ module.exports = {
     rules: [
       {
 -        test: /\.(j|t)sx?$/,
-+        test: /\.(j|t)s$/,
++        test: /\.(?:js|mjs|ts)$/,
         exclude: [/[\\/]node_modules[\\/]/],
         use: [
           {
@@ -253,7 +253,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(j|t)sx?$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         exclude: [/[\\/]node_modules[\\/]/],
         use: [
           {

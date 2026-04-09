@@ -18,24 +18,14 @@ Rspack 提供两种方案来支持 Preact：
 
 Rspack 使用 SWC 转译器支持 JSX/TSX。
 
-添加 `builtin:swc-loader` 以支持 `jsx` 和 `tsx`:
+添加 `builtin:swc-loader` 以支持 `.js`、`.mjs`、`.jsx`、`.ts` 和 `.tsx`:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            detectSyntax: 'auto',
-          },
-        },
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.tsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
@@ -91,7 +81,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {

@@ -100,7 +100,7 @@ export default {
         type: 'javascript/auto',
       },
       {
-        test: /\.ts$/, // add this rule when you use TypeScript in Vue SFC
+        test: /\.(?:js|mjs|ts)$/, // add this rule when you use TypeScript in Vue SFC
         loader: 'builtin:swc-loader',
         options: {
           detectSyntax: 'auto',

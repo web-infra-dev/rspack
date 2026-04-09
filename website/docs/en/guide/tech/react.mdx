@@ -18,24 +18,14 @@ Rspack provides two solutions to support React:
 
 Rspack leverages SWC transformer for supporting JSX and TSX.
 
-You can add [builtin:swc-loader](/guide/features/builtin-swc-loader) loader to support `.jsx` and `.tsx` files:
+You can add [builtin:swc-loader](/guide/features/builtin-swc-loader) loader to support `.js`, `.mjs`, `.jsx`, `.ts`, and `.tsx` files:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            detectSyntax: 'auto',
-          },
-        },
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.tsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
@@ -75,7 +65,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {

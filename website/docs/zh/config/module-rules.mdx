@@ -28,7 +28,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         loader: 'builtin:swc-loader',
         options: {
           // loader options...
@@ -441,7 +441,7 @@ export default {
         type: 'asset/resource',
       },
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
@@ -470,7 +470,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         loader: 'builtin:swc-loader',
       },
     ],
