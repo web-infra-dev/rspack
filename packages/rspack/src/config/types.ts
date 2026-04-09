@@ -2469,6 +2469,14 @@ type SharedOptimizationSplitChunksCacheGroup = {
 
   minSizeReduction?: OptimizationSplitChunksSizes;
 
+  /**
+   * Size threshold at which splitting is enforced and other restrictions
+   * (minRemainingSize, maxAsyncRequests, maxInitialRequests) are ignored.
+   * The value is `50000` in production mode.
+   * The value is `30000` in others mode.
+   */
+  enforceSizeThreshold?: OptimizationSplitChunksSizes;
+
   /** Maximum size, in bytes, for a chunk to be generated. */
   maxSize?: OptimizationSplitChunksSizes;
 

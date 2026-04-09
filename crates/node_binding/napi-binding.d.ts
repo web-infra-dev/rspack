@@ -1885,6 +1885,7 @@ export interface RawCacheGroupOptions {
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -3000,7 +3001,7 @@ export interface RawSplitChunksOptions {
   hidePathInfo?: boolean
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
-  enforceSizeThreshold?: number
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
