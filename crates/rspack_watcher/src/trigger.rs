@@ -113,11 +113,23 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    let is_registered_file = self.path_manager.access().files().0.contains(path);
+
+    // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
+    // written before the watcher was created. Stat the file and compare mtime
+    // against the recorded baseline to suppress events where nothing changed.
+    // Apply the same suppression to Create for already-registered files, since
+    // macOS may emit stale Create events for files that predate the watcher.
+    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_registered_file))
+      && !self.path_manager.has_mtime_changed(path)
+    {
+      return;
+    }
+
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
     self.trigger_events(associated_event);
   }
-
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
     let accessor = self.path_manager.access();
