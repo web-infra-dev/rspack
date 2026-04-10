@@ -22,9 +22,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -48,8 +48,9 @@ use crate::{
   dependency::local_module::LocalModule,
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
+    BuiltinJavascriptParserPlugin, ImportsReferencesState, InnerGraphParserPlugin,
+    JavaScriptParserPluginDrive, JavascriptParserPlugin, RequireReferencesState,
+    inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -417,113 +418,15 @@ impl<'parser> JavascriptParser<'parser> {
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
-    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32);
-
+    let mut plugins = Vec::with_capacity(parser_plugins.len() + 1);
     plugins.append(parser_plugins);
-
-    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
-    plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
-    plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
-    plugins.push(Box::new(parser_plugin::ConstPlugin));
-    plugins.push(Box::new(parser_plugin::UseStrictPlugin));
-    plugins.push(Box::new(
-      parser_plugin::RequireContextDependencyParserPlugin,
-    ));
-    plugins.push(Box::new(
-      parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
-    ));
-    plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
-
-    if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
-      plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
-      plugins.push(Box::new(
-        parser_plugin::ImportMetaContextDependencyParserPlugin,
-      ));
-      if matches!(
-        javascript_options.import_meta,
-        Some(ImportMeta::Enabled | ImportMeta::PreserveUnknown)
-      ) {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(
-          javascript_options.import_meta.expect("should have value"),
-        )));
-      } else {
-        plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
-      }
-
-      plugins.push(Box::new(parser_plugin::ESMImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
-    }
-
-    if compiler_options.amd.is_some() && (module_type.is_js_auto() || module_type.is_js_dynamic()) {
-      plugins.push(Box::new(
-        parser_plugin::AMDRequireDependenciesBlockParserPlugin,
-      ));
-      plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::AMDParserPlugin));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
-      plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
-      plugins.push(Box::new(parser_plugin::CommonJsPlugin));
-      let commonjs_exports = javascript_options
-        .commonjs
-        .as_ref()
-        .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
-          commonjs.exports
-        });
-      if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
-        plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
-          commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
-        )));
-      }
-    }
-
-    // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
-    // CJS features require node options; ESM features are always available for ESM-capable modules
-    let handle_cjs =
-      (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
-    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
-    if handle_cjs || handle_esm {
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
-        handle_cjs, handle_esm,
-      )));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
-      plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
-      plugins.push(Box::new(parser_plugin::APIPlugin::new(
-        compiler_options.output.module,
-      )));
-      plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-      plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        javascript_options
-          .worker
-          .as_ref()
-          .expect("should have worker"),
-      )));
-      plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
-    }
-
-    if compiler_options.optimization.inline_exports {
-      build_info.inline_exports = true;
-      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
-    }
-    if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
-    }
-
-    if compiler_options.optimization.side_effects.is_true() {
-      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
-    }
-
+    plugins.push(Box::new(BuiltinJavascriptParserPlugin::new(
+      compiler_options,
+      javascript_options,
+      module_type,
+      unresolved_mark,
+      build_info,
+    )));
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
     let mut db = ScopeInfoDB::new();
 

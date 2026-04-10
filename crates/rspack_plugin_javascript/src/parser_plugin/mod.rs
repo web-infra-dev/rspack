@@ -1,5 +1,6 @@
 mod amd;
 mod api_plugin;
+mod builtin;
 mod check_var_decl;
 mod common_js_exports_parse_plugin;
 mod common_js_imports_parse_plugin;
@@ -43,6 +44,7 @@ pub(crate) use self::{
     AMDDefineDependencyParserPlugin, AMDParserPlugin, AMDRequireDependenciesBlockParserPlugin,
   },
   api_plugin::APIPlugin,
+  builtin::BuiltinJavascriptParserPlugin,
   check_var_decl::CheckVarDeclaratorIdent,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
   common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
