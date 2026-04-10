@@ -200,7 +200,7 @@ impl ImportMetaHotReplacementParserPlugin {
   }
 }
 
-#[rspack_plugin_javascript::implemented_javascript_parser_hooks]
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
