@@ -37,10 +37,14 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
+type ConnectionGroup = Arc<[DependencyId]>;
 type PreparedBlockConnectionMap =
-  IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>;
+  IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionGroup>;
+type PreparedBlocks = Arc<[AsyncDependenciesBlockIdentifier]>;
+type PreparedBlockModules =
+  DependenciesBlockIdentifierMap<Arc<[(ModuleIdentifier, ConnectionGroup)]>>;
 type BlockConnectionMap =
-  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>>;
+  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionGroup)>>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -55,7 +59,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
+  pub skipped_module_connections: IndexSet<(ModuleIdentifier, ConnectionGroup)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -260,9 +264,9 @@ pub(crate) struct CodeSplitter {
   // created from edges
   pub(crate) chunk_caches: AsyncDependenciesBlockIdentifierMap<ChunkCreateData>,
 
-  prepared_connection_map: IdentifierMap<PreparedBlockConnectionMap>,
+  prepared_block_modules_map: IdentifierMap<PreparedBlockModules>,
 
-  prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
+  prepared_blocks_map: DependenciesBlockIdentifierMap<PreparedBlocks>,
 }
 
 fn add_chunk_in_group(
@@ -1369,7 +1373,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect("should have blocks")
       .clone();
 
-    for block in blocks {
+    for &block in blocks.iter() {
       self.make_chunk_group(
         block,
         item.module,
@@ -1450,7 +1454,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect("should have blocks")
       .clone();
 
-    for block in blocks {
+    for &block in blocks.iter() {
       self.make_chunk_group(
         block,
         item.module,
@@ -1792,7 +1796,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module: DependenciesBlockIdentifier,
     runtime: Option<Arc<RuntimeSpec>>,
     compilation: &Compilation,
-  ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>> {
+  ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionGroup)>> {
     let runtime_map = self
       .block_modules_runtime_map
       .entry(runtime.clone())
@@ -1806,8 +1810,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       module.get_root_block(compilation.get_module_graph()),
       runtime,
       compilation,
-      &self.prepared_blocks_map,
-      &self.prepared_connection_map,
+      &self.prepared_block_modules_map,
       runtime_map,
     );
 
@@ -2249,7 +2252,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     compilation: &Compilation,
   ) -> Result<()> {
     let mg = compilation.get_module_graph();
-    self.prepared_connection_map = all_modules
+    let prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
         let mut connection_map =
@@ -2285,15 +2288,20 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .or_insert_with(|| vec![*dep_id]);
         }
 
-        (*module, connection_map)
+        (
+          *module,
+          connection_map
+            .into_iter()
+            .map(|(key, connections)| (key, Arc::<[DependencyId]>::from(connections)))
+            .collect::<PreparedBlockConnectionMap>(),
+        )
       })
       .collect::<IdentifierMap<_>>();
 
     self.prepared_blocks_map = all_modules
       .par_iter()
       .map(|module| {
-        let mut map =
-          DependenciesBlockIdentifierMap::<Vec<AsyncDependenciesBlockIdentifier>>::default();
+        let mut map = DependenciesBlockIdentifierMap::<PreparedBlocks>::default();
 
         let mut queue = VecDeque::<DependenciesBlockIdentifier>::new();
 
@@ -2306,18 +2314,40 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             queue.push_back((*block).into());
           }
 
-          map.insert(module, blocks);
+          map.insert(
+            module,
+            Arc::<[AsyncDependenciesBlockIdentifier]>::from(blocks),
+          );
         }
 
         map
       })
       .reduce(
-        DependenciesBlockIdentifierMap::<Vec<AsyncDependenciesBlockIdentifier>>::default,
+        DependenciesBlockIdentifierMap::<PreparedBlocks>::default,
         |mut a, b| {
           a.extend(b);
           a
         },
       );
+
+    let prepared_blocks_map = &self.prepared_blocks_map;
+    self.prepared_block_modules_map = all_modules
+      .par_iter()
+      .map(|module| {
+        let blocks = prepared_blocks_map
+          .get(&(*module).into())
+          .expect("should have root blocks")
+          .clone();
+        let connection_map = prepared_connection_map
+          .get(module)
+          .expect("should have outgoing deps")
+          .clone();
+        (
+          *module,
+          build_prepared_block_modules(*module, blocks, connection_map),
+        )
+      })
+      .collect();
 
     Ok(())
   }
@@ -2431,48 +2461,109 @@ pub(crate) struct LeaveModule {
   chunk_group_info: CgiUkey,
 }
 
+fn build_prepared_block_modules(
+  module: ModuleIdentifier,
+  blocks: PreparedBlocks,
+  connection_map: PreparedBlockConnectionMap,
+) -> PreparedBlockModules {
+  let block = module.into();
+  let mut module_map: DependenciesBlockIdentifierMap<Vec<(ModuleIdentifier, ConnectionGroup)>> =
+    DependenciesBlockIdentifierMap::default();
+  module_map.insert(block, Vec::new());
+  for &block_id in blocks.iter() {
+    module_map.insert(block_id.into(), Vec::new());
+  }
+
+  for ((block_id, module_identifier), connections) in connection_map {
+    let modules = module_map
+      .get_mut(&block_id)
+      .expect("should have modules in prepared block modules");
+    modules.push((module_identifier, connections));
+  }
+
+  module_map
+    .into_iter()
+    .map(|(block_id, modules)| {
+      (
+        block_id,
+        Arc::<[(ModuleIdentifier, ConnectionGroup)]>::from(modules),
+      )
+    })
+    .collect()
+}
+
 fn extract_block_modules(
   module: ModuleIdentifier,
   runtime: Option<Arc<RuntimeSpec>>,
   compilation: &Compilation,
-  prepared_blocks_map: &DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
-  prepared_connection_map: &IdentifierMap<PreparedBlockConnectionMap>,
+  prepared_block_modules_map: &IdentifierMap<PreparedBlockModules>,
   map: &mut BlockConnectionMap,
 ) {
-  let block = module.into();
-  let mut module_map: DependenciesBlockIdentifierMap<
-    Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>,
-  > = DependenciesBlockIdentifierMap::default();
-  module_map.insert(block, Vec::new());
-  for b in prepared_blocks_map
-    .get(&block)
-    .expect("should have blocks")
-    .clone()
-  {
-    module_map.insert(b.into(), Vec::new());
-  }
-
-  let connection_map = prepared_connection_map
+  let prepared_modules_map = prepared_block_modules_map
     .get(&module)
-    .expect("should have outgoing deps");
+    .expect("should have prepared block modules");
 
-  for ((block_id, module_identifier), connections) in connection_map {
-    let modules = module_map
-      .get_mut(block_id)
-      .expect("should have modules in block_modules_runtime_map");
-    let active_state = get_active_state_of_connections(
-      connections,
-      runtime.as_deref(),
-      compilation.get_module_graph(),
-      &compilation.module_graph_cache_artifact,
-      &compilation
-        .build_module_graph_artifact
-        .side_effects_state_artifact,
-      &compilation.exports_info_artifact,
-    );
-    modules.push((*module_identifier, active_state, connections.clone()));
+  for (block, prepared_modules) in prepared_modules_map {
+    let mut modules = Vec::with_capacity(prepared_modules.len());
+    for (module_identifier, connections) in prepared_modules.iter() {
+      let active_state = get_active_state_of_connections(
+        connections.as_ref(),
+        runtime.as_deref(),
+        compilation.get_module_graph(),
+        &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      );
+      modules.push((*module_identifier, active_state, connections.clone()));
+    }
+    map.insert(*block, Arc::new(modules));
   }
-  for (block, modules) in module_map {
-    map.insert(block, Arc::new(modules));
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use super::*;
+
+  #[test]
+  fn build_prepared_block_modules_groups_connections_by_block() {
+    let module = ModuleIdentifier::from("root-module");
+    let async_block = AsyncDependenciesBlockIdentifier::from("async-block".to_string());
+    let target_root = ModuleIdentifier::from("target-root");
+    let target_async = ModuleIdentifier::from("target-async");
+    let mut connection_map = PreparedBlockConnectionMap::default();
+    let root_connections = Arc::<[DependencyId]>::from([DependencyId::from(1)]);
+    let async_connections =
+      Arc::<[DependencyId]>::from([DependencyId::from(2), DependencyId::from(3)]);
+
+    connection_map.insert((module.into(), target_root), root_connections.clone());
+    connection_map.insert(
+      (async_block.into(), target_async),
+      async_connections.clone(),
+    );
+
+    let prepared = build_prepared_block_modules(
+      module,
+      Arc::<[AsyncDependenciesBlockIdentifier]>::from([async_block]),
+      connection_map,
+    );
+
+    let root_block = prepared
+      .get(&DependenciesBlockIdentifier::Module(module))
+      .expect("should have root block");
+    assert_eq!(root_block.as_ref(), &[(target_root, root_connections)]);
+
+    let async_block_modules = prepared
+      .get(&DependenciesBlockIdentifier::AsyncDependenciesBlock(
+        async_block,
+      ))
+      .expect("should have async block");
+    assert_eq!(
+      async_block_modules.as_ref(),
+      &[(target_async, async_connections)]
+    );
   }
 }
