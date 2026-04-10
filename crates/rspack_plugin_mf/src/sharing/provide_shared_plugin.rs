@@ -17,7 +17,7 @@ use rustc_hash::FxHashMap;
 use tokio::sync::RwLock;
 
 use super::{
-  provide_shared_dependency::ProvideSharedDependency,
+  find_ancestor_description_data, provide_shared_dependency::ProvideSharedDependency,
   provide_shared_module_factory::ProvideSharedModuleFactory,
 };
 use crate::{ConsumeVersion, ShareScope};
@@ -106,35 +106,28 @@ impl ProvideSharedPlugin {
   /// `package.json` has no `version`, walk up to the parent package and use
   /// its version — but only when the shared key matches
   /// `<parent_name>/<relative_path>`.
-  fn find_parent_package_version(description_path: &Path, key: &str) -> Option<String> {
-    let entry_dir = description_path;
-    let mut search_dir = entry_dir.parent();
+  fn find_parent_package_version(description_path: &Path, share_key: &str) -> Option<String> {
+    let entry_dir = if description_path
+      .file_name()
+      .is_some_and(|name| name == "package.json")
+    {
+      description_path.parent()?
+    } else {
+      description_path
+    };
 
-    while let Some(dir) = search_dir {
-      if dir.file_name().is_some_and(|n| n == "node_modules") {
-        break;
-      }
-
-      let parent_pkg = dir.join("package.json");
-      if parent_pkg.exists() {
-        if let Ok(data) = std::fs::read(&parent_pkg)
-          && let Ok(parent) = serde_json::from_slice::<serde_json::Value>(&data)
-          && let Some(parent_name) = parent.get("name").and_then(|n| n.as_str())
-          && let Some(parent_version) = parent.get("version").and_then(|v| v.as_str())
-        {
-          if let Ok(rel) = entry_dir.strip_prefix(dir) {
-            let rel_posix: String = rel.components().map(|c| c.as_os_str().to_string_lossy()).collect::<Vec<_>>().join("/");
-            let expected_key = format!("{parent_name}/{rel_posix}");
-            if key == expected_key {
-              return Some(parent_version.to_string());
-            }
-          }
-        }
-      }
-      search_dir = dir.parent();
-    }
-
-    None
+    find_ancestor_description_data(entry_dir, |dir, parent| {
+      let parent_name = parent.get("name").and_then(|n| n.as_str())?;
+      let parent_version = parent.get("version").and_then(|v| v.as_str())?;
+      let rel = entry_dir.strip_prefix(dir).ok()?;
+      let rel_posix: String = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect::<Vec<_>>()
+        .join("/");
+      let expected_key = format!("{parent_name}/{rel_posix}");
+      (share_key == expected_key).then(|| parent_version.to_string())
+    })
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -176,7 +169,7 @@ impl ProvideSharedPlugin {
         .and_then(|d| d.get("version"))
         .and_then(|v| v.as_str())
         .map(|v| v.to_string())
-        .or_else(|| Self::find_parent_package_version(description.path(), key));
+        .or_else(|| Self::find_parent_package_version(description.path(), share_key));
 
       if let Some(version) = version {
         self.resolved_provide_map.write().await.insert(
