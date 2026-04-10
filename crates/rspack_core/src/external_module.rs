@@ -607,19 +607,11 @@ impl ExternalModule {
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
               }
               UsedExports::UsedNamespace(false) => {
-                if force_namespace {
-                  concatenation_scope.register_namespace_import(
-                    request.primary().to_string(),
-                    attributes,
-                    format!("__rspack_external_{id}").into(),
-                  );
-                } else {
-                  concatenation_scope.register_import(
-                    request.primary().to_string(),
-                    attributes,
-                    None,
-                  );
-                }
+                concatenation_scope.register_import(
+                  request.primary().to_string(),
+                  attributes,
+                  None,
+                );
               }
               UsedExports::UsedNames(atoms) => {
                 if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
