@@ -1,4 +1,7 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+  ops::{Deref, DerefMut},
+  sync::Arc,
+};
 
 use rspack_collections::IdentifierMap;
 
@@ -14,7 +17,7 @@ pub struct SideEffectsState {
 #[derive(Debug, Clone, Default)]
 pub struct SideEffectsStateArtifact {
   states: IdentifierMap<SideEffectsState>,
-  module_evaluation_states: IdentifierMap<ConnectionState>,
+  module_evaluation_states: Arc<IdentifierMap<ConnectionState>>,
 }
 
 impl Deref for SideEffectsStateArtifact {
@@ -78,7 +81,7 @@ impl SideEffectsStateArtifact {
     &mut self,
     states: IdentifierMap<ConnectionState>,
   ) {
-    self.module_evaluation_states = states;
+    self.module_evaluation_states = Arc::new(states);
   }
 }
 

@@ -306,9 +306,6 @@ async fn optimize_dependencies(
       })
       .collect()
   };
-  build_module_graph_artifact
-    .side_effects_state_artifact
-    .set_module_evaluation_side_effects_states(side_effects_state_map.clone());
   let module_graph = build_module_graph_artifact.get_module_graph();
 
   if self.analyze_side_effects_free {
@@ -459,6 +456,10 @@ async fn optimize_dependencies(
     do_optimizes.sort_unstable_by_key(|(dependency, _)| *dependency);
   }
   logger.time_end(inner_start);
+
+  build_module_graph_artifact
+    .side_effects_state_artifact
+    .set_module_evaluation_side_effects_states(side_effects_state_map);
 
   logger.time_end(start);
   logger.log(format!("optimized {do_optimized_count} connections"));
