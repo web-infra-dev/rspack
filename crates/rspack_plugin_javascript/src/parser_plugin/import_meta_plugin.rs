@@ -492,6 +492,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 // use when parser.import_meta is false
 pub struct ImportMetaDisabledPlugin;
 
+#[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
