@@ -26,6 +26,7 @@ const __wasi = new __nodeWASI({
 
 const __emnapiContext = __emnapiGetDefaultContext()
 
+// Allocate 2GB fixed shared memory (initial == maximum to disable memory.grow).
 const __sharedMemory = new WebAssembly.Memory({
   initial: 32768,
   maximum: 32768,
@@ -97,7 +98,9 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
       ...importObject.napi,
       ...importObject.emnapi,
       memory: __sharedMemory,
-      // emnapi calls memory.grow in napi_adjust_external_memory, which is not supported when initial memory is equals to maximum memory. So we just return 0 here to skip memory growth.
+      // Override emnapi's napi_adjust_external_memory to a no-op.
+      // emnapi implements this by calling memory.grow, but we've disabled memory.grow
+      // (initial == maximum).
       napi_adjust_external_memory() { return 0 },
     }
     return importObject
