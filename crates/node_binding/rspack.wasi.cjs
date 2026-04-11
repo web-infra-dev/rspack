@@ -97,6 +97,8 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
       ...importObject.napi,
       ...importObject.emnapi,
       memory: __sharedMemory,
+      // emnapi calls memory.grow in napi_adjust_external_memory, which is not supported when initial memory is equals to maximum memory. So we just return 0 here to skip memory growth.
+      napi_adjust_external_memory() { return 0 },
     }
     return importObject
   },

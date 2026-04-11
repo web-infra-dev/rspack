@@ -19,7 +19,7 @@ Object.assign(globalThis, {
   require,
   Worker,
   importScripts: function (f) {
-    ;(0, eval)(fs.readFileSync(f, "utf8") + "//# sourceURL=" + f);
+    ; (0, eval)(fs.readFileSync(f, "utf8") + "//# sourceURL=" + f);
   },
   postMessage: function (msg) {
     if (parentPort) {
@@ -51,7 +51,8 @@ const handler = new MessageHandler({
           ...importObject.env,
           ...importObject.napi,
           ...importObject.emnapi,
-          memory: wasmMemory
+          memory: wasmMemory,
+          napi_adjust_external_memory() { return 0 },
         };
       },
     });
