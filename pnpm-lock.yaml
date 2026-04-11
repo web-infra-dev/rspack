@@ -35,8 +35,8 @@ importers:
         specifier: ^10.1.0
         version: 10.1.0
       heading-case:
-        specifier: ^1.0.7
-        version: 1.0.7
+        specifier: ^1.1.0
+        version: 1.1.0
       husky:
         specifier: ^9.1.7
         version: 9.1.7
@@ -5137,8 +5137,8 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  heading-case@1.0.7:
-    resolution: {integrity: sha512-iwQFmbRpvSm57XVI1LiWyXqKd6KyW3jGDIskxPO+8zCZ/JblxU5rdCNmqVWuc3NNHFr32cOmxSTC38GsR7U8GA==}
+  heading-case@1.1.0:
+    resolution: {integrity: sha512-VNNu8W4V3Sc64VyLgeQU3uB5PIq0CM4yyD+OKq0zKgMMOOQGftNfCiwDahpFasKYN+RNY9+29jBZUBW8x9O/8A==}
     hasBin: true
 
   hmac-drbg@1.0.1:
@@ -12399,7 +12399,7 @@ snapshots:
       property-information: 7.1.0
       space-separated-tokens: 2.0.2
 
-  heading-case@1.0.7: {}
+  heading-case@1.1.0: {}
 
   hmac-drbg@1.0.1:
     dependencies:
