@@ -33,3 +33,25 @@ import 'lodash';
 ```
 
 模块路径指那些没有以 `'./'`、`'../'`、`'/'` 开头的路径。在这种情况下，Rspack 会根据模块解析规则，来解析模块的绝对路径。[node 模块解析算法](https://nodejs.org/api/modules.html#modules_all_together)有关于解析模块规则的详细说明。
+
+### package.json `imports`
+
+Rspack 的解析器支持 `package.json` 的 [imports](https://nodejs.org/api/packages.html#subpath-imports) 字段，用于解析包内以 `#` 开头的模块标识符。
+
+比如下面的例子，`#utils` 和 `#/main` 都会从当前包的 `imports` 字段中解析：
+
+```json title="package.json"
+{
+  "imports": {
+    "#utils": "./src/utils/index.js",
+    "#/*": "./src/*"
+  }
+}
+```
+
+```js title="src/index.js"
+import utils from '#utils'; // 解析为 ./src/utils/index.js
+import main from '#/main'; // 解析为 ./src/main.js
+```
+
+> 使用 [`resolve.importsFields`](/config/resolve#resolveimportsfields) 选项可以自定义 `imports` 字段的名称。

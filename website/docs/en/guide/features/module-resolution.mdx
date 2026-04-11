@@ -33,3 +33,25 @@ import 'lodash';
 ```
 
 Module paths are those that do not start with `'./'`, `'../'`, `'/'`. In this case, Rspack will resolve the absolute path of the module according to the module resolution rules. The [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) has a detailed description of the rules for resolve modules.
+
+## package.json `imports`
+
+Rspack's resolver supports the [imports](https://nodejs.org/api/packages.html#subpath-imports) field in `package.json` for resolving module identifiers that start with `#` within a package.
+
+In the following example, both `#utils` and `#/main` are resolved from the current package's `imports` field:
+
+```json title="package.json"
+{
+  "imports": {
+    "#utils": "./src/utils/index.js",
+    "#/*": "./src/*"
+  }
+}
+```
+
+```js title="src/index.js"
+import utils from '#utils'; // resolves to ./src/utils/index.js
+import main from '#/main'; // resolves to ./src/main.js
+```
+
+> Use the [`resolve.importsFields`](/config/resolve#resolveimportsfields) option to customize the field name used for `imports`.
