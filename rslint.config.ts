@@ -32,7 +32,6 @@ export default defineConfig([
       '@typescript-eslint/triple-slash-reference': 'off',
       'no-constant-binary-expression': 'off',
       'no-empty': 'off',
-      'prefer-const': 'off',
     },
   },
   {
