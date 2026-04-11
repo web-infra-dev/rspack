@@ -4,7 +4,11 @@ description: "Module resolution is the process of converting a module identifier
 
 # Module resolution
 
-Module resolution is the process of converting a module identifier to a module's file path. The Rust port of enhanced-resolve is used for module path resolution, which is an extension to the [node module resolution algorithm](https://nodejs.org/api/modules.html#modules_all_together) with the same interface as [enhanced-resolve](https://github.com/webpack/enhanced-resolve), refer to [resolve configuration](/config/resolve) for more information about module resolution configuration.
+Module resolution is the process of converting a module identifier to a module's file path.
+
+Rspack uses [rspack-resolver](https://github.com/rstackjs/rspack-resolver) for module path resolution, which is an extension to the [Node.js module resolution algorithm](https://nodejs.org/api/esm.html#resolution-algorithm-specification) with the same interface as [enhanced-resolve](https://github.com/webpack/enhanced-resolve).
+
+Refer to [resolve configuration](/config/resolve) for more information about module resolution configuration.
 
 ## Rspack
 
@@ -51,7 +55,7 @@ In the following example, both `#utils` and `#/main` are resolved from the curre
 
 ```js title="src/index.js"
 import utils from '#utils'; // resolves to ./src/utils/index.js
-import main from '#/main'; // resolves to ./src/main.js
+import main from '#/main.ts'; // resolves to ./src/main.ts
 ```
 
 > Use the [`resolve.importsFields`](/config/resolve#resolveimportsfields) option to customize the field name used for `imports`.
