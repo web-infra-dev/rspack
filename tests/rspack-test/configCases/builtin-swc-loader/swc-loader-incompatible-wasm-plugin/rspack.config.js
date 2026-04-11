@@ -25,12 +25,9 @@ const config = {
           options: {
             // Enable source map
             sourceMaps: true,
+            detectSyntax: 'auto',
             jsc: {
               target: 'es5',
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
               externalHelpers: true,
               preserveAllComments: false,
               transform: {

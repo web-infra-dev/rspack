@@ -63,7 +63,8 @@ Promise.resolve().then(function() { $ReactRefreshRuntime$.refresh(__webpack_modu
 "#;
     }
     let sm = loader_context.take_source_map();
-    loader_context.finish_with((source, sm));
+    let additional_data = loader_context.take_additional_data();
+    loader_context.finish_with((source, sm, additional_data));
     Ok(())
   }
 }

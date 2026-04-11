@@ -8,6 +8,7 @@ module.exports = {
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
                 target: 'es2015',
                 preserveAllComments: true,
@@ -15,8 +16,6 @@ module.exports = {
                   compress: true,
                 },
                 parser: {
-                  syntax: 'ecmascript',
-                  jsx: true,
                   dynamicImport: true,
                   classProperty: true,
                   exportNamespaceFrom: true,

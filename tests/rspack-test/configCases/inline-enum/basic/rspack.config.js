@@ -19,10 +19,8 @@ function config(index, { concatenateModules } = {}) {
             {
               loader: 'builtin:swc-loader',
               options: {
+                detectSyntax: 'auto',
                 jsc: {
-                  parser: {
-                    syntax: 'typescript',
-                  },
                   target: 'esnext',
                 },
                 collectTypeScriptInfo: {

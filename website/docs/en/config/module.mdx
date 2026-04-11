@@ -1360,16 +1360,12 @@ export default {
     },
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 typeExports: true, // Must be enabled in "tolerant" mode
               },

@@ -219,7 +219,7 @@ Migrate [babel-loader](https://github.com/babel/babel-loader) to [builtin:swc-lo
 
 If you need custom transformation logic using Babel plugins, you can retain `babel-loader`, but it is recommended to limit its use to fewer files to prevent significant performance degradation.
 
-- Replace [@babel/preset-typescript](http://npmjs.com/package/@babel/preset-typescript) with SWC's `syntax: 'typescript'` option:
+- Replace [@babel/preset-typescript](http://npmjs.com/package/@babel/preset-typescript) with `builtin:swc-loader` using `detectSyntax: 'auto'`:
 
 ```diff title="rspack.config.js"
 module.exports = {
@@ -227,20 +227,15 @@ module.exports = {
     rules: [
       {
 -        test: /\.(j|t)sx?$/,
-+        test: /\.(j|t)s$/,
++        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         exclude: [/[\\/]node_modules[\\/]/],
         use: [
           {
--            loader: 'babel-loader',
-+            loader: 'builtin:swc-loader',
-            options: {
--              presets: ['@babel/preset-typescript'],
-+              jsc: {
-+                parser: {
-+                  syntax: 'typescript',
-+                },
-+              },
-            },
+-           loader: 'babel-loader',
++           loader: 'builtin:swc-loader',
++           options: {
++             detectSyntax: 'auto',
++           },
           },
         ],
       },
@@ -258,7 +253,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.(j|t)sx?$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         exclude: [/[\\/]node_modules[\\/]/],
         use: [
           {
@@ -267,10 +262,6 @@ module.exports = {
             options: {
 -              presets: ['@babel/preset-typescript', '@babel/preset-react'],
 +              jsc: {
-+                parser: {
-+                  syntax: 'typescript',
-+                  tsx: true,
-+                },
 +                transform: {
 +                  react: {
 +                    runtime: 'automatic',
@@ -279,6 +270,7 @@ module.exports = {
 +                  },
 +                },
 +              },
++              detectSyntax: 'auto',
             },
           },
         ],
