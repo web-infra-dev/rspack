@@ -76,7 +76,7 @@ Before running tests after code changes:
 
 ### Modifying code
 
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, and ensure `cargo fmt --all --check && cargo lint` passes
+- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding tests
