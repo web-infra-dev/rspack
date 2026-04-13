@@ -20,9 +20,9 @@ use super::{
   ExportsInfoApiPlugin, ImportMetaContextDependencyParserPlugin, ImportMetaDisabledPlugin,
   ImportMetaPlugin, ImportParserPlugin, InitializeEvaluating, InlineConstPlugin,
   InnerGraphParserPlugin, IsIncludedPlugin, JavascriptMetaInfoPlugin, JavascriptParserPlugin,
-  NodeStuffPlugin, OverrideStrictPlugin, RequireContextDependencyParserPlugin,
-  RequireEnsureDependenciesBlockParserPlugin, SideEffectsParserPlugin, UseStrictPlugin,
-  WorkerPlugin, r#const::is_logic_op,
+  JavascriptParserPluginHook, JavascriptParserPluginHooks, NodeStuffPlugin, OverrideStrictPlugin,
+  RequireContextDependencyParserPlugin, RequireEnsureDependenciesBlockParserPlugin,
+  SideEffectsParserPlugin, UseStrictPlugin, WorkerPlugin, r#const::is_logic_op,
 };
 use crate::{
   utils::eval::BasicEvaluatedExpression,
@@ -50,6 +50,15 @@ macro_rules! dispatch_import_meta_plugin {
 }
 
 impl JavascriptParserPlugin for ImportMetaParserPlugin {
+  fn implemented_hooks(&self) -> JavascriptParserPluginHooks {
+    match self {
+      ImportMetaParserPlugin::Enabled(plugin) => plugin.implemented_hooks(),
+      ImportMetaParserPlugin::Disabled(_) => {
+        JavascriptParserPluginHooks::empty().with(JavascriptParserPluginHook::MetaProperty)
+      }
+    }
+  }
+
   fn evaluate_typeof<'a>(
     &self,
     parser: &mut JavascriptParser,
@@ -323,8 +332,89 @@ impl BuiltinJavascriptParserPlugin {
   }
 }
 
-#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for BuiltinJavascriptParserPlugin {
+  fn implemented_hooks(&self) -> JavascriptParserPluginHooks {
+    let mut hooks = self
+      .initialize_evaluating
+      .implemented_hooks()
+      .union(self.javascript_meta_info.implemented_hooks())
+      .union(self.check_var_declarator_ident.implemented_hooks())
+      .union(self.const_plugin.implemented_hooks())
+      .union(self.use_strict.implemented_hooks())
+      .union(self.require_context_dependency.implemented_hooks())
+      .union(self.require_ensure_dependencies_block.implemented_hooks())
+      .union(self.compatibility.implemented_hooks());
+
+    if let Some(plugin) = self.esm_top_level_this.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.esm_detection.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.import_meta_context_dependency.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.import_meta.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.esm_import_dependency.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.esm_export_dependency.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.amd_require_dependencies_block.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.amd_define_dependency.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.amd_parser.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.common_js_imports.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.common_js.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.common_js_exports.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.node.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.is_included.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.exports_info_api.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.api.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.import_parser.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.worker.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.override_strict.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.inline_const.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.inner_graph.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+    if let Some(plugin) = self.side_effects.as_ref() {
+      hooks = hooks.union(plugin.implemented_hooks());
+    }
+
+    hooks
+  }
+
   fn top_level_await_expr(&self, parser: &mut JavascriptParser, expr: &AwaitExpr) {
     dispatch_void!(self, [opt esm_detection], top_level_await_expr(parser, expr));
   }

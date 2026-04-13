@@ -154,6 +154,10 @@ impl JavascriptParserPluginHooks {
   pub const fn with(self, hook: JavascriptParserPluginHook) -> Self {
     Self(self.0 | hook.mask())
   }
+
+  pub const fn union(self, other: Self) -> Self {
+    Self(self.0 | other.0)
+  }
 }
 
 #[macro_export]
