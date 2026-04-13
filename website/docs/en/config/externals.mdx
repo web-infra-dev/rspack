@@ -1,5 +1,5 @@
 ---
-description: 'The externals configuration option provides a way of excluding dependencies from the output bundles'
+description: 'Externals specify which modules Rspack should not bundle, and instead read directly from implementations provided by the external environment.'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -9,74 +9,110 @@ import { Stability } from '../../../components/ApiMeta';
 
 # Externals
 
-The `externals` configuration option provides a way of excluding dependencies from the output bundles. Instead, the created bundle relies on that dependency to be present in the consumer's (any end-user application) environment. This feature is typically most useful to **library developers**, however there are a variety of applications for it.
+Externals specify which modules Rspack should not bundle, and instead read directly from implementations provided by the external environment.
 
-## externals
+For example, if a page already includes `React` from a CDN, or if a library expects the consumer to install `react` themselves, you can declare it as an external. This reduces bundle size and avoids shipping the same dependency twice.
 
-- **Type:** `string | object | function | RegExp | Array<string | object | function | RegExp>`
+This capability is commonly used when building libraries, but it is also useful in applications that integrate CDN assets or rely on dependencies injected by the host environment.
 
-**Prevent bundling** of certain `import`ed packages and instead retrieve these _external dependencies_ at runtime.
+- **Type:**
 
-For example, to include [jQuery](https://jquery.com/) from a CDN instead of bundling it:
+```ts
+type ExternalItem =
+  | string
+  | RegExp
+  | function
+  | { [x: string]: ExternalItemValue };
+
+type Externals = ExternalItem | ExternalItem[];
+```
+
+## Basic usage
+
+For example, if the page already includes [Day.js](https://day.js.org/) from a CDN, you can declare it as an external to avoid bundling it again:
 
 ```html title="index.html"
-<script
-  src="https://code.jquery.com/jquery-3.1.0.js"
-  integrity="sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk="
-  crossorigin="anonymous"
-></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
 ```
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    jquery: 'jquery',
+    dayjs: 'dayjs',
   },
 };
 ```
 
-This leaves any dependent modules unchanged, i.e. the code shown below will still work:
+In this case, the `dayjs` module is removed from the bundle and resolved from the external environment at runtime, so code like this still works:
 
 ```js
-import $ from 'jquery';
+import dayjs from 'dayjs';
 
-$('.my-element').animate(/* ... */);
+console.log(dayjs().format('YYYY-MM-DD'));
 ```
 
-The property name `jquery` specified under `externals` in the above Rspack configuration indicates that the module `jquery` in `import $ from 'jquery'` should be excluded from bundling. In order to replace this module, the value `jQuery` will be used to retrieve a global `jQuery` variable, as the default external library type is `var`, see [externalsType](#externalstype).
+In the configuration above, the key `dayjs` under `externals` matches the module specifier in `import dayjs from 'dayjs'`, meaning that module should not be bundled.
 
-While we showed an example consuming external global variable above, the external can actually be available in any of these forms: global variable, CommonJS, AMD, ES2015 Module, see more in [externalsType](#externalstype).
+The value `dayjs` is then used to access the global variable at runtime. By default, [externalsType](#externalstype) is `var`, which means Rspack reads it from the global scope. In a browser, this usually means accessing `window.dayjs`.
 
-### string
+### String
 
-Depending on the [externalsType](#externalstype), this could be the name of the global variable (see [`'global'`](#externalstypeglobal), [`'this'`](#externalstypethis), [`'var'`](#externalstypevar), [`'window'`](#externalstypewindow)) or the name of the module (see `amd`, [`commonjs`](#externalstypecommonjs), [`module`](#externalstypemodule), `umd`).
+In the example above, the value of `externals` uses the string form. The meaning of that string depends on [externalsType](#externalstype).
 
-You can also use the shortcut syntax if you're defining only 1 external:
+In general, the string can represent:
+
+- a **global variable name** for types such as [`'var'`](#externalstypevar), [`'window'`](#externalstypewindow), [`'global'`](#externalstypeglobal), and [`'this'`](#externalstypethis)
+- or a **module name** for types such as [`'module'`](#externalstypemodule) and [`'commonjs'`](#externalstypecommonjs)
+
+#### Shorthand syntax
+
+If you only need to declare one external, you can use the shorter form:
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: 'jquery',
+  externals: 'lodash', // equivalent to externals: { lodash: 'lodash' }
 };
 ```
 
-equals to
+#### Matching rules
+
+String externals use **exact matching**.
+
+For example, the configuration below matches `react-dom`, but it does not match subpath imports such as `react-dom/client`:
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    jquery: 'jquery',
+    'react-dom': 'react-dom',
   },
+  externalsType: 'module-import',
 };
 ```
 
-You can specify the [external library type](#externalstype) to the external with the `${externalsType} ${libraryName}` syntax. It will override the default external library type specified in the [externalsType](#externalstype) option.
-
-For example, if the external library is a [CommonJS module](#externalstypecommonjs), you can specify
+If you want those subpath imports to be externalized as well, list them explicitly:
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    jquery: 'commonjs jquery',
+    'react-dom': 'react-dom',
+    'react-dom/client': 'react-dom/client',
+  },
+  externalsType: 'module-import',
+};
+```
+
+If you need to match a family of similar import specifiers, use a [regular expression](#regexp) instead.
+
+#### Specifying the external type
+
+You can also specify the external type explicitly with the `${externalsType} ${libraryName}` syntax. This overrides the default value from [externalsType](#externalstype).
+
+For example, if the external dependency is provided as a ES module:
+
+```js title="rspack.config.mjs"
+export default {
+  externals: {
+    react: 'module-import react',
   },
 };
 ```
@@ -223,15 +259,15 @@ export default {
 
 ### RegExp
 
-Every dependency that matches the given regular expression will be excluded from the output bundles.
+You can also use a regular expression to match modules that should be externalized. Any module specifier that matches the pattern will be excluded from the output bundle.
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: /^(jquery|\$)$/i,
+  externals: /react-dom/i,
 };
 ```
 
-In this case, any dependency named `jQuery`, capitalized or not, or `$` would be externalized.
+In this example, any module specifier matching `react-dom` will be externalized, including `react-dom` and `react-dom/client`.
 
 ### Combining syntaxes
 

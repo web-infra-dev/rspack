@@ -1,5 +1,5 @@
 ---
-description: "外部依赖：该选项提供了「从输出的 bundle 中排除依赖」的方法。相反，所创建的 bundle 依赖于那些存在于用户环境（consumer's environment）中的依赖。"
+description: '外部依赖（externals）用于指定哪些模块不需要被 Rspack 打包，而是直接使用外部环境中提供的实现。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -9,74 +9,110 @@ import { Stability } from '../../../components/ApiMeta';
 
 # Externals
 
-外部依赖：该选项提供了「从输出的 bundle 中排除依赖」的方法。相反，所创建的 bundle 依赖于那些存在于用户环境（consumer's environment）中的依赖。此功能通常对**库开发人员**来说是最有用的，然而也会有各种各样的应用程序用到它。
+外部依赖（externals）用于指定哪些模块不需要被 Rspack 打包，而是直接使用外部环境中提供的实现。
 
-## externals
+例如，当页面已经通过 CDN 引入了 `React`，或你开发的库希望由使用方自行安装 `react` 时，可以将其声明为 external。这可以减少打包产物的体积，同时避免重复引入相同依赖。
 
-- **类型：** `string | object | function | RegExp | Array<string | object | function | RegExp>`
+该能力常用于库开发场景，同时在应用侧接入 CDN、使用宿主环境注入依赖等场景中也同样适用。
 
-**防止**将某些 `import` 的包（package）**打包**到 bundle 中，而是在运行时（runtime）再去从外部获取这些*扩展依赖*（external dependencies）。
+- **类型：**
 
-例如，从 CDN 引入 [jQuery](https://jquery.com/)，而不是把它打包：
+```ts
+type ExternalItem =
+  | string
+  | RegExp
+  | function
+  | { [x: string]: ExternalItemValue };
+
+type Externals = ExternalItem | ExternalItem[];
+```
+
+## 基本用法
+
+例如，当页面已通过 CDN 引入 [Day.js](https://day.js.org/) 包时，可以将其声明为 external，避免被重复打包：
 
 ```html title="index.html"
-<script
-  src="https://code.jquery.com/jquery-3.1.0.js"
-  integrity="sha256-slogkvB1K3VOkzAI8QITxV3VzpOnkeNVsKvtkYLMjfk="
-  crossorigin="anonymous"
-></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
 ```
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    jquery: 'jquery',
+    dayjs: 'dayjs',
   },
 };
 ```
 
-这样就剥离了那些不需要改动的依赖模块，换句话，下面展示的代码还可以正常运行：
+此时，`dayjs` 模块会从打包产物中剥离，转而在运行时从外部环境中获取，因此下面的代码仍然可以正常运行：
 
 ```js
-import $ from 'jquery';
+import dayjs from 'dayjs';
 
-$('.my-element').animate(/* ... */);
+console.log(dayjs().format('YYYY-MM-DD'));
 ```
 
-在上面 Rspack 配置中，`externals` 下指定的属性名称 `jquery` 表示 `import $ from 'jquery'` 中的模块 `jquery` 应该从打包产物中排除。为了替换这个模块，`jQuery` 值将用于检索全局 `jQuery` 变量，因为默认的外部库类型是 `var`，请参阅 [externalsType](#externalstype)。
+在上述配置中，`externals` 的键名 `dayjs` 对应 `import dayjs from 'dayjs'` 中的模块标识符，表示该模块不会被打包。
 
-虽然我们在上面展示了一个使用外部全局变量的示例，但实际上可以以以下任何形式使用外部变量：全局变量、CommonJS、AMD、ES2015 模块，在 [externalsType](#externalstype) 中查看更多信息。
+对应的值 `dayjs` 则用于在运行时访问全局变量。默认情况下，[externalsType](#externalstype) 为 `var`，即从全局作用域中读取该变量。在浏览器环境下，这通常等价于访问 `window.dayjs`。
 
 ### 字符串
 
-根据 [externalsType](#externalstype)，这可能是全局变量的名称（参见 [`'global'`](#externalstypeglobal)、[`'this'`](#externalstypethis)、[`'var '`](#externalstypevar)、[`'window'`](#externalstypewindow)）或模块的名称（参见 `amd`、[`commonjs`](#externalstypecommonjs)、[`module`](#externalstypemodule)、`umd`）。
+在前面的示例中，`externals` 的值使用了字符串形式，该字符串的具体含义取决于 [externalsType](#externalstype) 配置。
 
-如果你只定义一个 external，也可以使用快捷语法：
+通常情况下，这个字符串可以表示：
+
+- 一个**全局变量名**（如 [`'var'`](#externalstypevar)、[`'window'`](#externalstypewindow)、[`'global'`](#externalstypeglobal)、[`'this'`](#externalstypethis) 等类型）
+- 或一个**模块名称**（如 [`module`](#externalstypemodule)、[`commonjs`](#externalstypecommonjs) 等类型）
+
+#### 简写语法
+
+当只需要声明一个 external 时，也可以使用更简洁的写法：
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: 'jquery',
+  externals: 'lodash', // 等价于 externals: { lodash: 'lodash' }
 };
 ```
 
-等价于
+#### 匹配规则
+
+需要注意的是，字符串形式是**精确匹配**。
+
+例如，下面的配置只会匹配 `react-dom`，不会匹配 `react-dom/client` 这样的子路径导入：
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    jquery: 'jquery',
+    'react-dom': 'react-dom',
   },
+  externalsType: 'module-import',
 };
 ```
 
-你可以使用 `${externalsType} ${libraryName}` 语法来指定[外部库类型](#externalstype)。它将覆盖 [externalsType](#externalstype) 选项中指定的默认外部库类型。
-
-例如，如果外部库是一个 [CommonJS 模块](#externalstypecommonjs)，你可以指定
+如果你也希望这些子路径导入同样被 external，可以把它们一并列出来：
 
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    jquery: 'commonjs jquery',
+    'react-dom': 'react-dom',
+    'react-dom/client': 'react-dom/client',
+  },
+  externalsType: 'module-import',
+};
+```
+
+如果需要匹配一组相似的导入形式，也可以改用[正则表达式](#正则表达式)。
+
+#### 指定外部模块类型
+
+此外，还可以通过 `${externalsType} ${libraryName}` 的语法显式指定外部模块类型，这会覆盖 [externalsType](#externalstype) 的默认值。
+
+例如，当外部依赖以 ES module 形式提供时，可以这样配置：
+
+```js title="rspack.config.mjs"
+export default {
+  externals: {
+    react: 'module-import',
   },
 };
 ```
@@ -223,15 +259,15 @@ export default {
 
 ### 正则表达式
 
-符合给定正则表达式的每个依赖项都将从打包产物中排除。
+你也可以使用正则表达式来匹配需要外部化的模块。所有符合该正则的模块标识符，都会从打包产物中排除。
 
 ```js title="rspack.config.mjs"
 export default {
-  externals: /^(jquery|\$)$/i,
+  externals: /react-dom/i,
 };
 ```
 
-在这种情况下，任何名为 `jQuery` 的依赖项，无论是否大写，或者 `$`，都将被外部化。
+在上述配置中，所有匹配 `react-dom` 的模块标识符都会被 external，例如 `react-dom`、`react-dom/client` 等。
 
 ### 复合语法
 
