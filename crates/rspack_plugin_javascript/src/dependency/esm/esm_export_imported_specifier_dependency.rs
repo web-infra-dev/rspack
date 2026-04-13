@@ -97,10 +97,6 @@ impl ESMExportImportedSpecifierDependency {
     }
   }
 
-  pub fn set_lazy(&mut self) {
-    self.lazy_make = true;
-  }
-
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
     let build_info = module_graph
@@ -1484,6 +1480,10 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         LazyUntil::Fallback
       }
     })
+  }
+
+  fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 
   fn unset_lazy(&mut self) -> bool {

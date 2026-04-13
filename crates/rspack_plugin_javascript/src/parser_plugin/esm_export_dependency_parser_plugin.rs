@@ -1,5 +1,7 @@
 use itertools::Itertools;
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, DependencyType, ImportPhase};
+use rspack_core::{
+  BoxDependency, ConstDependency, Dependency, DependencyRange, DependencyType, ImportPhase,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,

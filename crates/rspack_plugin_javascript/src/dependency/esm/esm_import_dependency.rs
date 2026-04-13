@@ -104,8 +104,8 @@ impl ESMImportSideEffectDependency {
     }
   }
 
-  pub fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn missing_module_active(&self) -> bool {
+    !self.lazy_make
   }
 }
 
@@ -590,7 +590,7 @@ impl Dependency for ESMImportSideEffectDependency {
         connection_state_cache,
       )
     } else {
-      ConnectionState::Active(true)
+      ConnectionState::Active(self.missing_module_active())
     }
   }
 
@@ -624,6 +624,10 @@ impl Dependency for ESMImportSideEffectDependency {
         LazyUntil::NoUntil
       }
     })
+  }
+
+  fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 
   fn unset_lazy(&mut self) -> bool {
@@ -685,7 +689,11 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
         &mut IdentifierMap::default(),
       )
     } else {
-      ConnectionState::Active(true)
+      let dependency = module_graph.dependency_by_id(&conn.dependency_id);
+      let dependency = dependency
+        .downcast_ref::<ESMImportSideEffectDependency>()
+        .expect("should be ESMImportSideEffectDependency");
+      ConnectionState::Active(dependency.missing_module_active())
     }
   }
 }
@@ -726,6 +734,10 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
     let module_graph = compilation.get_module_graph();
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
+
+    if module.is_none() && !dep.missing_module_active() {
+      return;
+    }
 
     if let Some(module) = module {
       let source_types = module.source_types(module_graph);

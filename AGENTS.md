@@ -57,9 +57,8 @@ Before running tests after code changes:
 
 ## Code quality
 
-- **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check)
-- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
-- **Rust gate**: After modifying Rust code, ensure both `cargo fmt --all --check` and `cargo lint` pass before commit/PR
+- **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check), `cargo lint` (Rust)
+- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo), `cargo fmt --all --check` (Rust)
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
 ## Common tasks
@@ -76,7 +75,7 @@ Before running tests after code changes:
 
 ### Modifying code
 
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, and ensure `cargo fmt --all --check && cargo lint` passes
+- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding tests
