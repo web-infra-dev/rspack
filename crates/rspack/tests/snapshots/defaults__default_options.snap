@@ -1,5 +1,6 @@
 ---
 source: crates/rspack/tests/defaults.rs
+assertion_line: 22
 expression: options
 ---
 CompilerOptions {

@@ -11,10 +11,8 @@ module.exports = {
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
                 target: 'esnext',
               },
               collectTypeScriptInfo: {

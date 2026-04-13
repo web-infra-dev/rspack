@@ -275,7 +275,8 @@ const _cleverMerge = <First extends Obj, Second extends Obj>(
   // If the first argument has a dynamic part we modify the dynamic part to merge the second argument
   let secondObj = second;
   if (firstDynamicInfo !== undefined) {
-    let { byProperty, fn } = firstDynamicInfo;
+    let { fn } = firstDynamicInfo;
+    const { byProperty } = firstDynamicInfo;
     const fnInfo = fn[DYNAMIC_INFO];
     if (fnInfo) {
       secondObj = internalCaching

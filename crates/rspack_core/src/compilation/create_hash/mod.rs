@@ -391,9 +391,19 @@ pub async fn create_hash(
     .chunk_by_ukey
     .values()
     .sorted_unstable_by_key(|chunk| chunk.ukey())
-    .filter_map(|chunk| chunk.hash(&compilation.chunk_hashes_artifact))
-    .for_each(|hash| {
-      hash.hash(&mut compilation_hasher);
+    .for_each(|chunk| {
+      if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
+        hash.hash(&mut compilation_hasher);
+      }
+      if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
+        content_hashes
+          .iter()
+          .sorted_unstable_by_key(|(source_type, _)| *source_type)
+          .for_each(|(source_type, content_hash)| {
+            source_type.hash(&mut compilation_hasher);
+            content_hash.hash(&mut compilation_hasher);
+          });
+      }
     });
   compilation.hot_index.hash(&mut compilation_hasher);
   compilation.hash = Some(compilation_hasher.digest(&compilation.options.output.hash_digest));

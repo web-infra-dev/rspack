@@ -1,7 +1,8 @@
+import { withRspackConfig } from '@rstest/adapter-rspack';
 import { defineConfig } from '@rstest/core';
 
 // Docs: https://rstest.rs/config/
 export default defineConfig({
-  testEnvironment: 'happy-dom',
+  extends: withRspackConfig(),
   setupFiles: ['./tests/rstest.setup.js'],
 });

@@ -25,31 +25,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
-            },
-          },
-        },
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.tsx$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-                tsx: true,
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',
@@ -101,10 +81,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
               experimental: {
                 plugins: [
@@ -115,10 +96,6 @@ export default {
                     },
                   ],
                 ],
-              },
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
               },
               transform: {
                 react: {

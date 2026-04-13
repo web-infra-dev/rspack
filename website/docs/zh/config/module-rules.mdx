@@ -28,8 +28,8 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
-        use: 'builtin:swc-loader',
+        test: /\.(?:js|mjs|ts)$/,
+        loader: 'builtin:swc-loader',
         options: {
           // loader options...
         },
@@ -441,16 +441,14 @@ export default {
         type: 'asset/resource',
       },
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
             experimental: {
 +             keepImportAttributes: true,
-            },
-            parser: {
-              syntax: 'typescript',
             },
           },
         },
@@ -472,7 +470,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         loader: 'builtin:swc-loader',
       },
     ],
@@ -494,11 +492,7 @@ export default {
         test: /\.ts$/,
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
       },
     ],

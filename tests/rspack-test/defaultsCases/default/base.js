@@ -334,6 +334,7 @@ module.exports = {
 			        css,
 			        unknown,
 			      ],
+			      enforceSizeThreshold: 30000,
 			      hidePathInfo: false,
 			      maxAsyncRequests: Infinity,
 			      maxInitialRequests: Infinity,

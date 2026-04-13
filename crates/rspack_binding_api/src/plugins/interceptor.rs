@@ -8,7 +8,7 @@ use std::{
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
-  Env, JsValue,
+  Either, Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
@@ -131,8 +131,8 @@ impl JsBeforeModuleIdsArg {
 
 #[napi(object)]
 pub struct JsBeforeModuleIdsResult {
-  #[napi(ts_type = "Record<string, string>")]
-  pub assignments: FxHashMap<String, String>,
+  #[napi(ts_type = "Record<string, string | number>")]
+  pub assignments: FxHashMap<String, Either<String, u32>>,
 }
 
 #[napi(object)]
@@ -1357,7 +1357,11 @@ impl CompilationBeforeModuleIds for CompilationBeforeModuleIdsTap {
 
     for (identifier_str, id) in result.assignments {
       let identifier = ModuleIdentifier::from(identifier_str.as_str());
-      ChunkGraph::set_module_id(module_ids, identifier, ModuleId::from(id));
+      let module_id = match id {
+        Either::A(s) => ModuleId::from(s),
+        Either::B(n) => ModuleId::from(n),
+      };
+      ChunkGraph::set_module_id(module_ids, identifier, module_id);
     }
 
     Ok(())

@@ -142,8 +142,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     build_info.strict = true;
     build_meta.exports_type = BuildMetaExportsType::Default;
     build_meta.default_object = if data.is_object() || data.is_array() {
-      // Ignore the json named exports warning, this violates standards, but other bundlers support it without warning.
-      BuildMetaDefaultObject::RedirectWarn { ignore: true }
+      BuildMetaDefaultObject::RedirectWarn
     } else {
       BuildMetaDefaultObject::False
     };

@@ -274,11 +274,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         context.top_level_mark,
         false,
       ));
-      program.visit_with(&mut semicolon::InsertedSemicolons {
-        semicolons: &mut semicolons,
+      program.visit_with(&mut semicolon::InsertedSemicolons::new(
+        &mut semicolons,
         // safety: it's safe to assert tokens is some since we pass with_tokens = true
-        tokens: &tokens.expect("should get tokens from parser"),
-      });
+        tokens.as_deref().expect("should get tokens from parser"),
+      ));
     });
 
     let unresolved_mark = ast.get_context().unresolved_mark;

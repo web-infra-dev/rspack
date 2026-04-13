@@ -467,7 +467,7 @@ module.exports = {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: efe8251dfbff8424,
+			  hash: ab09081e1ca7cdd4,
 			  modules: Array [
 			    Object {
 			      assets: Array [],

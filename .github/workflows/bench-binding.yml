@@ -18,7 +18,7 @@ permissions:
   issues: write
 
 jobs:
-  bench:
+  bench-binding:
     name: 'Bench Binding'
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
