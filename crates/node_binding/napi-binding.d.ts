@@ -3110,32 +3110,31 @@ export declare enum RegisterJsTapKind {
   CompilationProcessAssets = 23,
   CompilationAfterProcessAssets = 24,
   CompilationSeal = 25,
-  CompilationShouldRecord = 26,
-  CompilationAfterSeal = 27,
-  NormalModuleFactoryBeforeResolve = 28,
-  NormalModuleFactoryFactorize = 29,
-  NormalModuleFactoryResolve = 30,
-  NormalModuleFactoryAfterResolve = 31,
-  NormalModuleFactoryCreateModule = 32,
-  NormalModuleFactoryResolveForScheme = 33,
-  ContextModuleFactoryBeforeResolve = 34,
-  ContextModuleFactoryAfterResolve = 35,
-  JavascriptModulesChunkHash = 36,
-  HtmlPluginBeforeAssetTagGeneration = 37,
-  HtmlPluginAlterAssetTags = 38,
-  HtmlPluginAlterAssetTagGroups = 39,
-  HtmlPluginAfterTemplateExecution = 40,
-  HtmlPluginBeforeEmit = 41,
-  HtmlPluginAfterEmit = 42,
-  RuntimePluginCreateScript = 43,
-  RuntimePluginCreateLink = 44,
-  RuntimePluginLinkPreload = 45,
-  RuntimePluginLinkPrefetch = 46,
-  RsdoctorPluginModuleGraph = 47,
-  RsdoctorPluginChunkGraph = 48,
-  RsdoctorPluginModuleIds = 49,
-  RsdoctorPluginModuleSources = 50,
-  RsdoctorPluginAssets = 51
+  CompilationAfterSeal = 26,
+  NormalModuleFactoryBeforeResolve = 27,
+  NormalModuleFactoryFactorize = 28,
+  NormalModuleFactoryResolve = 29,
+  NormalModuleFactoryAfterResolve = 30,
+  NormalModuleFactoryCreateModule = 31,
+  NormalModuleFactoryResolveForScheme = 32,
+  ContextModuleFactoryBeforeResolve = 33,
+  ContextModuleFactoryAfterResolve = 34,
+  JavascriptModulesChunkHash = 35,
+  HtmlPluginBeforeAssetTagGeneration = 36,
+  HtmlPluginAlterAssetTags = 37,
+  HtmlPluginAlterAssetTagGroups = 38,
+  HtmlPluginAfterTemplateExecution = 39,
+  HtmlPluginBeforeEmit = 40,
+  HtmlPluginAfterEmit = 41,
+  RuntimePluginCreateScript = 42,
+  RuntimePluginCreateLink = 43,
+  RuntimePluginLinkPreload = 44,
+  RuntimePluginLinkPrefetch = 45,
+  RsdoctorPluginModuleGraph = 46,
+  RsdoctorPluginChunkGraph = 47,
+  RsdoctorPluginModuleIds = 48,
+  RsdoctorPluginModuleSources = 49,
+  RsdoctorPluginAssets = 50
 }
 
 export interface RegisterJsTaps {
@@ -3165,7 +3164,6 @@ export interface RegisterJsTaps {
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
   registerCompilationAfterProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => void); stage: number; }>
   registerCompilationSealTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
-  registerCompilationShouldRecordTaps: (stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>
   registerCompilationAfterSealTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerNormalModuleFactoryBeforeResolveTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>
   registerNormalModuleFactoryFactorizeTaps: (stages: Array<number>) => Array<{ function: ((arg: JsResolveData) => Promise<JsResolveData>); stage: number; }>
