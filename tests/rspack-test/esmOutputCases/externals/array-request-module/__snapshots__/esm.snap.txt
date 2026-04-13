@@ -1,0 +1,55 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import * as __rspack_external_fs from "fs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// fs-promises
+
+
+var external_fs_promises_default = /*#__PURE__*/__webpack_require__.n(__rspack_external_fs.promises);// ./index.js
+
+
+it('should support array-type module external with property access', async () => {
+  const fs = __rspack_createRequire_require('fs')
+  expect((external_fs_promises_default())).toBe(fs.promises)
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __webpack_require__ = {};
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```

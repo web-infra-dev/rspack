@@ -584,6 +584,11 @@ impl ExternalModule {
                 safe_to_optimize
               };
 
+            // When the external request includes additional specifiers (e.g. ["module fs", "promises"]),
+            // force namespace import so we can apply property access on the namespace object.
+            // This matches webpack's: if (moduleAndSpecifiers.length > 1) imported = true;
+            let force_namespace = request.has_rest();
+
             match used_exports {
               UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
                 let external_module_id = format!("__rspack_external_{id}");
@@ -609,7 +614,7 @@ impl ExternalModule {
                 );
               }
               UsedExports::UsedNames(atoms) => {
-                if !safe_to_optimize || namespace_used_by_named_exports {
+                if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
                   chunk_init_fragments.push(
                     NormalInitFragment::new(
                       format!(
@@ -688,10 +693,11 @@ impl ExternalModule {
             );
             format!(
               r#"
-{} = __rspack_external_{};
+{} = __rspack_external_{}{};
 "#,
               get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-              id.clone()
+              id.clone(),
+              property_access(request.iter(), 1)
             )
           }
         } else {
