@@ -119,13 +119,13 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
 
       // Check if target is in an ancestor chunk of origin_async_chunk → circular dep
       for &target_chunk in target_chunks {
-        if let Some(ancestor_of) = chunk_to_ancestor_of.get(&target_chunk) {
-          if ancestor_of.contains(&origin_async_chunk) {
-            modules_to_extract
-              .entry(*target)
-              .or_default()
-              .insert(target_chunk);
-          }
+        if let Some(ancestor_of) = chunk_to_ancestor_of.get(&target_chunk)
+          && ancestor_of.contains(&origin_async_chunk)
+        {
+          modules_to_extract
+            .entry(*target)
+            .or_default()
+            .insert(target_chunk);
         }
       }
 

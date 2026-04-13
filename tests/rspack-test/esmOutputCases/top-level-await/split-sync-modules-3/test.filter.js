@@ -1,0 +1,1 @@
+module.exports = () => "cycle caused by available modules"
