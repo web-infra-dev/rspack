@@ -318,6 +318,20 @@ impl Compiler {
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
 
+    let should_record = !matches!(
+      self
+        .plugin_driver
+        .compiler_hooks
+        .should_record
+        .call(&mut self.compilation)
+        .await?,
+      Some(false)
+    );
+
+    if should_record {
+      self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
+    }
+
     if matches!(
       self
         .plugin_driver
@@ -334,19 +348,6 @@ impl Compiler {
     self.emit_assets().await?;
     logger.time_end(start);
 
-    let should_record = !matches!(
-      self
-        .plugin_driver
-        .compiler_hooks
-        .should_record
-        .call(&mut self.compilation)
-        .await?,
-      Some(false)
-    );
-
-    if should_record {
-      self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
-    }
     Ok(())
   }
 
