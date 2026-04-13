@@ -80,13 +80,19 @@ When using `rspack.config.ts`, you can choose from one of the following approach
 
 ### Default behavior
 
-Starting from v1.5.0, Rspack CLI has built-in support for TypeScript configuration, using SWC by default to transform TypeScript code into CommonJS format JavaScript code.
+Starting from v1.5.0, Rspack CLI has built-in support for TypeScript configuration.
+
+By default, Rspack CLI uses `--configLoader=auto`:
+
+- JavaScript config files are loaded with the native runtime loader.
+- When the runtime supports native TypeScript, Rspack CLI tries the native loader first and falls back to [Jiti](https://github.com/unjs/jiti) if loading fails.
+- On runtimes without native TypeScript support, Rspack CLI loads TypeScript config files with Jiti directly.
 
 If you're using a Rspack CLI earlier than v1.5.0, it's recommended to upgrade to the latest version. You no longer need to load configuration files through `ts-node` or `esbuild-register`, and these dependencies can be removed.
 
 ### Native support
 
-If your JavaScript runtime already natively supports TypeScript, you can use the built-in TS transformation to load the configuration file, ensuring that module resolution behavior is consistent with native behavior.
+If your JavaScript runtime already natively supports TypeScript, you can force the native loader to load the configuration file, ensuring that module resolution behavior is consistent with native behavior.
 
 For example, Node.js already natively supports TypeScript, you can use the following command to use the Node.js native loader to load the configuration file:
 
@@ -102,17 +108,21 @@ For example, Node.js already natively supports TypeScript, you can use the follo
 
 See [Node.js - Running TypeScript Natively](https://nodejs.org/en/learn/typescript/run-natively#running-typescript-natively) for more details.
 
-### Using esbuild
+### Jiti loader
 
-For lower Node.js versions, you can use `esbuild-register` to load the configuration file.
+You can also force Rspack CLI to load TypeScript config files through Jiti:
 
-Install [esbuild](https://npmjs.com/package/esbuild) and [esbuild-register](https://npmjs.com/package/esbuild-register), no additional configuration is needed.
-
-<PackageManagerTabs command="add esbuild esbuild-register -D" />
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build --configLoader=jiti"
+  }
+}
+```
 
 ### Using ts-node
 
-You can also use [ts-node](https://npmjs.com/package/ts-node) to load the configuration file.
+If your config depends on TypeScript transforms that native loading and Jiti do not perform, you can still use [ts-node](https://npmjs.com/package/ts-node) as an external loader.
 
 1. Install `ts-node`:
 

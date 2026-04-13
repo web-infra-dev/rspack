@@ -340,6 +340,10 @@ importers:
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
 
   packages/rspack-cli:
+    dependencies:
+      jiti:
+        specifier: ^2.6.1
+        version: 2.6.1
     devDependencies:
       '@discoveryjs/json-ext':
         specifier: ^0.5.7
@@ -371,9 +375,6 @@ importers:
       exit-hook:
         specifier: ^4.0.0
         version: 4.0.0
-      pirates:
-        specifier: ^4.0.7
-        version: 4.0.7
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.19.39)(typescript@6.0.2)

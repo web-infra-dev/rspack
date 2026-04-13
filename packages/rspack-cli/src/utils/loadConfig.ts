@@ -1,78 +1,154 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
 import { rspack } from '@rspack/core';
-import { addHook } from 'pirates';
-import { crossImport } from './crossImport';
 import findConfig from './findConfig';
-import { isEsmFile } from './isEsmFile';
-import isTsFile, { TS_EXTENSION } from './isTsFile';
+import isTsFile from './isTsFile';
 import type { CommonOptions } from './options';
 
 const require = createRequire(import.meta.url);
 
-const injectInlineSourceMap = ({
-  code,
-  map,
-}: {
-  code: string;
-  map: string | undefined;
-}): string => {
-  if (map) {
-    const base64Map = Buffer.from(map, 'utf8').toString('base64');
-    const sourceMapContent = `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${base64Map}`;
-    return `${code}\n${sourceMapContent}`;
-  }
-  return code;
-};
-
-export function compile(sourcecode: string, filename: string) {
-  const { code, map } = rspack.experiments.swc.transformSync(sourcecode, {
-    jsc: {
-      parser: {
-        syntax: 'typescript',
-        tsx: false,
-        decorators: true,
-        dynamicImport: true,
-      },
-    },
-    filename: filename,
-    module: { type: 'commonjs' },
-    sourceMaps: true,
-    isModule: true,
-  });
-  return injectInlineSourceMap({ code, map });
-}
-
 const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
 
-// modified based on https://github.com/swc-project/swc-node/blob/master/packages/register/register.ts#L117
-const registerLoader = (configPath: string) => {
-  // For ESM and `.mts` you need to use: 'NODE_OPTIONS="--loader ts-node/esm" rspack build --config ./rspack.config.mts'
-  if (isEsmFile(configPath) && isTsFile(configPath)) {
-    return;
+const JS_CONFIG_EXTENSION_REGEXP = /\.(?:js|mjs|cjs)$/;
+const CONFIG_LOADER_VALUES = ['auto', 'jiti', 'native'] as const;
+type ConfigLoader = (typeof CONFIG_LOADER_VALUES)[number];
+
+const readPackageUp = (cwd = process.cwd()): { type?: 'module' } | null => {
+  let currentDir = cwd;
+
+  while (currentDir !== path.dirname(currentDir)) {
+    const packagePath = path.join(currentDir, 'package.json');
+    if (fs.existsSync(packagePath)) {
+      return JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+    }
+    currentDir = path.dirname(currentDir);
   }
 
-  // Only support TypeScript files with a CommonJS loader here
-  if (!isTsFile(configPath)) {
-    throw new Error(`config file "${configPath}" is not supported.`);
+  return null;
+};
+
+const isEsmFile = (filePath: string) => {
+  if (/\.(mjs|mts)$/.test(filePath)) {
+    return true;
+  }
+  if (/\.(cjs|cts)$/.test(filePath)) {
+    return false;
   }
 
-  addHook(
-    (code, filename) => {
-      try {
-        return compile(code, filename);
-      } catch (err) {
-        throw new Error(
-          `Failed to transform file "${filename}" when loading TypeScript config file:\n ${err instanceof Error ? err.message : String(err)}`,
-        );
-      }
-    },
-    {
-      exts: TS_EXTENSION,
-    },
+  const packageJson = readPackageUp(path.dirname(filePath));
+  return packageJson?.type === 'module';
+};
+
+const supportsNativeTypeScript = () => {
+  const features = process.features as NodeJS.ProcessFeatures & {
+    typescript?: boolean;
+  };
+
+  return Boolean(
+    features.typescript || process.versions.bun || process.versions.deno,
   );
+};
+
+const normalizeConfigLoader = (
+  configLoader: CommonOptions['configLoader'],
+): ConfigLoader => {
+  const normalizedLoader = configLoader ?? 'auto';
+
+  if (normalizedLoader === 'register') {
+    return 'jiti';
+  }
+
+  if (CONFIG_LOADER_VALUES.includes(normalizedLoader as ConfigLoader)) {
+    return normalizedLoader as ConfigLoader;
+  }
+
+  throw new Error(
+    `config loader "${normalizedLoader}" is not supported. Expected one of: ${CONFIG_LOADER_VALUES.join(
+      ', ',
+    )}.`,
+  );
+};
+
+const resolveDefaultExport = <T>(result: T): T =>
+  result &&
+  typeof result === 'object' &&
+  'default' in (result as Record<string, unknown>)
+    ? ((result as Record<string, unknown>).default as T)
+    : result;
+
+const loadConfigWithNativeLoader = async <T = unknown>(
+  configPath: string,
+): Promise<T> => {
+  const configFileURL = pathToFileURL(configPath).href;
+  const loadedModule = await import(`${configFileURL}?t=${Date.now()}`);
+  return resolveDefaultExport(loadedModule as T);
+};
+
+const loadConfigWithRequire = <T = unknown>(configPath: string): T =>
+  resolveDefaultExport(require(configPath) as T);
+
+const hasTypeScriptRequireLoader = () =>
+  Boolean(require.extensions['.ts'] || require.extensions['.cts']);
+
+let jitiInstancePromise:
+  | Promise<ReturnType<(typeof import('jiti'))['createJiti']>>
+  | undefined;
+
+const getJiti = async () => {
+  if (!jitiInstancePromise) {
+    jitiInstancePromise = import('jiti').then(({ createJiti }) =>
+      createJiti(import.meta.url, {
+        moduleCache: false,
+        interopDefault: true,
+        nativeModules: ['@rspack/cli', '@rspack/core', 'typescript'],
+      }),
+    );
+  }
+  return jitiInstancePromise;
+};
+
+const loadConfigWithJiti = async <T = unknown>(configPath: string) => {
+  const jiti = await getJiti();
+  return jiti.import(configPath, { default: true }) as Promise<T>;
+};
+
+const loadConfigByPath = async <T = unknown>(
+  configPath: string,
+  options: CommonOptions,
+): Promise<T> => {
+  const configLoader = normalizeConfigLoader(options.configLoader);
+  const isTypeScriptConfig = isTsFile(configPath);
+  const isTypeScriptEsmConfig = isTypeScriptConfig && isEsmFile(configPath);
+  const shouldTryRequireLoader =
+    isTypeScriptConfig &&
+    !isTypeScriptEsmConfig &&
+    configLoader !== 'jiti' &&
+    hasTypeScriptRequireLoader();
+  const shouldTryNativeLoader =
+    configLoader === 'native' ||
+    JS_CONFIG_EXTENSION_REGEXP.test(configPath) ||
+    (configLoader === 'auto' &&
+      supportsNativeTypeScript() &&
+      isTypeScriptEsmConfig);
+
+  if (shouldTryRequireLoader) {
+    return loadConfigWithRequire<T>(configPath);
+  }
+
+  if (shouldTryNativeLoader) {
+    try {
+      return await loadConfigWithNativeLoader<T>(configPath);
+    } catch (error) {
+      if (configLoader === 'native') {
+        throw error;
+      }
+    }
+  }
+
+  return loadConfigWithJiti<T>(configPath);
 };
 
 export type LoadedRspackConfig =
@@ -212,17 +288,15 @@ export async function loadExtendedConfig(
       );
     }
 
-    // Register loader for TypeScript files
-    if (isTsFile(resolvedPath) && options.configLoader === 'register') {
-      registerLoader(resolvedPath);
-    }
-
     // Load the extended configuration
-    let loadedConfig = await crossImport(resolvedPath);
+    let loadedConfig = await loadConfigByPath<LoadedRspackConfig>(
+      resolvedPath,
+      options,
+    );
 
     // If the extended config is a function, execute it
     if (typeof loadedConfig === 'function') {
-      loadedConfig = loadedConfig(options.env, options);
+      loadedConfig = loadedConfig(options.env as Record<string, any>, options);
       // if return promise we should await its result
       if (
         typeof (loadedConfig as unknown as Promise<unknown>).then === 'function'
@@ -233,7 +307,15 @@ export async function loadExtendedConfig(
 
     // Recursively load extended configurations from the extended config
     const { config: extendedConfig, pathMap: extendedPathMap } =
-      await loadExtendedConfig(loadedConfig, resolvedPath, cwd, options);
+      (await loadExtendedConfig(
+        loadedConfig as RspackOptions | MultiRspackOptions,
+        resolvedPath,
+        cwd,
+        options,
+      )) as {
+        config: RspackOptions;
+        pathMap: WeakMap<RspackOptions, string[]>;
+      };
     // Calc config paths
     const configPaths = [
       ...(pathMap.get(resultConfig) || []),
@@ -270,10 +352,10 @@ export async function loadRspackConfig(
   }
 
   // load config
-  if (isTsFile(configPath) && options.configLoader === 'register') {
-    registerLoader(configPath);
-  }
-  const loadedConfig = await crossImport(configPath);
+  const loadedConfig = await loadConfigByPath<LoadedRspackConfig>(
+    configPath,
+    options,
+  );
 
   return { loadedConfig, configPath };
 }
