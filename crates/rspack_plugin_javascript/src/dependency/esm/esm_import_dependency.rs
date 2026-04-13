@@ -64,7 +64,6 @@ pub struct ESMImportSideEffectDependency {
   source_order: i32,
   id: DependencyId,
   range: DependencyRange,
-  dependency_type: DependencyType,
   phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
@@ -80,7 +79,6 @@ impl ESMImportSideEffectDependency {
     request: Atom,
     source_order: i32,
     range: DependencyRange,
-    dependency_type: DependencyType,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
     loc: Option<DependencyLocation>,
@@ -93,7 +91,6 @@ impl ESMImportSideEffectDependency {
       source_order,
       request,
       range,
-      dependency_type,
       phase,
       attributes,
       resource_identifier,
@@ -104,8 +101,8 @@ impl ESMImportSideEffectDependency {
     }
   }
 
-  pub fn set_lazy(&mut self) {
-    self.lazy_make = true;
+  fn missing_module_active(&self) -> bool {
+    !self.lazy_make
   }
 }
 
@@ -559,7 +556,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &self.dependency_type
+    &DependencyType::EsmImport
   }
 
   fn get_phase(&self) -> ImportPhase {
@@ -590,7 +587,7 @@ impl Dependency for ESMImportSideEffectDependency {
         connection_state_cache,
       )
     } else {
-      ConnectionState::Active(true)
+      ConnectionState::Active(self.missing_module_active())
     }
   }
 
@@ -624,6 +621,10 @@ impl Dependency for ESMImportSideEffectDependency {
         LazyUntil::NoUntil
       }
     })
+  }
+
+  fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 
   fn unset_lazy(&mut self) -> bool {
@@ -685,7 +686,11 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
         &mut IdentifierMap::default(),
       )
     } else {
-      ConnectionState::Active(true)
+      let dependency = module_graph.dependency_by_id(&conn.dependency_id);
+      let dependency = dependency
+        .downcast_ref::<ESMImportSideEffectDependency>()
+        .expect("should be ESMImportSideEffectDependency");
+      ConnectionState::Active(dependency.missing_module_active())
     }
   }
 }
@@ -726,6 +731,10 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
     let module_graph = compilation.get_module_graph();
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
+
+    if module.is_none() && !dep.missing_module_active() {
+      return;
+    }
 
     if let Some(module) = module {
       let source_types = module.source_types(module_graph);

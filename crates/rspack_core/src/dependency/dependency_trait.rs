@@ -128,6 +128,8 @@ pub trait Dependency:
     None
   }
 
+  fn set_lazy(&mut self) {}
+
   fn unset_lazy(&mut self) -> bool {
     false
   }
