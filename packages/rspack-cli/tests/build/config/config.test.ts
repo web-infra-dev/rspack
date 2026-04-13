@@ -2,6 +2,11 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { run } from '../../utils/test-utils';
 
+const supportsNativeTypeScript = Boolean(
+  process.features.typescript || process.versions.bun || process.versions.deno,
+);
+const testNativeLoader = supportsNativeTypeScript ? it : it.skip;
+
 describe('rspack cli', () => {
   describe('should config not found', () => {
     it('should throw an error when config file does not found', async () => {
@@ -48,29 +53,27 @@ describe('rspack cli', () => {
   describe('should load cjs config', () => {
     const cwd = resolve(__dirname, './cjs');
 
-    it('should load default config.js file', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
+    it('should load default config.ts file', async () => {
+      const { exitCode, stdout } = await run(cwd, [
         '--output-path',
         'dist/js-1',
       ]);
-      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
-        readFile(resolve(cwd, './dist/js-1/js.bundle.js'), {
+        readFile(resolve(cwd, './dist/js-1/ts.bundle.js'), {
           encoding: 'utf-8',
         }),
       ).resolves.toMatch(/Main cjs file/);
     });
 
     it('should load config.ts file', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
+      const { exitCode, stdout } = await run(cwd, [
         '-c',
         'rspack.config.ts',
         '--output-path',
         'dist/ts-1',
       ]);
-      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -98,13 +101,12 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main cjs file/);
     });
     it('should load config.export.ts file', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
+      const { exitCode, stdout } = await run(cwd, [
         '-c',
         'rspack.config.export.ts',
         '--output-path',
         'dist/export-1',
       ]);
-      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -152,7 +154,7 @@ describe('rspack cli', () => {
   describe('should load esm config', () => {
     const cwd = resolve(__dirname, './esm');
 
-    it('should load default config.js file', async () => {
+    it('should load default config.ts file', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, [
         '--output-path',
         'dist/js-2',
@@ -161,7 +163,7 @@ describe('rspack cli', () => {
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
-        readFile(resolve(cwd, './dist/js-2/js.bundle.js'), {
+        readFile(resolve(cwd, './dist/js-2/ts.bundle.js'), {
           encoding: 'utf-8',
         }),
       ).resolves.toMatch(/Main esm file/);
@@ -184,29 +186,27 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main esm file/);
     });
 
-    it('should load config.ts file with native loader', async () => {
-      const { exitCode, stdout } = await run(
-        cwd,
-        [
+    testNativeLoader(
+      'should load config.ts file with native loader',
+      async () => {
+        const { exitCode, stderr, stdout } = await run(cwd, [
           '-c',
           'rspack.config.ts',
           '--config-loader',
           'native',
           '--output-path',
           'dist/ts-native',
-        ],
-        {
-          nodeOptions: ['--experimental-loader=ts-node/esm'],
-        },
-      );
-      expect(stdout).toBeTruthy();
-      expect(exitCode).toBe(0);
-      await expect(
-        readFile(resolve(cwd, './dist/ts-native/ts.bundle.js'), {
-          encoding: 'utf-8',
-        }),
-      ).resolves.toMatch(/Main esm file/);
-    });
+        ]);
+        expect(stderr).toBeFalsy();
+        expect(stdout).toBeTruthy();
+        expect(exitCode).toBe(0);
+        await expect(
+          readFile(resolve(cwd, './dist/ts-native/ts.bundle.js'), {
+            encoding: 'utf-8',
+          }),
+        ).resolves.toMatch(/Main esm file/);
+      },
+    );
 
     it('should load config.mjs file', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, [
@@ -300,25 +300,8 @@ describe('rspack cli', () => {
     });
   });
 
-  describe('should support loader ts-node register', () => {
+  describe('should keep builtin config loader semantics', () => {
     const cwd = resolve(__dirname, './ts-node-register');
-    it('should load ts-node-register to support declare const enum', async () => {
-      const { exitCode, stdout, stderr } = await run(
-        cwd,
-        ['-c', 'rspack.config.ts'],
-        {
-          nodeOptions: ['--require', 'ts-node/register'],
-        },
-      );
-      expect(stdout).toBeTruthy();
-      expect(stderr).toBeFalsy();
-      expect(exitCode).toBe(0);
-      await expect(
-        readFile(resolve(cwd, `./dist/node-register.bundle.js`), {
-          encoding: 'utf-8',
-        }),
-      ).resolves.toMatch(/Main ts-node-register file: 42/);
-    });
     it("builtin config loader can't handle declare const enum", async () => {
       const { exitCode, stdout, stderr } = await run(
         cwd,

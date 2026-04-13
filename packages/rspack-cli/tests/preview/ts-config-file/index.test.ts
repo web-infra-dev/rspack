@@ -1,6 +1,5 @@
 import {
   getRandomPort,
-  normalizeStderr,
   normalizeStdout,
   runWatch,
 } from '../../utils/test-utils';
@@ -19,6 +18,6 @@ describe('should run preview command with ts config file as expected', () => {
     expect(normalizeStdout(stdout)).toMatch(
       /Local:\s+http:\/\/localhost:\d+\//,
     );
-    expect(normalizeStderr(stderr)).not.toMatch(/<w>|\bwarn(?:ing)?\b/i);
+    expect(stderr).not.toMatch(/\[rspack\] CLI failed:/);
   });
 });

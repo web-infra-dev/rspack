@@ -61,12 +61,16 @@ export default defineConfig({
 
 Rspack supports these configuration file formats:
 
-- `rspack.config.js`: defaults to `CommonJS` format, or `ES modules` format if the type of the package.json is "module".
 - `rspack.config.ts`: `TypeScript` format, see [TypeScript configuration file](#typescript-configuration-file) for more details.
-- `rspack.config.cjs`: Forced to `CommonJS` format.
+- `rspack.config.js`: defaults to `CommonJS` format, or `ES modules` format if the type of the package.json is "module".
+- `rspack.config.mts`: Forced to `ES modules` + `TypeScript` format.
 - `rspack.config.mjs`: Forced to `ES modules` format.
+- `rspack.config.cts`: Forced to `CommonJS` + `TypeScript` format.
+- `rspack.config.cjs`: Forced to `CommonJS` format.
 
-Note that Rspack will first search JS configuration file and then TS configuration file.
+Rspack resolves configuration files in the following order by default:
+
+`rspack.config.ts` > `rspack.config.js` > `rspack.config.mts` > `rspack.config.mjs` > `rspack.config.cts` > `rspack.config.cjs`
 
 > See [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) and [CommonJS](https://nodejs.org/api/modules.html) for the difference between `CommonJS` and `ES modules`.
 
@@ -88,7 +92,7 @@ By default, Rspack CLI uses `--configLoader=auto`:
 - When the runtime supports native TypeScript, Rspack CLI tries the native loader first and falls back to [Jiti](https://github.com/unjs/jiti) if loading fails.
 - On runtimes without native TypeScript support, Rspack CLI loads TypeScript config files with Jiti directly.
 
-If you're using a Rspack CLI earlier than v1.5.0, it's recommended to upgrade to the latest version. You no longer need to load configuration files through `ts-node` or `esbuild-register`, and these dependencies can be removed.
+If you're using a Rspack CLI earlier than v1.5.0, it's recommended to upgrade to the latest version.
 
 ### Native support
 
@@ -116,26 +120,6 @@ You can also force Rspack CLI to load TypeScript config files through Jiti:
 {
   "scripts": {
     "build": "rspack build --configLoader=jiti"
-  }
-}
-```
-
-### Using ts-node
-
-If your config depends on TypeScript transforms that native loading and Jiti do not perform, you can still use [ts-node](https://npmjs.com/package/ts-node) as an external loader.
-
-1. Install `ts-node`:
-
-<PackageManagerTabs command="add ts-node -D" />
-
-2. Then configure `ts-node` to use `CommonJS` modules in `tsconfig.json`:
-
-```json title="tsconfig.json"
-{
-  "ts-node": {
-    "compilerOptions": {
-      "module": "CommonJS"
-    }
   }
 }
 ```

@@ -5,7 +5,6 @@ import { pathToFileURL } from 'node:url';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
 import { rspack } from '@rspack/core';
 import findConfig from './findConfig';
-import isTsFile from './isTsFile';
 import type { CommonOptions } from './options';
 
 const require = createRequire(import.meta.url);
@@ -15,32 +14,6 @@ const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
 const JS_CONFIG_EXTENSION_REGEXP = /\.(?:js|mjs|cjs)$/;
 const CONFIG_LOADER_VALUES = ['auto', 'jiti', 'native'] as const;
 type ConfigLoader = (typeof CONFIG_LOADER_VALUES)[number];
-
-const readPackageUp = (cwd = process.cwd()): { type?: 'module' } | null => {
-  let currentDir = cwd;
-
-  while (currentDir !== path.dirname(currentDir)) {
-    const packagePath = path.join(currentDir, 'package.json');
-    if (fs.existsSync(packagePath)) {
-      return JSON.parse(fs.readFileSync(packagePath, 'utf8'));
-    }
-    currentDir = path.dirname(currentDir);
-  }
-
-  return null;
-};
-
-const isEsmFile = (filePath: string) => {
-  if (/\.(mjs|mts)$/.test(filePath)) {
-    return true;
-  }
-  if (/\.(cjs|cts)$/.test(filePath)) {
-    return false;
-  }
-
-  const packageJson = readPackageUp(path.dirname(filePath));
-  return packageJson?.type === 'module';
-};
 
 const supportsNativeTypeScript = () => {
   const features = process.features as NodeJS.ProcessFeatures & {
@@ -83,12 +56,6 @@ const loadConfigWithNativeLoader = async <T = unknown>(
   return resolveDefaultExport(loadedModule as T);
 };
 
-const loadConfigWithRequire = <T = unknown>(configPath: string): T =>
-  resolveDefaultExport(require(configPath) as T);
-
-const hasTypeScriptRequireLoader = () =>
-  Boolean(require.extensions['.ts'] || require.extensions['.cts']);
-
 let jitiInstancePromise:
   | Promise<ReturnType<(typeof import('jiti'))['createJiti']>>
   | undefined;
@@ -96,10 +63,10 @@ let jitiInstancePromise:
 const getJiti = async () => {
   if (!jitiInstancePromise) {
     jitiInstancePromise = import('jiti').then(({ createJiti }) =>
-      createJiti(import.meta.url, {
+      createJiti(import.meta.filename, {
         moduleCache: false,
         interopDefault: true,
-        nativeModules: ['@rspack/cli', '@rspack/core', 'typescript'],
+        nativeModules: ['typescript'],
       }),
     );
   }
@@ -116,25 +83,12 @@ const loadConfigByPath = async <T = unknown>(
   options: CommonOptions,
 ): Promise<T> => {
   const configLoader = normalizeConfigLoader(options.configLoader);
-  const isTypeScriptConfig = isTsFile(configPath);
-  const isTypeScriptEsmConfig = isTypeScriptConfig && isEsmFile(configPath);
-  const shouldTryRequireLoader =
-    isTypeScriptConfig &&
-    !isTypeScriptEsmConfig &&
-    configLoader !== 'jiti' &&
-    hasTypeScriptRequireLoader();
-  const shouldTryNativeLoader =
+  const useNative = Boolean(
     configLoader === 'native' ||
-    JS_CONFIG_EXTENSION_REGEXP.test(configPath) ||
-    (configLoader === 'auto' &&
-      supportsNativeTypeScript() &&
-      isTypeScriptEsmConfig);
+    (configLoader === 'auto' && supportsNativeTypeScript()),
+  );
 
-  if (shouldTryRequireLoader) {
-    return loadConfigWithRequire<T>(configPath);
-  }
-
-  if (shouldTryNativeLoader) {
+  if (useNative || JS_CONFIG_EXTENSION_REGEXP.test(configPath)) {
     try {
       return await loadConfigWithNativeLoader<T>(configPath);
     } catch (error) {
@@ -154,7 +108,54 @@ export type LoadedRspackConfig =
   | ((
       env: Record<string, any>,
       argv?: Record<string, any>,
-    ) => RspackOptions | MultiRspackOptions);
+    ) =>
+      | RspackOptions
+      | MultiRspackOptions
+      | Promise<RspackOptions | MultiRspackOptions>);
+
+const isConfigObject = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+
+const isRspackConfig = (
+  value: unknown,
+): value is RspackOptions | MultiRspackOptions =>
+  Array.isArray(value) || isConfigObject(value);
+
+export const resolveRspackConfigExport = async (
+  configExport: LoadedRspackConfig,
+  options: CommonOptions,
+): Promise<RspackOptions | MultiRspackOptions> => {
+  let loadedConfig: unknown = configExport;
+
+  if (typeof loadedConfig === 'function') {
+    let functionResult = loadedConfig(
+      options.env as Record<string, any>,
+      options,
+    );
+
+    if (typeof (functionResult as Promise<unknown>).then === 'function') {
+      functionResult = await functionResult;
+    }
+
+    if (functionResult === undefined) {
+      throw new Error(
+        '[rspack-cli:loadConfig] The config function must return a config object.',
+      );
+    }
+
+    loadedConfig = functionResult;
+  }
+
+  if (!isRspackConfig(loadedConfig)) {
+    throw new Error(
+      `[rspack-cli:loadConfig] The config must be an object, an array, or a function that returns one, get ${String(
+        loadedConfig,
+      )}`,
+    );
+  }
+
+  return loadedConfig;
+};
 
 const checkIsMultiRspackOptions = (
   config: RspackOptions | MultiRspackOptions,
@@ -285,26 +286,19 @@ export async function loadExtendedConfig(
     }
 
     // Load the extended configuration
-    let loadedConfig = await loadConfigByPath<LoadedRspackConfig>(
+    const loadedConfig = await loadConfigByPath<LoadedRspackConfig>(
       resolvedPath,
       options,
     );
-
-    // If the extended config is a function, execute it
-    if (typeof loadedConfig === 'function') {
-      loadedConfig = loadedConfig(options.env as Record<string, any>, options);
-      // if return promise we should await its result
-      if (
-        typeof (loadedConfig as unknown as Promise<unknown>).then === 'function'
-      ) {
-        loadedConfig = await loadedConfig;
-      }
-    }
+    const resolvedConfig = await resolveRspackConfigExport(
+      loadedConfig,
+      options,
+    );
 
     // Recursively load extended configurations from the extended config
     const { config: extendedConfig, pathMap: extendedPathMap } =
       (await loadExtendedConfig(
-        loadedConfig as RspackOptions | MultiRspackOptions,
+        resolvedConfig,
         resolvedPath,
         cwd,
         options,
