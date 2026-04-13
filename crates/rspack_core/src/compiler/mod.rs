@@ -35,6 +35,7 @@ define_hook!(CompilerMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerShouldRecord: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
@@ -49,6 +50,7 @@ pub struct CompilerHooks {
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub should_record: CompilerShouldRecordHook,
   pub emit: CompilerEmitHook,
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
@@ -315,6 +317,32 @@ impl Compiler {
   #[instrument("Compile:done", skip_all)]
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
+
+    let should_record = !matches!(
+      self
+        .plugin_driver
+        .compiler_hooks
+        .should_record
+        .call(&mut self.compilation)
+        .await?,
+      Some(false)
+    );
+
+    if should_record {
+      self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
+    } else {
+      // Keep module/chunk snapshot from last successful compilation,
+      // but update hash to stay in sync with what `done` hook pushes to HMR client
+      self.last_records = self.last_records.as_ref().map(|last| {
+        Arc::new(CompilationRecords {
+          hash: self.compilation.hash.clone(),
+          runtimes: last.runtimes.clone(),
+          runtime_modules: last.runtime_modules.clone(),
+          chunks: last.chunks.clone(),
+          modules: last.modules.clone(),
+        })
+      });
+    }
 
     if matches!(
       self

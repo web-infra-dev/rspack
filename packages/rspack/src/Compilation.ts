@@ -255,7 +255,6 @@ export class Compilation {
     runtimeModule: liteTapable.SyncHook<[RuntimeModule, Chunk]>;
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
-    shouldRecord: liteTapable.SyncBailHook<[], boolean>;
     needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
   }>;
   name?: string;
@@ -390,7 +389,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       runtimeModule: new liteTapable.SyncHook(['module', 'chunk']),
       seal: new liteTapable.SyncHook([]),
       afterSeal: new liteTapable.AsyncSeriesHook([]),
-      shouldRecord: new liteTapable.SyncBailHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
 
