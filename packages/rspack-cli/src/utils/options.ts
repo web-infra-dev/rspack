@@ -1,6 +1,6 @@
 import type { Command } from 'cac';
 
-export type ConfigLoader = 'auto' | 'jiti' | 'native' | 'register';
+export type ConfigLoader = 'auto' | 'jiti' | 'native';
 
 /**
  * Apply common options for all commands

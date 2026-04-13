@@ -57,10 +57,6 @@ const normalizeConfigLoader = (
 ): ConfigLoader => {
   const normalizedLoader = configLoader ?? 'auto';
 
-  if (normalizedLoader === 'register') {
-    return 'jiti';
-  }
-
   if (CONFIG_LOADER_VALUES.includes(normalizedLoader as ConfigLoader)) {
     return normalizedLoader as ConfigLoader;
   }
