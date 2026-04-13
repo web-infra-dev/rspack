@@ -59,6 +59,7 @@ async fn compilation(
     DependencyType::FederationRuntime,
     params.normal_module_factory.clone(),
   );
+  Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleFederationRuntimePlugin)]
