@@ -27,13 +27,12 @@ use rspack_core::{
   CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
   CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
   CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
-  CompilationSealHook, CompilationShouldRecord, CompilationShouldRecordHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
-  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
-  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
+  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
+  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId,
+  CompilerMake, CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook,
+  CompilerThisCompilation, CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
   ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
@@ -386,7 +385,6 @@ pub enum RegisterJsTapKind {
   CompilationProcessAssets,
   CompilationAfterProcessAssets,
   CompilationSeal,
-  CompilationShouldRecord,
   CompilationAfterSeal,
   NormalModuleFactoryBeforeResolve,
   NormalModuleFactoryFactorize,
@@ -538,10 +536,6 @@ pub struct RegisterJsTaps {
   pub register_compilation_after_process_assets_taps: RegisterFunction<JsCompilationWrapper, ()>,
   #[napi(ts_type = "(stages: Array<number>) => Array<{ function: (() => void); stage: number; }>")]
   pub register_compilation_seal_taps: RegisterFunction<(), ()>,
-  #[napi(
-    ts_type = "(stages: Array<number>) => Array<{ function: (() => boolean | undefined); stage: number; }>"
-  )]
-  pub register_compilation_should_record_taps: RegisterFunction<(), Option<bool>>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>"
   )]
@@ -856,13 +850,6 @@ define_register!(
   tap = CompilationSealTap<(), ()> @ CompilationSealHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationSeal,
-  skip = true,
-);
-define_register!(
-  RegisterCompilationShouldRecordTaps,
-  tap = CompilationShouldRecordTap<(), Option<bool>> @ CompilationShouldRecordHook,
-  cache = false,
-  kind = RegisterJsTapKind::CompilationShouldRecord,
   skip = true,
 );
 define_register!(
@@ -1575,17 +1562,6 @@ impl CompilationSeal for CompilationSealTap {
     _compilation: &Compilation,
     _diagnostics: &mut Vec<Diagnostic>,
   ) -> rspack_error::Result<()> {
-    self.function.call_with_sync(()).await
-  }
-
-  fn stage(&self) -> i32 {
-    self.stage
-  }
-}
-
-#[async_trait]
-impl CompilationShouldRecord for CompilationShouldRecordTap {
-  async fn run(&self, _compilation: &Compilation) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
   }
 
