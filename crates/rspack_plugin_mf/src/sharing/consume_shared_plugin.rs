@@ -3,7 +3,6 @@ use std::{
   sync::{Arc, LazyLock, OnceLock},
 };
 
-use camino::Utf8Path;
 use regex::Regex;
 use rspack_cacheable::cacheable;
 use rspack_core::{
@@ -14,14 +13,12 @@ use rspack_core::{
   RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::{Diagnostic, Result, error};
-use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxHashSet;
 use rustc_hash::FxHashMap;
 
 use super::{
   consume_shared_module::ConsumeSharedModule,
-  consume_shared_runtime_module::ConsumeSharedRuntimeModule,
+  consume_shared_runtime_module::ConsumeSharedRuntimeModule, get_description_file,
 };
 use crate::ShareScope;
 
@@ -106,41 +103,8 @@ pub async fn resolve_matched_configs(
   }
 }
 
-pub async fn get_description_file(
-  fs: Arc<dyn ReadableFileSystem>,
-  mut dir: &Utf8Path,
-  satisfies_description_file_data: Option<impl Fn(Option<serde_json::Value>) -> bool>,
-) -> (Option<serde_json::Value>, Option<Vec<String>>) {
-  let description_filename = "package.json";
-  let mut checked_file_paths = FxHashSet::default();
-
-  loop {
-    let description_file = dir.join(description_filename);
-
-    let data = fs.read(&description_file).await;
-
-    if let Ok(data) = data
-      && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)
-    {
-      if satisfies_description_file_data
-        .as_ref()
-        .is_some_and(|f| !f(Some(data.clone())))
-      {
-        checked_file_paths.insert(description_file.to_string());
-      } else {
-        return (Some(data), None);
-      }
-    }
-    if let Some(parent) = dir.parent() {
-      dir = parent;
-    } else {
-      return (None, Some(checked_file_paths.into_iter().collect()));
-    }
-  }
-}
-
 pub fn get_required_version_from_description_file(
-  data: serde_json::Value,
+  data: &serde_json::Value,
   package_name: &str,
 ) -> Option<ConsumeVersion> {
   let data = data.as_object()?;
@@ -269,15 +233,11 @@ impl ConsumeSharedPlugin {
         let (data, checked_description_file_paths) = get_description_file(
           fs,
           context.as_path(),
-          Some(|data: Option<serde_json::Value>| {
-            if let Some(data) = data {
-              let name_matches = data.get("name").and_then(|n| n.as_str()) == Some(package_name);
-              let version_matches = get_required_version_from_description_file(data, package_name)
-                .is_some_and(|version| matches!(version, ConsumeVersion::Version(_)));
-              name_matches || version_matches
-            } else {
-              false
-            }
+          Some(|data: &serde_json::Value| {
+            let name_matches = data.get("name").and_then(|n| n.as_str()) == Some(package_name);
+            let version_matches = get_required_version_from_description_file(data, package_name)
+              .is_some_and(|version| matches!(version, ConsumeVersion::Version(_)));
+            name_matches || version_matches
           }),
         )
         .await;
@@ -289,7 +249,7 @@ impl ConsumeSharedPlugin {
             // Package self-referencing
             return None;
           }
-          return get_required_version_from_description_file(data, package_name);
+          return get_required_version_from_description_file(&data, package_name);
         } else {
           if let Some(file_paths) = checked_description_file_paths
             && !file_paths.is_empty()

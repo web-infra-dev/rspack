@@ -70,7 +70,7 @@ jobs:
 
       - name: Install cargo-zigbuild for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: taiki-e/install-action@d858f8113943481093e02986a7586a4819a3bfd6 # v2
+        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2
         with:
           tool: cargo-zigbuild
 

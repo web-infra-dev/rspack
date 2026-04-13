@@ -21,7 +21,12 @@ use crate::{
 
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
-  plugins_by_hook: [SmallVec<[u32; 2]>; JavascriptParserPluginHook::COUNT],
+  // `SmallVec<[u32; 4]>` has (approximately) the same stack size/layout as `Vec<u32>`
+  // (3 machine words: ptr/len/cap), but stores up to 4 elements inline.
+  //
+  // This keeps `plugins_by_hook` cheap to store (fixed-size array of small headers) while
+  // avoiding heap allocations for the common case where each hook only has a few plugins.
+  plugins_by_hook: [SmallVec<[u32; 4]>; JavascriptParserPluginHook::COUNT],
 }
 
 impl JavaScriptParserPluginDrive {
