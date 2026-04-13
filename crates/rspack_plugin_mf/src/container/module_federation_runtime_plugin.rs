@@ -6,9 +6,9 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilerFinishMake,
-  EntryOptions, ExportsInfoArtifact, Plugin, RuntimeGlobals, RuntimeModule,
-  SideEffectsStateArtifact,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
+  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -47,6 +47,18 @@ impl ModuleFederationRuntimePlugin {
   pub fn new(options: ModuleFederationRuntimePluginOptions) -> Self {
     Self::new_inner(options)
   }
+}
+
+#[plugin_hook(CompilerCompilation for ModuleFederationRuntimePlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::FederationRuntime,
+    params.normal_module_factory.clone(),
+  );
 }
 
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleFederationRuntimePlugin)]
@@ -126,6 +138,8 @@ impl Plugin for ModuleFederationRuntimePlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements
