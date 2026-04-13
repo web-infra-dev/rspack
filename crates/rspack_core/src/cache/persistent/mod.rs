@@ -22,7 +22,7 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{MakeOccasion, MetaOccasion},
+  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{StorageOptions, create_storage},
 };
@@ -53,6 +53,7 @@ pub struct PersistentCache {
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
+  minimize_occasion: MinimizeOccasion,
 }
 
 impl PersistentCache {
@@ -100,7 +101,8 @@ impl PersistentCache {
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(codec),
+      meta_occasion: MetaOccasion::new(codec.clone()),
+      minimize_occasion: MinimizeOccasion::new(codec),
     }
   }
 
@@ -206,6 +208,23 @@ impl Cache for PersistentCache {
     self.ctx.save_occasion(
       &self.make_occasion,
       &compilation.build_module_graph_artifact,
+    );
+  }
+
+  async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    if compilation.is_rebuild {
+      return;
+    }
+
+    if let Some(artifact) = self.ctx.load_occasion(&self.minimize_occasion).await {
+      compilation.minimize_cache_artifact = artifact;
+    }
+  }
+
+  async fn after_process_assets(&mut self, compilation: &Compilation) {
+    self.ctx.save_occasion(
+      &self.minimize_occasion,
+      &compilation.minimize_cache_artifact,
     );
   }
 

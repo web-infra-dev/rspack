@@ -1,8 +1,12 @@
 pub mod make;
 pub mod meta;
+pub mod minimize;
 
 pub use make::MakeOccasion;
 pub use meta::MetaOccasion;
+pub use minimize::{
+  CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheArtifact, MinimizeOccasion,
+};
 use rspack_error::Result;
 
 use super::storage::Storage;

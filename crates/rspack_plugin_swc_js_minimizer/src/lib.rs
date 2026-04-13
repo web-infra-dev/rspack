@@ -11,6 +11,7 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, Plugin,
+  cache::persistent::occasion::minimize::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
@@ -163,6 +164,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
 
+  // Compute options hash once for cache key computation
+  let options_hash = {
+    let mut hasher = std::hash::DefaultHasher::new();
+    self.options.hash(&mut hasher);
+    std::hash::Hasher::finish(&hasher)
+  };
+
+  // Take the cache out temporarily for concurrent read access
+  let minimize_cache = std::mem::take(&mut compilation.minimize_cache_artifact);
+  // Collect new cache entries from cache misses
+  let new_cache_entries: Mutex<Vec<(Vec<u8>, CachedMinimizeEntry)>> = Mutex::new(Vec::new());
+
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
   let all_extracted_comments = Mutex::new(FxHashMap::default());
@@ -198,10 +211,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().into_string_lossy().into_owned();
-        let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
-
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)
         } else if let Some(module) = original.info.javascript_module {
@@ -213,6 +222,41 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         } else {
           None
         };
+
+        // Compute cache key from source content + filename + options + is_module
+        let cache_key = {
+          let source_buffer = original_source.buffer();
+          let mut hasher = std::hash::DefaultHasher::new();
+          source_buffer.hash(&mut hasher);
+          filename.hash(&mut hasher);
+          options_hash.hash(&mut hasher);
+          is_module.hash(&mut hasher);
+          std::hash::Hasher::finish(&hasher).to_ne_bytes().to_vec()
+        };
+
+        // Check persistent cache
+        if let Some(cached) = minimize_cache.get(&cache_key) {
+          original.set_source(Some(cached.source.clone()));
+          original.get_info_mut().minimized.replace(true);
+          if let Some(ec) = &cached.extracted_comments {
+            all_extracted_comments
+              .lock()
+              .expect("all_extract_comments lock failed")
+              .insert(
+                filename.to_string(),
+                ExtractedCommentsInfo {
+                  source: ec.source.clone(),
+                  comments_file_name: ec.comments_file_name.clone(),
+                },
+              );
+          }
+          return Ok(());
+        }
+
+        // Cache miss - proceed with minification
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),
@@ -396,12 +440,44 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
+        // Store result in cache
+        let extracted_comments_for_cache = all_extracted_comments
+          .lock()
+          .expect("all_extract_comments lock failed")
+          .get(filename)
+          .map(|ec| CachedExtractedComments {
+            source: ec.source.clone(),
+            comments_file_name: ec.comments_file_name.clone(),
+          });
+
+        new_cache_entries
+          .lock()
+          .expect("new_cache_entries lock failed")
+          .push((
+            cache_key,
+            CachedMinimizeEntry {
+              source: source.clone(),
+              extracted_comments: extracted_comments_for_cache,
+            },
+          ));
+
         original.set_source(Some(source));
         original.get_info_mut().minimized.replace(true);
       }
 
       Ok(())
   })?;
+
+  // Restore cache and insert new entries
+  let mut minimize_cache = minimize_cache;
+  for (key, entry) in new_cache_entries
+    .into_inner()
+    .expect("new_cache_entries lock failed")
+  {
+    minimize_cache.insert(key, entry);
+  }
+  compilation.minimize_cache_artifact = minimize_cache;
+
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets
