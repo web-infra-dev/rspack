@@ -553,7 +553,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       };
       source.replace(dep.range.start, dep.range.end, expr, None)
     } else if dep.base.is_define_property() {
-      panic!("TODO")
+      todo!("CommonJsExportRequireDependency define_property base type")
     } else {
       panic!("Unexpected type");
     }

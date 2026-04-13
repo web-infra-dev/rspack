@@ -52,7 +52,9 @@ impl PluginDriver {
       compiler_options: &options,
     };
     for plugin in &plugins {
-      plugin.apply(&mut apply_context).expect("TODO:");
+      plugin
+        .apply(&mut apply_context)
+        .expect("should apply plugin successfully");
     }
 
     Arc::new(Self {
@@ -71,7 +73,10 @@ impl PluginDriver {
   }
 
   pub fn take_diagnostic(&self) -> Vec<Diagnostic> {
-    let mut diagnostic = self.diagnostics.lock().expect("TODO:");
+    let mut diagnostic = self
+      .diagnostics
+      .lock()
+      .expect("should be able to lock diagnostics");
     std::mem::take(&mut diagnostic)
   }
 

@@ -673,6 +673,9 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let id = *conn.module_identifier();
+    if let Some(state) = side_effects_state_artifact.module_evaluation_side_effects_state(&id) {
+      return state;
+    }
     if let Some(module) = module_graph.module_by_identifier(&id) {
       module.get_side_effects_connection_state(
         module_graph,

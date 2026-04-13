@@ -446,7 +446,7 @@ export default {
 - **类型：** `string[]`
 - **默认值:** `['imports']`
 
-自定义 package.json 中的 imports 字段，用于提供包的内部请求（以 `#` 开头的请求被视为内部请求）
+自定义 `package.json` 中的 `imports` 字段，用于提供包的内部请求（以 `#` 开头的请求被视为内部请求）。
 
 例如：
 
@@ -463,7 +463,9 @@ export default {
 }
 ```
 
-则当配置为 ["testImports", "imports"] 时, 当前包内 `import value from '#foo'` 的结果为 `src/test/foo.js`。
+则当配置为 `["testImports", "imports"]` 时, 当前包内 `import value from '#foo'` 的结果为 `src/test/foo.js`。
+
+> 查看 [模块解析 - package.json `imports`](/guide/features/module-resolution#packagejson-imports) 了解更多。
 
 ## resolve.mainFields
 

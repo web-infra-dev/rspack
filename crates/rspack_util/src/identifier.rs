@@ -10,9 +10,9 @@ use regex::Regex;
 use sugar_path::SugarPath;
 
 static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"([|!])").expect("TODO:"));
+  LazyLock::new(|| Regex::new(r"([|!])").expect("should be a valid regex"));
 static WINDOWS_ABS_PATH_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("TODO:"));
+  LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("should be a valid regex"));
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
 /// # Example
