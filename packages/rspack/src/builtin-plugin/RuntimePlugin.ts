@@ -3,10 +3,6 @@ import * as liteTapable from '@rspack/lite-tapable';
 
 import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
-import {
-  BindingSyncWaterfallHook,
-  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
-} from '../BindingHooks';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
 
@@ -35,30 +31,11 @@ RuntimePlugin.getCompilationHooks = (compilation: Compilation) => {
 
   let hooks = compilationHooksMap.get(compilation);
   if (hooks === undefined) {
-    const hookSubscriptionBitset = COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(
-      compilation.compiler,
-    )!;
     hooks = {
-      createScript: new BindingSyncWaterfallHook(
-        ['code', 'chunk'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.RuntimePluginCreateScript,
-      ),
-      createLink: new BindingSyncWaterfallHook(
-        ['code', 'chunk'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.RuntimePluginCreateLink,
-      ),
-      linkPreload: new BindingSyncWaterfallHook(
-        ['code', 'chunk'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.RuntimePluginLinkPreload,
-      ),
-      linkPrefetch: new BindingSyncWaterfallHook(
-        ['code', 'chunk'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.RuntimePluginLinkPrefetch,
-      ),
+      createScript: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
+      createLink: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
+      linkPreload: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
+      linkPrefetch: new liteTapable.SyncWaterfallHook(['code', 'chunk']),
     };
     compilationHooksMap.set(compilation, hooks);
   }

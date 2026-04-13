@@ -1,9 +1,4 @@
-import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import {
-  BindingAsyncSeriesWaterfallHook,
-  type HookSubscriptionBitset,
-} from './BindingHooks';
 import type {
   ContextModuleFactoryAfterResolveResult,
   ContextModuleFactoryBeforeResolveResult,
@@ -20,19 +15,10 @@ export class ContextModuleFactory {
       ContextModuleFactoryAfterResolveResult | void
     >;
   };
-
-  constructor(hookSubscriptionBitset: HookSubscriptionBitset) {
+  constructor() {
     this.hooks = {
-      beforeResolve: new BindingAsyncSeriesWaterfallHook(
-        ['resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.ContextModuleFactoryBeforeResolve,
-      ),
-      afterResolve: new BindingAsyncSeriesWaterfallHook(
-        ['resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.ContextModuleFactoryAfterResolve,
-      ),
+      beforeResolve: new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
+      afterResolve: new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
     };
   }
 }

@@ -1,10 +1,5 @@
-import binding from '@rspack/binding';
-
 import * as liteTapable from '@rspack/lite-tapable';
-import {
-  BindingAsyncSeriesBailHook,
-  type HookSubscriptionBitset,
-} from './BindingHooks';
+import type binding from '@rspack/binding';
 import type { ResolveData, ResourceDataWithData } from './Module';
 import type {
   ResolveOptionsWithDependencyType,
@@ -20,7 +15,7 @@ export class NormalModuleFactory {
   hooks: {
     // TODO: second param resolveData
     resolveForScheme: liteTapable.HookMap<
-      BindingAsyncSeriesBailHook<[ResourceDataWithData], true | void>
+      liteTapable.AsyncSeriesBailHook<[ResourceDataWithData], true | void>
     >;
     beforeResolve: liteTapable.AsyncSeriesBailHook<[ResolveData], false | void>;
     factorize: liteTapable.AsyncSeriesBailHook<[ResolveData], void>;
@@ -34,44 +29,19 @@ export class NormalModuleFactory {
 
   resolverFactory: ResolverFactory;
 
-  constructor(
-    resolverFactory: ResolverFactory,
-    hookSubscriptionBitset: HookSubscriptionBitset,
-  ) {
+  constructor(resolverFactory: ResolverFactory) {
     this.hooks = {
       resolveForScheme: new liteTapable.HookMap(
-        () =>
-          new BindingAsyncSeriesBailHook(
-            ['resourceData'],
-            hookSubscriptionBitset,
-            binding.CompilationHooks.NormalModuleFactoryResolveForScheme,
-          ),
+        () => new liteTapable.AsyncSeriesBailHook(['resourceData']),
       ),
-      beforeResolve: new BindingAsyncSeriesBailHook(
-        ['resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.NormalModuleFactoryBeforeResolve,
-      ),
-      factorize: new BindingAsyncSeriesBailHook(
-        ['resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.NormalModuleFactoryFactorize,
-      ),
-      resolve: new BindingAsyncSeriesBailHook(
-        ['resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.NormalModuleFactoryResolve,
-      ),
-      afterResolve: new BindingAsyncSeriesBailHook(
-        ['resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.NormalModuleFactoryAfterResolve,
-      ),
-      createModule: new BindingAsyncSeriesBailHook(
-        ['createData', 'resolveData'],
-        hookSubscriptionBitset,
-        binding.CompilationHooks.NormalModuleFactoryCreateModule,
-      ),
+      beforeResolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
+      factorize: new liteTapable.AsyncSeriesBailHook(['resolveData']),
+      resolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
+      afterResolve: new liteTapable.AsyncSeriesBailHook(['resolveData']),
+      createModule: new liteTapable.AsyncSeriesBailHook([
+        'createData',
+        'resolveData',
+      ]),
     };
 
     this.resolverFactory = resolverFactory;

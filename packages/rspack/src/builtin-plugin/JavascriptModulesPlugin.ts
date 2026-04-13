@@ -1,15 +1,8 @@
-import binding, {
-  type BuiltinPlugin,
-  BuiltinPluginName,
-} from '@rspack/binding';
+import { type BuiltinPlugin, BuiltinPluginName } from '@rspack/binding';
 
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Chunk } from '../Chunk';
 import { type Compilation, checkCompilation } from '../Compilation';
-import {
-  BindingSyncHook,
-  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
-} from '../BindingHooks';
 import type Hash from '../util/hash';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
@@ -34,11 +27,7 @@ export class JavascriptModulesPlugin extends RspackBuiltinPlugin {
     let hooks = compilationHooksMap.get(compilation);
     if (hooks === undefined) {
       hooks = {
-        chunkHash: new BindingSyncHook(
-          ['chunk', 'hash'],
-          COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(compilation.compiler)!,
-          binding.CompilationHooks.JavascriptModulesChunkHash,
-        ),
+        chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
       };
       compilationHooksMap.set(compilation, hooks);
     }

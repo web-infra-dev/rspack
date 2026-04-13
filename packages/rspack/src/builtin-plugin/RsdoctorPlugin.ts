@@ -29,10 +29,6 @@ import {
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, checkCompilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
-import {
-  BindingAsyncSeriesBailHook,
-  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
-} from '../BindingHooks';
 import type { CreatePartialRegisters } from '../taps/types';
 import { create } from './base';
 
@@ -126,50 +122,27 @@ RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
     return existingHooks;
   }
 
-  const hookSubscriptionBitset = COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(
-    compilation.compiler,
-  )!;
   const hooks: RsdoctorPluginHooks = {
-    moduleGraph: new BindingAsyncSeriesBailHook<
+    moduleGraph: new liteTapable.AsyncSeriesBailHook<
       [JsRsdoctorModuleGraph],
       false | void
-    >(
-      ['moduleGraph'],
-      hookSubscriptionBitset,
-      CompilationHooks.RsdoctorPluginModuleGraph,
-    ),
-    chunkGraph: new BindingAsyncSeriesBailHook<
+    >(['moduleGraph']),
+    chunkGraph: new liteTapable.AsyncSeriesBailHook<
       [JsRsdoctorChunkGraph],
       false | void
-    >(
-      ['chunkGraph'],
-      hookSubscriptionBitset,
-      CompilationHooks.RsdoctorPluginChunkGraph,
-    ),
-    moduleIds: new BindingAsyncSeriesBailHook<
+    >(['chunkGraph']),
+    moduleIds: new liteTapable.AsyncSeriesBailHook<
       [JsRsdoctorModuleIdsPatch],
       false | void
-    >(
-      ['moduleIdsPatch'],
-      hookSubscriptionBitset,
-      CompilationHooks.RsdoctorPluginModuleIds,
-    ),
-    moduleSources: new BindingAsyncSeriesBailHook<
+    >(['moduleIdsPatch']),
+    moduleSources: new liteTapable.AsyncSeriesBailHook<
       [JsRsdoctorModuleSourcesPatch],
       false | void
-    >(
-      ['moduleSourcesPatch'],
-      hookSubscriptionBitset,
-      CompilationHooks.RsdoctorPluginModuleSources,
-    ),
-    assets: new BindingAsyncSeriesBailHook<
+    >(['moduleSourcesPatch']),
+    assets: new liteTapable.AsyncSeriesBailHook<
       [JsRsdoctorAssetPatch],
       false | void
-    >(
-      ['assetPatch'],
-      hookSubscriptionBitset,
-      CompilationHooks.RsdoctorPluginAssets,
-    ),
+    >(['assetPatch']),
   };
   compilationHooksMap.set(compilation, hooks);
   return hooks;
