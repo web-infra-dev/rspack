@@ -15,14 +15,6 @@ export default defineConfig({
   output: {
     target: 'web',
   },
-  resolve: {
-    alias: {
-      '@rspack/browser': path.resolve(
-        __dirname,
-        '../../packages/rspack-browser/dist/index.js',
-      ),
-    },
-  },
   server: {
     port: 8900,
     headers: {
