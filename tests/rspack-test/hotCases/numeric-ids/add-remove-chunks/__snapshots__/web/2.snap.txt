@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["10","main"],"r":["10"],"m":["./chunk2.js"]}
+{"c":[10,"main"],"r":[10],"m":["./chunk2.js"]}
 ```
 
 
@@ -34,7 +34,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["rspackHotUpdate"]("10", {
+self["rspackHotUpdate"](10, {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {

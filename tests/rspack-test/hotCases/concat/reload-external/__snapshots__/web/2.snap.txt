@@ -14,7 +14,7 @@
 ### [runtime of 889].LAST_HASH.hot-update.json
 
 ```json
-{"c":["889"],"r":[],"m":[]}
+{"c":[889],"r":[],"m":[]}
 ```
 
 
@@ -32,7 +32,7 @@
 #### Changed Content
 ```js
 "use strict";
-self["rspackHotUpdate"]("889", {
+self["rspackHotUpdate"](889, {
 "./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {

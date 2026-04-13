@@ -262,7 +262,7 @@ installedChunks[chunkId] = 0;
           "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
           initial_chunk_ids
             .iter()
-            .map(|id| rspack_util::json_stringify_str(id.as_str()))
+            .map(|id| rspack_util::json_stringify_chunk_id(id.as_str()))
             .collect::<Vec<_>>()
             .join(","),
           runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
@@ -272,7 +272,7 @@ installedChunks[chunkId] = 0;
           initial_chunk_ids
             .iter()
             .map(|id| {
-              let id = rspack_util::json_stringify_str(id.as_str());
+              let id = rspack_util::json_stringify_chunk_id(id.as_str());
               format!(
                 "loadCssChunkData({}, 0, {});",
                 runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),

@@ -15,7 +15,7 @@
 ### [runtime of 1].LAST_HASH.hot-update.json
 
 ```json
-{"c":["0","1"],"r":[],"m":[]}
+{"c":[0,1],"r":[],"m":[]}
 ```
 
 
@@ -32,7 +32,7 @@
 
 #### Changed Content
 ```js
-self["rspackHotUpdate"]("0", {
+self["rspackHotUpdate"](0, {
 "./node_modules/vendor.js"(module) {
 module.exports = "2";
 
@@ -55,7 +55,7 @@ module.exports = "2";
 #### Changed Content
 ```js
 "use strict";
-self["rspackHotUpdate"]("1", {},function(__webpack_require__) {
+self["rspackHotUpdate"](1, {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
