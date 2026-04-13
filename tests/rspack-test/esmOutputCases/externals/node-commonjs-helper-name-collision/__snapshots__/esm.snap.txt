@@ -1,0 +1,37 @@
+```mjs title=main.mjs
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// fs
+const external_fs_namespaceObject = __rspack_createRequire_require("fs");
+// ./index.js
+var index_dirname = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+const index_rspack_createRequire_require = "user-defined";
+
+const userCreateRequireRequire = index_rspack_createRequire_require;
+
+
+it("should rename user bindings that collide with the node-commonjs helper", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const { createRequire } = await import(/* webpackIgnore: true */ "node:module");
+  const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-helper-name-collision/index.js');
+  const fs = require("fs");
+  const outputPath = require("path");
+  const code = fs.readFileSync(outputPath.join(index_dirname, "main.mjs"), "utf-8");
+
+  expect(mod.userCreateRequireRequire).toBe("user-defined");
+  expect(mod.readFile).toBe(fs.readFile);
+  expect(code).toContain(
+    'const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);'
+  );
+  expect(code).toMatch(
+    /^const [A-Za-z0-9_$]*rspack_createRequire_require = "user-defined";$/m
+  );
+  expect(code).not.toMatch(/^const __rspack_createRequire_require = "user-defined";$/m);
+});
+
+var readFile = external_fs_namespaceObject.readFile;
+export { readFile, userCreateRequireRequire };
+
+```
