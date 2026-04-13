@@ -175,6 +175,20 @@ Rspack can analyze whether a module has side effects (this capability is already
 
 During the make phase, dependencies must be built before their side effects can be analyzed. Lazy barrel is specifically designed to avoid building those dependencies. Therefore, it relies on explicit markers like `"sideEffects": false` in `package.json` or `rules[].sideEffects`, which don't require dependency checking since they declare the entire package or matched modules as side-effect-free.
 
+## Related optimization: skipping side-effect-only import builds
+
+This optimization is not a part of lazy barrel, but it was inspired by lazy barrel, so it is documented here separately.
+
+For the following ESM import that is only used to trigger side effects:
+
+```js title="src/index.js"
+import './module';
+```
+
+If `./module` has already been marked as side-effect-free through `"sideEffects": false` in `package.json`, or [`rules[].sideEffects`](/config/module-rules#rulessideeffects), Rspack will directly skip building this module during the make phase.
+
+This kind of `import './module'` would be removed later by side-effects optimization anyway, so continuing to run loader, parser, and build would not affect the final output and would only add overhead to the make phase. Therefore, Rspack determines its side effects early during the make phase, and if it is side-effect-free, directly skips building it.
+
 ## Further reading
 
 - [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)
