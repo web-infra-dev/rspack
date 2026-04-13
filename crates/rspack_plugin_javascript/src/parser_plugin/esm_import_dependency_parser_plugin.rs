@@ -62,6 +62,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       source.into(),
       parser.last_esm_import_order,
       import_decl.span.into(),
+      DependencyType::EsmImport,
       phase,
       attributes,
       parser.to_dependency_location(DependencyRange::from(import_decl.span)),

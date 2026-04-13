@@ -64,6 +64,7 @@ pub struct ESMImportSideEffectDependency {
   source_order: i32,
   id: DependencyId,
   range: DependencyRange,
+  dependency_type: DependencyType,
   phase: ImportPhase,
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
@@ -79,6 +80,7 @@ impl ESMImportSideEffectDependency {
     request: Atom,
     source_order: i32,
     range: DependencyRange,
+    dependency_type: DependencyType,
     phase: ImportPhase,
     attributes: Option<ImportAttributes>,
     loc: Option<DependencyLocation>,
@@ -91,6 +93,7 @@ impl ESMImportSideEffectDependency {
       source_order,
       request,
       range,
+      dependency_type,
       phase,
       attributes,
       resource_identifier,
@@ -556,7 +559,7 @@ impl Dependency for ESMImportSideEffectDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::EsmImport
+    &self.dependency_type
   }
 
   fn get_phase(&self) -> ImportPhase {
