@@ -101,7 +101,7 @@ impl ProgressPlugin {
         let progress_bar = MULTI_PROGRESS.add(ProgressBar::new(100));
 
         let mut progress_bar_style = ProgressStyle::with_template(&options.template)
-          .expect("TODO:")
+          .expect("should be a valid progress bar template")
           .progress_chars(&options.progress_chars);
         if let Some(tick_strings) = &options.tick_strings {
           progress_bar_style = progress_bar_style.tick_strings(
