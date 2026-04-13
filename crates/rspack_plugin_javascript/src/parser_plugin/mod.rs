@@ -44,7 +44,11 @@ pub(crate) use self::{
     AMDDefineDependencyParserPlugin, AMDParserPlugin, AMDRequireDependenciesBlockParserPlugin,
   },
   api_plugin::APIPlugin,
-  builtin::BuiltinJavascriptParserPlugin,
+  builtin::{
+    AmdBuiltinJavascriptParserPlugin, BaseBuiltinJavascriptParserPlugin,
+    CommonJsBuiltinJavascriptParserPlugin, EsmBuiltinJavascriptParserPlugin,
+    JavascriptModuleBuiltinJavascriptParserPlugin,
+  },
   check_var_decl::CheckVarDeclaratorIdent,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
   common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
