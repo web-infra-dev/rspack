@@ -423,15 +423,17 @@ impl<'parser> JavascriptParser<'parser> {
 
     plugins.push(Box::new(parser_plugin::InitializeEvaluating));
     plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
-    plugins.push(Box::new(parser_plugin::CheckVarDeclaratorIdent));
     plugins.push(Box::new(parser_plugin::ConstPlugin));
     plugins.push(Box::new(parser_plugin::UseStrictPlugin));
-    plugins.push(Box::new(
-      parser_plugin::RequireContextDependencyParserPlugin,
-    ));
-    plugins.push(Box::new(
-      parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
-    ));
+
+    if matches!(module_type, ModuleType::JsAuto | ModuleType::JsDynamic) {
+      plugins.push(Box::new(
+        parser_plugin::RequireContextDependencyParserPlugin,
+      ));
+      plugins.push(Box::new(
+        parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
+      ));
+    }
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
