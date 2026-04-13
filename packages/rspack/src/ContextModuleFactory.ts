@@ -20,22 +20,19 @@ export class ContextModuleFactory {
       ContextModuleFactoryAfterResolveResult | void
     >;
   };
-  constructor(hookSubscriptionBitset?: HookSubscriptionBitset) {
+
+  constructor(hookSubscriptionBitset: HookSubscriptionBitset) {
     this.hooks = {
-      beforeResolve: hookSubscriptionBitset
-        ? new BindingAsyncSeriesWaterfallHook(
-            ['resolveData'],
-            hookSubscriptionBitset,
-            binding.CompilationHooks.ContextModuleFactoryBeforeResolve,
-          )
-        : new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
-      afterResolve: hookSubscriptionBitset
-        ? new BindingAsyncSeriesWaterfallHook(
-            ['resolveData'],
-            hookSubscriptionBitset,
-            binding.CompilationHooks.ContextModuleFactoryAfterResolve,
-          )
-        : new liteTapable.AsyncSeriesWaterfallHook(['resolveData']),
+      beforeResolve: new BindingAsyncSeriesWaterfallHook(
+        ['resolveData'],
+        hookSubscriptionBitset,
+        binding.CompilationHooks.ContextModuleFactoryBeforeResolve,
+      ),
+      afterResolve: new BindingAsyncSeriesWaterfallHook(
+        ['resolveData'],
+        hookSubscriptionBitset,
+        binding.CompilationHooks.ContextModuleFactoryAfterResolve,
+      ),
     };
   }
 }
