@@ -6,8 +6,8 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact, ExportsInfoGetter,
   ExportsOfExportsSpec, ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource,
-  UsedName, property_access, rspack_sources::ReplacementEnforce,
+  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
 
@@ -106,6 +106,7 @@ impl Dependency for ESMExportExpressionDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {

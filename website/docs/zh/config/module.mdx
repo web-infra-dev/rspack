@@ -1357,16 +1357,12 @@ export default {
     },
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 typeExports: true, // "tolerant" 模式下需开启 typeExports 收集
               },
@@ -1670,6 +1666,39 @@ export default {
 
 :::warning
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
+:::
+
+### module.parser.javascript.pureFunctions
+
+<ApiMeta stability={Stability.Experimental} />
+
+<PropertyType type="string[]" />
+
+手动将命中模块中的顶层导出函数标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。
+
+这个选项主要面向无法直接修改源码的第三方库，例如 `node_modules` 中的包。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    parser: {
+      javascript: {
+        pureFunctions: ['isString', 'default'],
+      },
+    },
+  },
+};
+```
+
+:::note
+目前仅支持顶层导出函数定义；对于默认导出，请使用 `default` 作为导出名。
+:::
+
+:::warning
+该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到配置的导出函数名，Rspack 会发出警告。
 :::
 
 ### module.parser["javascript/auto"]

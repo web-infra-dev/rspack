@@ -33,17 +33,16 @@ impl Storage for MemoryStorage {
     self.inner.get_mut(scope).map(|map| map.remove(key));
   }
 
-  async fn save(&mut self) -> Result<()> {
+  fn save(&mut self) {
     // MemoryStorage holds all data in memory; nothing to persist
-    Ok(())
   }
 
   async fn flush(&self) {
     // MemoryStorage has no background tasks; nothing to flush
   }
 
-  async fn reset(&mut self) {
-    self.inner.clear();
+  fn reset(&mut self, scope: &'static str) {
+    self.inner.remove(scope);
   }
 
   async fn scopes(&self) -> Result<Vec<String>> {
@@ -75,7 +74,7 @@ mod tests {
     storage.remove(scope, "b".as_bytes());
     let arr = storage.load(scope).await.unwrap();
     assert_eq!(arr.len(), 1);
-    storage.reset().await;
+    storage.reset(scope);
     let arr = storage.load(scope).await.unwrap();
     assert_eq!(arr.len(), 0);
   }

@@ -216,36 +216,12 @@ const response = await handleRequest({
 Add `builtin:swc-loader` for `.jsx` / `.tsx` and enable `rspackExperiments.reactServerComponents` so Rspack parses and transforms RSC directives such as `"use client"`, `"use server"`, and `"use server-entry"`.
 
 ```js title="rspack.config.mjs"
-const jsxRule = {
-  test: /\.jsx$/,
+const rscRule = {
+  test: /\.(?:js|mjs|jsx|ts|tsx)$/,
   use: {
     loader: 'builtin:swc-loader',
     options: {
-      jsc: {
-        parser: {
-          syntax: 'ecmascript',
-          jsx: true,
-        },
-      },
-    },
-    rspackExperiments: {
-      reactServerComponents: true,
-    },
-  },
-  type: 'javascript/auto',
-};
-
-const tsxRule = {
-  test: /\.tsx$/,
-  use: {
-    loader: 'builtin:swc-loader',
-    options: {
-      jsc: {
-        parser: {
-          syntax: 'typescript',
-          tsx: true,
-        },
-      },
+      detectSyntax: 'auto',
     },
     rspackExperiments: {
       reactServerComponents: true,
@@ -258,13 +234,13 @@ export default [
   {
     target: 'web',
     module: {
-      rules: [jsxRule, tsxRule],
+      rules: [rscRule],
     },
   },
   {
     target: 'node',
     module: {
-      rules: [jsxRule, tsxRule],
+      rules: [rscRule],
     },
   },
 ];

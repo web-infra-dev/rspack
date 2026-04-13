@@ -23,16 +23,13 @@ export default defineConfig({
         type: 'css/auto',
       },
       {
-        test: /\.(jsx?|tsx?)$/,
+        test: /\.(?:js|jsx|mjs|cjs|ts|tsx|mts|cts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  syntax: 'typescript',
-                  tsx: true,
-                },
                 transform: {
                   react: {
                     runtime: 'automatic',
@@ -51,6 +48,6 @@ export default defineConfig({
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
-    isDev ? new ReactRefreshRspackPlugin() : null,
+    isDev && new ReactRefreshRspackPlugin(),
   ],
 });

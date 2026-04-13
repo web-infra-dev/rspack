@@ -253,8 +253,7 @@ export const CommunityPluginCompatibleTable: React.FC = () => {
     {
       name: 'image-minimizer-webpack-plugin',
       url: 'https://www.npmjs.com/package/image-minimizer-webpack-plugin',
-      status: CompatibleStatus.PartiallyCompatible,
-      description: i18n[lang]['image-minimizer-webpack-plugin-desc'],
+      status: CompatibleStatus.Compatible,
     },
     {
       name: 'webpack-manifest-plugin',

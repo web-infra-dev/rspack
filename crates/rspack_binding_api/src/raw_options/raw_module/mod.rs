@@ -318,6 +318,11 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_meta_resolve: Option<bool>,
+  /// Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  #[napi(js_name = "pureFunctions")]
+  pub pure_functions: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -401,6 +406,9 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       jsx: value.jsx,
       defer_import: value.defer_import,
       import_meta_resolve: value.import_meta_resolve,
+      side_effects_free: value
+        .pure_functions
+        .map(|functions| functions.into_iter().collect()),
     }
   }
 }

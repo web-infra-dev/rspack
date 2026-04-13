@@ -1,5 +1,5 @@
 const rspack = require('@rspack/core');
-const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -32,11 +32,8 @@ module.exports = {
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  jsx: true,
-                  syntax: 'ecmascript',
-                },
                 transform: {
                   react: {
                     development: true,
@@ -57,6 +54,6 @@ module.exports = {
       name: 'test',
       shareStrategy: 'loaded-first',
     }),
-    new ReactRefreshPlugin(), // Need this to trigger hoisting (hoist_container_references_plugin.rs)
+    new ReactRefreshRspackPlugin(), // Need this to trigger hoisting (hoist_container_references_plugin.rs)
   ],
 };

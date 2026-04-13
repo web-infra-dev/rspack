@@ -85,7 +85,10 @@ impl HtmlPluginAssets {
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
       .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
-        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        let asset = compilation
+          .assets()
+          .get(&asset_name)
+          .expect("should have asset for entrypoint file");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {

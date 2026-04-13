@@ -21,9 +21,10 @@ const __wasmUrl = new URL('./rspack.wasm32-wasi.wasm', import.meta.url).href
 const __emnapiContext = __emnapiGetDefaultContext()
 __emnapiContext.feature.Buffer = Buffer
 
+// Allocate 2GB fixed shared memory (initial == maximum to disable memory.grow).
 const __sharedMemory = new WebAssembly.Memory({
-  initial: 16384,
-  maximum: 65536,
+  initial: 32768,
+  maximum: 32768,
   shared: true,
 })
 
@@ -57,6 +58,10 @@ const {
       ...importObject.napi,
       ...importObject.emnapi,
       memory: __sharedMemory,
+      // Override emnapi's napi_adjust_external_memory to a no-op.
+      // emnapi implements this by calling memory.grow, but we've disabled memory.grow
+      // (initial == maximum).
+      napi_adjust_external_memory() { return 0 },
     }
     return importObject
   },

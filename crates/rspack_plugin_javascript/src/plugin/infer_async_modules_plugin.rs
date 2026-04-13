@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierLinkedSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsyncModulesArtifact, Compilation, CompilationFinishModules, DependencyType, ExportsInfoArtifact,
-  Logger, ModuleGraph, Plugin,
+  Logger, ModuleGraph, Plugin, SideEffectsStateArtifact,
   incremental::{IncrementalPasses, Mutation, Mutations},
 };
 use rspack_error::Result;
@@ -18,6 +18,7 @@ async fn finish_modules(
   compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
   _exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   if let Some(mutations) = compilation
     .incremental
@@ -51,7 +52,7 @@ async fn finish_modules(
 
   let mut mutations = compilation
     .incremental
-    .mutations_writeable()
+    .mutations_writable()
     .then(Mutations::default);
 
   set_sync_modules(

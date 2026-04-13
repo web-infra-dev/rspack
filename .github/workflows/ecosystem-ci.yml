@@ -65,7 +65,7 @@ jobs:
             core.setOutput('repo', pr.head.repo.full_name);
 
       - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_dispatch@v0.3.0
+        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_dispatch@1345990b3128d94ee37afbb7607f9ddc9feadb49 # v0.3.0
         with:
           github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
           ecosystem-owner: web-infra-dev

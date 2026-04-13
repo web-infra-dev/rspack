@@ -1,5 +1,5 @@
 const { rspack } = require('@rspack/core');
-const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 
 /** @type { import('@rspack/core').RspackOptions } */
 module.exports = {
@@ -18,11 +18,8 @@ module.exports = {
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  syntax: 'typescript',
-                  tsx: true,
-                },
                 transform: {
                   react: {
                     runtime: 'automatic',
@@ -52,7 +49,7 @@ module.exports = {
       },
       runtimePlugins: [require.resolve('./runtime-plugin.js')],
     }),
-    new ReactRefreshPlugin(),
+    new ReactRefreshRspackPlugin(),
   ],
   lazyCompilation: true,
   devServer: {

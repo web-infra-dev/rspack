@@ -1,5 +1,6 @@
 pub mod build_dependencies;
 pub mod codec;
+pub mod context;
 pub mod occasion;
 pub mod snapshot;
 pub mod storage;
@@ -15,18 +16,18 @@ use rspack_cacheable::{
   with::{As, AsVec, Skip},
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
-use rspack_paths::ArcPathSet;
 use rspack_workspace::rspack_pkg_version;
 
 use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
+  context::CacheContext,
   occasion::{MakeOccasion, MetaOccasion},
-  snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
-  storage::{BoxStorage, StorageOptions, create_storage},
+  snapshot::{Snapshot, SnapshotOptions},
+  storage::{StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{BuildModuleGraphArtifactState, Compilation, CompilerOptions, Logger};
+use crate::{Compilation, CompilerOptions, Logger};
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -44,16 +45,14 @@ pub struct PersistentCacheOptions {
 /// Persistent cache implementation
 #[derive(Debug)]
 pub struct PersistentCache {
+  /// Guards `initialize` from running more than once per compiler instance
   initialized: bool,
-  valid: bool,
-  readonly: bool,
+
+  ctx: CacheContext,
   build_deps: BuildDeps,
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
-  storage: BoxStorage,
-  // TODO replace to logger and output warnings directly.
-  warnings: Vec<String>,
 }
 
 impl PersistentCache {
@@ -93,8 +92,7 @@ impl PersistentCache {
 
     Self {
       initialized: false,
-      valid: false,
-      readonly: option.readonly,
+      ctx: CacheContext::new(storage, option.readonly),
       build_deps: BuildDeps::new(
         &option.build_dependencies,
         input_filesystem,
@@ -103,8 +101,6 @@ impl PersistentCache {
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
       meta_occasion: MetaOccasion::new(codec),
-      warnings: Default::default(),
-      storage,
     }
   }
 
@@ -114,24 +110,13 @@ impl PersistentCache {
     }
     self.initialized = true;
 
-    match self.build_deps.validate(&*self.storage).await {
-      Ok(success) => {
-        self.valid = success;
-      }
-      Err(err) => {
-        self.valid = false;
-        self.warnings.push(err.to_string());
-      }
-    }
-    if let Err(err) = self.meta_occasion.recovery(&*self.storage).await {
-      self.warnings.push(err.to_string());
-    }
-  }
+    // build_deps is the first validation step. If it fails or the build
+    // dependencies have changed, only the BUILD scope is reset here; each
+    // subsequent occasion resets itself when it is skipped or fails.
+    self.ctx.load_build_deps(&mut self.build_deps).await;
 
-  async fn save(&mut self) {
-    if let Err(err) = self.storage.save().await {
-      self.warnings.push(err.to_string());
-    }
+    // meta: load or reset. make will handle itself in before_build_module_graph.
+    self.ctx.load_occasion(&self.meta_occasion).await;
   }
 }
 
@@ -140,156 +125,91 @@ impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
     self.initialize().await;
 
+    if compilation.is_rebuild {
+      return false;
+    }
     // rebuild will pass modified_files and removed_files from js side,
     // so only calculate them when build.
-    if self.valid && !compilation.is_rebuild {
-      let mut is_hot_start = false;
-      let mut modified_paths = ArcPathSet::default();
-      let mut removed_paths = ArcPathSet::default();
-      let data = vec![
-        self
-          .snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::FILE)
-          .await,
-        self
-          .snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::CONTEXT)
-          .await,
-        self
-          .snapshot
-          .calc_modified_paths(&*self.storage, SnapshotScope::MISSING)
-          .await,
-      ];
-      for item in data {
-        match item {
-          Ok((a, b, c, _)) => {
-            is_hot_start = is_hot_start || a;
-            modified_paths.extend(b);
-            removed_paths.extend(c);
-          }
-          Err(err) => {
-            self.warnings.push(err.to_string());
-            return false;
-          }
-        };
-      }
-
+    if let Some((is_hot_start, modified_paths, removed_paths)) =
+      self.ctx.load_snapshot(&self.snapshot).await
+    {
       tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
       return is_hot_start;
     }
+
     false
   }
 
   async fn after_compile(&mut self, compilation: &Compilation) {
-    // skip storage reset and save if cache is readonly
-    if !self.readonly {
-      if !self.valid {
-        // reset before save write data
-        self.storage.reset().await;
-        self.valid = true;
-      }
-      // save meta
-      self.meta_occasion.save(&mut *self.storage);
+    // save meta
+    self.ctx.save_occasion(&self.meta_occasion, &());
 
-      // save snapshot
-      // TODO add a all_dependencies to collect dependencies
-      let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
-      let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
-      let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
-      let (_, build_added, build_updated, _) = compilation.build_dependencies();
-      self.snapshot.remove(
-        &mut *self.storage,
-        SnapshotScope::FILE,
-        file_removed.cloned(),
-      );
-      self.snapshot.remove(
-        &mut *self.storage,
-        SnapshotScope::CONTEXT,
-        context_removed.cloned(),
-      );
-      self.snapshot.remove(
-        &mut *self.storage,
-        SnapshotScope::MISSING,
-        missing_removed.cloned(),
-      );
-      self
-        .snapshot
-        .add(
-          &mut *self.storage,
-          SnapshotScope::FILE,
+    // save snapshot
+    let (_, file_added, file_updated, file_removed) = compilation.file_dependencies();
+    let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
+    let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
+    let (_, build_added, build_updated, _) = compilation.build_dependencies();
+    self
+      .ctx
+      .save_snapshot(
+        &self.snapshot,
+        (
           file_added.chain(file_updated).cloned(),
-        )
-        .await;
-      self
-        .snapshot
-        .add(
-          &mut *self.storage,
-          SnapshotScope::CONTEXT,
+          file_removed.cloned(),
+        ),
+        (
           context_added.chain(context_updated).cloned(),
-        )
-        .await;
-      self
-        .snapshot
-        .add(
-          &mut *self.storage,
-          SnapshotScope::MISSING,
+          context_removed.cloned(),
+        ),
+        (
           missing_added.chain(missing_updated).cloned(),
-        )
-        .await;
-      self.warnings.extend(
-        self
-          .build_deps
-          .add(
-            &mut *self.storage,
-            build_added.chain(build_updated).cloned(),
-          )
-          .await,
-      );
+          missing_removed.cloned(),
+        ),
+      )
+      .await;
+    self
+      .ctx
+      .save_build_deps(
+        &mut self.build_deps,
+        build_added.chain(build_updated).cloned(),
+      )
+      .await;
 
-      self.save().await;
-    }
+    self.ctx.save_storage();
 
     let logger = compilation.get_logger("rspack.persistentCache");
-    for msg in std::mem::take(&mut self.warnings) {
+    for msg in self.ctx.reset() {
       logger.warn(msg);
     }
   }
 
   async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
-    // TODO When does not need to pass variables through make_artifact.state, use compilation.is_rebuild to check
-    if self.valid
-      && matches!(
-        compilation.build_module_graph_artifact.state,
-        BuildModuleGraphArtifactState::Uninitialized
-      )
-    {
-      match self.make_occasion.recovery(&*self.storage).await {
-        Ok(artifact) => {
-          *compilation.build_module_graph_artifact = artifact;
-          for (module, _) in compilation
-            .build_module_graph_artifact
-            .get_module_graph()
-            .modules()
-          {
-            compilation.exports_info_artifact.new_exports_info(*module);
-          }
-        }
-        Err(err) => self.warnings.push(err.to_string()),
+    if compilation.is_rebuild {
+      return;
+    }
+
+    if let Some(artifact) = self.ctx.load_occasion(&self.make_occasion).await {
+      *compilation.build_module_graph_artifact = artifact;
+      for (module, _) in compilation
+        .build_module_graph_artifact
+        .get_module_graph()
+        .modules()
+      {
+        compilation.exports_info_artifact.new_exports_info(*module);
       }
     }
   }
 
   async fn after_build_module_graph(&mut self, compilation: &Compilation) {
-    if !self.readonly {
-      self
-        .make_occasion
-        .save(&mut *self.storage, &compilation.build_module_graph_artifact);
-    }
+    self.ctx.save_occasion(
+      &self.make_occasion,
+      &compilation.build_module_graph_artifact,
+    );
   }
 
   async fn close(&self) {
-    self.storage.flush().await;
+    self.ctx.flush_storage().await;
   }
 }

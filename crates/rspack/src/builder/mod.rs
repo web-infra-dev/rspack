@@ -1162,7 +1162,7 @@ impl CompilerOptionsBuilder {
       builder_context,
       development,
       production,
-      css,
+      &experiments,
     )?;
 
     // apply resolve defaults
@@ -3441,7 +3441,7 @@ impl OptimizationOptionsBuilder {
     builder_context: &mut BuilderContext,
     development: bool,
     production: bool,
-    _css: bool,
+    experiments: &Experiments,
   ) -> Result<Optimization> {
     let remove_empty_chunks = d!(self.remove_empty_chunks, true);
     if remove_empty_chunks {
@@ -3570,7 +3570,9 @@ impl OptimizationOptionsBuilder {
     if side_effects.is_enable() {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::SideEffectsFlagPlugin);
+        .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
+          experiments.pure_functions,
+        ));
     }
 
     let inline_exports = d!(self.inline_exports, production);
@@ -3696,6 +3698,7 @@ pub struct ExperimentsBuilder {
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
   // TODO: lazy compilation
+  pure_functions: Option<bool>,
 }
 
 impl From<Experiments> for ExperimentsBuilder {
@@ -3704,6 +3707,7 @@ impl From<Experiments> for ExperimentsBuilder {
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
+      pure_functions: Some(value.pure_functions),
     }
   }
 }
@@ -3714,6 +3718,7 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
+      pure_functions: value.pure_functions.take(),
     }
   }
 }
@@ -3754,6 +3759,7 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       css: d!(self.css, false),
       defer_import: false,
+      pure_functions: d!(self.pure_functions, false),
     })
   }
 }
@@ -3804,6 +3810,30 @@ mod test {
 
       let plugins = context.take_plugins(&compiler_options);
       assert!(!plugins.is_empty());
+    })
+  }
+
+  #[test]
+  fn side_effects_flag_plugin_respects_pure_functions() {
+    within_compiler_context_for_testing_sync(|| {
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Production)
+        .target(vec!["web".to_string()])
+        .experiments(ExperimentsBuilder {
+          pure_functions: Some(true),
+          ..Default::default()
+        })
+        .build(&mut context)
+        .unwrap();
+
+      assert!(compiler_options.experiments.pure_functions);
+      assert!(
+        context
+          .plugins
+          .iter()
+          .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(true)))
+      );
     })
   }
 

@@ -882,8 +882,40 @@ export type RuleSetUse =
   | RuleSetUseItem[]
   | ((data: RawFuncUseCtx) => RuleSetUseItem[]);
 
+export type RuleSetRuleUseAndLoader =
+  | {
+      /** A loader name */
+      loader: RuleSetLoader;
+
+      /** A loader options */
+      options?: RuleSetLoaderOptions;
+
+      /** An array to pass the Loader package name and its options. */
+      use?: never;
+    }
+  | {
+      /** A loader name */
+      loader?: never;
+
+      /** A loader options */
+      options?: never;
+
+      /** An array to pass the Loader package name and its options. */
+      use: RuleSetUse;
+    }
+  | {
+      /** A loader name */
+      loader?: never;
+
+      /** A loader options */
+      options?: never;
+
+      /** An array to pass the Loader package name and its options. */
+      use?: never;
+    };
+
 /** Rule defines the conditions for matching a module and the behavior of handling those modules. */
-export type RuleSetRule = {
+export type RuleSetRule = RuleSetRuleUseAndLoader & {
   /** Matches all modules that match this resource, and will match against Resource. */
   test?: RuleSetCondition;
 
@@ -928,15 +960,6 @@ export type RuleSetRule = {
 
   /** Used to mark the layer of the matching module. */
   layer?: string;
-
-  /** A loader name */
-  loader?: RuleSetLoader;
-
-  /** A loader options */
-  options?: RuleSetLoaderOptions;
-
-  /** An array to pass the Loader package name and its options.  */
-  use?: RuleSetUse;
 
   /**
    * Parser options for the specific modules that matched by the rule conditions
@@ -1223,6 +1246,11 @@ export type JavascriptParserOptions = {
    * @default false
    */
   importMetaResolve?: boolean;
+  /**
+   * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+   * @experimental
+   */
+  pureFunctions?: string[];
 };
 
 export type JsonParserOptions = {
@@ -2441,6 +2469,14 @@ type SharedOptimizationSplitChunksCacheGroup = {
 
   minSizeReduction?: OptimizationSplitChunksSizes;
 
+  /**
+   * Size threshold at which splitting is enforced and other restrictions
+   * (minRemainingSize, maxAsyncRequests, maxInitialRequests) are ignored.
+   * The value is `50000` in production mode.
+   * The value is `30000` in others mode.
+   */
+  enforceSizeThreshold?: OptimizationSplitChunksSizes;
+
   /** Maximum size, in bytes, for a chunk to be generated. */
   maxSize?: OptimizationSplitChunksSizes;
 
@@ -2888,6 +2924,11 @@ export type Experiments = {
    * @default false
    */
   deferImport?: boolean;
+  /**
+   * Enable pure-function-based side-effects analysis.
+   * @default false
+   */
+  pureFunctions?: boolean;
 };
 //#endregion
 

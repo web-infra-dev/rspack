@@ -1,5 +1,6 @@
 ---
 source: crates/rspack/tests/defaults.rs
+assertion_line: 22
 expression: options
 ---
 CompilerOptions {
@@ -1658,6 +1659,7 @@ CompilerOptions {
                             ),
                             defer_import: None,
                             import_meta_resolve: None,
+                            side_effects_free: None,
                         },
                     ),
                 },
@@ -1685,6 +1687,7 @@ CompilerOptions {
     experiments: Experiments {
         css: false,
         defer_import: false,
+        pure_functions: false,
     },
     incremental: IncrementalOptions {
         silent: true,

@@ -1,5 +1,5 @@
 const { rspack } = require('@rspack/core');
-const ReactRefreshPlugin = require('@rspack/plugin-react-refresh');
+const { ReactRefreshRspackPlugin } = require('@rspack/plugin-react-refresh');
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   entry: './index.jsx',
@@ -14,11 +14,8 @@ module.exports = {
         test: /\.jsx$/,
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
-            parser: {
-              syntax: 'ecmascript',
-              jsx: true,
-            },
             transform: {
               react: {
                 runtime: 'classic',
@@ -35,7 +32,7 @@ module.exports = {
   },
   plugins: [
     new rspack.HotModuleReplacementPlugin(),
-    new ReactRefreshPlugin(),
+    new ReactRefreshRspackPlugin(),
     new rspack.DefinePlugin({
       STUB: JSON.stringify('<div></div>'),
     }),

@@ -32,6 +32,10 @@ pub struct DB {
   buckets: Arc<Mutex<HashMap<String, Bucket>>>,
   /// Background task queue for asynchronous save operations
   task_queue: Arc<TaskQueue>,
+  /// Fallback write-guard set automatically when a `save` or `reset` task
+  /// fails.  Once flipped to `true`, all subsequent background tasks become
+  /// no-ops so a broken cache state cannot be made worse.  The current build
+  /// continues unaffected; restarting the process clears this flag.
   readonly: Arc<AtomicBool>,
 }
 
@@ -104,27 +108,22 @@ impl DB {
         return;
       }
 
+      if changes.is_empty() {
+        return;
+      }
+
       let task_fn = async move || -> Result<()> {
         let mut buckets = buckets.lock().await;
 
         let transaction = Transaction::new(&fs).await?;
 
-        // Split changes into cached vs. uncached buckets so Bucket::new and
-        // bucket.save can run concurrently across buckets.
-        let pending_buckets: Vec<_> = changes
-          .into_iter()
-          .map(|(bucket_name, bucket_changes)| {
-            let cached = buckets.remove(&bucket_name);
-            (bucket_name, cached, bucket_changes)
-          })
-          .collect();
-
         let mut all_files_to_add = Vec::new();
         let mut all_files_to_remove = Vec::new();
         let mut updated_buckets = HashMap::default();
-        let save_result = pending_buckets
+        let save_result = changes
           .into_iter()
-          .map(|(bucket_name, cached_bucket, changes)| {
+          .map(|(bucket_name, changes)| {
+            let cached_bucket = buckets.remove(&bucket_name);
             let readable_fs = transaction.readable_fs().child_fs(&bucket_name);
             let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
             async move {
@@ -190,12 +189,39 @@ impl DB {
     self.task_queue.flush().await;
   }
 
-  /// Removes the entire database from disk, deleting all buckets and data.
-  pub async fn reset(&self) -> Result<()> {
-    self.flush().await;
-    self.buckets.lock().await.clear();
-    self.fs.remove().await?;
-    Ok(())
+  /// Enqueues a task to fully clear the specified scope (bucket).
+  ///
+  /// The task removes the bucket from the in-memory cache and deletes its
+  /// directory on disk. Because it is dispatched to the same sequential
+  /// `task_queue` as `save`, any `reset_scope` task that was enqueued before
+  /// a `save` task is guaranteed to execute first, so the subsequent save
+  /// writes a clean slate.
+  ///
+  /// No-op when the DB is in readonly mode.
+  pub fn reset(&self, scope: &str) {
+    let scope = scope.to_string();
+    let fs = self.fs.clone();
+    let buckets = self.buckets.clone();
+    let readonly = self.readonly.clone();
+
+    self.task_queue.add_task(async move {
+      if readonly.load(Ordering::Relaxed) {
+        return;
+      }
+      let mut buckets = buckets.lock().await;
+      if let Err(err) = fs.child_fs(&scope).remove().await {
+        // The cache may be in an indeterminate state. Switch to readonly so no
+        // further writes can make things worse. Restart the process to recover.
+        // The current build is not affected.
+        readonly.store(true, Ordering::Relaxed);
+        println!(
+          "Rspack persistent cache reset scope {scope} failed: {err}\n  \
+           Persistent cache has been disabled for this session. \
+           Restart the process to re-enable it."
+        );
+      }
+      buckets.remove(&scope);
+    });
   }
 }
 
@@ -240,7 +266,10 @@ mod test {
     names.sort();
     assert_eq!(names, vec![String::from(name_1), String::from(name_2)]);
 
-    db.reset().await?;
+    db.reset(name_1);
+    db.reset(name_2);
+    db.flush().await;
+
     assert!(db.bucket_names().await?.is_empty());
     assert!(db.load(name_1).await?.is_empty());
 

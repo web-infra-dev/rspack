@@ -21,13 +21,29 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 After installation, let the agent guide you through the upgrade.
 
+## Upgrade Rspack to v2
+
+- Upgrade `@rspack/core` to the 2.0 RC release.
+- If you use `@rspack/cli`, `@rspack/dev-server`, or `@rspack/plugin-react-refresh`, upgrade them to the latest compatible versions so they stay in sync with `@rspack/core`. For example:
+
+```json
+{
+  "devDependencies": {
+    "@rspack/core": "^2.0.0-rc.0",
+    "@rspack/cli": "^2.0.0-rc.0",
+    "@rspack/dev-server": "^2.0.0-rc.0",
+    "@rspack/plugin-react-refresh": "^2.0.0"
+  }
+}
+```
+
 ## Upgrade Node.js
 
 Rspack 2.0 requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported.
 
 ## Pure ESM packages
 
-`@rspack/core`, `@rspack/cli`, and `@rspack/dev-server` are now published as **pure ESM** packages, with CommonJS builds removed.
+`@rspack/core`, `@rspack/cli`, `@rspack/dev-server` and `@rspack/plugin-react-refresh` are now published as **pure ESM** packages, with CommonJS builds removed.
 
 In Node.js 20 and later, the runtime natively supports loading ESM modules via [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require), so for most projects that use Rspack through its JavaScript API, this change should have no practical impact and does not require code changes.
 
@@ -39,7 +55,7 @@ In Node.js 20 and later, the runtime natively supports loading ESM modules via [
 
 - `@rspack/cli` no longer depends on `@rspack/dev-server` by default, since some workflows do not require a dev server. When using the `rspack dev` or `rspack serve` commands, install `@rspack/dev-server` manually:
 
-<PackageManagerTabs command="add @rspack/dev-server@beta -D" />
+<PackageManagerTabs command="add @rspack/dev-server@rc -D" />
 
 - Some [devServer](/config/dev-server) options have changed, including `devServer.proxy` and `devServer.watchFiles`. See the [upgrade guide](https://github.com/rstackjs/rspack-dev-server/blob/main/docs/migrate-v1-to-v2.md) for details.
 
@@ -103,14 +119,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
-            parser: {
-              syntax: 'ecmascript',
-              jsx: true,
-            },
             transform: {
               react: {
                 runtime: 'automatic',
@@ -201,6 +214,35 @@ export default {
   },
 };
 ```
+
+### New `experiments.pureFunctions` for function-level tree shaking
+
+Rspack 2.0 adds an experimental `experiments.pureFunctions` switch for finer-grained, pure-function-based tree shaking across modules.
+
+After enabling it, you can choose one of these entry points depending on your code ownership:
+
+- Use [module.parser.javascript.pureFunctions](/config/module#moduleparserjavascriptpurefunctions) to manually mark top-level exported functions in matched third-party modules such as packages in `node_modules`.
+- Use `/*#__NO_SIDE_EFFECTS__*/` on function definitions when you can modify the source code directly.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index.js/,
+        parser: {
+          pureFunctions: ['isString', 'default'],
+        },
+      },
+    ],
+  },
+};
+```
+
+For more details, see the [tree shaking guide](/guide/optimization/tree-shaking#purefunctions).
 
 ## Output configuration changes
 

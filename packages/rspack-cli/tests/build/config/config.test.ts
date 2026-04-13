@@ -257,6 +257,7 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main monorepo file/);
     });
   });
+
   describe('should support loader ts-node register', () => {
     const cwd = resolve(__dirname, './ts-node-register');
     it('should load ts-node-register to support declare const enum', async () => {

@@ -1,10 +1,15 @@
-use std::{fmt::Debug, hash::Hash};
+use std::{
+  collections::HashMap,
+  fmt::Debug,
+  hash::{BuildHasher, Hash},
+};
 
 use rayon::iter::{
   IntoParallelRefIterator as RayonIntoParallelRefIterator,
   IntoParallelRefMutIterator as RayonIntoParallelRefMutIterator,
 };
-use rustc_hash::FxHashMap;
+use rustc_hash::FxBuildHasher;
+
 #[derive(Debug, Clone)]
 pub enum Action<K, V> {
   Inserted { key: K, previous: Option<V> },
@@ -12,16 +17,17 @@ pub enum Action<K, V> {
 }
 
 #[derive(Debug, Clone)]
-pub struct RollbackMap<K, V> {
-  map: FxHashMap<K, V>,
+pub struct RollbackMap<K, V, S = FxBuildHasher> {
+  map: HashMap<K, V, S>,
   undo_stack: Vec<Action<K, V>>,
   checkpoint: Option<usize>,
 }
 
-impl<K, V> Default for RollbackMap<K, V>
+impl<K, V, S> Default for RollbackMap<K, V, S>
 where
   K: Eq + Hash + Clone + Debug,
   V: Debug,
+  S: BuildHasher + Default,
 {
   fn default() -> Self {
     Self {
@@ -31,10 +37,12 @@ where
     }
   }
 }
-impl<K, V> RollbackMap<K, V>
+
+impl<K, V, S> RollbackMap<K, V, S>
 where
   K: Eq + Hash + Clone + Debug,
   V: Debug,
+  S: BuildHasher,
 {
   /// Insert a key/value and record what was there before.
   pub fn insert(&mut self, key: K, value: V) -> bool {
@@ -60,10 +68,12 @@ where
       false
     }
   }
+
   #[inline]
   pub fn get(&self, key: &K) -> Option<&V> {
     self.map.get(key)
   }
+
   #[inline]
   pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
     self.map.get_mut(key)
@@ -120,27 +130,32 @@ where
     self.undo_stack.clear();
     self.checkpoint = None;
   }
+
   pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
     self.map.iter()
   }
+
   #[inline]
   pub fn len(&self) -> usize {
     self.map.len()
   }
+
   #[inline]
   pub fn is_empty(&self) -> bool {
     self.map.is_empty()
   }
+
   // check the length of mutations for debug performance purpose
   pub fn mutations_len(&self) -> usize {
     self.undo_stack.len()
   }
 }
 
-impl<'data, K, V> RayonIntoParallelRefIterator<'data> for RollbackMap<K, V>
+impl<'data, K, V, S> RayonIntoParallelRefIterator<'data> for RollbackMap<K, V, S>
 where
   K: Eq + Hash + Send + Sync + 'data,
   V: Send + Sync + 'data,
+  S: BuildHasher + Send + Sync,
 {
   type Item = (&'data K, &'data V);
   type Iter = rayon::collections::hash_map::Iter<'data, K, V>;
@@ -150,10 +165,11 @@ where
   }
 }
 
-impl<'data, K, V> RayonIntoParallelRefMutIterator<'data> for RollbackMap<K, V>
+impl<'data, K, V, S> RayonIntoParallelRefMutIterator<'data> for RollbackMap<K, V, S>
 where
   K: Eq + Hash + Send + Sync + 'data,
   V: Send + 'data,
+  S: BuildHasher + Send + Sync,
 {
   type Item = (&'data K, &'data mut V);
   type Iter = rayon::collections::hash_map::IterMut<'data, K, V>;
