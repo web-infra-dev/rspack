@@ -173,7 +173,7 @@ function copyRspackBrowserRuntimePlugin(): RsbuildPlugin {
           )
           .replaceAll(
             'const __wasmUrl =',
-            'const __wasmUrl = window.RSPACK_WASM_URL ||',
+            'const __wasmUrl = globalThis.RSPACK_WASM_URL ||',
           );
 
         await fs.writeFile(
