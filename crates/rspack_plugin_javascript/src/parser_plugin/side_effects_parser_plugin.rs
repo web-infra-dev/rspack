@@ -14,8 +14,8 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr, ExprOrSpread,
-      Function, ImportSpecifier, ModuleDecl, ModuleItem, Pat, Program, PropName, Stmt, VarDecl,
-      VarDeclKind, VarDeclOrExpr,
+      Function, ImportSpecifier, MemberProp, ModuleDecl, ModuleItem, Pat, Program, PropName, Stmt,
+      VarDecl, VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
@@ -929,6 +929,28 @@ fn is_pure_call_expr(
     }
   }
 
+  // Fast path: known pure global calls — `Object.keys(x)`, `Array.isArray(x)`,
+  // `String(x)`, `Symbol()`, etc. The callee must resolve to an unresolved
+  // global binding (so a local `const Object = ...` doesn't trigger this).
+  if let Some(callee_expr) = call_expr.callee.as_expr() {
+    let is_global = match callee_expr.as_ref() {
+      Expr::Ident(ident) => {
+        ident.ctxt == unresolved_ctxt && is_pure_call_global(ident.sym.as_str())
+      }
+      other => is_pure_member_call(other, unresolved_ctxt),
+    };
+    if is_global {
+      return is_pure_call_args(
+        parser,
+        analyze_side_effects_free,
+        call_expr,
+        unresolved_ctxt,
+        comments,
+        callees,
+      );
+    }
+  }
+
   !expr.may_have_side_effects(ExprCtx {
     unresolved_ctxt,
     in_strict: false,
@@ -1050,21 +1072,103 @@ fn is_pure_new_expr(
     unreachable!();
   };
   let pure_flag = has_pure_comment(comments, expr.span().lo);
-  if !pure_flag {
-    !expr.may_have_side_effects(ExprCtx {
-      unresolved_ctxt,
-      in_strict: false,
-      is_unresolved_ref_safe: false,
-      remaining_depth: 4,
-    })
-  } else {
-    are_pure_args(
+  if pure_flag {
+    return are_pure_args(
       parser,
       analyze_side_effects_free,
       new_expr.args.as_deref().unwrap_or(&[]),
       unresolved_ctxt,
       comments,
-    )
+    );
+  }
+
+  // Fast path: known pure global constructors (`new Set()`, `new Map()`,
+  // `new WeakMap()`, TypedArrays, etc.). SWC's `is_pure_new_callee` only
+  // recognizes empty functions and pure class expressions, so without this
+  // fast path `let m = new Map()` is kept even when unused.
+  if let Expr::Ident(ident) = new_expr.callee.as_ref()
+    && ident.ctxt == unresolved_ctxt
+    && is_pure_new_global(ident.sym.as_str())
+  {
+    return are_pure_args(
+      parser,
+      analyze_side_effects_free,
+      new_expr.args.as_deref().unwrap_or(&[]),
+      unresolved_ctxt,
+      comments,
+    );
+  }
+
+  !expr.may_have_side_effects(ExprCtx {
+    unresolved_ctxt,
+    in_strict: false,
+    is_unresolved_ref_safe: false,
+    remaining_depth: 4,
+  })
+}
+
+/// Constructors that are pure when used with `new`, assuming args are pure.
+/// Shadowing is handled by the caller (requires `ctxt == unresolved_ctxt`).
+fn is_pure_new_global(name: &str) -> bool {
+  matches!(
+    name,
+    // Collections
+    "Set" | "Map" | "WeakSet" | "WeakMap"
+    // Primitive wrappers and basic builtins
+    | "Object" | "Array" | "String" | "Number" | "Boolean" | "Date"
+    // Array-backed buffers / TypedArrays
+    | "ArrayBuffer" | "SharedArrayBuffer"
+    | "Uint8Array" | "Int8Array" | "Uint8ClampedArray"
+    | "Uint16Array" | "Int16Array"
+    | "Uint32Array" | "Int32Array"
+    | "Float32Array" | "Float64Array"
+    | "BigInt64Array" | "BigUint64Array"
+  )
+}
+
+/// Functions that are pure when called directly, assuming args are pure.
+fn is_pure_call_global(name: &str) -> bool {
+  matches!(
+    name,
+    "Array" | "Object" | "String" | "Number" | "Boolean" | "Symbol" | "Date"
+  )
+}
+
+/// Member-expression callees that are pure when args are pure, e.g.
+/// `Object.keys(x)`, `Array.isArray(x)`. Object must resolve to an unresolved
+/// global binding and the property must be on the allowlist below.
+fn is_pure_member_call(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
+  let Expr::Member(member) = expr else {
+    return false;
+  };
+  let MemberProp::Ident(prop) = &member.prop else {
+    return false;
+  };
+  let Expr::Ident(obj) = member.obj.as_ref() else {
+    return false;
+  };
+  if obj.ctxt != unresolved_ctxt {
+    return false;
+  }
+  match obj.sym.as_str() {
+    "Object" => matches!(
+      prop.sym.as_str(),
+      "keys"
+        | "values"
+        | "entries"
+        | "getOwnPropertyNames"
+        | "getOwnPropertySymbols"
+        | "getOwnPropertyDescriptor"
+        | "getOwnPropertyDescriptors"
+        | "getPrototypeOf"
+        | "create"
+        | "freeze"
+        | "fromEntries"
+        | "is"
+        | "assign"
+    ),
+    "Array" => matches!(prop.sym.as_str(), "isArray" | "from" | "of"),
+    _ => false,
   }
 }
 
