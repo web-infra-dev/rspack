@@ -12,6 +12,7 @@ use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
+  rspack_sources::{RawStringSource, SourceExt},
   AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
   ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, CompilationAsset,
   CompilationAssets, Compiler, DEFAULT_DELIMITER, EntryRuntime, MangleExportsOption, Mode,
@@ -42,6 +43,7 @@ const SPLIT_CHUNKS_ENTRY_COUNT: usize = 48;
 const SPLIT_CHUNKS_SHARED_MODULES: usize = 192;
 const SPLIT_CHUNKS_WINDOW: usize = 20;
 const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
+const MODULE_ASSET_SEED_COUNT: usize = 256;
 
 pub fn compilation_stages_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
@@ -65,6 +67,7 @@ fn compilation_stages_benchmark_inner(c: &mut Criterion) {
   runtime_requirements_benchmark(c, &rt);
   create_chunk_hashes_benchmark(c, &rt);
   create_full_hash_benchmark(c, &rt);
+  create_module_assets_benchmark(c, &rt);
   create_chunk_assets_benchmark(c, &rt);
   real_content_hash_benchmark(c, &rt);
   create_concatenate_module_benchmark(c, &rt);
@@ -664,6 +667,70 @@ fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
+fn create_module_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_module_assets(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_module_assets setup");
+  let seeded_module_assets = count_module_assets(&compiler.compilation);
+  assert!(
+    seeded_module_assets > 0,
+    "create_module_assets setup should seed module build_info assets"
+  );
+  let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
+  let initial_asset_count = compiler.compilation.assets().len();
+  let initial_totals = chunk_asset_totals(&compiler.compilation);
+
+  rt.block_on(async {
+    run_create_module_assets_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
+  });
+  let emitted_asset_count = compiler.compilation.assets().len();
+  let emitted_totals = chunk_asset_totals(&compiler.compilation);
+  assert!(
+    emitted_asset_count > initial_asset_count,
+    "create_module_assets setup should emit seeded module assets"
+  );
+  assert!(
+    emitted_totals.2 > initial_totals.2,
+    "create_module_assets setup should register seeded module assets as chunk auxiliary files"
+  );
+  restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_module_assets", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_create_module_assets_pass(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box((
+          compiler.compilation.assets().len(),
+          chunk_asset_totals(&compiler.compilation),
+        ));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
 fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
@@ -1058,14 +1125,24 @@ async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()>
   Ok(())
 }
 
-async fn prepare_for_chunk_assets(compiler: &mut Compiler) -> Result<()> {
+async fn prepare_for_module_assets(compiler: &mut Compiler) -> Result<()> {
   prepare_for_runtime_requirements(compiler).await?;
   run_runtime_requirements_pass(compiler).await?;
   assert_no_full_hash_runtime_dependencies(
     &compiler.compilation,
-    "create_chunk_assets setup should only benchmark asset emission with stable chunk/content hashes",
+    "create_module_assets setup should only benchmark asset emission with stable chunk/content hashes",
   );
   run_create_hash_pass(compiler).await?;
+  let seeded_module_assets = seed_module_assets(&mut compiler.compilation);
+  assert!(
+    seeded_module_assets > 0,
+    "create_module_assets setup should seed module build_info assets"
+  );
+  Ok(())
+}
+
+async fn prepare_for_chunk_assets(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_module_assets(compiler).await?;
   run_create_module_assets_pass(&mut compiler.compilation).await?;
   Ok(())
 }
@@ -1560,6 +1637,14 @@ fn chunk_asset_totals(compilation: &Compilation) -> (usize, usize, usize) {
   (emitted_files, rendered_chunks, auxiliary_files)
 }
 
+fn count_module_assets(compilation: &Compilation) -> usize {
+  compilation
+    .get_module_graph()
+    .modules()
+    .map(|(_, module)| module.build_info().assets.len())
+    .sum()
+}
+
 fn sorted_asset_names(compilation: &Compilation) -> Vec<String> {
   let mut asset_names = compilation.assets().keys().cloned().collect::<Vec<_>>();
   asset_names.sort_unstable();
@@ -1737,6 +1822,40 @@ async fn run_create_module_assets_pass(compilation: &mut Compilation) -> Result<
   }
 
   Ok(())
+}
+
+fn seed_module_assets(compilation: &mut Compilation) -> usize {
+  let module_identifiers = compilation
+    .get_module_graph()
+    .modules_keys()
+    .copied()
+    .filter(|module_identifier| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_module_chunks(*module_identifier)
+        > 0
+    })
+    .take(MODULE_ASSET_SEED_COUNT)
+    .collect::<Vec<_>>();
+
+  for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
+    let module = compilation
+      .get_module_graph_mut()
+      .module_by_identifier_mut(&module_identifier)
+      .expect("seeded module should exist");
+    module.build_info_mut().assets.insert(
+      format!("module-assets/module-{asset_index}.txt"),
+      CompilationAsset::new(
+        Some(
+          RawStringSource::from(format!("module asset fixture {asset_index}")).boxed(),
+        ),
+        Default::default(),
+      ),
+    );
+  }
+
+  module_identifiers.len()
 }
 
 async fn run_create_chunk_assets_pass(compiler: &mut Compiler) -> Result<()> {
