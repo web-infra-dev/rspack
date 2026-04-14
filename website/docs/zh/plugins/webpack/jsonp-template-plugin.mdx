@@ -1,0 +1,13 @@
+---
+description: 'Rspack JsonpTemplatePlugin 用于打包浏览器端产物，经常配合 childCompiler 一起使用。'
+---
+
+# JsonpTemplatePlugin
+
+此插件用于打包浏览器端产物，经常配合 childCompiler 一起使用。
+
+它会将 [output.chunkLoading](/config/output#outputchunkloading) 设为 `'jsonp'`，并应用 web 目标使用的 [`'array-push'` chunk format](/config/output#outputchunkformat)。
+
+```js
+new rspack.web.JsonpTemplatePlugin();
+```

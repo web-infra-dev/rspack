@@ -174,7 +174,8 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'JsonpTemplatePlugin',
-    status: SupportStatus.NotSupported,
+    url: '/plugins/webpack/jsonp-template-plugin',
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'NodeTemplatePlugin',
@@ -187,6 +188,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'WebWorkerTemplatePlugin',
+    url: '/plugins/webpack/web-worker-template-plugin',
     status: SupportStatus.FullySupported,
   },
   {
