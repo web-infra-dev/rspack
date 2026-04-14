@@ -1,7 +1,11 @@
 use std::{
-  hash::Hash,
+  hash::{Hash, Hasher},
   path::Path,
-  sync::{LazyLock, Mutex, mpsc},
+  sync::{
+    LazyLock, Mutex,
+    atomic::{AtomicU32, Ordering},
+    mpsc,
+  },
 };
 
 use cow_utils::CowUtils;
@@ -10,7 +14,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin,
+  CompilerCompilation, Logger, Plugin,
   cache::persistent::occasion::minimize::{CachedExtractedComments, CachedMinimizeEntry},
   diagnostics::MinifyError,
   rspack_sources::{
@@ -24,7 +28,10 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_regex::RspackRegex;
-use rspack_util::{asset_condition::AssetConditions, fx_hash::FxHashMap};
+use rspack_util::{
+  asset_condition::AssetConditions,
+  fx_hash::{FxHashMap, FxHasher},
+};
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
   base::config::JsMinifyFormatOptions,
@@ -166,15 +173,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Compute options hash once for cache key computation
   let options_hash = {
-    let mut hasher = std::hash::DefaultHasher::new();
+    let mut hasher = FxHasher::default();
     self.options.hash(&mut hasher);
-    std::hash::Hasher::finish(&hasher)
+    hasher.finish()
   };
 
   // Take the cache out temporarily for concurrent read access
   let minimize_cache = std::mem::take(&mut compilation.minimize_cache_artifact);
   // Collect new cache entries from cache misses
   let new_cache_entries: Mutex<Vec<(Vec<u8>, CachedMinimizeEntry)>> = Mutex::new(Vec::new());
+  // Track cache hit/miss counts for logging
+  let cache_hits = AtomicU32::new(0);
+  let cache_misses = AtomicU32::new(0);
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
@@ -236,6 +246,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
         // Check persistent cache
         if let Some(cached) = minimize_cache.get(&cache_key) {
+          cache_hits.fetch_add(1, Ordering::Relaxed);
           original.set_source(Some(cached.source.clone()));
           original.get_info_mut().minimized.replace(true);
           if let Some(ec) = &cached.extracted_comments {
@@ -254,6 +265,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
 
         // Cache miss - proceed with minification
+        cache_misses.fetch_add(1, Ordering::Relaxed);
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
         let input_source_map = original_source.map(object_pool, &MapOptions::default());
@@ -268,7 +280,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
           module: is_module,
           ..Default::default()
-          };
+        };
         let extract_comments_option = options.extract_comments.as_ref().map(|extract_comments| {
           let comments_filename = format!("{filename}.LICENSE.txt");
           let banner = match &extract_comments.banner {
@@ -477,6 +489,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     minimize_cache.insert(key, entry);
   }
   compilation.minimize_cache_artifact = minimize_cache;
+
+  // Log cache statistics
+  let hits = cache_hits.load(Ordering::Relaxed);
+  let misses = cache_misses.load(Ordering::Relaxed);
+  let logger = compilation.get_logger(PLUGIN_NAME);
+  logger.log(format!("minimize cache: {hits} hit, {misses} miss"));
 
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
