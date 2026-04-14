@@ -9,6 +9,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { CompilerHooks as BindingCompilerHooks } from '@rspack/binding';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type Watchpack from 'watchpack';
@@ -44,6 +45,14 @@ import {
   ThreadsafeIntermediateNodeFS,
   ThreadsafeOutputNodeFS,
 } from './FileSystem';
+import {
+  COMPILATION_HOOK_SUBSCRIPTION_BITSETS,
+  COMPILER_HOOK_SUBSCRIPTION_BITSETS,
+  type HookSubscriptionBitset,
+  type HookSubscriptionKind,
+  createCompilationHookSubscriptionBitset,
+  createCompilerHookSubscriptionBitset,
+} from './HookSubscriptionBitset';
 import type { FileSystemInfoEntry } from './FileSystemInfo';
 import type { rspack } from './index';
 import Cache from './lib/Cache';
@@ -133,6 +142,27 @@ export type CompilerHooks = {
 
 export const GET_COMPILER_ID = Symbol('getCompilerId');
 
+const CHILD_COMPILER_INHERITED_HOOK_USAGE_KINDS: Partial<
+  Record<keyof CompilerHooks, BindingCompilerHooks>
+> = {
+  compilation: BindingCompilerHooks.Compilation,
+  finishMake: BindingCompilerHooks.FinishMake,
+  shouldEmit: BindingCompilerHooks.ShouldEmit,
+  assetEmitted: BindingCompilerHooks.AssetEmitted,
+};
+
+type StageRangeQueryable<TQueried extends { isUsed(): boolean }> = {
+  isUsed(): boolean;
+  queryStageRange(stageRange: readonly [number, number]): TQueried;
+};
+
+type HookRegister = ((stages: number[]) => binding.JsTap[]) & {
+  registerKind: HookSubscriptionKind;
+  hookSubscriptionBitset: HookSubscriptionBitset;
+  getHook?: () => liteTapable.Hook<any, any, any>;
+  getHookMap?: () => liteTapable.HookMap<liteTapable.Hook<any, any, any>>;
+};
+
 class Compiler {
   #instance?: binding.JsCompiler;
   #initial: boolean;
@@ -147,7 +177,6 @@ class Compiler {
 
   #moduleExecutionResultsMap: Map<number, any>;
 
-  #nonSkippableRegisters: binding.RegisterJsTapKind[];
   #registers?: binding.RegisterJsTaps;
 
   #ruleSet: RuleSetCompiler;
@@ -207,9 +236,20 @@ class Compiler {
   constructor(context: string, options: RspackOptionsNormalized) {
     this.#initial = true;
 
-    this.#builtinPlugins = [];
+    const compilerHookSubscriptionBitset =
+      createCompilerHookSubscriptionBitset();
+    const compilationHookSubscriptionBitset =
+      createCompilationHookSubscriptionBitset();
+    COMPILER_HOOK_SUBSCRIPTION_BITSETS.set(
+      this,
+      compilerHookSubscriptionBitset,
+    );
+    COMPILATION_HOOK_SUBSCRIPTION_BITSETS.set(
+      this,
+      compilationHookSubscriptionBitset,
+    );
 
-    this.#nonSkippableRegisters = [];
+    this.#builtinPlugins = [];
     this.#moduleExecutionResultsMap = new Map();
 
     this.#ruleSet = new RuleSetCompiler();
@@ -336,7 +376,8 @@ class Compiler {
     new JsLoaderRspackPlugin(this).apply(this);
     new ExecuteModulePlugin().apply(this);
     if (!IS_BROWSER) {
-      new TraceHookPlugin().apply(this);
+      void TraceHookPlugin;
+      // new TraceHookPlugin().apply(this);
     }
 
     // this.hooks.shutdown.tap("rspack:cleanup", () => {
@@ -757,6 +798,15 @@ class Compiler {
       if (canInherentFromParent(name)) {
         if (childCompiler.hooks[name]) {
           childCompiler.hooks[name].taps = this.hooks[name].taps.slice();
+          if (childCompiler.hooks[name].taps.length > 0) {
+            const registerKind =
+              CHILD_COMPILER_INHERITED_HOOK_USAGE_KINDS[name];
+            if (registerKind) {
+              COMPILER_HOOK_SUBSCRIPTION_BITSETS.get(
+                childCompiler,
+              )!.markSubscribed(registerKind);
+            }
+          }
         }
       }
     }
@@ -782,6 +832,7 @@ class Compiler {
    */
   compile(callback: liteTapable.Callback<Error, Compilation>) {
     const startTime = Date.now();
+    COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!.clear();
     const params = this.#newCompilationParams();
     this.hooks.beforeCompile.callAsync(params, (err: any) => {
       if (err) {
@@ -861,6 +912,7 @@ class Compiler {
     removedFiles?: ReadonlySet<string>,
     callback?: (error: Error | null) => void,
   ) {
+    COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!.clear();
     this.#getInstance((error, instance) => {
       if (error) {
         return callback?.(error);
@@ -908,10 +960,6 @@ class Compiler {
   #resetThisCompilation() {
     // reassign new compilation in thisCompilation
     this.#compilation = undefined;
-    // ensure thisCompilation must call
-    this.hooks.thisCompilation.intercept({
-      call: () => {},
-    });
   }
 
   #newCompilationParams(): CompilationParams {
@@ -962,22 +1010,30 @@ class Compiler {
         : undefined;
 
     try {
-      this.#instance = new instanceBinding.JsCompiler(
-        this.compilerPath,
-        rawOptions,
-        this.#builtinPlugins,
-        this.#registers,
-        ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
-        this.intermediateFileSystem
+      this.#instance = new instanceBinding.JsCompiler({
+        compilerPath: this.compilerPath,
+        options: rawOptions,
+        builtinPlugins: this.#builtinPlugins,
+        registerJsTaps: this.#registers,
+        compilerHookSubscriptionBitset:
+          COMPILER_HOOK_SUBSCRIPTION_BITSETS.get(this)!.buffer,
+        compilationHookSubscriptionBitset:
+          COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!.buffer,
+        outputFilesystem: ThreadsafeOutputNodeFS.__to_binding(
+          this.outputFileSystem!,
+        ),
+        intermediateFilesystem: this.intermediateFileSystem
           ? ThreadsafeIntermediateNodeFS.__to_binding(
               this.intermediateFileSystem,
             )
           : undefined,
-        inputFileSystem,
-        ResolverFactory.__to_binding(this.resolverFactory),
-        this.unsafeFastDrop,
-        this.#platform,
-      );
+        inputFilesystem: inputFileSystem,
+        resolverFactoryReference: ResolverFactory.__to_binding(
+          this.resolverFactory,
+        ),
+        unsafeFastDrop: this.unsafeFastDrop,
+        platform: this.#platform,
+      });
 
       callback(null, this.#instance);
     } catch (err) {
@@ -997,57 +1053,81 @@ class Compiler {
   #createHooksRegisters(): binding.RegisterJsTaps {
     const ref = new WeakRef(this);
     const getCompiler = () => ref.deref()!;
-    const createTap = this.#createHookRegisterTaps.bind(this);
-    const createMapTap = this.#createHookMapRegisterTaps.bind(this);
+    const compilerRegisterFactories = this.#createHookRegisterFactories(
+      COMPILER_HOOK_SUBSCRIPTION_BITSETS.get(this)!,
+    );
+    const compilationRegisterFactories = this.#createHookRegisterFactories(
+      COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!,
+    );
     return {
-      ...createCompilerHooksRegisters(getCompiler, createTap, createMapTap),
-      ...createCompilationHooksRegisters(getCompiler, createTap, createMapTap),
+      ...createCompilerHooksRegisters(
+        getCompiler,
+        compilerRegisterFactories.createTap,
+        compilerRegisterFactories.createMapTap,
+      ),
+      ...createCompilationHooksRegisters(
+        getCompiler,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
+      ),
       ...createNormalModuleFactoryHooksRegisters(
         getCompiler,
-        createTap,
-        createMapTap,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
       ),
       ...createContextModuleFactoryHooksRegisters(
         getCompiler,
-        createTap,
-        createMapTap,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
       ),
       ...createJavaScriptModulesHooksRegisters(
         getCompiler,
-        createTap,
-        createMapTap,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
       ),
-      ...createHtmlPluginHooksRegisters(getCompiler, createTap, createMapTap),
+      ...createHtmlPluginHooksRegisters(
+        getCompiler,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
+      ),
       ...createRuntimePluginHooksRegisters(
         getCompiler,
-        createTap,
-        createMapTap,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
       ),
       ...createRsdoctorPluginHooksRegisters(
         getCompiler,
-        createTap,
-        createMapTap,
+        compilationRegisterFactories.createTap,
+        compilationRegisterFactories.createMapTap,
       ),
     };
   }
 
-  #updateNonSkippableRegisters() {
-    const kinds: binding.RegisterJsTapKind[] = [];
-    for (const { getHook, getHookMap, registerKind } of Object.values(
-      this.#registers!,
-    )) {
-      const get = getHook ?? getHookMap;
-      const hookOrMap = get();
-      if (hookOrMap.isUsed()) {
-        kinds.push(registerKind);
-      }
-    }
-    if (this.#nonSkippableRegisters.join() !== kinds.join()) {
-      this.#getInstance((_error, instance) => {
-        instance!.setNonSkippableRegisters(kinds);
-        this.#nonSkippableRegisters = kinds;
-      });
-    }
+  #createHookRegisterFactories(hookSubscriptionBitset: HookSubscriptionBitset) {
+    return {
+      createTap: <T, R, A>(
+        registerKind: HookSubscriptionKind,
+        getHook: () => liteTapable.Hook<T, R, A>,
+        createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any,
+      ) =>
+        this.#createHookRegisterTaps(
+          hookSubscriptionBitset,
+          registerKind,
+          getHook,
+          createTap,
+        ),
+      createMapTap: <H extends liteTapable.Hook<any, any, any>>(
+        registerKind: HookSubscriptionKind,
+        getHookMap: () => liteTapable.HookMap<H>,
+        createTap: (queried: liteTapable.QueriedHookMap<H>) => any,
+      ) =>
+        this.#createHookMapRegisterTaps(
+          hookSubscriptionBitset,
+          registerKind,
+          getHookMap,
+          createTap,
+        ),
+    };
   }
 
   #decorateJsTaps(jsTaps: binding.JsTap[]) {
@@ -1057,14 +1137,41 @@ class Compiler {
       last.function = (...args: any[]) => {
         const result = old(...args);
         if (result && typeof result.then === 'function') {
-          return result.then((r: any) => {
-            this.#updateNonSkippableRegisters();
-            return r;
+          return result.then((value: any) => {
+            this.#updateHookSubscriptionBitsets();
+            return value;
           });
         }
-        this.#updateNonSkippableRegisters();
+        this.#updateHookSubscriptionBitsets();
         return result;
       };
+    }
+  }
+
+  #updateHookSubscriptionBitsets() {
+    const compilerHookSubscriptionBitset =
+      COMPILER_HOOK_SUBSCRIPTION_BITSETS.get(this)!;
+    const compilationHookSubscriptionBitset =
+      COMPILATION_HOOK_SUBSCRIPTION_BITSETS.get(this)!;
+    const kindsByBitset = new Map<
+      HookSubscriptionBitset,
+      HookSubscriptionKind[]
+    >([
+      [compilerHookSubscriptionBitset, []],
+      [compilationHookSubscriptionBitset, []],
+    ]);
+
+    for (const register of Object.values(this.#registers!) as HookRegister[]) {
+      const get = register.getHook ?? register.getHookMap;
+      if (get?.().isUsed()) {
+        kindsByBitset
+          .get(register.hookSubscriptionBitset)!
+          .push(register.registerKind);
+      }
+    }
+
+    for (const [hookSubscriptionBitset, kinds] of kindsByBitset) {
+      hookSubscriptionBitset.replaceSubscriptions(kinds);
     }
   }
 
@@ -1073,35 +1180,23 @@ class Compiler {
    * @internal
    */
   #createHookRegisterTaps<T, R, A>(
-    registerKind: binding.RegisterJsTapKind,
+    hookSubscriptionBitset: HookSubscriptionBitset,
+    registerKind: HookSubscriptionKind,
     getHook: () => liteTapable.Hook<T, R, A>,
     createTap: (queried: liteTapable.QueriedHook<T, R, A>) => any,
   ): (stages: number[]) => binding.JsTap[] {
-    const that = new WeakRef(this);
+    const ref = new WeakRef(this);
     const getTaps = (stages: number[]) => {
-      const compiler = that.deref()!;
-      const hook = getHook();
-      if (!hook.isUsed()) return [];
-      const breakpoints = [
-        liteTapable.minStage,
-        ...stages,
-        liteTapable.maxStage,
-      ];
-      const jsTaps: binding.JsTap[] = [];
-      for (let i = 0; i < breakpoints.length - 1; i++) {
-        const from = breakpoints[i];
-        const to = breakpoints[i + 1];
-        const stageRange = [from, to] as const;
-        const queried = hook.queryStageRange(stageRange);
-        if (!queried.isUsed()) continue;
-        jsTaps.push({
-          function: createTap(queried),
-          stage: liteTapable.safeStage(from + 1),
-        });
-      }
+      const compiler = ref.deref()!;
+      const jsTaps = compiler.#collectStageRangeJsTaps(
+        stages,
+        getHook(),
+        createTap,
+      );
       compiler.#decorateJsTaps(jsTaps);
       return jsTaps;
     };
+    getTaps.hookSubscriptionBitset = hookSubscriptionBitset;
     getTaps.registerKind = registerKind;
     getTaps.getHook = getHook;
     return getTaps;
@@ -1112,38 +1207,55 @@ class Compiler {
    * @internal
    */
   #createHookMapRegisterTaps<H extends liteTapable.Hook<any, any, any>>(
-    registerKind: binding.RegisterJsTapKind,
+    hookSubscriptionBitset: HookSubscriptionBitset,
+    registerKind: HookSubscriptionKind,
     getHookMap: () => liteTapable.HookMap<H>,
     createTap: (queried: liteTapable.QueriedHookMap<H>) => any,
   ): (stages: number[]) => binding.JsTap[] {
-    const that = new WeakRef(this);
+    const ref = new WeakRef(this);
     const getTaps = (stages: number[]) => {
-      const compiler = that.deref()!;
-      const map = getHookMap();
-      if (!map.isUsed()) return [];
-      const breakpoints = [
-        liteTapable.minStage,
-        ...stages,
-        liteTapable.maxStage,
-      ];
-      const jsTaps: binding.JsTap[] = [];
-      for (let i = 0; i < breakpoints.length - 1; i++) {
-        const from = breakpoints[i];
-        const to = breakpoints[i + 1];
-        const stageRange = [from, to] as const;
-        const queried = map.queryStageRange(stageRange);
-        if (!queried.isUsed()) continue;
-        jsTaps.push({
-          function: createTap(queried),
-          stage: liteTapable.safeStage(from + 1),
-        });
-      }
+      const compiler = ref.deref()!;
+      const jsTaps = compiler.#collectStageRangeJsTaps(
+        stages,
+        getHookMap(),
+        createTap,
+      );
       compiler.#decorateJsTaps(jsTaps);
       return jsTaps;
     };
+    getTaps.hookSubscriptionBitset = hookSubscriptionBitset;
     getTaps.registerKind = registerKind;
     getTaps.getHookMap = getHookMap;
     return getTaps;
+  }
+
+  #collectStageRangeJsTaps<TQueried extends { isUsed(): boolean }>(
+    stages: number[],
+    hook: StageRangeQueryable<TQueried>,
+    createTap: (queried: TQueried) => any,
+  ): binding.JsTap[] {
+    if (!hook.isUsed()) {
+      return [];
+    }
+
+    const breakpoints = [liteTapable.minStage, ...stages, liteTapable.maxStage];
+    const jsTaps: binding.JsTap[] = [];
+
+    for (let i = 0; i < breakpoints.length - 1; i++) {
+      const from = breakpoints[i];
+      const to = breakpoints[i + 1];
+      const queried = hook.queryStageRange([from, to] as const);
+      if (!queried.isUsed()) {
+        continue;
+      }
+
+      jsTaps.push({
+        function: createTap(queried),
+        stage: liteTapable.safeStage(from + 1),
+      });
+    }
+
+    return jsTaps;
   }
 
   /**

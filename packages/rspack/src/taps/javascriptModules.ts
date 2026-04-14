@@ -8,7 +8,7 @@ export const createJavaScriptModulesHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerJavascriptModulesChunkHashTaps: createTap(
-      binding.RegisterJsTapKind.JavascriptModulesChunkHash,
+      binding.CompilationHooks.JavascriptModulesChunkHash,
 
       function () {
         return JavascriptModulesPlugin.getCompilationHooks(

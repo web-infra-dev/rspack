@@ -24,7 +24,7 @@ import {
   type JsRsdoctorStatement,
   type JsRsdoctorVariable,
   type RawRsdoctorPluginOptions,
-  RegisterJsTapKind,
+  CompilationHooks,
 } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import { type Compilation, checkCompilation } from '../Compilation';
@@ -117,32 +117,34 @@ const RsdoctorPlugin = RsdoctorPluginImpl as typeof RsdoctorPluginImpl & {
 RsdoctorPlugin.getCompilationHooks = (compilation: Compilation) => {
   checkCompilation(compilation);
 
-  let hooks = compilationHooksMap.get(compilation);
-  if (hooks === undefined) {
-    hooks = {
-      moduleGraph: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorModuleGraph],
-        false | void
-      >(['moduleGraph']),
-      chunkGraph: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorChunkGraph],
-        false | void
-      >(['chunkGraph']),
-      moduleIds: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorModuleIdsPatch],
-        false | void
-      >(['moduleIdsPatch']),
-      moduleSources: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorModuleSourcesPatch],
-        false | void
-      >(['moduleSourcesPatch']),
-      assets: new liteTapable.AsyncSeriesBailHook<
-        [JsRsdoctorAssetPatch],
-        false | void
-      >(['assetPatch']),
-    };
-    compilationHooksMap.set(compilation, hooks);
+  const existingHooks = compilationHooksMap.get(compilation);
+  if (existingHooks) {
+    return existingHooks;
   }
+
+  const hooks: RsdoctorPluginHooks = {
+    moduleGraph: new liteTapable.AsyncSeriesBailHook<
+      [JsRsdoctorModuleGraph],
+      false | void
+    >(['moduleGraph']),
+    chunkGraph: new liteTapable.AsyncSeriesBailHook<
+      [JsRsdoctorChunkGraph],
+      false | void
+    >(['chunkGraph']),
+    moduleIds: new liteTapable.AsyncSeriesBailHook<
+      [JsRsdoctorModuleIdsPatch],
+      false | void
+    >(['moduleIdsPatch']),
+    moduleSources: new liteTapable.AsyncSeriesBailHook<
+      [JsRsdoctorModuleSourcesPatch],
+      false | void
+    >(['moduleSourcesPatch']),
+    assets: new liteTapable.AsyncSeriesBailHook<
+      [JsRsdoctorAssetPatch],
+      false | void
+    >(['assetPatch']),
+  };
+  compilationHooksMap.set(compilation, hooks);
   return hooks;
 };
 
@@ -151,7 +153,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerRsdoctorPluginModuleGraphTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginModuleGraph,
+      CompilationHooks.RsdoctorPluginModuleGraph,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -164,7 +166,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginChunkGraphTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginChunkGraph,
+      CompilationHooks.RsdoctorPluginChunkGraph,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -177,7 +179,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginModuleIdsTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginModuleIds,
+      CompilationHooks.RsdoctorPluginModuleIds,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -190,7 +192,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginModuleSourcesTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginModuleSources,
+      CompilationHooks.RsdoctorPluginModuleSources,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -203,7 +205,7 @@ export const createRsdoctorPluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRsdoctorPluginAssetsTaps: createTap(
-      RegisterJsTapKind.RsdoctorPluginAssets,
+      CompilationHooks.RsdoctorPluginAssets,
       function () {
         return RsdoctorPlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,

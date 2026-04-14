@@ -47,7 +47,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerRuntimePluginCreateScriptTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginCreateScript,
+      binding.CompilationHooks.RuntimePluginCreateScript,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -60,7 +60,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRuntimePluginCreateLinkTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginCreateLink,
+      binding.CompilationHooks.RuntimePluginCreateLink,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -73,7 +73,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRuntimePluginLinkPreloadTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginLinkPreload,
+      binding.CompilationHooks.RuntimePluginLinkPreload,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,
@@ -86,7 +86,7 @@ export const createRuntimePluginHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerRuntimePluginLinkPrefetchTaps: createTap(
-      binding.RegisterJsTapKind.RuntimePluginLinkPrefetch,
+      binding.CompilationHooks.RuntimePluginLinkPrefetch,
       function () {
         return RuntimePlugin.getCompilationHooks(
           getCompiler().__internal__get_compilation()!,

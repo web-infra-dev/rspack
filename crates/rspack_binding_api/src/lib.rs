@@ -129,9 +129,7 @@ use crate::{
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
   module::ModuleObject,
   platform::RawCompilerPlatform,
-  plugins::{
-    JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTapKind, RegisterJsTaps, buildtime_plugins,
-  },
+  plugins::{JsCleanupPlugin, JsHooksAdapterPlugin, RegisterJsTaps, buildtime_plugins},
   raw_options::{BuiltinPlugin, RawOptions, WithFalse},
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
@@ -174,30 +172,51 @@ struct JsCompiler {
   virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
 }
 
+#[napi(object, object_to_js = false)]
+pub struct JsCompilerOptions<'a> {
+  pub compiler_path: String,
+  pub options: RawOptions,
+  pub builtin_plugins: Vec<BuiltinPlugin<'a>>,
+  pub register_js_taps: RegisterJsTaps,
+  pub compiler_hook_subscription_bitset: Buffer,
+  pub compilation_hook_subscription_bitset: Buffer,
+  pub output_filesystem: ThreadsafeNodeFS,
+  pub intermediate_filesystem: Option<ThreadsafeNodeFS>,
+  pub input_filesystem: Option<ThreadsafeNodeFS>,
+  pub resolver_factory_reference: Reference<JsResolverFactory>,
+  pub unsafe_fast_drop: bool,
+  pub platform: RawCompilerPlatform,
+}
+
 #[napi]
 impl JsCompiler {
-  #[allow(clippy::too_many_arguments)]
   #[napi(constructor)]
-  pub fn new(
-    env: Env,
-    mut this: This,
-    compiler_path: String,
-    mut options: RawOptions,
-    builtin_plugins: Vec<BuiltinPlugin>,
-    register_js_taps: RegisterJsTaps,
-    output_filesystem: ThreadsafeNodeFS,
-    intermediate_filesystem: Option<ThreadsafeNodeFS>,
-    input_filesystem: Option<ThreadsafeNodeFS>,
-    mut resolver_factory_reference: Reference<JsResolverFactory>,
-    unsafe_fast_drop: bool,
-    platform: RawCompilerPlatform,
-  ) -> Result<Self> {
+  pub fn new(env: Env, mut this: This, options: JsCompilerOptions<'_>) -> Result<Self> {
+    let JsCompilerOptions {
+      compiler_path,
+      mut options,
+      builtin_plugins,
+      register_js_taps,
+      compiler_hook_subscription_bitset,
+      compilation_hook_subscription_bitset,
+      output_filesystem,
+      intermediate_filesystem,
+      input_filesystem,
+      mut resolver_factory_reference,
+      unsafe_fast_drop,
+      platform,
+    } = options;
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
     tracing::info!(name:"raw_options", options=?&options);
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
       let mut plugins = Vec::with_capacity(builtin_plugins.len());
-      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
+      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(
+        env,
+        register_js_taps,
+        compiler_hook_subscription_bitset,
+        compilation_hook_subscription_bitset,
+      )?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
       // Register builtin loader plugins
@@ -332,11 +351,6 @@ impl JsCompiler {
       })
     })
   }
-  #[napi]
-  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    self.js_hooks_plugin.set_non_skippable_registers(kinds)
-  }
-
   /// Build with the given option passed to the constructor
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(

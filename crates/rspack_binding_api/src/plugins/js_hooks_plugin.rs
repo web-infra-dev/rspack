@@ -1,7 +1,7 @@
 use std::fmt;
 
 use async_trait::async_trait;
-use napi::{Env, Result};
+use napi::{Env, Result, bindgen_prelude::Buffer};
 use rspack_core::{
   ApplyContext, Compilation, CompilationId, CompilationParams, CompilerCompilation,
   CompilerOptions, Plugin,
@@ -17,7 +17,6 @@ use super::interceptor::*;
 #[plugin]
 #[derive(Clone)]
 pub struct JsHooksAdapterPlugin {
-  non_skippable_registers: NonSkippableRegisters,
   register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps,
   register_compiler_compilation_taps: RegisterCompilerCompilationTaps,
   register_compiler_make_taps: RegisterCompilerMakeTaps,
@@ -476,238 +475,239 @@ async fn rsdoctor_hooks_adapter_compilation(
 }
 
 impl JsHooksAdapterPlugin {
-  pub fn from_js_hooks(_env: Env, register_js_taps: RegisterJsTaps) -> Result<Self> {
-    let non_skippable_registers = NonSkippableRegisters::default();
+  pub fn from_js_hooks(
+    _env: Env,
+    register_js_taps: RegisterJsTaps,
+    compiler_hook_subscription_bitset: Buffer,
+    compilation_hook_subscription_bitset: Buffer,
+  ) -> Result<Self> {
+    let compiler_hook_subscription_bitset_view =
+      HookSubscriptionBitsetView::compiler(compiler_hook_subscription_bitset);
+    let compilation_hook_subscription_bitset_view =
+      HookSubscriptionBitsetView::compilation(compilation_hook_subscription_bitset);
     Ok(JsHooksAdapterPlugin {
       inner: JsHooksAdapterPluginInner {
         register_compiler_this_compilation_taps: RegisterCompilerThisCompilationTaps::new(
           register_js_taps.register_compiler_this_compilation_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_compilation_taps: RegisterCompilerCompilationTaps::new(
           register_js_taps.register_compiler_compilation_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_make_taps: RegisterCompilerMakeTaps::new(
           register_js_taps.register_compiler_make_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_finish_make_taps: RegisterCompilerFinishMakeTaps::new(
           register_js_taps.register_compiler_finish_make_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_should_emit_taps: RegisterCompilerShouldEmitTaps::new(
           register_js_taps.register_compiler_should_emit_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_emit_taps: RegisterCompilerEmitTaps::new(
           register_js_taps.register_compiler_emit_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_after_emit_taps: RegisterCompilerAfterEmitTaps::new(
           register_js_taps.register_compiler_after_emit_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view.clone(),
         ),
         register_compiler_asset_emitted_taps: RegisterCompilerAssetEmittedTaps::new(
           register_js_taps.register_compiler_asset_emitted_taps,
-          non_skippable_registers.clone(),
+          compiler_hook_subscription_bitset_view,
         ),
         register_compilation_build_module_taps: RegisterCompilationBuildModuleTaps::new(
           register_js_taps.register_compilation_build_module_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_still_valid_module_taps: RegisterCompilationStillValidModuleTaps::new(
           register_js_taps.register_compilation_still_valid_module_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_succeed_module_taps: RegisterCompilationSucceedModuleTaps::new(
           register_js_taps.register_compilation_succeed_module_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_execute_module_taps: RegisterCompilationExecuteModuleTaps::new(
           register_js_taps.register_compilation_execute_module_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_finish_modules_taps: RegisterCompilationFinishModulesTaps::new(
           register_js_taps.register_compilation_finish_modules_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_optimize_modules_taps: RegisterCompilationOptimizeModulesTaps::new(
           register_js_taps.register_compilation_optimize_modules_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_after_optimize_modules_taps:
           RegisterCompilationAfterOptimizeModulesTaps::new(
             register_js_taps.register_compilation_after_optimize_modules_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_compilation_optimize_tree_taps: RegisterCompilationOptimizeTreeTaps::new(
           register_js_taps.register_compilation_optimize_tree_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_optimize_chunk_modules_taps:
           RegisterCompilationOptimizeChunkModulesTaps::new(
             register_js_taps.register_compilation_optimize_chunk_modules_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_compilation_before_module_ids_taps: RegisterCompilationBeforeModuleIdsTaps::new(
           register_js_taps.register_compilation_before_module_ids_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_additional_tree_runtime_requirements_taps:
           RegisterCompilationAdditionalTreeRuntimeRequirementsTaps::new(
             register_js_taps.register_compilation_additional_tree_runtime_requirements_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_compilation_runtime_requirement_in_tree_taps:
           RegisterCompilationRuntimeRequirementInTreeTaps::new(
             register_js_taps.register_compilation_runtime_requirement_in_tree_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_compilation_runtime_module_taps: RegisterCompilationRuntimeModuleTaps::new(
           register_js_taps.register_compilation_runtime_module_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_chunk_hash_taps: RegisterCompilationChunkHashTaps::new(
           register_js_taps.register_compilation_chunk_hash_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_chunk_asset_taps: RegisterCompilationChunkAssetTaps::new(
           register_js_taps.register_compilation_chunk_asset_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_process_assets_taps: RegisterCompilationProcessAssetsTaps::new(
           register_js_taps.register_compilation_process_assets_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_after_process_assets_taps:
           RegisterCompilationAfterProcessAssetsTaps::new(
             register_js_taps.register_compilation_after_process_assets_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_compilation_seal_taps: RegisterCompilationSealTaps::new(
           register_js_taps.register_compilation_seal_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps::new(
           register_js_taps.register_compilation_after_seal_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_normal_module_factory_before_resolve_taps:
           RegisterNormalModuleFactoryBeforeResolveTaps::new(
             register_js_taps.register_normal_module_factory_before_resolve_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_normal_module_factory_factorize_taps:
           RegisterNormalModuleFactoryFactorizeTaps::new(
             register_js_taps.register_normal_module_factory_factorize_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_normal_module_factory_resolve_taps: RegisterNormalModuleFactoryResolveTaps::new(
           register_js_taps.register_normal_module_factory_resolve_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_normal_module_factory_resolve_for_scheme_taps:
           RegisterNormalModuleFactoryResolveForSchemeTaps::new(
             register_js_taps.register_normal_module_factory_resolve_for_scheme_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_normal_module_factory_after_resolve_taps:
           RegisterNormalModuleFactoryAfterResolveTaps::new(
             register_js_taps.register_normal_module_factory_after_resolve_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_normal_module_factory_create_module_taps:
           RegisterNormalModuleFactoryCreateModuleTaps::new(
             register_js_taps.register_normal_module_factory_create_module_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_context_module_factory_before_resolve_taps:
           RegisterContextModuleFactoryBeforeResolveTaps::new(
             register_js_taps.register_context_module_factory_before_resolve_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_context_module_factory_after_resolve_taps:
           RegisterContextModuleFactoryAfterResolveTaps::new(
             register_js_taps.register_context_module_factory_after_resolve_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_javascript_modules_chunk_hash_taps: RegisterJavascriptModulesChunkHashTaps::new(
           register_js_taps.register_javascript_modules_chunk_hash_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_html_plugin_before_asset_tag_generation_taps:
           RegisterHtmlPluginBeforeAssetTagGenerationTaps::new(
             register_js_taps.register_html_plugin_before_asset_tag_generation_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_html_plugin_alter_asset_tags_taps: RegisterHtmlPluginAlterAssetTagsTaps::new(
           register_js_taps.register_html_plugin_alter_asset_tags_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_html_plugin_alter_asset_tag_groups_taps:
           RegisterHtmlPluginAlterAssetTagGroupsTaps::new(
             register_js_taps.register_html_plugin_alter_asset_tag_groups_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_html_plugin_after_template_execution_taps:
           RegisterHtmlPluginAfterTemplateExecutionTaps::new(
             register_js_taps.register_html_plugin_after_template_execution_taps,
-            non_skippable_registers.clone(),
+            compilation_hook_subscription_bitset_view.clone(),
           ),
         register_html_plugin_before_emit_taps: RegisterHtmlPluginBeforeEmitTaps::new(
           register_js_taps.register_html_plugin_before_emit_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_html_plugin_after_emit_taps: RegisterHtmlPluginAfterEmitTaps::new(
           register_js_taps.register_html_plugin_after_emit_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_runtime_plugin_create_script_taps: RegisterRuntimePluginCreateScriptTaps::new(
           register_js_taps.register_runtime_plugin_create_script_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_runtime_plugin_create_link_taps: RegisterRuntimePluginCreateLinkTaps::new(
           register_js_taps.register_runtime_plugin_create_link_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps::new(
           register_js_taps.register_runtime_plugin_link_preload_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps::new(
           register_js_taps.register_runtime_plugin_link_prefetch_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_graph_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_rsdoctor_plugin_chunk_graph_taps: RegisterRsdoctorPluginChunkGraphTaps::new(
           register_js_taps.register_rsdoctor_plugin_chunk_graph_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_rsdoctor_plugin_assets_taps: RegisterRsdoctorPluginAssetsTaps::new(
           register_js_taps.register_rsdoctor_plugin_assets_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_rsdoctor_plugin_module_ids_taps: RegisterRsdoctorPluginModuleIdsTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_ids_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view.clone(),
         ),
         register_rsdoctor_plugin_module_sources_taps: RegisterRsdoctorPluginModuleSourcesTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_sources_taps,
-          non_skippable_registers.clone(),
+          compilation_hook_subscription_bitset_view,
         ),
-        non_skippable_registers,
       }
       .into(),
     })
-  }
-
-  pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
-    self
-      .non_skippable_registers
-      .set_non_skippable_registers(kinds);
   }
 }

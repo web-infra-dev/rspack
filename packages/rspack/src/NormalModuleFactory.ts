@@ -1,6 +1,5 @@
-import type binding from '@rspack/binding';
-
 import * as liteTapable from '@rspack/lite-tapable';
+import type binding from '@rspack/binding';
 import type { ResolveData, ResourceDataWithData } from './Module';
 import type {
   ResolveOptionsWithDependencyType,
@@ -44,6 +43,7 @@ export class NormalModuleFactory {
         'resolveData',
       ]),
     };
+
     this.resolverFactory = resolverFactory;
   }
 

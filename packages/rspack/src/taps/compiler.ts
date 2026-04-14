@@ -6,7 +6,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
 > = (getCompiler, createTap) => {
   return {
     registerCompilerThisCompilationTaps: createTap(
-      binding.RegisterJsTapKind.CompilerThisCompilation,
+      binding.CompilerHooks.ThisCompilation,
 
       function () {
         return getCompiler().hooks.thisCompilation;
@@ -23,7 +23,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerCompilationTaps: createTap(
-      binding.RegisterJsTapKind.CompilerCompilation,
+      binding.CompilerHooks.Compilation,
 
       function () {
         return getCompiler().hooks.compilation;
@@ -39,7 +39,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerMakeTaps: createTap(
-      binding.RegisterJsTapKind.CompilerMake,
+      binding.CompilerHooks.Make,
 
       function () {
         return getCompiler().hooks.make;
@@ -52,7 +52,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerFinishMakeTaps: createTap(
-      binding.RegisterJsTapKind.CompilerFinishMake,
+      binding.CompilerHooks.FinishMake,
 
       function () {
         return getCompiler().hooks.finishMake;
@@ -65,7 +65,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerShouldEmitTaps: createTap(
-      binding.RegisterJsTapKind.CompilerShouldEmit,
+      binding.CompilerHooks.ShouldEmit,
 
       function () {
         return getCompiler().hooks.shouldEmit;
@@ -78,7 +78,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerEmitTaps: createTap(
-      binding.RegisterJsTapKind.CompilerEmit,
+      binding.CompilerHooks.Emit,
 
       function () {
         return getCompiler().hooks.emit;
@@ -91,7 +91,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerAfterEmitTaps: createTap(
-      binding.RegisterJsTapKind.CompilerAfterEmit,
+      binding.CompilerHooks.AfterEmit,
 
       function () {
         return getCompiler().hooks.afterEmit;
@@ -104,7 +104,7 @@ export const createCompilerHooksRegisters: CreatePartialRegisters<
       },
     ),
     registerCompilerAssetEmittedTaps: createTap(
-      binding.RegisterJsTapKind.CompilerAssetEmitted,
+      binding.CompilerHooks.AssetEmitted,
 
       function () {
         return getCompiler().hooks.assetEmitted;

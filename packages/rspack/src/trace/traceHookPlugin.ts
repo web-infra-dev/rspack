@@ -49,6 +49,7 @@ const interceptAllHooksFor = (
     }
   }
 };
+
 const makeNewTraceTapFn = (
   compilerName: string,
   hookName: string,

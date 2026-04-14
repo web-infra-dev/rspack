@@ -356,7 +356,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       ]),
       log: new liteTapable.SyncBailHook(['origin', 'logEntry']),
       optimizeModules: new liteTapable.SyncBailHook(['modules']),
-      afterOptimizeModules: new liteTapable.SyncBailHook(['modules']),
+      afterOptimizeModules: new liteTapable.SyncHook(['modules']),
       optimizeTree: new liteTapable.AsyncSeriesHook(['chunks', 'modules']),
       optimizeChunkModules: new liteTapable.AsyncSeriesBailHook([
         'chunks',
