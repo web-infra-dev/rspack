@@ -14,8 +14,9 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
   ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, Compiler, DEFAULT_DELIMITER,
-  Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, SideEffectsOptimizeArtifact,
-  SourceType, UsedExportsOption, build_chunk_graph,
+  EntryRuntime, Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, RuntimeGlobals,
+  RuntimeModule, RuntimeSpecMap, SideEffectsOptimizeArtifact, SourceType, UsedExportsOption,
+  build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   incremental::IncrementalOptions,
 };
@@ -59,7 +60,9 @@ fn compilation_stages_benchmark_inner(c: &mut Criterion) {
   split_chunks_benchmark(c, &rt);
   create_chunk_ids_benchmark(c, &rt);
   create_module_hashes_benchmark(c, &rt);
+  runtime_requirements_benchmark(c, &rt);
   create_chunk_hashes_benchmark(c, &rt);
+  create_full_hash_benchmark(c, &rt);
   create_concatenate_module_benchmark(c, &rt);
   concatenate_module_code_generation_benchmark(c, &rt);
 }
@@ -413,6 +416,123 @@ fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
+fn runtime_requirements_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_runtime_requirements(&mut compiler)
+      .await
+      .unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "runtime_requirements setup");
+  assert!(
+    !compiler.compilation.code_generation_results.is_empty(),
+    "runtime_requirements setup should prepare code generation results"
+  );
+  assert!(
+    compiler.compilation.runtime_modules.is_empty(),
+    "runtime_requirements setup should not have runtime modules before the pass runs"
+  );
+
+  c.bench_function("rust@runtime_requirements", |b| {
+    b.iter_batched(
+      || {
+        let fs = Arc::new(MemoryFileSystem::default());
+        let random_table = random_table.clone();
+        let mut compiler = create_general_stage_compiler(fs.clone());
+        rt.block_on(async {
+          fs.create_dir_all("/src".into())
+            .await
+            .expect("should not fail to create dir");
+          prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+          prepare_for_runtime_requirements(&mut compiler)
+            .await
+            .unwrap();
+        });
+        compiler
+      },
+      |mut compiler| {
+        rt.block_on(async {
+          run_runtime_requirements_pass(&mut compiler).await.unwrap();
+        });
+        black_box((
+          compiler.compilation.runtime_modules.len(),
+          compiler.compilation.cgc_runtime_requirements_artifact.len(),
+        ));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    compiler.build().await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_full_hash setup");
+  assert!(
+    !compiler.compilation.chunk_hashes_artifact.is_empty(),
+    "create_full_hash setup should prepare chunk hashes"
+  );
+  assert_no_full_hash_runtime_dependencies(
+    &compiler.compilation,
+    "create_full_hash setup should only benchmark full-hash aggregation over stable chunk/content hashes",
+  );
+  let expected_hash = compiler
+    .compilation
+    .hash
+    .clone()
+    .expect("create_full_hash setup should set the compilation hash");
+  let recomputed_hash = aggregate_full_hash(&mut compiler.compilation);
+  assert_eq!(
+    recomputed_hash, expected_hash,
+    "create_full_hash helper should match compilation hash from the full build"
+  );
+
+  c.bench_function("rust@create_full_hash", |b| {
+    b.iter_batched(
+      || {
+        let fs = Arc::new(MemoryFileSystem::default());
+        let random_table = random_table.clone();
+        let mut compiler = create_general_stage_compiler(fs.clone());
+        rt.block_on(async {
+          fs.create_dir_all("/src".into())
+            .await
+            .expect("should not fail to create dir");
+          prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+          compiler.build().await.unwrap();
+        });
+        assert_no_full_hash_runtime_dependencies(
+          &compiler.compilation,
+          "create_full_hash benchmark setup should avoid full-hash-dependent runtime chunks",
+        );
+        compiler
+      },
+      |mut compiler| {
+        let full_hash = aggregate_full_hash(&mut compiler.compilation);
+        black_box(full_hash);
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
 fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
@@ -687,6 +807,21 @@ async fn prepare_for_module_hashes(compiler: &mut Compiler) -> Result<()> {
   Ok(())
 }
 
+async fn prepare_for_optimize_code_generation(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_chunk_ids(compiler).await?;
+  run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
+  run_assign_runtime_ids(&mut compiler.compilation)?;
+  Ok(())
+}
+
+async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_optimize_code_generation(compiler).await?;
+  run_optimize_code_generation_hook(&mut compiler.compilation).await?;
+  run_create_module_hashes_pass(compiler).await?;
+  run_code_generation_pass(compiler).await?;
+  Ok(())
+}
+
 async fn prepare_for_concatenate_module(compiler: &mut Compiler) -> Result<()> {
   prepare_build_module_graph_phase(compiler).await?;
   run_finish_modules_hook(&mut compiler.compilation).await?;
@@ -836,6 +971,75 @@ async fn run_optimize_chunk_modules_hook(compilation: &mut Compilation) -> Resul
   Ok(())
 }
 
+fn run_assign_runtime_ids(compilation: &mut Compilation) -> Result<()> {
+  fn process_entrypoint(
+    entrypoint_ukey: &rspack_core::ChunkGroupUkey,
+    chunk_group_by_ukey: &rspack_core::ChunkGroupByUkey,
+    chunk_by_ukey: &ChunkByUkey,
+    chunk_graph: &mut ChunkGraph,
+  ) {
+    let entrypoint = chunk_group_by_ukey.expect_get(entrypoint_ukey);
+    let runtime = entrypoint
+      .kind
+      .get_entry_options()
+      .and_then(|entry_options| match &entry_options.runtime {
+        Some(EntryRuntime::String(runtime)) => Some(runtime.to_owned()),
+        _ => None,
+      })
+      .or_else(|| entrypoint.name().map(|name| name.to_string()));
+    if let (Some(runtime), Some(chunk)) = (
+      runtime,
+      chunk_by_ukey.get(&entrypoint.get_runtime_chunk(chunk_group_by_ukey)),
+    ) {
+      chunk_graph.set_runtime_id(runtime, chunk.id().map(|id| id.to_string()));
+    }
+  }
+
+  for (_, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+    process_entrypoint(
+      entrypoint_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      &mut compilation.build_chunk_graph_artifact.chunk_graph,
+    );
+  }
+  for entrypoint_ukey in &compilation.build_chunk_graph_artifact.async_entrypoints {
+    process_entrypoint(
+      entrypoint_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      &mut compilation.build_chunk_graph_artifact.chunk_graph,
+    );
+  }
+
+  Ok(())
+}
+
+async fn run_optimize_code_generation_hook(compilation: &mut Compilation) -> Result<()> {
+  let mut build_module_graph_artifact = compilation.build_module_graph_artifact.steal();
+  let mut exports_info_artifact = compilation.exports_info_artifact.steal();
+  let mut diagnostics = vec![];
+  compilation
+    .plugin_driver
+    .clone()
+    .compilation_hooks
+    .optimize_code_generation
+    .call(
+      compilation,
+      &mut build_module_graph_artifact,
+      &mut exports_info_artifact,
+      &mut diagnostics,
+    )
+    .await?;
+  compilation.build_module_graph_artifact = build_module_graph_artifact.into();
+  compilation.exports_info_artifact = exports_info_artifact.into();
+  assert!(
+    diagnostics.is_empty(),
+    "optimize_code_generation benchmark setup should not produce diagnostics"
+  );
+  Ok(())
+}
+
 fn get_modules_needing_ids(
   compilation: &Compilation,
   module_ids_artifact: &ModuleIdsArtifact,
@@ -922,6 +1126,150 @@ async fn run_chunk_ids_on_compilation(compilation: &mut Compilation) -> Result<(
   Ok(())
 }
 
+async fn run_create_module_hashes_on_compilation(compilation: &mut Compilation) -> Result<()> {
+  let module_identifiers = compilation
+    .get_module_graph()
+    .modules_keys()
+    .copied()
+    .collect::<Vec<_>>();
+
+  for module_identifier in module_identifiers {
+    let runtimes = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_runtimes_iter(
+        module_identifier,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      )
+      .cloned()
+      .collect::<Vec<_>>();
+    let mut hashes = RuntimeSpecMap::new();
+    {
+      let module_graph = compilation.get_module_graph();
+      let module = module_graph
+        .module_by_identifier(&module_identifier)
+        .expect("should have module");
+      for runtime in &runtimes {
+        let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+        hashes.set(runtime.clone(), hash);
+      }
+    }
+    ChunkGraph::set_module_hashes(compilation, module_identifier, hashes);
+  }
+
+  Ok(())
+}
+
+async fn run_create_module_hashes_pass(compiler: &mut Compiler) -> Result<()> {
+  compiler
+    .cache
+    .before_modules_hashes(&mut compiler.compilation)
+    .await;
+  run_create_module_hashes_on_compilation(&mut compiler.compilation).await?;
+  compiler
+    .cache
+    .after_modules_hashes(&compiler.compilation)
+    .await;
+  Ok(())
+}
+
+async fn run_code_generation_on_compilation(compilation: &mut Compilation) -> Result<()> {
+  *compilation.code_generation_results = Default::default();
+  compilation.code_generated_modules.clear();
+
+  let module_identifiers = compilation
+    .get_module_graph()
+    .modules_keys()
+    .copied()
+    .collect::<Vec<_>>();
+
+  for module_identifier in module_identifiers {
+    let runtimes = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_runtimes_iter(
+        module_identifier,
+        &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+      )
+      .cloned()
+      .collect::<Vec<_>>();
+
+    for runtime in runtimes {
+      let hash = ChunkGraph::get_module_hash(compilation, module_identifier, &runtime)
+        .expect("should have module hash before code generation")
+        .clone();
+      let concatenation_scope = compilation
+        .plugin_driver
+        .clone()
+        .compilation_hooks
+        .concatenation_scope
+        .call(compilation, module_identifier)
+        .await?;
+      let mut runtime_template = compilation.runtime_template.create_module_code_template();
+      let mut code_generation_context = ModuleCodeGenerationContext {
+        compilation,
+        runtime: Some(&runtime),
+        concatenation_scope,
+        runtime_template: &mut runtime_template,
+      };
+      let module_graph = compilation.get_module_graph();
+      let module = module_graph
+        .module_by_identifier(&module_identifier)
+        .expect("should have module");
+      let mut code_generation_result = module.code_generation(&mut code_generation_context).await?;
+      code_generation_result
+        .runtime_requirements
+        .extend(*runtime_template.runtime_requirements());
+      if module.as_concatenated_module().is_some() {
+        code_generation_result.set_hash_for_concatenated_module(
+          &hash,
+          &compilation.options.output.hash_function,
+          &compilation.options.output.hash_digest,
+          &compilation.options.output.hash_salt,
+        );
+      } else {
+        code_generation_result.set_hash(
+          &compilation.options.output.hash_function,
+          &compilation.options.output.hash_digest,
+          &compilation.options.output.hash_salt,
+        );
+      }
+      compilation.code_generation_results.insert(
+        module_identifier,
+        code_generation_result,
+        [runtime],
+      );
+    }
+
+    compilation.code_generated_modules.insert(module_identifier);
+  }
+
+  let mut diagnostics = vec![];
+  compilation
+    .plugin_driver
+    .clone()
+    .compilation_hooks
+    .after_code_generation
+    .call(compilation, &mut diagnostics)
+    .await?;
+  compilation.extend_diagnostics(diagnostics);
+
+  Ok(())
+}
+
+async fn run_code_generation_pass(compiler: &mut Compiler) -> Result<()> {
+  compiler
+    .cache
+    .before_modules_codegen(&mut compiler.compilation)
+    .await;
+  run_code_generation_on_compilation(&mut compiler.compilation).await?;
+  compiler
+    .cache
+    .after_modules_codegen(&compiler.compilation)
+    .await;
+  Ok(())
+}
+
 async fn compute_module_hashes(compilation: &Compilation) -> Result<usize> {
   let module_graph = compilation.get_module_graph();
   let mut total = 0;
@@ -964,6 +1312,362 @@ async fn compute_chunk_hashes(compilation: &Compilation) -> Result<usize> {
   }
 
   Ok(total)
+}
+
+async fn run_runtime_requirements_on_compilation(compilation: &mut Compilation) -> Result<()> {
+  let plugin_driver = compilation.plugin_driver.clone();
+  let handle = tokio::runtime::Handle::current();
+  let modules = compilation
+    .get_module_graph()
+    .modules_keys()
+    .copied()
+    .filter(|module| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_module_chunks(*module)
+        > 0
+    })
+    .collect::<Vec<_>>();
+
+  let module_results = if modules.is_empty() {
+    Vec::new()
+  } else {
+    let worker_count = std::thread::available_parallelism()
+      .map(|parallelism| parallelism.get())
+      .unwrap_or(1)
+      .min(modules.len());
+    let chunk_size = modules.len().div_ceil(worker_count);
+    std::thread::scope(|scope| -> Result<Vec<_>> {
+      let mut workers = Vec::new();
+      for module_chunk in modules.chunks(chunk_size) {
+        let module_chunk = module_chunk.to_vec();
+        let compilation = &*compilation;
+        let plugin_driver = plugin_driver.clone();
+        let handle = handle.clone();
+        workers.push(
+          scope.spawn(move || -> Result<Vec<(rspack_core::ModuleIdentifier, RuntimeSpecMap<RuntimeGlobals>)>> {
+            let mut local_results = Vec::with_capacity(module_chunk.len());
+            for module in module_chunk {
+              let runtimes = compilation
+                .build_chunk_graph_artifact
+                .chunk_graph
+                .get_module_runtimes_iter(
+                  module,
+                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                )
+                .cloned()
+                .collect::<Vec<_>>();
+              let mut map = RuntimeSpecMap::new();
+
+              for runtime in runtimes {
+                let runtime_requirements = handle.block_on(async {
+                  compilation
+                    .process_runtime_requirements_cache_artifact
+                    .use_cache(module, &runtime, compilation, || async {
+                      let mut all_runtime_requirements = compilation
+                        .code_generation_results
+                        .get_runtime_requirements(&module, Some(&runtime));
+
+                      plugin_driver
+                        .compilation_hooks
+                        .additional_module_runtime_requirements
+                        .call(compilation, &module, &mut all_runtime_requirements)
+                        .await?;
+
+                      let mut runtime_requirements_added = all_runtime_requirements;
+                      loop {
+                        let current_runtime_requirements = runtime_requirements_added;
+                        let mut runtime_requirements_to_add = RuntimeGlobals::default();
+                        plugin_driver
+                          .compilation_hooks
+                          .runtime_requirement_in_module
+                          .call(
+                            compilation,
+                            &module,
+                            &all_runtime_requirements,
+                            &current_runtime_requirements,
+                            &mut runtime_requirements_to_add,
+                          )
+                          .await?;
+                        runtime_requirements_to_add = runtime_requirements_to_add
+                          .difference(all_runtime_requirements.intersection(runtime_requirements_to_add));
+                        if runtime_requirements_to_add.is_empty() {
+                          break;
+                        }
+                        all_runtime_requirements.insert(runtime_requirements_to_add);
+                        runtime_requirements_added = runtime_requirements_to_add;
+                      }
+
+                      Ok(all_runtime_requirements)
+                    })
+                    .await
+                })?;
+                map.set(runtime, runtime_requirements);
+              }
+              local_results.push((module, map));
+            }
+            Ok(local_results)
+          }),
+        );
+      }
+
+      let mut combined_results = Vec::with_capacity(modules.len());
+      for worker in workers {
+        let mut local_results = worker
+          .join()
+          .expect("runtime requirements module worker should not panic")?;
+        combined_results.append(&mut local_results);
+      }
+      Ok(combined_results)
+    })?
+  };
+
+  for (module, map) in module_results {
+    ChunkGraph::set_module_runtime_requirements(compilation, module, map);
+  }
+
+  let entries = compilation
+    .get_chunk_graph_entries()
+    .collect::<rustc_hash::FxHashSet<_>>();
+  let chunks = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .keys()
+    .copied()
+    .collect::<rustc_hash::FxHashSet<_>>();
+  let chunk_keys = chunks
+    .iter()
+    .chain(entries.iter())
+    .copied()
+    .collect::<Vec<_>>();
+
+  let chunk_requirements = if chunk_keys.is_empty() {
+    FxHashMap::default()
+  } else {
+    let worker_count = std::thread::available_parallelism()
+      .map(|parallelism| parallelism.get())
+      .unwrap_or(1)
+      .min(chunk_keys.len());
+    let chunk_size = chunk_keys.len().div_ceil(worker_count);
+    std::thread::scope(|scope| -> FxHashMap<ChunkUkey, RuntimeGlobals> {
+      let mut workers = Vec::new();
+      for chunk_key_chunk in chunk_keys.chunks(chunk_size) {
+        let chunk_key_chunk = chunk_key_chunk.to_vec();
+        let compilation = &*compilation;
+        workers.push(scope.spawn(move || {
+          let mut local_results = Vec::with_capacity(chunk_key_chunk.len());
+          for chunk_ukey in chunk_key_chunk {
+            let mut set = RuntimeGlobals::default();
+            for module_identifier in compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_chunk_modules_identifier(&chunk_ukey)
+            {
+              let chunk = compilation
+                .build_chunk_graph_artifact
+                .chunk_by_ukey
+                .expect_get(&chunk_ukey);
+              if let Some(runtime_requirements) = ChunkGraph::get_module_runtime_requirements(
+                compilation,
+                *module_identifier,
+                chunk.runtime(),
+              ) {
+                set.insert(*runtime_requirements);
+              }
+            }
+            local_results.push((chunk_ukey, set));
+          }
+          local_results
+        }));
+      }
+
+      let mut combined_results = FxHashMap::default();
+      for worker in workers {
+        for (chunk_ukey, runtime_requirements) in worker
+          .join()
+          .expect("runtime requirements chunk worker should not panic")
+        {
+          combined_results.insert(chunk_ukey, runtime_requirements);
+        }
+      }
+      combined_results
+    })
+  };
+
+  for (chunk_ukey, mut all_runtime_requirements) in chunk_requirements {
+    let mut additional_runtime_modules = Vec::new();
+    plugin_driver
+      .compilation_hooks
+      .additional_chunk_runtime_requirements
+      .call(
+        compilation,
+        &chunk_ukey,
+        &mut all_runtime_requirements,
+        &mut additional_runtime_modules,
+      )
+      .await?;
+
+    for module in additional_runtime_modules {
+      let additional_runtime_requirements = module.additional_runtime_requirements(compilation);
+      all_runtime_requirements.extend(additional_runtime_requirements);
+      compilation.add_runtime_module(&chunk_ukey, module)?;
+    }
+
+    let mut runtime_modules_to_add = Vec::<Box<dyn RuntimeModule>>::new();
+    let mut runtime_requirements_added = all_runtime_requirements;
+    loop {
+      let current_runtime_requirements = runtime_requirements_added;
+      let mut runtime_requirements_to_add = RuntimeGlobals::default();
+      plugin_driver
+        .compilation_hooks
+        .runtime_requirement_in_chunk
+        .call(
+          compilation,
+          &chunk_ukey,
+          &all_runtime_requirements,
+          &current_runtime_requirements,
+          &mut runtime_requirements_to_add,
+          &mut runtime_modules_to_add,
+        )
+        .await?;
+      for runtime_module in &runtime_modules_to_add {
+        let additional_runtime_requirements =
+          runtime_module.additional_runtime_requirements(compilation);
+        runtime_requirements_to_add.extend(additional_runtime_requirements);
+      }
+      runtime_requirements_to_add = runtime_requirements_to_add
+        .difference(all_runtime_requirements.intersection(runtime_requirements_to_add));
+      if runtime_requirements_to_add.is_empty() {
+        break;
+      }
+      all_runtime_requirements.insert(runtime_requirements_to_add);
+      runtime_requirements_added = runtime_requirements_to_add;
+    }
+
+    for module in runtime_modules_to_add {
+      compilation.add_runtime_module(&chunk_ukey, module)?;
+    }
+
+    ChunkGraph::set_chunk_runtime_requirements(compilation, chunk_ukey, all_runtime_requirements);
+  }
+
+  for &entry_ukey in &entries {
+    let mut all_runtime_requirements = RuntimeGlobals::default();
+    let mut runtime_modules_to_add = Vec::<(ChunkUkey, Box<dyn RuntimeModule>)>::new();
+    let entry = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&entry_ukey);
+
+    for chunk_ukey in entry
+      .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+      .iter()
+    {
+      let runtime_requirements =
+        ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
+      all_runtime_requirements.insert(*runtime_requirements);
+    }
+
+    let mut additional_runtime_modules = Vec::new();
+    plugin_driver
+      .compilation_hooks
+      .additional_tree_runtime_requirements
+      .call(
+        compilation,
+        &entry_ukey,
+        &mut all_runtime_requirements,
+        &mut additional_runtime_modules,
+      )
+      .await?;
+
+    for module in additional_runtime_modules {
+      let additional_runtime_requirements = module.additional_runtime_requirements(compilation);
+      all_runtime_requirements.extend(additional_runtime_requirements);
+      compilation.add_runtime_module(&entry_ukey, module)?;
+    }
+
+    let mut runtime_requirements_to_add = all_runtime_requirements;
+    loop {
+      let runtime_requirements_added = runtime_requirements_to_add;
+      runtime_requirements_to_add = RuntimeGlobals::default();
+      plugin_driver
+        .compilation_hooks
+        .runtime_requirement_in_tree
+        .call(
+          compilation,
+          &entry_ukey,
+          &all_runtime_requirements,
+          &runtime_requirements_added,
+          &mut runtime_requirements_to_add,
+          &mut runtime_modules_to_add,
+        )
+        .await?;
+      for runtime_module in &runtime_modules_to_add {
+        let additional_runtime_requirements = runtime_module
+          .1
+          .additional_runtime_requirements(compilation);
+        runtime_requirements_to_add.extend(additional_runtime_requirements);
+      }
+      runtime_requirements_to_add = runtime_requirements_to_add
+        .difference(all_runtime_requirements.intersection(runtime_requirements_to_add));
+      if runtime_requirements_to_add.is_empty() {
+        break;
+      }
+      all_runtime_requirements.insert(runtime_requirements_to_add);
+    }
+
+    ChunkGraph::set_tree_runtime_requirements(compilation, entry_ukey, all_runtime_requirements);
+    for (chunk_ukey, module) in runtime_modules_to_add {
+      compilation.add_runtime_module(&chunk_ukey, module)?;
+    }
+  }
+
+  let mut runtime_modules = std::mem::take(&mut compilation.runtime_modules);
+  for entry_ukey in &entries {
+    let runtime_module_ids = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(entry_ukey)
+      .copied()
+      .collect::<Vec<_>>();
+    for runtime_module_id in runtime_module_ids {
+      plugin_driver
+        .compilation_hooks
+        .runtime_module
+        .call(
+          compilation,
+          &runtime_module_id,
+          entry_ukey,
+          &mut runtime_modules,
+        )
+        .await?;
+    }
+  }
+  compilation.runtime_modules = runtime_modules;
+
+  Ok(())
+}
+
+async fn run_runtime_requirements_pass(compiler: &mut Compiler) -> Result<()> {
+  compiler
+    .cache
+    .before_modules_runtime_requirements(&mut compiler.compilation)
+    .await;
+  compiler
+    .cache
+    .before_chunks_runtime_requirements(&mut compiler.compilation)
+    .await;
+  run_runtime_requirements_on_compilation(&mut compiler.compilation).await?;
+  compiler
+    .cache
+    .after_modules_runtime_requirements(&compiler.compilation)
+    .await;
+  compiler
+    .cache
+    .after_chunks_runtime_requirements(&compiler.compilation)
+    .await;
+  Ok(())
 }
 
 async fn process_chunk_hash(
@@ -1009,6 +1713,74 @@ async fn process_chunk_hash(
     .collect();
 
   Ok((chunk_hash, content_hashes))
+}
+
+fn aggregate_full_hash(compilation: &mut Compilation) -> rspack_hash::RspackHashDigest {
+  let mut compilation_hasher = RspackHash::from(&compilation.options.output);
+  let mut chunks = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+    .collect::<Vec<_>>();
+  chunks.sort_unstable_by_key(|chunk| chunk.ukey());
+
+  for chunk in chunks {
+    if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
+      hash.hash(&mut compilation_hasher);
+    }
+    if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
+      let mut content_hash_entries = content_hashes.iter().collect::<Vec<_>>();
+      content_hash_entries.sort_unstable_by_key(|(source_type, _)| *source_type);
+      for (source_type, content_hash) in content_hash_entries {
+        source_type.hash(&mut compilation_hasher);
+        content_hash.hash(&mut compilation_hasher);
+      }
+    }
+  }
+
+  compilation.hot_index.hash(&mut compilation_hasher);
+  let full_hash = compilation_hasher.digest(&compilation.options.output.hash_digest);
+  compilation.hash = Some(full_hash.clone());
+  full_hash
+}
+
+fn assert_no_full_hash_runtime_dependencies(compilation: &Compilation, message: &str) {
+  let mut has_full_hash_dependency = false;
+  for chunk_ukey in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
+    compilation
+      .plugin_driver
+      .compilation_hooks
+      .dependent_full_hash
+      .call(compilation, chunk_ukey, &mut has_full_hash_dependency)
+      .expect("full-hash dependency probe should not fail");
+    if has_full_hash_dependency
+      || compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .has_chunk_full_hash_modules(chunk_ukey, &compilation.runtime_modules)
+    {
+      break;
+    }
+    for runtime_module_identifier in compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_chunk_runtime_modules_iterable(chunk_ukey)
+    {
+      let runtime_module = compilation
+        .runtime_modules
+        .get(runtime_module_identifier)
+        .expect("should have runtime module");
+      if runtime_module.dependent_hash() {
+        has_full_hash_dependency = true;
+        break;
+      }
+    }
+    if has_full_hash_dependency {
+      break;
+    }
+  }
+
+  assert!(!has_full_hash_dependency, "{message}");
 }
 
 async fn compute_concatenated_module_codegen(
