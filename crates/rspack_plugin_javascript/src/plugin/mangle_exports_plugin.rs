@@ -57,6 +57,7 @@ struct ExportInfoCache {
   id: ExportInfo,
   exports_info: Option<ExportsInfo>,
   can_mangle: Manglable,
+  used: UsageState,
 }
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
@@ -147,9 +148,9 @@ async fn optimize_code_generation(
               } else {
                 Manglable::Mangled
               };
+              let used = export_info_data.get_used(None);
 
               let nested_exports_info = if export_info_data.exports_info_owned() {
-                let used = export_info_data.get_used(None);
                 if used == UsageState::OnlyPropertiesUsed || used == UsageState::Unused {
                   export_info_data.exports_info()
                 } else {
@@ -163,6 +164,7 @@ async fn optimize_code_generation(
                 id: export_info_data.id(),
                 exports_info: nested_exports_info,
                 can_mangle,
+                used,
               }
             })
             .collect_vec(),
@@ -191,12 +193,7 @@ async fn optimize_code_generation(
     let batch = tasks
       .into_par_iter()
       .map(|exports_info| {
-        mangle_exports_info(
-          exports_info_artifact,
-          self.deterministic,
-          exports_info,
-          &exports_info_cache,
-        )
+        mangle_exports_info(self.deterministic, exports_info, &exports_info_cache)
       })
       .collect::<Vec<_>>();
 
@@ -234,7 +231,6 @@ static MANGLE_NAME_DETERMINISTIC_REG: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Function to mangle exports information.
 fn mangle_exports_info(
-  exports_info_artifact: &ExportsInfoArtifact,
   deterministic: bool,
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
@@ -242,11 +238,12 @@ fn mangle_exports_info(
   let mut changes = vec![];
   let mut nested_exports = vec![];
   let mut used_names = FxHashSet::default();
-  let mut mangleable_exports = Vec::new();
   let Some(export_list) = exports_info_cache.get(&exports_info) else {
     return (changes, nested_exports);
   };
 
+  let mut mangleable_exports = Vec::new();
+  let mut presorted_mangleable_exports = Vec::new();
   let mut mangleable_export_names = FxHashMap::default();
 
   for export_info in export_list {
@@ -256,8 +253,12 @@ fn mangle_exports_info(
         used_names.insert(name.to_string());
       }
       Manglable::CanMangle(name) => {
-        mangleable_export_names.insert(export_info.id.clone(), name.clone());
-        mangleable_exports.push(export_info.id.clone());
+        if deterministic {
+          mangleable_export_names.insert(export_info.id.clone(), name.clone());
+          mangleable_exports.push(export_info.id.clone());
+        } else {
+          presorted_mangleable_exports.push((export_info.id.clone(), export_info.used));
+        }
       }
       Manglable::Mangled => {}
     }
@@ -307,45 +308,100 @@ fn mangle_exports_info(
       changes.push((export_info, UsedNameItem::Str(name.into())));
     }
   } else {
-    let mut used_exports = Vec::new();
-    let mut unused_exports = Vec::new();
-
-    for export_info in mangleable_exports {
-      let used = export_info.as_data(exports_info_artifact).get_used(None);
-      if used == UsageState::Unused {
-        unused_exports.push(export_info);
-      } else {
-        used_exports.push(export_info);
-      }
-    }
-
-    used_exports.sort_by(|a, b| {
-      compare_strings_numeric(
-        Some(mangleable_export_names.get(a).expect("should have name")),
-        Some(mangleable_export_names.get(b).expect("should have name")),
-      )
-    });
-    unused_exports.sort_by(|a, b| {
-      compare_strings_numeric(
-        Some(mangleable_export_names.get(a).expect("should have name")),
-        Some(mangleable_export_names.get(b).expect("should have name")),
-      )
-    });
-
-    let mut i = 0;
-    for list in [used_exports, unused_exports] {
-      for export_info in list {
-        let mut name;
-        loop {
-          name = number_to_identifier(i);
-          i += 1;
-          if !used_names.contains(&name) {
-            break;
-          }
-        }
-        changes.push((export_info, UsedNameItem::Str(name.into())));
-      }
-    }
+    changes.extend(assign_size_mangled_names_from_presorted(
+      used_names,
+      presorted_mangleable_exports,
+    ));
   }
   (changes, nested_exports)
+}
+
+fn assign_size_mangled_names_from_presorted(
+  used_names: FxHashSet<String>,
+  presorted_mangleable_exports: Vec<(ExportInfo, UsageState)>,
+) -> Vec<(ExportInfo, UsedNameItem)> {
+  let mut used_exports = Vec::new();
+  let mut unused_exports = Vec::new();
+
+  for (export_info, used) in presorted_mangleable_exports {
+    if used == UsageState::Unused {
+      unused_exports.push(export_info);
+    } else {
+      used_exports.push(export_info);
+    }
+  }
+
+  let mut changes = Vec::with_capacity(used_exports.len() + unused_exports.len());
+  let mut i = 0;
+  for list in [used_exports, unused_exports] {
+    for export_info in list {
+      let mut name;
+      loop {
+        name = number_to_identifier(i);
+        i += 1;
+        if !used_names.contains(&name) {
+          break;
+        }
+      }
+      changes.push((export_info, UsedNameItem::Str(name.into())));
+    }
+  }
+
+  changes
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::{ExportName, UsageState};
+
+  use super::*;
+
+  fn named_export(name: &str) -> ExportInfo {
+    ExportInfo {
+      exports_info: ExportsInfo::new(),
+      export_name: ExportName::Named(name.into()),
+    }
+  }
+
+  fn as_pairs(changes: Vec<(ExportInfo, UsedNameItem)>) -> Vec<(String, String)> {
+    changes
+      .into_iter()
+      .map(|(export_info, used_name)| {
+        let export_name = match export_info.export_name {
+          ExportName::Named(name) => name.to_string(),
+          _ => unreachable!("test only creates named exports"),
+        };
+        let used_name = match used_name {
+          UsedNameItem::Str(name) => name.to_string(),
+          UsedNameItem::Inlined(_) => unreachable!("size mode does not inline"),
+        };
+        (export_name, used_name)
+      })
+      .collect()
+  }
+
+  #[test]
+  fn size_mode_assigns_names_from_presorted_order() {
+    let foo = named_export("foo");
+    let bar = named_export("bar");
+    let baz = named_export("baz");
+
+    let changes = assign_size_mangled_names_from_presorted(
+      FxHashSet::from_iter(["a".to_string()]),
+      vec![
+        (foo.clone(), UsageState::Used),
+        (bar.clone(), UsageState::Unused),
+        (baz.clone(), UsageState::Used),
+      ],
+    );
+
+    assert_eq!(
+      as_pairs(changes),
+      vec![
+        ("foo".to_string(), "b".to_string()),
+        ("baz".to_string(), "c".to_string()),
+        ("bar".to_string(), "d".to_string()),
+      ]
+    );
+  }
 }
