@@ -336,6 +336,7 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
       export_info.get_used(runtime).dyn_hash(hasher);
       export_info.provided().dyn_hash(hasher);
       export_info.terminal_binding().dyn_hash(hasher);
+      export_info.ns_access().dyn_hash(hasher);
     }
 
     let mut exports = self.exports.values().collect_vec();
@@ -463,6 +464,51 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     key
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::{collections::hash_map::DefaultHasher, hash::Hasher};
+
+  use rspack_util::atom::Atom;
+
+  use super::{ExportsInfoGetter, PrefetchExportsInfoMode};
+  use crate::{ExportProvided, ExportsInfoArtifact, ExportsInfoData, UsageState};
+
+  fn hash_with_ns_access(ns_access: bool) -> u64 {
+    let mut exports_info_artifact = ExportsInfoArtifact::default();
+    let exports_info_data = ExportsInfoData::default();
+    let exports_info = exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(exports_info, exports_info_data);
+
+    {
+      let exports_info_data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
+      let other_exports_info = exports_info_data.other_exports_info_mut();
+      other_exports_info.set_has_use_info();
+      other_exports_info.set_used(UsageState::OnlyPropertiesUsed, None);
+      other_exports_info.set_provided(Some(ExportProvided::Provided));
+    }
+
+    {
+      let exports_info_data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
+      let export_info = exports_info_data.ensure_owned_export_info(&Atom::from("test"));
+      export_info.set_ns_access(ns_access);
+    }
+
+    let exports_info = ExportsInfoGetter::prefetch(
+      &exports_info,
+      &exports_info_artifact,
+      PrefetchExportsInfoMode::Full,
+    );
+    let mut hasher = DefaultHasher::new();
+    exports_info.update_hash(&mut hasher, None);
+    hasher.finish()
+  }
+
+  #[test]
+  fn update_hash_should_include_namespace_access() {
+    assert_ne!(hash_with_ns_access(false), hash_with_ns_access(true));
   }
 }
 

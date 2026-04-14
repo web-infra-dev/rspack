@@ -39,6 +39,7 @@ import {
   FileUriPlugin,
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin,
+  HashedModuleIdsPlugin,
   HttpExternalsRspackPlugin,
   HttpUriPlugin,
   InferAsyncModulesPlugin,
@@ -259,7 +260,7 @@ export class RspackOptionsApply {
     }
 
     if (options.optimization.sideEffects) {
-      new SideEffectsFlagPlugin(/* options.optimization.sideEffects === true */).apply(
+      new SideEffectsFlagPlugin(options.experiments.pureFunctions).apply(
         compiler,
       );
     }
@@ -343,6 +344,10 @@ export class RspackOptionsApply {
         }
         case 'deterministic': {
           new DeterministicModuleIdsPlugin().apply(compiler);
+          break;
+        }
+        case 'hashed': {
+          new HashedModuleIdsPlugin().apply(compiler);
           break;
         }
         default:

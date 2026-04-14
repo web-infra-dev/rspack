@@ -77,6 +77,8 @@ pub enum DependencyType {
   ImportMetaContext,
   // import.meta.resolve
   ImportMetaResolve,
+  // import.meta.resolve context
+  ImportMetaResolveContext,
   // commonjs require context
   CommonJSRequireContext,
   // require.context
@@ -116,6 +118,8 @@ pub enum DependencyType {
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
+  /// federation runtime
+  FederationRuntime,
   /// is included
   IsIncluded,
   LoaderImport,
@@ -191,6 +195,7 @@ impl DependencyType {
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
       DependencyType::ImportMetaResolve => "import.meta.resolve",
+      DependencyType::ImportMetaResolveContext => "import.meta.resolve context",
       DependencyType::ContainerExposed => "container exposed",
       DependencyType::ContainerEntry => "container entry",
       DependencyType::ShareContainerEntry => "share container entry",
@@ -203,6 +208,7 @@ impl DependencyType {
       DependencyType::ProvideSharedModule => "provide shared module",
       DependencyType::ProvideModuleForShared => "provide module for shared",
       DependencyType::ConsumeSharedFallback => "consume shared fallback",
+      DependencyType::FederationRuntime => "federation runtime",
       DependencyType::IsIncluded => "__webpack_is_included__",
       DependencyType::LazyImport => "lazy import()",
       DependencyType::ModuleDecorator => "module decorator",

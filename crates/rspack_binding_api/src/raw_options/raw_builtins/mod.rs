@@ -25,12 +25,12 @@ mod raw_swc_js_minimizer;
 use std::cell::RefCell;
 
 use napi::{
-  Either, Env, Unknown,
+  Either, Env, Unknown, ValueType,
   bindgen_prelude::{ClassInstance, FromNapiValue, JsObjectValue, Object},
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
-use raw_ids::RawOccurrenceChunkIdsPluginOptions;
+use raw_ids::{RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions};
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
   RawCollectShareEntryPluginOptions, RawModuleFederationManifestPluginOptions,
@@ -41,8 +41,9 @@ use raw_sri::RawSubresourceIntegrityPluginOptions;
 use rspack_core::{BoxPlugin, Plugin, PluginExt};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
-  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, NamedChunkIdsPlugin,
-  NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin, OccurrenceChunkIdsPlugin,
+  DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, HashedModuleIdsPlugin,
+  NamedChunkIdsPlugin, NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
+  OccurrenceChunkIdsPlugin,
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
@@ -63,7 +64,7 @@ use rspack_plugin_ensure_chunk_conditions::EnsureChunkConditionsPlugin;
 use rspack_plugin_entry::EntryPlugin;
 use rspack_plugin_esm_library::EsmLibraryPlugin;
 use rspack_plugin_externals::{
-  ExternalsPlugin, electron_target_plugin, esm_node_target_plugin, http_externals_rspack_plugin,
+  EsmNodeTargetPlugin, ExternalsPlugin, electron_target_plugin, http_externals_rspack_plugin,
   node_target_plugin,
 };
 use rspack_plugin_hmr::HotModuleReplacementPlugin;
@@ -191,6 +192,7 @@ pub enum BuiltinPluginName {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
@@ -402,7 +404,7 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::NodeTargetPlugin => plugins.push(node_target_plugin()),
       BuiltinPluginName::EsmNodeTargetPlugin => {
-        plugins.push(esm_node_target_plugin());
+        plugins.push(EsmNodeTargetPlugin::new().boxed());
       }
       BuiltinPluginName::ElectronTargetPlugin => {
         let context = downcast_into::<String>(self.options)
@@ -569,6 +571,14 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::DeterministicModuleIdsPlugin => {
         plugins.push(DeterministicModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginName::HashedModuleIdsPlugin => plugins.push(
+        HashedModuleIdsPlugin::new(
+          downcast_into::<RawHashedModuleIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::NaturalChunkIdsPlugin => {
         plugins.push(NaturalChunkIdsPlugin::default().boxed())
       }
@@ -655,7 +665,13 @@ impl<'a> BuiltinPlugin<'a> {
         );
       }
       BuiltinPluginName::SideEffectsFlagPlugin => {
-        plugins.push(SideEffectsFlagPlugin::default().boxed())
+        let analyze_side_effects_free = match self.options.get_type()? {
+          // Keep compatibility with older JS wrappers that serialized this builtin as `{}`.
+          ValueType::Object => false,
+          _ => downcast_into::<bool>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?,
+        };
+        plugins.push(SideEffectsFlagPlugin::new(analyze_side_effects_free).boxed());
       }
       BuiltinPluginName::FlagDependencyExportsPlugin => {
         plugins.push(FlagDependencyExportsPlugin::default().boxed())

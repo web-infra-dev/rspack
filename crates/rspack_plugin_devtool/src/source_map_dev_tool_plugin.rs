@@ -24,6 +24,7 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
+  fx_hash::FxIndexMap,
   identifier::make_paths_absolute,
   node_path::NodePath,
 };
@@ -290,7 +291,7 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
-  /// Compute source maps and source names concurrently via `rspack_futures::scope`.
+  /// Compute source maps and source names concurrently via `rspack_parallel::scope`.
   /// Returns collected tasks and the reference-to-source-name mapping.
   async fn collect_tasks(
     &self,
@@ -301,7 +302,7 @@ impl SourceMapDevToolPlugin {
     map_options: &MapOptions,
   ) -> Result<(
     Vec<SourceMapTask>,
-    HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
   )> {
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
     let condition_object = AssetConditionsObject {
@@ -313,7 +314,7 @@ impl SourceMapDevToolPlugin {
 
     let results: Vec<Result<Option<TaskAndSourceNames>>> = match &self.module_filename_template {
       ModuleFilenameTemplate::String(template) => {
-        rspack_futures::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
+        rspack_parallel::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
           for (asset_filename, asset) in compilation_assets {
             let is_match = if need_match {
               match_object(&condition_object, &asset_filename)
@@ -414,7 +415,7 @@ impl SourceMapDevToolPlugin {
         .collect::<Vec<_>>()
       }
       ModuleFilenameTemplate::Fn(f) => {
-        rspack_futures::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
+        rspack_parallel::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
           for (asset_filename, asset) in compilation_assets {
             let is_match = if need_match {
               match_object(&condition_object, &asset_filename)
@@ -505,10 +506,10 @@ impl SourceMapDevToolPlugin {
     };
 
     let mut tasks: Vec<SourceMapTask> = Vec::with_capacity(results.len());
-    let mut reference_to_source_name_mapping: HashMap<
+    let mut reference_to_source_name_mapping: FxIndexMap<
       SourceReference,
       (String, Option<Utf8PathBuf>),
-    > = HashMap::default();
+    > = FxIndexMap::default();
 
     for result in results {
       let Some((task, source_name_entries)) = result? else {
@@ -527,25 +528,39 @@ impl SourceMapDevToolPlugin {
   async fn deduplicate_source_names(
     &self,
     compilation: &Compilation,
-    reference_to_source_name_mapping: &mut HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &mut FxIndexMap<
+      SourceReference,
+      (String, Option<Utf8PathBuf>),
+    >,
   ) -> Result<()> {
     let output_options = &compilation.options.output;
-    let mut used_names_set = HashSet::<&String>::default();
-    for (source_reference, (source_name, unresolved_source_map_path)) in
+    let mut used_names_set = HashSet::<&String>::with_capacity_and_hasher(
+      reference_to_source_name_mapping.len(),
+      Default::default(),
+    );
+
+    // Sort source references by identifier length so the shorter canonical resource wins first.
+    // A CSS file can appear twice in the same source map: once as the extracted CSS module and
+    // once as a longer loader-chain virtual module like
+    // `cssExtractLoader.js!css-loader!...!style.css`. Both can resolve to the same default source
+    // name, so the shorter entry should claim it first and force the longer virtual module to use
+    // the fallback template instead.
+    let sorted_iter =
       reference_to_source_name_mapping
         .iter_mut()
         .sorted_by(|(key_a, _), (key_b, _)| {
           let ident_a = match key_a {
-            SourceReference::Module(identifier) => identifier,
+            SourceReference::Module(identifier) => identifier.as_str(),
             SourceReference::Source(source) => source.as_ref(),
           };
           let ident_b = match key_b {
-            SourceReference::Module(identifier) => identifier,
+            SourceReference::Module(identifier) => identifier.as_str(),
             SourceReference::Source(source) => source.as_ref(),
           };
           ident_a.len().cmp(&ident_b.len())
-        })
-    {
+        });
+
+    for (source_reference, (source_name, unresolved_source_map_path)) in sorted_iter {
       let mut has_name = used_names_set.contains(source_name);
       if !has_name {
         used_names_set.insert(source_name);
@@ -600,10 +615,10 @@ impl SourceMapDevToolPlugin {
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
     tasks: Vec<SourceMapTask>,
   ) -> Result<Vec<MappedAsset>> {
-    let mapped_assets = rspack_futures::scope::<_, Result<_>>(|token| {
+    let mapped_assets = rspack_parallel::scope::<_, Result<_>>(|token| {
       tasks.into_iter().for_each(
         |SourceMapTask {
            asset_filename,
@@ -664,7 +679,7 @@ impl SourceMapDevToolPlugin {
     plugin: &SourceMapDevToolPlugin,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &HashMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
     asset_filename: Arc<str>,
     source: BoxSource,
     mut source_map: SourceMap,

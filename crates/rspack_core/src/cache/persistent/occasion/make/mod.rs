@@ -8,10 +8,13 @@ use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
-use super::super::{Storage, codec::CacheCodec};
+use super::{
+  super::{codec::CacheCodec, storage::Storage},
+  Occasion,
+};
 use crate::{
   FactorizeInfo,
-  compilation::build_module_graph::{BuildModuleGraphArtifact, BuildModuleGraphArtifactState},
+  compilation::build_module_graph::BuildModuleGraphArtifact,
   utils::{FileCounter, ResourceId},
 };
 
@@ -19,20 +22,30 @@ use crate::{
 #[derive(Debug)]
 pub struct MakeOccasion {
   codec: Arc<CacheCodec>,
-  storage: Arc<dyn Storage>,
 }
 
 impl MakeOccasion {
-  pub fn new(storage: Arc<dyn Storage>, codec: Arc<CacheCodec>) -> Self {
-    Self { storage, codec }
+  pub fn new(codec: Arc<CacheCodec>) -> Self {
+    Self { codec }
+  }
+}
+
+#[async_trait::async_trait]
+impl Occasion for MakeOccasion {
+  type Artifact = BuildModuleGraphArtifact;
+
+  #[tracing::instrument(name = "Cache::Occasion::Make::reset", skip_all)]
+  fn reset(&self, storage: &mut dyn Storage) {
+    storage.reset(module_graph::SCOPE);
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::save", skip_all)]
-  pub fn save(&self, artifact: &BuildModuleGraphArtifact) {
+  fn save(&self, storage: &mut dyn Storage, artifact: &BuildModuleGraphArtifact) {
     let BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // for module graph
       module_graph,
+      side_effects_state_artifact: _,
       module_to_lazy_make,
       affected_modules,
       affected_dependencies,
@@ -43,7 +56,6 @@ impl MakeOccasion {
       context_dependencies: _,
       missing_dependencies: _,
       build_dependencies: _,
-      state: _,
       make_failed_dependencies: _,
       make_failed_module: _,
     } = artifact;
@@ -64,15 +76,15 @@ impl MakeOccasion {
       module_to_lazy_make,
       affected_modules.removed(),
       &need_update_modules,
-      &self.storage,
+      storage,
       &self.codec,
     );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  pub async fn recovery(&self) -> Result<BuildModuleGraphArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<BuildModuleGraphArtifact> {
     let (mg, module_to_lazy_make, entry_dependencies) =
-      module_graph::recovery_module_graph(&self.storage, &self.codec).await?;
+      module_graph::recovery_module_graph(storage, &self.codec).await?;
 
     // regenerate statistical data
     // recovery make_failed_module
@@ -115,7 +127,7 @@ impl MakeOccasion {
       affected_dependencies: Default::default(),
       issuer_update_modules: Default::default(),
 
-      state: BuildModuleGraphArtifactState::Initialized,
+      side_effects_state_artifact: Default::default(),
       module_graph: mg,
       module_to_lazy_make,
 

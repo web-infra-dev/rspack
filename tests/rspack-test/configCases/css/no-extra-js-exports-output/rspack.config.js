@@ -1,28 +1,28 @@
-"use strict";
+'use strict';
 
-const fs = require("fs");
-const path = require("path");
-const { rspack } = require("@rspack/core");
+const fs = require('fs');
+const path = require('path');
+const { rspack } = require('@rspack/core');
 
 /**
  * @param {0 | 1 | 2} i index
  * @returns {{ main: string[] }} entry
  */
 const entry = (i) => {
-	switch (i) {
-		case 0:
-			return {
-				main: ["./main.css"]
-			};
-		case 1:
-			return {
-				main: ["./main1.js"]
-			};
-		case 2:
-			return {
-				main: ["./main2.js"]
-			};
-	}
+  switch (i) {
+    case 0:
+      return {
+        main: ['./main.css'],
+      };
+    case 1:
+      return {
+        main: ['./main1.js'],
+      };
+    case 2:
+      return {
+        main: ['./main2.js'],
+      };
+  }
 };
 
 /**
@@ -30,50 +30,50 @@ const entry = (i) => {
  * @returns {import("@rspack/core").Configuration} return
  */
 const common = (i) => ({
-	entry: {
-		...entry(i)
-	},
-	target: "web",
-	devtool: false,
-	module: {
-		rules: [
-			{
-				test: /\.css$/,
-				type: "css/auto"
-			}
-		]
-	},
-	output: {
-		filename: `${i}/[name].js`,
-		chunkFilename: `${i}/[name].js`,
-		cssFilename: `${i}/[name].css`,
-		cssChunkFilename: `${i}/[name].css`
-	},
-	plugins: [
-		{
-			apply(compiler) {
-				compiler.hooks.compilation.tap("Test", (compilation) => {
-					compilation.hooks.processAssets.tap(
-						{
-							name: "copy-webpack-plugin",
-							stage:
-								compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
-						},
-						() => {
-							const data = fs.readFileSync(
-								path.resolve(__dirname, "./test.js")
-							);
+  entry: {
+    ...entry(i),
+  },
+  target: 'web',
+  devtool: false,
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+      },
+    ],
+  },
+  output: {
+    filename: `${i}/[name].js`,
+    chunkFilename: `${i}/[name].js`,
+    cssFilename: `${i}/[name].css`,
+    cssChunkFilename: `${i}/[name].css`,
+  },
+  plugins: [
+    {
+      apply(compiler) {
+        compiler.hooks.compilation.tap('Test', (compilation) => {
+          compilation.hooks.processAssets.tap(
+            {
+              name: 'copy-webpack-plugin',
+              stage:
+                compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
+            },
+            () => {
+              const data = fs.readFileSync(
+                path.resolve(__dirname, './test.js'),
+              );
 
-							compilation.emitAsset(
-								"test.js",
-								new rspack.sources.RawSource(data)
-							);
-						}
-					);
-				});
-			}
-		}
-	]
+              compilation.emitAsset(
+                'test.js',
+                new rspack.sources.RawSource(data),
+              );
+            },
+          );
+        });
+      },
+    },
+  ],
 });
 
 /** @type {import("@rspack/core").Configuration[]} */

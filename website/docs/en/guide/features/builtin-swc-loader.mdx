@@ -23,15 +23,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
         type: 'javascript/auto',
       },
@@ -49,15 +45,12 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
               transform: {
                 react: {
                   pragma: 'React.createElement',
@@ -235,6 +228,42 @@ export default {
 
 The following is an introduction to some SWC configurations and Rspack specific configurations. Please refer to the [SWC Configurations](https://swc.rs/docs/configuration/swcrc) for the complete options.
 
+### detectSyntax
+
+<ApiMeta addedVersion="2.0.0" />
+
+- Type: `false | "auto"`
+- Default: `false`
+
+When set to `"auto"`, `builtin:swc-loader` infers `jsc.parser` from the resource extension. This is useful when one rule needs to handle mixed module types such as `.js`, `.jsx`, `.ts`, and `.tsx`.
+
+Inference rules:
+
+- `.js`, `.jsx`, `.mjs`, `.cjs` -> `{ syntax: "ecmascript", jsx: true }`
+- `.ts`, `.mts`, `.cts` -> `{ syntax: "typescript", tsx: false }`
+- `.tsx` -> `{ syntax: "typescript", tsx: true }`
+- Resources without a recognizable extension -> `{ syntax: "typescript", tsx: true }`
+
+> If `jsc.parser.syntax` is explicitly provided, `detectSyntax` does not infer syntax.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### jsc.experimental.plugins
 
 <ApiMeta stability={Stability.Experimental} />
@@ -328,7 +357,7 @@ export default {
   module: {
     rules: [
       {
-        use: 'builtin:swc-loader',
+        loader: 'builtin:swc-loader',
         options: {
           transformImport: [
             {
@@ -358,7 +387,7 @@ export default {
   module: {
     rules: [
       {
-        use: 'builtin:swc-loader',
+        loader: 'builtin:swc-loader',
         options: {
           transformImport: [
             {
@@ -392,7 +421,7 @@ export default {
   module: {
     rules: [
       {
-        use: 'builtin:swc-loader',
+        loader: 'builtin:swc-loader',
         options: {
           transformImport: [
             {
@@ -423,7 +452,7 @@ export default {
   module: {
     rules: [
       {
-        use: 'builtin:swc-loader',
+        loader: 'builtin:swc-loader',
         options: {
           transformImport: [
             {
@@ -492,16 +521,12 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 exportedEnum: isProduction,
               },

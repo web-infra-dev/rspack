@@ -1,15 +1,15 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		module: true
-	},
-	target: ["web", "es2020"],
-	optimization: {
-		splitChunks: {
-			minSize: 1,
-			maxSize: 1
-		}
-	}
+  output: {
+    module: true,
+  },
+  target: ['web', 'es2020'],
+  optimization: {
+    splitChunks: {
+      minSize: 1,
+      maxSize: 1,
+    },
+  },
 };

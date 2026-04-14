@@ -2,7 +2,7 @@
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   timezone: 'Asia/Shanghai',
   extends: [':dependencyDashboard', 'helpers:pinGitHubActionDigests'],
-  schedule: ['before 8am on wednesday'],
+  schedule: ['before 8am on saturday'],
   enabledManagers: ['github-actions', 'cargo', 'npm'],
   ignorePaths: [
     '**/fixtures/**',
@@ -96,6 +96,12 @@
       matchManagers: ['cargo'],
       matchFileNames: ['crates/rspack_plugin_css/Cargo.toml'],
       matchPackageNames: ['indexmap'],
+      enabled: false,
+    },
+    {
+      groupName: 'ignored linting crates',
+      matchManagers: ['cargo'],
+      matchFileNames: ['linting/**/Cargo.toml'],
       enabled: false,
     },
     {

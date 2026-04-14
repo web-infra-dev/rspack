@@ -302,6 +302,10 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn set_external_type(&mut self, new_type: ExternalType) {
+    self.external_type = new_type;
+  }
+
   pub fn get_request(&self) -> &ExternalRequestValue {
     match &self.request {
       ExternalRequest::Single(request) => request,
@@ -412,9 +416,13 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__rspack_external_{}", to_identifier(id));
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) {
           format!(
@@ -443,9 +451,13 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
+          side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) && let Some(request) = request
         {
@@ -493,6 +505,13 @@ impl ExternalModule {
               .exports_info_artifact
               .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
             let used_exports = exports_info.get_used_exports(runtime);
+            let namespace_used_by_named_exports = matches!(
+              &used_exports,
+              UsedExports::UsedNames(atoms)
+                if atoms
+                  .iter()
+                  .any(|atom| exports_info.get_read_only_export_info(atom).ns_access())
+            );
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {
               format!(
@@ -565,6 +584,11 @@ impl ExternalModule {
                 safe_to_optimize
               };
 
+            // When the external request includes additional specifiers (e.g. ["module fs", "promises"]),
+            // force namespace import so we can apply property access on the namespace object.
+            // This matches webpack's: if (moduleAndSpecifiers.length > 1) imported = true;
+            let force_namespace = request.has_rest();
+
             match used_exports {
               UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
                 let external_module_id = format!("__rspack_external_{id}");
@@ -590,7 +614,7 @@ impl ExternalModule {
                 );
               }
               UsedExports::UsedNames(atoms) => {
-                if !safe_to_optimize {
+                if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
                   chunk_init_fragments.push(
                     NormalInitFragment::new(
                       format!(
@@ -669,10 +693,11 @@ impl ExternalModule {
             );
             format!(
               r#"
-{} = __rspack_external_{};
+{} = __rspack_external_{}{};
 "#,
               get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-              id.clone()
+              id.clone(),
+              property_access(request.iter(), 1)
             )
           }
         } else {
@@ -720,6 +745,9 @@ if(typeof {global} !== "undefined") return resolve();
         let check_external_variable = if module_graph.is_optional(
           &self.id,
           module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
           &compilation.exports_info_artifact,
         ) {
           format!(
@@ -964,9 +992,13 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
     let is_optional = compilation.get_module_graph().is_optional(
       &self.id,
       &compilation.module_graph_cache_artifact,
+      side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
     is_optional.dyn_hash(&mut hasher);

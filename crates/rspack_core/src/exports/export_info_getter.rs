@@ -200,6 +200,7 @@ impl ExportInfoData {
     self.used_name().is_some()
       || self.provided().is_some()
       || self.terminal_binding()
+      || self.ns_access() != base_info.ns_access()
       || (self.get_used(runtime) != base_info.get_used(runtime))
   }
 

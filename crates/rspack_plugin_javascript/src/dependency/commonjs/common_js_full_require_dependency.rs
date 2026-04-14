@@ -8,7 +8,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName, create_exports_object_referenced, get_exports_type, property_access, to_normal_comment,
+  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -86,23 +86,24 @@ impl Dependency for CommonJsFullRequireDependency {
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let mut namespace_object_as_context = self.namespace_object_as_context;
-    let parent_module = module_graph
-      .get_parent_module(&self.id)
-      .expect("should have parent module");
-    let exports_type = get_exports_type(
+
+    let module = module_graph
+      .get_module_by_dependency_id(&self.id)
+      .expect("should have module");
+    let exports_type = module.get_exports_type(
       module_graph,
       module_graph_cache,
       exports_info_artifact,
-      &self.id,
-      parent_module,
+      false,
     );
 
-    // Force enable namespace object as context for DefaultOnly and DefaultWithNamed
-    // because it's more common in cjs and json
+    // Force enable namespace object as context for json module, it's a common case:
+    // import json from "./array.json"; json.map(d => d * 2);
     if matches!(
       exports_type,
       ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) {
+    ) && module.build_info().json_data.is_some()
+    {
       namespace_object_as_context = true;
     }
 

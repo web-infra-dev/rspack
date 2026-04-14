@@ -219,6 +219,9 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
 
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
+
+  // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
+  D(experiments, 'pureFunctions', false);
 };
 
 const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
@@ -278,6 +281,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
+  D(parserOptions, 'importMetaResolve', false);
 };
 
 const applyCssGeneratorOptionsDefaults = (
@@ -869,8 +873,7 @@ const applyOutputDefaults = (
   if (typeof output.bundlerInfo === 'object') {
     D(output.bundlerInfo, 'version', RSPACK_VERSION);
     D(output.bundlerInfo, 'bundler', 'rspack');
-    // don't inject for library mode
-    D(output.bundlerInfo, 'force', !output.library);
+    D(output.bundlerInfo, 'force', false);
   }
 };
 
@@ -904,7 +907,6 @@ const applyExternalsPresetsDefaults = (
   D(
     externalsPresets,
     'electron',
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     (targetProperties && targetProperties.electron) || isUniversal('electron'),
   );
   D(
@@ -968,18 +970,15 @@ const applyNodeDefaults = (
   if (node === false) return;
 
   F(node, 'global', () => {
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
   F(node, '__dirname', () => {
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
   F(node, '__filename', () => {
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     if (targetProperties && targetProperties.node)
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
@@ -1048,7 +1047,7 @@ const applyOptimizationDefaults = (
     D(splitChunks, 'minChunks', 1);
     F(splitChunks, 'minSize', () => (production ? 20000 : 10000));
     // F(splitChunks, "minRemainingSize", () => (development ? 0 : undefined));
-    // F(splitChunks, "enforceSizeThreshold", () => (production ? 50000 : 30000));
+    F(splitChunks, 'enforceSizeThreshold', () => (production ? 50000 : 30000));
     F(splitChunks, 'maxAsyncRequests', () =>
       production ? 30 : Number.POSITIVE_INFINITY,
     );
@@ -1111,7 +1110,6 @@ const getResolveDefaults = ({
   const tp = targetProperties;
 
   const browserField =
-    // biome-ignore lint/complexity/useOptionalChain: change to optionalChain will have type error
     tp && tp.web && (!tp.node || (tp.electron && tp.electronRenderer));
   const aliasFields = browserField ? ['browser'] : [];
   const mainFields = browserField

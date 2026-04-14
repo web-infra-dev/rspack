@@ -1,18 +1,18 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
-	{
-		entry: ["./index.mjs"],
-		output: {
-			module: false
-		}
-	},
-	{
-		name: "test-output",
-		entry: "./test.js",
-		output: {
-			filename: "test.js"
-		}
-	}
+  {
+    entry: ['./index.mjs'],
+    output: {
+      module: false,
+    },
+  },
+  {
+    name: 'test-output',
+    entry: './test.js',
+    output: {
+      filename: 'test.js',
+    },
+  },
 ];

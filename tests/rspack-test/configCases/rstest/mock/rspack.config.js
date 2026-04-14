@@ -1,20 +1,20 @@
-const path = require("path");
+const path = require('path');
 const {
-	experiments: { RstestPlugin }
-} = require("@rspack/core");
+  experiments: { RstestPlugin },
+} = require('@rspack/core');
 
 class RstestSimpleRuntimePlugin {
-	constructor() {}
+  constructor() {}
 
-	apply(compiler) {
-		const { RuntimeModule, RuntimeGlobals } = compiler.rspack;
-		class RetestImportRuntimeModule extends RuntimeModule {
-			constructor() {
-				super("rstest runtime");
-			}
+  apply(compiler) {
+    const { RuntimeModule, RuntimeGlobals } = compiler.rspack;
+    class RetestImportRuntimeModule extends RuntimeModule {
+      constructor() {
+        super('rstest runtime');
+      }
 
-			generate() {
-				return `
+      generate() {
+        return `
 if (typeof __webpack_require__ === 'undefined') {
   return;
 }
@@ -119,99 +119,113 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
   }
 };
 
+__webpack_require__.rstest_do_mock_require = __webpack_require__.rstest_do_mock;
+
 __webpack_require__.rstest_hoisted = (fn) => {
   return fn();
 };
 `;
-			}
-		}
+      }
+    }
 
-		compiler.hooks.thisCompilation.tap(
-			"RstestSimpleRuntimePlugin",
-			compilation => {
-				compilation.hooks.additionalTreeRuntimeRequirements.tap(
-					"RstestSimpleRuntimePlugin",
-					chunk => {
-						compilation.addRuntimeModule(
-							chunk,
-							new RetestImportRuntimeModule()
-						);
-					}
-				);
-			}
-		);
-	}
+    compiler.hooks.thisCompilation.tap(
+      'RstestSimpleRuntimePlugin',
+      (compilation) => {
+        compilation.hooks.additionalTreeRuntimeRequirements.tap(
+          'RstestSimpleRuntimePlugin',
+          (chunk) => {
+            compilation.addRuntimeModule(
+              chunk,
+              new RetestImportRuntimeModule(),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 const rstestEntry = (entry, rstestPluginOptions = {}) => {
-	return {
-		entry,
-		target: "node",
-		node: {
-			__filename: false,
-			__dirname: false
-		},
-		optimization: {
-			// TODO: should only mark mocked modules as used.
-			usedExports: false,
-			mangleExports: false,
-			concatenateModules: false,
-			moduleIds: "named"
-		},
-		module: {
-			rules: [
-				{
-					test: /\.js$/,
-					loader: path.resolve(__dirname, './importActualLoader.mjs'),
-					with: {
-						rstest: 'importActual'
-					}
-				}
-			]
-		},
-		plugins: [
-			new RstestSimpleRuntimePlugin(),
-			new RstestPlugin({
-				injectModulePathName: true,
-				hoistMockModule: true,
-				importMetaPathName: true,
-				manualMockRoot: path.resolve(__dirname, "__mocks__"),
-				...rstestPluginOptions,
-			})
-		]
-	};
+  return {
+    entry,
+    target: 'node',
+    node: {
+      __filename: false,
+      __dirname: false,
+    },
+    optimization: {
+      // TODO: should only mark mocked modules as used.
+      usedExports: false,
+      mangleExports: false,
+      concatenateModules: false,
+      moduleIds: 'named',
+    },
+    module: {
+      rules: [
+        {
+          test: /\.js$/,
+          loader: path.resolve(__dirname, './importActualLoader.mjs'),
+          with: {
+            rstest: 'importActual',
+          },
+        },
+      ],
+    },
+    plugins: [
+      new RstestSimpleRuntimePlugin(),
+      new RstestPlugin({
+        injectModulePathName: true,
+        hoistMockModule: true,
+        importMetaPathName: true,
+        manualMockRoot: path.resolve(__dirname, '__mocks__'),
+        ...rstestPluginOptions,
+      }),
+    ],
+  };
 };
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
-	rstestEntry("./doMock.js"),
-	rstestEntry("./mockFactory.js"),
-	rstestEntry("./manualMock.js"),
-	rstestEntry("./importActual.js"),
-	rstestEntry("./importActualHoisted.js"),
-	rstestEntry("./requireActual.js"),
-	{
-		entry: "./test.js",
-		target: "node",
-		node: {
-			__filename: false,
-			__dirname: false
-		},
-		optimization: {
-			mangleExports: false
-		}
-	},
-	rstestEntry("./mockFirstArgIsImport.js"),
-	rstestEntry("./reExportMockedModule.js"),
-	rstestEntry("./reExportDoMockedModule.js"),
-	rstestEntry("./reExportTripleMockedModule.js"),
-	rstestEntry("./reExportTripleDoMockedModule.js"),
-	rstestEntry("./globals/importActual.js"),
-	rstestEntry("./globals-false/importActual.js", { globals: false }),
-	{
-		...rstestEntry("./hoisted.js"),
-		externals: {
-			"@rstest/core": "global @rstest/core"
-		}
-	}
+  rstestEntry('./doMock.js'),
+  rstestEntry('./mockFactory.js'),
+  rstestEntry('./manualMock.js'),
+  rstestEntry('./builtinManualMock.js'),
+  rstestEntry('./nodeModulesManualMock.js'),
+  rstestEntry('./directoryManualMock.js'),
+  rstestEntry('./importActual.js'),
+  rstestEntry('./importActualHoisted.js'),
+  rstestEntry('./requireActual.js'),
+  rstestEntry('./doMockRequire.js'),
+  rstestEntry('./unmockRequire.js'),
+  {
+    entry: './test.js',
+    target: 'node',
+    node: {
+      __filename: false,
+      __dirname: false,
+    },
+    optimization: {
+      mangleExports: false,
+    },
+  },
+  rstestEntry('./mockFirstArgIsImport.js'),
+  rstestEntry('./reExportMockedModule.js'),
+  rstestEntry('./reExportDoMockedModule.js'),
+  rstestEntry('./reExportTripleMockedModule.js'),
+  rstestEntry('./reExportTripleDoMockedModule.js'),
+  rstestEntry('./globals/importActual.js'),
+  rstestEntry('./globals-false/importActual.js', { globals: false }),
+  {
+    ...rstestEntry('./mainFilesManualMock.js'),
+    resolve: {
+      mainFiles: ['main'],
+    },
+  },
+  rstestEntry('./filePrecedenceManualMock.js'),
+  {
+    ...rstestEntry('./hoisted.js'),
+    externals: {
+      '@rstest/core': 'global @rstest/core',
+    },
+  },
 ];

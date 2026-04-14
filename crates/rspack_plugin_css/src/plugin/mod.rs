@@ -126,14 +126,14 @@ impl CssPlugin {
         // done, everything empty
         break;
       }
-      let mut selected_module = *list.last().expect("TODO:");
+      let mut selected_module = *list.last().expect("list should not be empty");
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
           if list.is_empty() {
             continue;
           }
-          let last_module = *list.last().expect("TODO:");
+          let last_module = *list.last().expect("list should not be empty");
           if last_module.identifier() == selected_module.identifier() {
             continue;
           }

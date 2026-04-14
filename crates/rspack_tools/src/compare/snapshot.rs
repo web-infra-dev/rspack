@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::from_bytes;
 use rspack_core::cache::persistent::{
   snapshot::{SnapshotScope, Strategy},
@@ -14,8 +12,8 @@ use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 #[allow(dead_code)]
 pub async fn compare(
   scope: SnapshotScope,
-  storage1: Arc<dyn Storage>,
-  storage2: Arc<dyn Storage>,
+  storage1: &dyn Storage,
+  storage2: &dyn Storage,
   debug_info: DebugInfo,
 ) -> Result<()> {
   // Load snapshot data from both storages

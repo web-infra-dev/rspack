@@ -1,7 +1,10 @@
-use std::{borrow::Cow, hash::Hash};
+use std::{
+  borrow::Cow,
+  hash::{BuildHasherDefault, Hash},
+};
 
 use rspack_cacheable::cacheable;
-use rspack_collections::Identifier;
+use rspack_collections::{Identifier, IdentifierHasher};
 use rspack_util::ext::DynHash;
 
 use crate::{
@@ -20,6 +23,14 @@ pub trait DependenciesBlock {
 
   fn get_dependencies(&self) -> &[DependencyId];
 }
+
+pub type AsyncDependenciesBlockIdentifierMap<V> = std::collections::HashMap<
+  AsyncDependenciesBlockIdentifier,
+  V,
+  BuildHasherDefault<IdentifierHasher>,
+>;
+pub type AsyncDependenciesBlockIdentifierSet =
+  std::collections::HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>>;
 
 pub fn dependencies_block_update_hash(
   deps: &[DependencyId],

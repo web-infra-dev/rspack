@@ -11,33 +11,16 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-anyhow = { workspace = true }
-base64 = { workspace = true }
-indoc = { workspace = true }
-rustc-hash = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
-swc_config = { workspace = true }
-swc_core = { workspace = true, features = [
-  "__ecma",
-  "__visit",
-  "__utils",
-  "__ecma_transforms",
-  "__parser",
-  "ecma_ast",
-  "ecma_codegen",
-  "ecma_quote",
-  "common_concurrent",
-  "swc_ecma_ast",
-  "ecma_transforms_react",
-  "ecma_transforms_module",
-  "ecma_parser_unstable",
-  "swc_ecma_codegen",
-  "swc_ecma_visit",
-] }
-swc_ecma_minifier = { workspace = true, features = ["concurrent"] }
+anyhow              = { workspace = true }
+base64              = { workspace = true }
+indoc               = { workspace = true }
+rustc-hash          = { workspace = true }
+serde               = { workspace = true, features = ["derive"] }
+swc_config          = { workspace = true }
+swc_core            = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "__parser", "ecma_ast", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "ecma_parser_unstable", "swc_ecma_codegen", "swc_ecma_visit"] }
+swc_ecma_minifier   = { workspace = true, features = ["concurrent"] }
 swc_error_reporters = { workspace = true }
-swc_node_comments = { workspace = true }
-url = { workspace = true }
+url                 = { workspace = true }
 
 rspack_error     = { workspace = true }
 rspack_sources   = { workspace = true }
@@ -49,3 +32,7 @@ workspace = true
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }
+
+[lib]
+doctest = false
+test    = false

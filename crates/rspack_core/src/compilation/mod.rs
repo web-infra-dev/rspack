@@ -74,7 +74,8 @@ use crate::{
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -91,7 +92,7 @@ define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compil
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact));
+define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact, side_effects_state_artifact: &mut SideEffectsStateArtifact));
 define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationDependencyReferencedExports: Sync(
   compilation: &Compilation,
@@ -201,7 +202,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
-  pub records: Option<CompilationRecords>,
+  pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
@@ -325,7 +326,7 @@ impl Compilation {
     buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
-    records: Option<CompilationRecords>,
+    records: Option<Arc<CompilationRecords>>,
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
     modified_files: ArcPathSet,

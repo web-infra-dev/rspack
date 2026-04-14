@@ -41,7 +41,7 @@ jobs:
           node-version: 22
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Calculate Node Bin Path
         id: calculate-node-bin-path
@@ -55,7 +55,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.58.2-jammy
+          image: mcr.microsoft.com/playwright:v1.59.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -70,7 +70,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.58.2-jammy
+          image: mcr.microsoft.com/playwright:v1.59.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -78,8 +78,7 @@ jobs:
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
             export WASM=1
             pnpm run build:js
-            pnpm run test:e2e
-
+            pnpm run test:e2e-browser
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
@@ -88,7 +87,7 @@ jobs:
       matrix:
         node: ${{ fromJSON(
           inputs.target == 'wasm32-wasip1-threads'&& '[24]'
-          || contains(inputs.target, 'linux') && '[20, 22, 24]'
+          || contains(inputs.target, 'linux') && '[20, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}
     defaults:
@@ -120,9 +119,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
-        with:
-          save-if: ${{ github.ref_name == 'main' && matrix.node == '20' }}
+        run: pnpm i
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
@@ -131,12 +128,11 @@ jobs:
         run: pnpm run test:ci
 
       - name: Upload linux test cache
-        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '22' }}
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '24' }}
         uses: ./.github/actions/artifact/upload
         with:
           name: testCase-persistentCache-linux
           path: tests/rspack-test/js/temp/**/.cache
-          force-use-github: true
           include-hidden-files: true
 
       ### *-apple-darwin
@@ -165,7 +161,6 @@ jobs:
         with:
           name: testCase-persistentCache-windows
           path: tests/rspack-test/js/temp/**/.cache
-          force-use-github: true
           include-hidden-files: true
 
       ### WASM

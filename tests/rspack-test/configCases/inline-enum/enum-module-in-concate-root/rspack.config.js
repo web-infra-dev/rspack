@@ -9,13 +9,9 @@ module.exports = {
         sideEffects: false,
         use: [
           {
-            loader: "builtin:swc-loader",
+            loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: "typescript",
-                }
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 exportedEnum: true,
               },
@@ -27,6 +23,6 @@ module.exports = {
   },
   optimization: {
     concatenateModules: true,
-    inlineExports: true
+    inlineExports: true,
   },
-}
+};

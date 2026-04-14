@@ -289,6 +289,11 @@ pub struct RawJavascriptParserOptions {
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<String>,
   pub import_meta: Option<String>,
+  pub commonjs_magic_comments: Option<bool>,
+  #[napi(ts_type = "boolean | { exports?: boolean | 'skipInEsm' }")]
+  pub commonjs: Option<Either<bool, RawJavascriptParserCommonjsOptions>>,
+  pub defer_import: Option<bool>,
+
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub require_alias: Option<bool>,
@@ -301,19 +306,23 @@ pub struct RawJavascriptParserOptions {
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub require_resolve: Option<bool>,
-  #[napi(ts_type = "boolean | { exports?: boolean | 'skipInEsm' }")]
-  pub commonjs: Option<Either<bool, RawJavascriptParserCommonjsOptions>>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub import_dynamic: Option<bool>,
-  pub commonjs_magic_comments: Option<bool>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub type_reexports_presence: Option<String>,
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
   pub jsx: Option<bool>,
-  pub defer_import: Option<bool>,
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  pub import_meta_resolve: Option<bool>,
+  /// Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+  /// This option is experimental in Rspack only and subject to change or be removed anytime.
+  /// @experimental
+  #[napi(js_name = "pureFunctions")]
+  pub pure_functions: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -396,6 +405,10 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       jsx: value.jsx,
       defer_import: value.defer_import,
+      import_meta_resolve: value.import_meta_resolve,
+      side_effects_free: value
+        .pure_functions
+        .map(|functions| functions.into_iter().collect()),
     }
   }
 }

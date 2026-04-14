@@ -20,10 +20,10 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
   PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -95,10 +95,6 @@ impl ESMExportImportedSpecifierDependency {
       factorize_info: Default::default(),
       lazy_make: false,
     }
-  }
-
-  pub fn set_lazy(&mut self) {
-    self.lazy_make = true;
   }
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
@@ -729,7 +725,16 @@ impl ESMExportImportedSpecifierDependency {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
               filter_runtime(ctxt.runtime, |r| {
-                connection.is_target_active(mg, r, mg_cache, exports_info_artifact)
+                connection.is_target_active(
+                  mg,
+                  r,
+                  mg_cache,
+                  &ctxt
+                    .compilation
+                    .build_module_graph_artifact
+                    .side_effects_state_artifact,
+                  exports_info_artifact,
+                )
               })
             } else {
               RuntimeCondition::Boolean(true)
@@ -1320,6 +1325,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -1474,6 +1480,10 @@ impl Dependency for ESMExportImportedSpecifierDependency {
         LazyUntil::Fallback
       }
     })
+  }
+
+  fn set_lazy(&mut self) {
+    self.lazy_make = true;
   }
 
   fn unset_lazy(&mut self) -> bool {
@@ -1670,6 +1680,7 @@ impl DependencyConditionFn for ESMExportImportedSpecifierDependencyCondition {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let dependency = module_graph.dependency_by_id(&connection.dependency_id);

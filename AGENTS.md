@@ -9,6 +9,13 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - **Monorepo** with Rust crates (`crates/`) and JavaScript packages (`packages/`)
 - See [Project Architecture](website/docs/en/contribute/development/project.md) for details
 
+## Concurrency architecture
+
+- **Synchronous concurrency**: Prefer `rayon` for CPU-bound parallel work and data-parallel iteration
+- **Asynchronous concurrency**: Prefer the abstractions provided by `rspack_parallel` instead of using raw `tokio` task orchestration directly
+- **Thread pool boundaries**: Avoid mixing `rayon` and `tokio` thread pools for the same workflow unless there is a clear boundary that cannot be avoided
+- **Rule of thumb**: Do not use `tokio` to parallelize synchronous CPU-heavy work, and do not introduce `rayon` inside async orchestration that should stay within `rspack_parallel`
+
 ## Setup
 
 - **Rust**: Latest stable (via [rustup](https://rustup.rs/))
@@ -50,9 +57,8 @@ Before running tests after code changes:
 
 ## Code quality
 
-- **Linting**: `pnpm run lint:js` (Biome), `pnpm run lint:rs` (cargo check), `pnpm run lint:type` (Rslint)
-- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
-- **Rust gate**: After modifying Rust code, ensure both `cargo fmt --all --check` and `cargo lint` pass before commit/PR
+- **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check), `cargo lint` (Rust)
+- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo), `cargo fmt --all --check` (Rust)
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
 ## Common tasks
@@ -69,7 +75,7 @@ Before running tests after code changes:
 
 ### Modifying code
 
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, and ensure `cargo fmt --all --check && cargo lint` passes
+- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
 ### Adding tests

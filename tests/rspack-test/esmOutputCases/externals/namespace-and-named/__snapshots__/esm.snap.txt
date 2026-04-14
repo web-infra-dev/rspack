@@ -1,0 +1,16 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+// fs
+
+// ./index.js
+
+
+
+it("should keep namespace and named external imports aligned", () => {
+  expect(__rspack_external_fs.readFile).toBe(__rspack_external_fs.readFile);
+  expect(__rspack_external_fs.readFileSync).toBe(__rspack_external_fs.readFileSync);
+});
+
+export {};
+
+```

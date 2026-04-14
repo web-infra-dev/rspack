@@ -1,0 +1,13 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+const value = 234;
+
+it("should tree-shake an unused export-star-as namespace binding", () => {
+  expect(value).toBe(234);
+});
+
+export {};
+
+```

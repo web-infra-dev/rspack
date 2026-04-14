@@ -1,6 +1,6 @@
 /** @type {import("@rspack/coresrc/index").RspackOptions} */
 module.exports = {
-	output: {
-		library: "Lib"
-	}
+  output: {
+    library: 'Lib',
+  },
 };

@@ -32,9 +32,28 @@ new Worker(new URL('./worker.js', import.meta.url), {
 This syntax was chosen for its strong standards compliance. It's built on the standard ECMAScript module specification, which means it works seamlessly even without build tools. For example, it runs natively in modern browsers with ES module support.
 :::
 
-### Additional syntax
+For usage examples, see:
 
-In addition to `new Worker()`, Rspack also supports the following syntax by default:
+- [examples/worker](https://github.com/rstackjs/rstack-examples/tree/main/rspack/worker)
+- [examples/monaco-editor-js](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-js)
+- [examples/monaco-editor-ts-react](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
+
+### Limitations
+
+1. Because Rspack relies on static analysis to identify worker usage, it has the following two limitations:
+   - `new Worker` and other worker-like APIs can usually also accept a string representation of a URL, but Rspack only supports passing a URL object. In practice, you must pass `new URL('./worker.js', import.meta.url)`.
+   - Rspack cannot statically analyze variables used in `new Worker`. For example, the following code will not work:
+
+     ```js
+     const url = new URL('./path/to/worker.js', import.meta.url);
+     const worker = new Worker(url);
+     ```
+
+2. The `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comment is not supported yet.
+
+## Built-in syntax
+
+In addition to `new Worker()`, Rspack also supports the following built-in forms by default:
 
 - `new SharedWorker()`, see [SharedWorker](https://developer.mozilla.org/en-US/docs/Web/API/SharedWorker)
 
@@ -45,10 +64,10 @@ const sharedWorker = new SharedWorker(
 sharedWorker.port.start();
 ```
 
-- `import { Worker } from "node:worker_threads"`: commonly used in Node.js environments, see [Worker threads](https://nodejs.org/api/worker_threads.html)
+- `import { Worker } from "worker_threads"`: commonly used in Node.js environments, see [Worker threads](https://nodejs.org/api/worker_threads.html)
 
 ```js
-import { Worker } from 'node:worker_threads';
+import { Worker } from 'worker_threads';
 
 const worker = new Worker(new URL('./node-worker.js', import.meta.url));
 ```
@@ -56,34 +75,207 @@ const worker = new Worker(new URL('./node-worker.js', import.meta.url));
 - `navigator.serviceWorker.register()`: used to register Service Workers, see [ServiceWorkerContainer](https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerContainer/register)
 
 ```js
-navigator.serviceWorker.register('./sw.js').then((registration) => {
-  console.log('Service worker registration succeeded:', registration);
-});
+navigator.serviceWorker
+  .register(new URL('./sw.js', import.meta.url))
+  .then((registration) => {
+    console.log('Service worker registration succeeded:', registration);
+  });
 ```
 
-To support additional custom syntax, you can configure it through [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker).
+## Custom syntax
 
-### Examples
+Use [`module.parser.javascript.worker`](/config/module#moduleparserjavascriptworker) to tell Rspack which expressions should be analyzed as worker-like entry creation:
 
-For usage examples, see:
+- `true` keeps the built-in defaults and is equivalent to `['...']`.
+- `false` disables worker syntax analysis and is equivalent to `[]`.
+- An array replaces the defaults. Keep `'...'` in the array if you want to extend the built-in defaults instead of replacing them.
 
-- [examples/worker](https://github.com/rstackjs/rstack-examples/tree/main/rspack/worker)
-- [examples/monaco-editor-js](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-js)
-- [examples/monaco-editor-ts-react](https://github.com/rstackjs/rstack-examples/tree/main/rspack/monaco-editor-ts-react)
+The built-in syntax is implemented using the same mechanism. The `'...'` placeholder can be expanded to the following entries:
 
-### Notes
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          'Worker',
+          'SharedWorker',
+          'navigator.serviceWorker.register()',
+          'Worker from worker_threads',
+        ],
+      },
+    },
+  },
+};
+```
 
-1. Note that `new Worker` can also accept a string representation of a URL, but only passing in URLs is supported in Rspack.
-2. Rspack does not support the use of variables in `new Worker`. For example, the following code will not work:
+The following rules explain the custom syntax:
 
-   ```js
-   const url = new URL('./path/to/worker.js', import.meta.url);
-   const worker = new Worker(url);
-   ```
+- A trailing `()` matches call syntax, while no trailing `()` matches constructor syntax.
+  - `'worker'` will match `new worker(new URL("./worker.js", import.meta.url))`.
+  - `'worker()'` will match `worker(new URL("./worker.js", import.meta.url))`.
+- Member syntax is also supported, but the root object must be a free variable.
+  - `'foo.bar'` will match `new foo.bar(new URL("./worker.js", import.meta.url))`.
+  - `'foo.bar()'` will match `foo.bar(new URL("./worker.js", import.meta.url))`.
+- Use `*` to match a root object by its exact variable name. Unlike plain member syntax, the root object here is a declared variable rather than a free variable.
+  - `'*foo.bar()'` will match `const foo = new WorkletContext(); foo.bar(new URL("./processor.js", import.meta.url))`.
+  - For now, `*`-prefixed syntax supports only call syntax; constructor syntax such as `'*foo.bar'` is not supported.
+- Use `from` to match an imported binding from an exact ESM source.
+  - `'Foo from pkg'` will match `import { Foo } from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`.
+  - `'default from pkg'` will match `import Foo from 'pkg'; new Foo(new URL("./worker.js", import.meta.url))`.
+  - `'foo() from pkg'` will match `import { foo } from 'pkg'; foo(new URL("./worker.js", import.meta.url))`.
 
-   This is because Rspack cannot statically analyze the syntax. Please be sure to note this limitation when using the Worker syntax in Rspack.
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        worker: [
+          // custom syntax
+          'MyWorker',
+          'myWorker()',
+          'CSS.paintWorklet.addModule()',
+          '*audioContext.audioWorklet.addModule()',
+          'default from web-worker',
+          // extend built-in syntax
+          '...',
+        ],
+      },
+    },
+  },
+};
+```
 
-3. Not support `/* webpackEntryOptions: { filename: "workers/[name].js" } */` magic comments for now.
+The following examples show how these custom syntax rules work in practice.
+
+The first few examples are based on the built-in syntax. In practice, you do not need to add them to the config because they are already included in the default `'...'`. They are shown here only to explain how the custom syntax rules work:
+
+- Built-in constructor syntax: `Worker` and `SharedWorker`
+
+  `Worker` and `SharedWorker` are constructors, not functions, so the syntax string does not need trailing `()`.
+
+  ```js
+  const worker = new Worker(new URL('./worker.js', import.meta.url));
+
+  const sharedWorker = new SharedWorker(
+    new URL('./shared-worker.js', import.meta.url),
+  );
+  ```
+
+- Built-in call syntax: `navigator.serviceWorker.register()`
+
+  This example shows why trailing `()` matters: `register()` is a function call, not a constructor.
+
+  ```js
+  await navigator.serviceWorker.register(new URL('./sw.js', import.meta.url));
+  ```
+
+- Built-in import syntax: `Worker from worker_threads`
+
+  This example shows the `from` rule. The import source must match exactly.
+
+  ```js
+  import { Worker } from 'worker_threads';
+
+  const worker = new Worker(new URL('./node-worker.js', import.meta.url));
+  ```
+
+The remaining examples show some common patterns in the ecosystem that can be supported through custom syntax:
+
+- CSS Worklet
+
+  The syntax `CSS.paintWorklet.addModule()` is a direct member call, so the config string ends with `()`.
+
+  ```js title="rspack.config.mjs"
+  export default {
+    module: {
+      parser: {
+        javascript: {
+          worker: [
+            'CSS.paintWorklet.addModule()',
+            'CSS.layoutWorklet.addModule()',
+            'CSS.animationWorklet.addModule()',
+            '...',
+          ],
+        },
+      },
+    },
+  };
+  ```
+
+  ```js
+  await CSS.paintWorklet.addModule(
+    new URL('./paint-worklet.js', import.meta.url),
+  );
+
+  await CSS.layoutWorklet.addModule(
+    new URL('./layout-worklet.js', import.meta.url),
+  );
+
+  await CSS?.animationWorklet?.addModule(
+    new URL('./animation-worklet.js', import.meta.url),
+  );
+  ```
+
+- AudioWorklet
+
+  Unlike CSS Worklet, the root object in `audioContext.audioWorklet.addModule(...)` is not a free variable. It is a variable declared by `const audioContext = new AudioContext();`, so the custom syntax needs to start with `*` to indicate that the root object is a declared variable.
+
+  ```js title="rspack.config.mjs"
+  export default {
+    module: {
+      parser: {
+        javascript: {
+          worker: ['*audioContext.audioWorklet.addModule()', '...'],
+        },
+      },
+    },
+  };
+  ```
+
+  ```js
+  const audioContext = new AudioContext();
+
+  await audioContext.audioWorklet.addModule(
+    new URL('./noise-processor.js', import.meta.url),
+  );
+  ```
+
+- Importing workers from third-party packages.
+
+  These examples show how `from` works with different import styles.
+
+  ```js title="rspack.config.mjs"
+  export default {
+    module: {
+      parser: {
+        javascript: {
+          worker: [
+            'default from web-worker',
+            'createWorker() from @myorg/worker',
+            '...',
+          ],
+        },
+      },
+    },
+  };
+  ```
+
+  ```js
+  import Worker from 'web-worker';
+
+  const browserWorker = new Worker(
+    new URL('./browser-worker.js', import.meta.url),
+  );
+  ```
+
+  ```js
+  import { createWorker } from '@myorg/worker';
+
+  const helperWorker = createWorker(
+    new URL('./helper-worker.js', import.meta.url),
+  );
+  ```
 
 ## worker-loader
 

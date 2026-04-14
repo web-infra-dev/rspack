@@ -1,5 +1,3 @@
-use std::sync::Mutex;
-
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{Result, Storage};
@@ -13,53 +11,42 @@ use crate::{Result, Storage};
 pub struct MemoryStorage {
   /// Internal storage structure: scope -> (key -> value)
   #[allow(clippy::type_complexity)]
-  inner: Mutex<HashMap<String, HashMap<Vec<u8>, Vec<u8>>>>,
+  inner: HashMap<String, HashMap<Vec<u8>, Vec<u8>>>,
 }
 
 #[async_trait::async_trait]
 impl Storage for MemoryStorage {
   async fn load(&self, scope: &'static str) -> Result<Vec<(Vec<u8>, Vec<u8>)>> {
-    if let Some(value) = self.inner.lock().expect("should get lock").get(scope) {
+    if let Some(value) = self.inner.get(scope) {
       Ok(value.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
     } else {
       Ok(vec![])
     }
   }
 
-  fn set(&self, scope: &str, key: Vec<u8>, value: Vec<u8>) {
-    let mut map = self.inner.lock().expect("should get lock");
-    let inner = map.entry(String::from(scope)).or_default();
+  fn set(&mut self, scope: &'static str, key: Vec<u8>, value: Vec<u8>) {
+    let inner = self.inner.entry(String::from(scope)).or_default();
     inner.insert(key, value);
   }
 
-  fn remove(&self, scope: &str, key: &[u8]) {
-    let mut map = self.inner.lock().expect("should get lock");
-    map.get_mut(scope).map(|map| map.remove(key));
+  fn remove(&mut self, scope: &'static str, key: &[u8]) {
+    self.inner.get_mut(scope).map(|map| map.remove(key));
   }
 
-  async fn save(&self) -> Result<()> {
+  fn save(&mut self) {
     // MemoryStorage holds all data in memory; nothing to persist
-    Ok(())
   }
 
   async fn flush(&self) {
     // MemoryStorage has no background tasks; nothing to flush
   }
 
-  async fn reset(&self) {
-    self.inner.lock().expect("should get lock").clear();
+  fn reset(&mut self, scope: &'static str) {
+    self.inner.remove(scope);
   }
 
   async fn scopes(&self) -> Result<Vec<String>> {
-    Ok(
-      self
-        .inner
-        .lock()
-        .expect("should get lock")
-        .keys()
-        .cloned()
-        .collect(),
-    )
+    Ok(self.inner.keys().cloned().collect())
   }
 }
 
@@ -70,7 +57,7 @@ mod tests {
   #[tokio::test]
   async fn should_memory_storage_works() {
     let scope = "test";
-    let storage = MemoryStorage::default();
+    let mut storage = MemoryStorage::default();
     storage.set(scope, "a".as_bytes().to_vec(), "abc".as_bytes().to_vec());
     storage.set(scope, "b".as_bytes().to_vec(), "bcd".as_bytes().to_vec());
 
@@ -87,7 +74,7 @@ mod tests {
     storage.remove(scope, "b".as_bytes());
     let arr = storage.load(scope).await.unwrap();
     assert_eq!(arr.len(), 1);
-    storage.reset().await;
+    storage.reset(scope);
     let arr = storage.load(scope).await.unwrap();
     assert_eq!(arr.len(), 0);
   }

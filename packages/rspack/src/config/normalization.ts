@@ -619,6 +619,7 @@ export interface ExperimentsNormalized {
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
   deferImport?: boolean;
+  pureFunctions?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
@@ -660,7 +661,7 @@ export interface RspackOptionsNormalized {
   incremental?: false | Incremental;
   watch?: Watch;
   watchOptions: WatchOptions;
-  devServer?: DevServer;
+  devServer?: false | DevServer;
   ignoreWarnings?: IgnoreWarningsNormalized;
   performance?: Performance;
   amd?: Amd;

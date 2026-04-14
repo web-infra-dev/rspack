@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: nscloud-ubuntu-24.04-amd64-1x2
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -53,20 +53,42 @@ jobs:
             document_changed:
               - "website/**"
 
-  test-linux:
-    name: Test Linux
+  build-linux:
+    name: Build Linux
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: x86_64-unknown-linux-gnu
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test: true
-      bench: true
-      prefer_docker: false
-      test-runner: '"ubuntu-22.04"'
-      bench-runner: '"ubuntu-22.04"'
+
+  test-linux:
+    name: Test Linux
+    needs: [check-changed, build-linux]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: '"ubuntu-22.04"'
+
+  bench-binding:
+    name: Bench Binding
+    needs: [check-changed, build-linux]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/bench-binding.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: '"ubuntu-22.04"'
+
+  bench-rust:
+    name: Rust Bench
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/bench-rust.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: '"nscloud-ubuntu-24.04-amd64-4x16;container.privileged=true;container.host-pid-namespace=true"'
 
   test-windows:
     name: Test Windows
@@ -75,7 +97,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
-      profile: 'dev'
+      profile: 'ci'
       runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
       test-runner: '"windows-latest"'
       test: true
@@ -92,21 +114,28 @@ jobs:
       test-runner: ${{ '"macos-latest"' }}
       test: true
 
-  test-wasm:
-    name: Test WASM
+  build-wasm:
+    name: Build WASM
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
+    uses: ./.github/workflows/reusable-build-build.yml
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      test-runner: '"ubuntu-22.04"'
-      test: true
+      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
+
+  test-wasm:
+    name: Test WASM
+    needs: [check-changed, build-wasm]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      target: wasm32-wasip1-threads
+      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
 
   check-codspeed:
     name: Check Bench Result
-    needs: [test-linux]
+    needs: [bench-binding, bench-rust]
     runs-on: ubuntu-24.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,13 +167,13 @@ jobs:
         with:
           name: testCase-persistentCache-linux
           path: ./cache-linux
-          force-use-github: true
+          force-use-github-only: true
       - name: Download windows cache
         uses: ./.github/actions/artifact/download
         with:
           name: testCase-persistentCache-windows
           path: ./cache-windows
-          force-use-github: true
+          force-use-github-only: true
       - name: Run compare kit
         run: |
           echo "success"
@@ -159,9 +188,11 @@ jobs:
     needs:
       [
         check-codspeed,
+        build-linux,
         test-linux,
         test-windows,
         test-mac,
+        build-wasm,
         test-wasm,
         check-changed,
         size-limit,
@@ -175,13 +206,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success' }}
         run: echo "Tess Failed" && exit 1
 
       - name: No check to Run test
@@ -192,6 +223,23 @@ jobs:
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
     uses: ./.github/workflows/size-limit.yml
+
+  ecosystem_ci_per_commit:
+    name: Run ecosystem CI per commit
+    needs: [check-changed, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
+    steps:
+      - name: Trigger Ecosystem CI
+        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@1345990b3128d94ee37afbb7607f9ddc9feadb49 # v0.3.0
+        with:
+          github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
+          ecosystem-owner: web-infra-dev
+          ecosystem-repo: rspack
+          workflow-file: rspack-ecosystem-ci-from-commit.yml
+          client-payload: '{"commitSHA":"${{ github.sha }}","updateComment":true,"repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded","sourceRunId":"${{ github.run_id }}","sourceRepo":"web-infra-dev/rspack"}'
 
   # TODO: enable it after self hosted runners are ready
   # pkg-preview:

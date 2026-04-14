@@ -1,0 +1,71 @@
+```mjs title=feature/index.mjs
+import { util } from "../shared/util.mjs";
+
+// ./src/feature/index.js
+
+
+const feature = () => `feature:${util}`
+
+
+/* export default */ const src_feature = (feature);
+
+export { answer } from "../shared/util.mjs";
+export default src_feature;
+
+```
+
+```mjs title=index.mjs
+import { label } from "./label.mjs";
+
+// ./src/index.js
+
+
+it('should preserve nested dynamic import modules and shared outside chunks', async () => {
+	expect(label).toBe('entry:outside')
+
+	const feature = await import("./feature/index.mjs")
+
+	expect(feature.default()).toBe('feature:util:outside')
+	expect(feature.answer).toBe(42)
+})
+
+export {};
+
+```
+
+```mjs title=label.mjs
+import { outside } from "./outside_dep_js.mjs";
+
+// ./src/label.js
+
+
+const label = `entry:${outside}`
+
+export { label };
+
+```
+
+```mjs title=outside_dep_js.mjs
+// ./outside/dep.js
+const outside = 'outside'
+
+
+
+export { outside };
+
+```
+
+```mjs title=shared/util.mjs
+import { outside } from "../outside_dep_js.mjs";
+
+// ./src/shared/util.js
+
+
+const util = `util:${outside}`
+const answer = 42
+
+
+
+export { answer, util };
+
+```

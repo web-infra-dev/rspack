@@ -1360,16 +1360,12 @@ export default {
     },
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
               collectTypeScriptInfo: {
                 typeExports: true, // Must be enabled in "tolerant" mode
               },
@@ -1647,6 +1643,65 @@ export default {
 
 :::warning
 This option is experimental in Rspack and may change or be removed.
+:::
+
+### module.parser.javascript.importMetaResolve
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+
+Allow the JavaScript parser to understand `import.meta.resolve()` syntax.
+
+Currently, `import.meta.resolve("./module")` behaves similarly to [`require.resolve("./module")`](/api/runtime-api/module-methods#requireresolve): it includes the module in the final bundle and returns the module ID.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMetaResolve: true,
+      },
+    },
+  },
+};
+```
+
+:::warning
+This option is experimental in Rspack and may change or be removed.
+:::
+
+### module.parser.javascript.pureFunctions
+
+<ApiMeta stability={Stability.Experimental} />
+
+<PropertyType type="string[]" />
+
+Manually mark top-level exported functions in matched modules as side-effect-free for pure-function-based tree shaking.
+
+This option is mainly intended for third-party libraries whose source cannot be annotated directly, such as packages in `node_modules`.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    parser: {
+      javascript: {
+        pureFunctions: ['isString', 'default'],
+      },
+    },
+  },
+};
+```
+
+:::note
+Only top-level exported function definitions are supported. For default exports, use `default` as the exported name.
+:::
+
+:::warning
+This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured exported function name cannot be found in the matched module.
 :::
 
 ### module.parser["javascript/auto"]

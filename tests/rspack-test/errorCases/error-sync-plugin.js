@@ -13,8 +13,8 @@ module.exports = {
 			  "errors": Array [
 			    Object {
 			      "code": "GenericFailure",
-			      "message": "  × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
-			      "stack": "Error:   × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
+			      "message": "  × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
+			      "stack": "Error:   × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
 			    },
 			  ],
 			  "warnings": Array [],

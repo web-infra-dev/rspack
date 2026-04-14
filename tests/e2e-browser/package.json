@@ -1,0 +1,16 @@
+{
+  "name": "e2e-browser-test",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:CI": "CI=1 pnpm run test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.59.1",
+    "@rsbuild/core": "2.0.0-rc.1",
+    "@rspack/browser": "workspace:*",
+    "typescript": "^6.0.2"
+  }
+}

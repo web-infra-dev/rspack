@@ -12,9 +12,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncModulesArtifact, Compilation,
-  DependenciesBlock, Dependency, ExportInfo, ExportName, ImportedByDeferModulesArtifact,
-  ModuleGraphCacheArtifact, RuntimeSpec, UsedNameItem,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
+  ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
+  UsedNameItem,
 };
 mod module;
 pub use module::*;
@@ -107,12 +108,13 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules: rollback::RollbackMap<ModuleIdentifier, BoxModule>,
+  pub(crate) modules:
+    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: HashMap<DependencyId, BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
-  blocks: HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>>,
+  blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
   /// Dependency_id to parent module identifier and parent block
   ///
@@ -239,6 +241,7 @@ impl ModuleGraph {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> IdentifierMap<Vec<&ModuleGraphConnection>> {
     let connections = self
@@ -256,6 +259,7 @@ impl ModuleGraph {
         module_graph,
         runtime,
         module_graph_cache,
+        side_effects_state_artifact,
         exports_info_artifact,
       ) {
         continue;
@@ -603,7 +607,7 @@ impl ModuleGraph {
       .expect("should insert block before get it")
   }
 
-  pub fn blocks(&self) -> &HashMap<AsyncDependenciesBlockIdentifier, Box<AsyncDependenciesBlock>> {
+  pub fn blocks(&self) -> &AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>> {
     &self.inner.blocks
   }
 
@@ -860,6 +864,7 @@ impl ModuleGraph {
     &self,
     module_id: &ModuleIdentifier,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let mut has_connections = false;
@@ -869,7 +874,13 @@ impl ModuleGraph {
         return false;
       };
       if !module_dependency.get_optional()
-        || !connection.is_target_active(self, None, module_graph_cache, exports_info_artifact)
+        || !connection.is_target_active(
+          self,
+          None,
+          module_graph_cache,
+          side_effects_state_artifact,
+          exports_info_artifact,
+        )
       {
         return false;
       }
@@ -1007,6 +1018,7 @@ impl ModuleGraph {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
     let condition = self
@@ -1019,6 +1031,7 @@ impl ModuleGraph {
       runtime,
       self,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
   }
@@ -1028,6 +1041,7 @@ impl ModuleGraph {
     connection: &ModuleGraphConnection,
     runtime: Option<&RuntimeSpec>,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> bool {
     let condition = self
@@ -1040,6 +1054,7 @@ impl ModuleGraph {
       runtime,
       self,
       module_graph_cache,
+      side_effects_state_artifact,
       exports_info_artifact,
     )
   }

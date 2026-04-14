@@ -5,9 +5,10 @@ use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
-  ResolverFactory,
+  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ImportPhase,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  Resolve, ResolverFactory,
+  dependency::DependencyType,
   module_graph::ModuleGraphModule,
   utils::{
     ResourceId,
@@ -199,6 +200,20 @@ impl Task<TaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
 
+    if let Some(module) = factory_result.module.as_ref()
+      && skip_side_effect_free_esm_import_side_effect_dependencies(module, &dependencies)
+    {
+      let dep = &dependencies[0];
+      tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
+      for dep in &mut dependencies {
+        dep.set_lazy();
+      }
+      for dep in dependencies {
+        module_graph.add_dependency(dep)
+      }
+      return Ok(vec![]);
+    }
+
     let Some(module) = factory_result.module else {
       let dep = &dependencies[0];
       tracing::trace!("Module ignored: {dep:?}");
@@ -222,4 +237,16 @@ impl Task<TaskContext> for FactorizeResultTask {
       from_unlazy,
     })])
   }
+}
+
+fn skip_side_effect_free_esm_import_side_effect_dependencies(
+  module: &crate::BoxModule,
+  dependencies: &[BoxDependency],
+) -> bool {
+  module.as_normal_module().is_some()
+    && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+    && dependencies.iter().all(|dep| {
+      dep.dependency_type() == &DependencyType::EsmImport
+        && dep.get_phase() == ImportPhase::Evaluation
+    })
 }

@@ -48,7 +48,7 @@ use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
 use swc_core::{
   atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext},
+  common::{FileName, Spanned, SyntaxContext, comments::SingleThreadedComments},
   ecma::transforms::base::resolver,
 };
 use tokio::sync::RwLock;
@@ -427,6 +427,9 @@ var {} = {{}};
                     module_graph,
                     Some(chunk.runtime()),
                     module_graph_cache,
+                    &compilation
+                      .build_module_graph_artifact
+                      .side_effects_state_artifact,
                     &compilation.exports_info_artifact,
                   )
                 }) && compilation
@@ -1027,7 +1030,7 @@ var {} = {{}};
       RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect();
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
-    let render_module_results = rspack_futures::scope::<_, _>(|token| {
+    let render_module_results = rspack_parallel::scope::<_, _>(|token| {
       all_modules.iter().for_each(|module| {
         let s = unsafe {
           token.used((
@@ -1131,7 +1134,7 @@ var {} = {{}};
                 Arc::new(FileName::Custom(m.identifier().to_string())),
                 code.source().into_string_lossy().into_owned(),
               );
-              let comments = swc_node_comments::SwcComments::default();
+              let comments = SingleThreadedComments::default();
               let mut errors = vec![];
 
               if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(

@@ -1,0 +1,75 @@
+name: Bench Rust
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        required: true
+        type: string
+      runner: # Runner labels
+        required: true
+        type: string
+      ref: # Git reference to checkout
+        required: false
+        type: string
+
+env:
+  # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
+  # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
+  CARGO_INCREMENTAL: 0
+
+permissions:
+  issues: write
+
+jobs:
+  bench-rust:
+    name: 'Bench Rust'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Pnpm Setup
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Prepare benchmark cases
+        run: pnpm run bench:prepare
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: rust-bench-${{ inputs.target }}
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2
+        with:
+          tool: cargo-codspeed@4.4.1
+
+      - name: Setup Rust Target
+        run: rustup target add ${{ inputs.target }}
+
+      - name: Run Cargo codegen
+        run: cargo codegen
+
+      - name: Build benchmark (simulation,memory)
+        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features codspeed
+
+      - name: Run benchmark (simulation,memory)
+        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
+        timeout-minutes: 30
+        env:
+          RAYON_NUM_THREADS: 1
+          CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
+        with:
+          mode: 'simulation'
+          run: pnpm run bench:rust
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.13.0

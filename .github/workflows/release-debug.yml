@@ -40,9 +40,11 @@ jobs:
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 24
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7
@@ -62,7 +64,7 @@ jobs:
         run: ls -R npm
 
       - name: Resolve dependencies for bindings
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm i --no-frozen-lockfile
 
       # Update npm to the latest version to enable OIDC
       - name: Update npm

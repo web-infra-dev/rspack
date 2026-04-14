@@ -1,6 +1,5 @@
 use std::{
   path::PathBuf,
-  rc::Rc,
   sync::{Arc, LazyLock},
 };
 
@@ -21,7 +20,7 @@ use rspack_core::{
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
   REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, get_target, is_esm_dep_like,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -153,7 +152,7 @@ impl EsmLibraryPlugin {
                   export_info,
                   module_graph,
                   exports_info_artifact,
-                  Rc::new(|_| true),
+                  &|_| true,
                   &mut Default::default()
                 ),
                 Some(GetTargetResult::Target(_))
@@ -296,6 +295,7 @@ async fn finish_modules(
   compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
   exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
@@ -353,7 +353,7 @@ async fn finish_modules(
                 export_info,
                 module_graph,
                 exports_info_artifact,
-                Rc::new(|_| true),
+                &|_| true,
                 &mut Default::default()
               ),
               Some(GetTargetResult::Target(_))

@@ -19,14 +19,10 @@ rspack_error     = { workspace = true }
 swc_core         = { workspace = true, features = ["ecma_ast"] }
 
 [dev-dependencies]
-swc_core = { workspace = true, features = [
-  "ecma_ast",
-  "__visit",
-  "__common",
-  "__parser",
-  "__utils",
-  "ecma_preset_env",
-] }
+swc_core = { workspace = true, features = ["ecma_ast", "__visit", "__common", "__parser", "__utils", "ecma_preset_env"] }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false

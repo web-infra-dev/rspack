@@ -191,6 +191,11 @@ const coreTeam: Member[] = [
     desc: 'Rspack core team, creator of io-uring',
     x: 'https://x.com/quininers',
   },
+  {
+    id: 'fansenze',
+    avatar: 'https://avatars.githubusercontent.com/u/18278456?v=4',
+    desc: 'Rspack core team',
+  },
 ];
 
 export const RandomMemberList = ({ list = coreTeam }: { list?: Member[] }) => {

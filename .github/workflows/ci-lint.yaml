@@ -23,12 +23,10 @@ jobs:
         uses: ./.github/actions/pnpm/setup
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Lint js
-        run: |
-          pnpm run lint-ci:js
-          pnpm run lint:type
+        run: pnpm run lint-ci:js
 
       - name: Prettier
         run: pnpm run format-ci:js
@@ -40,6 +38,6 @@ jobs:
         run: pnpm --dir website run check:spell
 
       - name: Typos Check
-        uses: crate-ci/typos@bb4666ad77b539a6b4ce4eda7ebb6de553704021 # v1.42.0
+        uses: crate-ci/typos@02ea592e44b3a53c302f697cddca7641cd051c3d # v1.45.0
         with:
           files: .

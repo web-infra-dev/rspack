@@ -44,6 +44,7 @@ it('should have default export for json module', async () => {
   const { default: cjs } = await import(/* webpackIgnore: true */'./cjsBundle.mjs')
   expect(cjs.value).toBe(42)
 })
+export {};
 
 ```
 

@@ -1,8 +1,8 @@
 import { Table } from '@builtIns/Table';
 import { useLang } from '@rspress/core/runtime';
 import { Link } from '@rspress/core/theme';
+import { useI18nUrl } from '@theme/i18n';
 import type React from 'react';
-import { useI18nUrl } from 'theme/i18n';
 
 enum SupportStatus {
   NotSupported = 0,
@@ -74,7 +74,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'HashedModuleIdsPlugin',
-    status: SupportStatus.NotSupported,
+    status: SupportStatus.FullySupported,
   },
   {
     name: 'HotModuleReplacementPlugin',

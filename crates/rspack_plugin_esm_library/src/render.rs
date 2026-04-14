@@ -2,10 +2,11 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
-  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
-  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataFilename, Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_imports,
+  render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -14,7 +15,6 @@ use rspack_plugin_javascript::{
   dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
-use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
@@ -68,14 +68,12 @@ fn normalize_raw_import_source(source: &str) -> Cow<'_, str> {
 }
 
 impl EsmLibraryPlugin {
-  pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+  fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
-    let Some(group) = chunk.groups().iter().next() else {
-      return chunk_ukey;
-    };
+    let group = chunk.groups().iter().next()?;
     let group = compilation
       .build_chunk_graph_artifact
       .chunk_group_by_ukey
@@ -89,8 +87,7 @@ impl EsmLibraryPlugin {
       }
 
       if group.kind.is_entrypoint() {
-        return group
-          .get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+        return Some(group);
       }
 
       stack.extend(group.parents_iterable().map(|group| {
@@ -101,7 +98,18 @@ impl EsmLibraryPlugin {
       }));
     }
 
-    chunk_ukey
+    None
+  }
+
+  pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+    Self::get_entrypoint(chunk_ukey, compilation).map_or(chunk_ukey, |group| {
+      group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
+  }
+
+  pub(crate) fn get_entry_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+    Self::get_entrypoint(chunk_ukey, compilation)
+      .map_or(chunk_ukey, ChunkGroup::get_entrypoint_chunk)
   }
 
   pub(crate) async fn render_chunk(
@@ -221,9 +229,15 @@ impl EsmLibraryPlugin {
 
     // render webpack runtime
     if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-      asset_info
-        .extras
-        .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
+      let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
+      let entry_chunk = Self::get_entry_chunk(*chunk_ukey, compilation);
+      let is_separate_runtime_chunk = runtime_chunk == *chunk_ukey && runtime_chunk != entry_chunk;
+
+      if is_separate_runtime_chunk {
+        asset_info
+          .extras
+          .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
+      }
       // render chunk needs to render *all* runtimes in the whole tree
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
@@ -276,15 +290,10 @@ var {} = {{}};
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already.
-      // Only export __webpack_require__ from pure runtime chunks.
-      // Entry-with-runtime chunks use it internally but nothing imports from them.
+      // Link already decides whether `__webpack_require__` is exported via a runtime module.
+      // Only pure runtime chunks without that runtime-module export should emit a direct export.
       if is_pure_runtime_chunk
-        && !compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_runtime_modules_iterable(chunk_ukey)
-          .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
+        && !chunk_link.exports_require_via_runtime_module
         && effective_tree_requirements
           .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
@@ -608,6 +617,14 @@ var {} = {{}};
       }
     }
 
+    // Keep side-effect-only Node chunks explicitly in ESM form.
+    // We only emit `export {};` when the chunk would otherwise render no export syntax at all.
+    let should_render_empty_export = compilation.platform.is_node()
+      && export_specifiers.is_empty()
+      && chunk_link.raw_star_exports.is_empty()
+      && chunk_link.re_exports().is_empty()
+      && export_default.is_none();
+
     if !export_specifiers.is_empty() {
       let mut export_str = String::with_capacity(export_specifiers.len() * 20);
       export_str.push_str("export { ");
@@ -684,6 +701,10 @@ var {} = {{}};
       final_source.add(RawStringSource::from(format!(
         "export default {default_export};\n",
       )));
+    }
+
+    if should_render_empty_export {
+      final_source.add(RawStringSource::from_static("export {};\n"));
     }
 
     let final_source = if replace_auto_public_path {

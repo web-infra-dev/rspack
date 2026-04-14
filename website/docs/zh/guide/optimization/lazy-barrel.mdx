@@ -206,6 +206,20 @@ Rspack 可以分析模块是否有副作用（这个能力已经被 [`optimizati
 
 在 make 阶段，必须先构建依赖才能分析它们的副作用。Lazy barrel 专门设计用于避免构建这些依赖。因此，它依赖于显式标记，如 `package.json` 中的 `"sideEffects": false` 或 `rules[].sideEffects`，这些标记不需要依赖检查，因为它们声明整个包或匹配的模块都是无副作用的。
 
+## 相关优化：跳过仅用于副作用的 import 构建
+
+这个优化不属于 lazy barrel，但受 lazy barrel 启发而来，因此放在这里单独说明。
+
+对于下面这种仅用于触发副作用的 ESM 导入：
+
+```js title="src/index.js"
+import './module';
+```
+
+如果 `./module` 已经通过 `package.json` 中的 `"sideEffects": false`，或 [`rules[].sideEffects`](/config/module-rules#rulessideeffects) 被标记为无副作用，Rspack 会在 make 阶段直接跳过这个模块的构建。
+
+这类 `import './module'` 在后续副作用优化中本来就会被移除，因此继续执行 loader、parser 和 build 并不能影响最终产物，只会增加 make 阶段的开销。所以 Rspack 会在 make 阶段提前判定它的副作用，如果无副作用则直接跳过它的构建。
+
 ## 延伸阅读
 
 - [RFC: Lazy make for reexports in side effects free barrel file](https://github.com/web-infra-dev/rspack/discussions/11273)

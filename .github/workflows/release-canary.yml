@@ -91,9 +91,11 @@ jobs:
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 24
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Download artifacts
         uses: actions/download-artifact@v4.1.7

@@ -129,7 +129,7 @@ pub async fn create_module_hashes(
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let compilation_ref = &*compilation;
 
-  let results = rspack_futures::scope::<_, Result<_>>(|token| {
+  let results = rspack_parallel::scope::<_, Result<_>>(|token| {
     for module_identifier in modules {
       let s = unsafe { token.used((compilation_ref, &mg, chunk_graph, chunk_by_ukey)) };
       s.spawn(

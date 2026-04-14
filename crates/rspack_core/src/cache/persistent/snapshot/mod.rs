@@ -25,7 +25,6 @@ use crate::FutureConsumer;
 pub struct Snapshot {
   options: Arc<SnapshotOptions>,
   fs: Arc<dyn ReadableFileSystem>,
-  storage: Arc<dyn Storage>,
   codec: Arc<CacheCodec>,
 }
 
@@ -33,13 +32,11 @@ impl Snapshot {
   pub fn new(
     options: SnapshotOptions,
     fs: Arc<dyn ReadableFileSystem>,
-    storage: Arc<dyn Storage>,
     codec: Arc<CacheCodec>,
   ) -> Self {
     Self {
       options: Arc::new(options),
       fs,
-      storage,
       codec,
     }
   }
@@ -66,8 +63,20 @@ impl Snapshot {
     })
   }
 
+  #[tracing::instrument("Cache::Snapshot::reset", skip_all)]
+  pub fn reset(&self, storage: &mut dyn Storage) {
+    storage.reset(SnapshotScope::FILE.name());
+    storage.reset(SnapshotScope::CONTEXT.name());
+    storage.reset(SnapshotScope::MISSING.name());
+  }
+
   #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
+  pub async fn add(
+    &self,
+    storage: &mut dyn Storage,
+    scope: SnapshotScope,
+    paths: impl Iterator<Item = ArcPath>,
+  ) {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
     // TODO merge package version file
@@ -86,17 +95,20 @@ impl Snapshot {
       })
       .fut_consume(|data| {
         if let Some((key, value)) = data {
-          self.storage.set(scope.name(), key, value);
+          storage.set(scope.name(), key, value);
         }
       })
       .await;
   }
 
-  pub fn remove(&self, scope: SnapshotScope, paths: impl Iterator<Item = ArcPath>) {
+  pub fn remove(
+    &self,
+    storage: &mut dyn Storage,
+    scope: SnapshotScope,
+    paths: impl Iterator<Item = ArcPath>,
+  ) {
     for item in paths {
-      self
-        .storage
-        .remove(scope.name(), item.as_os_str().as_encoded_bytes())
+      storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
     }
   }
 
@@ -104,6 +116,7 @@ impl Snapshot {
   #[tracing::instrument("Cache::Snapshot::calc_modified_path", skip_all)]
   pub async fn calc_modified_paths(
     &self,
+    storage: &dyn Storage,
     scope: SnapshotScope,
   ) -> Result<(bool, ArcPathSet, ArcPathSet, ArcPathSet)> {
     let mut modified_path = ArcPathSet::default();
@@ -112,7 +125,7 @@ impl Snapshot {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
 
-    let data = self.storage.load(scope.name()).await?;
+    let data = storage.load(scope.name()).await?;
     let is_hot_start = !data.is_empty();
     data
       .into_iter()
@@ -164,7 +177,7 @@ mod tests {
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
   async fn should_snapshot_work() {
     let fs = Arc::new(MemoryFileSystem::default());
-    let storage = Arc::new(MemoryStorage::default());
+    let mut storage = MemoryStorage::default();
     let codec = Arc::new(CacheCodec::new(None));
     let options = SnapshotOptions::new(
       vec![PathMatcher::String("constant".into())],
@@ -199,10 +212,11 @@ mod tests {
       .await
       .unwrap();
 
-    let snapshot = Snapshot::new(options, fs.clone(), storage, codec);
+    let snapshot = Snapshot::new(options, fs.clone(), codec);
 
     snapshot
       .add(
+        &mut storage,
         SnapshotScope::FILE,
         [
           p!("/file1"),
@@ -226,7 +240,7 @@ mod tests {
       .unwrap();
 
     let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
-      .calc_modified_paths(SnapshotScope::FILE)
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();
     assert!(is_hot_start);
@@ -244,10 +258,14 @@ mod tests {
     .await
     .unwrap();
     snapshot
-      .add(SnapshotScope::FILE, [p!("/file1")].into_iter())
+      .add(
+        &mut storage,
+        SnapshotScope::FILE,
+        [p!("/file1")].into_iter(),
+      )
       .await;
     let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
-      .calc_modified_paths(SnapshotScope::FILE)
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();
     assert!(is_hot_start);

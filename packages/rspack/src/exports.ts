@@ -2,8 +2,6 @@
 const rspackVersion = RSPACK_VERSION;
 const version = WEBPACK_VERSION;
 
-export { rspackVersion, version };
-
 export type {
   Asset,
   AssetInfo,
@@ -17,9 +15,9 @@ export { Compilation } from './Compilation';
 export { Compiler, type CompilerHooks } from './Compiler';
 export type { MultiCompilerOptions, MultiRspackOptions } from './MultiCompiler';
 export { MultiCompiler } from './MultiCompiler';
+export { rspackVersion, version };
 
 import { RspackOptionsApply } from './rspackOptionsApply';
-export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 export type { ChunkGroup } from '@rspack/binding';
 export {
@@ -34,6 +32,10 @@ export { ExternalModule } from './ExternalModule';
 export type { ResolveData, ResourceDataWithData } from './Module';
 export { Module } from './Module';
 export type { default as ModuleGraph } from './ModuleGraph';
+export {
+  ModuleGraphConnection,
+  type ConnectionState,
+} from './ModuleGraphConnection';
 export { MultiStats } from './MultiStats';
 export { NormalModule } from './NormalModule';
 export type { NormalModuleFactory } from './NormalModuleFactory';
@@ -53,13 +55,14 @@ export type {
 } from './Stats';
 export { Stats } from './Stats';
 export { StatsErrorCode } from './stats/statsFactoryUtils';
+export { RspackOptionsApply, RspackOptionsApply as WebpackOptionsApply };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 import * as ModuleFilenameHelpers from './lib/ModuleFilenameHelpers';
-export { ModuleFilenameHelpers };
 
 // API extractor not working with some re-exports, see: https://github.com/microsoft/fluentui/issues/20694
 export { Template } from './Template';
+export { ModuleFilenameHelpers };
 
 export const WebpackError = Error;
 
@@ -175,6 +178,14 @@ interface Electron {
 }
 
 export const electron: Electron = { ElectronTargetPlugin };
+
+import { HashedModuleIdsPlugin } from './builtin-plugin';
+
+interface Ids {
+  HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
+}
+
+export const ids: Ids = { HashedModuleIdsPlugin };
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 

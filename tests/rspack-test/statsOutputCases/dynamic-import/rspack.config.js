@@ -1,29 +1,23 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	devtool: false,
-	mode: "development",
-	module: {
-		rules: [
-			{
-				exclude: /node_modules/,
-				test: /\.[cm]?js$/,
-				use: {
-					loader: "babel-loader",
-					options: {
-						presets: [["@babel/preset-react", { runtime: "automatic" }]],
-						sourceType: "unambiguous"
-					}
-				}
-			}
-		]
-	},
-	optimization: {
-		runtimeChunk: "single",
-		splitChunks: { chunks: "all", name: "common" }
-	},
-	stats: {
-		entrypoints: true,
-		assets: true,
-		modules: true,
-	}
+  devtool: false,
+  mode: 'development',
+  optimization: {
+    runtimeChunk: 'single',
+    splitChunks: {
+      cacheGroups: {
+        common: {
+          chunks: 'all',
+          minChunks: 1,
+          name: 'common',
+          enforce: true,
+        },
+      },
+    },
+  },
+  stats: {
+    entrypoints: true,
+    assets: true,
+    modules: true,
+  },
 };

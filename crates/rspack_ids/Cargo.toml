@@ -13,13 +13,15 @@ rayon              = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_core        = { workspace = true }
 rspack_error       = { workspace = true }
+rspack_hash        = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
 tracing            = { workspace = true }
 
-[package.metadata.cargo-shear]
-ignored = ["tracing"]
-
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

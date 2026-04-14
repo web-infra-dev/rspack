@@ -7,3 +7,5 @@ module.exports = 'b'
 },
 });
 __webpack_require__("917");
+
+export {};

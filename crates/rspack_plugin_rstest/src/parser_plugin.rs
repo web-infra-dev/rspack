@@ -29,6 +29,7 @@ const DIR_NAME: &str = "__dirname";
 const FILE_NAME: &str = "__filename";
 const IMPORT_META_DIRNAME: &str = "import.meta.dirname";
 const IMPORT_META_FILENAME: &str = "import.meta.filename";
+pub(crate) const MOCK_TARGET_REQUEST_PREFIX: &str = "\0rstest_mock_target:\0";
 
 #[derive(PartialEq)]
 enum ModulePathType {
@@ -200,7 +201,8 @@ impl RstestParserPlugin {
     let is_relative_request = stripped.starts_with('.'); // TODO: consider alias?
 
     if is_relative_request {
-      // Mock relative request to alongside `__mocks__` directory.
+      // Keep using sibling `__mocks__` by default. Directory-entry mocks are
+      // rewritten later in NMF with the actual resolver result.
       path_buf.parent().map_or_else(
         || Utf8PathBuf::from("__mocks__").join(&path_buf),
         |p| {
@@ -273,10 +275,36 @@ impl RstestParserPlugin {
             parser.handle_top_level_await();
           }
 
-          if let Some(mocked_target) = self.calc_mocked_target(&lit_str).as_std_path().to_str() {
-            let dep = MockModuleIdDependency::new(
-              lit_str.clone(),
-              first_arg.span().into(),
+          let dep = MockModuleIdDependency::new(
+            lit_str.clone(),
+            first_arg.span().into(),
+            false,
+            true,
+            if is_esm {
+              rspack_core::DependencyCategory::Esm
+            } else {
+              rspack_core::DependencyCategory::CommonJS
+            },
+            if has_b { Some(", ".to_string()) } else { None },
+          );
+          parser.add_dependency(Box::new(dep));
+
+          parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
+            call_expr.span(),
+            call_expr.callee.span(),
+            lit_str.clone(),
+            hoist,
+            method,
+          )));
+
+          if has_b {
+            let second_arg = Span::new(
+              first_arg.span().hi() + swc_core::common::BytePos(0),
+              first_arg.span().hi() + swc_core::common::BytePos(0),
+            );
+            parser.add_dependency(Box::new(MockModuleIdDependency::new(
+              format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
+              second_arg.into(),
               false,
               true,
               if is_esm {
@@ -284,36 +312,8 @@ impl RstestParserPlugin {
               } else {
                 rspack_core::DependencyCategory::CommonJS
               },
-              if has_b { Some(", ".to_string()) } else { None },
-            );
-            parser.add_dependency(Box::new(dep));
-
-            parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-              call_expr.span(),
-              call_expr.callee.span(),
-              lit_str,
-              hoist,
-              method,
+              None,
             )));
-
-            if has_b {
-              let second_arg = Span::new(
-                first_arg.span().hi() + swc_core::common::BytePos(0),
-                first_arg.span().hi() + swc_core::common::BytePos(0),
-              );
-              parser.add_dependency(Box::new(MockModuleIdDependency::new(
-                mocked_target.to_string(),
-                second_arg.into(),
-                false,
-                true,
-                if is_esm {
-                  rspack_core::DependencyCategory::Esm
-                } else {
-                  rspack_core::DependencyCategory::CommonJS
-                },
-                None,
-              )));
-            }
           }
         }
       }
@@ -635,6 +635,16 @@ impl RstestParserPlugin {
       // rs.doUnmock
       ("rs" | "rstest", "doUnmock") => {
         self.process_mock(parser, call_expr, false, true, MockMethod::Unmock, false);
+        Some(true)
+      }
+      // rs.unmockRequire
+      ("rs" | "rstest", "unmockRequire") => {
+        self.process_mock(parser, call_expr, true, false, MockMethod::Unmock, false);
+        Some(true)
+      }
+      // rs.doUnmockRequire
+      ("rs" | "rstest", "doUnmockRequire") => {
+        self.process_mock(parser, call_expr, false, false, MockMethod::Unmock, false);
         Some(true)
       }
       // rs.resetModules

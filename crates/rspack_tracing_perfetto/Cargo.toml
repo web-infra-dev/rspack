@@ -15,9 +15,13 @@ allocative          = { workspace = true, optional = true }
 bytes               = { workspace = true }
 micromegas-perfetto = { workspace = true }
 prost               = { workspace = true }
-rustc-hash          = { workspace = true }
+rustc-hash          = { workspace = true, features = ["std"] }
 tracing             = { workspace = true }
 tracing-subscriber  = { workspace = true }
 
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

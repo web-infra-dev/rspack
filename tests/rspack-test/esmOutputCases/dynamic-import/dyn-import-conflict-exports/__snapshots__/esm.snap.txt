@@ -42,6 +42,7 @@ it('should handle conflicting exports from multi-module chunk', async () => {
 	expect(modB.value).toBe(2)
 })
 
+export {};
 
 ```
 

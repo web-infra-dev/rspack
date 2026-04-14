@@ -2,6 +2,7 @@ use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, DependencyId, Module, PrefetchExportsInfoMode, RscMeta, RscModuleType, RuntimeSpec,
+  module_declared_side_effect_free,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -151,10 +152,7 @@ fn filter_client_components(
 
   let module_graph = compilation.get_module_graph();
   if is_css_mod(module) {
-    let side_effect_free = module
-      .factory_meta()
-      .and_then(|meta| meta.side_effect_free)
-      .unwrap_or(false);
+    let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
 
     if side_effect_free {
       let prefetched_exports_info = compilation

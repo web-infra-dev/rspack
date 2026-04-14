@@ -2,19 +2,20 @@
   "name": "rspack-vue-ts-starter",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "rspack dev",
     "build": "rspack build",
+    "dev": "rspack dev",
     "preview": "rspack preview"
   },
   "dependencies": {
-    "vue": "^3.5.30"
+    "vue": "^3.5.32"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "2.0.0-beta.7",
-    "typescript": "^5.9.3",
-    "rspack-vue-loader": "^17.5.0"
+    "@rspack/dev-server": "2.0.0-rc.2",
+    "rspack-vue-loader": "^17.5.0",
+    "typescript": "^6.0.2"
   }
 }

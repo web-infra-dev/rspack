@@ -151,31 +151,19 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = if dep.names.is_empty() {
-      let used_name = if dep.names.is_empty() {
-        let exports_info_used = compilation
-          .exports_info_artifact
-          .get_prefetched_exports_info_used(&module.identifier(), *runtime);
-        ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithoutNames(&exports_info_used),
-          *runtime,
-          &dep.names,
-        )
-      } else {
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_prefetched_exports_info(
-            &module.identifier(),
-            PrefetchExportsInfoMode::Nested(&dep.names),
-          );
-        ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          *runtime,
-          &dep.names,
-        )
-      };
-
-      used_name.unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+    let used = if !dep.names.is_empty() {
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_prefetched_exports_info(
+          &module.identifier(),
+          PrefetchExportsInfoMode::Nested(&dep.names),
+        );
+      ExportsInfoGetter::get_used_name(
+        GetUsedNameParam::WithNames(&exports_info),
+        *runtime,
+        &dep.names,
+      )
+      .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
       UsedName::Normal(dep.names.clone())
     };

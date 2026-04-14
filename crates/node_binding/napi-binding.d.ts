@@ -25,6 +25,10 @@ export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 
 export const RUST_ERROR_SYMBOL: unique symbol;
 
+export const CIRCULAR_CONNECTION_SYMBOL: unique symbol;
+export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
+export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
+
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
 	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
@@ -452,6 +456,7 @@ export declare class ModuleGraphConnection {
   get module(): Module | null
   get resolvedModule(): Module | null
   get originModule(): Module | null
+  getActiveState(runtime: string | string[] | undefined): ConnectionState
 }
 
 export declare class NativeWatcher {
@@ -561,6 +566,7 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
@@ -726,7 +732,7 @@ export interface JsBeforeModuleIdsArg {
 }
 
 export interface JsBeforeModuleIdsResult {
-  assignments: Record<string, string>
+  assignments: Record<string, string | number>
 }
 
 export interface JsBuildMeta {
@@ -734,13 +740,9 @@ export interface JsBuildMeta {
   hasTopLevelAwait?: boolean
   esm?: boolean
   exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  defaultObject?: undefined | 'false' | 'redirect' | 'redirect-warn'
   sideEffectFree?: boolean
   exportsFinalName?: Array<[string, string]> | undefined
-}
-
-export interface JsBuildMetaDefaultObjectRedirectWarn {
-  redirectWarn: JsDefaultObjectRedirectWarnObject
 }
 
 export interface JsBuildTimeExecutionOption {
@@ -802,10 +804,6 @@ export interface JsCreateLinkData {
 export interface JsCreateScriptData {
   code: string
   chunk: Chunk
-}
-
-export interface JsDefaultObjectRedirectWarnObject {
-  ignore: boolean
 }
 
 export interface JsDiagnostic {
@@ -1172,6 +1170,7 @@ export interface JsRsdoctorModule {
   issuerPath: Array<number>
   bailoutReason: Array<string>
   sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
+  exportsType: string
 }
 
 export interface JsRsdoctorModuleGraph {
@@ -1886,6 +1885,7 @@ export interface RawCacheGroupOptions {
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -2233,6 +2233,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  pureFunctions: boolean
 }
 
 export interface RawExposeOptions {
@@ -2305,6 +2306,13 @@ export interface RawGeneratorOptions {
   cssAuto?: RawCssAutoGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
   json?: RawJsonGeneratorOptions
+}
+
+export interface RawHashedModuleIdsPluginOptions {
+  context?: string
+  hashFunction?: string
+  hashDigest?: string
+  hashDigestLength?: number
 }
 
 export interface RawHtmlRspackPluginBaseOptions {
@@ -2425,33 +2433,34 @@ export interface RawJavascriptParserOptions {
   worker?: Array<string>
   overrideStrict?: string
   importMeta?: string
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireAlias?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireAsExpression?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireDynamic?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireResolve?: boolean
+  commonjsMagicComments?: boolean
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+deferImport?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireAlias?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireAsExpression?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireDynamic?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireResolve?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
  */
 importDynamic?: boolean
-commonjsMagicComments?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
@@ -2462,7 +2471,17 @@ typeReexportsPresence?: string
  * @experimental
  */
 jsx?: boolean
-deferImport?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+importMetaResolve?: boolean
+/**
+ * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+pureFunctions?: Array<string>
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2888,10 +2907,10 @@ export interface RawRslibPluginOptions {
    */
   forceNodeShims?: boolean
   /**
-   * Externalize Node.js builtin modules with ESM-aware external types
+   * Auto downgrade module external type to node-commonjs for CJS require of node builtins
    * @default `false`
    */
-  externalEsmNodeBuiltin?: boolean
+  autoCjsNodeBuiltin?: boolean
 }
 
 export interface RawRstestPluginOptions {
@@ -2982,7 +3001,7 @@ export interface RawSplitChunksOptions {
   hidePathInfo?: boolean
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
-  enforceSizeThreshold?: number
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
@@ -3054,8 +3073,7 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
-/**
- * this is a process level tracing, which means it would be shared by all compilers in the same process
+/** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58

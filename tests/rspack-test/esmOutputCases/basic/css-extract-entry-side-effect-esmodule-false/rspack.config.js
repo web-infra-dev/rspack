@@ -1,11 +1,11 @@
-const { CssExtractRspackPlugin } = require("@rspack/core");
+const { CssExtractRspackPlugin } = require('@rspack/core');
 
 module.exports = {
   module: {
     rules: [
       {
         test: /\.css$/i,
-        type: "javascript/auto",
+        type: 'javascript/auto',
         sideEffects: true,
         use: [
           {
@@ -14,14 +14,14 @@ module.exports = {
               esModule: false,
             },
           },
-          "css-loader",
+          'css-loader',
         ],
       },
     ],
   },
   plugins: [
     new CssExtractRspackPlugin({
-      filename: "[name].css",
+      filename: '[name].css',
     }),
   ],
 };

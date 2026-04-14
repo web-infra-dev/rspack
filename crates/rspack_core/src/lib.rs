@@ -19,7 +19,8 @@ mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncDependenciesBlockIdentifierSet, DependenciesBlock,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
@@ -98,7 +99,6 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
-
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,
@@ -111,7 +111,7 @@ pub use rspack_sources;
 pub mod debug_info;
 
 #[cacheable]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SourceType {
   JavaScript,
   Css,

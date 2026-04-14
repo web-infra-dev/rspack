@@ -47,11 +47,14 @@ export default {
       dtsExternals: ['graceful-fs'],
       afterBundle(task) {
         const importStatement = "import fs from 'graceful-fs';";
+        const ignoredImportStatement = `// @ts-ignore\n${importStatement}`;
         const dtsPath = join(task.distPath, 'index.d.ts');
-        const content = readFileSync(dtsPath, 'utf-8');
-        writeFileSync(
+        replaceFileContent(
           dtsPath,
-          content.replace(importStatement, `// @ts-ignore\n${importStatement}`),
+          (content) =>
+            `${content.replace(importStatement, ignoredImportStatement)}
+export type WatchOptions = Watchpack.WatchOptions;
+`,
         );
       },
     },

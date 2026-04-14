@@ -4,7 +4,7 @@ description: 'This section covers all variables available in code compiled with 
 
 import WebpackLicense from '@components/WebpackLicense';
 import Columns from '@components/Columns';
-import { ApiMeta } from '@components/ApiMeta';
+import { ApiMeta, Stability } from '@components/ApiMeta';
 
 <WebpackLicense from="https://webpack.js.org/api/module-variables/" />
 
@@ -78,7 +78,7 @@ __filename
 Depends on the configuration [`node.__dirname`](/config/node#node__dirname).
 
 - `false`: undefined
-- `mock`: equal to `'/index.js'`
+- `mock`: equal to `'/'`
 - `true`: [NodeJs \_\_dirname](https://nodejs.org/api/modules.html#__dirname)
 
 If used inside an expression that is parsed by the Parser, the configuration option is treated as `true`.
@@ -96,46 +96,117 @@ __dirname
 
 ## import.meta (ESM)
 
-The `import.meta` exposes context-specific metadata to a JavaScript module, such as the URL of the module. It is only available in ESM.
+The `import.meta` exposes context-specific metadata to a JavaScript module, such as the URL of the module. It is only available in modules that support ESM ([module type](/misc/glossary#module-type) is `javascript/auto` or `javascript/esm`).
 
-> Please note that Rspack does not support direct access to `import.meta`. Instead, you should access its properties or use destructuring assignment. E.g.,
+Normally, unknown `import.meta` metadata is replaced with `undefined` by default. When using [ESM output](/guide/features/esm), [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) defaults to `'preserve-unknown'`, so unknown metadata is preserved for runtime evaluation.
+
+Rspack statically analyzes `import.meta` properties and replaces them with concrete values at compile time, so dynamic access to `import.meta` (e.g., `Object.keys(import.meta)`) is not supported and will emit a warning. You should access metadata on `import.meta` via property access or destructuring assignment.
 
 <Columns>
-```js title="Source"
-import.meta
-typeof import.meta
+
+```js title=Source
+// Will emit a warning
+Object.keys(import.meta);
+// typeof access is allowed
+typeof import.meta;
+// Property access is allowed
+import.meta.url;
+// Destructuring assignment is allowed
+let { url } = import.meta;
 ```
 
-```js title="Compiled"
-{
-} // Warning: Direct access to import.meta is not supported (only property access or destructuring is supported)
+```js title=Compiled
+// Warning
+Object.keys({});
+
 ('object');
+
+('file:///project/index.js');
+
+let { url } = { url: 'file:///project/index.js' };
 ```
 
 </Columns>
 
 ### import.meta.url
 
-Returns the absolute `file:` URL of the module.
+Returns the absolute `file:` URL string of the current module.
 
 <Columns>
 ```js title=Source
-import.meta.url
-typeof import.meta.url
+import.meta.url;
+typeof import.meta.url;
 ```
 
 ```js title=Compiled
-'file://project_root/src/main.js';
+'file:///project/index.js';
 'string';
 ```
 
 </Columns>
 
+### import.meta.main
+
+Returns a boolean indicating whether the current module is the entry module.
+
+<Columns>
+```js title=Source
+if (import.meta.main) {
+  main();
+}
+```
+
+```js title=Compiled
+if (
+  __webpack_module_cache__[/* entry module id */ __webpack_require__.s] ===
+  module
+) {
+  main();
+}
+```
+
+</Columns>
+
+### import.meta.filename
+
+Returns the full file path of the current module. This is the ESM equivalent of [`__filename`](#__filename), commonly used to get the current file's path information in ESM modules.
+
+The compilation behavior is controlled by the [`node.__filename`](/config/node#node__filename) configuration option. See that configuration documentation for details.
+
+### import.meta.dirname
+
+Returns the directory path of the current module. This is the ESM equivalent of [`__dirname`](#__dirname), commonly used to construct paths based on the current file's location in ESM modules.
+
+The compilation behavior is controlled by the [`node.__dirname`](/config/node#node__dirname) configuration option. See that configuration documentation for details.
+
+### import.meta.resolve
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+The ESM equivalent of [`require.resolve()`](/api/runtime-api/module-methods#requireresolve), used to get the ID of another module. It includes the module in the final bundle and returns its module ID.
+
+<Columns>
+```js title=Source
+let img = new Image();
+img.src = import.meta.resolve('./img.png');
+```
+
+```js title=Compiled
+let img = new Image();
+img.src = './src/img.png'; // module ID of img.png
+```
+
+</Columns>
+
+:::warning
+`import.meta.resolve()` is currently experimental. To use it, you must enable [`module.parser.javascript.importMetaResolve`](/config/module#moduleparserjavascriptimportmetaresolve). Rspack also plans to [align this API with the standard behavior](https://github.com/openjs-foundation/bundler-collab-space/issues/8) in the future, so its behavior may change. Use it with caution.
+:::
+
 ### import.meta.webpackContext
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-`import.meta.webpackContext` is a function specific to webpack that allows you to dynamically import a set of modules.
+`import.meta.webpackContext` is the ESM equivalent of [`require.context()`](/api/runtime-api/module-methods#requirecontext). It allows you to dynamically import a set of modules.
 
 You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
 
@@ -208,7 +279,7 @@ Rspack uses static analysis to parse the parameters of `import.meta.webpackConte
 For example, the value of `regExp` cannot be a variable, nor can it be the value generated by `new RegExp()`. It can only be a regular expression literal.
 :::
 
-### context API
+#### context API
 
 The context returned by `import.meta.webpackContext()` is a function that takes a `request` argument (module path).
 
@@ -252,7 +323,7 @@ componentsContext.keys().forEach((fileName) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-An alias for [`module.hot`](#modulehot), however `import.meta.webpackHot` can be used in strict ESM while `module.hot` can't.
+The ESM equivalent of [`module.hot`](#modulehot). `import.meta.webpackHot` can be used in strict ESM modules (module type `javascript/esm`), while `module.hot` cannot.
 
 ## Runtime
 
