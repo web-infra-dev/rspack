@@ -109,7 +109,6 @@ rspack_plugin_split_chunks             = { workspace = true }
 rspack_plugin_sri                      = { workspace = true }
 rspack_plugin_swc_js_minimizer         = { workspace = true }
 rspack_plugin_wasm                     = { workspace = true }
-rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 rspack_regex                           = { workspace = true }
 rspack_resolver                        = { workspace = true }
