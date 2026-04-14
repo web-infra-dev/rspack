@@ -14,9 +14,9 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
   ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, Compiler, DEFAULT_DELIMITER,
-  EntryRuntime, Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, RuntimeGlobals,
-  RuntimeModule, RuntimeSpecMap, SideEffectsOptimizeArtifact, SourceType, UsedExportsOption,
-  build_chunk_graph,
+  EntryRuntime, MangleExportsOption, Mode, ModuleCodeGenerationContext, ModuleIdsArtifact,
+  Optimization, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SideEffectsOptimizeArtifact,
+  SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   incremental::IncrementalOptions,
 };
@@ -59,6 +59,7 @@ fn compilation_stages_benchmark_inner(c: &mut Criterion) {
   create_module_ids_benchmark(c, &rt);
   split_chunks_benchmark(c, &rt);
   create_chunk_ids_benchmark(c, &rt);
+  mangle_exports_benchmark(c, &rt);
   create_module_hashes_benchmark(c, &rt);
   runtime_requirements_benchmark(c, &rt);
   create_chunk_hashes_benchmark(c, &rt);
@@ -352,6 +353,83 @@ fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
           .unwrap();
         });
         black_box(named_chunk_ids_artifact.chunk_ids.len());
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn mangle_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_mangle_exports_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_optimize_code_generation(&mut compiler)
+      .await
+      .unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "mangle_exports setup");
+  compiler
+    .compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut()
+    .checkpoint();
+  compiler.compilation.exports_info_artifact.checkpoint();
+
+  rt.block_on(async {
+    run_optimize_code_generation_hook(&mut compiler.compilation)
+      .await
+      .unwrap();
+  });
+  let assigned_export_used_names = count_assigned_export_used_names(&compiler.compilation);
+  assert!(
+    assigned_export_used_names > 0,
+    "mangle_exports setup should assign export used names"
+  );
+  compiler
+    .compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut()
+    .reset();
+  compiler.compilation.exports_info_artifact.reset();
+
+  let compiler = RefCell::new(compiler);
+  let should_reset = Cell::new(false);
+  c.bench_function("rust@mangle_exports", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        if should_reset.get() {
+          compiler
+            .compilation
+            .build_module_graph_artifact
+            .get_module_graph_mut()
+            .reset();
+          compiler.compilation.exports_info_artifact.reset();
+        } else {
+          should_reset.set(true);
+        }
+        compiler
+          .compilation
+          .build_module_graph_artifact
+          .get_module_graph_mut()
+          .checkpoint();
+        compiler.compilation.exports_info_artifact.checkpoint();
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_optimize_code_generation_hook(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box(count_assigned_export_used_names(&compiler.compilation));
       },
       BatchSize::PerIteration,
     );
@@ -686,6 +764,28 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
     .unwrap()
 }
 
+fn create_mangle_exports_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  Compiler::builder()
+    .context("/")
+    .mode(Mode::Development)
+    .cache(CacheOptions::Disabled)
+    .entry("main", "/src/dynamic-0.js")
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs)
+    .optimization(
+      Optimization::builder()
+        .provided_exports(true)
+        .used_exports(UsedExportsOption::True)
+        .mangle_exports(MangleExportsOption::Deterministic)
+        .module_ids("deterministic".to_string())
+        .chunk_ids("deterministic".to_string())
+        .concatenate_modules(false),
+    )
+    .incremental(IncrementalOptions::empty_passes())
+    .build()
+    .unwrap()
+}
+
 fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
   let mut builder = Compiler::builder();
   builder
@@ -801,16 +901,16 @@ async fn prepare_for_chunk_ids(compiler: &mut Compiler) -> Result<()> {
   Ok(())
 }
 
-async fn prepare_for_module_hashes(compiler: &mut Compiler) -> Result<()> {
-  prepare_for_chunk_ids(compiler).await?;
-  run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
-  Ok(())
-}
-
 async fn prepare_for_optimize_code_generation(compiler: &mut Compiler) -> Result<()> {
   prepare_for_chunk_ids(compiler).await?;
   run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
   run_assign_runtime_ids(&mut compiler.compilation)?;
+  Ok(())
+}
+
+async fn prepare_for_module_hashes(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_chunk_ids(compiler).await?;
+  run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
   Ok(())
 }
 
@@ -1234,11 +1334,7 @@ async fn run_code_generation_on_compilation(compilation: &mut Compilation) -> Re
           &compilation.options.output.hash_salt,
         );
       }
-      compilation.code_generation_results.insert(
-        module_identifier,
-        code_generation_result,
-        [runtime],
-      );
+      compilation.code_generation_results.insert(module_identifier, code_generation_result, [runtime]);
     }
 
     compilation.code_generated_modules.insert(module_identifier);
@@ -1980,6 +2076,22 @@ fn count_concatenated_modules(compilation: &Compilation) -> usize {
     .modules()
     .filter(|(_, module)| module.as_concatenated_module().is_some())
     .count()
+}
+
+fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
+  compilation
+    .get_module_graph()
+    .modules()
+    .map(|(module_identifier, _)| {
+      compilation
+        .exports_info_artifact
+        .get_exports_info_data(module_identifier)
+        .exports()
+        .values()
+        .filter(|export_info| export_info.used_name().is_some())
+        .count()
+    })
+    .sum()
 }
 
 fn assert_no_compilation_errors(compilation: &Compilation, context: &str) {
