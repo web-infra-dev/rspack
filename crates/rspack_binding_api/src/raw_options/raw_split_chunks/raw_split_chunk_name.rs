@@ -5,7 +5,7 @@ use napi_derive::napi;
 use rspack_plugin_split_chunks::{ChunkNameGetter, ChunkNameGetterFnCtx};
 
 use crate::{
-  chunk::ChunkWrapper, compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  chunk::ChunkWrapper, compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
   module::ModuleObject,
 };
 

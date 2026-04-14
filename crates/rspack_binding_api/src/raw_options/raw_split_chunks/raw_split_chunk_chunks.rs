@@ -8,7 +8,7 @@ use rspack_plugin_split_chunks::{
 use rspack_regex::RspackRegex;
 
 use crate::{
-  chunk::ChunkWrapper, compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  chunk::ChunkWrapper, compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
 };
 
 pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<ChunkWrapper, bool>>;

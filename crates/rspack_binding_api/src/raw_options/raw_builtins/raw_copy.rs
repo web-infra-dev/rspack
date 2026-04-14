@@ -11,7 +11,7 @@ use rspack_plugin_copy::{
   TransformerFn,
 };
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 type RawTransformer = ThreadsafeFunction<FnArgs<(Buffer, String)>, Promise<Either<String, Buffer>>>;
 

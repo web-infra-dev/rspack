@@ -12,7 +12,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
   normal_module_factory::JsResolveData,
 };
 

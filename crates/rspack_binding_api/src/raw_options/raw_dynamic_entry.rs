@@ -3,7 +3,7 @@ use napi_derive::napi;
 use rspack_plugin_dynamic_entry::{DynamicEntryPluginOptions, EntryDynamicResult};
 
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
   options::entry::JsEntryOptions,
 };
 

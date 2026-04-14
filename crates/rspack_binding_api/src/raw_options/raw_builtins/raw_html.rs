@@ -8,7 +8,7 @@ use rspack_plugin_html::config::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;

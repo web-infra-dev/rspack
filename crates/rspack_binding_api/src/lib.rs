@@ -60,8 +60,8 @@ mod chunk_group;
 mod clean_options;
 mod codegen_result;
 mod compilation;
-mod compilation_scoped_tsfn;
 mod compiler;
+mod compiler_scoped_tsfn;
 mod context_module_factory;
 mod define_symbols;
 mod dependencies;
@@ -124,8 +124,8 @@ use crate::{
   chunk::ChunkWrapper,
   chunk_group::ChunkGroupWrapper,
   compilation::JsCompilationWrapper,
-  compilation_scoped_tsfn::CompilationScopedTsFnManager,
   compiler::{Compiler, CompilerState, CompilerStateGuard},
+  compiler_scoped_tsfn::CompilerScopedTsFnManager,
   dependency::DependencyWrapper,
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
@@ -166,7 +166,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
-  compilation_scoped_tsfn_manager: CompilationScopedTsFnManager,
+  compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
@@ -200,16 +200,15 @@ impl JsCompiler {
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
 
-    let compilation_scoped_tsfn_manager = CompilationScopedTsFnManager::new();
+    let compiler_scoped_tsfn_manager = CompilerScopedTsFnManager::new();
     // Parse constructor inputs inside the manager scope so any nested callback fields in
-    // options, builtin plugins, or hook registrations become compiler-local registrations
-    // instead of eagerly-created long-lived TSFNs.
-    let mut options: RawOptions = compilation_scoped_tsfn_manager
+    // options, builtin plugins, or hook registrations become compiler-scoped TSFNs.
+    let mut options: RawOptions = compiler_scoped_tsfn_manager
       .scope(|| unsafe { RawOptions::from_napi_value(env.raw(), raw_options.raw()) })?;
-    let builtin_plugins: Vec<BuiltinPlugin> = compilation_scoped_tsfn_manager.scope(|| unsafe {
+    let builtin_plugins: Vec<BuiltinPlugin> = compiler_scoped_tsfn_manager.scope(|| unsafe {
       Vec::<BuiltinPlugin>::from_napi_value(env.raw(), raw_builtin_plugins.raw())
     })?;
-    let register_js_taps: RegisterJsTaps = compilation_scoped_tsfn_manager.scope(|| unsafe {
+    let register_js_taps: RegisterJsTaps = compiler_scoped_tsfn_manager.scope(|| unsafe {
       RegisterJsTaps::from_napi_value(env.raw(), raw_register_js_taps.raw())
     })?;
 
@@ -244,7 +243,7 @@ impl JsCompiler {
       plugins.push(js_cleanup_plugin.boxed());
 
       for bp in builtin_plugins {
-        compilation_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))?;
+        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))?;
       }
 
       let pnp = options.resolve.pnp.unwrap_or(false);
@@ -341,7 +340,7 @@ impl JsCompiler {
       );
 
       Ok(Self {
-        compilation_scoped_tsfn_manager,
+        compiler_scoped_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
         js_hooks_plugin,
@@ -363,12 +362,11 @@ impl JsCompiler {
   #[napi(ts_args_type = "callback: (err: null | Error) => void")]
   pub fn build(
     &mut self,
-    env: Env,
     reference: Reference<JsCompiler>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
-      self.run(env, reference, |compiler, guard| {
+      self.run(reference, |compiler, guard| {
         callbackify(
           f,
           async move {
@@ -393,14 +391,13 @@ impl JsCompiler {
   )]
   pub fn rebuild(
     &mut self,
-    env: Env,
     reference: Reference<JsCompiler>,
     changed_files: Vec<String>,
     removed_files: Vec<String>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
     unsafe {
-      self.run(env, reference, |compiler, guard| {
+      self.run(reference, |compiler, guard| {
         callbackify(
           f,
           async move {
@@ -439,16 +436,20 @@ impl JsCompiler {
       unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
 
     let spawn_future_result = env.spawn_future(async move {
-      compiler.close().await.to_napi_result_with_message(|e| {
-        print_error_diagnostic(e, compiler.options.stats.colors)
-      })?;
+      let result = compiler
+        .close()
+        .await
+        .to_napi_result_with_message(|e| print_error_diagnostic(e, compiler.options.stats.colors));
+      result?;
       Ok(())
     });
     let Ok(mut promise) = spawn_future_result else {
+      self.compiler_scoped_tsfn_manager.release();
       drop(reference);
       return spawn_future_result;
     };
     promise.finally(|_env| {
+      self.compiler_scoped_tsfn_manager.release();
       drop(reference);
       Ok(())
     })
@@ -469,15 +470,8 @@ impl JsCompiler {
 }
 
 struct RunGuard {
-  compiler_state_guard: CompilerStateGuard,
-  reference: Reference<JsCompiler>,
-  compilation_scoped_tsfn_manager: CompilationScopedTsFnManager,
-}
-
-impl Drop for RunGuard {
-  fn drop(&mut self) {
-    self.compilation_scoped_tsfn_manager.release();
-  }
+  _compiler_state_guard: CompilerStateGuard,
+  _reference: Reference<JsCompiler>,
 }
 
 impl JsCompiler {
@@ -489,7 +483,6 @@ impl JsCompiler {
   ///    Accessing `Compiler` beyond the lifetime of `CompilerStateGuard` would lead to potential race condition.
   unsafe fn run<R>(
     &mut self,
-    env: Env,
     mut reference: Reference<JsCompiler>,
     f: impl FnOnce(&'static mut Compiler, RunGuard) -> Result<R, ErrorCode>,
   ) -> Result<R, ErrorCode> {
@@ -512,18 +505,9 @@ impl JsCompiler {
       references.insert(compiler.id(), weak_reference);
     });
 
-    // Install fresh TSFNs for every registered callback right before the compiler run.
-    // This keeps callbacks callable during the current build/rebuild without letting the
-    // previous run's TSFNs retain JS objects after the run completes.
-    self
-      .compilation_scoped_tsfn_manager
-      .activate(env)
-      .map_err(|err| napi::Error::new(ErrorCode::Napi(err.status), err.reason.clone()))?;
-
     let guard = RunGuard {
-      compiler_state_guard,
-      reference,
-      compilation_scoped_tsfn_manager: self.compilation_scoped_tsfn_manager.clone(),
+      _compiler_state_guard: compiler_state_guard,
+      _reference: reference,
     };
 
     self.cleanup_last_compilation(&compiler.compilation);
@@ -551,7 +535,7 @@ impl ObjectFinalize for JsCompiler {
     });
 
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
-    if (!self.unsafe_fast_drop) {
+    if !self.unsafe_fast_drop {
       unsafe {
         ManuallyDrop::drop(&mut self.compiler);
       }

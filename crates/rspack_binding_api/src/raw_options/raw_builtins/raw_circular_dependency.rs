@@ -7,7 +7,7 @@ use rspack_plugin_circular_dependencies::{
 };
 use rspack_regex::RspackRegex;
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 fn ignore_pattern_to_entry(
   pattern: Either<String, RspackRegex>,

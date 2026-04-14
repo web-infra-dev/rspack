@@ -7,7 +7,7 @@ use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOption
 use crate::{
   asset_condition::{RawAssetConditions, into_asset_conditions},
   chunk::ChunkWrapper,
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
 };
 
 #[napi(object, object_from_js = false)]

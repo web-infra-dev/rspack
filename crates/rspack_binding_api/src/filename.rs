@@ -8,7 +8,7 @@ use napi::{
 use rspack_core::{Filename, FilenameFn, LocalFilenameFn, PathData, PublicPath};
 
 use crate::{
-  asset::AssetInfo, compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  asset::AssetInfo, compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
   path_data::JsPathData,
 };
 

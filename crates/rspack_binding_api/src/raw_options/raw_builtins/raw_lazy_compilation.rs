@@ -12,7 +12,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
 };
 
 #[derive(Debug)]

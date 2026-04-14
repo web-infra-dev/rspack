@@ -6,7 +6,7 @@ use rspack_plugin_split_chunks::{CacheGroupTest, CacheGroupTestFnCtx};
 use rspack_regex::RspackRegex;
 
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
 };
 
 pub(super) type RawCacheGroupTest =

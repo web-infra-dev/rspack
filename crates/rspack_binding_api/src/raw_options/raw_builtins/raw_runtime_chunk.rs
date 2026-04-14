@@ -2,7 +2,7 @@ use napi::Either;
 use napi_derive::napi;
 use rspack_plugin_runtime_chunk::{RuntimeChunkName, RuntimeChunkOptions};
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 #[napi(object, object_to_js = false)]
 pub struct RawRuntimeChunkOptions {

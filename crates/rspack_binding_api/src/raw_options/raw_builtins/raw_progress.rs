@@ -7,7 +7,7 @@ use rspack_plugin_progress::{
   ProgressPluginDisplayOptions, ProgressPluginHandlerInfo, ProgressPluginOptions,
 };
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 #[derive(Debug)]
 #[napi(object)]

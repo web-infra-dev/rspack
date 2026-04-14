@@ -23,7 +23,7 @@ use self::{
   raw_split_chunk_size::RawSplitChunkSizes,
 };
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
 };
 
 #[napi(object, object_to_js = false)]

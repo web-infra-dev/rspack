@@ -7,7 +7,7 @@ use rspack_napi::napi;
 use rspack_paths::Utf8PathBuf;
 use rspack_regex::RspackRegex;
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 /// File clean options
 ///

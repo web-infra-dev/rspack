@@ -11,7 +11,7 @@ use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 type HttpClientRequest =
   ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;

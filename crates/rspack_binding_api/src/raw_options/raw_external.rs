@@ -13,7 +13,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
   error::ErrorCode,
   normal_module_factory::ContextInfo,
   options::raw_resolve::{

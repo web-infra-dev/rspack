@@ -12,7 +12,7 @@ use rspack_plugin_devtool::{
 
 use crate::{
   asset_condition::{RawAssetConditions, into_asset_conditions},
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
 };
 
 type RawAppend = Either3<String, bool, ThreadsafeFunction<RawPathData, String>>;

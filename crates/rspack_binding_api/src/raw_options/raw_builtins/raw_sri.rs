@@ -6,7 +6,7 @@ use rspack_plugin_sri::{
   IntegrityCallbackData, SubresourceIntegrityHashFunction, SubresourceIntegrityPluginOptions,
 };
 
-use crate::compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction;
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 #[derive(Debug)]
 #[napi(

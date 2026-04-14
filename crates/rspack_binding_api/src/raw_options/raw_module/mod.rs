@@ -31,7 +31,7 @@ use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  compilation_scoped_tsfn::CompilationScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
   module::ModuleObject, options::raw_resolve::RawResolveOptions,
 };
 
