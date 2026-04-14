@@ -13,10 +13,11 @@ use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
-  ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, Compiler, DEFAULT_DELIMITER,
-  EntryRuntime, MangleExportsOption, Mode, ModuleCodeGenerationContext, ModuleIdsArtifact,
-  Optimization, RuntimeGlobals, RuntimeModule, RuntimeSpecMap, SideEffectsOptimizeArtifact,
-  SourceType, UsedExportsOption, build_chunk_graph,
+  ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, CompilationAsset,
+  CompilationAssets, Compiler, DEFAULT_DELIMITER, EntryRuntime, MangleExportsOption, Mode,
+  ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OutputOptions, RuntimeGlobals,
+  RuntimeModule, RuntimeSpecMap, SideEffectsOptimizeArtifact, SourceType, UsedExportsOption,
+  build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   incremental::IncrementalOptions,
 };
@@ -64,6 +65,8 @@ fn compilation_stages_benchmark_inner(c: &mut Criterion) {
   runtime_requirements_benchmark(c, &rt);
   create_chunk_hashes_benchmark(c, &rt);
   create_full_hash_benchmark(c, &rt);
+  create_chunk_assets_benchmark(c, &rt);
+  real_content_hash_benchmark(c, &rt);
   create_concatenate_module_benchmark(c, &rt);
   concatenate_module_code_generation_benchmark(c, &rt);
 }
@@ -611,6 +614,110 @@ fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
+fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_chunk_assets(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_chunk_assets setup");
+  let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
+  let initial_totals = chunk_asset_totals(&compiler.compilation);
+
+  rt.block_on(async {
+    run_create_chunk_assets_pass(&mut compiler).await.unwrap();
+  });
+  let rendered_totals = chunk_asset_totals(&compiler.compilation);
+  assert!(
+    rendered_totals.0 > initial_totals.0,
+    "create_chunk_assets setup should render chunk files"
+  );
+  assert!(
+    rendered_totals.1 > initial_totals.1,
+    "create_chunk_assets setup should mark chunks as rendered"
+  );
+  restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_chunk_assets", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_create_chunk_assets_pass(&mut compiler).await.unwrap();
+        });
+        black_box(chunk_asset_totals(&compiler.compilation));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_real_content_hash_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_real_content_hash(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "real_content_hash setup");
+  let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
+  let initial_asset_names = sorted_asset_names(&compiler.compilation);
+  assert!(
+    count_assets_with_content_hash(&compiler.compilation) > 0,
+    "real_content_hash setup should produce content-hashed assets"
+  );
+
+  rt.block_on(async {
+    run_process_assets_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
+  });
+  let renamed_asset_names = sorted_asset_names(&compiler.compilation);
+  assert_ne!(
+    renamed_asset_names, initial_asset_names,
+    "real_content_hash setup should rename content-hashed assets during process_assets"
+  );
+  restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@real_content_hash", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_process_assets_pass(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box(asset_name_fingerprint(&compiler.compilation));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
 fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
@@ -786,6 +893,35 @@ fn create_mangle_exports_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
     .unwrap()
 }
 
+fn create_real_content_hash_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  Compiler::builder()
+    .context("/")
+    .mode(Mode::Development)
+    .cache(CacheOptions::Disabled)
+    .entry("main", "/src/dynamic-0.js")
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs)
+    .output(
+      OutputOptions::builder()
+        .filename("[name].[contenthash:8].js".into())
+        .chunk_filename("[name].[contenthash:8].js".into())
+        .css_filename("[name].[contenthash:8].css".into())
+        .css_chunk_filename("[name].[contenthash:8].css".into()),
+    )
+    .optimization(
+      Optimization::builder()
+        .provided_exports(true)
+        .used_exports(UsedExportsOption::True)
+        .real_content_hash(true)
+        .module_ids("deterministic".to_string())
+        .chunk_ids("deterministic".to_string())
+        .concatenate_modules(false),
+    )
+    .incremental(IncrementalOptions::empty_passes())
+    .build()
+    .unwrap()
+}
+
 fn create_split_chunks_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
   let mut builder = Compiler::builder();
   builder
@@ -919,6 +1055,24 @@ async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()>
   run_optimize_code_generation_hook(&mut compiler.compilation).await?;
   run_create_module_hashes_pass(compiler).await?;
   run_code_generation_pass(compiler).await?;
+  Ok(())
+}
+
+async fn prepare_for_chunk_assets(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_runtime_requirements(compiler).await?;
+  run_runtime_requirements_pass(compiler).await?;
+  assert_no_full_hash_runtime_dependencies(
+    &compiler.compilation,
+    "create_chunk_assets setup should only benchmark asset emission with stable chunk/content hashes",
+  );
+  run_create_hash_pass(compiler).await?;
+  run_create_module_assets_pass(&mut compiler.compilation).await?;
+  Ok(())
+}
+
+async fn prepare_for_real_content_hash(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_chunk_assets(compiler).await?;
+  run_create_chunk_assets_pass(compiler).await?;
   Ok(())
 }
 
@@ -1334,7 +1488,11 @@ async fn run_code_generation_on_compilation(compilation: &mut Compilation) -> Re
           &compilation.options.output.hash_salt,
         );
       }
-      compilation.code_generation_results.insert(module_identifier, code_generation_result, [runtime]);
+      compilation.code_generation_results.insert(
+        module_identifier,
+        code_generation_result,
+        [runtime],
+      );
     }
 
     compilation.code_generated_modules.insert(module_identifier);
@@ -1364,6 +1522,298 @@ async fn run_code_generation_pass(compiler: &mut Compiler) -> Result<()> {
     .after_modules_codegen(&compiler.compilation)
     .await;
   Ok(())
+}
+
+#[derive(Clone)]
+struct ChunkAssetStateSnapshot {
+  assets: CompilationAssets,
+  chunk_by_ukey: ChunkByUkey,
+}
+
+fn snapshot_chunk_asset_state(compilation: &Compilation) -> ChunkAssetStateSnapshot {
+  ChunkAssetStateSnapshot {
+    assets: compilation.assets().clone(),
+    chunk_by_ukey: compilation.build_chunk_graph_artifact.chunk_by_ukey.clone(),
+  }
+}
+
+fn restore_chunk_asset_state(compilation: &mut Compilation, snapshot: &ChunkAssetStateSnapshot) {
+  *compilation.assets_mut() = snapshot.assets.clone();
+  compilation.build_chunk_graph_artifact.chunk_by_ukey = snapshot.chunk_by_ukey.clone();
+}
+
+fn chunk_asset_totals(compilation: &Compilation) -> (usize, usize, usize) {
+  let mut emitted_files = 0;
+  let mut rendered_chunks = 0;
+  let mut auxiliary_files = 0;
+
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+  {
+    emitted_files += chunk.files().len();
+    auxiliary_files += chunk.auxiliary_files().len();
+    rendered_chunks += usize::from(chunk.rendered());
+  }
+
+  (emitted_files, rendered_chunks, auxiliary_files)
+}
+
+fn sorted_asset_names(compilation: &Compilation) -> Vec<String> {
+  let mut asset_names = compilation.assets().keys().cloned().collect::<Vec<_>>();
+  asset_names.sort_unstable();
+  asset_names
+}
+
+fn asset_name_fingerprint(compilation: &Compilation) -> usize {
+  sorted_asset_names(compilation)
+    .into_iter()
+    .map(|asset_name| asset_name.bytes().map(usize::from).sum::<usize>())
+    .sum()
+}
+
+fn count_assets_with_content_hash(compilation: &Compilation) -> usize {
+  compilation
+    .assets()
+    .values()
+    .filter(|asset| !asset.get_info().content_hash.is_empty())
+    .count()
+}
+
+async fn run_create_hash_pass(compiler: &mut Compiler) -> Result<()> {
+  compiler
+    .cache
+    .before_chunks_hashes(&mut compiler.compilation)
+    .await;
+  run_create_hash_on_compilation(&mut compiler.compilation).await?;
+  compiler
+    .cache
+    .after_chunks_hashes(&compiler.compilation)
+    .await;
+  Ok(())
+}
+
+async fn run_create_hash_on_compilation(compilation: &mut Compilation) -> Result<()> {
+  compilation.chunk_hashes_artifact.clear();
+  compilation.runtime_modules_hash.clear();
+  compilation.hash = None;
+
+  populate_runtime_module_hashes(compilation).await?;
+
+  let chunk_ukeys = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .keys()
+    .copied()
+    .collect::<Vec<_>>();
+  for chunk_ukey in chunk_ukeys {
+    let (chunk_hash, content_hash) = process_chunk_hash(compilation, chunk_ukey).await?;
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
+    chunk.set_hashes(
+      &mut compilation.chunk_hashes_artifact,
+      chunk_hash,
+      content_hash,
+    );
+  }
+
+  aggregate_full_hash(compilation);
+  run_runtime_modules_code_generation_on_compilation(compilation).await?;
+  Ok(())
+}
+
+async fn populate_runtime_module_hashes(compilation: &mut Compilation) -> Result<()> {
+  let runtime_module_identifiers = compilation
+    .runtime_modules
+    .keys()
+    .copied()
+    .collect::<Vec<_>>();
+
+  for runtime_module_identifier in runtime_module_identifiers {
+    let digest = {
+      let runtime_module = compilation
+        .runtime_modules
+        .get(&runtime_module_identifier)
+        .expect("should have runtime module");
+      runtime_module.get_runtime_hash(compilation, None).await?
+    };
+    compilation
+      .runtime_modules_hash
+      .insert(runtime_module_identifier, digest);
+  }
+
+  Ok(())
+}
+
+async fn run_runtime_modules_code_generation_on_compilation(
+  compilation: &mut Compilation,
+) -> Result<()> {
+  compilation.runtime_modules_code_generation_source.clear();
+
+  let runtime_module_identifiers = compilation
+    .runtime_modules
+    .keys()
+    .copied()
+    .collect::<Vec<_>>();
+  for runtime_module_identifier in runtime_module_identifiers.iter().copied() {
+    let source = {
+      let runtime_module = compilation
+        .runtime_modules
+        .get(&runtime_module_identifier)
+        .expect("should have runtime module");
+      let mut runtime_template = compilation.runtime_template.create_module_code_template();
+      let mut code_generation_context = ModuleCodeGenerationContext {
+        compilation,
+        runtime: None,
+        concatenation_scope: None,
+        runtime_template: &mut runtime_template,
+      };
+      let code_generation_result = runtime_module
+        .code_generation(&mut code_generation_context)
+        .await?;
+      code_generation_result
+        .get(&SourceType::Runtime)
+        .expect("runtime module should emit runtime source")
+        .clone()
+    };
+    compilation
+      .runtime_modules_code_generation_source
+      .insert(runtime_module_identifier, source);
+  }
+
+  compilation
+    .code_generated_modules
+    .extend(runtime_module_identifiers);
+  Ok(())
+}
+
+async fn run_create_module_assets_pass(compilation: &mut Compilation) -> Result<()> {
+  let mut chunk_asset_map = vec![];
+  let mut module_assets = vec![];
+  let module_graph = compilation.get_module_graph();
+
+  for (identifier, module) in module_graph.modules() {
+    let assets = &module.build_info().assets;
+    if assets.is_empty() {
+      continue;
+    }
+
+    for (name, asset) in assets.as_ref() {
+      module_assets.push((name.clone(), asset.clone()));
+    }
+
+    if compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_number_of_module_chunks(*identifier)
+      > 0
+    {
+      for chunk in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*identifier)
+        .iter()
+      {
+        for name in assets.keys() {
+          chunk_asset_map.push((*chunk, name.clone()));
+        }
+      }
+    }
+  }
+
+  for (name, asset) in module_assets {
+    compilation.emit_asset(name, asset);
+  }
+
+  for (chunk, asset_name) in chunk_asset_map {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get_mut(&chunk)
+      .add_auxiliary_file(asset_name);
+  }
+
+  Ok(())
+}
+
+async fn run_create_chunk_assets_pass(compiler: &mut Compiler) -> Result<()> {
+  compiler
+    .cache
+    .before_chunk_asset(&mut compiler.compilation)
+    .await;
+  run_create_chunk_assets_on_compilation(&mut compiler.compilation).await?;
+  compiler
+    .cache
+    .after_chunk_asset(&compiler.compilation)
+    .await;
+  Ok(())
+}
+
+async fn run_create_chunk_assets_on_compilation(compilation: &mut Compilation) -> Result<()> {
+  let plugin_driver = compilation.plugin_driver.clone();
+  let chunk_ukeys = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .keys()
+    .copied()
+    .collect::<Vec<_>>();
+  let mut chunk_render_results = Vec::with_capacity(chunk_ukeys.len());
+
+  for chunk_ukey in chunk_ukeys {
+    let mut manifests = Vec::new();
+    let mut diagnostics = Vec::new();
+    plugin_driver
+      .compilation_hooks
+      .render_manifest
+      .call(compilation, &chunk_ukey, &mut manifests, &mut diagnostics)
+      .await?;
+    chunk_render_results.push((chunk_ukey, manifests, diagnostics));
+  }
+
+  for (chunk_ukey, manifests, diagnostics) in chunk_render_results {
+    compilation.extend_diagnostics(diagnostics);
+
+    for file_manifest in manifests {
+      let filename = file_manifest.filename;
+      {
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get_mut(&chunk_ukey);
+        chunk.set_rendered(true);
+        if file_manifest.auxiliary {
+          chunk.add_auxiliary_file(filename.clone());
+        } else {
+          chunk.add_file(filename.clone());
+        }
+      }
+
+      compilation.emit_asset(
+        filename.clone(),
+        CompilationAsset::new(Some(file_manifest.source), file_manifest.info),
+      );
+
+      plugin_driver
+        .compilation_hooks
+        .chunk_asset
+        .call(compilation, &chunk_ukey, &filename)
+        .await?;
+    }
+  }
+
+  Ok(())
+}
+
+async fn run_process_assets_pass(compilation: &mut Compilation) -> Result<()> {
+  let plugin_driver = compilation.plugin_driver.clone();
+  plugin_driver
+    .compilation_hooks
+    .process_assets
+    .call(compilation)
+    .await
 }
 
 async fn compute_module_hashes(compilation: &Compilation) -> Result<usize> {
