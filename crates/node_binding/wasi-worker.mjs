@@ -46,6 +46,8 @@ const handler = new MessageHandler({
       childThread: true,
       wasi,
       context: emnapiContext,
+      // Fail fast when a nested WASI worker cannot finish bootstrapping instead of hanging.
+      waitThreadStart: 1000,
       overwriteImports(importObject) {
         importObject.env = {
           ...importObject.env,

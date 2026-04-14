@@ -60,6 +60,8 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
   })(),
   reuseWorker: true,
   wasi: __wasi,
+  // Fail fast when a WASI worker cannot finish bootstrapping instead of hanging.
+  waitThreadStart: 1000,
   onCreateWorker() {
     const worker = new Worker(__nodePath.join(__dirname, 'wasi-worker.mjs'), {
       env: process.env,
