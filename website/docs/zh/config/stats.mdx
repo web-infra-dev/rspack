@@ -21,7 +21,17 @@ import WebpackLicense from '@components/WebpackLicense';
 - **类型：**
 
 ```ts
-type Stats = boolean | string | StatsOptions;
+type StatsPresets =
+  | 'normal'
+  | 'none'
+  | 'verbose'
+  | 'errors-only'
+  | 'errors-warnings'
+  | 'minimal'
+  | 'detailed'
+  | 'summary';
+
+type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
 - **默认值：** `{ "preset":"errors-warnings","timings":true }`
@@ -59,7 +69,7 @@ type Stats = boolean | string | StatsOptions;
 ### stats.preset
 
 <PropertyType
-  type="boolean | string"
+  type="boolean | StatsPresets"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -94,11 +104,11 @@ type Stats = boolean | string | StatsOptions;
 ### stats.excludeAssets
 
 <PropertyType
-  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
+  type="boolean | string | RegExp | ((name: string, asset: any) => boolean) | Array<string | RegExp | ((name: string, asset: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-隐藏匹配的资源，匹配方式支持字符串、正则、接收资源名称并返回布尔的函数，同时也支持以上类型的数组。
+隐藏匹配的资源，匹配方式支持字符串、正则，或接收资源名称和资源对象并返回布尔值的函数，同时也支持以上类型的数组。
 
 ### stats.cachedAssets
 
@@ -310,7 +320,7 @@ type Stats = boolean | string | StatsOptions;
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-隐藏匹配的模块，匹配方式支持字符串、正则、函数。
+隐藏匹配的模块，匹配方式支持字符串、正则，或接收模块名称、模块对象和模块类型并返回布尔值的函数，同时也支持以上类型的数组。
 
 ### stats.nestedModules
 

@@ -21,7 +21,17 @@ Generate packaging information that can be used to analyze module dependencies a
 - **Type:**
 
 ```ts
-type Stats = boolean | string | StatsOptions;
+type StatsPresets =
+  | 'normal'
+  | 'none'
+  | 'verbose'
+  | 'errors-only'
+  | 'errors-warnings'
+  | 'minimal'
+  | 'detailed'
+  | 'summary';
+
+type Stats = boolean | StatsOptions | StatsPresets;
 ```
 
 - **Default:** `{ "preset":"errors-warnings", "timings":true }`
@@ -59,7 +69,7 @@ Enabling `stats.all` will lead to a large amount of data transmission between Ru
 ### stats.preset
 
 <PropertyType
-  type="boolean | string"
+  type="boolean | StatsPresets"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -94,11 +104,11 @@ Whether to display information about assets that are related to other assets (li
 ### stats.excludeAssets
 
 <PropertyType
-  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
+  type="boolean | string | RegExp | ((name: string, asset: any) => boolean) | Array<string | RegExp | ((name: string, asset: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Exclude the matching assets information. This can be done with a string, a RegExp, a function that is getting the assets name as an argument and returns a boolean. `stats.excludeAssets` can be an array of any of the above.
+Exclude the matching assets information. This can be done with a string, a RegExp, or a function that receives the asset name and asset object and returns a boolean. `stats.excludeAssets` can be an array of any of the above.
 
 ### stats.cachedAssets
 
@@ -310,7 +320,7 @@ Whether to display information about cached (not built) modules.
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Exclude the matching modules information. This can be done with a string, a RegExp, a function that is getting the modules name as an argument and returns a boolean. `stats.excludeAssets` can be an array of any of the above.
+Exclude the matching modules information. This can be done with a string, a RegExp, or a function that receives the module name, module object, and module type and returns a boolean. `stats.excludeModules` can be an array of any of the above.
 
 ### stats.nestedModules
 
