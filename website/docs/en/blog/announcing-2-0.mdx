@@ -4,7 +4,7 @@ date: 2026-04-28 16:00:01
 sidebar: false
 ---
 
-<!-- cspell:words Vize -->
+{/* cspell:words Vize */}
 
 _April 28, 2026_
 
@@ -49,17 +49,17 @@ We also want to thank all community contributors. Whether you submitted pull req
 
 ![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
 
-Over the past several releases, we have continued to optimize the compilation pipeline, cache system, incremental build behavior, and overall development experience. As a result, Rspack's performance in real projects has continued to improve.
+Across the 1.x series, we kept optimizing Rspack's own build pipeline. For example, we expanded incremental build to more phases and enabled it by default, introduced a native file watcher to improve file-change response, stabilized lazy compilation, and reduced unnecessary module resolution and module building through barrel optimization. These improvements span cold start, rebuild, and HMR workflows, and together they have continued to improve real-world performance.
 
-Using the `react-1k` benchmark from build-tools-performance as an example, Rspack 2.0 shows clear improvements in both Build and HMR compared with Rspack 1.0, while still maintaining an advantage over webpack. In large projects, this translates into shorter waiting time and faster feedback.
+Using the `react-1k` benchmark from build-tools-performance as an example, Rspack 2.0 shows clear improvements in both Build and HMR compared with Rspack 1.0. In large projects, this translates into shorter waiting time and faster feedback.
 
 ### Better bundle size
 
 ![Rspack 2.0 bundle size comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-bundle-size-comparison.png)
 
-Compared with webpack, Rspack 1.0 still produced larger output in some scenarios. However, throughout the 1.x series, Rspack continued improving [tree shaking](/guide/optimization/tree-shaking), [barrel file optimization](/blog/announcing-1-5#barrel-file-optimization), [const inline optimization](/blog/announcing-1-5#const-inline-optimization), TypeScript enum inlining, and [ESM output](/guide/features/esm). As a result, bundle size has improved significantly.
+For bundle size, the main focus throughout 1.x was improving two things: how accurately Rspack can identify removable code, and how well the generated output supports static analysis. To move in that direction, we continued improving [tree shaking](/guide/optimization/tree-shaking), introduced and later enabled [barrel file optimization](/blog/announcing-1-5#barrel-file-optimization) by default, and added capabilities such as [const inline optimization](/blog/announcing-1-5#const-inline-optimization), TypeScript enum inlining, and [ESM output](/guide/features/esm).
 
-With Rspack 2.0, output size is now roughly on par with webpack in most scenarios, and can even be smaller in some cases. Bundle optimization will remain an important focus, especially around higher-quality tree shaking, more precise code generation, and more modern module output.
+Together, these changes extend Rspack's bundle pruning from module-level optimization toward export-level, expression-level, and in some cases function-level optimization. In Rspack 2.0, capabilities such as `experiments.pureFunctions` continue that direction. Bundle optimization will remain an important focus, especially around higher-quality tree shaking, more precise code generation, and more modern module output.
 
 ## Feature updates
 
