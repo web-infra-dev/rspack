@@ -4,6 +4,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use dyn_clone::clone_box;
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
@@ -75,11 +76,13 @@ enum ExternalImportBinding {
 
 impl EsmLibraryPlugin {
   fn module_external_fragment_content(
-    init_fragment: &Box<dyn rspack_core::InitFragment<ChunkRenderContext>>,
+    init_fragment: &(dyn rspack_core::InitFragment<ChunkRenderContext> + '_),
   ) -> Option<String> {
     if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
       return None;
     }
+
+    let init_fragment = clone_box(init_fragment);
 
     if let Ok(fragment) = init_fragment
       .clone()
@@ -103,7 +106,7 @@ impl EsmLibraryPlugin {
 
     for init_fragments in init_fragment_groups {
       for init_fragment in init_fragments {
-        let Some(content) = Self::module_external_fragment_content(init_fragment) else {
+        let Some(content) = Self::module_external_fragment_content(init_fragment.as_ref()) else {
           continue;
         };
 
@@ -274,8 +277,7 @@ impl EsmLibraryPlugin {
 
         let local = specifier
           .rsplit_once(" as ")
-          .map(|(_, local)| local)
-          .unwrap_or(specifier)
+          .map_or(specifier, |(_, local)| local)
           .trim();
 
         if local.is_empty() {
