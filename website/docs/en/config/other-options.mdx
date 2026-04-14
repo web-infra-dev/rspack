@@ -16,10 +16,8 @@ These are the remaining configuration options supported by rspack.
 
 <ApiMeta addedVersion="1.3.0" />
 
-<PropertyType
-  type="false | object"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+- **Type:** `false | Record<string, any>`
+- **Default:** `false`
 
 :::info
 Unlike webpack, where the default value of the `amd` option is `{}` (meaning AMD module dependency analysis is enabled by default), Rspack sets the default value of the `amd` option to `false`. This means AMD module dependency analysis is disabled by default in Rspack. This change was made because the usage of AMD modules is gradually decreasing. If your application requires it, you can enable this option by yourself.

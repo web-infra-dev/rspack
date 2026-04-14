@@ -1,10 +1,9 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  AsyncDependenciesBlock, ChunkGroupOptions, ConstDependency, ContextDependency,
-  ContextNameSpaceObject, ContextOptions, DependencyCategory, DependencyRange, DependencyType,
-  DynamicImportFetchPriority, DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase,
-  ReferencedSpecifier,
+  AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
+  ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
+  DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase, ReferencedSpecifier,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -437,13 +436,6 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       }
     } else {
       if matches!(parser.javascript_options.import_dynamic, Some(false)) {
-        let import_function_name = &parser.compiler_options.output.import_function_name;
-        if import_function_name != "import" {
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            node.callee.span().into(),
-            import_function_name.clone().into(),
-          )));
-        }
         return None;
       }
 

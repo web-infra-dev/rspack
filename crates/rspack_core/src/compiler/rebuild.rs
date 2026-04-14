@@ -57,7 +57,7 @@ impl Compiler {
     changed_files: FxHashSet<String>,
     deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let records = CompilationRecords::record(&self.compilation);
+    let records = self.last_records.clone();
 
     // build without stats
     {
@@ -79,7 +79,7 @@ impl Compiler {
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
-        Some(records),
+        records,
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
         modified_files,

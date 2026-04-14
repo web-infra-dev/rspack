@@ -16,7 +16,11 @@ import { BuildCommand } from './commands/build';
 import { PreviewCommand } from './commands/preview';
 import { ServeCommand } from './commands/serve';
 import type { RspackCLIColors, RspackCLILogger } from './types';
-import { loadExtendedConfig, loadRspackConfig } from './utils/loadConfig';
+import {
+  loadExtendedConfig,
+  loadRspackConfig,
+  resolveRspackConfigExport,
+} from './utils/loadConfig';
 import type {
   CommonOptions,
   CommonOptionsForBuildAndServe,
@@ -304,27 +308,15 @@ export class RspackCLI {
       };
     }
 
-    let { loadedConfig, configPath } = config;
-
-    if (typeof loadedConfig === 'function') {
-      let functionResult = loadedConfig(
-        options.env as Record<string, unknown>,
-        options,
-      );
-      // if return promise we should await its result
-      if (
-        typeof (functionResult as unknown as Promise<unknown>).then ===
-        'function'
-      ) {
-        functionResult = await functionResult;
-      }
-
-      loadedConfig = functionResult;
-    }
+    const { loadedConfig, configPath } = config;
+    const resolvedConfig = await resolveRspackConfigExport(
+      loadedConfig,
+      options,
+    );
 
     // Handle extends property if the loaded config is not a function
     const { config: extendedConfig, pathMap } = await loadExtendedConfig(
-      loadedConfig as RspackOptions | MultiRspackOptions,
+      resolvedConfig,
       configPath,
       process.cwd(),
       options,

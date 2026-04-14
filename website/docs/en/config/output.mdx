@@ -872,7 +872,7 @@ Configure how the library will be exposed.
 
 - **Type:** `string`
 
-  Types included by default are `'var'`, `'module'`, `'system'`, `'assign'`, `'assign-properties'`, `'this'`, `'window'`, `'self'`, `'global'`, `'commonjs'`, `'commonjs2'`, `'commonjs-module'`, `'commonjs-static'`, `'amd'`, `'amd-require'`, `'umd'`, `'umd2'`, but others might be added by plugins.
+  Types included by default are `'var'`, `'module'`, `'modern-module'`, `'system'`, `'assign'`, `'assign-properties'`, `'this'`, `'window'`, `'self'`, `'global'`, `'commonjs'`, `'commonjs2'`, `'commonjs-module'`, `'commonjs-static'`, `'amd'`, `'amd-require'`, `'umd'`, `'umd2'`, `'jsonp'`, but others might be added by plugins.
 
 For the following examples, we'll use `_entry_return_` to indicate the values returned by the entry point.
 
@@ -1067,6 +1067,8 @@ export default {
 
 Output ES modules.
 
+This is the more compatibility-oriented ESM library path: Rspack still uses the regular chunk / runtime rendering pipeline and then converts the entry exports into `export` statements. It fits simpler ESM library output, or cases where you mainly want webpack-style `module` semantics.
+
 ##### type: 'modern-module'
 
 ```js title="rspack.config.mjs"
@@ -1080,7 +1082,18 @@ export default {
 };
 ```
 
-This configuration generates tree-shakable and code-splitting available output for ES Modules.
+This configuration enables Rspack's dedicated rendering pipeline for ESM libraries. It emits direct `import` / `export` statements and supports library-oriented tree shaking, scope hoisting, code splitting, and [`output.library.preserveModules`](#outputlibrarypreservemodules).
+
+:::tip `module` vs `modern-module`
+
+- `module` stays on the regular chunk / runtime rendering pipeline and is closer to webpack-compatible ESM semantics.
+- `modern-module` is handled by a dedicated ESM library plugin that owns chunk rendering, linking, scope hoisting, and splitChunks behavior, making it a better fit for publishable tree-shakable, code-split ESM libraries.
+- `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
+- `preserveModules` is only available with `modern-module`.
+- When `output.library` is configured and `output.module = true`, Rspack currently defaults `output.library.type` to `modern-module` if you don't specify one explicitly.
+- Do not mix `modern-module` with other library types in the same compilation, because it also changes chunk loading, chunk rendering, and scope-hoisting behavior.
+
+:::
 
 ##### type: 'commonjs2'
 
@@ -1152,6 +1165,19 @@ import { doSomething } from './output.cjs'; // doSomething => [Function: doSomet
 
 :::tip
 This is useful when source code is written in ESM and the output should be compatible with both CJS and ESM. For further details, please [read this issue](https://github.com/webpack/webpack/issues/14998) or [this article](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed) (specifically, [this section](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed#publish-only-a-cjs-distribution-with-property-exports)).
+:::
+
+:::tip How To Choose A CommonJS `library.type`
+
+| Type              | Writes To           | Better Fit                                                                              |
+| ----------------- | ------------------- | --------------------------------------------------------------------------------------- |
+| `commonjs`        | `exports[...]`      | Compatibility with legacy configs that intentionally write to the `exports` object      |
+| `commonjs2`       | `module.exports`    | General Node.js / CJS library output; the preferred choice for most new configs         |
+| `commonjs-module` | `module.exports`    | Currently equivalent to `commonjs2`, mainly for historical webpack config compatibility |
+| `commonjs-static` | `exports.foo = ...` | When you want Node.js ESM to be able to perform named imports from the CJS output       |
+
+Rspack keeps these spellings primarily for webpack ecosystem compatibility and does not currently deprecate them at the config level. For new projects, prefer `commonjs2` or `commonjs-static` in most cases; reach for `commonjs` / `commonjs-module` mainly when migrating existing configs or when you explicitly need `exports` assignment semantics.
+
 :::
 
 ##### type: 'amd'
