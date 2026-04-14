@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rustc_hash::FxHashSet;
 
 use super::*;
@@ -32,6 +33,114 @@ impl PassExt for CreateHashPass {
 
   async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
     cache.after_chunks_hashes(compilation).await;
+  }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct RuntimeChunkPlan<T: Eq + std::hash::Hash> {
+  layers: Vec<Vec<T>>,
+  full_hash_chunks: FxHashSet<T>,
+  circular_chunks: Vec<T>,
+}
+
+fn plan_runtime_chunk_layers<T>(
+  runtime_chunks_map: &HashMap<T, (Vec<T>, u32)>,
+  mut full_hash_chunks: FxHashSet<T>,
+  chunks_with_full_hash_modules: &FxHashSet<T>,
+  chunks_with_dependent_hash_modules: &FxHashSet<T>,
+) -> RuntimeChunkPlan<T>
+where
+  T: Copy + Eq + std::hash::Hash + Ord,
+{
+  let mut remaining_by_chunk = runtime_chunks_map
+    .iter()
+    .map(|(chunk, (_, remaining))| (*chunk, *remaining))
+    .collect::<HashMap<_, _>>();
+  let mut layers = Vec::new();
+  let mut current_layer = remaining_by_chunk
+    .iter()
+    .filter_map(|(chunk, remaining)| (*remaining == 0).then_some(*chunk))
+    .collect::<Vec<_>>();
+  current_layer.sort_unstable();
+
+  while !current_layer.is_empty() {
+    let mut propagated_full_hash_chunks = FxHashSet::default();
+    for chunk_ukey in &current_layer {
+      let has_full_hash_modules =
+        full_hash_chunks.contains(chunk_ukey) || chunks_with_full_hash_modules.contains(chunk_ukey);
+      if has_full_hash_modules {
+        full_hash_chunks.insert(*chunk_ukey);
+        if let Some((referenced_by, _)) = runtime_chunks_map.get(chunk_ukey) {
+          for other in referenced_by {
+            if chunks_with_dependent_hash_modules.contains(other) {
+              propagated_full_hash_chunks.insert(*other);
+            }
+          }
+        }
+      }
+    }
+    full_hash_chunks.extend(propagated_full_hash_chunks);
+
+    let processed_layer = std::mem::take(&mut current_layer);
+    let mut next_layer = Vec::new();
+    for chunk_ukey in &processed_layer {
+      if let Some((referenced_by, _)) = runtime_chunks_map.get(chunk_ukey) {
+        for other in referenced_by {
+          let other_remaining = remaining_by_chunk
+            .get_mut(other)
+            .expect("should in remaining_by_chunk");
+          *other_remaining -= 1;
+          if *other_remaining == 0 {
+            next_layer.push(*other);
+          }
+        }
+      }
+    }
+    next_layer.sort_unstable();
+    layers.push(processed_layer);
+    current_layer = next_layer;
+  }
+
+  let mut circular_chunks = remaining_by_chunk
+    .into_iter()
+    .filter_map(|(chunk, remaining)| (remaining != 0).then_some(chunk))
+    .collect::<Vec<_>>();
+  circular_chunks.sort_unstable();
+
+  RuntimeChunkPlan {
+    layers,
+    full_hash_chunks,
+    circular_chunks,
+  }
+}
+
+fn rehash_chunk_with_compilation_hash(
+  hash_function: &HashFunction,
+  hash_digest: &HashDigest,
+  hash_salt: &HashSalt,
+  chunk_hash: &RspackHashDigest,
+  content_hash: &ChunkContentHash,
+  compilation_hash: &RspackHashDigest,
+) -> ChunkHashResult {
+  let new_chunk_hash = {
+    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+    chunk_hash.hash(&mut hasher);
+    compilation_hash.hash(&mut hasher);
+    hasher.digest(hash_digest)
+  };
+  let new_content_hash = content_hash
+    .iter()
+    .map(|(source_type, content_hash)| {
+      let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+      content_hash.hash(&mut hasher);
+      compilation_hash.hash(&mut hasher);
+      (*source_type, hasher.digest(hash_digest))
+    })
+    .collect();
+
+  ChunkHashResult {
+    hash: new_chunk_hash,
+    content_hash: new_content_hash,
   }
 }
 
@@ -217,7 +326,6 @@ pub async fn create_hash(
     .into_iter()
     .map(|runtime_chunk| (runtime_chunk, (Vec::new(), 0)))
     .collect();
-  let mut remaining: u32 = 0;
   let runtime_chunk_keys: Vec<_> = runtime_chunks_map.keys().copied().collect();
   for runtime_chunk_ukey in runtime_chunk_keys {
     let runtime_chunk = compilation
@@ -247,79 +355,76 @@ pub async fn create_hash(
         .get_mut(&runtime_chunk_ukey)
         .expect("should in runtime_chunks_map");
       info.1 += 1;
-      remaining += 1;
     }
   }
-  // sort runtime chunks by its references
-  let mut runtime_chunks = Vec::with_capacity(runtime_chunks_map.len());
-  for (runtime_chunk, (_, remaining)) in &runtime_chunks_map {
-    if *remaining == 0 {
-      runtime_chunks.push(*runtime_chunk);
-    }
-  }
-  let mut ready_chunks = Vec::new();
-
-  let mut i = 0;
-  while i < runtime_chunks.len() {
-    let chunk_ukey = runtime_chunks[i];
-    let has_full_hash_modules = full_hash_chunks.contains(&chunk_ukey)
-      || compilation
+  let chunks_with_full_hash_modules = runtime_chunks_map
+    .keys()
+    .copied()
+    .filter(|chunk_ukey| {
+      compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .has_chunk_full_hash_modules(&chunk_ukey, &compilation.runtime_modules);
-    if has_full_hash_modules {
-      full_hash_chunks.insert(chunk_ukey);
-    }
-    let referenced_by = runtime_chunks_map
-      .get(&chunk_ukey)
-      .expect("should in runtime_chunks_map")
-      .0
-      .clone();
-    for other in referenced_by {
-      if has_full_hash_modules {
-        for runtime_module in compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_runtime_modules_iterable(&other)
-        {
-          let runtime_module = compilation
+        .has_chunk_full_hash_modules(chunk_ukey, &compilation.runtime_modules)
+    })
+    .collect::<FxHashSet<_>>();
+  let chunks_with_dependent_hash_modules = runtime_chunks_map
+    .keys()
+    .copied()
+    .filter(|chunk_ukey| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+        .any(|runtime_module_identifier| {
+          compilation
             .runtime_modules
-            .get(runtime_module)
-            .expect("should have runtime_module");
-          if runtime_module.dependent_hash() {
-            full_hash_chunks.insert(other);
-            break;
-          }
-        }
-      }
-      remaining -= 1;
-      let (_, other_remaining) = runtime_chunks_map
-        .get_mut(&other)
-        .expect("should in runtime_chunks_map");
-      *other_remaining -= 1;
-      if *other_remaining == 0 {
-        ready_chunks.push(other);
-      }
-    }
-    if !ready_chunks.is_empty() {
-      runtime_chunks.append(&mut ready_chunks);
-    }
-    i += 1;
-  }
+            .get(runtime_module_identifier)
+            .expect("should have runtime_module")
+            .dependent_hash()
+        })
+    })
+    .collect::<FxHashSet<_>>();
+  let runtime_chunk_plan = plan_runtime_chunk_layers(
+    &runtime_chunks_map,
+    full_hash_chunks,
+    &chunks_with_full_hash_modules,
+    &chunks_with_dependent_hash_modules,
+  );
+  full_hash_chunks = runtime_chunk_plan.full_hash_chunks;
+  let mut runtime_chunk_layers = runtime_chunk_plan.layers;
+
   // create warning for remaining circular references
-  if remaining > 0 {
-    let mut circular: Vec<_> = runtime_chunks_map
+  if !runtime_chunk_plan.circular_chunks.is_empty() {
+    let mut circular = runtime_chunk_plan
+      .circular_chunks
       .iter()
-      .filter(|(_, (_, remaining))| *remaining != 0)
-      .map(|(chunk_ukey, _)| {
+      .map(|chunk_ukey| {
         compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get(chunk_ukey)
       })
-      .collect();
+      .collect::<Vec<_>>();
     circular.sort_unstable_by(|a, b| a.id().cmp(&b.id()));
-    runtime_chunks.extend(circular.iter().map(|chunk| chunk.ukey()));
+    let circular_chunk_ukeys = circular
+      .iter()
+      .map(|chunk| chunk.ukey())
+      .collect::<Vec<_>>();
+    for chunk_ukey in &circular_chunk_ukeys {
+      let has_full_hash_modules =
+        full_hash_chunks.contains(chunk_ukey) || chunks_with_full_hash_modules.contains(chunk_ukey);
+      if has_full_hash_modules {
+        full_hash_chunks.insert(*chunk_ukey);
+        if let Some((referenced_by, _)) = runtime_chunks_map.get(chunk_ukey) {
+          for other in referenced_by {
+            if chunks_with_dependent_hash_modules.contains(other) {
+              full_hash_chunks.insert(*other);
+            }
+          }
+        }
+      }
+      runtime_chunk_layers.push(vec![*chunk_ukey]);
+    }
     let circular_names = circular
       .iter()
       .map(|chunk| {
@@ -336,17 +441,21 @@ pub async fn create_hash(
   }
 
   // create hash for runtime chunks and the runtime modules within them
-  // The subsequent runtime chunks and runtime modules will depend on
-  // the hash results of the previous runtime chunks and runtime modules.
-  // Therefore, create hashes one by one in sequence.
+  // Runtime chunks in the same topo layer are independent, so hash them in parallel.
+  // Circular chunks are emitted from `plan_runtime_chunk_layers` as single-item layers
+  // to preserve the existing sequential behavior for cyclic cases.
   let start = logger.time("hashing: hash runtime chunks");
-  for runtime_chunk_ukey in runtime_chunks {
+  for runtime_chunk_layer in runtime_chunk_layers {
     let compilation_ref = &*compilation;
     let runtime_module_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+      runtime_chunk_layer
+        .iter()
+        .flat_map(|chunk_ukey| {
+          compilation
+            .build_chunk_graph_artifact
+            .chunk_graph
+            .get_chunk_runtime_modules_iterable(chunk_ukey)
+        })
         .for_each(|runtime_module_identifier| {
           let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
           s.spawn(|(compilation, runtime_module_identifier)| async {
@@ -366,106 +475,138 @@ pub async fn create_hash(
       compilation.runtime_modules_hash.insert(mid, digest);
     }
 
-    let chunk_hash_result =
-      process_chunk_hash(compilation, runtime_chunk_ukey, &plugin_driver).await?;
-    let chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(&runtime_chunk_ukey);
-    let chunk_hashes_changed = chunk.set_hashes(
-      &mut compilation.chunk_hashes_artifact,
-      chunk_hash_result.hash,
-      chunk_hash_result.content_hash,
-    );
-    if chunk_hashes_changed && let Some(mut mutations) = compilation.incremental.mutations_write() {
-      mutations.add(Mutation::ChunkSetHashes {
-        chunk: runtime_chunk_ukey,
-      });
-    }
+    let compilation_ref = &*compilation;
+    let runtime_chunk_hash_results = rspack_parallel::scope::<_, Result<_>>(|token| {
+      for chunk_ukey in &runtime_chunk_layer {
+        let s = unsafe { token.used((compilation_ref, chunk_ukey, plugin_driver.clone())) };
+        s.spawn(|(compilation, chunk_ukey, plugin_driver)| async move {
+          let hash_result = process_chunk_hash(compilation, *chunk_ukey, &plugin_driver).await?;
+          Ok((*chunk_ukey, hash_result))
+        });
+      }
+    })
+    .await
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
+
+    try_process_chunk_hash_results(compilation, runtime_chunk_hash_results)?;
   }
   logger.time_end(start);
 
   // create full hash
-  compilation
+  let mut chunk_ukeys = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
-    .values()
-    .sorted_unstable_by_key(|chunk| chunk.ukey())
-    .for_each(|chunk| {
-      if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
-        hash.hash(&mut compilation_hasher);
-      }
-      if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
-        content_hashes
-          .iter()
-          .sorted_unstable_by_key(|(source_type, _)| *source_type)
-          .for_each(|(source_type, content_hash)| {
-            source_type.hash(&mut compilation_hasher);
-            content_hash.hash(&mut compilation_hasher);
-          });
-      }
-    });
+    .keys()
+    .copied()
+    .collect::<Vec<_>>();
+  chunk_ukeys.par_sort_unstable();
+  let full_hash_inputs = chunk_ukeys
+    .into_par_iter()
+    .map(|chunk_ukey| {
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
+      let mut content_hashes = chunk
+        .content_hash(&compilation.chunk_hashes_artifact)
+        .map(|content_hashes| {
+          content_hashes
+            .iter()
+            .map(|(source_type, content_hash)| (*source_type, content_hash.clone()))
+            .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+      content_hashes.sort_unstable_by_key(|(source_type, _)| *source_type);
+      (
+        chunk.hash(&compilation.chunk_hashes_artifact).cloned(),
+        content_hashes,
+      )
+    })
+    .collect::<Vec<_>>();
+  for (hash, content_hashes) in full_hash_inputs {
+    if let Some(hash) = hash {
+      hash.hash(&mut compilation_hasher);
+    }
+    for (source_type, content_hash) in content_hashes {
+      source_type.hash(&mut compilation_hasher);
+      content_hash.hash(&mut compilation_hasher);
+    }
+  }
   compilation.hot_index.hash(&mut compilation_hasher);
   compilation.hash = Some(compilation_hasher.digest(&compilation.options.output.hash_digest));
 
   // re-create runtime chunk hash that depend on full hash
   let start = logger.time("hashing: process full hash chunks");
-  for chunk_ukey in full_hash_chunks {
-    for runtime_module_identifier in compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(&chunk_ukey)
-    {
-      let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
-      if runtime_module.full_hash() || runtime_module.dependent_hash() {
-        let digest = runtime_module.get_runtime_hash(compilation, None).await?;
-        compilation
-          .runtime_modules_hash
-          .insert(*runtime_module_identifier, digest);
-      }
+  let full_hash_chunks = full_hash_chunks.into_iter().collect::<Vec<_>>();
+  let compilation_ref = &*compilation;
+  let full_hash_chunk_results = rspack_parallel::scope::<_, Result<_>>(|token| {
+    for chunk_ukey in &full_hash_chunks {
+      let s = unsafe { token.used((compilation_ref, chunk_ukey)) };
+      s.spawn(|(compilation, chunk_ukey)| async move {
+        let runtime_module_hashes = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_runtime_modules_iterable(chunk_ukey)
+          .filter_map(|runtime_module_identifier| {
+            let runtime_module = compilation.runtime_modules[runtime_module_identifier].as_ref();
+            (runtime_module.full_hash() || runtime_module.dependent_hash())
+              .then_some(*runtime_module_identifier)
+          })
+          .collect::<Vec<_>>();
+
+        let mut runtime_module_hash_results = Vec::with_capacity(runtime_module_hashes.len());
+        for runtime_module_identifier in runtime_module_hashes {
+          let runtime_module = &compilation.runtime_modules[&runtime_module_identifier];
+          let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+          runtime_module_hash_results.push((runtime_module_identifier, digest));
+        }
+
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey);
+        let chunk_hash_result = rehash_chunk_with_compilation_hash(
+          &compilation.options.output.hash_function,
+          &compilation.options.output.hash_digest,
+          &compilation.options.output.hash_salt,
+          chunk
+            .hash(&compilation.chunk_hashes_artifact)
+            .expect("should have chunk hash"),
+          chunk
+            .content_hash(&compilation.chunk_hashes_artifact)
+            .expect("should have content hash"),
+          compilation
+            .hash
+            .as_ref()
+            .expect("compilation hash should be set"),
+        );
+
+        Ok((*chunk_ukey, runtime_module_hash_results, chunk_hash_result))
+      });
+    }
+  })
+  .await
+  .into_iter()
+  .map(|res| res.to_rspack_result())
+  .collect::<Result<Vec<_>>>()?;
+
+  for result in full_hash_chunk_results {
+    let (chunk_ukey, runtime_module_hash_results, chunk_hash_result) = result?;
+    for (runtime_module_identifier, digest) in runtime_module_hash_results {
+      compilation
+        .runtime_modules_hash
+        .insert(runtime_module_identifier, digest);
     }
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
-    let new_chunk_hash = {
-      let chunk_hash = chunk
-        .hash(&compilation.chunk_hashes_artifact)
-        .expect("should have chunk hash");
-      let mut hasher = RspackHash::from(&compilation.options.output);
-      chunk_hash.hash(&mut hasher);
-      compilation
-        .hash
-        .as_ref()
-        .expect("compilation hash should be set")
-        .hash(&mut hasher);
-      hasher.digest(&compilation.options.output.hash_digest)
-    };
-    let new_content_hash = {
-      let content_hash = chunk
-        .content_hash(&compilation.chunk_hashes_artifact)
-        .expect("should have content hash");
-      content_hash
-        .iter()
-        .map(|(source_type, content_hash)| {
-          let mut hasher = RspackHash::from(&compilation.options.output);
-          content_hash.hash(&mut hasher);
-          compilation
-            .hash
-            .as_ref()
-            .expect("compilation hash should be set")
-            .hash(&mut hasher);
-          (
-            *source_type,
-            hasher.digest(&compilation.options.output.hash_digest),
-          )
-        })
-        .collect()
-    };
     let chunk_hashes_changed = chunk.set_hashes(
       &mut compilation.chunk_hashes_artifact,
-      new_chunk_hash,
-      new_content_hash,
+      chunk_hash_result.hash,
+      chunk_hash_result.content_hash,
     );
     if chunk_hashes_changed && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
@@ -561,4 +702,85 @@ async fn process_chunk_hash(
     hash: chunk_hash,
     content_hash: content_hashes,
   })
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn plans_runtime_chunk_layers_and_propagates_full_hash() {
+    let runtime_chunks_map = HashMap::from_iter([
+      (1_u32, (vec![2, 3], 0)),
+      (2_u32, (vec![4], 1)),
+      (3_u32, (Vec::new(), 1)),
+      (4_u32, (Vec::new(), 1)),
+    ]);
+    let plan = plan_runtime_chunk_layers(
+      &runtime_chunks_map,
+      FxHashSet::default(),
+      &FxHashSet::from_iter([1]),
+      &FxHashSet::from_iter([2]),
+    );
+
+    assert_eq!(plan.layers, vec![vec![1], vec![2, 3], vec![4]]);
+    assert_eq!(plan.circular_chunks, Vec::<u32>::new());
+    assert_eq!(plan.full_hash_chunks, FxHashSet::from_iter([1, 2]));
+  }
+
+  #[test]
+  fn keeps_circular_runtime_chunks_serial() {
+    let runtime_chunks_map = HashMap::from_iter([(1_u32, (vec![2], 1)), (2_u32, (vec![1], 1))]);
+    let plan = plan_runtime_chunk_layers(
+      &runtime_chunks_map,
+      FxHashSet::default(),
+      &FxHashSet::from_iter([1]),
+      &FxHashSet::from_iter([2]),
+    );
+
+    assert!(plan.layers.is_empty());
+    assert_eq!(plan.circular_chunks, vec![1, 2]);
+    assert_eq!(plan.full_hash_chunks, FxHashSet::<u32>::default());
+  }
+
+  #[test]
+  fn rehashes_chunk_and_content_hashes_with_compilation_hash() {
+    let hash_function = HashFunction::Xxhash64;
+    let hash_digest = HashDigest::Hex;
+    let hash_salt = HashSalt::None;
+    let chunk_hash = RspackHashDigest::from("chunk-hash");
+    let compilation_hash = RspackHashDigest::from("compilation-hash");
+    let content_hash = HashMap::from_iter([
+      (SourceType::JavaScript, RspackHashDigest::from("js-hash")),
+      (SourceType::Css, RspackHashDigest::from("css-hash")),
+    ]);
+
+    let result = rehash_chunk_with_compilation_hash(
+      &hash_function,
+      &hash_digest,
+      &hash_salt,
+      &chunk_hash,
+      &content_hash,
+      &compilation_hash,
+    );
+
+    let expected_chunk_hash = {
+      let mut hasher = RspackHash::with_salt(&hash_function, &hash_salt);
+      chunk_hash.hash(&mut hasher);
+      compilation_hash.hash(&mut hasher);
+      hasher.digest(&hash_digest)
+    };
+    let expected_content_hash = content_hash
+      .iter()
+      .map(|(source_type, content_hash)| {
+        let mut hasher = RspackHash::with_salt(&hash_function, &hash_salt);
+        content_hash.hash(&mut hasher);
+        compilation_hash.hash(&mut hasher);
+        (*source_type, hasher.digest(&hash_digest))
+      })
+      .collect::<ChunkContentHash>();
+
+    assert_eq!(result.hash, expected_chunk_hash);
+    assert_eq!(result.content_hash, expected_content_hash);
+  }
 }
