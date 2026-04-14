@@ -21,7 +21,7 @@ import { Stability } from '../../../components/ApiMeta';
 type ExternalItem =
   | string
   | RegExp
-  | function
+  | Function
   | { [x: string]: ExternalItemValue };
 
 type Externals = ExternalItem | ExternalItem[];
@@ -112,7 +112,7 @@ export default {
 ```js title="rspack.config.mjs"
 export default {
   externals: {
-    react: 'module-import',
+    react: 'module-import react',
   },
 };
 ```

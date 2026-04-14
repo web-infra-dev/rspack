@@ -21,7 +21,7 @@ This capability is commonly used when building libraries, but it is also useful 
 type ExternalItem =
   | string
   | RegExp
-  | function
+  | Function
   | { [x: string]: ExternalItemValue };
 
 type Externals = ExternalItem | ExternalItem[];
@@ -107,7 +107,7 @@ If you need to match a family of similar import specifiers, use a [regular expre
 
 You can also specify the external type explicitly with the `${externalsType} ${libraryName}` syntax. This overrides the default value from [externalsType](#externalstype).
 
-For example, if the external dependency is provided as a ES module:
+For example, if the external dependency is provided as an ES module:
 
 ```js title="rspack.config.mjs"
 export default {
