@@ -12,7 +12,6 @@ use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  rspack_sources::{RawStringSource, SourceExt},
   AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
   ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, CompilationAsset,
   CompilationAssets, Compiler, DEFAULT_DELIMITER, EntryRuntime, MangleExportsOption, Mode,
@@ -21,6 +20,7 @@ use rspack_core::{
   build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   incremental::IncrementalOptions,
+  rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -1847,9 +1847,7 @@ fn seed_module_assets(compilation: &mut Compilation) -> usize {
     module.build_info_mut().assets.insert(
       format!("module-assets/module-{asset_index}.txt"),
       CompilationAsset::new(
-        Some(
-          RawStringSource::from(format!("module asset fixture {asset_index}")).boxed(),
-        ),
+        Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
         Default::default(),
       ),
     );
