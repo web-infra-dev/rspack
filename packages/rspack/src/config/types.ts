@@ -1943,6 +1943,13 @@ export type StatsPresets =
   | 'detailed'
   | 'summary';
 
+type AssetFilterItemTypes =
+  | RegExp
+  | string
+  | ((name: string, asset: any) => boolean);
+
+type AssetFilterTypes = boolean | AssetFilterItemTypes | AssetFilterItemTypes[];
+
 type ModuleFilterItemTypes =
   | RegExp
   | string
@@ -2236,7 +2243,7 @@ export type StatsOptions = {
    * Exclude the matching assets information.
    * @default false
    */
-  excludeAssets?: ModuleFilterTypes;
+  excludeAssets?: AssetFilterTypes;
   /**
    * Specifies the sorting order for modules.
    * @default 'id'

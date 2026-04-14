@@ -16,10 +16,8 @@ import { ApiMeta } from '@components/ApiMeta';
 
 <ApiMeta addedVersion="1.3.0" />
 
-<PropertyType
-  type="false | object"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
+- **类型：** `false | Record<string, any>`
+- **默认值：** `false`
 
 :::info
 与 webpack 不同，webpack 中 `amd` 选项的默认值为 `{}`， 即默认开启了 AMD 模块的依赖分析。但由于 AMD 模块的使用量正在逐步减少，Rspack 将 `amd` 选项的默认值设置为 `false`，即默认关闭了 AMD 模块的依赖分析。如果你的项目需要使用 AMD 模块，可以自行开启该选项。

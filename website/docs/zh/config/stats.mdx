@@ -18,14 +18,23 @@ import WebpackLicense from '@components/WebpackLicense';
 
 :::
 
-<PropertyType
-  type="boolean | string | Object"
-  defaultValueList={[
-    {
-      defaultValue: `{"preset":"errors-warnings","timings":true}`,
-    },
-  ]}
-/>
+- **类型：**
+
+```ts
+type StatsPresets =
+  | 'normal'
+  | 'none'
+  | 'verbose'
+  | 'errors-only'
+  | 'errors-warnings'
+  | 'minimal'
+  | 'detailed'
+  | 'summary';
+
+type Stats = boolean | StatsOptions | StatsPresets;
+```
+
+- **默认值：** `{ "preset":"errors-warnings","timings":true }`
 
 ## 预设（Stats presets）
 
@@ -60,7 +69,7 @@ import WebpackLicense from '@components/WebpackLicense';
 ### stats.preset
 
 <PropertyType
-  type="boolean | string"
+  type="boolean | StatsPresets"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -95,11 +104,11 @@ import WebpackLicense from '@components/WebpackLicense';
 ### stats.excludeAssets
 
 <PropertyType
-  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  type="boolean | string | RegExp | ((name: string, asset: any) => boolean) | Array<string | RegExp | ((name: string, asset: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-隐藏匹配的资源，匹配方式支持字符串、正则、接收资源名称并返回布尔的函数，同时也支持以上类型的数组。
+隐藏匹配的资源，匹配方式支持字符串、正则，或接收资源名称和资源对象并返回布尔值的函数，同时也支持以上类型的数组。
 
 ### stats.cachedAssets
 
@@ -307,11 +316,11 @@ import WebpackLicense from '@components/WebpackLicense';
 ### stats.excludeModules
 
 <PropertyType
-  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-隐藏匹配的模块，匹配方式支持字符串、正则、函数。
+隐藏匹配的模块，匹配方式支持字符串、正则，或接收模块名称、模块对象和模块类型并返回布尔值的函数，同时也支持以上类型的数组。
 
 ### stats.nestedModules
 
@@ -456,7 +465,12 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ### stats.loggingDebug
 
-<PropertyType type="Array<string | RegExp | function (name) => boolean>" />
+- **类型：**
+
+```ts
+type FilterItemTypes = RegExp | string | ((value: string) => boolean);
+type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
+```
 
 是否展示插件和 loader 中指定 [Logger](/api/javascript-api/logger) 的调试信息。当 `stats.logging` 为 `false` 时 `stats.loggingDebug` 会被忽略。
 
