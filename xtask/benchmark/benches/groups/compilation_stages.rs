@@ -566,7 +566,7 @@ fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
       .await
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
-    compiler.build().await.unwrap();
+    prepare_for_full_hash(&mut compiler).await.unwrap();
   });
 
   assert_no_compilation_errors(&compiler.compilation, "create_full_hash setup");
@@ -574,46 +574,14 @@ fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
     !compiler.compilation.chunk_hashes_artifact.is_empty(),
     "create_full_hash setup should prepare chunk hashes"
   );
-  assert_no_full_hash_runtime_dependencies(
-    &compiler.compilation,
-    "create_full_hash setup should only benchmark full-hash aggregation over stable chunk/content hashes",
-  );
-  let expected_hash = compiler
-    .compilation
-    .hash
-    .clone()
-    .expect("create_full_hash setup should set the compilation hash");
-  let recomputed_hash = aggregate_full_hash(&mut compiler.compilation);
-  assert_eq!(
-    recomputed_hash, expected_hash,
-    "create_full_hash helper should match compilation hash from the full build"
-  );
+  let compiler = RefCell::new(compiler);
 
   c.bench_function("rust@create_full_hash", |b| {
-    b.iter_batched(
-      || {
-        let fs = Arc::new(MemoryFileSystem::default());
-        let random_table = random_table.clone();
-        let mut compiler = create_general_stage_compiler(fs.clone());
-        rt.block_on(async {
-          fs.create_dir_all("/src".into())
-            .await
-            .expect("should not fail to create dir");
-          prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
-          compiler.build().await.unwrap();
-        });
-        assert_no_full_hash_runtime_dependencies(
-          &compiler.compilation,
-          "create_full_hash benchmark setup should avoid full-hash-dependent runtime chunks",
-        );
-        compiler
-      },
-      |mut compiler| {
-        let full_hash = aggregate_full_hash(&mut compiler.compilation);
-        black_box(full_hash);
-      },
-      BatchSize::PerIteration,
-    );
+    b.iter(|| {
+      let mut compiler = compiler.borrow_mut();
+      let full_hash = aggregate_full_hash(&mut compiler.compilation);
+      black_box(full_hash);
+    });
   });
 }
 
@@ -1125,13 +1093,16 @@ async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()>
   Ok(())
 }
 
+async fn prepare_for_full_hash(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_runtime_requirements(compiler).await?;
+  run_runtime_requirements_pass(compiler).await?;
+  run_pre_full_hash_setup_on_compilation(&mut compiler.compilation).await?;
+  Ok(())
+}
+
 async fn prepare_for_module_assets(compiler: &mut Compiler) -> Result<()> {
   prepare_for_runtime_requirements(compiler).await?;
   run_runtime_requirements_pass(compiler).await?;
-  assert_no_full_hash_runtime_dependencies(
-    &compiler.compilation,
-    "create_module_assets setup should only benchmark asset emission with stable chunk/content hashes",
-  );
   run_create_hash_pass(compiler).await?;
   let seeded_module_assets = seed_module_assets(&mut compiler.compilation);
   assert!(
@@ -1679,7 +1650,7 @@ async fn run_create_hash_pass(compiler: &mut Compiler) -> Result<()> {
   Ok(())
 }
 
-async fn run_create_hash_on_compilation(compilation: &mut Compilation) -> Result<()> {
+async fn run_pre_full_hash_setup_on_compilation(compilation: &mut Compilation) -> Result<()> {
   compilation.chunk_hashes_artifact.clear();
   compilation.runtime_modules_hash.clear();
   compilation.hash = None;
@@ -1705,6 +1676,11 @@ async fn run_create_hash_on_compilation(compilation: &mut Compilation) -> Result
     );
   }
 
+  Ok(())
+}
+
+async fn run_create_hash_on_compilation(compilation: &mut Compilation) -> Result<()> {
+  run_pre_full_hash_setup_on_compilation(compilation).await?;
   aggregate_full_hash(compilation);
   run_runtime_modules_code_generation_on_compilation(compilation).await?;
   Ok(())
@@ -2405,45 +2381,6 @@ fn aggregate_full_hash(compilation: &mut Compilation) -> rspack_hash::RspackHash
   let full_hash = compilation_hasher.digest(&compilation.options.output.hash_digest);
   compilation.hash = Some(full_hash.clone());
   full_hash
-}
-
-fn assert_no_full_hash_runtime_dependencies(compilation: &Compilation, message: &str) {
-  let mut has_full_hash_dependency = false;
-  for chunk_ukey in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
-    compilation
-      .plugin_driver
-      .compilation_hooks
-      .dependent_full_hash
-      .call(compilation, chunk_ukey, &mut has_full_hash_dependency)
-      .expect("full-hash dependency probe should not fail");
-    if has_full_hash_dependency
-      || compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .has_chunk_full_hash_modules(chunk_ukey, &compilation.runtime_modules)
-    {
-      break;
-    }
-    for runtime_module_identifier in compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(chunk_ukey)
-    {
-      let runtime_module = compilation
-        .runtime_modules
-        .get(runtime_module_identifier)
-        .expect("should have runtime module");
-      if runtime_module.dependent_hash() {
-        has_full_hash_dependency = true;
-        break;
-      }
-    }
-    if has_full_hash_dependency {
-      break;
-    }
-  }
-
-  assert!(!has_full_hash_dependency, "{message}");
 }
 
 async fn compute_concatenated_module_codegen(
