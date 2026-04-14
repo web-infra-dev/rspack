@@ -64,6 +64,7 @@ import {
   createNormalModuleFactoryHooksRegisters,
 } from './taps';
 import { TraceHookPlugin } from './trace/traceHookPlugin';
+import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
@@ -340,7 +341,8 @@ class Compiler {
     );
     new JsLoaderRspackPlugin(this).apply(this);
     new ExecuteModulePlugin().apply(this);
-    if (!IS_BROWSER) {
+    // Trace hook interception only pays off once global tracing is already on.
+    if (!IS_BROWSER && JavaScriptTracer.state === 'on') {
       new TraceHookPlugin().apply(this);
     }
 

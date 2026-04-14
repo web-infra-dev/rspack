@@ -35,6 +35,7 @@ define_hook!(CompilerMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerShouldRecord: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
@@ -49,6 +50,7 @@ pub struct CompilerHooks {
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub should_record: CompilerShouldRecordHook,
   pub emit: CompilerEmitHook,
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
@@ -99,6 +101,7 @@ pub struct Compiler {
   pub emitted_asset_versions: HashMap<String, String>,
   pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
+  last_records: Option<Arc<CompilationRecords>>,
 }
 
 impl Compiler {
@@ -195,6 +198,7 @@ impl Compiler {
       input_filesystem,
       platform,
       compiler_context,
+      last_records: None,
     }
   }
 
@@ -313,6 +317,20 @@ impl Compiler {
   #[instrument("Compile:done", skip_all)]
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
+
+    let should_record = !matches!(
+      self
+        .plugin_driver
+        .compiler_hooks
+        .should_record
+        .call(&mut self.compilation)
+        .await?,
+      Some(false)
+    );
+
+    if should_record {
+      self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
+    }
 
     if matches!(
       self

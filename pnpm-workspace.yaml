@@ -8,6 +8,7 @@ packages:
   - 'crates/node_binding'
   - 'crates/rspack_binding_builder_testing'
   - 'tests/e2e'
+  - 'tests/e2e-browser'
   - 'tests/rspack-test'
   - 'tests/bench'
   # this following is used to test resolve in monorepo

@@ -1,9 +1,7 @@
-import { BrowserHttpImportEsmPlugin } from '@rspack/browser';
-
 export const files = {
   './src/main.ts': `
-  const rspack: string = "rspack";
-  console.log(rspack);`,
+	const rspack: string = "rspack";
+	console.log(rspack);`,
 };
 
 export const config = {

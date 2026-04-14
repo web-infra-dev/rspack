@@ -118,6 +118,8 @@ pub enum DependencyType {
   ProvideModuleForShared,
   /// consume shared fallback
   ConsumeSharedFallback,
+  /// federation runtime
+  FederationRuntime,
   /// is included
   IsIncluded,
   LoaderImport,
@@ -206,6 +208,7 @@ impl DependencyType {
       DependencyType::ProvideSharedModule => "provide shared module",
       DependencyType::ProvideModuleForShared => "provide module for shared",
       DependencyType::ConsumeSharedFallback => "consume shared fallback",
+      DependencyType::FederationRuntime => "federation runtime",
       DependencyType::IsIncluded => "__webpack_is_included__",
       DependencyType::LazyImport => "lazy import()",
       DependencyType::ModuleDecorator => "module decorator",

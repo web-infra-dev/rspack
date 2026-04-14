@@ -78,8 +78,7 @@ jobs:
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
             export WASM=1
             pnpm run build:js
-            pnpm run test:e2e
-
+            pnpm run test:e2e-browser
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
