@@ -165,7 +165,7 @@ where
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
-          rspack_util::json_stringify_str(last_key),
+          rspack_util::json_stringify_chunk_id(last_key),
           result.get(last_key).expect("cannot find last key")
         )
       } else {
@@ -186,7 +186,7 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> Stri
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
-      rspack_util::json_stringify_str(chunk_ids.first().expect("should have chunk id"))
+      rspack_util::json_stringify_chunk_id(chunk_ids.first().expect("should have chunk id"))
     )
   } else {
     let content = chunk_ids

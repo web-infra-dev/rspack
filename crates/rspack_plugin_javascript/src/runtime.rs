@@ -416,9 +416,10 @@ pub fn stringify_chunks_to_array(chunks: &ChunkIdSet) -> String {
 
   format!(
     r#"[{}]"#,
-    v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
+    v.iter()
+      .map(|cur| rspack_util::json_stringify_chunk_id(cur.as_str()))
+      .collect::<Vec<_>>()
+      .join(",")
   )
 }
 
@@ -431,4 +432,21 @@ pub fn stringify_array(vec: &[String]) -> String {
       .collect::<Vec<_>>()
       .join(", ")
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::chunk_graph_chunk::ChunkIdSet;
+
+  use super::stringify_chunks_to_array;
+
+  #[test]
+  fn stringify_chunks_to_array_keeps_numeric_ids_unquoted() {
+    let chunks = ChunkIdSet::from_iter([
+      rspack_core::chunk_graph_chunk::ChunkId::from("681"),
+      rspack_core::chunk_graph_chunk::ChunkId::from("main"),
+    ]);
+
+    assert_eq!(stringify_chunks_to_array(&chunks), "[681,\"main\"]");
+  }
 }

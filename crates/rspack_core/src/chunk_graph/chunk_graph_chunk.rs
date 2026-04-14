@@ -63,11 +63,19 @@ impl Serialize for ChunkId {
   where
     S: Serializer,
   {
-    serializer.serialize_str(self.0.as_str())
+    if let Some(n) = self.as_number() {
+      serializer.serialize_u32(n)
+    } else {
+      serializer.serialize_str(self.0.as_str())
+    }
   }
 }
 
 impl ChunkId {
+  pub fn as_number(&self) -> Option<u32> {
+    self.0.as_str().parse::<u32>().ok()
+  }
+
   pub fn as_str(&self) -> &str {
     self.0.as_str()
   }
@@ -1169,5 +1177,19 @@ impl ChunkGraph {
         None
       })
       .unwrap_or_else(|| module.source_types(module_graph).iter().copied().collect())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::ChunkId;
+
+  #[test]
+  fn chunk_id_serializes_numbers_like_module_id() {
+    assert_eq!(serde_json::to_string(&ChunkId::from("903")).unwrap(), "903");
+    assert_eq!(
+      serde_json::to_string(&ChunkId::from("main")).unwrap(),
+      "\"main\""
+    );
   }
 }

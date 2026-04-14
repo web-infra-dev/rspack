@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: 0.js
 - Bundle: [runtime of 1].js
-- Manifest: [runtime of 1].LAST_HASH.hot-update.json, size: 29
+- Manifest: [runtime of 1].LAST_HASH.hot-update.json, size: 25
 - Update: 0.LAST_HASH.hot-update.js, size: 97
 - Update: 1.LAST_HASH.hot-update.js, size: 176
 
@@ -15,7 +15,7 @@
 ### [runtime of 1].LAST_HASH.hot-update.json
 
 ```json
-{"c":["0","1"],"r":[],"m":[]}
+{"c":[0,1],"r":[],"m":[]}
 ```
 
 

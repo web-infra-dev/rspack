@@ -7,7 +7,7 @@
 ## Asset Files
 - Bundle: 1e1.chunk.CURRENT_HASH.js
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 50
+- Manifest: main.LAST_HASH.hot-update.json, size: 46
 - Update: 10.LAST_HASH.hot-update.js, size: 264
 - Update: main.LAST_HASH.hot-update.js, size: 586
 
@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["10","main"],"r":["10"],"m":["./chunk2.js"]}
+{"c":[10,"main"],"r":[10],"m":["./chunk2.js"]}
 ```
 
 
