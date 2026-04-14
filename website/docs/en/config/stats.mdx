@@ -18,14 +18,13 @@ Generate packaging information that can be used to analyze module dependencies a
 
 :::
 
-<PropertyType
-  type="boolean | string | Object"
-  defaultValueList={[
-    {
-      defaultValue: `{"preset":"errors-warnings","timings":true}`,
-    },
-  ]}
-/>
+- **Type:**
+
+```ts
+type Stats = boolean | string | StatsOptions;
+```
+
+- **Default:** `{ "preset":"errors-warnings", "timings":true }`
 
 ## Stats presets
 
@@ -95,7 +94,7 @@ Whether to display information about assets that are related to other assets (li
 ### stats.excludeAssets
 
 <PropertyType
-  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -307,7 +306,7 @@ Whether to display information about cached (not built) modules.
 ### stats.excludeModules
 
 <PropertyType
-  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -456,7 +455,12 @@ Whether to add logging output:
 
 ### stats.loggingDebug
 
-<PropertyType type="Array<string | RegExp | function (name) => boolean>" />
+- **Type:**
+
+```ts
+type FilterItemTypes = RegExp | string | ((value: string) => boolean);
+type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
+```
 
 Whether to display the debug information of the specified [loggers](/api/javascript-api/logger) such as Plugins or Loaders. When `stats.logging` is set to `false`, `stats.loggingDebug` option is ignored.
 

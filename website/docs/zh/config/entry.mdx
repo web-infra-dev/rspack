@@ -10,10 +10,18 @@ import PropertyType from '@components/PropertyType';
 
 # Entry
 
-<PropertyType
-  type="string | string[] | Record<string, string | string[] | EntryDescription> | Function"
-  defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
-/>
+- **类型：**
+
+```ts
+type EntryStatic =
+  | string
+  | string[]
+  | Record<string, string | string[] | EntryDescription>;
+
+type Entry = EntryStatic | (() => EntryStatic | Promise<EntryStatic>);
+```
+
+- **默认值：** `'./src/index.js'`
 
 入口：该选项用于设置 Rspack 构建的入口。
 
@@ -199,10 +207,8 @@ export default {
 
 #### EntryDescription.library
 
-<PropertyType
-  type="string | string[] | object"
-  defaultValueList={[{ defaultValue: 'undefined' }]}
-/>
+- **类型：** `LibraryOptions`
+- **默认值：** `undefined`
 
 修改当前入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
 

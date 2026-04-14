@@ -18,14 +18,13 @@ import WebpackLicense from '@components/WebpackLicense';
 
 :::
 
-<PropertyType
-  type="boolean | string | Object"
-  defaultValueList={[
-    {
-      defaultValue: `{"preset":"errors-warnings","timings":true}`,
-    },
-  ]}
-/>
+- **类型：**
+
+```ts
+type Stats = boolean | string | StatsOptions;
+```
+
+- **默认值：** `{ "preset":"errors-warnings","timings":true }`
 
 ## 预设（Stats presets）
 
@@ -95,7 +94,7 @@ import WebpackLicense from '@components/WebpackLicense';
 ### stats.excludeAssets
 
 <PropertyType
-  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -307,7 +306,7 @@ import WebpackLicense from '@components/WebpackLicense';
 ### stats.excludeModules
 
 <PropertyType
-  type="Array<string | RegExp | (name: string) => boolean> | string | RegExp | (name: string) => boolean | false"
+  type="boolean | string | RegExp | ((name: string, module: any, type: any) => boolean) | Array<string | RegExp | ((name: string, module: any, type: any) => boolean)>"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -456,7 +455,12 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ### stats.loggingDebug
 
-<PropertyType type="Array<string | RegExp | function (name) => boolean>" />
+- **类型：**
+
+```ts
+type FilterItemTypes = RegExp | string | ((value: string) => boolean);
+type StatsLoggingDebug = boolean | FilterItemTypes | FilterItemTypes[];
+```
 
 是否展示插件和 loader 中指定 [Logger](/api/javascript-api/logger) 的调试信息。当 `stats.logging` 为 `false` 时 `stats.loggingDebug` 会被忽略。
 
