@@ -186,6 +186,25 @@ describe('rspack cli', () => {
       ).resolves.toMatch(/Main esm file/);
     });
 
+    it('should load config.ts file with jiti loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+        '--config-loader',
+        'jiti',
+        '--output-path',
+        'dist/ts-jiti',
+      ]);
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/ts-jiti/ts.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main esm file/);
+    });
+
     testNativeLoader(
       'should load config.ts file with native loader',
       async () => {
@@ -220,6 +239,25 @@ describe('rspack cli', () => {
       expect(exitCode).toBe(0);
       await expect(
         readFile(resolve(cwd, './dist/mjs-1/mjs.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main esm file/);
+    });
+
+    it('should load config.mts file with jiti loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.mts',
+        '--config-loader',
+        'jiti',
+        '--output-path',
+        'dist/mts-jiti',
+      ]);
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/mts-jiti/mts.bundle.js'), {
           encoding: 'utf-8',
         }),
       ).resolves.toMatch(/Main esm file/);
