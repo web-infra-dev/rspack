@@ -3784,7 +3784,6 @@ dependencies = [
  "rspack_plugin_sri",
  "rspack_plugin_swc_js_minimizer",
  "rspack_plugin_wasm",
- "rspack_plugin_web_worker_template",
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_resolver",
@@ -5161,14 +5160,6 @@ dependencies = [
  "tokio",
  "tracing",
  "wasmparser 0.222.0",
-]
-
-[[package]]
-name = "rspack_plugin_web_worker_template"
-version = "0.100.0-rc.1"
-dependencies = [
- "rspack_core",
- "rspack_plugin_runtime",
 ]
 
 [[package]]
