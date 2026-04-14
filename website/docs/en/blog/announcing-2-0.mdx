@@ -101,7 +101,7 @@ export default {
 };
 ```
 
-### Import Meta Properties
+### Import meta properties
 
 Rspack 2.0 further improves [`import.meta`](/api/runtime-api/module-variables) behavior. In addition to existing support for [`import.meta.url`](/api/runtime-api/module-variables#importmetaurl), [`import.meta.webpackHot`](/api/runtime-api/module-variables#importmetawebpackhot), and [`import.meta.webpackContext`](/api/runtime-api/module-variables#importmetawebpackcontext), Rspack now adjusts how unknown `import.meta` properties are handled: they are no longer decided too early at compile time and can instead be preserved for runtime evaluation through [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta).
 
@@ -136,7 +136,7 @@ If you use `rspack dev` or `rspack serve`, you now need to install `@rspack/dev-
 pnpm add -D @rspack/dev-server
 ```
 
-### Portable Cache
+### Portable cache
 
 When Rspack 1.0 was released, portable cache was still a next step in the cache roadmap. In 2.0, Rspack now provides an official [`cache.portable`](/config/cache#cacheportable) option. The main goal is to make cache entries not only persistent, but also reusable across different machines, paths, and environments, making them more suitable for team workflows, remote caching, and future distributed build scenarios.
 
@@ -153,7 +153,7 @@ export default {
 };
 ```
 
-### Automatic Targets
+### Automatic targets
 
 Rspack 2.0 further reduces duplicated target configuration. The `targets` of [`builtin:swc-loader`](/guide/features/builtin-swc-loader), [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader), and [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) now inherit from the top-level [`target`](/config/target) configuration by default, instead of requiring developers to keep those settings in sync manually.
 
@@ -180,7 +180,7 @@ export default {
 };
 ```
 
-### Better Peer Dependencies
+### Better peer dependencies
 
 Rspack 2.0 also further refines dependency boundaries. For example, `@rspack/dev-server` is now an optional peer dependency of `@rspack/cli`, and `@module-federation/runtime-tools` has also been changed from a direct dependency to an optional peer dependency, with a wider compatible version range.
 
@@ -192,7 +192,7 @@ For example, if you use `ModuleFederationPlugin`, you now need to install `@modu
 pnpm add @module-federation/runtime-tools
 ```
 
-### Import Defer
+### Import defer
 
 Rspack first added support for `import defer` in 1.6, and in 2.0 that support continues to expand. In addition to the original `import defer * as foo from './foo'`, Rspack later added support for `import.defer()` in static-path and context-module scenarios, allowing the "import now, execute later" model to cover more real-world cases.
 
@@ -214,7 +214,7 @@ import defer * as foo from './foo';
 console.log(foo.bar);
 ```
 
-### MF Share Treeshaking
+### MF share treeshaking
 
 In [Module Federation](/guide/features/module-federation), Rspack 2.0 continues improving shared dependency pruning. With MF share treeshaking, Rspack can trim `shared` dependencies at a finer export level, reducing unused parts of shared packages and further shrinking dependency size in micro-frontend scenarios.
 
@@ -242,7 +242,7 @@ export default {
 };
 ```
 
-### Better Tree Shaking
+### Better tree shaking
 
 Rspack 2.0 further improves [tree shaking](/guide/optimization/tree-shaking) on top of the 1.x work. In 1.6, Rspack already improved tree shaking for dynamic imports. In 2.0, it also adds [`experiments.pureFunctions`](/guide/migration/rspack_1.x#new-experimentspurefunctions-for-function-level-tree-shaking), allowing finer-grained analysis of cross-module pure function calls through `/*#__NO_SIDE_EFFECTS__*/` annotations or [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions).
 
@@ -320,7 +320,7 @@ Thanks to all Rspack users, community contributors, ecosystem partners, and Byte
 
 If you use Rspack through the [JavaScript API](/api/javascript-api) or through an upper-layer tool integration, the most important things to check first are the module-system and dependency-boundary changes. In particular, `@rspack/core`, `@rspack/cli`, `@rspack/dev-server`, and `@rspack/plugin-react-refresh` are now [pure ESM packages](/guide/migration/rspack_1.x#pure-esm-packages), and [`@rspack/dev-server`](/guide/migration/rspack_1.x#development-server) is no longer installed by default with `@rspack/cli`. If your environment still assumes CommonJS usage patterns or automatic dev-server installation, plan to update those assumptions during the upgrade.
 
-### Is Portable Cache enabled by default?
+### Is portable cache enabled by default?
 
 No. [`cache.portable`](/config/cache#cacheportable) now has an official configuration entry in Rspack 2.0, but it remains disabled by default. You can enable it when you want cache reuse across machines, paths, or environments.
 

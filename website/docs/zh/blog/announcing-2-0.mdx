@@ -100,7 +100,7 @@ export default {
 };
 ```
 
-### Import Meta Properties
+### Import meta properties
 
 Rspack 2.0 进一步完善了 [`import.meta`](/api/runtime-api/module-variables#importmetaesm) 相关语义。除了已经支持的 [`import.meta.url`](/api/runtime-api/module-variables#importmetaurl)、[`import.meta.webpackHot`](/api/runtime-api/module-variables#importmetawebpackhot) 和 [`import.meta.webpackContext`](/api/runtime-api/module-variables#importmetawebpackcontext) 等能力之外，Rspack 还调整了对未知 `import.meta` 属性的处理方式：它们不再在编译期被过早静态决定，而是可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 保留到运行时求值。
 
@@ -135,7 +135,7 @@ export default {
 pnpm add -D @rspack/dev-server
 ```
 
-### Portable Cache
+### Portable cache
 
 在 1.0 发布时，Portable Cache 还只是缓存演进路线中的下一步目标；到了 2.0，Rspack 已经为它提供了正式的配置入口 [`cache.portable`](/config/cache#cacheportable)。这项能力的核心，是让缓存内容不只“持久化”，还能够跨不同机器、不同路径甚至不同环境复用，从而更适合团队协作、远程缓存以及后续的分布式构建场景。
 
@@ -152,7 +152,7 @@ export default {
 };
 ```
 
-### Automatic Targets
+### Automatic targets
 
 Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的 `targets` 现在会默认继承顶层的 [`target`](/config/target) 配置，而不再需要开发者分别在 loader、plugin 和顶层目标环境之间手动同步。
 
@@ -179,7 +179,7 @@ export default {
 };
 ```
 
-### Better Peer Dependencies
+### Better peer dependencies
 
 Rspack 2.0 也对依赖关系做了进一步整理。比如 `@rspack/dev-server` 被调整为 `@rspack/cli` 的可选 peer dependency，`@module-federation/runtime-tools` 也从直接依赖改成了可选 peer dependency，并扩展了兼容版本范围以同时接受较新的运行时版本。
 
@@ -191,7 +191,7 @@ Rspack 2.0 也对依赖关系做了进一步整理。比如 `@rspack/dev-server`
 pnpm add @module-federation/runtime-tools
 ```
 
-### Import Defer
+### Import defer
 
 Rspack 在 1.6 首次支持了 `import defer` 语法，而在 2.0 中，这项能力继续向更完整的形态推进。除了最初的 `import defer * as foo from './foo'`，Rspack 后续还补齐了 `import.defer()` 在静态路径和 context module 场景下的支持，使得“导入模块但延后执行”的语义可以覆盖更多真实用法。
 
@@ -213,7 +213,7 @@ import defer * as foo from './foo';
 console.log(foo.bar);
 ```
 
-### MF Share Treeshaking
+### MF share treeshaking
 
 在 [Module Federation](/guide/features/module-federation) 相关能力上，Rspack 2.0 继续完善共享依赖的裁剪能力。通过 MF share treeshaking，Rspack 可以对 `shared` 依赖做更细粒度的导出级裁剪，减少共享包里实际不会被使用到的部分，从而进一步压缩微前端场景下的依赖体积。
 
@@ -241,7 +241,7 @@ export default {
 };
 ```
 
-### Better Tree Shaking
+### Better tree shaking
 
 Rspack 2.0 的 [tree shaking](/guide/optimization/tree-shaking) 能力在 1.x 的基础上继续增强。在 1.6 中，Rspack 已经增强了动态导入场景下的 tree shaking；而 2.0 又新增了 [`experiments.pureFunctions`](/guide/migration/rspack_1.x#新增-experimentspurefunctions用于函数粒度-tree-shaking)，允许通过 `/*#__NO_SIDE_EFFECTS__*/` 注解或 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置，对跨模块的 pure function 调用做更细粒度分析。
 
@@ -267,7 +267,7 @@ export default {
 };
 ```
 
-### Builtin React Server Component
+### Builtin React server component
 
 Rspack 2.0 提供了内置的 [React Server Components](/guide/tech/rsc) 支持。它不再完全依赖上层框架做额外拼装，而是在核心中直接提供了面向 RSC 的插件与编译支持：通过 [`rsc.createPlugins()`](/guide/tech/rsc#配置插件) 生成的 `ServerPlugin` 与 `ClientPlugin`，Rspack 可以协调 Server Compiler 和 Client Compiler 两套构建流程，自动收集 `"use client"`、`"use server"`、`"use server-entry"` 等指令信息，生成 RSC 运行时所需的 manifest，并在服务端组件变更时通过 [`onServerComponentChanges`](/guide/tech/rsc#开发服务器) 暴露更新信号。
 
