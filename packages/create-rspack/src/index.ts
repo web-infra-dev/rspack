@@ -101,4 +101,16 @@ create({
       },
     },
   ],
+  extraSkills: [
+    {
+      value: 'rspack-best-practices',
+      label: 'Rspack - best practices',
+      source: 'rstackjs/agent-skills',
+    },
+    {
+      value: 'rstest-best-practices',
+      label: 'Rstest - best practices',
+      source: 'rstackjs/agent-skills',
+    },
+  ],
 });
