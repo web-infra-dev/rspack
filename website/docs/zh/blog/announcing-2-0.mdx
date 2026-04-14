@@ -1,0 +1,314 @@
+---
+description: 'Rspack 2.0 发布说明，介绍兼容性、性能、产物优化与主要变更。'
+date: 2026-04-28 16:00:01
+sidebar: false
+---
+
+<!-- cspell:words Vize -->
+
+_2026 年 4 月 28 日_
+
+# Rspack 2.0 发布公告
+
+![Rspack 2.0 Banner](https://assets.rspack.rs/rspack/assets/rspack-v2-0-banner.png)
+
+---
+
+我们很高兴地宣布，Rspack 2.0 已正式发布。
+
+这是 Rspack 1.0 之后的第一个 major 版本。在 1.x 系列中，我们一方面持续补齐 webpack 生态兼容性，另一方面也持续改进性能、产物优化、模块能力与可扩展性。Rspack 2.0 在这些工作的基础上，进一步整理了模块边界、稳定了部分能力的使用方式，并补充了更多面向现代 JavaScript 工程的特性。
+
+值得关注的变更如下：
+
+- 构建性能继续提升
+- [Pure ESM](/guide/migration/rspack_1.x#pure-esm-包)、Better ESM 和更完整的 [`import.meta`](/api/runtime-api/module-variables#importmetaesm) 语义
+- 更轻量、更模块化的 [`@rspack/dev-server` 2.0](/guide/migration/rspack_1.x#开发服务器)
+- [Portable Cache](/config/cache#cacheportable)、[Automatic Targets](/guide/migration/rspack_1.x#从-target-派生-loader-和-plugin-的-targets-配置) 以及更清晰的 peer dependency 边界
+- 更强的 [tree shaking](/guide/optimization/tree-shaking)、[`import defer`](/blog/announcing-1-6#支持-import-defer)、MF share treeshaking 和内置 [RSC 支持](/guide/tech/rsc)
+
+## 用户规模
+
+![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
+
+Rspack 的使用规模仍在持续增长。当前，Rspack 在 npm 上的周下载量已经达到 **4,801,885**。与此同时，Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台也已接入 Rspack。这些采用表明，Rspack 已经在更多真实项目中承担构建工作。
+
+在字节跳动内部，Rspack 的落地范围也在继续扩大。目前，基于 Rspack 的**内部周活跃项目数已经超过 1,500 个**，**内部周下载量达到 131 万**。这些场景也持续为 Rspack 的稳定性、性能和工程能力提供反馈。
+
+## 社区支持
+
+![Rspack 2.0 repo stats](https://assets.rspack.rs/rspack/assets/rspack-v2-0-repo-stats.png)
+
+社区协作也在同步增长。自 1.0 发布以来，Rspack 仓库累计收到了 **4,728 个 PR** 和 **1,052 个 Issue**，共有 **164 位贡献者**参与共建。持续的反馈、讨论和代码贡献，帮助我们不断改进 Rspack 的兼容性、稳定性和工程体验。
+
+感谢所有社区贡献者的参与。无论是提交 PR、报告问题、参与讨论、补充文档，还是在真实项目中持续验证和反馈 Rspack，这些工作都直接推动了 Rspack 2.0 的完善与发布。
+
+## 关键指标
+
+### 更好的构建性能
+
+![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
+
+过去几个版本中，我们持续优化了编译链路、缓存体系、增量构建和开发体验相关能力，使 Rspack 在真实工程场景中的整体性能继续提升。
+
+以 build-tools-performance 的 react-1k 基准为例，Rspack 2.0 在 Build 和 HMR 两项关键指标上，相比 Rspack 1.0 都有明显提升，并且相较于 webpack 仍然保持领先。这意味着在大规模项目中，开发者可以获得更短的等待时间和更快的反馈速度。
+
+### 更优的产物体积
+
+![Rspack 2.0 bundle size comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-bundle-size-comparison.png)
+
+相比 webpack，Rspack 1.0 在部分场景下生成的产物仍然偏大。不过，随着 1.x 系列对 [tree shaking](/guide/optimization/tree-shaking)、[barrel 文件优化](/blog/announcing-1-5#barrel-文件优化)、[常量内联](/blog/announcing-1-5#常量内联优化)、TypeScript enum 内联以及 [ESM 输出](/guide/features/esm) 等能力的持续增强，Rspack 在产物体积上的表现已经明显改善。
+
+到了 Rspack 2.0，我们在大多数场景下已经能够做到与 webpack 基本持平，甚至在部分场景中生成更小的产物。后续，产物优化仍会是 Rspack 的重点方向之一，我们会继续围绕更高质量的 tree shaking、更精细的代码生成和更现代的模块输出持续改进。
+
+## 特性更新
+
+### Pure ESM
+
+Rspack 2.0 将 `@rspack/core`、`@rspack/cli`、`@rspack/dev-server` 和 `@rspack/plugin-react-refresh` 正式切换为 [Pure ESM](/guide/migration/rspack_1.x#pure-esm-包) 发布，并移除了 CommonJS 构建产物。这使 Rspack 的包形态与现代 Node.js / ESM 生态保持一致，也简化了后续围绕模块加载和工具链集成的设计。
+
+对于运行在 Node.js 20+ 的大多数项目来说，这一变化通常不会影响通过 [JavaScript API](/api/javascript-api) 使用 Rspack 的方式；但对于仍依赖旧 CommonJS 使用习惯的工具环境，则需要在升级时检查相关集成方式并按需调整。
+
+例如，在升级到 2.0 时，你通常需要将相关包一起升级到 2.x：
+
+```json title="package.json"
+{
+  "devDependencies": {
+    "@rspack/core": "^2.0.0",
+    "@rspack/cli": "^2.0.0",
+    "@rspack/dev-server": "^2.0.0",
+    "@rspack/plugin-react-refresh": "^2.0.0"
+  }
+}
+```
+
+### Better ESM
+
+Rspack 2.0 将 1.x 阶段围绕 [ESM 产物](/guide/features/esm) 的探索进一步整理为更稳定的能力边界。此前，Rspack 通过实验性的 [`EsmLibraryPlugin`](/guide/migration/rspack_1.x#移除-esmlibraryplugin) 解决 ESM 产物中运行时代码过多、代码分割后难以静态分析等问题；在 2.0 中，这套能力进一步收敛到 [`modern-module`](/config/output#outputlibrarytype)、[`output.module`](/config/output#outputmodule) 等更自然的配置接口上。
+
+这意味着生成的 ESM 产物会更纯净，更利于静态分析，也更适合用于库构建、代码分割和后续 tree shaking。
+
+例如，在库构建中可以这样配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+    library: {
+      type: 'modern-module',
+    },
+  },
+};
+```
+
+### Import Meta Properties
+
+Rspack 2.0 进一步完善了 [`import.meta`](/api/runtime-api/module-variables#importmetaesm) 相关语义。除了已经支持的 [`import.meta.url`](/api/runtime-api/module-variables#importmetaurl)、[`import.meta.webpackHot`](/api/runtime-api/module-variables#importmetawebpackhot) 和 [`import.meta.webpackContext`](/api/runtime-api/module-variables#importmetawebpackcontext) 等能力之外，Rspack 还调整了对未知 `import.meta` 属性的处理方式：它们不再在编译期被过早静态决定，而是可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 保留到运行时求值。
+
+这样可以更好地兼容框架、工具和运行时扩展出的 `import.meta.*` 用法。
+
+例如，如果你希望未知的 `import.meta` 属性保留到运行时求值，可以显式配置：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+  },
+  module: {
+    parser: {
+      javascript: {
+        importMeta: 'preserve-unknown',
+      },
+    },
+  },
+};
+```
+
+### Rspack dev server 2.0
+
+[`@rspack/dev-server`](/guide/migration/rspack_1.x#开发服务器) 在 2.0 中进行了一次较为完整的整理。它不再作为 `@rspack/cli` 的默认依赖，而是变成可选安装项；同时，它也在内部中间件栈上引入了 `@rspack/dev-middleware`，并用 `connect-next` 取代了过去更重的 Express v4 方案。
+
+调整后的结果是：开发服务器更轻量，也更适合作为独立能力被上层框架按需集成。关于常规使用方式，可以参考 [Rspack Dev Server 指南](/guide/features/dev-server)。
+
+如果你在项目中使用 `rspack dev` 或 `rspack serve`，现在需要显式安装 `@rspack/dev-server`：
+
+```bash
+pnpm add -D @rspack/dev-server
+```
+
+### Portable Cache
+
+在 1.0 发布时，Portable Cache 还只是缓存演进路线中的下一步目标；到了 2.0，Rspack 已经为它提供了正式的配置入口 [`cache.portable`](/config/cache#cacheportable)。这项能力的核心，是让缓存内容不只“持久化”，还能够跨不同机器、不同路径甚至不同环境复用，从而更适合团队协作、远程缓存以及后续的分布式构建场景。
+
+当前它默认关闭，但已经具备正式配置和使用入口。
+
+例如：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    portable: true,
+  },
+};
+```
+
+### Automatic Targets
+
+Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的 `targets` 现在会默认继承顶层的 [`target`](/config/target) 配置，而不再需要开发者分别在 loader、plugin 和顶层目标环境之间手动同步。
+
+这样做可以减少配置冗余，也能避免“编译目标”和“压缩 / 降级目标”不一致带来的问题。
+
+例如，默认情况下 loader / plugin 会继承顶层 `target`；如果你需要覆盖某个 loader 的目标环境，可以单独指定：
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            targets: 'chrome >= 87',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Better Peer Dependencies
+
+Rspack 2.0 也对依赖关系做了进一步整理。比如 `@rspack/dev-server` 被调整为 `@rspack/cli` 的可选 peer dependency，`@module-federation/runtime-tools` 也从直接依赖改成了可选 peer dependency，并扩展了兼容版本范围以同时接受较新的运行时版本。
+
+这些调整让依赖边界更清晰，也让上层框架和工具在集成时拥有更高的灵活度。
+
+例如，如果你使用 `ModuleFederationPlugin`，现在需要显式安装 `@module-federation/runtime-tools`：
+
+```bash
+pnpm add @module-federation/runtime-tools
+```
+
+### Import Defer
+
+Rspack 在 1.6 首次支持了 `import defer` 语法，而在 2.0 中，这项能力继续向更完整的形态推进。除了最初的 `import defer * as foo from './foo'`，Rspack 后续还补齐了 `import.defer()` 在静态路径和 context module 场景下的支持，使得“导入模块但延后执行”的语义可以覆盖更多真实用法。
+
+这让开发者可以更细致地控制模块执行时机和副作用触发时机。
+
+例如：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+```js title="app.js"
+import defer * as foo from './foo';
+
+console.log(foo.bar);
+```
+
+### MF Share Treeshaking
+
+在 [Module Federation](/guide/features/module-federation) 相关能力上，Rspack 2.0 继续完善共享依赖的裁剪能力。通过 MF share treeshaking，Rspack 可以对 `shared` 依赖做更细粒度的导出级裁剪，减少共享包里实际不会被使用到的部分，从而进一步压缩微前端场景下的依赖体积。
+
+它同时支持 `runtime-infer` 和 `server-calc` 两种模式，分别面向运行时推断和部署侧二次计算这两类不同的工程策略。
+
+例如：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      shared: {
+        'lodash-es': {
+          singleton: true,
+          treeShaking: {
+            mode: 'runtime-infer',
+            usedExports: ['debounce'],
+          },
+        },
+      },
+    }),
+  ],
+};
+```
+
+### Better Tree Shaking
+
+Rspack 2.0 的 [tree shaking](/guide/optimization/tree-shaking) 能力在 1.x 的基础上继续增强。在 1.6 中，Rspack 已经增强了动态导入场景下的 tree shaking；而 2.0 又新增了 [`experiments.pureFunctions`](/guide/migration/rspack_1.x#新增-experimentspurefunctions用于函数粒度-tree-shaking)，允许通过 `/*#__NO_SIDE_EFFECTS__*/` 注解或 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置，对跨模块的 pure function 调用做更细粒度分析。
+
+结合 1.x 已经铺开的 [常量内联](/blog/announcing-1-5#常量内联优化)、[enum 内联](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 和 [barrel 优化](/guide/optimization/lazy-barrel)，Rspack 的产物裁剪能力已经从模块级优化进一步扩展到函数级优化。
+
+例如：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index.js/,
+        parser: {
+          pureFunctions: ['isString', 'default'],
+        },
+      },
+    ],
+  },
+};
+```
+
+### Builtin React Server Component
+
+Rspack 2.0 提供了内置的 [React Server Components](/guide/tech/rsc) 支持。它不再完全依赖上层框架做额外拼装，而是在核心中直接提供了面向 RSC 的插件与编译支持：通过 [`rsc.createPlugins()`](/guide/tech/rsc#配置插件) 生成的 `ServerPlugin` 与 `ClientPlugin`，Rspack 可以协调 Server Compiler 和 Client Compiler 两套构建流程，自动收集 `"use client"`、`"use server"`、`"use server-entry"` 等指令信息，生成 RSC 运行时所需的 manifest，并在服务端组件变更时通过 [`onServerComponentChanges`](/guide/tech/rsc#开发服务器) 暴露更新信号。
+
+与此同时，`builtin:swc-loader` 也被增强为可以识别并转换这些 RSC 指令，使 React 19 时代的 RSC、Server Actions、客户端引用和服务端引用能够在同一套构建体系里协同工作。
+
+例如：
+
+```js title="rspack.config.mjs"
+import { experiments } from '@rspack/core';
+
+const { createPlugins } = experiments.rsc;
+const { ServerPlugin, ClientPlugin } = createPlugins();
+
+export default [
+  {
+    target: 'web',
+    plugins: [new ClientPlugin()],
+  },
+  {
+    target: 'node',
+    plugins: [new ServerPlugin()],
+  },
+];
+```
+
+## 展望未来
+
+Rspack 2.0 发布之后，Rstack 会继续围绕以下几个方向推进：
+
+1. 改进 Agent 的使用体验
+
+我们会继续补充 [Skills](/guide/start/ai#agent-skills)、MCP 等能力，让 Agent 能更自然地参与开发、调试、优化和协作。
+
+2. 提升工具链一体化体验
+
+Rstack 的各个工具会继续独立演进，同时也会在统一 CLI 和整体使用体验上做更多整理。
+
+3. 持续优化性能和产物质量
+
+对于 Rspack 而言，性能和产物质量仍然会是后续工作的重点。我们会继续围绕构建性能和产物优化相关能力持续迭代。
+
+## 致谢
+
+## 常见问题
