@@ -1,23 +1,28 @@
-const __rspack_createRequire_require = "user-defined";
+import { createRequire as __rspack_createRequire } from "node:module";
 
-export const userCreateRequireRequire = __rspack_createRequire_require;
-export { readFile } from "fs";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// fs
+const external_fs_namespaceObject = __rspack_createRequire_require("fs");
 
-it("should rename user bindings that collide with the node-commonjs helper", async () => {
+export const sourceCreateRequireRequire = __rspack_createRequire_require;
+export const sourceReadFile = external_fs_namespaceObject.readFile;
+export const sourceRequireReadFile = require("fs").readFile;
+
+it("should deconflict source bindings that already use the node-commonjs helper names", async () => {
   const mod = await import(/* webpackIgnore: true */ "./main.mjs");
   const { createRequire } = await import(/* webpackIgnore: true */ "node:module");
   const require = createRequire(import.meta.url);
   const fs = require("fs");
-  const outputPath = require("path");
-  const code = fs.readFileSync(outputPath.join(__dirname, "main.mjs"), "utf-8");
+  const path = require("path");
+  const code = fs.readFileSync(path.join(__dirname, "main.mjs"), "utf-8");
 
-  expect(mod.userCreateRequireRequire).toBe("user-defined");
-  expect(mod.readFile).toBe(fs.readFile);
+  expect(mod.sourceReadFile).toBe(fs.readFile);
+  expect(mod.sourceRequireReadFile).toBe(fs.readFile);
+  expect(mod.sourceCreateRequireRequire("fs").readFile).toBe(fs.readFile);
   expect(code).toContain(
     'const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);'
   );
   expect(code).toMatch(
-    /^const [A-Za-z0-9_$]*rspack_createRequire_require = "user-defined";$/m
+    /^const (?!__rspack_createRequire_require\b)[A-Za-z0-9_$]*rspack_createRequire_require = .*createRequire.*;$/m
   );
-  expect(code).not.toMatch(/^const __rspack_createRequire_require = "user-defined";$/m);
 });
