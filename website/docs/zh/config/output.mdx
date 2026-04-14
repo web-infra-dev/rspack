@@ -1160,12 +1160,12 @@ import { doSomething } from './output.cjs'; // doSomething => [Function: doSomet
 
 :::tip 如何选择 CommonJS 的 `library.type`
 
-| 类型 | 写入目标 | 更适合的场景 |
-| --- | --- | --- |
-| `commonjs` | `exports[...]` | 兼容已有依赖 `exports` 对象的历史配置；更偏兼容写法 |
-| `commonjs2` | `module.exports` | 通用的 Node.js / CJS 库输出；大多数新配置优先选它 |
-| `commonjs-module` | `module.exports` | 当前与 `commonjs2` 等价，主要用于兼容历史 webpack 配置 |
-| `commonjs-static` | `exports.foo = ...` | 需要让 Node.js ESM 能够对 CJS 产物做具名导入 |
+| 类型              | 写入目标            | 更适合的场景                                           |
+| ----------------- | ------------------- | ------------------------------------------------------ |
+| `commonjs`        | `exports[...]`      | 兼容已有依赖 `exports` 对象的历史配置；更偏兼容写法    |
+| `commonjs2`       | `module.exports`    | 通用的 Node.js / CJS 库输出；大多数新配置优先选它      |
+| `commonjs-module` | `module.exports`    | 当前与 `commonjs2` 等价，主要用于兼容历史 webpack 配置 |
+| `commonjs-static` | `exports.foo = ...` | 需要让 Node.js ESM 能够对 CJS 产物做具名导入           |
 
 Rspack 当前保留这些写法主要是为了兼容 webpack 生态，并没有在配置层面对它们做废弃。对于新项目，通常优先考虑 `commonjs2` 或 `commonjs-static`；只有在迁移既有配置、或明确依赖 `exports` 赋值语义时，再使用 `commonjs` / `commonjs-module`。
 

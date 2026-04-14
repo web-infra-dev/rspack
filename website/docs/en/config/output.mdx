@@ -1169,12 +1169,12 @@ This is useful when source code is written in ESM and the output should be compa
 
 :::tip How To Choose A CommonJS `library.type`
 
-| Type | Writes To | Better Fit |
-| --- | --- | --- |
-| `commonjs` | `exports[...]` | Compatibility with legacy configs that intentionally write to the `exports` object |
-| `commonjs2` | `module.exports` | General Node.js / CJS library output; the preferred choice for most new configs |
-| `commonjs-module` | `module.exports` | Currently equivalent to `commonjs2`, mainly for historical webpack config compatibility |
-| `commonjs-static` | `exports.foo = ...` | When you want Node.js ESM to be able to perform named imports from the CJS output |
+| Type              | Writes To           | Better Fit                                                                              |
+| ----------------- | ------------------- | --------------------------------------------------------------------------------------- |
+| `commonjs`        | `exports[...]`      | Compatibility with legacy configs that intentionally write to the `exports` object      |
+| `commonjs2`       | `module.exports`    | General Node.js / CJS library output; the preferred choice for most new configs         |
+| `commonjs-module` | `module.exports`    | Currently equivalent to `commonjs2`, mainly for historical webpack config compatibility |
+| `commonjs-static` | `exports.foo = ...` | When you want Node.js ESM to be able to perform named imports from the CJS output       |
 
 Rspack keeps these spellings primarily for webpack ecosystem compatibility and does not currently deprecate them at the config level. For new projects, prefer `commonjs2` or `commonjs-static` in most cases; reach for `commonjs` / `commonjs-module` mainly when migrating existing configs or when you explicitly need `exports` assignment semantics.
 
