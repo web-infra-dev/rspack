@@ -14,7 +14,7 @@
 ### [runtime of 889].LAST_HASH.hot-update.json
 
 ```json
-{"c":[889],"r":[],"m":[]}
+{"c":["889"],"r":[],"m":[]}
 ```
 
 

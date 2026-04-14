@@ -16,7 +16,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":[10,"main"],"r":[10],"m":["./chunk2.js"]}
+{"c":["10","main"],"r":["10"],"m":["./chunk2.js"]}
 ```
 
 
