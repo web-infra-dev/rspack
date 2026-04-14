@@ -97,13 +97,13 @@ pub fn to_identifier_with_escaped(v: String) -> String {
     return v;
   }
 
-  if let Some(first_char) = v.chars().next() {
-    if first_char.is_ascii_alphabetic() || first_char == '$' || first_char == '_' {
-      return v;
-    }
-    format!("_{v}")
-  } else {
-    v
+  // Fast path: pre-escaped input passes straight through (see #10760). When the
+  // input still contains characters that aren't valid in an identifier (e.g.
+  // JSON keys like "!top" or "with space"), fall back to the full escape so we
+  // never emit bare invalid characters into a JS identifier position.
+  match to_identifier(&v) {
+    Cow::Borrowed(_) => v,
+    Cow::Owned(escaped) => escaped,
   }
 }
 
@@ -191,4 +191,25 @@ fn test_to_identifier() {
     to_identifier("ident0_stable/src/core/iter//range.rs?"),
     "ident0_stable_src_core_iter_range_rs_"
   );
+}
+
+#[test]
+fn test_to_identifier_with_escaped() {
+  // Already-valid identifiers pass through unchanged.
+  assert_eq!(to_identifier_with_escaped("ident0".into()), "ident0");
+  assert_eq!(to_identifier_with_escaped("_top".into()), "_top");
+  assert_eq!(to_identifier_with_escaped("$foo".into()), "$foo");
+
+  // First-char-only fixups still work.
+  assert_eq!(to_identifier_with_escaped("0ident".into()), "_0ident");
+
+  // Invalid characters anywhere in the input are escaped — regression coverage
+  // for JSON keys like "!top" / "with space" leaking into JS identifier positions.
+  assert_eq!(to_identifier_with_escaped("!top".into()), "_top");
+  assert_eq!(to_identifier_with_escaped("_!top".into()), "_top");
+  assert_eq!(
+    to_identifier_with_escaped("with space".into()),
+    "with_space"
+  );
+  assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
 }
