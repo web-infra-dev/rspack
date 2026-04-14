@@ -11,9 +11,6 @@
   },
   "license": "MIT",
   "type": "module",
-  "dependencies": {
-    "jiti": "^2.6.1"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -27,11 +24,13 @@
   },
   "files": [
     "bin",
+    "compiled",
     "dist"
   ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",
+    "prepare": "prebundle",
     "test": "rstest"
   },
   "devDependencies": {
@@ -45,6 +44,8 @@
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",
     "exit-hook": "^4.0.0",
+    "jiti": "^2.6.1",
+    "prebundle": "^1.6.4",
     "typescript": "^6.0.2"
   },
   "peerDependencies": {

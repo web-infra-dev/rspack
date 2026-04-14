@@ -14,6 +14,26 @@ const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
 const JS_CONFIG_EXTENSION_REGEXP = /\.(?:js|mjs|cjs)$/;
 const CONFIG_LOADER_VALUES = ['auto', 'jiti', 'native'] as const;
 type ConfigLoader = (typeof CONFIG_LOADER_VALUES)[number];
+type JitiFactory = (
+  id: string,
+  opts: {
+    moduleCache: boolean;
+    interopDefault: boolean;
+    nativeModules: string[];
+  },
+) => {
+  import<T = unknown>(
+    path: string,
+    opts: {
+      default: boolean;
+    },
+  ): Promise<T>;
+};
+
+const PREBUNDLED_JITI_PATH = new URL(
+  '../compiled/jiti/index.js',
+  import.meta.url,
+).href;
 
 const supportsNativeTypeScript = () => {
   const features = process.features as NodeJS.ProcessFeatures & {
@@ -56,19 +76,24 @@ const loadConfigWithNativeLoader = async <T = unknown>(
   return resolveDefaultExport(loadedModule as T);
 };
 
-let jitiInstancePromise:
-  | Promise<ReturnType<(typeof import('jiti'))['createJiti']>>
-  | undefined;
+let jitiInstancePromise: Promise<ReturnType<JitiFactory>> | undefined;
 
 const getJiti = async () => {
   if (!jitiInstancePromise) {
-    jitiInstancePromise = import('jiti').then(({ createJiti }) =>
-      createJiti(import.meta.filename, {
+    jitiInstancePromise = import(
+      /* webpackIgnore: true */ PREBUNDLED_JITI_PATH
+    ).then((module) => {
+      const createJiti =
+        'createJiti' in module
+          ? (module.createJiti as JitiFactory)
+          : (module.default as JitiFactory);
+
+      return createJiti(import.meta.filename, {
         moduleCache: false,
         interopDefault: true,
         nativeModules: ['typescript'],
-      }),
-    );
+      });
+    });
   }
   return jitiInstancePromise;
 };

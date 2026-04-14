@@ -9,9 +9,6 @@ export default defineConfig({
       dts: true,
     },
   ],
-  output: {
-    externals: ['jiti'],
-  },
   source: {
     tsconfigPath: './tsconfig.build.json',
     define: {
