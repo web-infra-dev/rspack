@@ -97,14 +97,19 @@ pub fn to_identifier_with_escaped(v: String) -> String {
     return v;
   }
 
-  // Fast path: pre-escaped input passes straight through (see #10760). When the
-  // input still contains characters that aren't valid in an identifier (e.g.
-  // JSON keys like "!top" or "with space"), fall back to the full escape so we
-  // never emit bare invalid characters into a JS identifier position.
-  match to_identifier(&v) {
-    Cow::Borrowed(_) => v,
-    Cow::Owned(escaped) => escaped,
+  let bytes = v.as_bytes();
+  // Fast path: the input is already a valid JS identifier — skip the full
+  // escape (see #10760). `_` is a valid continuation char even though
+  // `is_ident_safe` excludes it (it's the replacement sentinel for the escape
+  // impl), so handle it inline here.
+  if is_ident_first_safe(bytes[0]) && bytes.iter().all(|&b| is_ident_safe(b) || b == b'_') {
+    return v;
   }
+
+  // Defensive path: invalid characters anywhere in the input (e.g. JSON keys
+  // like "!top" or "with space") need the full escape so we never emit bare
+  // invalid characters into a JS identifier position.
+  to_identifier(&v).into_owned()
 }
 
 pub fn escape_identifier(v: &str) -> Cow<'_, str> {
