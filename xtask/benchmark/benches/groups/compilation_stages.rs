@@ -33,13 +33,13 @@ use tokio::runtime::Builder;
 
 use crate::groups::build_chunk_graph::prepare_large_code_splitting_case;
 
-const GENERAL_STAGE_NUM_MODULES: usize = 3000;
-const CONCAT_GROUPS: usize = 160;
-const CONCAT_MODULES_PER_GROUP: usize = 12;
-const SPLIT_CHUNKS_ENTRY_COUNT: usize = 48;
-const SPLIT_CHUNKS_SHARED_MODULES: usize = 192;
-const SPLIT_CHUNKS_WINDOW: usize = 20;
-const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
+const GENERAL_STAGE_NUM_MODULES: usize = 10000;
+const CONCAT_GROUPS: usize = 500;
+const CONCAT_MODULES_PER_GROUP: usize = 20;
+const SPLIT_CHUNKS_ENTRY_COUNT: usize = 200;
+const SPLIT_CHUNKS_SHARED_MODULES: usize = 1000;
+const SPLIT_CHUNKS_WINDOW: usize = 40;
+const SPLIT_CHUNKS_COMMON_MODULES: usize = 32;
 
 pub fn compilation_stages_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
