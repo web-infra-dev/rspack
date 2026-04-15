@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   ChunkGroupUkey, ChunkUkey, Compilation, DependenciesBlock, DependencyType, ExportProvided,
-  ModuleGraph, ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
+  ModuleIdentifier, UsageState, find_new_name, get_cached_readable_identifier,
   incremental::Mutation, split_readable_identifier,
 };
 use rspack_util::{
@@ -28,21 +28,47 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
 
-  // 1. Find async chunks: chunks that belong to at least one non-initial group
-  //    and contain at least one async (TLA) module
-  let async_chunks: Vec<ChunkUkey> = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .iter()
-    .filter(|(_, chunk)| !chunk.is_only_initial(chunk_group_by_ukey))
-    .filter(|(ukey, _)| {
-      chunk_graph
-        .get_chunk_modules_identifier(ukey)
-        .iter()
-        .any(|m| ModuleGraph::is_async(&compilation.async_modules_artifact, m))
-    })
-    .map(|(ukey, _)| *ukey)
-    .collect();
+  // 1. Find async chunks: non-initial chunks that are the target of a
+  //    `DynamicImport` whose source module has top-level await.
+  //    When such a chunk is loaded via `await import()` from a module currently
+  //    paused at a top-level await, and the chunk has static imports back to
+  //    ancestor chunks, a circular dependency deadlock occurs.
+  let mut async_chunks_set: FxHashSet<ChunkUkey> = FxHashSet::default();
+  for (module_id, module) in module_graph.modules() {
+    if !module.build_meta().has_top_level_await {
+      continue;
+    }
+    // Collect DynamicImport dependencies from this TLA module (including ones in blocks)
+    let mut dep_ids: Vec<_> = module.get_dependencies().to_vec();
+    for block_id in module.get_blocks() {
+      if let Some(block) = module_graph.block_by_id(block_id) {
+        dep_ids.extend(block.get_dependencies().iter().copied());
+      }
+    }
+    for dep_id in dep_ids {
+      let dep = module_graph.dependency_by_id(&dep_id);
+      if dep.dependency_type() != &DependencyType::DynamicImport {
+        continue;
+      }
+      let Some(target) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
+        continue;
+      };
+      // Skip self-imports; also only care about chunks that contain the target
+      if target == module_id {
+        continue;
+      }
+      for &chunk_ukey in chunk_graph.get_module_chunks(*target) {
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(&chunk_ukey);
+        if !chunk.is_only_initial(chunk_group_by_ukey) {
+          async_chunks_set.insert(chunk_ukey);
+        }
+      }
+    }
+  }
+  let async_chunks: Vec<ChunkUkey> = async_chunks_set.iter().copied().collect();
 
   if async_chunks.is_empty() {
     return false;
