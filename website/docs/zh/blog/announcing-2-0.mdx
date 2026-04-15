@@ -36,7 +36,11 @@ _2026 年 4 月 28 日_
 - [更轻量的开发服务器](#dev-server)
 - [Peer module federation runtime](#mf-runtime)
 - [MF share treeshaking](#mf-share-treeshaking)
+- [detectSyntax](#detect-syntax)
 - [自动化 targets](#automatic-targets)
+- [HashedModuleIdsPlugin](#hashed-module-ids-plugin)
+- [subpath alias import](#subpath-alias-import)
+- [enforceSizeThreshold](#enforce-size-threshold)
 - [更好的 tree shaking](#better-tree-shaking)
 
 
@@ -152,6 +156,17 @@ export default {
 };
 ```
 
+除了可移植缓存之外，Rspack 2.0 也提供了 [`cache.readonly`](/config/cache#cachereadonly) 选项。开启后，缓存只会从磁盘读取而不会写回，这对于 CI 场景尤其有用，可以直接复用预热缓存而不修改它。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    readonly: Boolean(process.env.CI),
+  },
+};
+```
+
 ## 面向 ESM 规范
 
 <span id="pure-esm"></span>
@@ -199,6 +214,24 @@ export default {
     },
   },
 };
+```
+
+此外，Rspack 2.0 还补充了对 [`import.meta.resolve`](/api/runtime-api/module-variables#importmetaresolve) 的支持。它是 `require.resolve()` 在 ESM 场景下的等价写法，可用于在打包时解析模块并返回对应模块 ID。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMetaResolve: true,
+      },
+    },
+  },
+};
+```
+
+```js title="app.js"
+const asset = import.meta.resolve('./img.png');
 ```
 
 <span id="import-defer"></span>
@@ -281,12 +314,83 @@ export default {
 
 ## 其他更新
 
+除了上面的几项主要能力之外，Rspack 2.0 还补充了一些偏工程细节但很实用的更新。
+
+<span id="detect-syntax"></span>
+### detectSyntax @chenjiahan
+
+其中一个是 [`builtin:swc-loader` 的 `detectSyntax`](/guide/features/builtin-swc-loader#detectsyntax)。当你用同一条规则同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等不同类型文件时，`detectSyntax: 'auto'` 可以根据扩展名自动推断 parser 配置，减少重复配置。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 <span id="automatic-targets"></span>
 ### 自动化 targets @ahabhgk
 
 Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的 `targets` 现在会默认继承顶层的 [`target`](/config/target) 配置，而不再需要开发者分别在 loader、plugin 和顶层目标环境之间手动同步。
 
 这样做可以减少配置冗余，也能避免“编译目标”和“压缩 / 降级目标”不一致带来的问题。
+
+<span id="hashed-module-ids-plugin"></span>
+### HashedModuleIdsPlugin @LingyuCoder
+
+另外，Rspack 2.0 也补充了 `HashedModuleIdsPlugin`。如果你希望更明确地控制模块 id 的生成策略，而不是只依赖默认配置或 `optimization.moduleIds` 的字符串选项，可以直接使用这个插件。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ids.HashedModuleIdsPlugin()],
+};
+```
+
+<span id="subpath-alias-import"></span>
+### subpath alias import @stormslowly
+
+在模块解析方面，Rspack 2.0 还支持了 `#/` 形式的 subpath alias import。这样一来，你可以直接复用 `package.json` 里的 `imports` 字段来组织包内路径映射，而不必额外维护一套独立的别名配置。
+
+```json title="package.json"
+{
+  "imports": {
+    "#/*": "./src/*"
+  }
+}
+```
+
+```js title="src/index.js"
+import main from '#/main.ts';
+```
+
+
+<span id="enforce-size-threshold"></span>
+### enforceSizeThreshold @jserfeng
+
+此外，Rspack 2.0 也补充了 `splitChunks.enforceSizeThreshold` 选项。它适合在代码分割场景中为 chunk 体积设置一个强制阈值；当模块组大小超过这个阈值时，会跳过部分 `maxRequests` 限制，从而更积极地执行拆分策略。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      enforceSizeThreshold: 50000,
+    },
+  },
+};
+```
 
 <span id="better-tree-shaking"></span>
 ### 更好的 tree shaking @ahabhgk
