@@ -39,6 +39,38 @@ _2026 年 4 月 28 日_
 - [自动化 targets](#automatic-targets)
 - [更好的 tree shaking](#better-tree-shaking)
 
+
+## 尝试 2.0
+
+### 新用户安装
+
+如果你是新用户，推荐直接创建一个基于 2.0 的新项目开始体验。需要注意的是，Rspack 2.0 要求 **Node.js 20.19+** 或 **22.12+**。
+
+如果你希望获得一套开箱即用、默认由 Rspack 驱动的构建体验，我们推荐直接使用 Rsbuild 创建项目：
+
+```bash
+npm create rsbuild@latest
+```
+
+如果你更希望直接使用 Rspack CLI，也可以执行：
+
+```bash
+npm create rspack@latest
+```
+
+然后按照提示完成初始化即可。更多信息也可以参考 [快速上手](/guide/start/quick-start) 文档。
+
+
+### 老用户升级
+
+Rspack 2.0 作为一个大版本，在带来了不少新特性的同时，也移除了诸多历史上废弃的功能，因此建议参考的 [迁移指南](/guide/migration/rspack_1.x)，其中已经整理了从 v1 到 v2 的主要不兼容变更和对应迁移方式。
+
+如果你在使用支持 Skills 的 Coding Agent，也推荐直接用 AI 辅助迁移。按照迁移文档里的 Agent Skills 说明，安装 rspack-v2-upgrade 技能后，就可以让 Agent 结合你的项目配置和官方迁移规则完成升级流程。对于配置项较多、历史包袱较重的项目，这会比手工逐项排查更高效。
+
+```
+npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
+```
+
 ## 后续方向
 
 Rspack 2.0 不仅是一个里程碑，也是一个新的起点。
@@ -50,18 +82,6 @@ Rspack 2.0 不仅是一个里程碑，也是一个新的起点。
 - 持续优化构建链路上各个环节的算法和数据结构，并将它们接入到持久化缓存当中，以提升各种场景下的构建速度
 - 持续增强 ESM 产物的质量和稳定性，并与社区其他技术团队共同探究 bundler 对于 ESM 规范更好的支持方式
 - 持续建设 Rstack Skills，为开发者提供更多 AI 友好的工具来提升开发效率，降低问题排查、产物分析的成本
-
-
-<span id="upgrade-guide"></span>
-## 升级方式
-
-Rspack 2.0 作为一个大版本，在带来了不少新特性的同时，也移除了诸多历史上废弃的功能，因此建议参考的 [迁移指南](/guide/migration/rspack_1.x)，其中已经整理了从 v1 到 v2 的主要不兼容变更和对应迁移方式。
-
-如果你在使用支持 Skills 的 Coding Agent，也推荐直接用 AI 辅助迁移。按照迁移文档里的 Agent Skills 说明，安装 rspack-v2-upgrade 技能后，就可以让 Agent 结合你的项目配置和官方迁移规则完成升级流程。对于配置项较多、历史包袱较重的项目，这会比手工逐项排查更高效。
-
-```
-npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
-```
 
 <span id="faq"></span>
 ## 常见问题
