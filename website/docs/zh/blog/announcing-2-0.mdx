@@ -18,21 +18,13 @@ _2026 年 4 月 28 日_
 
 这是 Rspack 1.0 之后的第一个 major 版本。在 1.x 系列中，我们的主要目标是持续补齐 webpack 的功能和生态兼容性，让更多项目能够以更低成本迁移到 Rspack。围绕这个目标，我们逐步完善了模块能力、开发服务器、缓存体系、ESM 支持以及更多工程化能力，使 Rspack 能够为现有项目提供一个兼容 webpack 生态、同时具备更高构建性能的打包方案。
 
-随着 2.0 发布，Rspack 的目标也会进一步扩展。后续，Rspack 会在保持大部分兼容 webpack 的前提下，在构建性能、产物体积、社区规范、AI 协同等方向上继续探索更优方案。也就是说，Rspack 不再只关注“尽可能兼容”，还会在兼容基础上，持续推进更适合现代 JavaScript 工程的实现和工作方式。
-
-值得关注的变更如下：
-
-- 构建性能继续提升
-- [Pure ESM](/guide/migration/rspack_1.x#pure-esm-包)、Better ESM 和更完整的 [`import.meta`](/api/runtime-api/module-variables#importmetaesm) 语义
-- 更轻量、更模块化的 [`@rspack/dev-server` 2.0](/guide/migration/rspack_1.x#开发服务器)
-- [Portable Cache](/config/cache#cacheportable)、[Automatic Targets](/guide/migration/rspack_1.x#从-target-派生-loader-和-plugin-的-targets-配置) 以及更清晰的 peer dependency 边界
-- 更强的 [tree shaking](/guide/optimization/tree-shaking)、[`import defer`](/blog/announcing-1-6#支持-import-defer)、MF share treeshaking 和内置 [RSC 支持](/guide/tech/rsc)
+随着 2.0 发布，Rspack 将迈向全新的阶段。后续 Rspack 的重心将从 “尽可能兼容 Webpack” 转变为在**构建性能**、**产物体积**、**社区规范**、**AI 协同**等方向上探索更优方案。同时结合 Rstack 的诸多技术产品，为开发者提供一整套高性能、易上手、AI友好的工程解决方案。
 
 ## 用户规模
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-Rspack 的使用规模仍在持续增长。当前，Rspack 在 npm 上的周下载量已经达到 **4,801,885**。与此同时，Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台也已接入 Rspack。这些采用表明，Rspack 已经在更多真实项目中承担构建工作。
+相较于 Rspack 1.0 发布时 npm 周下载量刚突破 10 万，如今 Rspack 的周下载量已经达到 **4,801,885**，增长了约 **48 倍**。与此同时，Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台也已接入 Rspack。这说明 Rspack 已经不再只是一个新兴选择，而是逐步成长为开源社区中被更多开发者、框架和工具接受的 bundler 方案。
 
 在字节跳动内部，Rspack 的落地范围也在继续扩大。目前，基于 Rspack 的**内部周活跃项目数已经超过 1,500 个**，**内部周下载量达到 131 万**。这些场景也持续为 Rspack 的稳定性、性能和工程能力提供反馈。
 
