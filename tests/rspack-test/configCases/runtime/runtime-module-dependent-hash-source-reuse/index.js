@@ -7,7 +7,10 @@ it("should render the final dependent hash source for custom runtime modules", a
 	const asyncFilename = fs
 		.readdirSync(path.join(__dirname, "chunks"))
 		.find(name => name.startsWith("async."));
-	const [, asyncHash] = /async\.([0-9a-f]+)\.js/.exec(asyncFilename);
+	expect(asyncFilename).toBeDefined();
+	const asyncFilenameMatch = /async\.([0-9a-f]+)\.js/.exec(asyncFilename);
+	expect(asyncFilenameMatch).not.toBeNull();
+	const [, asyncHash] = asyncFilenameMatch;
 
 	expect(__webpack_require__.dependentHashSourceReuse("async")).toBe(
 		`chunks/${asyncFilename}`
