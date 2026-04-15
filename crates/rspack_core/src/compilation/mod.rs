@@ -261,7 +261,7 @@ pub struct Compilation {
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
-  pub minimize_cache_artifact: MinimizeCacheArtifact,
+  pub minimize_cache_artifact: Option<MinimizeCacheArtifact>,
 
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
@@ -392,7 +392,7 @@ impl Compilation {
       process_runtime_requirements_cache_artifact: StealCell::new(
         ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
-      minimize_cache_artifact: MinimizeCacheArtifact::default(),
+      minimize_cache_artifact: None,
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),

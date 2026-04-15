@@ -29,15 +29,35 @@ struct ExtractedCommentsEntry {
   pub comments_file_name: String,
 }
 
+/// A content hash key for the minimize cache.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MinimizeCacheKey(u64);
+
+impl MinimizeCacheKey {
+  pub fn new(hash: u64) -> Self {
+    Self(hash)
+  }
+
+  fn to_bytes(self) -> Vec<u8> {
+    self.0.to_ne_bytes().to_vec()
+  }
+
+  fn from_bytes(bytes: &[u8]) -> Option<Self> {
+    <[u8; 8]>::try_from(bytes)
+      .ok()
+      .map(|b| Self(u64::from_ne_bytes(b)))
+  }
+}
+
 /// In-memory representation of cached minimize results.
 ///
 /// Keys are content hashes (computed from source content + plugin options).
 /// Values are the minimized source and optional extracted comments.
 #[derive(Debug, Default)]
 pub struct MinimizeCacheArtifact {
-  entries: FxHashMap<Vec<u8>, CachedMinimizeEntry>,
+  entries: FxHashMap<MinimizeCacheKey, CachedMinimizeEntry>,
   /// Keys of entries that were added during this build and need to be persisted.
-  dirty_keys: Vec<Vec<u8>>,
+  dirty_keys: Vec<MinimizeCacheKey>,
 }
 
 /// A single cached minimize result.
@@ -56,13 +76,13 @@ pub struct CachedExtractedComments {
 
 impl MinimizeCacheArtifact {
   /// Look up a cached minimize result by content hash key.
-  pub fn get(&self, key: &[u8]) -> Option<&CachedMinimizeEntry> {
-    self.entries.get(key)
+  pub fn get(&self, key: MinimizeCacheKey) -> Option<&CachedMinimizeEntry> {
+    self.entries.get(&key)
   }
 
   /// Insert a new minimize result. Marks the key as dirty for persistence.
-  pub fn insert(&mut self, key: Vec<u8>, entry: CachedMinimizeEntry) {
-    self.dirty_keys.push(key.clone());
+  pub fn insert(&mut self, key: MinimizeCacheKey, entry: CachedMinimizeEntry) {
+    self.dirty_keys.push(key);
     self.entries.insert(key, entry);
   }
 }
@@ -107,7 +127,7 @@ impl Occasion for MinimizeOccasion {
             }),
         };
         match self.codec.encode(&storage_entry) {
-          Ok(bytes) => Some((key.clone(), bytes)),
+          Ok(bytes) => Some((key.to_bytes(), bytes)),
           Err(err) => {
             tracing::warn!("minimize cache encode failed: {:?}", err);
             None
@@ -128,6 +148,10 @@ impl Occasion for MinimizeOccasion {
     entries.reserve(items.len());
 
     for (key, value) in items {
+      let Some(key) = MinimizeCacheKey::from_bytes(&key) else {
+        tracing::warn!("minimize cache key has invalid length");
+        continue;
+      };
       match self.codec.decode::<Entry>(&value) {
         Ok(entry) => {
           entries.insert(

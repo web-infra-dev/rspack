@@ -1,3 +1,5 @@
+const rspack = require('@rspack/core');
+
 const PLUGIN_NAME = 'rspack.SwcJsMinimizerRspackPlugin';
 
 let updateIndex = 0;
@@ -11,6 +13,7 @@ module.exports = {
   },
   optimization: {
     minimize: true,
+    minimizer: [new rspack.SwcJsMinimizerRspackPlugin()],
   },
   cache: {
     type: 'persistent',
