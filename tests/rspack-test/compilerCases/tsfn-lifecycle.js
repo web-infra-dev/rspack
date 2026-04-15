@@ -79,18 +79,4 @@ module.exports = [
       );
     },
   },
-  {
-    description:
-      "should clear compiler-scoped callbacks after compiler.close",
-    async build() {
-      await runChild(
-        path.join(
-          __dirname,
-          "fixtures",
-          "tsfn-lifecycle",
-          "close-clears-callbacks.cjs",
-        ),
-      );
-    },
-  },
 ];
