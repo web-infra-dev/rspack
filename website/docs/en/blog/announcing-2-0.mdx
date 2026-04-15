@@ -130,6 +130,8 @@ export default {
 };
 ```
 
+Rspack 2.0 also adds support for [`import.meta.main`](/api/runtime-api/module-variables#importmetamain), [`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename), [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname), and related properties.
+
 ### Rspack dev server 2.0
 
 [`@rspack/dev-server`](/guide/migration/rspack_1.x#development-server) has been substantially reorganized in 2.0. It is no longer a default dependency of `@rspack/cli`, and is now an optional installation. Internally, it also adopts `@rspack/dev-middleware` and replaces the heavier Express v4-based setup with `connect-next`.
@@ -161,9 +163,9 @@ export default {
 
 ### Automatic targets
 
-Rspack 2.0 further reduces duplicated target configuration. The `targets` of [`builtin:swc-loader`](/guide/features/builtin-swc-loader), [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader), and [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) now inherit from the top-level [`target`](/config/target) configuration by default, instead of requiring developers to keep those settings in sync manually.
+Rspack 2.0 further reduces duplicated target configuration. The target-related options of [`builtin:swc-loader`](/guide/features/builtin-swc-loader), [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader), [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin), and [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) now inherit from the top-level [`target`](/config/target) configuration by default, instead of requiring developers to keep those settings in sync manually.
 
-This reduces duplicated configuration and helps avoid mismatches between compilation targets and transform or minification targets.
+This reduces duplicated configuration and helps avoid mismatches between transform and minification targets.
 
 For example, loader and plugin targets now inherit from the top-level `target` by default. If you need to override one loader, you can still configure it explicitly:
 
@@ -200,7 +202,7 @@ pnpm add @module-federation/runtime-tools
 
 ### Import defer
 
-Rspack first added support for `import defer` in 1.6, and in 2.0 that support continues to expand. In addition to the original `import defer * as foo from './foo'`, Rspack later added support for `import.defer()` in static-path and context-module scenarios, allowing the "import now, execute later" model to cover more real-world cases.
+Rspack first added support for `import defer` in 1.6, and in 2.0 that support continues to expand. In addition to the original `import defer * as foo from './foo'`, Rspack later added support for `import.defer()`, allowing the "import now, execute later" model to cover more real-world cases.
 
 This gives developers finer control over execution timing and side-effect timing.
 

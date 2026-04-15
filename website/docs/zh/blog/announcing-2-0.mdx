@@ -216,28 +216,12 @@ export default {
 };
 ```
 
-此外，Rspack 2.0 还补充了对 [`import.meta.resolve`](/api/runtime-api/module-variables#importmetaresolve) 的支持。它是 `require.resolve()` 在 ESM 场景下的等价写法，可用于在打包时解析模块并返回对应模块 ID。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        importMetaResolve: true,
-      },
-    },
-  },
-};
-```
-
-```js title="app.js"
-const asset = import.meta.resolve('./img.png');
-```
+此外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 等的支持。
 
 <span id="import-defer"></span>
 ### Import defer @ahabhgk
 
-Rspack 在 1.6 首次支持了 `import defer` 语法，而在 2.0 中，这项能力继续向更完整的形态推进。除了最初的 `import defer * as foo from './foo'`，Rspack 后续还补齐了 `import.defer()` 在静态路径和 context module 场景下的支持，使得“导入模块但延后执行”的语义可以覆盖更多真实用法。这让开发者可以更细致地控制模块执行时机和副作用触发时机。
+Rspack 在 1.6 首次支持了 `import defer` 语法，而在 2.0 中，这项能力继续向更完整的形态推进。除了最初的 `import defer * as foo from './foo'`，Rspack 后续还补齐了 `import.defer()` 的支持，使得“导入模块但延后执行”的语义可以覆盖更多真实用法。这让开发者可以更细致地控制模块执行时机和副作用触发时机。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -342,9 +326,9 @@ export default {
 <span id="automatic-targets"></span>
 ### 自动化 targets @ahabhgk
 
-Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的 `targets` 现在会默认继承顶层的 [`target`](/config/target) 配置，而不再需要开发者分别在 loader、plugin 和顶层目标环境之间手动同步。
+Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader)、[`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的目标环境配置项现在会默认继承顶层的 [`target`](/config/target) 配置，而不再需要开发者分别在 loader、plugin 和顶层目标环境之间手动同步。
 
-这样做可以减少配置冗余，也能避免“编译目标”和“压缩 / 降级目标”不一致带来的问题。
+这样做可以减少配置冗余，也能避免“转译目标”和“压缩目标”不一致带来的问题。
 
 <span id="hashed-module-ids-plugin"></span>
 ### HashedModuleIdsPlugin @LingyuCoder
