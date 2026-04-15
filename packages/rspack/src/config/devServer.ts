@@ -248,7 +248,7 @@ export type DevServerClient = {
 };
 
 export type DevServerOptions<
-  A extends BasicApplication = ConnectApplication,
+  A extends BasicApplication = BasicApplication,
   S extends BasicServer = BasicServer,
 > = {
   ipc?: string | boolean;
