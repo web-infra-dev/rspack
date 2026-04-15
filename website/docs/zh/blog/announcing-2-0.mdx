@@ -28,21 +28,24 @@ _2026 年 4 月 28 日_
 
 - [内置 React server component 支持](#rsc-support)
 - [更快的构建速度](#build-performance)
-- [Portable cache](#portable-cache)
-- [Pure ESM](#pure-esm)
-- [Better ESM](#better-esm)
-- [Import meta properties](#import-meta-properties)
-- [Import defer](#import-defer)
+- [可移植缓存](#portable-cache)
+- [纯 ESM 包](#pure-esm)
+- [更好的 ESM 产物](#better-esm)
+- [Import meta 属性](#import-meta-properties)
+- [import.meta.filename / dirname / resolve](#import-meta-path-apis)
+- [import.meta.webpackContext 的 include / exclude](#webpack-context-filters)
+- [import.meta.\*](#import-meta-general)
+- [延迟 import](#import-defer)
 - [更轻量的开发服务器](#dev-server)
-- [Peer module federation runtime](#mf-runtime)
-- [MF share treeshaking](#mf-share-treeshaking)
-- [detectSyntax](#detect-syntax)
-- [自动化 targets](#automatic-targets)
-- [HashedModuleIdsPlugin](#hashed-module-ids-plugin)
-- [subpath alias import](#subpath-alias-import)
-- [enforceSizeThreshold](#enforce-size-threshold)
+- [模块联邦运行时改进](#mf-runtime)
+- [模块联邦共享依赖裁剪](#mf-share-treeshaking)
+- [二进制资源文件导入](#import-bytes)
+- [内置 SWC loader 支持自动检测语法](#detect-syntax)
+- [自动继承 targets](#automatic-targets)
+- [哈希模块 ID 插件](#hashed-module-ids-plugin)
+- [模块解析](#module-resolution)
+- [强制体积阈值](#enforce-size-threshold)
 - [更好的 tree shaking](#better-tree-shaking)
-
 
 ## 尝试 2.0
 
@@ -64,7 +67,6 @@ npm create rspack@latest
 
 然后按照提示完成初始化即可。更多信息也可以参考 [快速上手](/guide/start/quick-start) 文档。
 
-
 ### 老用户升级
 
 Rspack 2.0 作为一个大版本，在带来了不少新特性的同时，也移除了诸多历史上废弃的功能，因此建议参考的 [迁移指南](/guide/migration/rspack_1.x)，其中已经整理了从 v1 到 v2 的主要不兼容变更和对应迁移方式。
@@ -82,6 +84,7 @@ Rspack 2.0 不仅是一个里程碑，也是一个新的起点。
 长期来看， Rspack 团队将把工作重心从 “兼容 Webpack” 转向在**构建性能**、**产物体积**、**社区规范**、**Agent 协同**等方向，配合 Rstack 内一整套开发工具，为开发者提供 “AI 友好的一体化 JavaScript 工具链”。
 
 短期来看，我们将着眼于如下工作：
+
 - 持续改进 tree shaking 和 side effects 分析能力，并尝试探索 module splitting 方案，以显著降低产物体积
 - 持续优化构建链路上各个环节的算法和数据结构，并将它们接入到持久化缓存当中，以提升各种场景下的构建速度
 - 持续增强 ESM 产物的质量和稳定性，并与社区其他技术团队共同探究 bundler 对于 ESM 规范更好的支持方式
@@ -101,7 +104,6 @@ Rspack 2.0 不仅是一个里程碑，也是一个新的起点。
 不会。2.0 发布后，Rspack 的主要演进方向会逐步转向 2.x，但这并不意味着 1.x 会在发布后立刻完全停止维护。对于仍在使用 1.x 的项目，我们会根据实际情况在一个较长的时间段内提供必要维护，例如关键问题修复或迁移期支持。
 
 但从长期来看，新增能力和主要优化都会优先在 2.x 上推进，因此如果你的项目还停留在 1.x，我们仍然建议尽早规划升级。
-
 
 <span id="rsc-support"></span>
 ## 内置 React server component @SyMind
@@ -139,9 +141,8 @@ export default [
 
 Rspack 团队一直非常重视性能，在 1.x 版本中我们实现了持久化缓存、增量构建、原生文件系统监听器、lazy compilation、barrel 文件优化等诸多能力，使得各种场景的构建性能相对于 1.0 版本都有大幅提升。而在 2.0 版本中，我们又进一步优化了内部数据结构和算法，在此前的基础上又带来约 10% 的性能收益。
 
-
 <span id="portable-cache"></span>
-### Portable cache @jerrykingxyz
+### 可移植缓存 @jerrykingxyz
 
 在缓存场景下，我们还带来了 Portable Cache，让缓存可以跨不同机器、不同路径甚至不同环境复用，从而更适合团队协作、远程缓存以及后续可能的分布式构建场景。
 
@@ -170,14 +171,14 @@ export default {
 ## 面向 ESM 规范
 
 <span id="pure-esm"></span>
-### Pure ESM @chenjiahan
+### 纯 ESM 包 @chenjiahan
 
 Rspack 2.0 也让自身产物更加符合 ESM 规范。`@rspack/core`、`@rspack/cli`、`@rspack/dev-server` 和 `@rspack/plugin-react-refresh` 等包被正式切换为 [Pure ESM](/guide/migration/rspack_1.x#pure-esm-包) 发布，并移除了 CommonJS 构建产物。这使 Rspack 的包形态与现代 Node.js / ESM 生态保持一致，简化了模块加载和工具链集成方式。
 
 因此，你需要将 Node.js 升级到原生支持 `require(esm)` 的 20.19+ 或 22.12+ 版本。
 
 <span id="better-esm"></span>
-### Better ESM @jserfeng
+### 更好的 ESM 产物 @jserfeng
 
 针对库打包场景，ESM 产物质量尤为重要，纯净的产物更易于静态分析，从而在库被引用时能更易被代码切分和摇树优化。Rspack 2.0 在之前推出的实验性的 [`EsmLibraryPlugin`](/guide/migration/rspack_1.x#移除-esmlibraryplugin) 的基础上进行了一系列的优化，将 ESM 产物质量进一步提升，同时将配置简化为更自然的 [`modern-module`](/config/output#outputlibrarytype) 和 [`output.module`](/config/output#outputmodule) 上。
 
@@ -195,9 +196,10 @@ export default {
 ```
 
 <span id="import-meta-properties"></span>
-### Import meta properties @ahabhgk
-
-目前绝大多数项目源码是基于 ESM 规范开发，在 Rspack 2.0 中调整了对未知 `import.meta` 属性的处理方式，可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 配置使得 `import.meta.*` 可以不在编译期被过早静态决定，而是保留到运行时求值。
+### Import meta 属性 @ahabhgk 目前绝大多数项目源码是基于 ESM 规范开发，在 Rspack
+2.0 中调整了对未知 `import.meta` 属性的处理方式，可以通过
+[`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta)
+配置使得 `import.meta.*` 可以不在编译期被过早静态决定，而是保留到运行时求值。
 
 例如，如果你希望未知的 `import.meta` 属性保留到运行时求值，可以显式配置：
 
@@ -219,7 +221,7 @@ export default {
 此外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 等的支持。
 
 <span id="import-defer"></span>
-### Import defer @ahabhgk
+### 延迟 import @ahabhgk
 
 Rspack 在 1.6 首次支持了 `import defer` 语法，而在 2.0 中，这项能力继续向更完整的形态推进。除了最初的 `import defer * as foo from './foo'`，Rspack 后续还补齐了 `import.defer()` 的支持，使得“导入模块但延后执行”的语义可以覆盖更多真实用法。这让开发者可以更细致地控制模块执行时机和副作用触发时机。
 
@@ -250,10 +252,46 @@ console.log(foo.bar);
 pnpm add -D @rspack/dev-server
 ```
 
-## 更好的 Module Federation 支持
+<span id="module-resolution"></span>
+## 更好的模块解析 @stormslowly
+
+<span id="subpath-alias-import"></span>
+### `#/` 子路径别名导入
+
+在模块解析方面，Rspack 2.0 还支持了 `#/` 形式的子路径别名导入。这样一来，你可以直接复用 `package.json` 里的 `imports` 字段来组织包内路径映射，而不必额外维护一套独立的别名配置。
+
+```json title="package.json"
+{
+  "imports": {
+    "#/*": "./src/*"
+  }
+}
+```
+
+```js title="src/index.js"
+import main from '#/main.ts';
+```
+
+<span id="pnp-manifest"></span>
+### resolve.pnpManifest
+
+在 Yarn PnP 相关场景下，Rspack 2.0 的 resolver 也补充了 `resolve.pnpManifest` 选项支持，用于显式指定 PnP 清单文件路径。这样在更复杂的包管理和 monorepo 环境下，你可以更细致地控制 PnP 元信息的读取与解析行为，而不必完全依赖自动探测。
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    pnp: true,
+    pnpManifest: path.resolve(import.meta.dirname, '.pnp.cjs'),
+  },
+};
+```
+
+## 更好的模块联邦支持
 
 <span id="mf-runtime"></span>
-### Peer module federation runtime @chenjiahan
+### 模块联邦运行时改进 @chenjiahan
 
 `@module-federation/runtime-tools` 也在 2.0 中从直接依赖改成了可选 peer dependency，并扩展了兼容版本范围以同时接受较新的运行时版本。
 
@@ -265,9 +303,8 @@ pnpm add -D @rspack/dev-server
 pnpm add @module-federation/runtime-tools
 ```
 
-
 <span id="mf-share-treeshaking"></span>
-### MF share treeshaking @2heal1
+### 模块联邦共享依赖裁剪 @2heal1
 
 在 [Module Federation](/guide/features/module-federation) 相关能力上，Rspack 2.0 继续完善共享依赖的裁剪能力。通过 MF share treeshaking，Rspack 可以对 `shared` 依赖做更细粒度的导出级裁剪，减少共享包里实际不会被使用到的部分，从而进一步压缩微前端场景下的依赖体积。
 
@@ -295,13 +332,24 @@ export default {
 };
 ```
 
-
 ## 其他更新
 
 除了上面的几项主要能力之外，Rspack 2.0 还补充了一些偏工程细节但很实用的更新。
 
+<span id="import-bytes"></span>
+### 静态资源 bytes 导入 @LingyuCoder
+
+Rspack 2.0 还支持将静态资源直接作为 bytes 导入。这样你可以把资源以 `Uint8Array` 的形式读入，再配合 `TextDecoder` 等 API 在运行时进行处理。
+
+```js title="app.js"
+import fileBytes from './file.bin' with { type: 'bytes' };
+
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(fileBytes);
+```
+
 <span id="detect-syntax"></span>
-### detectSyntax @chenjiahan
+### 内置 SWC loader 支持自动检测语法 @chenjiahan
 
 其中一个是 [`builtin:swc-loader` 的 `detectSyntax`](/guide/features/builtin-swc-loader#detectsyntax)。当你用同一条规则同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等不同类型文件时，`detectSyntax: 'auto'` 可以根据扩展名自动推断 parser 配置，减少重复配置。
 
@@ -324,7 +372,7 @@ export default {
 ```
 
 <span id="automatic-targets"></span>
-### 自动化 targets @ahabhgk
+### 自动继承 targets @ahabhgk
 
 Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader)、[`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的目标环境配置项现在会默认继承顶层的 [`target`](/config/target) 配置，而不再需要开发者分别在 loader、plugin 和顶层目标环境之间手动同步。
 
@@ -343,26 +391,8 @@ export default {
 };
 ```
 
-<span id="subpath-alias-import"></span>
-### subpath alias import @stormslowly
-
-在模块解析方面，Rspack 2.0 还支持了 `#/` 形式的 subpath alias import。这样一来，你可以直接复用 `package.json` 里的 `imports` 字段来组织包内路径映射，而不必额外维护一套独立的别名配置。
-
-```json title="package.json"
-{
-  "imports": {
-    "#/*": "./src/*"
-  }
-}
-```
-
-```js title="src/index.js"
-import main from '#/main.ts';
-```
-
-
 <span id="enforce-size-threshold"></span>
-### enforceSizeThreshold @jserfeng
+### splitChunks.enforceSizeThreshold @jserfeng
 
 此外，Rspack 2.0 也补充了 `splitChunks.enforceSizeThreshold` 选项。它适合在代码分割场景中为 chunk 体积设置一个强制阈值；当模块组大小超过这个阈值时，会跳过部分 `maxRequests` 限制，从而更积极地执行拆分策略。
 
