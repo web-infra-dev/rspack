@@ -14,6 +14,8 @@ packages:
   # this following is used to test resolve in monorepo
   - 'tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*'
 
+dedupePeers: true
+
 patchedDependencies:
   webpack-sources@3.3.4: patches/webpack-sources@3.3.4.patch
 
