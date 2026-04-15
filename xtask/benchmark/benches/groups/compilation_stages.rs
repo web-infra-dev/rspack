@@ -15,8 +15,8 @@ use rspack_core::{
   AssignRuntimeIdsPass, AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash,
   ChunkGraph, ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, CodeGenerationPass, Compilation,
   CompilationAsset, CompilationAssets, Compiler, CreateChunkAssetsPass, CreateHashPass,
-  CreateModuleAssetsPass, CreateModuleHashesPass, DEFAULT_DELIMITER, MangleExportsOption, Mode,
-  ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OptimizeCodeGenerationPass,
+  CreateModuleAssetsPass, CreateModuleHashesPass, DEFAULT_DELIMITER, LogType, MangleExportsOption,
+  Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OptimizeCodeGenerationPass,
   OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
   SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
@@ -831,10 +831,10 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
       .await
       .unwrap();
   });
-  let concatenated_count = count_concatenated_modules(&compiler.compilation);
+  let statistics_fingerprint = concatenation_statistics_fingerprint(&compiler.compilation);
   assert!(
-    concatenated_count > 0,
-    "create_concatenate_module setup should produce concatenated modules"
+    statistics_fingerprint > 0,
+    "create_concatenate_module setup should produce module concatenation statistics"
   );
   compiler
     .compilation
@@ -846,6 +846,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
     .compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey = initial_chunk_by_ukey.clone();
+  clear_concatenation_statistics_logs(&compiler.compilation);
 
   let compiler = RefCell::new(compiler);
   let should_reset = Cell::new(false);
@@ -872,6 +873,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
           .compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey = initial_chunk_by_ukey.clone();
+        clear_concatenation_statistics_logs(&compiler.compilation);
       },
       |_| {
         let mut compiler = compiler.borrow_mut();
@@ -880,7 +882,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
             .await
             .unwrap();
         });
-        black_box(count_concatenated_modules(&compiler.compilation));
+        black_box(concatenation_statistics_fingerprint(&compiler.compilation));
       },
       BatchSize::PerIteration,
     );
@@ -1827,12 +1829,32 @@ async fn prepare_large_split_chunks_case(
   }
 }
 
-fn count_concatenated_modules(compilation: &Compilation) -> usize {
+fn clear_concatenation_statistics_logs(compilation: &Compilation) {
   compilation
-    .get_module_graph()
-    .modules()
-    .filter(|(_, module)| module.as_concatenated_module().is_some())
-    .count()
+    .get_logging()
+    .remove("rspack.ModuleConcatenationPlugin");
+}
+
+fn concatenation_statistics_fingerprint(compilation: &Compilation) -> usize {
+  let Some(logs) = compilation
+    .get_logging()
+    .get("rspack.ModuleConcatenationPlugin")
+  else {
+    return 0;
+  };
+
+  logs
+    .iter()
+    .filter_map(|log| match log {
+      LogType::Debug { message } | LogType::Log { message } => Some(message),
+      _ => None,
+    })
+    .filter(|message| {
+      message.contains("successful concat configurations")
+        || message.contains("candidates were considered")
+    })
+    .map(|message| message.bytes().map(usize::from).sum::<usize>())
+    .sum()
 }
 
 fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
