@@ -60,6 +60,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 use ustr::Ustr;
 
+#[cfg(feature = "benchmark-passes")]
 pub use self::{
   assign_runtime_ids::AssignRuntimeIdsPass, code_generation::CodeGenerationPass,
   create_chunk_assets::CreateChunkAssetsPass, create_hash::CreateHashPass,

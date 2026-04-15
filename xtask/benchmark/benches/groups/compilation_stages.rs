@@ -20,6 +20,7 @@ use rspack_core::{
   OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
   SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
+  cache::Cache,
   incremental::IncrementalOptions,
   pass::PassExt,
   rspack_sources::{RawStringSource, SourceExt},
@@ -1420,7 +1421,13 @@ fn snapshot_chunk_asset_state(compilation: &Compilation) -> ChunkAssetStateSnaps
 }
 
 fn restore_chunk_asset_state(compilation: &mut Compilation, snapshot: &ChunkAssetStateSnapshot) {
-  *compilation.assets_mut() = snapshot.assets.clone();
+  let current_asset_names = compilation.assets().keys().cloned().collect::<Vec<_>>();
+  for asset_name in current_asset_names {
+    compilation.delete_asset(&asset_name);
+  }
+  for (asset_name, asset) in snapshot.assets.clone() {
+    compilation.emit_asset(asset_name, asset);
+  }
   compilation.build_chunk_graph_artifact.chunk_by_ukey = snapshot.chunk_by_ukey.clone();
 }
 
@@ -1482,14 +1489,14 @@ async fn run_create_hash_pass(compiler: &mut Compiler) -> Result<()> {
 }
 
 async fn run_create_module_assets_pass(compilation: &mut Compilation) -> Result<()> {
-  let mut noop_cache = rspack_core::cache::DisableCache;
+  let mut noop_cache = NoopCache;
   CreateModuleAssetsPass
     .run(compilation, &mut noop_cache)
     .await
 }
 
 fn seed_module_assets(compilation: &mut Compilation) -> usize {
-  let module_identifiers = compilation
+  let mut module_identifiers = compilation
     .get_module_graph()
     .modules_keys()
     .copied()
@@ -1500,8 +1507,9 @@ fn seed_module_assets(compilation: &mut Compilation) -> usize {
         .get_number_of_module_chunks(*module_identifier)
         > 0
     })
-    .take(MODULE_ASSET_SEED_COUNT)
     .collect::<Vec<_>>();
+  module_identifiers.sort_unstable();
+  module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
 
   for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
     let module = compilation
@@ -1525,9 +1533,15 @@ async fn run_create_chunk_assets_pass(compiler: &mut Compiler) -> Result<()> {
 }
 
 async fn run_process_assets_pass(compilation: &mut Compilation) -> Result<()> {
-  let mut noop_cache = rspack_core::cache::DisableCache;
+  let mut noop_cache = NoopCache;
   ProcessAssetsPass.run(compilation, &mut noop_cache).await
 }
+
+#[derive(Debug, Default)]
+struct NoopCache;
+
+#[async_trait::async_trait]
+impl Cache for NoopCache {}
 
 async fn compute_module_hashes(compilation: &Compilation) -> Result<usize> {
   let module_graph = compilation.get_module_graph();
