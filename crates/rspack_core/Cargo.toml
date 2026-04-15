@@ -77,6 +77,6 @@ workspace = true
 
 [features]
 benchmark-passes = []
-debug_tool = ["rspack_util/debug_tool"]
-default    = []
-napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
+debug_tool       = ["rspack_util/debug_tool"]
+default          = []
+napi             = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
