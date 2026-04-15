@@ -13,21 +13,11 @@ class FullHashSourceReuseRuntimeModule extends RuntimeModule {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  context: __dirname,
-  target: 'node',
-  entry: './index.js',
   mode: 'development',
-  devtool: false,
   output: {
     filename: '[name].js',
   },
   optimization: {
-    minimize: false,
-    sideEffects: false,
-    concatenateModules: false,
-    usedExports: false,
-    innerGraph: false,
-    providedExports: false,
     runtimeChunk: {
       name: 'runtime',
     },

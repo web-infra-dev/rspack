@@ -2,22 +2,12 @@ const { RuntimeModule } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  context: __dirname,
-  target: 'node',
-  entry: './index.js',
   mode: 'development',
-  devtool: false,
   output: {
     filename: '[name].js',
     chunkFilename: 'chunks/[name].[contenthash:8].js',
   },
   optimization: {
-    minimize: false,
-    sideEffects: false,
-    concatenateModules: false,
-    usedExports: false,
-    innerGraph: false,
-    providedExports: false,
     chunkIds: 'named',
     runtimeChunk: {
       name: 'runtime',
