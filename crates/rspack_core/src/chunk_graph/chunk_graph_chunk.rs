@@ -64,7 +64,7 @@ impl Serialize for ChunkId {
     S: Serializer,
   {
     if let Some(n) = self.as_number() {
-      serializer.serialize_u32(n)
+      serializer.serialize_u64(n)
     } else {
       serializer.serialize_str(self.0.as_str())
     }
@@ -72,8 +72,8 @@ impl Serialize for ChunkId {
 }
 
 impl ChunkId {
-  pub fn as_number(&self) -> Option<u32> {
-    self.0.as_str().parse::<u32>().ok()
+  pub fn as_number(&self) -> Option<u64> {
+    rspack_util::numeric_id_value(self.0.as_str())
   }
 
   pub fn as_str(&self) -> &str {
@@ -1185,11 +1185,27 @@ mod tests {
   use super::ChunkId;
 
   #[test]
-  fn chunk_id_serializes_numbers_like_module_id() {
+  fn chunk_id_serialize_matches_runtime_numeric_rules() {
     assert_eq!(serde_json::to_string(&ChunkId::from("903")).unwrap(), "903");
+    assert_eq!(
+      serde_json::to_string(&ChunkId::from("01")).unwrap(),
+      "\"01\""
+    );
     assert_eq!(
       serde_json::to_string(&ChunkId::from("main")).unwrap(),
       "\"main\""
+    );
+    assert_eq!(
+      serde_json::to_string(&ChunkId::from("9007199254740991")).unwrap(),
+      "9007199254740991"
+    );
+    assert_eq!(
+      serde_json::to_string(&ChunkId::from("9007199254740992")).unwrap(),
+      "\"9007199254740992\""
+    );
+    assert_eq!(
+      serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from("903")]).unwrap(),
+      "[\"01\",903]"
     );
   }
 }

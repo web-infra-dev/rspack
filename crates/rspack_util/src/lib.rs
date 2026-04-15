@@ -89,7 +89,7 @@ pub fn json_stringify_str(s: &str) -> String {
 /// webpack's behavior where numeric chunk IDs are emitted without quotes.
 #[inline]
 pub fn json_stringify_chunk_id(s: &str) -> String {
-  if is_numeric_id(s) {
+  if numeric_id_value(s).is_some() {
     s.to_string()
   } else {
     json_stringify_str(s)
@@ -112,25 +112,23 @@ pub fn json_stringify_chunk_ids<S: AsRef<str>>(ids: &[S]) -> String {
 /// JavaScript's `Number.MAX_SAFE_INTEGER` (2^53 - 1).
 const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
 
-/// Check if a string represents a valid non-negative integer suitable for
-/// rendering as a JS number literal (no leading zeros except "0" itself,
-/// and within `Number.MAX_SAFE_INTEGER`).
-fn is_numeric_id(s: &str) -> bool {
+/// Parse a string as a valid non-negative chunk/module ID suitable for rendering
+/// as a JS number literal (no leading zeros except "0" itself, and within
+/// `Number.MAX_SAFE_INTEGER`).
+pub fn numeric_id_value(s: &str) -> Option<u64> {
   if s.is_empty() {
-    return false;
+    return None;
   }
   let bytes = s.as_bytes();
   // Reject leading zeros (e.g. "01") but allow "0"
   if bytes.len() > 1 && bytes[0] == b'0' {
-    return false;
+    return None;
   }
   if !bytes.iter().all(|b| b.is_ascii_digit()) {
-    return false;
+    return None;
   }
   // Guard against values that exceed Number.MAX_SAFE_INTEGER
-  s.parse::<u64>()
-    .map(|n| n <= MAX_SAFE_INTEGER)
-    .unwrap_or(false)
+  s.parse::<u64>().ok().filter(|n| *n <= MAX_SAFE_INTEGER)
 }
 
 /// Get current time in milliseconds since Unix epoch
@@ -152,22 +150,25 @@ pub fn quote_meta(str: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-  use super::{is_numeric_id, json_stringify_chunk_id, json_stringify_chunk_ids};
+  use super::{json_stringify_chunk_id, json_stringify_chunk_ids, numeric_id_value};
 
   #[test]
   fn numeric_id_detection_covers_edge_cases() {
-    assert!(!is_numeric_id(""));
-    assert!(is_numeric_id("0"));
-    assert!(is_numeric_id("903"));
-    assert!(!is_numeric_id("01"));
-    assert!(!is_numeric_id("1a"));
-    assert!(!is_numeric_id("main"));
+    assert_eq!(numeric_id_value(""), None);
+    assert_eq!(numeric_id_value("0"), Some(0));
+    assert_eq!(numeric_id_value("903"), Some(903));
+    assert_eq!(numeric_id_value("01"), None);
+    assert_eq!(numeric_id_value("1a"), None);
+    assert_eq!(numeric_id_value("main"), None);
     // Within MAX_SAFE_INTEGER
-    assert!(is_numeric_id("9007199254740991"));
+    assert_eq!(
+      numeric_id_value("9007199254740991"),
+      Some(9_007_199_254_740_991)
+    );
     // Exceeds MAX_SAFE_INTEGER
-    assert!(!is_numeric_id("9007199254740992"));
+    assert_eq!(numeric_id_value("9007199254740992"), None);
     // Way too large
-    assert!(!is_numeric_id("123456789012345678901234567890"));
+    assert_eq!(numeric_id_value("123456789012345678901234567890"), None);
   }
 
   #[test]
