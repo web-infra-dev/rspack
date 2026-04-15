@@ -42,9 +42,45 @@ struct TryToAddStep {
   subtree_len: usize,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 struct TryToAddSuccess {
+  start: usize,
+  len: usize,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct TryToAddSuccessCache {
   steps: Vec<TryToAddStep>,
+  entries: IdentifierMap<TryToAddSuccess>,
+}
+
+impl TryToAddSuccessCache {
+  fn get(&self, module: &ModuleIdentifier) -> Option<&TryToAddSuccess> {
+    self.entries.get(module)
+  }
+
+  fn get_steps(&self, success: TryToAddSuccess) -> &[TryToAddStep] {
+    &self.steps[success.start..success.start + success.len]
+  }
+
+  fn commit_staged(
+    &mut self,
+    staged_entries: IdentifierMap<TryToAddSuccess>,
+    staged_steps: Vec<TryToAddStep>,
+  ) {
+    let steps_offset = self.steps.len();
+    self.steps.extend(staged_steps);
+
+    for (module, success) in staged_entries {
+      self.entries.insert(
+        module,
+        TryToAddSuccess {
+          start: steps_offset + success.start,
+          len: success.len,
+        },
+      );
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -193,16 +229,16 @@ impl ModuleConcatenationPlugin {
   }
 
   fn apply_try_to_add_success(
-    success: &TryToAddSuccess,
+    steps: &[TryToAddStep],
     config: &mut ConcatConfiguration,
     candidates: &mut IdentifierSet,
     applied_steps: &mut Vec<TryToAddStep>,
   ) {
-    if success.steps.is_empty() {
+    if steps.is_empty() {
       return;
     }
 
-    Self::apply_try_to_add_success_step(&success.steps, 0, config, candidates, applied_steps);
+    Self::apply_try_to_add_success_step(steps, 0, config, candidates, applied_steps);
   }
 
   fn format_bailout_warning(&self, module: ModuleIdentifier, warning: &Warning) -> String {
@@ -326,7 +362,7 @@ impl ModuleConcatenationPlugin {
     possible_modules: &IdentifierSet,
     candidates: &mut IdentifierSet,
     failure_cache: &mut IdentifierMap<Warning>,
-    success_cache: &IdentifierMap<TryToAddSuccess>,
+    success_cache: &TryToAddSuccessCache,
     staged_success_cache: &mut IdentifierMap<TryToAddSuccess>,
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
@@ -352,12 +388,31 @@ impl ModuleConcatenationPlugin {
       return None;
     }
 
-    if let Some(success) = staged_success_cache
-      .get(module_id)
-      .or_else(|| success_cache.get(module_id))
-    {
+    let cached_applied_steps = if let Some(success) = staged_success_cache.get(module_id).copied() {
+      let mut cached_applied_steps = Vec::new();
+      Self::apply_try_to_add_success(
+        &applied_steps[success.start..success.start + success.len],
+        config,
+        candidates,
+        &mut cached_applied_steps,
+      );
+      Some(cached_applied_steps)
+    } else if let Some(success) = success_cache.get(module_id).copied() {
+      let mut cached_applied_steps = Vec::new();
+      Self::apply_try_to_add_success(
+        success_cache.get_steps(success),
+        config,
+        candidates,
+        &mut cached_applied_steps,
+      );
+      Some(cached_applied_steps)
+    } else {
+      None
+    };
+
+    if let Some(cached_applied_steps) = cached_applied_steps {
       statistics.cache_hit += 1;
-      Self::apply_try_to_add_success(success, config, candidates, applied_steps);
+      applied_steps.extend(cached_applied_steps);
       statistics.added += 1;
       return None;
     }
@@ -763,7 +818,8 @@ impl ModuleConcatenationPlugin {
     staged_success_cache.insert(
       *module_id,
       TryToAddSuccess {
-        steps: applied_steps[applied_start..].to_vec(),
+        start: applied_start,
+        len: applied_end - applied_start,
       },
     );
     statistics.added += 1;
@@ -1351,7 +1407,7 @@ impl ModuleConcatenationPlugin {
         ConcatConfiguration::new(*current_root, active_runtime.clone());
 
       let mut failure_cache = IdentifierMap::default();
-      let mut success_cache = IdentifierMap::default();
+      let mut success_cache = TryToAddSuccessCache::default();
       let mut candidates_visited = IdentifierSet::default();
       let mut candidates = VecDeque::new();
       let imports = {
@@ -1410,7 +1466,7 @@ impl ModuleConcatenationPlugin {
             current_configuration.add_warning(imp, problem);
           }
           _ => {
-            success_cache.extend(staged_success_cache);
+            success_cache.commit_staged(staged_success_cache, applied_steps);
             import_candidates.iter().for_each(|c: &ModuleIdentifier| {
               candidates.push_back(*c);
             });
@@ -1961,6 +2017,10 @@ mod test_try_to_add_success {
     modules.iter().copied().collect()
   }
 
+  fn success(start: usize, len: usize) -> TryToAddSuccess {
+    TryToAddSuccess { start, len }
+  }
+
   #[test]
   fn apply_cached_success_adds_modules_and_candidates_in_preorder() {
     let root = module("root");
@@ -1968,7 +2028,7 @@ mod test_try_to_add_success {
     let mut candidates = IdentifierSet::default();
     let mut applied_steps = Vec::new();
 
-    let success = TryToAddSuccess {
+    let success_cache = TryToAddSuccessCache {
       steps: vec![
         TryToAddStep {
           module: module("a"),
@@ -1986,10 +2046,14 @@ mod test_try_to_add_success {
           subtree_len: 1,
         },
       ],
+      entries: IdentifierMap::from_iter([(module("a"), success(0, 3))]),
     };
+    let success = *success_cache
+      .get(&module("a"))
+      .expect("cached success should exist");
 
     ModuleConcatenationPlugin::apply_try_to_add_success(
-      &success,
+      success_cache.get_steps(success),
       &mut config,
       &mut candidates,
       &mut applied_steps,
@@ -1999,7 +2063,7 @@ mod test_try_to_add_success {
       config.get_modules().iter().copied().collect::<Vec<_>>(),
       vec![root, module("a"), module("b"), module("c")]
     );
-    assert_eq!(applied_steps, success.steps);
+    assert_eq!(applied_steps, success_cache.get_steps(success));
     assert_eq!(candidates, set(&[module("x"), module("y"), module("z")]));
   }
 
@@ -2012,7 +2076,7 @@ mod test_try_to_add_success {
     let mut candidates = IdentifierSet::default();
     let mut applied_steps = Vec::new();
 
-    let success = TryToAddSuccess {
+    let success_cache = TryToAddSuccessCache {
       steps: vec![
         TryToAddStep {
           module: module("a"),
@@ -2035,10 +2099,14 @@ mod test_try_to_add_success {
           subtree_len: 1,
         },
       ],
+      entries: IdentifierMap::from_iter([(module("a"), success(0, 4))]),
     };
+    let success = *success_cache
+      .get(&module("a"))
+      .expect("cached success should exist");
 
     ModuleConcatenationPlugin::apply_try_to_add_success(
-      &success,
+      success_cache.get_steps(success),
       &mut config,
       &mut candidates,
       &mut applied_steps,
@@ -2064,5 +2132,58 @@ mod test_try_to_add_success {
       ]
     );
     assert_eq!(candidates, set(&[module("x"), module("w")]));
+  }
+
+  #[test]
+  fn commit_staged_cache_reuses_single_step_arena_for_nested_successes() {
+    let staged_steps = vec![
+      TryToAddStep {
+        module: module("a"),
+        candidates: index_set(&[module("x")]),
+        subtree_len: 4,
+      },
+      TryToAddStep {
+        module: module("b"),
+        candidates: index_set(&[module("y")]),
+        subtree_len: 2,
+      },
+      TryToAddStep {
+        module: module("c"),
+        candidates: index_set(&[module("z")]),
+        subtree_len: 1,
+      },
+      TryToAddStep {
+        module: module("d"),
+        candidates: index_set(&[module("w")]),
+        subtree_len: 1,
+      },
+    ];
+    let staged_entries = IdentifierMap::from_iter([
+      (module("a"), success(0, 4)),
+      (module("b"), success(1, 2)),
+      (module("c"), success(2, 1)),
+      (module("d"), success(3, 1)),
+    ]);
+
+    let mut success_cache = TryToAddSuccessCache::default();
+    success_cache.commit_staged(staged_entries, staged_steps.clone());
+
+    assert_eq!(success_cache.steps, staged_steps);
+    assert_eq!(success_cache.get(&module("a")), Some(&success(0, 4)));
+    assert_eq!(success_cache.get(&module("b")), Some(&success(1, 2)));
+    assert_eq!(success_cache.get(&module("c")), Some(&success(2, 1)));
+    assert_eq!(success_cache.get(&module("d")), Some(&success(3, 1)));
+
+    success_cache.commit_staged(
+      IdentifierMap::from_iter([(module("e"), success(0, 1))]),
+      vec![TryToAddStep {
+        module: module("e"),
+        candidates: index_set(&[module("v")]),
+        subtree_len: 1,
+      }],
+    );
+
+    assert_eq!(success_cache.steps.len(), 5);
+    assert_eq!(success_cache.get(&module("e")), Some(&success(4, 1)));
   }
 }
