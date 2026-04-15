@@ -1,0 +1,64 @@
+```js title=main.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+"./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  marker: () => (marker)
+});
+/* import */ var _shadow__rspack_import_0 = __webpack_require__("./shadow.js");
+/* import */ var _shadow__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shadow__rspack_import_0);
+
+
+const marker = 1;
+
+// All side-effect-free — should be tree-shaken.
+let unusedSet = (/* unused pure expression or super */ null && (new Set()));
+let unusedMap = (/* unused pure expression or super */ null && (new Map()));
+let unusedWeakMap = (/* unused pure expression or super */ null && (new WeakMap()));
+let unusedWeakSet = (/* unused pure expression or super */ null && (new WeakSet()));
+let unusedTyped = (/* unused pure expression or super */ null && (new Uint8Array(16)));
+let unusedArrIsArray = (/* unused pure expression or super */ null && (Array.isArray([1, 2, 3])));
+let unusedString = (/* unused pure expression or super */ null && (String("hello")));
+let unusedBool = (/* unused pure expression or super */ null && (Boolean({})));
+let unusedSymbol = (/* unused pure expression or super */ null && (Symbol("desc")));
+
+// Impure argument — Set iterates the array, but the array contains a call
+// expression with side effects. Must be kept.
+function impureArg() { console.log("keep"); return 1; }
+let unusedWithImpureArg = new Set([impureArg()]);
+
+// Non-literal arg — could trigger valueOf/toString / iterator. Must be kept.
+let dynamic = { length: 16 };
+let unusedWithDynamic = new Uint8Array(dynamic);
+
+
+},
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* import */ var _app__rspack_import_0 = __webpack_require__("./app.js");
+
+
+_app__rspack_import_0.marker;
+
+
+},
+"./shadow.js"() {
+// Shadowing: `Set`/`Map` below are LOCAL bindings, not the real globals.
+// The unresolved-context check must keep these calls despite matching names.
+function impureSet() { console.log("keep"); return class {} }
+const Set = impureSet();
+let shadowedSet = new Set();
+
+const Map = impureSet();
+let shadowedMap = new Map();
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
