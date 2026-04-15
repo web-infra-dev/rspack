@@ -4,8 +4,21 @@ description: 'This plugin is used to bundle out Node.js assets, often used with 
 
 # NodeTemplatePlugin
 
-This plugin is used to bundle out Node.js assets, often used with childCompiler.
+This plugin is used to bundle Node.js assets, often used with childCompiler.
+
+It applies the [`'commonjs'` chunk format](/config/output#outputchunkformat) and configures [output.chunkLoading](/config/output#outputchunkloading) for Node.js runtimes.
+
+By default it sets `output.chunkLoading` to `'require'`. When `asyncChunkLoading` is enabled, it uses `'async-node'` instead.
 
 ```js
 new rspack.node.NodeTemplatePlugin();
 ```
+
+## Options
+
+### asyncChunkLoading
+
+- Type: `boolean`
+- Default: `false`
+
+Use `'async-node'` chunk loading for async chunks instead of `'require'`.
