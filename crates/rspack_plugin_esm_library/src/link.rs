@@ -98,21 +98,21 @@ impl EsmLibraryPlugin {
 
   fn collect_module_external_fragments_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
-  ) -> Vec<String> {
+  ) -> Vec<Box<dyn rspack_core::InitFragment<ChunkRenderContext>>> {
     let mut ordered_fragments = Vec::new();
 
     for init_fragments in init_fragment_groups {
       for init_fragment in init_fragments {
-        let Some(content) = Self::module_external_fragment_content(init_fragment.clone()) else {
+        if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
           continue;
-        };
+        }
 
         ordered_fragments.push((
           init_fragment.stage(),
           init_fragment.position(),
           ordered_fragments.len(),
           init_fragment.key().clone(),
-          content,
+          init_fragment.clone(),
         ));
       }
     }
@@ -131,9 +131,9 @@ impl EsmLibraryPlugin {
 
     let mut rendered_keys = FxHashSet::default();
     let mut rendered_fragments = Vec::with_capacity(ordered_fragments.len());
-    for (_, _, _, key, content) in ordered_fragments {
+    for (_, _, _, key, init_fragment) in ordered_fragments {
       if rendered_keys.insert(key) {
-        rendered_fragments.push(content);
+        rendered_fragments.push(init_fragment);
       }
     }
 
@@ -187,6 +187,7 @@ impl EsmLibraryPlugin {
   ) -> Vec<(RawImportSource, Atom)> {
     Self::collect_module_external_fragments_in_render_order(init_fragment_groups)
       .into_iter()
+      .filter_map(Self::module_external_fragment_content)
       .filter_map(|content| Self::parse_module_external_namespace_import(&content))
       .collect()
   }
@@ -212,145 +213,6 @@ impl EsmLibraryPlugin {
     }
   }
 
-  fn strip_leading_comments(mut line: &str) -> &str {
-    loop {
-      line = line.trim_start();
-
-      if line.is_empty() {
-        return line;
-      }
-
-      if let Some(rest) = line.strip_prefix("//") {
-        let _ = rest;
-        return "";
-      }
-
-      if let Some(rest) = line.strip_prefix("/*")
-        && let Some(comment_end) = rest.find("*/")
-      {
-        line = &rest[comment_end + 2..];
-        continue;
-      }
-
-      return line;
-    }
-  }
-
-  fn parse_identifier(input: &str) -> Option<(&str, &str)> {
-    let input = input.trim_start();
-    let mut chars = input.char_indices();
-    let (_, first) = chars.next()?;
-    if !(first == '_' || first == '$' || first.is_ascii_alphabetic()) {
-      return None;
-    }
-
-    let mut end = first.len_utf8();
-    for (idx, ch) in chars {
-      if ch == '_' || ch == '$' || ch.is_ascii_alphanumeric() {
-        end = idx + ch.len_utf8();
-      } else {
-        break;
-      }
-    }
-
-    Some((&input[..end], &input[end..]))
-  }
-
-  fn parse_named_import_locals(clause: &str) -> Vec<Atom> {
-    let Some(clause) = clause.strip_prefix('{') else {
-      return vec![];
-    };
-    let Some((named_part, _)) = clause.split_once('}') else {
-      return vec![];
-    };
-
-    named_part
-      .split(',')
-      .filter_map(|specifier| {
-        let specifier = specifier.trim();
-        if specifier.is_empty() {
-          return None;
-        }
-
-        let local = specifier
-          .rsplit_once(" as ")
-          .map_or(specifier, |(_, local)| local)
-          .trim();
-
-        if local.is_empty() {
-          None
-        } else {
-          Some(local.into())
-        }
-      })
-      .collect()
-  }
-
-  fn parse_module_external_top_level_decls(content: &str) -> Vec<Atom> {
-    let mut decls = Vec::new();
-
-    for line in content.lines() {
-      let line = Self::strip_leading_comments(line);
-      if line.is_empty() {
-        continue;
-      }
-
-      if let Some(import_clause) = line.strip_prefix("import ")
-        && let Some((binding_clause, _)) = import_clause.rsplit_once(" from ")
-      {
-        let binding_clause = binding_clause.trim();
-        if binding_clause.starts_with('"') || binding_clause.starts_with('\'') {
-          continue;
-        }
-
-        if let Some(namespace_clause) = binding_clause.strip_prefix("* as ") {
-          if let Some((local, _)) = Self::parse_identifier(namespace_clause) {
-            decls.push(local.into());
-          }
-          continue;
-        }
-
-        if let Some((default_clause, rest)) = binding_clause.split_once(',') {
-          if let Some((local, _)) = Self::parse_identifier(default_clause) {
-            decls.push(local.into());
-          }
-
-          let rest = rest.trim();
-          if let Some(namespace_clause) = rest.strip_prefix("* as ") {
-            if let Some((local, _)) = Self::parse_identifier(namespace_clause) {
-              decls.push(local.into());
-            }
-          } else {
-            decls.extend(Self::parse_named_import_locals(rest));
-          }
-          continue;
-        }
-
-        if binding_clause.starts_with('{') {
-          decls.extend(Self::parse_named_import_locals(binding_clause));
-          continue;
-        }
-
-        if let Some((local, _)) = Self::parse_identifier(binding_clause) {
-          decls.push(local.into());
-        }
-
-        continue;
-      }
-
-      for keyword in ["const ", "let ", "var "] {
-        if let Some(rest) = line.strip_prefix(keyword) {
-          if let Some((local, _)) = Self::parse_identifier(rest) {
-            decls.push(local.into());
-          }
-          break;
-        }
-      }
-    }
-
-    decls
-  }
-
   #[cfg(test)]
   fn reserve_module_external_top_level_decls(
     init_fragments: &ChunkInitFragments,
@@ -363,8 +225,10 @@ impl EsmLibraryPlugin {
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
     used_names: &mut FxHashSet<Atom>,
   ) {
-    for content in Self::collect_module_external_fragments_in_render_order(init_fragment_groups) {
-      used_names.extend(Self::parse_module_external_top_level_decls(&content));
+    for init_fragment in
+      Self::collect_module_external_fragments_in_render_order(init_fragment_groups)
+    {
+      used_names.extend(init_fragment.top_level_decl_symbols().iter().cloned());
     }
   }
 
@@ -3762,7 +3626,11 @@ mod tests {
       0,
       InitFragmentKey::ModuleExternal("node-commonjs".into()),
       None,
-    ))];
+    )
+    .with_top_level_decl_symbols(vec![
+      "__rspack_createRequire".into(),
+      "__rspack_createRequire_require".into(),
+    ]))];
     let mut chunk_used_names = FxHashSet::default();
 
     EsmLibraryPlugin::reserve_module_external_top_level_decls(
@@ -3784,7 +3652,11 @@ mod tests {
         1,
         InitFragmentKey::ModuleExternal("node-commonjs".into()),
         None,
-      )),
+      )
+      .with_top_level_decl_symbols(vec![
+        "__rspack_createRequire_1".into(),
+        "__rspack_createRequire_require_1".into(),
+      ])),
       Box::new(rspack_core::NormalInitFragment::new(
         "import { createRequire as __rspack_createRequire_0 } from \"node:module\";\nconst __rspack_createRequire_require_0 = __rspack_createRequire_0(import.meta.url);\n"
           .into(),
@@ -3792,7 +3664,11 @@ mod tests {
         0,
         InitFragmentKey::ModuleExternal("node-commonjs".into()),
         None,
-      )),
+      )
+      .with_top_level_decl_symbols(vec![
+        "__rspack_createRequire_0".into(),
+        "__rspack_createRequire_require_0".into(),
+      ])),
     ];
     let mut chunk_used_names = FxHashSet::default();
 
@@ -3809,14 +3685,17 @@ mod tests {
 
   #[test]
   fn module_external_var_init_fragment_claims_top_level_decl() {
-    let init_fragments: ChunkInitFragments = vec![Box::new(rspack_core::NormalInitFragment::new(
-      "/* provided dependency */ var provided_identifier = __webpack_require__(\"./dep\");\n"
-        .into(),
-      rspack_core::InitFragmentStage::StageProvides,
-      1,
-      InitFragmentKey::ModuleExternal("provided provided_identifier".into()),
-      None,
-    ))];
+    let init_fragments: ChunkInitFragments = vec![Box::new(
+      rspack_core::NormalInitFragment::new(
+        "/* provided dependency */ var provided_identifier = __webpack_require__(\"./dep\");\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageProvides,
+        1,
+        InitFragmentKey::ModuleExternal("provided provided_identifier".into()),
+        None,
+      )
+      .with_top_level_decl_symbols(vec!["provided_identifier".into()]),
+    )];
     let mut chunk_used_names = FxHashSet::default();
 
     EsmLibraryPlugin::reserve_module_external_top_level_decls(
