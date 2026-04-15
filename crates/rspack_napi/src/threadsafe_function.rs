@@ -10,10 +10,7 @@ use napi::{
   sys::{self, napi_env},
   threadsafe_function::{ThreadsafeFunction as RawThreadsafeFunction, ThreadsafeFunctionCallMode},
 };
-#[cfg(not(feature = "browser"))]
 use oneshot::{Receiver, channel};
-#[cfg(feature = "browser")]
-use rspack_browser::oneshot::{Receiver, channel};
 use rspack_error::{Error, Result};
 
 use crate::{JsCallback, NapiErrorToRspackErrorExt};
@@ -103,11 +100,6 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
 
   async fn call_async<D: 'static + FromNapiValue>(&self, value: T) -> Result<D> {
     let rx = self.call_with_return(value);
-    #[cfg(feature = "browser")]
-    let ret = tokio::task::unconstrained(rx)
-      .await
-      .expect("failed to receive tsfn value");
-    #[cfg(not(feature = "browser"))]
     let ret = rx.await.expect("failed to receive tsfn value");
     ret
   }
