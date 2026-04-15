@@ -16,7 +16,7 @@ _April 28, 2026_
 
 We are pleased to announce that Rspack 2.0 is now available.
 
-This is the first major release after Rspack 1.0. Throughout the 1.x series, our primary goal was to close the gap with webpack in features and ecosystem compatibility, so that more projects could migrate to Rspack with lower cost. To support that goal, we gradually improved module capabilities, dev server behavior, caching, ESM support, and other engineering features, making Rspack a fast bundling option for existing projects while remaining compatible with the webpack ecosystem.
+This is the first major release after Rspack 1.0, arriving 1 year and 8 months after the 1.0 release. Throughout the 1.x series, our primary goal was to close the gap with webpack in features and ecosystem compatibility, so that more projects could migrate to Rspack with lower cost. To support that goal, we gradually improved module capabilities, dev server behavior, caching, ESM support, and other engineering features, making Rspack a fast bundling option for existing projects while remaining compatible with the webpack ecosystem.
 
 With the release of 2.0, Rspack's direction also expands. Going forward, while keeping compatibility with most of webpack, Rspack will explore better solutions in build performance, bundle size, community conventions, and AI collaboration. In other words, Rspack is no longer only focused on being compatible; it will also keep pushing for implementations and workflows that are better suited to modern JavaScript engineering.
 
@@ -33,7 +33,7 @@ Highlights include:
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-Compared with the just-over 100,000 weekly npm downloads at the time of the Rspack 1.0 release, Rspack now reaches **4,801,885 weekly downloads**, an increase of about **48x**. At the same time, frameworks, tools, and platforms such as Docusaurus, Nuxt, Nx, Next.js, Storybook, Meteor, Remotion, Addfox, and Vize have adopted Rspack. This shows that Rspack is no longer only an emerging option, but is steadily becoming a bundler solution accepted by more developers, frameworks, and tools across the open-source ecosystem.
+Compared with the just-over 100,000 weekly npm downloads at the time of the Rspack 1.0 release, Rspack now reaches **4,801,885 weekly downloads**, an increase of about **48x**. At the same time, frameworks, tools, and platforms such as Docusaurus, Nuxt, Nx, Next.js, Storybook, Meteor, Remotion, Addfox, and Vize have adopted Rspack. This shows that Rspack is no longer only an emerging option, but is steadily becoming a bundler solution that is accepted across the open-source ecosystem and widely validated in real projects.
 
 Inside ByteDance, adoption has also continued to expand. Rspack now supports **more than 1,500 weekly active internal projects**, with **1.31 million internal weekly downloads**. These scenarios continue to provide feedback on stability, performance, and engineering requirements.
 
@@ -51,9 +51,9 @@ We also want to thank all community contributors. Whether you submitted pull req
 
 ![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
 
-Across the 1.x series, we kept optimizing Rspack's own build pipeline. For example, we expanded incremental build to more phases and enabled it by default, introduced a native file watcher to improve file-change response, stabilized lazy compilation, and reduced unnecessary module resolution and module building through barrel optimization. These improvements span cold start, rebuild, and HMR workflows, and together they have continued to improve real-world performance.
+Across the 1.x series, we invested heavily in performance-related capabilities, and many of them were first introduced experimentally before being gradually refined and stabilized. For example, persistent cache, incremental build, the native file watcher, lazy compilation, and barrel optimization all helped reduce overhead from cache misses, redundant work, file-change response, and unnecessary module resolution and building.
 
-Using the `react-1k` benchmark from build-tools-performance as an example, Rspack 2.0 shows clear improvements in both Build and HMR compared with Rspack 1.0. In large projects, this translates into shorter waiting time and faster feedback.
+Together, these improvements gave the 1.x series a major performance lift compared with the original 1.0 release. In 2.0, we then went further by optimizing internal data structures and algorithms, bringing another roughly 10% improvement on top of that. Using the `react-1k` benchmark from build-tools-performance as an example, Rspack 2.0 shows clear improvements in both Build and HMR compared with Rspack 1.0. In large projects, this translates into shorter waiting time and faster feedback.
 
 ### Better bundle size
 
@@ -67,7 +67,11 @@ Together, these changes extend Rspack's bundle pruning from module-level optimiz
 
 ### Pure ESM
 
-Rspack 2.0 now publishes `@rspack/core`, `@rspack/cli`, `@rspack/dev-server`, and `@rspack/plugin-react-refresh` as [pure ESM packages](/guide/migration/rspack_1.x#pure-esm-packages), with CommonJS builds removed. This keeps Rspack aligned with the modern Node.js / ESM ecosystem and simplifies follow-up work around module loading and toolchain integration.
+At the package distribution level, Rspack 2.0 also moves closer to the ESM standard. Rspack 2.0 now publishes `@rspack/core`, `@rspack/cli`, `@rspack/dev-server`, and `@rspack/plugin-react-refresh` as [pure ESM packages](/guide/migration/rspack_1.x#pure-esm-packages), with CommonJS builds removed. This keeps Rspack aligned with the modern Node.js / ESM ecosystem and simplifies follow-up work around module loading and toolchain integration.
+
+One direct benefit of moving to pure ESM is a more unified package distribution model: there is no longer a need to maintain both ESM and CommonJS outputs and the branching logic that comes with them. That reduces maintenance cost, avoids behavior differences between module formats, and makes things like `import.meta`, modern module loading, conditional exports, and integration with upper-layer tooling feel more natural.
+
+At the same time, Rspack 2.0 now requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported. One important reason for this change is that Rspack can rely on Node.js native `require(esm)` support to load ESM modules directly, which lowers the compatibility cost of moving to pure ESM.
 
 For most projects running on Node.js 20+ and using the [JavaScript API](/api/javascript-api), this change should have little impact. However, for tooling environments that still depend on older CommonJS assumptions, upgrade-related adjustments may be needed.
 
@@ -86,7 +90,7 @@ For example, when upgrading to 2.0, you will usually upgrade the related package
 
 ### Better ESM
 
-Rspack 2.0 further consolidates the ESM work introduced in the 1.x series. Previously, Rspack used the experimental [`EsmLibraryPlugin`](/guide/migration/rspack_1.x#removed-esmlibraryplugin) to address issues such as excessive runtime code in ESM output and limited support for static analysis after code splitting. In 2.0, that capability is further consolidated into more natural configuration interfaces such as [`modern-module`](/config/output#outputlibrarytype) and [`output.module`](/config/output#outputmodule).
+At the bundled output level, Rspack 2.0 further consolidates the ESM work introduced in the 1.x series. Previously, Rspack used the experimental [`EsmLibraryPlugin`](/guide/migration/rspack_1.x#removed-esmlibraryplugin) to address issues such as excessive runtime code in ESM output and limited support for static analysis after code splitting. In 2.0, that capability is further consolidated into more natural configuration interfaces such as [`modern-module`](/config/output#outputlibrarytype) and [`output.module`](/config/output#outputmodule).
 
 This means the generated ESM output is cleaner, easier to analyze statically, and more suitable for library builds, code splitting, and downstream tree shaking.
 
@@ -105,7 +109,7 @@ export default {
 
 ### Import meta properties
 
-Rspack 2.0 further improves [`import.meta`](/api/runtime-api/module-variables) behavior. In addition to existing support for [`import.meta.url`](/api/runtime-api/module-variables#importmetaurl), [`import.meta.webpackHot`](/api/runtime-api/module-variables#importmetawebpackhot), and [`import.meta.webpackContext`](/api/runtime-api/module-variables#importmetawebpackcontext), Rspack now adjusts how unknown `import.meta` properties are handled: they are no longer decided too early at compile time and can instead be preserved for runtime evaluation through [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta).
+At the source code level, Rspack 2.0 further improves how ESM semantics are handled. In addition to existing support for [`import.meta.url`](/api/runtime-api/module-variables#importmetaurl), [`import.meta.webpackHot`](/api/runtime-api/module-variables#importmetawebpackhot), and [`import.meta.webpackContext`](/api/runtime-api/module-variables#importmetawebpackcontext), Rspack now adjusts how unknown `import.meta` properties are handled: they are no longer decided too early at compile time and can instead be preserved for runtime evaluation through [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta).
 
 This makes it easier to support `import.meta.*` patterns introduced by frameworks, tools, and runtimes.
 
@@ -329,3 +333,15 @@ No. [`cache.portable`](/config/cache#cacheportable) now has an official configur
 ### Is Rspack 2.0 mainly about performance?
 
 No. Performance is still one of Rspack's core strengths, but 2.0 is not only about performance. It also focuses on compatibility, output quality, module capabilities, and continued improvement to the overall engineering experience.
+
+### Does Rspack stop being compatible with webpack after 2.0?
+
+No. Rspack will continue to maintain a limited level of webpack compatibility and will still try to keep migration and adoption practical for existing projects. The difference is that, after 2.0, compatibility is no longer the only goal. When we find approaches that are better in areas such as build performance, bundle size, community conventions, or Agent support, and those approaches require breaking some historical compatibility, we may choose to make those changes.
+
+Even in those cases, we will still try to provide detailed transition guidance, upgrade notes, and migration paths so users can understand the change and move forward with a predictable cost.
+
+### After 2.0 is released, will the 1.x line stop being maintained entirely?
+
+No. After 2.0, Rspack's main direction will gradually shift to 2.x, but that does not mean the 1.x line will immediately stop receiving all maintenance. For projects still using 1.x, we will provide limited maintenance as needed in practice, such as critical fixes or migration-period support.
+
+That said, in the longer term, new capabilities and major improvements will primarily move forward on 2.x. If your project is still on 1.x, we recommend planning the upgrade sooner rather than later.
