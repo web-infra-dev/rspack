@@ -30,10 +30,14 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
 
   // Phase 1: Detect at-risk async chunks.
   // Source: modules with `has_top_level_await`.
-  // Their TOP-LEVEL `AsyncDependenciesBlock`s (we only iterate `module.get_blocks()`,
-  // which returns blocks attached to the module itself, not nested function blocks)
-  // target async chunk groups loaded via `await import()`. Those chunk groups'
-  // chunks are the ones at risk of deadlocking with the parent.
+  // We iterate `module.get_blocks()` (blocks attached directly to the module).
+  // This is conservative: a function-scoped `import()` also shows up here when
+  // the parser attaches its block to the module. We accept that over-inclusion
+  // — extraction only actually happens in later phases when there's a real
+  // cross-chunk static dependency back to an ancestor chunk, so function-only
+  // imports without cycles incur only a cheap BFS and no chunk mutation.
+  // Precise filtering would need AST-level "is the import() directly awaited
+  // at module top level" info which is not exposed on the block.
   let mut async_chunks_set: FxHashSet<ChunkUkey> = FxHashSet::default();
   for (module_id, module) in module_graph.modules() {
     if !module.build_meta().has_top_level_await {
@@ -71,15 +75,17 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     return false;
   }
 
-  // Phase 2: Reverse map `ancestor_chunk → {async_chunks that consider it an ancestor}`.
-  // This replaces per-async-chunk repeated ancestor walks with one O(1) lookup
-  // during BFS.
+  // Phase 2 + 3: For each at-risk async chunk, compute its ancestor chunks and
+  // run a BFS through static outgoing edges. Each async chunk uses its OWN
+  // `visited` set so that a module reachable from multiple async chunks is
+  // analyzed once per origin — this matters when a shared module lives in
+  // DIFFERENT ancestor chunks for different async chunks (e.g. multi-entry
+  // builds where an async chunk hangs off each entry).
   let async_chunks: Vec<ChunkUkey> = async_chunks_set.iter().copied().collect();
-  let mut chunk_to_ancestor_of: FxHashMap<ChunkUkey, FxHashSet<ChunkUkey>> = FxHashMap::default();
-  let mut module_to_async_chunk: IdentifierMap<ChunkUkey> = IdentifierMap::default();
-  let mut queue: VecDeque<ModuleIdentifier> = VecDeque::new();
+  let mut modules_to_extract: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
 
   for &async_chunk_ukey in &async_chunks {
+    // Collect ancestor chunks via chunk group parent traversal
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -89,77 +95,68 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
       let group = chunk_group_by_ukey.expect_get(group_ukey);
       ancestor_groups.extend(group.ancestors(chunk_group_by_ukey));
     }
+    let mut ancestor_chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for g in &ancestor_groups {
-      for &ancestor_chunk in &chunk_group_by_ukey.expect_get(g).chunks {
-        chunk_to_ancestor_of
-          .entry(ancestor_chunk)
-          .or_default()
-          .insert(async_chunk_ukey);
-      }
+      ancestor_chunks.extend(chunk_group_by_ukey.expect_get(g).chunks.iter().copied());
     }
 
-    // Seed BFS with modules in this async chunk
-    for &m in chunk_graph.get_chunk_modules_identifier(&async_chunk_ukey) {
-      module_to_async_chunk.insert(m, async_chunk_ukey);
-      queue.push_back(m);
-    }
-  }
-
-  // Phase 3: Single BFS with shared `visited`. For each module visited, walk all
-  // active outgoing connections (skipping `DynamicImport` — those produce
-  // promises and don't require the target chunk to be fully executed in the
-  // current evaluation frame). If the target is in an ancestor chunk of this
-  // module's owning async chunk, record it for extraction.
-  let mut modules_to_extract: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
-  let mut visited = IdentifierSet::default();
-
-  while let Some(module_id) = queue.pop_front() {
-    if !visited.insert(module_id) {
+    if ancestor_chunks.is_empty() {
       continue;
     }
-    let Some(&origin_async_chunk) = module_to_async_chunk.get(&module_id) else {
-      continue;
-    };
 
-    for conn in module_graph.get_outgoing_connections(&module_id) {
-      // Dynamic imports don't cause sync-load deadlocks — they hand out a
-      // promise; skip.
-      let dep = module_graph.dependency_by_id(&conn.dependency_id);
-      if dep.dependency_type() == &DependencyType::DynamicImport {
+    // Per-async-chunk BFS with a local `visited` set. Starts from all modules
+    // that live in this async chunk.
+    let mut visited = IdentifierSet::default();
+    let mut queue: VecDeque<ModuleIdentifier> = chunk_graph
+      .get_chunk_modules_identifier(&async_chunk_ukey)
+      .iter()
+      .copied()
+      .collect();
+
+    while let Some(module_id) = queue.pop_front() {
+      if !visited.insert(module_id) {
         continue;
       }
-      if !conn.is_target_active(
-        module_graph,
-        None,
-        &compilation.module_graph_cache_artifact,
-        &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact,
-        &compilation.exports_info_artifact,
-      ) {
-        continue;
-      }
-      let Some(target) = module_graph.module_identifier_by_dependency_id(&conn.dependency_id)
-      else {
-        continue;
-      };
-      let target_chunks = chunk_graph.get_module_chunks(*target);
 
-      for &target_chunk in target_chunks {
-        if let Some(ancestor_of) = chunk_to_ancestor_of.get(&target_chunk)
-          && ancestor_of.contains(&origin_async_chunk)
-        {
-          modules_to_extract
-            .entry(*target)
-            .or_default()
-            .insert(target_chunk);
+      for conn in module_graph.get_outgoing_connections(&module_id) {
+        // Dynamic imports produce promises; the target is not required to have
+        // finished evaluating in the current frame, so no sync-load deadlock.
+        let dep = module_graph.dependency_by_id(&conn.dependency_id);
+        if dep.dependency_type() == &DependencyType::DynamicImport {
+          continue;
         }
-      }
+        if !conn.is_target_active(
+          module_graph,
+          None,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        ) {
+          continue;
+        }
+        let Some(target) = module_graph.module_identifier_by_dependency_id(&conn.dependency_id)
+        else {
+          continue;
+        };
+        let target_chunks = chunk_graph.get_module_chunks(*target);
 
-      // Continue BFS if target is inside the same async chunk boundary
-      if target_chunks.contains(&origin_async_chunk) {
-        module_to_async_chunk.insert(*target, origin_async_chunk);
-        queue.push_back(*target);
+        // If the target lives in a chunk that is an ancestor of THIS async
+        // chunk, extract it from that specific ancestor chunk.
+        for &target_chunk in target_chunks {
+          if ancestor_chunks.contains(&target_chunk) {
+            modules_to_extract
+              .entry(*target)
+              .or_default()
+              .insert(target_chunk);
+          }
+        }
+
+        // Continue BFS if target is inside THIS async chunk boundary
+        if target_chunks.contains(&async_chunk_ukey) {
+          queue.push_back(*target);
+        }
       }
     }
   }
