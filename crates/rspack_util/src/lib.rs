@@ -83,7 +83,7 @@ pub fn json_stringify_str(s: &str) -> String {
 
 /// Stringify a chunk ID for JavaScript output.
 ///
-/// If the string is a valid non-negative integer within `Number.MAX_SAFE_INTEGER`
+/// If the string is a valid non-negative integer within `u32::MAX`
 /// (no leading zeros except "0"), it is rendered as a number literal (e.g. `903`).
 /// Otherwise, it is rendered as a JSON string (e.g. `"main"`). This matches
 /// webpack's behavior where numeric chunk IDs are emitted without quotes.
@@ -109,13 +109,10 @@ pub fn json_stringify_chunk_ids<S: AsRef<str>>(ids: &[S]) -> String {
   result
 }
 
-/// JavaScript's `Number.MAX_SAFE_INTEGER` (2^53 - 1).
-const MAX_SAFE_INTEGER: u64 = 9_007_199_254_740_991;
-
 /// Parse a string as a valid non-negative chunk/module ID suitable for rendering
 /// as a JS number literal (no leading zeros except "0" itself, and within
-/// `Number.MAX_SAFE_INTEGER`).
-pub fn numeric_id_value(s: &str) -> Option<u64> {
+/// `u32::MAX`).
+pub fn numeric_id_value(s: &str) -> Option<u32> {
   if s.is_empty() {
     return None;
   }
@@ -127,8 +124,7 @@ pub fn numeric_id_value(s: &str) -> Option<u64> {
   if !bytes.iter().all(|b| b.is_ascii_digit()) {
     return None;
   }
-  // Guard against values that exceed Number.MAX_SAFE_INTEGER
-  s.parse::<u64>().ok().filter(|n| *n <= MAX_SAFE_INTEGER)
+  s.parse::<u32>().ok()
 }
 
 /// Get current time in milliseconds since Unix epoch
@@ -160,13 +156,9 @@ mod tests {
     assert_eq!(numeric_id_value("01"), None);
     assert_eq!(numeric_id_value("1a"), None);
     assert_eq!(numeric_id_value("main"), None);
-    // Within MAX_SAFE_INTEGER
-    assert_eq!(
-      numeric_id_value("9007199254740991"),
-      Some(9_007_199_254_740_991)
-    );
-    // Exceeds MAX_SAFE_INTEGER
-    assert_eq!(numeric_id_value("9007199254740992"), None);
+    assert_eq!(numeric_id_value("4294967295"), Some(u32::MAX));
+    // Exceeds u32::MAX
+    assert_eq!(numeric_id_value("4294967296"), None);
     // Way too large
     assert_eq!(numeric_id_value("123456789012345678901234567890"), None);
   }
@@ -179,11 +171,9 @@ mod tests {
     assert_eq!(json_stringify_chunk_id("01"), "\"01\"");
     assert_eq!(json_stringify_chunk_id("1a"), "\"1a\"");
     assert_eq!(json_stringify_chunk_id("main"), "\"main\"");
-    // Exceeds MAX_SAFE_INTEGER → falls back to string
-    assert_eq!(
-      json_stringify_chunk_id("9007199254740992"),
-      "\"9007199254740992\""
-    );
+    assert_eq!(json_stringify_chunk_id("4294967295"), "4294967295");
+    // Exceeds u32::MAX → falls back to string
+    assert_eq!(json_stringify_chunk_id("4294967296"), "\"4294967296\"");
   }
 
   #[test]

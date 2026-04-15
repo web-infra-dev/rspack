@@ -64,7 +64,7 @@ impl Serialize for ChunkId {
     S: Serializer,
   {
     if let Some(n) = self.as_number() {
-      serializer.serialize_u64(n)
+      serializer.serialize_u32(n)
     } else {
       serializer.serialize_str(self.0.as_str())
     }
@@ -72,7 +72,7 @@ impl Serialize for ChunkId {
 }
 
 impl ChunkId {
-  pub fn as_number(&self) -> Option<u64> {
+  pub fn as_number(&self) -> Option<u32> {
     rspack_util::numeric_id_value(self.0.as_str())
   }
 
@@ -1196,12 +1196,12 @@ mod tests {
       "\"main\""
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("9007199254740991")).unwrap(),
-      "9007199254740991"
+      serde_json::to_string(&ChunkId::from("4294967295")).unwrap(),
+      "4294967295"
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("9007199254740992")).unwrap(),
-      "\"9007199254740992\""
+      serde_json::to_string(&ChunkId::from("4294967296")).unwrap(),
+      "\"4294967296\""
     );
     assert_eq!(
       serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from("903")]).unwrap(),
