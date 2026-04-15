@@ -15,69 +15,67 @@ use rspack_util::{
 
 use crate::EsmLibraryPlugin;
 
-/// Scan async (TLA) chunks for dependencies that reside in ancestor chunks.
-/// When an async chunk with TLA imports a module from its ancestor, a circular
-/// dependency is created (ancestor awaits the async chunk, which imports back
-/// from the ancestor). This function extracts such shared modules into separate
-/// chunks to break the cycle.
+/// Scan TLA-awaited async chunks for static dependencies that reside in ancestor
+/// chunks. When a module with top-level await dynamically imports a chunk, and
+/// that chunk has static imports back to ancestor chunks, the ancestor must
+/// already have fully executed before the child can resolve its imports — but
+/// the ancestor is paused at its top-level await, creating a deadlock.
 ///
-/// Returns `true` if shared modules were actually extracted (circular dep found),
-/// `false` otherwise (no TLA or no circular deps detected).
+/// This function extracts such shared modules into separate chunks to break
+/// the cycle. It returns `true` if modules were actually extracted.
 pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool {
   let module_graph = compilation.get_module_graph();
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
 
-  // 1. Find async chunks: non-initial chunks that are the target of a
-  //    `DynamicImport` whose source module has top-level await.
-  //    When such a chunk is loaded via `await import()` from a module currently
-  //    paused at a top-level await, and the chunk has static imports back to
-  //    ancestor chunks, a circular dependency deadlock occurs.
+  // Phase 1: Detect at-risk async chunks.
+  // Source: modules with `has_top_level_await`.
+  // Their TOP-LEVEL `AsyncDependenciesBlock`s (we only iterate `module.get_blocks()`,
+  // which returns blocks attached to the module itself, not nested function blocks)
+  // target async chunk groups loaded via `await import()`. Those chunk groups'
+  // chunks are the ones at risk of deadlocking with the parent.
   let mut async_chunks_set: FxHashSet<ChunkUkey> = FxHashSet::default();
   for (module_id, module) in module_graph.modules() {
     if !module.build_meta().has_top_level_await {
       continue;
     }
-    // Collect DynamicImport dependencies from this TLA module (including ones in blocks)
-    let mut dep_ids: Vec<_> = module.get_dependencies().to_vec();
     for block_id in module.get_blocks() {
-      if let Some(block) = module_graph.block_by_id(block_id) {
-        dep_ids.extend(block.get_dependencies().iter().copied());
-      }
-    }
-    for dep_id in dep_ids {
-      let dep = module_graph.dependency_by_id(&dep_id);
-      if dep.dependency_type() != &DependencyType::DynamicImport {
-        continue;
-      }
-      let Some(target) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
+      let Some(block) = module_graph.block_by_id(block_id) else {
         continue;
       };
-      // Skip self-imports; also only care about chunks that contain the target
-      if target == module_id {
-        continue;
-      }
-      for &chunk_ukey in chunk_graph.get_module_chunks(*target) {
-        let chunk = compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .expect_get(&chunk_ukey);
-        if !chunk.is_only_initial(chunk_group_by_ukey) {
-          async_chunks_set.insert(chunk_ukey);
+      for dep_id in block.get_dependencies() {
+        let dep = module_graph.dependency_by_id(dep_id);
+        if dep.dependency_type() != &DependencyType::DynamicImport {
+          continue;
+        }
+        let Some(target) = module_graph.module_identifier_by_dependency_id(dep_id) else {
+          continue;
+        };
+        if target == module_id {
+          continue;
+        }
+        for &chunk_ukey in chunk_graph.get_module_chunks(*target) {
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(&chunk_ukey);
+          if !chunk.is_only_initial(chunk_group_by_ukey) {
+            async_chunks_set.insert(chunk_ukey);
+          }
         }
       }
     }
   }
-  let async_chunks: Vec<ChunkUkey> = async_chunks_set.iter().copied().collect();
 
-  if async_chunks.is_empty() {
+  if async_chunks_set.is_empty() {
     return false;
   }
 
-  // 2. Pre-compute: for each async chunk, its ancestor chunks; also build a
-  //    reverse lookup from chunk → which async chunks consider it an ancestor.
-  //    Then do a single BFS across all async chunks sharing one visited set.
-  let mut chunk_to_ancestor_of: FxHashMap<ChunkUkey, Vec<ChunkUkey>> = FxHashMap::default();
+  // Phase 2: Reverse map `ancestor_chunk → {async_chunks that consider it an ancestor}`.
+  // This replaces per-async-chunk repeated ancestor walks with one O(1) lookup
+  // during BFS.
+  let async_chunks: Vec<ChunkUkey> = async_chunks_set.iter().copied().collect();
+  let mut chunk_to_ancestor_of: FxHashMap<ChunkUkey, FxHashSet<ChunkUkey>> = FxHashMap::default();
   let mut module_to_async_chunk: IdentifierMap<ChunkUkey> = IdentifierMap::default();
   let mut queue: VecDeque<ModuleIdentifier> = VecDeque::new();
 
@@ -86,30 +84,32 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&async_chunk_ukey);
-    let mut ancestor_group_ukeys = FxHashSet::default();
+    let mut ancestor_groups = FxHashSet::default();
     for group_ukey in chunk.groups() {
       let group = chunk_group_by_ukey.expect_get(group_ukey);
-      ancestor_group_ukeys.extend(group.ancestors(chunk_group_by_ukey));
+      ancestor_groups.extend(group.ancestors(chunk_group_by_ukey));
     }
-    for g in &ancestor_group_ukeys {
+    for g in &ancestor_groups {
       for &ancestor_chunk in &chunk_group_by_ukey.expect_get(g).chunks {
         chunk_to_ancestor_of
           .entry(ancestor_chunk)
           .or_default()
-          .push(async_chunk_ukey);
+          .insert(async_chunk_ukey);
       }
     }
 
-    // Seed BFS with all modules in this async chunk
+    // Seed BFS with modules in this async chunk
     for &m in chunk_graph.get_chunk_modules_identifier(&async_chunk_ukey) {
       module_to_async_chunk.insert(m, async_chunk_ukey);
       queue.push_back(m);
     }
   }
 
-  // Single BFS across all async chunks with a shared visited set — O(N + E).
-  // Each module is visited at most once. When a target is in an ancestor chunk
-  // of the originating async chunk, we mark it for extraction.
+  // Phase 3: Single BFS with shared `visited`. For each module visited, walk all
+  // active outgoing connections (skipping `DynamicImport` — those produce
+  // promises and don't require the target chunk to be fully executed in the
+  // current evaluation frame). If the target is in an ancestor chunk of this
+  // module's owning async chunk, record it for extraction.
   let mut modules_to_extract: IdentifierMap<FxHashSet<ChunkUkey>> = IdentifierMap::default();
   let mut visited = IdentifierSet::default();
 
@@ -117,13 +117,17 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     if !visited.insert(module_id) {
       continue;
     }
-
-    // Determine which async chunk this module belongs to
     let Some(&origin_async_chunk) = module_to_async_chunk.get(&module_id) else {
       continue;
     };
 
     for conn in module_graph.get_outgoing_connections(&module_id) {
+      // Dynamic imports don't cause sync-load deadlocks — they hand out a
+      // promise; skip.
+      let dep = module_graph.dependency_by_id(&conn.dependency_id);
+      if dep.dependency_type() == &DependencyType::DynamicImport {
+        continue;
+      }
       if !conn.is_target_active(
         module_graph,
         None,
@@ -135,15 +139,12 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
       ) {
         continue;
       }
-
       let Some(target) = module_graph.module_identifier_by_dependency_id(&conn.dependency_id)
       else {
         continue;
       };
-
       let target_chunks = chunk_graph.get_module_chunks(*target);
 
-      // Check if target is in an ancestor chunk of origin_async_chunk → circular dep
       for &target_chunk in target_chunks {
         if let Some(ancestor_of) = chunk_to_ancestor_of.get(&target_chunk)
           && ancestor_of.contains(&origin_async_chunk)
@@ -155,7 +156,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
         }
       }
 
-      // Continue BFS if target is in the same async chunk
+      // Continue BFS if target is inside the same async chunk boundary
       if target_chunks.contains(&origin_async_chunk) {
         module_to_async_chunk.insert(*target, origin_async_chunk);
         queue.push_back(*target);
@@ -167,106 +168,90 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
     return false;
   }
 
-  // 3. Group modules by their sorted set of source chunks, so modules that share
-  //    the same source chunks are moved to the same new chunk (like RemoveDuplicateModulesPlugin).
+  // Phase 4: Group modules by their exact source-chunk set (modules that live
+  // in the same set of chunks go into one new chunk — mirrors
+  // `RemoveDuplicateModulesPlugin`). Then create new chunks and relocate.
   let mut chunk_group_map: FxHashMap<Vec<ChunkUkey>, Vec<ModuleIdentifier>> = FxHashMap::default();
   for (module_id, source_chunks) in &modules_to_extract {
-    let mut sorted_chunks: Vec<ChunkUkey> = source_chunks.iter().copied().collect();
-    sorted_chunks.sort();
-    chunk_group_map
-      .entry(sorted_chunks)
-      .or_default()
-      .push(*module_id);
+    let mut sorted: Vec<ChunkUkey> = source_chunks.iter().copied().collect();
+    sorted.sort();
+    chunk_group_map.entry(sorted).or_default().push(*module_id);
   }
 
-  // 4. Extract modules: for each group, create one new chunk and move modules there
   for (source_chunks, modules) in chunk_group_map {
     let new_chunk_ukey =
       Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
-
     if let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
       });
     }
-
+    {
+      let new_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get_mut(&new_chunk_ukey);
+      *new_chunk.chunk_reason_mut() = Some("extracted to break TLA circular dependency".into());
+    }
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .add_chunk(new_chunk_ukey);
 
-    for module_id in &modules {
-      // Disconnect module from all source chunks
+    // For each module: collect which source chunks had it registered as an
+    // entry module, then disconnect from all source chunks and connect to the
+    // new chunk. Only modules that WERE entry modules get reconnected as entry.
+    for &module_id in &modules {
+      let mut entry_reconnections: Vec<ChunkGroupUkey> = Vec::new();
       for source_chunk_ukey in &source_chunks {
-        // Collect entry module entrypoints before disconnecting
-        let entry_entrypoint: Option<ChunkGroupUkey> = compilation
+        if let Some(&entrypoint) = compilation
           .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_entry_modules_with_chunk_group_iterable(source_chunk_ukey)
-          .get(module_id)
-          .copied();
-
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .disconnect_chunk_and_module(source_chunk_ukey, *module_id);
-
-        if entry_entrypoint.is_some() {
+          .get(&module_id)
+        {
+          entry_reconnections.push(entrypoint);
           compilation
             .build_chunk_graph_artifact
             .chunk_graph
-            .disconnect_chunk_and_entry_module(source_chunk_ukey, *module_id);
+            .disconnect_chunk_and_entry_module(source_chunk_ukey, module_id);
         }
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .disconnect_chunk_and_module(source_chunk_ukey, module_id);
       }
-
-      // Connect module to new chunk
       compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .connect_chunk_and_module(new_chunk_ukey, *module_id);
+        .connect_chunk_and_module(new_chunk_ukey, module_id);
+      for entrypoint in entry_reconnections {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .connect_chunk_and_entry_module(new_chunk_ukey, module_id, entrypoint);
+      }
     }
 
-    // Establish chunk group relationships via split from each source chunk
+    // Establish chunk group relationships: new_chunk joins each source chunk's
+    // groups (making it a sibling — it will be loaded alongside the source).
     for source_chunk_ukey in &source_chunks {
       let [Some(source_chunk), Some(new_chunk)] = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .get_many_mut([source_chunk_ukey, &new_chunk_ukey])
       else {
-        unreachable!("source_chunk and new_chunk should both exist")
+        unreachable!("both chunks should exist")
       };
-
       source_chunk.split(
         new_chunk,
         &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       );
-
       if let Some(mut mutations) = compilation.incremental.mutations_write() {
         mutations.add(Mutation::ChunkSplit {
           from: *source_chunk_ukey,
           to: new_chunk_ukey,
         });
-      }
-    }
-
-    // Reconnect entry modules to new chunk with their entrypoint metadata.
-    // This must happen after split() so the new chunk has the correct groups.
-    for module_id in &modules {
-      let new_chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(&new_chunk_ukey);
-      for group_ukey in new_chunk.groups().iter().copied().collect::<Vec<_>>() {
-        let group = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .expect_get(&group_ukey);
-        if group.is_initial() && group.kind.is_entrypoint() {
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_graph
-            .connect_chunk_and_entry_module(new_chunk_ukey, *module_id, group_ukey);
-        }
       }
     }
   }
