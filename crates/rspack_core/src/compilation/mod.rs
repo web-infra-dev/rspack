@@ -85,6 +85,7 @@ use crate::{
   RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
   SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
   StealCell, ValueCacheVersions,
+  cache::persistent::occasion::minimize::MinimizePersistentCacheArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -269,6 +270,8 @@ pub struct Compilation {
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
+  pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
+
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
@@ -398,6 +401,7 @@ impl Compilation {
       process_runtime_requirements_cache_artifact: StealCell::new(
         ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
+      minimize_persistent_cache_artifact: None,
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
