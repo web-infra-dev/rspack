@@ -160,10 +160,7 @@ export const getNormalizedRspackOptions = (
               } as LibraryOptions)
             : undefined;
       return {
-        path:
-          output.path && !path.isAbsolute(output.path) && config.context
-            ? path.resolve(config.context, output.path)
-            : output.path,
+        path: output.path,
         pathinfo: output.pathinfo,
         publicPath: output.publicPath,
         filename: output.filename,

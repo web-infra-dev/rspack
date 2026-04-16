@@ -15,14 +15,6 @@ const validateContext = ({ context }: Configuration) => {
   }
 };
 
-const validateOutputPath = ({ context, output }: Configuration) => {
-  if (output?.path && !isAbsolute(output.path) && !context) {
-    throw new Error(
-      `${ERROR_PREFIX} "context" must be a non-empty absolute path when "output.path" is relative, get "${context ?? ''}".`,
-    );
-  }
-};
-
 const validateSplitChunks = ({ optimization }: Configuration) => {
   if (optimization?.splitChunks) {
     const { minChunks } = optimization.splitChunks;
@@ -92,7 +84,6 @@ const validateExternalUmd = ({
  */
 export function validateRspackConfig(config: Configuration) {
   validateContext(config);
-  validateOutputPath(config);
   validateSplitChunks(config);
   validateExternalUmd(config);
 }

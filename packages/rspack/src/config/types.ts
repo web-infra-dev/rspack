@@ -452,7 +452,6 @@ export type Environment = {
 export type Output = {
   /**
    * The output directory. Relative paths are resolved against `context`.
-   * Relative paths require `context` to be a non-empty absolute path.
    * @default path.resolve(process.cwd(), 'dist')
    * */
   path?: Path;
