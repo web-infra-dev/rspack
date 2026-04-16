@@ -375,7 +375,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         shared_module_targets
           .entry(pkg.clone())
           .or_default()
-          .extend(target_ids.into_iter());
+          .extend(target_ids);
         let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;

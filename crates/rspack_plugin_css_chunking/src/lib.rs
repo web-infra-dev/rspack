@@ -214,10 +214,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   // Process through all modules
   let start = logger.time("process through all modules");
-  loop {
-    let Some(start_module_identifier) = remaining_modules.iter().next().copied() else {
-      break;
-    };
+  while let Some(start_module_identifier) = remaining_modules.iter().next().copied() {
     remaining_modules.shift_remove(&start_module_identifier);
 
     #[allow(clippy::unwrap_used)]

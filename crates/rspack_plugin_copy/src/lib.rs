@@ -628,7 +628,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .deref_mut(),
   ));
 
-  copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+  copied_result.sort_unstable_by_key(|a| a.0);
 
   // Keep track of source to destination file mappings for permission copying
   let mut permission_copies = Vec::new();

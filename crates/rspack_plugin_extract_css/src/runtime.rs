@@ -165,7 +165,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     let mut attr = String::default();
     let mut attributes: Vec<(&String, &String)> = self.attributes.iter().collect::<Vec<_>>();
-    attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
+    attributes.sort_unstable_by_key(|(k1, _)| *k1);
 
     for (attr_key, attr_value) in attributes {
       attr += &format!("linkTag.setAttribute({attr_key}, {attr_value});\n");

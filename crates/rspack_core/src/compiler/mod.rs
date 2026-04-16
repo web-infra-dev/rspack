@@ -530,24 +530,19 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    join_all(
-      self
-        .emitted_asset_versions
-        .iter()
-        .filter_map(|(filename, _version)| {
-          if !assets.contains_key(filename) {
-            let filename = filename.to_owned();
-            Some(async {
-              if !clean_options.keep(&filename).await {
-                let filename = output_path.join(filename);
-                let _ = self.output_filesystem.remove_file(&filename).await;
-              }
-            })
-          } else {
-            None
+    join_all(self.emitted_asset_versions.keys().filter_map(|filename| {
+      if !assets.contains_key(filename) {
+        let filename = filename.to_owned();
+        Some(async {
+          if !clean_options.keep(&filename).await {
+            let filename = output_path.join(filename);
+            let _ = self.output_filesystem.remove_file(&filename).await;
           }
-        }),
-    )
+        })
+      } else {
+        None
+      }
+    }))
     .await;
 
     Ok(())

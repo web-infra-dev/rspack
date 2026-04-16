@@ -621,7 +621,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   }
 
   // Sort by module identifier for deterministic ordering
-  candidates.sort_by(|a, b| a.1.cmp(&b.1));
+  candidates.sort_by_key(|a| a.1);
 
   // Compute short names and track duplicates
   // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order

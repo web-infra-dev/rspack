@@ -2793,8 +2793,8 @@ var {} = {{}};
     for chunk_link in link.values_mut() {
       let all_chunk_used_symbols = chunk_link
         .refs
-        .iter()
-        .filter_map(|(_, symbol_ref)| {
+        .values()
+        .filter_map(|symbol_ref| {
           if let Ref::Symbol(symbol_ref) = symbol_ref {
             Some(&symbol_ref.symbol)
           } else {
