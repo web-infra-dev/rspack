@@ -71,7 +71,7 @@ export default {
 
 ## performance.maxAssetSize
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '300 * 1024' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '307200' }]} />
 
 Sets the size threshold for a single asset (in bytes). Rspack emits a performance hint when an asset exceeds this value.
 
@@ -87,7 +87,7 @@ export default {
 
 ## performance.maxEntrypointSize
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '500 * 1024' }]} />
+<PropertyType type="number" defaultValueList={[{ defaultValue: '512000' }]} />
 
 Sets the total size threshold for an entrypoint (in bytes). Entrypoint total size means the total size needed for the initial load of that entry. Rspack emits a performance hint when the entrypoint total size exceeds this value.
 
