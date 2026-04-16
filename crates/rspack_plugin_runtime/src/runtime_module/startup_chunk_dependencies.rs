@@ -48,7 +48,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
             .expect_id()
-            .to_string()
+            .clone()
         })
         .collect::<Vec<_>>();
 
@@ -57,9 +57,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           1 => format!(
             "return {}({}).then(next);",
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            rspack_util::json_stringify_chunk_id(
-              chunk_ids.first().expect("Should has at least one chunk")
-            )
+            rspack_util::json_stringify(chunk_ids.first().expect("Should has at least one chunk"))
           ),
           2 => format!(
             "return Promise.all([{}]).then(next);",
@@ -68,13 +66,13 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
               .map(|cid| format!(
                 "{}({})",
                 runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-                rspack_util::json_stringify_chunk_id(cid)
+                rspack_util::json_stringify(cid)
               ))
               .join(",\n")
           ),
           _ => format!(
             "return Promise.all({}.map({}, {})).then(next);",
-            rspack_util::json_stringify_chunk_ids(&chunk_ids),
+            rspack_util::json_stringify(&chunk_ids),
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),
@@ -86,7 +84,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
             format!(
               "{}({});",
               runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-              rspack_util::json_stringify_chunk_id(cid)
+              rspack_util::json_stringify(cid)
             )
           })
           .chain(iter::once("return next();".to_string()))

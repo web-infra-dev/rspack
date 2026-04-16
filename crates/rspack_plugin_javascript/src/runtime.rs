@@ -413,14 +413,7 @@ pub async fn render_runtime_modules(
 pub fn stringify_chunks_to_array(chunks: &ChunkIdSet) -> String {
   let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
-
-  format!(
-    r#"[{}]"#,
-    v.iter()
-      .map(|cur| rspack_util::json_stringify_chunk_id(cur.as_str()))
-      .collect::<Vec<_>>()
-      .join(",")
-  )
+  rspack_util::json_stringify(&v)
 }
 
 pub fn stringify_array(vec: &[String]) -> String {
@@ -441,12 +434,12 @@ mod tests {
   use super::stringify_chunks_to_array;
 
   #[test]
-  fn stringify_chunks_to_array_keeps_numeric_ids_quoted() {
+  fn stringify_chunks_to_array_uses_chunk_id_serialize() {
     let chunks = ChunkIdSet::from_iter([
       rspack_core::chunk_graph_chunk::ChunkId::from("681"),
       rspack_core::chunk_graph_chunk::ChunkId::from("main"),
     ]);
 
-    assert_eq!(stringify_chunks_to_array(&chunks), "[\"681\",\"main\"]");
+    assert_eq!(stringify_chunks_to_array(&chunks), "[681,\"main\"]");
   }
 }

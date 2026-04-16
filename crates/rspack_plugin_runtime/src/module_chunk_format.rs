@@ -144,7 +144,7 @@ async fn render_chunk(
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
-  let chunk_id_expr = rspack_util::json_stringify_chunk_id(chunk.expect_id().as_str());
+  let chunk_id_expr = rspack_util::json_stringify(chunk.expect_id());
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(

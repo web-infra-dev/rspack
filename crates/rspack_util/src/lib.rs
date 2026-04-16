@@ -81,27 +81,6 @@ pub fn json_stringify_str(s: &str) -> String {
   json_escape_simd::escape(s)
 }
 
-/// Stringify a chunk ID for JavaScript output.
-///
-/// Chunk IDs in JavaScript runtime code should stay as JSON strings, e.g. `"903"`.
-#[inline]
-pub fn json_stringify_chunk_id(s: &str) -> String {
-  json_stringify_str(s)
-}
-
-/// Stringify an array of chunk IDs for JavaScript output, e.g. `["903", "main"]`.
-pub fn json_stringify_chunk_ids<S: AsRef<str>>(ids: &[S]) -> String {
-  let mut result = String::from("[");
-  for (i, id) in ids.iter().enumerate() {
-    if i > 0 {
-      result.push(',');
-    }
-    result.push_str(&json_stringify_chunk_id(id.as_ref()));
-  }
-  result.push(']');
-  result
-}
-
 /// Parse a string as a valid non-negative chunk/module ID suitable for rendering
 /// as a JS number literal (no leading zeros except "0" itself, and within
 /// `u32::MAX`).
@@ -139,7 +118,7 @@ pub fn quote_meta(str: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-  use super::{json_stringify_chunk_id, json_stringify_chunk_ids, numeric_id_value};
+  use super::numeric_id_value;
 
   #[test]
   fn numeric_id_detection_covers_edge_cases() {
@@ -154,26 +133,5 @@ mod tests {
     assert_eq!(numeric_id_value("4294967296"), None);
     // Way too large
     assert_eq!(numeric_id_value("123456789012345678901234567890"), None);
-  }
-
-  #[test]
-  fn json_stringify_chunk_id_preserves_numeric_and_string_forms() {
-    assert_eq!(json_stringify_chunk_id(""), "\"\"");
-    assert_eq!(json_stringify_chunk_id("0"), "\"0\"");
-    assert_eq!(json_stringify_chunk_id("903"), "\"903\"");
-    assert_eq!(json_stringify_chunk_id("01"), "\"01\"");
-    assert_eq!(json_stringify_chunk_id("1a"), "\"1a\"");
-    assert_eq!(json_stringify_chunk_id("main"), "\"main\"");
-    assert_eq!(json_stringify_chunk_id("4294967296"), "\"4294967296\"");
-  }
-
-  #[test]
-  fn json_stringify_chunk_ids_renders_array() {
-    assert_eq!(json_stringify_chunk_ids::<&str>(&[]), "[]");
-    assert_eq!(json_stringify_chunk_ids(&["903"]), "[\"903\"]");
-    assert_eq!(
-      json_stringify_chunk_ids(&["903", "main", "17"]),
-      "[\"903\",\"main\",\"17\"]"
-    );
   }
 }

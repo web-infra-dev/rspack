@@ -51,12 +51,7 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
   format!(
     r#"{{{}}}"#,
     v.iter().fold(String::new(), |prev, cur| {
-      prev
-        + format!(
-          r#"{}: {value},"#,
-          rspack_util::json_stringify_chunk_id(cur.as_str())
-        )
-        .as_str()
+      prev + format!(r#"{}: {value},"#, rspack_util::json_stringify(cur)).as_str()
     })
   )
 }
@@ -151,8 +146,8 @@ where
       if value.as_str() == chunk_id.as_str() {
         use_id = true;
       } else {
-        result.insert(chunk_id.as_str(), rspack_util::json_stringify_str(&value));
-        last_key = Some(chunk_id.as_str());
+        result.insert(chunk_id, rspack_util::json_stringify_str(&value));
+        last_key = Some(chunk_id);
         entries += 1;
       }
     }
@@ -165,7 +160,7 @@ where
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
-          rspack_util::json_stringify_chunk_id(last_key),
+          rspack_util::json_stringify(last_key),
           result.get(last_key).expect("cannot find last key")
         )
       } else {
@@ -182,24 +177,24 @@ where
   format!("\" + {content} + \"")
 }
 
-pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&str]) -> String {
+pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&ChunkId]) -> String {
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
-      rspack_util::json_stringify_chunk_id(chunk_ids.first().expect("should have chunk id"))
+      rspack_util::json_stringify(*chunk_ids.first().expect("should have chunk id"))
     )
   } else {
     let content = chunk_ids
       .iter()
       .sorted_unstable()
-      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify_chunk_id(chunk_id)))
+      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify(*chunk_id)))
       .join(",");
     format!("{{ {content} }}[chunkId]")
   };
   format!("if ({condition}) return {filename};")
 }
 
-fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
+fn stringify_map<T: std::fmt::Display>(map: &HashMap<&ChunkId, T>) -> String {
   format!(
     r#"{{{}}}"#,
     map
@@ -209,7 +204,7 @@ fn stringify_map<T: std::fmt::Display>(map: &HashMap<&str, T>) -> String {
         prev
           + format!(
             r#"{}: {},"#,
-            rspack_util::json_stringify_chunk_id(cur),
+            rspack_util::json_stringify(*cur),
             map.get(cur).expect("get key from map")
           )
           .as_str()
