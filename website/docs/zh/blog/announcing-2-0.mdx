@@ -354,18 +354,18 @@ export default {
 ```
 
 <span id="resolve-import"></span>
-### 支持 CSS parser 的 resolveImport 选项 @JSerFeng
+### 支持 CSS parser 的 resolveImport 选项
 
-2.0 还为 CSS parser 提供了 [`resolveImport`](/config/module#moduleparsercssautoresolveimport) 选项，用来控制是否处理 `@import` 语法。除了直接整体开启或关闭之外，你也可以通过函数按条件决定具体处理哪些 `@import` 规则。
+Rspack 2.0 在 CSS parser 上提供了 [`resolveImport`](/config/module#moduleparsercssautoresolveimport) 选项，`css`、`css/auto`、`css/module` 均可使用，用来控制构建期是否解析并内联 `@import` at-rule。当值为 `true`（默认值）时，`@import` 会被视作依赖处理，并用被导入文件的内容替换掉；设置为 `false` 时，`@import` 语句会原样保留在产物中，交由浏览器或下游工具解析。
+
+该选项也可以接收一个函数，对每条 `@import` 规则调用一次，并拿到 URL、发起导入的文件路径，以及该 at-rule 上的完整条件（`media`、`supports`、`layer`）。借此你可以按需决定哪些 import 需要内联——例如将本地样式表内联，而把远端 URL 保留为真实的 `@import` 由浏览器加载：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       'css/auto': {
-        resolveImport: ({ url }) => {
-          return url.includes('style.css');
-        },
+        resolveImport: ({ url }) => !/^https?:\/\//.test(url),
       },
     },
   },

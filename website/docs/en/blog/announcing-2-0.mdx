@@ -354,18 +354,18 @@ export default {
 ```
 
 <span id="resolve-import"></span>
-### CSS parser `resolveImport` option @JSerFeng
+### CSS parser `resolveImport` option
 
-Rspack 2.0 also adds a [`resolveImport`](/config/module#moduleparsercssautoresolveimport) option for the CSS parser, allowing you to control whether `@import` syntax should be processed. In addition to enabling or disabling it globally, you can also use a function to decide which `@import` rules should be handled.
+Rspack 2.0 exposes a [`resolveImport`](/config/module#moduleparsercssautoresolveimport) option on the CSS parser, available on `css`, `css/auto`, and `css/module`. It controls whether `@import` at-rules are resolved and inlined at build time. When set to `true` (the default), `@import` rules are processed as dependencies and replaced with the imported content; setting it to `false` preserves the `@import` statement verbatim in the output and leaves resolution to the browser or a downstream tool.
+
+The option also accepts a callback that runs on every `@import` rule and receives the URL, the path of the importing file, and the full set of at-rule conditions (`media`, `supports`, `layer`). That makes it easy to handle imports selectively — for example, inlining local stylesheets while keeping remote URLs as real `@import` statements for the browser to fetch:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       'css/auto': {
-        resolveImport: ({ url }) => {
-          return url.includes('style.css');
-        },
+        resolveImport: ({ url }) => !/^https?:\/\//.test(url),
       },
     },
   },
