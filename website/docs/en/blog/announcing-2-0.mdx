@@ -14,15 +14,17 @@ _April 28, 2026_
 
 ---
 
-It has been 1 year and 8 months since the official release of Rspack 1.0. During that time, we kept a steady rhythm of one minor release every week and one medium release every two months, continuously closing gaps in webpack features and ecosystem compatibility so that more projects could migrate to Rspack at lower cost. Around that goal, we gradually improved module capabilities, the development server, the caching system, ESM support, and many other engineering capabilities, making Rspack a bundler that stays compatible with the webpack ecosystem while delivering stronger build performance.
+It has been 1 year and 8 months since the official release of Rspack 1.0. During that time, we maintained a steady rhythm of a patch release every week and a minor release every two months, gradually aligning with many webpack features such as persistent cache, Layers, and Lazy Compilation, while also filling in a large number of hooks and Node APIs required by plugins. This made it easier for more projects to migrate to Rspack at lower cost.
+
+At the same time, we never stopped pursuing better performance. While continuously optimizing our own algorithms and data structures, we also explored and implemented optimizations such as incremental build, Lazy Barrel, and the native file system watcher, making Rspack a bundler that stays compatible with the webpack ecosystem while delivering stronger build performance.
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-Today, Rspack's weekly downloads have grown by about **48x** compared with the 1.0 release. At the same time, frameworks, tools, and platforms such as Docusaurus, Nuxt, Nx, Next.js, Storybook, Meteor, Remotion, Addfox, and Vize have adopted Rspack. This shows that Rspack has gradually grown into a bundler accepted by more developers, frameworks, and tools across the open-source ecosystem, and widely validated in real-world projects.
+Along the way, Rspack has been recognized by more and more frontend developers. Compared with the 1.0 release, Rspack's weekly downloads have grown by about **48x**. In addition, frameworks, tools, and platforms such as Docusaurus, Nuxt, Nx, Next.js, Storybook, Meteor, Remotion, Addfox, and Vize have adopted Rspack. This shows that Rspack has gradually grown into a bundler that has been widely validated across the open-source community.
 
 ![Rspack 2.0 repo stats](https://assets.rspack.rs/rspack/assets/rspack-v2-0-repo-stats.png)
 
-Community support has also kept growing. Since the release of 1.0, the Rspack repository has received **4,728 pull requests** and **1,052 issues**, with **164 contributors** participating in the project. Thanks to all community contributors. Your continuous feedback, discussion, and code contributions keep pushing Rspack forward.
+That growth has also brought Rspack a steady stream of community support. Since the release of 1.0, the Rspack repository has received **4,728 pull requests** and **1,052 issues**, with **164 contributors** participating in the project. Thanks to all community contributors. Your continuous feedback, discussion, and code contributions keep pushing Rspack forward.
 
 Rspack 2.0 is now officially available. This release mainly brings:
 
@@ -38,7 +40,6 @@ Rspack 2.0 is now officially available. This release mainly brings:
 - [Support for resolve.pnpManifest](#pnp-manifest)
 - [Module Federation runtime improvements](#mf-runtime)
 - [Module Federation shared dependency pruning](#mf-share-treeshaking)
-- [Binary import for static assets](#import-bytes)
 - [Built-in SWC loader syntax detection](#detect-syntax)
 - [Automatic target inheritance](#automatic-targets)
 - [Support for HashedModuleIdsPlugin](#hashed-module-ids-plugin)
@@ -49,15 +50,15 @@ Rspack 2.0 is now officially available. This release mainly brings:
 
 ### New projects
 
-If you are a new user, we recommend starting directly with a project based on 2.0. Note that Rspack 2.0 requires **Node.js 20.19+** or **22.12+**.
+If you are a new user, we recommend starting directly with a project based on Rspack 2.0. Note that Rspack 2.0 requires **Node.js 20.19+** or **22.12+**.
 
-If you want an out-of-the-box experience powered by Rspack by default, we recommend creating a project with Rsbuild:
+If you want an out-of-the-box experience powered by Rspack by default, we recommend creating a project with [Rsbuild](https://rsbuild.rs/):
 
 ```bash
 npm create rsbuild@latest
 ```
 
-If you prefer to use Rspack CLI directly, you can also run:
+If you prefer to use [Rspack CLI](/api/cli) directly, you can also run:
 
 ```bash
 npm create rspack@latest
@@ -67,9 +68,9 @@ Then just follow the prompts to finish setup. For more installation options, see
 
 ### Upgrading existing projects
 
-Rspack 2.0 is a major release. Along with many new features, it also removes a number of capabilities that had been deprecated for some time. We recommend starting with the [migration guide](/guide/migration/rspack_1.x), which already summarizes the main breaking changes from v1 to v2 and the corresponding migration paths.
+Along with many new features, Rspack 2.0 also removes a number of capabilities that had been deprecated for some time. We recommend starting with the [migration guide](/guide/migration/rspack_1.x), which already summarizes the main breaking changes from v1 to v2 and the corresponding migration paths.
 
-If you are using a coding agent that supports Skills, AI-assisted migration is also recommended. As described in the migration guide, after installing the `rspack-v2-upgrade` skill, the agent can combine your project configuration with the official migration rules and guide the entire upgrade flow. For projects with more configuration and more historical baggage, this can be more efficient than checking items manually one by one.
+We especially recommend using a coding agent together with our [Skills](https://github.com/rstackjs/agent-skills) to handle the migration directly. After installing `rspack-v2-upgrade` with the following command, the agent can combine your project configuration with the official migration rules and guide the entire upgrade flow. For projects with more configuration and more historical baggage, this can be more efficient than checking items manually one by one.
 
 ```bash
 npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
@@ -81,12 +82,12 @@ Rspack 2.0 is not only a milestone, but also a new starting point.
 
 In the long run, the Rspack team will gradually shift its focus from "compatibility with webpack" toward **build performance**, **bundle size**, **community conventions**, and **agent collaboration**, while combining the full Rstack toolchain to provide developers with an AI-friendly integrated JavaScript toolchain.
 
-In the short term, we will focus on the following work:
+In the short term, the team will focus on the following work:
 
-- Continue improving tree shaking and side effects analysis, and explore better module splitting strategies to further reduce bundle size
-- Continue optimizing algorithms and data structures across the build pipeline, and connect them more deeply with persistent cache to improve build speed in different scenarios
-- Continue improving the quality and stability of ESM output, and work with other teams in the community to explore better bundler support for the ESM specification
-- Continue building Rstack Skills to give developers more AI-friendly tools for improving development efficiency and reducing the cost of debugging and output analysis
+- Continue improving tree shaking and side effects analysis, and explore function-level module splitting strategies to further reduce bundle size
+- Continue optimizing algorithms and data structures across the build pipeline, and connect them with incremental build and persistent cache to improve build speed in different scenarios
+- Continue improving the quality and stability of ESM output, and work with other teams to explore better bundler support for the ESM specification
+- Continue building [Rstack Skills](https://github.com/rstackjs/agent-skills) to give developers more AI-friendly tools for improving development efficiency and reducing the cost of debugging and output analysis
 
 <span id="faq"></span>
 ## FAQ
@@ -101,12 +102,14 @@ Even so, we will still try to provide detailed transition paths, upgrade notes, 
 
 No. After 2.0, Rspack's main direction will gradually move to 2.x, but that does not mean the 1.x line will immediately stop receiving maintenance. For projects still using 1.x, we will continue to provide necessary maintenance for a fairly long period in practice, such as critical fixes or migration-period support.
 
-In the long run, however, new capabilities and major optimizations will primarily move forward on 2.x, so if your project is still on 1.x, we still recommend planning the upgrade sooner rather than later.
+In the long run, however, new capabilities and major optimizations will primarily move forward on 2.x, so if your project is still on 1.x, we recommend planning the upgrade sooner rather than later.
 
 <span id="rsc-support"></span>
 ## Built-in React Server Components support @SyMind
 
-Rspack 2.0 provides built-in [React Server Components](/guide/tech/rsc) support. It no longer relies entirely on upper-layer frameworks to assemble the workflow externally. Instead, it provides RSC-oriented plugins and compilation support directly in core. Through the `ServerPlugin` and `ClientPlugin` generated by [`rsc.createPlugins()`](/guide/tech/rsc#configure-plugins), Rspack can coordinate both the Server Compiler and Client Compiler pipelines, automatically collect directives such as `"use client"`, `"use server"`, and `"use server-entry"`, generate the manifests required by the RSC runtime, and expose update signals through [`onServerComponentChanges`](/guide/tech/rsc#development-server) when server components change.
+In Rspack 2.0, [React Server Components](/guide/tech/rsc) gain plugin and compilation support directly in core, rather than relying entirely on upper-layer frameworks to assemble the workflow externally.
+
+Through the `ServerPlugin` and `ClientPlugin` generated by [`rsc.createPlugins()`](/guide/tech/rsc#configure-plugins), Rspack can coordinate both the Server Compiler and Client Compiler pipelines, automatically collect directives such as `"use client"`, `"use server"`, and `"use server-entry"`, generate the manifests required by the RSC runtime, and expose update signals through [`onServerComponentChanges`](/guide/tech/rsc#development-server) when server components change.
 
 At the same time, `builtin:swc-loader` has been enhanced to recognize and transform these RSC directives, allowing React 19-era RSC, Server Actions, client references, and server references to work together within a single build system.
 
@@ -137,14 +140,14 @@ export default [
 
 ![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
 
-The Rspack team has always cared deeply about performance. In the 1.x series, we implemented capabilities such as persistent cache, incremental build, the native file system watcher, lazy compilation, and barrel file optimization, all of which brought clear performance gains in different scenarios compared with 1.0. In 2.0, we further optimized internal data structures and algorithms, bringing about another 10% improvement on top of that.
+In Rspack 2.0, we removed some deprecated features and code, upgraded several outdated dependencies, and used that opportunity to further optimize internal algorithms and data structures, bringing about another 10% performance improvement.
 
 <span id="portable-cache"></span>
 ### Portable cache @jerrykingxyz
 
-For caching scenarios, we introduced Portable Cache, allowing cache entries to be reused across different machines, different paths, and even different environments. This makes it more suitable for team collaboration, remote caching, and possible distributed build scenarios in the future.
+In Rspack 1.2, we introduced [persistent cache](/config/cache#persistent-cache), but that cache could not be reused across different machines, different paths, or different environments. That made it difficult to use cache data to reduce build time in scenarios such as team collaboration and remote builds.
 
-You can enable it in Rspack 2.0 through [`cache.portable`](/config/cache#cacheportable):
+For that reason, in Rspack 2.0 we introduced Portable Cache. You can use [`cache.portable`](/config/cache#cacheportable) to generate and consume cache data that can be copied across environments:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -171,7 +174,7 @@ export default {
 <span id="pure-esm"></span>
 ### Pure ESM packages @chenjiahan
 
-Rspack 2.0 also makes its own package distribution more aligned with the ESM standard. Packages such as `@rspack/core`, `@rspack/cli`, `@rspack/dev-server`, and `@rspack/plugin-react-refresh` are now officially published as [pure ESM](/guide/migration/rspack_1.x#pure-esm-packages), with CommonJS builds removed. This keeps Rspack aligned with the modern Node.js / ESM ecosystem and makes module loading and toolchain integration more consistent.
+To make Rspack's package format better aligned with the modern Node.js / ESM ecosystem, packages such as `@rspack/core`, `@rspack/cli`, `@rspack/dev-server`, and `@rspack/plugin-react-refresh` are now officially published as [pure ESM](/guide/migration/rspack_1.x#pure-esm-packages), and the CommonJS builds have been removed as well. This makes module loading and toolchain integration more consistent.
 
 As a result, you need to upgrade Node.js to 20.19+ or 22.12+, which natively support `require(esm)`.
 
@@ -330,18 +333,6 @@ export default {
 ```
 
 ## Other feature updates
-
-<span id="import-bytes"></span>
-### Binary import for static assets @LingyuCoder
-
-Rspack 2.0 also supports importing static assets directly as binary content. This allows you to load a resource as a `Uint8Array` and then process it at runtime together with APIs such as `TextDecoder`.
-
-```js title="app.js"
-import fileBytes from './file.bin' with { type: 'bytes' };
-
-const decoder = new TextDecoder('utf-8');
-const text = decoder.decode(fileBytes);
-```
 
 <span id="detect-syntax"></span>
 ### Built-in SWC loader syntax detection @chenjiahan

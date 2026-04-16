@@ -14,15 +14,17 @@ _2026 年 4 月 28 日_
 
 ---
 
-距离 Rspack 1.0 正式发布已经过去了 1 年 8 个月。在这期间，我们保持着每周发布一个小版本、每两个月发布一个中版本的节奏，持续补齐 webpack 的功能和生态兼容性，让更多项目能够以更低成本迁移到 Rspack。围绕这一目标，我们逐步完善了模块能力、开发服务器、缓存体系、ESM 支持以及更多工程化能力，使 Rspack 成为一个既兼容 webpack 生态、又具备更高构建性能的打包方案。
+距离 Rspack 1.0 正式发布已经过去了 1 年 8 个月。在这期间，我们保持着每周发布一个小版本、每两个月发布一个中版本的节奏，逐步对齐了 webpack 如持久化缓存、Layers、Lazy Compilation 等等诸多特性，并补齐了大量插件所需的钩子和 Node API，让更多项目能够以更低成本迁移到 Rspack。
+
+同时我们也没有放下对极致性能的追求，在不断优化自身算法和数据结构的同时，也探索并实现了如增量构建、Lazy Barrel、原生文件系统监听器等优化，使 Rspack 成为一个既兼容 webpack 生态、又具备更高构建性能的打包方案。
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-如今，Rspack 的周下载量相较于 1.0 发布时增长了约 **48 倍**。与此同时，Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台也已接入 Rspack。这说明 Rspack 已逐步成长为一个在开源社区中被更多开发者、框架和工具接受，并在真实项目中得到广泛验证的 bundler 方案。
+在这个过程中，Rspack 逐渐被越来越多的前端开发者认可。相较于 1.0 发布时，Rspack 的周下载量增长了约 **48 倍**。并且 Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台也已接入 Rspack。这说明 Rspack 已逐步成长为一个在开源社区中得到广泛验证的 bundler 方案。
 
 ![Rspack 2.0 repo stats](https://assets.rspack.rs/rspack/assets/rspack-v2-0-repo-stats.png)
 
-与此同时，来自社区的支持也持续不断。自 1.0 发布以来，Rspack 仓库累计收到了 **4,728 个 PR** 和 **1,052 个 Issue**，共有 **164 位贡献者**参与共建。感谢所有社区贡献者，正是你们持续的反馈、讨论和代码贡献，推动着 Rspack 不断前进。
+也正是如此，Rspack 收到来自社区源源不断的支持。自 1.0 发布以来，Rspack 仓库累计收到了 **4,728 个 PR** 和 **1,052 个 Issue**，共有 **164 位贡献者**参与共建。感谢所有社区贡献者，正是你们持续的反馈、讨论和代码贡献，推动着 Rspack 不断前进。
 
 如今，Rspack 2.0 已正式发布。本次版本主要带来了：
 
@@ -38,7 +40,6 @@ _2026 年 4 月 28 日_
 - [支持 resolve.pnpManifest](#pnp-manifest)
 - [模块联邦运行时改进](#mf-runtime)
 - [模块联邦共享依赖裁剪](#mf-share-treeshaking)
-- [静态资源二进制导入](#import-bytes)
 - [内置 SWC loader 自动检测语法](#detect-syntax)
 - [自动继承 targets](#automatic-targets)
 - [支持 HashedModuleIdsPlugin](#hashed-module-ids-plugin)
@@ -49,15 +50,15 @@ _2026 年 4 月 28 日_
 
 ### 新用户安装
 
-如果你是新用户，推荐直接创建一个基于 2.0 的项目开始体验。需要注意的是，Rspack 2.0 要求 **Node.js 20.19+** 或 **22.12+**。
+如果你是新用户，推荐直接创建一个基于 Rspack 2.0 的项目开始体验。需要注意的是，Rspack 2.0 要求 **Node.js 20.19+** 或 **22.12+**。
 
-如果你希望获得一套开箱即用、默认由 Rspack 驱动的构建体验，我们推荐直接使用 Rsbuild 创建项目：
+如果你希望获得一套开箱即用、默认由 Rspack 驱动的构建体验，我们推荐直接使用 [Rsbuild](https://rsbuild.rs/) 创建项目：
 
 ```bash
 npm create rsbuild@latest
 ```
 
-如果你更希望直接使用 Rspack CLI，也可以执行：
+如果你更希望直接使用 [Rspack CLI](/api/cli)，也可以执行：
 
 ```bash
 npm create rspack@latest
@@ -67,9 +68,9 @@ npm create rspack@latest
 
 ### 老用户升级
 
-Rspack 2.0 是一个大版本。在带来不少新特性的同时，它也移除了诸多历史上已废弃的功能。因此，建议先参考 [迁移指南](/guide/migration/rspack_1.x)，其中已经整理了从 v1 到 v2 的主要不兼容变更和对应的迁移方式。
+Rspack 2.0 在带来不少新特性的同时，它也移除了诸多历史上已废弃的功能。因此，建议先参考 [迁移指南](/guide/migration/rspack_1.x)，其中已经整理了从 v1 到 v2 的主要不兼容变更和对应的迁移方式。
 
-如果你在使用支持 Skills 的 Coding Agent，也推荐直接借助 AI 辅助迁移。按照迁移文档里的 Agent Skills 说明，安装 `rspack-v2-upgrade` 技能后，就可以让 Agent 结合你的项目配置和官方迁移规则完成升级流程。对于配置项较多、历史包袱较重的项目，这会比手工逐项排查更高效。
+当然我们更推荐直接借助 Coding Agent 和我们的 [Skills](https://github.com/rstackjs/agent-skills) 来完成迁移。按照如下命令安装 `rspack-v2-upgrade` 后，就可以让 Agent 结合你的项目配置和官方迁移规则完成升级流程。对于配置项较多、历史包袱较重的项目，这会比手工逐项排查更高效。
 
 ```
 npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
@@ -79,14 +80,14 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 Rspack 2.0 不仅是一个里程碑，也意味着一个新的起点。
 
-长期来看，Rspack 团队会将工作重心从“兼容 webpack”逐步转向**构建性能**、**产物体积**、**社区规范**、**Agent 协同**等方向，并结合 Rstack 生态中的一整套开发工具，为开发者提供“AI 友好的一体化 JavaScript 工具链”。
+长期来看，Rspack 团队会将工作重心从“兼容 webpack”逐步转向**构建性能**、**产物体积**、**社区规范**、**Agent 协同**等方向，结合 Rstack 生态中的一整套开发工具，为开发者提供“AI 友好的一体化 JavaScript 工具链”。
 
-短期来看，我们将着眼于如下工作：
+而在短期来看，团队将着眼于如下工作：
 
-- 持续改进 tree shaking 和 side effects 分析能力，并探索更合适的模块切分方案，以进一步降低产物体积
-- 持续优化构建链路上各个环节的算法和数据结构，并将它们接入到持久化缓存当中，以提升各种场景下的构建速度
-- 持续增强 ESM 产物的质量和稳定性，并与社区中的其他技术团队共同探讨 bundler 对 ESM 规范更好的支持方式
-- 持续建设 Rstack Skills，为开发者提供更多 AI 友好的工具来提升开发效率，降低问题排查、产物分析的成本
+- 持续改进 tree shaking 和 side effects 分析能力，并探索函数级的模块切分方案，以进一步降低产物体积
+- 持续优化构建链路上各个环节的算法和数据结构，并将它们接入到增量构建和持久化缓存当中，以提升各种场景下的构建速度
+- 持续增强 ESM 产物的质量和稳定性，并与社区中的其他团队共同探讨 bundler 对 ESM 规范更好的支持方式
+- 持续建设 [Rstack Skills](https://github.com/rstackjs/agent-skills)，为开发者提供更多 AI 友好的工具来提升开发效率，降低问题排查、产物分析的成本
 
 <span id="faq"></span>
 ## 常见问题
@@ -101,12 +102,14 @@ Rspack 2.0 不仅是一个里程碑，也意味着一个新的起点。
 
 不会。2.0 发布后，Rspack 的主要演进方向会逐步转向 2.x，但这并不意味着 1.x 会在发布后立刻完全停止维护。对于仍在使用 1.x 的项目，我们会根据实际情况在一个较长的时间段内提供必要维护，例如关键问题修复或迁移期支持。
 
-但从长期来看，新增能力和主要优化都会优先在 2.x 上推进，因此如果你的项目还停留在 1.x，我们仍然建议尽早规划升级。
+但从长期来看，新增能力和主要优化都会优先在 2.x 上推进，因此如果你的项目还停留在 1.x，我们建议尽早规划升级。
 
 <span id="rsc-support"></span>
 ## 内置 React Server Components 支持 @SyMind
 
-Rspack 2.0 提供了内置的 [React Server Components](/guide/tech/rsc) 支持。它不再完全依赖上层框架做额外拼装，而是在核心中直接提供了面向 RSC 的插件与编译支持。通过 [`rsc.createPlugins()`](/guide/tech/rsc#配置插件) 生成的 `ServerPlugin` 与 `ClientPlugin`，Rspack 可以协调 Server Compiler 和 Client Compiler 两套构建流程，自动收集 `"use client"`、`"use server"`、`"use server-entry"` 等指令信息，生成 RSC 运行时所需的 manifest，并在服务端组件变更时通过 [`onServerComponentChanges`](/guide/tech/rsc#开发服务器) 暴露更新信号。
+在 Rspack 2.0 中，[React Server Components](/guide/tech/rsc) 将在核心中直接提供了面向 RSC 的插件与编译支持，而不再完全依赖上层框架做额外拼装。
+
+通过 [`rsc.createPlugins()`](/guide/tech/rsc#配置插件) 生成的 `ServerPlugin` 与 `ClientPlugin`，Rspack 可以协调 Server Compiler 和 Client Compiler 两套构建流程，自动收集 `"use client"`、`"use server"`、`"use server-entry"` 等指令信息，生成 RSC 运行时所需的 manifest，并在服务端组件变更时通过 [`onServerComponentChanges`](/guide/tech/rsc#开发服务器) 暴露更新信号。
 
 与此同时，`builtin:swc-loader` 也被增强为可以识别并转换这些 RSC 指令，使 React 19 时代的 RSC、Server Actions、客户端引用和服务端引用能够在同一套构建体系里协同工作。
 
@@ -137,14 +140,14 @@ export default [
 
 ![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
 
-Rspack 团队一直非常重视性能。在 1.x 版本中，我们实现了持久化缓存、增量构建、原生文件系统监听器、lazy compilation、barrel 文件优化等一系列能力，使各种场景下的构建性能相较于 1.0 版本都有明显提升。而在 2.0 中，我们又进一步优化了内部数据结构和算法，在此前基础上继续带来约 10% 的性能收益。
+在 Rspack 2.0 中，我们移除了部分废弃的功能和代码，升级了部分老旧的依赖，也因此有机会进一步优化内部的算法和数据结构，带来了约 10% 的性能收益。
 
 <span id="portable-cache"></span>
 ### 可移植缓存 @jerrykingxyz
 
-在缓存场景下，我们引入了 Portable Cache，使缓存能够在不同机器、不同路径甚至不同环境之间复用，从而更适合团队协作、远程缓存以及后续可能的分布式构建场景。
+在 Rspack 1.2 中我们实现了[持久化缓存](/config/cache#persistent-cache)，但这份缓存无法在不同机器、不同路径、不同环境之间复用，这使得团队协作、远程构建等场景难以使用缓存来降低构建的耗时。
 
-你可以在 Rspack 2.0 中通过 [`cache.portable`](/config/cache#cacheportable) 开启它：
+因此，在 Rspack 2.0 中，我们引入了可移植缓存（Portable Cache），你可以通过 [`cache.portable`](/config/cache#cacheportable) 来生成/使用一份可以拷贝的缓存数据：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -171,7 +174,7 @@ export default {
 <span id="pure-esm"></span>
 ### 纯 ESM 包 @chenjiahan
 
-Rspack 2.0 也让自身包的分发形态更加符合 ESM 规范。`@rspack/core`、`@rspack/cli`、`@rspack/dev-server` 和 `@rspack/plugin-react-refresh` 等包被正式切换为 [Pure ESM](/guide/migration/rspack_1.x#pure-esm-包) 发布，并移除了 CommonJS 构建产物。这使 Rspack 的包形态与现代 Node.js / ESM 生态保持一致，也让模块加载和工具链集成方式更加统一。
+为了让 Rspack 包形态更符合现代 Node.js / ESM 生态，`@rspack/core`、`@rspack/cli`、`@rspack/dev-server` 和 `@rspack/plugin-react-refresh` 等包被正式切换为 [Pure ESM](/guide/migration/rspack_1.x#pure-esm-包) 发布，CommonJS 的构建产物也被同步移除。这让模块加载和工具链集成方式更加统一。
 
 因此，你需要将 Node.js 升级到原生支持 `require(esm)` 的 20.19+ 或 22.12+ 版本。
 
@@ -330,18 +333,6 @@ export default {
 ```
 
 ## 其他特性更新
-
-<span id="import-bytes"></span>
-### 静态资源二进制导入 @LingyuCoder
-
-Rspack 2.0 还支持将静态资源直接作为二进制内容导入。这样你可以把资源以 `Uint8Array` 的形式读入，再配合 `TextDecoder` 等 API 在运行时进行处理。
-
-```js title="app.js"
-import fileBytes from './file.bin' with { type: 'bytes' };
-
-const decoder = new TextDecoder('utf-8');
-const text = decoder.decode(fileBytes);
-```
 
 <span id="detect-syntax"></span>
 ### 内置 SWC loader 自动检测语法 @chenjiahan
