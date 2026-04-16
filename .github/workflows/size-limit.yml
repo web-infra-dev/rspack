@@ -20,6 +20,10 @@ jobs:
           name: bindings-x86_64-unknown-linux-gnu
           path: crates/node_binding/
 
+      # ci profile builds with strip=false, strip here for accurate size comparison
+      - name: Strip binary
+        run: strip crates/node_binding/rspack.linux-x64-gnu.node
+
       - name: Binary Size-limit
         uses: ./.github/actions/binary-limit
         with:
