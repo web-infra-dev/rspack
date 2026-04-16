@@ -387,6 +387,10 @@ impl ExternalModule {
               InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
             )
+            .with_top_level_decl_symbols(vec![
+              "__rspack_createRequire".into(),
+              "__rspack_createRequire_require".into(),
+            ])
             .boxed(),
           );
           let (request, specifiers) = if let Some(request) = request {
