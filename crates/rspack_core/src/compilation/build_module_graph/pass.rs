@@ -43,7 +43,7 @@ impl PassExt for BuildModuleGraphPhasePass {
   ) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
     let logger = compilation.get_logger("rspack.Compiler");
-
+    // align with webpack, make hook include build_module_graph phase in webpack
     let start = logger.time("make hook");
     make_hook_pass(compilation, plugin_driver.clone()).await?;
     build_module_graph_pass(compilation).await?;
