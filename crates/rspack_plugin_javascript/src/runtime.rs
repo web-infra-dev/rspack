@@ -441,12 +441,12 @@ mod tests {
   use super::stringify_chunks_to_array;
 
   #[test]
-  fn stringify_chunks_to_array_keeps_numeric_ids_unquoted() {
+  fn stringify_chunks_to_array_keeps_numeric_ids_quoted() {
     let chunks = ChunkIdSet::from_iter([
       rspack_core::chunk_graph_chunk::ChunkId::from("681"),
       rspack_core::chunk_graph_chunk::ChunkId::from("main"),
     ]);
 
-    assert_eq!(stringify_chunks_to_array(&chunks), "[681,\"main\"]");
+    assert_eq!(stringify_chunks_to_array(&chunks), "[\"681\",\"main\"]");
   }
 }

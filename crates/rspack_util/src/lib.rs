@@ -83,20 +83,13 @@ pub fn json_stringify_str(s: &str) -> String {
 
 /// Stringify a chunk ID for JavaScript output.
 ///
-/// If the string is a valid non-negative integer within `u32::MAX`
-/// (no leading zeros except "0"), it is rendered as a number literal (e.g. `903`).
-/// Otherwise, it is rendered as a JSON string (e.g. `"main"`). This matches
-/// webpack's behavior where numeric chunk IDs are emitted without quotes.
+/// Chunk IDs in JavaScript runtime code should stay as JSON strings, e.g. `"903"`.
 #[inline]
 pub fn json_stringify_chunk_id(s: &str) -> String {
-  if numeric_id_value(s).is_some() {
-    s.to_string()
-  } else {
-    json_stringify_str(s)
-  }
+  json_stringify_str(s)
 }
 
-/// Stringify an array of chunk IDs for JavaScript output, e.g. `[903, "main"]`.
+/// Stringify an array of chunk IDs for JavaScript output, e.g. `["903", "main"]`.
 pub fn json_stringify_chunk_ids<S: AsRef<str>>(ids: &[S]) -> String {
   let mut result = String::from("[");
   for (i, id) in ids.iter().enumerate() {
@@ -166,23 +159,21 @@ mod tests {
   #[test]
   fn json_stringify_chunk_id_preserves_numeric_and_string_forms() {
     assert_eq!(json_stringify_chunk_id(""), "\"\"");
-    assert_eq!(json_stringify_chunk_id("0"), "0");
-    assert_eq!(json_stringify_chunk_id("903"), "903");
+    assert_eq!(json_stringify_chunk_id("0"), "\"0\"");
+    assert_eq!(json_stringify_chunk_id("903"), "\"903\"");
     assert_eq!(json_stringify_chunk_id("01"), "\"01\"");
     assert_eq!(json_stringify_chunk_id("1a"), "\"1a\"");
     assert_eq!(json_stringify_chunk_id("main"), "\"main\"");
-    assert_eq!(json_stringify_chunk_id("4294967295"), "4294967295");
-    // Exceeds u32::MAX → falls back to string
     assert_eq!(json_stringify_chunk_id("4294967296"), "\"4294967296\"");
   }
 
   #[test]
   fn json_stringify_chunk_ids_renders_array() {
     assert_eq!(json_stringify_chunk_ids::<&str>(&[]), "[]");
-    assert_eq!(json_stringify_chunk_ids(&["903"]), "[903]");
+    assert_eq!(json_stringify_chunk_ids(&["903"]), "[\"903\"]");
     assert_eq!(
       json_stringify_chunk_ids(&["903", "main", "17"]),
-      "[903,\"main\",17]"
+      "[\"903\",\"main\",\"17\"]"
     );
   }
 }

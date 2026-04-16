@@ -9,7 +9,7 @@
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
 - Update: 1e1.LAST_HASH.hot-update.js, size: 269
-- Update: main.LAST_HASH.hot-update.js, size: 583
+- Update: main.LAST_HASH.hot-update.js, size: 585
 
 ## Manifest
 
@@ -67,7 +67,7 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
-/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() | 10 */ 10).then(__webpack_require__.bind(__webpack_require__, "./chunk2.js")));
+/* export default */ const __rspack_default_export = (() => __webpack_require__.e(/* import() | 10 */ "10").then(__webpack_require__.bind(__webpack_require__, "./chunk2.js")));
 
 
 },

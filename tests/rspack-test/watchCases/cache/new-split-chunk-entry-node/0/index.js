@@ -20,9 +20,9 @@ it("should include the correct split chunk ids in entry", async () => {
 			const expected = expectedIds.includes(id);
 			const idStr = String(id);
 			const isNumeric = /^\d+$/.test(idStr);
-			// Match chunk ID in arrays like [681,834] or in .e(681) calls
+			// Match chunk ID in arrays like ["681","834"] or in .e("681") calls
 			const idPattern = isNumeric
-				? new RegExp(`(?:[\\[,]${idStr}[\\],]|\\b\\.e\\(${idStr}\\))`)
+				? new RegExp(`(?:[\\[,]"${idStr}"[\\],]|\\b\\.e\\("${idStr}"\\))`)
 				: new RegExp(`[\\[,]"${idStr}"[\\],]`);
 			(expected ? expect(entryCode) : expect(entryCode).not).toMatch(idPattern);
 		}
