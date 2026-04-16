@@ -1,5 +1,3 @@
-use std::panic;
-
 use rkyv::{
   Archive, Archived, Deserialize, Place, Resolver, Serialize,
   rancor::Fallible,
@@ -27,17 +25,17 @@ pub struct CacheableReplacement {
 
 #[cacheable(crate=crate)]
 pub enum CacheableSource {
-  RawBufferSource {
+  RawBuffer {
     buffer: Vec<u8>,
   },
-  RawStringSource {
+  RawString {
     value: String,
   },
-  OriginalSource {
+  Original {
     value: String,
     name: String,
   },
-  SourceMapSource {
+  SourceMap {
     value: String,
     name: String,
     source_map: String,
@@ -45,16 +43,16 @@ pub enum CacheableSource {
     inner_source_map: Option<String>,
     remove_original_source: bool,
   },
-  ConcatSource {
+  Concat {
     #[cacheable(omit_bounds)]
     children: Vec<CacheableSource>,
   },
-  ReplaceSource {
+  Replace {
     #[cacheable(omit_bounds)]
     inner: Box<CacheableSource>,
     replacements: Vec<CacheableReplacement>,
   },
-  CachedSource {
+  Cached {
     #[cacheable(omit_bounds)]
     inner: Box<CacheableSource>,
   },
@@ -78,32 +76,32 @@ impl ArchiveWith<BoxSource> for AsPreset {
 
 fn to_cacheable(source: &dyn Source) -> CacheableSource {
   if let Some(s) = source.as_any().downcast_ref::<CachedSource>() {
-    return CacheableSource::CachedSource {
+    return CacheableSource::Cached {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
     };
   }
 
   if let Some(s) = source.as_any().downcast_ref::<OriginalSource>() {
-    return CacheableSource::OriginalSource {
+    return CacheableSource::Original {
       value: s.value().to_string(),
       name: s.name().to_string(),
     };
   }
 
   if let Some(s) = source.as_any().downcast_ref::<RawStringSource>() {
-    return CacheableSource::RawStringSource {
+    return CacheableSource::RawString {
       value: s.source().into_string_lossy().into_owned(),
     };
   }
 
   if let Some(s) = source.as_any().downcast_ref::<RawBufferSource>() {
-    return CacheableSource::RawBufferSource {
+    return CacheableSource::RawBuffer {
       buffer: s.buffer().into_owned(),
     };
   }
 
   if let Some(s) = source.as_any().downcast_ref::<SourceMapSource>() {
-    return CacheableSource::SourceMapSource {
+    return CacheableSource::SourceMap {
       value: s.value().to_string(),
       name: s.name().to_string(),
       source_map: s.source_map().to_json(),
@@ -114,7 +112,7 @@ fn to_cacheable(source: &dyn Source) -> CacheableSource {
   }
 
   if let Some(s) = source.as_any().downcast_ref::<ConcatSource>() {
-    return CacheableSource::ConcatSource {
+    return CacheableSource::Concat {
       children: s
         .children()
         .iter()
@@ -139,7 +137,7 @@ fn to_cacheable(source: &dyn Source) -> CacheableSource {
         },
       })
       .collect();
-    return CacheableSource::ReplaceSource {
+    return CacheableSource::Replace {
       inner: Box::new(to_cacheable(s.inner().as_ref())),
       replacements,
     };
@@ -178,10 +176,10 @@ where
 
 fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
   match cacheable {
-    CacheableSource::RawBufferSource { buffer } => RawBufferSource::from(buffer).boxed(),
-    CacheableSource::RawStringSource { value } => RawStringSource::from(value).boxed(),
-    CacheableSource::OriginalSource { value, name } => OriginalSource::new(value, name).boxed(),
-    CacheableSource::SourceMapSource {
+    CacheableSource::RawBuffer { buffer } => RawBufferSource::from(buffer).boxed(),
+    CacheableSource::RawString { value } => RawStringSource::from(value).boxed(),
+    CacheableSource::Original { value, name } => OriginalSource::new(value, name).boxed(),
+    CacheableSource::SourceMap {
       value,
       name,
       source_map,
@@ -189,7 +187,7 @@ fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       inner_source_map,
       remove_original_source,
     } => {
-      let source_map = SourceMap::from_json(&source_map).expect("invalid cached source map JSON");
+      let source_map = SourceMap::from_json(&source_map).expect("invalid source map JSON");
       let inner_source_map = inner_source_map.and_then(|json| SourceMap::from_json(&json).ok());
       SourceMapSource::new(SourceMapSourceOptions {
         value,
@@ -201,11 +199,11 @@ fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       })
       .boxed()
     }
-    CacheableSource::ConcatSource { children } => {
+    CacheableSource::Concat { children } => {
       let children: Vec<BoxSource> = children.into_iter().map(from_cacheable).collect();
       ConcatSource::new(children).boxed()
     }
-    CacheableSource::ReplaceSource {
+    CacheableSource::Replace {
       inner,
       replacements,
     } => {
@@ -222,6 +220,6 @@ fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       }
       source.boxed()
     }
-    CacheableSource::CachedSource { inner } => CachedSource::new(from_cacheable(*inner)).boxed(),
+    CacheableSource::Cached { inner } => CachedSource::new(from_cacheable(*inner)).boxed(),
   }
 }
