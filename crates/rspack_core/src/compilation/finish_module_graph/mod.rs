@@ -4,16 +4,10 @@ use rspack_error::Result;
 use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
 
-use crate::{
-  Compilation, compilation::build_module_graph::finish_build_module_graph, logger::Logger,
-};
+use crate::{Compilation, compilation::build_module_graph::finish_build_module_graph};
 
 pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compiler");
-  let start = logger.time("finish compilation");
   finish_build_module_graph_pass(compilation).await?;
-
-  logger.time_end(start);
 
   Ok(())
 }

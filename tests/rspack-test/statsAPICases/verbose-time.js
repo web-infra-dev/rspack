@@ -44,8 +44,8 @@ module.exports = {
 			<t> after seal: X ms
 
 			LOG from rspack.Compiler
-			<t> make hook: X ms
 			<t> build module graph: X ms
+			<t> make hook: X ms
 			<t> finish make hook: X ms
 			<t> finish compilation: X ms
 			<t> seal compilation: X ms
