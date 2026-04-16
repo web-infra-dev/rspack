@@ -14,14 +14,15 @@ use swc_core::{
   ecma::{
     ast::{
       ArrowExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr, ExprOrSpread,
-      Function, ImportSpecifier, MemberProp, ModuleDecl, ModuleItem, Pat, Program, PropName, Stmt,
-      UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr,
+      Function, ImportSpecifier, ModuleDecl, ModuleItem, Pat, Program, PropName, Stmt, VarDecl,
+      VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
   },
 };
 
+use super::pure_globals::{ArgGate, CalleePosition, are_args_trivially_safe, classify_pure_global};
 use crate::{
   ClassExt, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -930,40 +931,22 @@ fn is_pure_call_expr(
   }
 
   // Fast path: known pure global calls — `Boolean(x)`, `Array.isArray(x)`,
-  // `Object.is(a, b)`, `String('x')`, `Symbol()`, etc. The callee must resolve
-  // to an unresolved global (so a local `const Object = …` doesn't trigger
-  // this).
-  if let Some(callee_expr) = call_expr.callee.as_expr() {
-    let callee_ref = callee_expr.as_ref();
-
-    // Pure regardless of arg values (still need to check args for nested
-    // side-effects via `is_pure_call_args`).
-    let pure_with_any_args = match callee_ref {
-      Expr::Ident(ident) => {
-        ident.ctxt == unresolved_ctxt && is_pure_call_global_any_args(ident.sym.as_str())
-      }
-      other => is_pure_member_call(other, unresolved_ctxt),
-    };
-    if pure_with_any_args {
-      return is_pure_call_args(
+  // `Object.is(a, b)`, `String('x')`, `Symbol()`, etc.
+  if let Some(callee_expr) = call_expr.callee.as_expr()
+    && let Some(gate) =
+      classify_pure_global(callee_expr.as_ref(), unresolved_ctxt, CalleePosition::Call)
+  {
+    return match gate {
+      ArgGate::AnyPureArgs => is_pure_call_args(
         parser,
         analyze_side_effects_free,
         call_expr,
         unresolved_ctxt,
         comments,
         callees,
-      );
-    }
-
-    // Pure only when args are trivially safe (cannot coerce via
-    // `valueOf`/`toString` or trigger an iterator).
-    if let Expr::Ident(ident) = callee_ref
-      && ident.ctxt == unresolved_ctxt
-      && is_pure_call_global_safe_args(ident.sym.as_str())
-      && are_args_trivially_safe(&call_expr.args, unresolved_ctxt)
-    {
-      return true;
-    }
+      ),
+      ArgGate::TriviallySafeArgs => are_args_trivially_safe(&call_expr.args, unresolved_ctxt),
+    };
   }
 
   !expr.may_have_side_effects(ExprCtx {
@@ -1098,21 +1081,23 @@ fn is_pure_new_expr(
   }
 
   // Fast path: known pure global constructors (`new Set()`, `new Map()`,
-  // `new WeakMap()`, TypedArrays, etc.). SWC's `is_pure_new_callee` only
-  // recognizes empty functions and pure class expressions, so without this
-  // fast path `let m = new Map()` is kept even when unused.
-  //
-  // We require all arguments to be *trivially safe* (literals or
-  // `undefined`/`NaN`/`Infinity`) — this prevents user code from running via
-  // iterator protocols (`new Set([proxyArr])`), `valueOf`/`toString`
-  // coercion (`new String(obj)`), or numeric coercion in TypedArray length
-  // (`new Uint8Array(obj)`).
-  if let Expr::Ident(ident) = new_expr.callee.as_ref()
-    && ident.ctxt == unresolved_ctxt
-    && is_pure_new_global(ident.sym.as_str())
-    && are_args_trivially_safe(new_expr.args.as_deref().unwrap_or(&[]), unresolved_ctxt)
-  {
-    return true;
+  // `new WeakMap()`, TypedArrays, etc.).
+  if let Some(gate) = classify_pure_global(
+    new_expr.callee.as_ref(),
+    unresolved_ctxt,
+    CalleePosition::New,
+  ) {
+    let args = new_expr.args.as_deref().unwrap_or(&[]);
+    return match gate {
+      ArgGate::AnyPureArgs => are_pure_args(
+        parser,
+        analyze_side_effects_free,
+        args,
+        unresolved_ctxt,
+        comments,
+      ),
+      ArgGate::TriviallySafeArgs => are_args_trivially_safe(args, unresolved_ctxt),
+    };
   }
 
   !expr.may_have_side_effects(ExprCtx {
@@ -1121,107 +1106,6 @@ fn is_pure_new_expr(
     is_unresolved_ref_safe: false,
     remaining_depth: 4,
   })
-}
-
-/// Constructors whose only observable effects come from coercing/iterating
-/// their arguments. Combined with `are_args_trivially_safe`, calls of the
-/// form `new Set()`, `new Map()`, `new Uint8Array(16)` are side-effect-free.
-fn is_pure_new_global(name: &str) -> bool {
-  matches!(
-    name,
-    // Collections (no args, or null/undefined → nothing to iterate)
-    "Set" | "Map" | "WeakSet" | "WeakMap"
-    // Primitive wrappers and basic builtins
-    | "Object" | "Array" | "Date"
-    | "String" | "Number" | "Boolean"
-    // Array-backed buffers / TypedArrays (numeric-literal length is safe)
-    | "ArrayBuffer" | "SharedArrayBuffer"
-    | "Uint8Array" | "Int8Array" | "Uint8ClampedArray"
-    | "Uint16Array" | "Int16Array"
-    | "Uint32Array" | "Int32Array"
-    | "Float32Array" | "Float64Array"
-    | "BigInt64Array" | "BigUint64Array"
-  )
-}
-
-/// Direct calls that are pure regardless of argument values, because they
-/// do not coerce or invoke user code on their args. `Boolean(x)` only checks
-/// truthiness and never calls `valueOf`/`toString`.
-fn is_pure_call_global_any_args(name: &str) -> bool {
-  matches!(name, "Boolean")
-}
-
-/// Direct calls that are pure only when all arguments are trivially safe
-/// (so coercion via `@@toPrimitive`/`valueOf`/`toString` cannot trigger
-/// user code). With non-literal args these may invoke user code.
-fn is_pure_call_global_safe_args(name: &str) -> bool {
-  matches!(
-    name,
-    "Array" | "Object" | "String" | "Number" | "Symbol" | "Date"
-  )
-}
-
-/// Member-expression callees that are pure regardless of argument values.
-/// We deliberately keep this list minimal — only methods that perform pure
-/// type/identity checks and never read properties (no Proxy traps), iterate
-/// (no `Symbol.iterator`), coerce (no `valueOf`/`toString`), or mutate.
-///
-/// Notably excluded:
-/// * `Object.assign`, `Object.freeze`, `Object.create`, `Object.fromEntries`
-///   — mutate or invoke user code via getters/iterators.
-/// * `Object.keys`/`values`/`entries` — Proxy `ownKeys`/`get` traps.
-/// * `Array.from` — invokes iterator protocol and optional mapper fn.
-fn is_pure_member_call(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  let Expr::Member(member) = expr else {
-    return false;
-  };
-  let MemberProp::Ident(prop) = &member.prop else {
-    return false;
-  };
-  let Expr::Ident(obj) = member.obj.as_ref() else {
-    return false;
-  };
-  if obj.ctxt != unresolved_ctxt {
-    return false;
-  }
-  match obj.sym.as_str() {
-    // Identity / type-check helpers — no coercion, no property access.
-    "Array" => matches!(prop.sym.as_str(), "isArray" | "of"),
-    "Object" => prop.sym.as_str() == "is",
-    "Number" => matches!(
-      prop.sym.as_str(),
-      "isInteger" | "isFinite" | "isNaN" | "isSafeInteger"
-    ),
-    _ => false,
-  }
-}
-
-/// Trivially safe expression: a value that cannot trigger user code via any
-/// coercion, getter, or iterator. Used to gate "pure global" fast paths so
-/// that e.g. `new Set([userProxy])` or `new Uint8Array(objWithValueOf)` are
-/// NOT incorrectly classified as pure.
-fn is_trivially_safe_expr(expr: &Expr, unresolved_ctxt: SyntaxContext) -> bool {
-  match expr {
-    Expr::Lit(_) => true,
-    Expr::Tpl(t) => t.exprs.is_empty(),
-    Expr::Unary(u) => {
-      matches!(
-        u.op,
-        UnaryOp::Minus | UnaryOp::Plus | UnaryOp::Bang | UnaryOp::Tilde | UnaryOp::Void
-      ) && is_trivially_safe_expr(&u.arg, unresolved_ctxt)
-    }
-    Expr::Ident(i) => {
-      i.ctxt == unresolved_ctxt && matches!(i.sym.as_str(), "undefined" | "NaN" | "Infinity")
-    }
-    _ => false,
-  }
-}
-
-/// All call/new args must be trivially safe (and no spread).
-fn are_args_trivially_safe(args: &[ExprOrSpread], unresolved_ctxt: SyntaxContext) -> bool {
-  args
-    .iter()
-    .all(|a| a.spread.is_none() && is_trivially_safe_expr(&a.expr, unresolved_ctxt))
 }
 
 fn has_pure_comment(comments: Option<&dyn Comments>, pos: BytePos) -> bool {

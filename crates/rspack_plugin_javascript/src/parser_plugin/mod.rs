@@ -22,6 +22,7 @@ mod is_included_plugin;
 mod javascript_meta_info_plugin;
 pub mod node_stuff_plugin;
 mod override_strict_plugin;
+mod pure_globals;
 mod require_context_dependency_parser_plugin;
 mod require_ensure_dependencies_block_parse_plugin;
 mod r#trait;
