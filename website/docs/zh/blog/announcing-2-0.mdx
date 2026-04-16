@@ -250,7 +250,7 @@ pnpm add -D @rspack/dev-server
 ```
 
 <span id="module-resolution"></span>
-## 模块解析能力增强 @stormslowly
+## 更强的模块解析能力 @stormslowly
 
 <span id="subpath-alias-import"></span>
 ### `#/` 子路径别名导入
@@ -329,9 +329,7 @@ export default {
 };
 ```
 
-## 其他更新
-
-除了上面的几项主要能力之外，Rspack 2.0 还补充了一些偏工程细节但很实用的更新。
+## 其他特性更新
 
 <span id="import-bytes"></span>
 ### 静态资源二进制导入 @LingyuCoder
@@ -407,3 +405,48 @@ export default {
 ### 更好的 tree shaking @ahabhgk
 
 Rspack 2.0 的 [tree shaking](/guide/optimization/tree-shaking) 能力在 1.x 的基础上继续增强。在 1.6 中，Rspack 已经增强了动态导入场景下的 tree shaking；而 2.0 又新增了 [`experiments.pureFunctions`](/guide/migration/rspack_1.x#新增-experimentspurefunctions用于函数粒度-tree-shaking)，允许通过 `/*#__NO_SIDE_EFFECTS__*/` 注解或 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置，对跨模块的 pure function 调用做更细粒度的分析。
+
+## 其他变更
+
+- [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) 的默认值改为 `error`，缺失导出现在会默认报错而非警告。
+- `module.parser.javascript.strictExportPresence` 已被移除，缺失导出的行为统一由 [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) 控制。
+- [`module.parser.javascript.requireAlias`](/config/module#moduleparserjavascriptrequirealias) 的默认值改为 `false`，改名后的 `require` 调用将不再被解析。
+- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 不再读取 `.swcrc`，SWC 配置需迁移到 loader 选项中。
+- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 的 `rspackExperiments.collectTypeScriptInfo` 配置已被移除，TypeScript 信息收集现在统一通过 [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) 配置。
+- `builtin:swc-loader.rspackExperiments.import` 已迁移到顶层 [`transformImport`](/guide/features/builtin-swc-loader#transformimport)。
+- `output.libraryTarget`、`output.libraryExport`、`output.umdNamedDefine` 和 `output.auxiliaryComment` 都已迁移到 [`output.library.*`](/config/output#outputlibrary) 下。
+- [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal) 的默认值改为 `rspackChunk${output.uniqueName}`。
+- [`output.hotUpdateGlobal`](/config/output#outputhotupdateglobal) 的默认值改为 `rspackHotUpdate${output.uniqueName}`。
+- [`output.bundlerInfo.force`](/config/output#outputbundlerinfo) 的默认值改为 `false`，bundler 信息不再强制注入。
+- [`output.trustedTypes.policyName`](/config/output#outputtrustedtypes) 在没有设置 `output.uniqueName` 时的兜底值从 `'webpack'` 改为 `'rspack'`。
+- `output.charset` 已被移除，现代浏览器会按 UTF-8 处理脚本。
+- `optimization.removeAvailableModules` 已被移除。
+- [`stats.toJson()`](/api/javascript-api/stats#tojson) 默认不再返回 `modules`、`assets`、`chunks`、`chunkGroups` 和 `entryPoints`。
+- `profile` 和 `stats.profile` 已被移除，建议使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 分析性能。
+- [`WarnCaseSensitiveModulesPlugin`](/plugins/webpack/case-sensitive-plugin) 已被 [`CaseSensitivePlugin`](/plugins/webpack/case-sensitive-plugin) 替代。
+- [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 和 [`RuntimePlugin`](/api/plugin-api/runtime-plugin-hooks) 上的 `getHooks` 别名已被移除，请使用 `getCompilationHooks` 替代。
+- [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 和 [`RuntimePlugin`](/api/plugin-api/runtime-plugin-hooks) 的 `sri` 配置已被移除，SRI 相关能力现在请使用 [`SubresourceIntegrityPlugin`](/plugins/rspack/subresource-integrity-plugin)。
+- [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin.mdx) 的 `draft` 配置已被移除并由 `drafts` 取代，同时 `cssHeadDataCompression` 已被移除。
+- JavaScript 请求默认的 [`resolve.extensions`](/config/resolve#resolveextensions) 不再包含 `.wasm`。
+- CSS `@import` 默认的解析 [`conditionNames`](/config/resolve#resolveconditionnames) 不再包含 `webpack`。
+- [`devtool`](/config/devtool) 在开发模式下的默认值改为 `cheap-module-source-map`，在 CLI 生产模式下的默认值改为 `false`。
+- [`resolve.roots`](/config/resolve#resolveroots) 的默认值从 `[context]` 改为 `[]`。
+- Runtime module 上废弃的 `constructorName`、`moduleIdentifier` 等属性已被移除。
+- [`ProgressPlugin`](/plugins/webpack/progress-plugin) 自定义 handler 的第三个参数从 `items: string[]` 改成了结构化的 `info` 对象。
+- `NormalModule.getCompilationHooks(compilation).readResourceForScheme` 已被移除，改用 `readResource.for(scheme)`。
+- `module.unsafeCache` 已被移除。
+- `experiments.css` 已被移除，[CSS](/guide/tech/css) 能力现在默认可用。
+- [`experiments.asyncWebAssembly`](/config/experiments#experimentsasyncwebassembly) 的默认值改为 `true`。
+- `experiments.cache` 已迁移到顶层 [`cache`](/config/cache)。
+- `experiments.rspackFuture` 已被移除，`bundlerInfo` 迁移至 [`output.bundlerInfo`](/config/output#outputbundlerinfo)。
+- `experiments.incremental` 已迁移到顶层 [`incremental`](/config/incremental)。
+- `experiments.layers` 已被移除，[layers](/guide/features/layer) 能力默认可用。
+- `experiments.topLevelAwait` 已被移除，top-level await 解析能力默认可用。
+- `experiments.lazyCompilation` 已迁移到顶层 [`lazyCompilation`](/config/lazy-compilation)。
+- `experiments.lazyCompilationMiddleware` 已迁移到顶层 [`lazyCompilationMiddleware`](/guide/features/lazy-compilation#与自定义的服务器集成)。
+- `experiments.lazyBarrel` 已被移除，[lazy barrel](/guide/optimization/lazy-barrel) 优化默认开启。
+- `experiments.typeReexportsPresence` 已被移除，其行为现通过 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 控制。
+- `experiments.inlineConst` 已被移除，常量内联现通过 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 控制。
+- `experiments.inlineEnum` 已被移除，枚举内联现通过 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 配合 [`collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制。
+- `experiments.outputModule` 已被移除，[ESM 格式产物](/guide/features/esm)输出现通过 [`output.module`](/config/output#outputmodule) 控制。
+- `experiments.parallelLoader` 已被移除，[并行 loader](/config/module-rules#rulesuseparallel) 能力默认可用。
