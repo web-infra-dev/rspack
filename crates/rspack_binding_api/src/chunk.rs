@@ -231,7 +231,7 @@ impl Chunk {
           .get(group)
       })
       .collect::<Vec<_>>();
-    groups.sort_unstable_by(|a, b| a.index.cmp(&b.index));
+    groups.sort_unstable_by_key(|a| a.index);
     Ok(
       groups
         .iter()

@@ -99,7 +99,7 @@ impl EsmLibraryPlugin {
     let mut modules_map = IdentifierIndexMap::default();
     let modules = module_graph.modules();
     let mut modules = modules.collect::<Vec<_>>();
-    modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+    modules.sort_by_key(|(m1, _)| *m1);
     let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
     for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
@@ -300,7 +300,7 @@ async fn finish_modules(
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let mut modules = module_graph.modules().collect::<Vec<_>>();
-  modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+  modules.sort_by_key(|(m1, _)| *m1);
   let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
   for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {

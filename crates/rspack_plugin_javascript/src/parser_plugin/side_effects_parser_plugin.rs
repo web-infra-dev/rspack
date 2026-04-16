@@ -119,6 +119,7 @@ impl<'a> Visit for PureAnnotation<'a> {
 
   fn visit_stmt(&mut self, node: &Stmt) {
     if let Stmt::Decl(decl) = node {
+      #[allow(clippy::collapsible_match)]
       match decl {
         Decl::Fn(fn_decl) => {
           if has_no_side_effects_notation(self.parser.comments, fn_decl.span()) {
@@ -261,6 +262,7 @@ fn collect_exported_side_effects_free_refs(program: &Program) -> FxHashSet<Atom>
       continue;
     };
 
+    #[allow(clippy::collapsible_match)]
     match decl {
       ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
         Decl::Fn(fn_decl) => {

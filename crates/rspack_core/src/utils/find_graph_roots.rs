@@ -159,7 +159,7 @@ pub fn find_graph_roots<
   let mut roots = FxHashSet::with_capacity_and_hasher(db.len(), Default::default());
 
   let mut keys = db.keys().copied().collect::<Vec<_>>();
-  keys.sort_by(|a, b| expect_get(&db, a).item.cmp(&expect_get(&db, b).item));
+  keys.sort_by_key(|a| expect_get(&db, a).item);
 
   // For all non-marked nodes
   for select_node in keys {
@@ -175,7 +175,7 @@ pub fn find_graph_roots<
         node: select_node,
         open_edges: {
           let mut v: Vec<_> = expect_get(&db, &select_node).dependencies.clone();
-          v.sort_by(|a, b| expect_get(&db, a).item.cmp(&expect_get(&db, b).item));
+          v.sort_by_key(|a| expect_get(&db, a).item);
           v
         },
       }];
@@ -192,7 +192,7 @@ pub fn find_graph_roots<
             .map(|edge| expect_get(&db, edge))
             .collect::<Vec<_>>();
 
-          edges.sort_by(|a, b| a.item.cmp(&b.item));
+          edges.sort_by_key(|a| a.item);
 
           // Process one dependency
           let dependency = stack[top_of_stack_idx]

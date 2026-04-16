@@ -883,6 +883,8 @@ impl Module for ExternalModule {
     };
     let mut can_mangle = false;
     let mut exports_type = BuildMetaExportsType::Dynamic;
+
+    #[allow(clippy::collapsible_match)]
     match resolved_external_type {
       "this" => self.build_info.strict = false,
       "system" => {

@@ -65,10 +65,7 @@ impl BuildDeps {
     let mut queue = VecDeque::new();
     queue.extend(std::mem::take(&mut self.pending));
     queue.extend(data);
-    loop {
-      let Some(current) = queue.pop_front() else {
-        break;
-      };
+    while let Some(current) = queue.pop_front() {
       if !self.added.insert(current.clone()) {
         continue;
       }
