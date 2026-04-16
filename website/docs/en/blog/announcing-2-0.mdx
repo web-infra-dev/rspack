@@ -29,6 +29,36 @@ Highlights include:
 - [Portable Cache](/config/cache#cacheportable), [automatic targets inheritance](/guide/migration/rspack_1.x#derive-loader-and-plugin-targets-from-target), and clearer peer dependency boundaries
 - Stronger [tree shaking](/guide/optimization/tree-shaking), [`import defer`](/blog/announcing-1-6#support-for-import-defer), MF share treeshaking, and built-in [RSC support](/guide/tech/rsc)
 
+## Try 2.0
+
+### New projects
+
+If you are new to Rspack, the easiest way to try 2.0 is to start with a fresh project. Note that Rspack 2.0 requires **Node.js 20.19+** or **22.12+**.
+
+If you want an out-of-the-box experience powered by Rspack, we recommend creating a project with Rsbuild:
+
+```bash
+npm create rsbuild@latest
+```
+
+If you prefer to use Rspack CLI directly, you can also run:
+
+```bash
+npm create rspack@latest
+```
+
+Then just follow the interactive prompts. For more installation options, see the [Quick start](/guide/start/quick-start) guide.
+
+### Upgrading existing projects
+
+Rspack 2.0 is a major release. In addition to new features, it also removes a number of previously deprecated capabilities. We recommend starting with the [migration guide](/guide/migration/rspack_1.x), which summarizes the main incompatible changes from v1 to v2 and the corresponding migration paths.
+
+If you are using a coding agent that supports Skills, AI-assisted migration can also help. As described in the migration guide, after installing the `rspack-v2-upgrade` skill, the agent can combine your project configuration with the official migration rules to guide the upgrade process. For projects with heavier historical configuration, this can be more efficient than checking items manually one by one.
+
+```bash
+npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
+```
+
 ## Adoption
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
@@ -132,6 +162,43 @@ export default {
 
 Rspack 2.0 also adds support for [`import.meta.main`](/api/runtime-api/module-variables#importmetamain), [`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename), [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname), and related properties.
 
+#### import.meta path APIs
+
+Rspack 2.0 also expands support for ESM metadata APIs such as [`import.meta.main`](/api/runtime-api/module-variables#importmetamain), [`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename), [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname), and [`import.meta.resolve`](/api/runtime-api/module-variables#importmetaresolve). Together, these APIs make it more natural to work with module identity, filesystem location, and module resolution in ESM code.
+
+For `import.meta.resolve`, you need to enable `module.parser.javascript.importMetaResolve` explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMetaResolve: true,
+      },
+    },
+  },
+};
+```
+
+```js title="app.mjs"
+console.log(import.meta.filename);
+console.log(import.meta.dirname);
+const asset = import.meta.resolve('./img.png');
+```
+
+#### import.meta.webpackContext include and exclude
+
+Rspack 2.0 also extends `import.meta.webpackContext`. You can now use `include` and `exclude` to narrow the match range more precisely, which is useful when importing many files but only wanting a subset of them in the final context.
+
+```js title="app.js"
+const context = import.meta.webpackContext('./components', {
+  recursive: true,
+  regExp: /\.tsx?$/,
+  include: /\.client\./,
+  exclude: /\.test\./,
+});
+```
+
 ### Rspack dev server 2.0
 
 [`@rspack/dev-server`](/guide/migration/rspack_1.x#development-server) has been substantially reorganized in 2.0. It is no longer a default dependency of `@rspack/cli`, and is now an optional installation. Internally, it also adopts `@rspack/dev-middleware` and replaces the heavier Express v4-based setup with `connect-next`.
@@ -142,6 +209,41 @@ If you use `rspack dev` or `rspack serve`, you now need to install `@rspack/dev-
 
 ```bash
 pnpm add -D @rspack/dev-server
+```
+
+### Module resolution improvements
+
+Rspack 2.0 also improves module resolution in a few practical ways.
+
+#### `#/` subpath alias imports
+
+Rspack 2.0 supports `#/`-style subpath alias imports, so you can reuse the `imports` field in `package.json` to organize intra-package path mapping instead of maintaining a separate alias configuration.
+
+```json title="package.json"
+{
+  "imports": {
+    "#/*": "./src/*"
+  }
+}
+```
+
+```js title="src/index.js"
+import main from '#/main.ts';
+```
+
+#### `resolve.pnpManifest`
+
+For Yarn PnP scenarios, Rspack 2.0 also adds `resolve.pnpManifest`, allowing you to explicitly specify the path to the PnP manifest file. This gives more precise control over resolver behavior in more complex package-management and monorepo environments.
+
+```js title="rspack.config.mjs"
+import path from 'node:path';
+
+export default {
+  resolve: {
+    pnp: true,
+    pnpManifest: path.resolve(import.meta.dirname, '.pnp.cjs'),
+  },
+};
 ```
 
 ### Portable cache
@@ -157,6 +259,17 @@ export default {
   cache: {
     type: 'persistent',
     portable: true,
+  },
+};
+```
+
+Rspack 2.0 also provides [`cache.readonly`](/config/cache#cachereadonly). When enabled, cache entries are read from disk but not written back, which is especially useful in CI where you want to reuse prewarmed cache data without mutating it.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    readonly: Boolean(process.env.CI),
   },
 };
 ```
@@ -250,6 +363,39 @@ export default {
 };
 ```
 
+### Import bytes
+
+Rspack 2.0 also supports importing static assets as bytes. This allows you to load a resource as a `Uint8Array` and process it at runtime with APIs such as `TextDecoder`.
+
+```js title="app.js"
+import fileBytes from './file.bin' with { type: 'bytes' };
+
+const decoder = new TextDecoder('utf-8');
+const text = decoder.decode(fileBytes);
+```
+
+### builtin:swc-loader detectSyntax
+
+Rspack 2.0 also adds [`detectSyntax`](/guide/features/builtin-swc-loader#detectsyntax) for `builtin:swc-loader`. When a single rule handles `.js`, `.jsx`, `.ts`, and `.tsx` together, `detectSyntax: 'auto'` can infer the parser configuration from the file extension and reduce repeated configuration.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
 ### Better tree shaking
 
 Rspack 2.0 further improves [tree shaking](/guide/optimization/tree-shaking) on top of the 1.x work. In 1.6, Rspack already improved tree shaking for dynamic imports. In 2.0, it also adds [`experiments.pureFunctions`](/guide/migration/rspack_1.x#new-experimentspurefunctions-for-function-level-tree-shaking), allowing finer-grained analysis of cross-module pure function calls through `/*#__NO_SIDE_EFFECTS__*/` annotations or [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions).
@@ -272,6 +418,32 @@ export default {
         },
       },
     ],
+  },
+};
+```
+
+### Hashed module IDs plugin
+
+Rspack 2.0 also adds `HashedModuleIdsPlugin`. If you want more explicit control over module ID generation instead of relying only on default behavior or the string values of `optimization.moduleIds`, you can use this plugin directly.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.ids.HashedModuleIdsPlugin()],
+};
+```
+
+### splitChunks enforceSizeThreshold
+
+Rspack 2.0 also adds `splitChunks.enforceSizeThreshold`. It is useful when you want to set a hard size threshold for chunk splitting; once the module group size exceeds that threshold, some `maxRequests` limits are ignored so splitting can proceed more aggressively.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      enforceSizeThreshold: 50000,
+    },
   },
 };
 ```
