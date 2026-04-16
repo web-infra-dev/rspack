@@ -50,6 +50,7 @@ impl Compilation {
     for pass in &passes {
       pass.run(self, cache).await?;
     }
+
     if !self.options.mode.is_development() {
       self.module_static_cache.disable_cache();
     }
