@@ -25,19 +25,32 @@ pub struct Dependency {
 }
 
 impl Dependency {
-  fn as_ref(&mut self) -> napi::Result<(&dyn rspack_core::Dependency, Option<&Compilation>)> {
+  fn as_ref<'a>(
+    &'a mut self,
+  ) -> napi::Result<(
+    &'a (dyn rspack_core::Dependency + 'a),
+    Option<&'a Compilation>,
+  )> {
     if let Some(compilation) = self.compilation {
       let compilation = unsafe { compilation.as_ref() };
       let module_graph = compilation.get_module_graph();
       if let Some(dependency) = internal::try_dependency_by_id(module_graph, &self.dependency_id) {
-        self.dependency = {
-          #[allow(clippy::unwrap_used)]
-          NonNull::new(
-            (&**dependency) as *const dyn rspack_core::Dependency
-              as *mut dyn rspack_core::Dependency,
-          )
-          .unwrap()
+        // SAFETY:
+        // We extend `'a` to `'static` to satisfy the `NonNull<dyn Dependency>` field type,
+        // which has an implied `'static` bound on the trait object. All actual accesses are
+        // still mediated by the JS wrapper lifecycle plus runtime dependency lookups, so the
+        // references derived from this pointer must not outlive the original allocation.
+        let dependency_ptr = unsafe {
+          std::mem::transmute::<
+            *const (dyn rspack_core::Dependency + 'a),
+            *mut (dyn rspack_core::Dependency + 'static),
+          >(dependency.as_ref())
         };
+
+        // SAFETY:
+        // `dependency` is a valid reference, so the erased raw pointer is non-null.
+        self.dependency = unsafe { NonNull::new_unchecked(dependency_ptr) };
+
         Ok((unsafe { self.dependency.as_ref() }, Some(compilation)))
       } else {
         Err(napi::Error::from_reason(format!(
@@ -189,20 +202,33 @@ pub struct DependencyWrapper {
 }
 
 impl DependencyWrapper {
-  pub fn new(
-    dependency: &dyn rspack_core::Dependency,
+  pub fn new<'a>(
+    dependency: &'a dyn rspack_core::Dependency,
     compilation_id: CompilationId,
     compilation: Option<&Compilation>,
   ) -> Self {
     let dependency_id = *dependency.id();
 
+    // SAFETY:
+    // We extend `'a` to `'static` to satisfy the `NonNull<dyn Dependency>` field type,
+    // which has an implied `'static` bound on the trait object. All actual accesses are
+    // still mediated by the JS wrapper lifecycle plus runtime dependency lookups, so the
+    // references derived from this pointer must not outlive the original allocation.
+    let dependency_ptr = unsafe {
+      std::mem::transmute::<
+        *const (dyn rspack_core::Dependency + 'a),
+        *mut (dyn rspack_core::Dependency + 'static),
+      >(dependency)
+    };
+
+    // SAFETY:
+    // `dependency` is a valid reference, so the erased raw pointer is non-null.
+    let dependency = unsafe { NonNull::new_unchecked(dependency_ptr) };
+
     #[allow(clippy::unwrap_used)]
     Self {
       dependency_id,
-      dependency: NonNull::new(
-        dependency as *const dyn rspack_core::Dependency as *mut dyn rspack_core::Dependency,
-      )
-      .unwrap(),
+      dependency,
       compilation_id,
       compilation: compilation
         .map(|c| NonNull::new(c as *const Compilation as *mut Compilation).unwrap()),
