@@ -873,13 +873,10 @@ impl<'a> BuiltinPlugin<'a> {
         }
       }
       BuiltinPluginName::RslibPlugin => {
-        #[cfg(not(feature = "browser"))]
-        {
-          let raw_options = downcast_into::<RawRslibPluginOptions>(self.options)
-            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-          let options = raw_options.into();
-          plugins.push(RslibPlugin::new(options).boxed());
-        }
+        let raw_options = downcast_into::<RawRslibPluginOptions>(self.options)
+          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+        let options = raw_options.into();
+        plugins.push(RslibPlugin::new(options).boxed());
       }
       BuiltinPluginName::SubresourceIntegrityPlugin => {
         let raw_options = downcast_into::<RawSubresourceIntegrityPluginOptions>(self.options)
