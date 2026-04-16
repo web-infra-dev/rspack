@@ -24,7 +24,7 @@
     "dev": "rslib build -w"
   },
   "dependencies": {
-    "create-rstack": "1.9.1"
+    "create-rstack": "2.0.0"
   },
   "devDependencies": {
     "@rslib/core": "0.21.0",
