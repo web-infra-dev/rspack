@@ -26,7 +26,7 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          key: x86_64-unknown-linux-gnu-release
+          key: x86_64-unknown-linux-gnu-ci
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: ${{ runner.environment != 'self-hosted'  || runner.os != 'Windows' }}
 
@@ -52,7 +52,7 @@ jobs:
       - name: Build x86_64-unknown-linux-gnu native
         run: |
           rustup target add x86_64-unknown-linux-gnu
-          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:release
+          RUST_TARGET=x86_64-unknown-linux-gnu pnpm build:binding:ci
 
       - name: Binary Size-limit
         uses: ./.github/actions/binary-limit
