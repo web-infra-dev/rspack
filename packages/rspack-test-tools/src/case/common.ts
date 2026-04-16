@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import merge from 'webpack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
+import { formatWhiteboxError, whiteboxLogCase } from '../helper/whitebox';
 import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv } from '../type';
@@ -14,6 +15,7 @@ export async function config(
   configFiles: string[],
   defaultOptions: RspackOptions = {},
 ): Promise<RspackOptions> {
+  whiteboxLogCase(name, 'config:start');
   const compiler = context.getCompiler();
   compiler.setOptions(defaultOptions);
   if (Array.isArray(configFiles)) {
@@ -24,6 +26,7 @@ export async function config(
     )[0];
     compiler.mergeOptions(fileOptions);
   }
+  whiteboxLogCase(name, 'config:end');
   return compiler.getOptions() as RspackOptions;
 }
 
@@ -31,8 +34,10 @@ export async function compiler(
   context: ITestContext,
   name: string,
 ): Promise<Compiler> {
+  whiteboxLogCase(name, 'compiler:create:start');
   const compiler = context.getCompiler();
   compiler.createCompiler();
+  whiteboxLogCase(name, 'compiler:create:end');
   return compiler.getCompiler()! as Compiler;
 }
 
@@ -40,8 +45,17 @@ export async function build(
   context: ITestContext,
   name: string,
 ): Promise<Compiler> {
+  whiteboxLogCase(name, 'build:start');
   const compiler = context.getCompiler();
-  await compiler.build();
+  try {
+    await compiler.build();
+  } catch (error) {
+    whiteboxLogCase(name, 'build:error', {
+      error: formatWhiteboxError(error),
+    });
+    throw error;
+  }
+  whiteboxLogCase(name, 'build:end');
   return compiler.getCompiler()! as Compiler;
 }
 
@@ -54,6 +68,7 @@ export async function run(
     options: RspackOptions,
   ) => string[] | string | void,
 ) {
+  whiteboxLogCase(name, 'run:start');
   const testConfig = context.getTestConfig();
   if (testConfig.noTests) return;
 
@@ -78,6 +93,7 @@ export async function run(
   }
 
   if (!bundles || !bundles.length) {
+    whiteboxLogCase(name, 'run:no-bundles');
     return;
   }
 
@@ -90,6 +106,7 @@ export async function run(
     if (!bundle) {
       continue;
     }
+    whiteboxLogCase(name, 'run:bundle:start', { bundle });
     const runner = context.getRunner(bundle, env);
     if (__DEBUG__) {
       const runLogs = context.getValue(DEBUG_SCOPES.RunLogs) as
@@ -106,7 +123,16 @@ export async function run(
   }
 
   const results = context.getValue<Array<Promise<unknown>>>('modules') || [];
-  await Promise.all(results);
+  whiteboxLogCase(name, 'run:await-modules', { count: results.length });
+  try {
+    await Promise.all(results);
+  } catch (error) {
+    whiteboxLogCase(name, 'run:error', {
+      error: formatWhiteboxError(error),
+    });
+    throw error;
+  }
+  whiteboxLogCase(name, 'run:end');
 }
 
 export async function check(
@@ -114,6 +140,7 @@ export async function check(
   context: ITestContext,
   name: string,
 ) {
+  whiteboxLogCase(name, 'check:start');
   const testConfig = context.getTestConfig();
   if (testConfig.noTests) return;
 
@@ -201,6 +228,7 @@ export async function check(
   if (fs.existsSync(context.getSource('errors.js'))) {
     context.clearError();
   }
+  whiteboxLogCase(name, 'check:end');
 }
 
 export async function checkSnapshot(
@@ -282,6 +310,7 @@ export async function checkSnapshot(
 }
 
 export async function afterExecute(context: ITestContext, name: string) {
+  whiteboxLogCase(name, 'afterExecute:start');
   const compiler = context.getCompiler();
   const testConfig = context.getTestConfig();
   if (typeof testConfig.afterExecute === 'function') {
@@ -291,6 +320,7 @@ export async function afterExecute(context: ITestContext, name: string) {
     }
     testConfig.afterExecute(options);
   }
+  whiteboxLogCase(name, 'afterExecute:end');
 }
 
 export function findMultiCompilerBundle(

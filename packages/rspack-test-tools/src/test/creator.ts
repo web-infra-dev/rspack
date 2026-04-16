@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { rimrafSync } from 'rimraf';
 
+import { formatWhiteboxError, whiteboxLogCase } from '../helper/whitebox';
 import createLazyTestEnv from '../helper/legacy/createLazyTestEnv';
 import type {
   ITestContext,
@@ -134,7 +135,9 @@ export class BasicCaseCreator {
     options: IBasicCaseCreatorOptions,
   ) {
     beforeAll(async () => {
+      whiteboxLogCase(name, 'prepare:start');
       await tester.prepare();
+      whiteboxLogCase(name, 'prepare:end');
     });
 
     let starter = null;
@@ -143,9 +146,13 @@ export class BasicCaseCreator {
     });
     const ender = this.registerConcurrentTask(
       name,
-      starter!,
+      () => {
+        whiteboxLogCase(name, 'queue:start');
+        starter!();
+      },
       options.concurrent as number,
     );
+    whiteboxLogCase(name, 'queue:scheduled');
     const env = this.createConcurrentEnv();
     for (let index = 0; index < tester.total; index++) {
       let stepSignalResolve = null;
@@ -173,12 +180,15 @@ export class BasicCaseCreator {
 
       chain = chain.then(
         async () => {
+          const step = tester.step + 1;
           try {
+            whiteboxLogCase(name, 'step:start', { step });
             env.clear();
             await tester.compile();
             await tester.check(env);
             await env.run();
             await tester.after();
+            whiteboxLogCase(name, 'step:end', { step });
             const context = tester.getContext();
             if (!tester.next() && context.hasError()) {
               const errors = context
@@ -191,12 +201,17 @@ export class BasicCaseCreator {
             }
             stepSignalResolve!();
           } catch (e) {
+            whiteboxLogCase(name, 'step:error', {
+              step,
+              error: formatWhiteboxError(e),
+            });
             stepSignalResolve!(e);
             return Promise.reject();
           }
         },
         () => {
           // bailout
+          whiteboxLogCase(name, 'step:bailout', { step: tester.step + 1 });
           stepSignalResolve!();
           return Promise.reject();
         },
@@ -209,11 +224,14 @@ export class BasicCaseCreator {
         // prevent unhandled rejection
       })
       .finally(() => {
+        whiteboxLogCase(name, 'queue:end');
         ender();
       });
 
     afterAll(async () => {
+      whiteboxLogCase(name, 'resume:start');
       await tester.resume();
+      whiteboxLogCase(name, 'resume:end');
     });
   }
 

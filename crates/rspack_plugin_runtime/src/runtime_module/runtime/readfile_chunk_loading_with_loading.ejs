@@ -1,7 +1,15 @@
 var installedChunkData = installedChunks[chunkId];
+var whiteboxFilters = (process.env.RSPACK_WASM_WHITEBOX_FILE_FILTER || "").split("|").filter(Boolean);
+var whiteboxEnabled = process.env.RSPACK_WASM_WHITEBOX_DEBUG === "1";
 if (installedChunkData !== 0) {  // 0 means "already installed".
   // array of [resolve, reject, promise] means "currently loading"
   if (installedChunkData) {
+    if (whiteboxEnabled) {
+      console.error("[wasm-whitebox] chunk-load reuse-promise " + JSON.stringify({
+        chunkId: chunkId,
+        state: "loading"
+      }));
+    }
     promises.push(installedChunkData[2]);
   } else {
     if (<%- _js_matcher %>) {  // all chunks have JS
@@ -10,15 +18,72 @@ if (installedChunkData !== 0) {  // 0 means "already installed".
         installedChunkData = installedChunks[chunkId] = [resolve, reject];
         var filename = require('path').join(
           __dirname, "<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId));
+        var shouldLog = whiteboxEnabled && (whiteboxFilters.length === 0 || whiteboxFilters.some(function(filter) {
+          return filename.includes(filter);
+        }));
+        if (shouldLog) {
+          console.error("[wasm-whitebox] chunk-load start " + JSON.stringify({
+            chunkId: chunkId,
+            filename: filename
+          }));
+        }
         require('fs').readFile(filename, 'utf-8', function (err, content) {
-          if (err) return reject(err);
+          if (err) {
+            if (shouldLog) {
+              console.error("[wasm-whitebox] chunk-load read-error " + JSON.stringify({
+                chunkId: chunkId,
+                filename: filename,
+                error: err && (err.stack || err.message || String(err))
+              }));
+            }
+            return reject(err);
+          }
           var chunk = {};
-          require('vm').runInThisContext(
-            '(function(exports, require, __dirname, __filename) {' +
-            content + '\n})',
-            filename)(
-              chunk, require, require('path').dirname(filename), filename);
+          try {
+            require('vm').runInThisContext(
+              '(function(exports, require, __dirname, __filename) {' +
+              content + '\n})',
+              filename)(
+                chunk, require, require('path').dirname(filename), filename);
+          } catch (error) {
+            if (shouldLog) {
+              console.error("[wasm-whitebox] chunk-load vm-error " + JSON.stringify({
+                chunkId: chunkId,
+                filename: filename,
+                error: error && (error.stack || error.message || String(error))
+              }));
+            }
+            return reject(error);
+          }
+          var loadedIds = chunk.__rspack_esm_ids || chunk.ids;
+          if (shouldLog) {
+            console.error("[wasm-whitebox] chunk-load install " + JSON.stringify({
+              chunkId: chunkId,
+              filename: filename,
+              loadedIds: loadedIds,
+              chunkKeys: Object.keys(chunk)
+            }));
+          }
           installChunk(chunk);
+          if (shouldLog && Array.isArray(loadedIds) && loadedIds.indexOf(chunkId) < 0) {
+            console.error("[wasm-whitebox] chunk-load id-mismatch " + JSON.stringify({
+              chunkId: chunkId,
+              filename: filename,
+              loadedIds: loadedIds
+            }));
+          }
+          if (shouldLog && installedChunks[chunkId] !== 0) {
+            console.error("[wasm-whitebox] chunk-load pending-after-install " + JSON.stringify({
+              chunkId: chunkId,
+              filename: filename,
+              loadedIds: loadedIds,
+              state: installedChunks[chunkId] === undefined
+                ? "undefined"
+                : installedChunks[chunkId]
+                  ? "loading"
+                  : "unknown"
+            }));
+          }
         });
       });
       promises.push(installedChunkData[2] = promise);

@@ -171,6 +171,9 @@ jobs:
           NODE_NO_WARNINGS: 1
           WASM: 1
           RSPACK_LOADER_WORKER_THREADS: 1
+          RSPACK_WASM_WHITEBOX_DEBUG: 1
+          RSPACK_WASM_WHITEBOX_CASE_FILTER: 'rsc-plugin/tree-shaking|rsc-plugin/tree-shaking-client-barrel|rsc-plugin/with-concatenated-module|rsdoctor/assets|rsdoctor/chunkGraph|rsdoctor/moduleGraph'
+          RSPACK_WASM_WHITEBOX_FILE_FILTER: 'rsc-plugin/tree-shaking|rsc-plugin/tree-shaking-client-barrel|rsc-plugin/with-concatenated-module'
         run: pnpm run test:ci
 
       - name: Upload Test Reporter

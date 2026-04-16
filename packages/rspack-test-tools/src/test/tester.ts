@@ -6,6 +6,7 @@ import type {
   ITesterConfig,
   ITestProcessor,
 } from '../type';
+import { formatWhiteboxError, whiteboxLogCase } from '../helper/whitebox';
 import { TestContext } from './context';
 import { generateDebugReport } from './debug';
 
@@ -91,8 +92,13 @@ export class Tester implements ITester {
       }
     }
     try {
+      whiteboxLogCase(this.config.name, 'closeCompiler:start');
       await this.context.closeCompiler();
+      whiteboxLogCase(this.config.name, 'closeCompiler:end');
     } catch (e: any) {
+      whiteboxLogCase(this.config.name, 'closeCompiler:error', {
+        error: formatWhiteboxError(e),
+      });
       console.warn(
         `Error occured while closing compilers of '${this.config.name}':\n${e.stack}`,
       );
