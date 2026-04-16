@@ -169,7 +169,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> CompilerScopedTsFnHandle<T, R> {
   fn expect_active_tsfn(&self) -> rspack_error::Result<ThreadsafeFunction<T, R>> {
     self.active_tsfn.borrow().clone().ok_or_else(|| {
       error!(
-        "Compiler-scoped JS callback was invoked after the owning compiler was closed or dropped"
+        "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead."
       )
     })
   }

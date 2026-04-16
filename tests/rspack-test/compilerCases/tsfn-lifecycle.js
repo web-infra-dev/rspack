@@ -79,4 +79,17 @@ module.exports = [
       );
     },
   },
+  {
+    description: "should report a clear error when APIs are called after close",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "closed-compiler-error.cjs",
+        ),
+      );
+    },
+  },
 ];
