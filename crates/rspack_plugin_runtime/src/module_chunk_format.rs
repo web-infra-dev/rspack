@@ -14,7 +14,7 @@ use rspack_plugin_javascript::{
   JsPlugin, RenderSource, impl_plugin_for_js_plugin::chunk_has_js,
   runtime::render_chunk_runtime_modules,
 };
-use rspack_util::{itoa, json_stringify_str};
+use rspack_util::itoa;
 use rustc_hash::FxHashSet as HashSet;
 
 use super::update_hash_for_entry_startup;
@@ -144,14 +144,14 @@ async fn render_chunk(
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
 
-  let chunk_id_json_string = json_stringify_str(chunk.expect_id().as_str());
+  let chunk_id_expr = rspack_util::json_stringify(chunk.expect_id());
 
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
-    "export const __rspack_esm_id = {chunk_id_json_string};\n",
+    "export const __rspack_esm_id = {chunk_id_expr};\n",
   )));
   sources.add(RawStringSource::from(format!(
-    "export const __rspack_esm_ids = [{chunk_id_json_string}];\n",
+    "export const __rspack_esm_ids = [{chunk_id_expr}];\n",
   )));
   sources.add(RawStringSource::from(format!(
     "export const {} = ",

@@ -114,7 +114,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
             .expect_id()
-            .to_string()
+            .clone()
         })
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =

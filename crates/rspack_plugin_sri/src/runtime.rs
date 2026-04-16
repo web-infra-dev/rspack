@@ -176,7 +176,7 @@ fn generate_sri_hash_placeholders(
     chunks
       .into_iter()
       .map(|c| {
-        let chunk_id = rspack_util::json_stringify_str(c.as_str());
+        let chunk_id = rspack_util::json_stringify(c);
         let placeholder =
           rspack_util::json_stringify_str(&make_placeholder(asset_type, hash_funcs, c.as_str()));
         format!("{chunk_id}: {placeholder}")
