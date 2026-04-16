@@ -41,6 +41,7 @@ _2026 年 4 月 28 日_
 - [可选的模块联邦运行时](#mf-runtime)
 - [模块联邦共享依赖裁剪](#mf-share-treeshaking)
 - [内置 SWC loader 自动检测语法](#detect-syntax)
+- [支持 CSS parser 的 resolveImport 选项](#resolve-import)
 - [自动继承 targets 配置](#automatic-targets)
 - [支持 HashedModuleIdsPlugin](#hashed-module-ids-plugin)
 - [支持 splitChunks.enforceSizeThreshold](#enforce-size-threshold)
@@ -352,6 +353,25 @@ export default {
 };
 ```
 
+<span id="resolve-import"></span>
+### 支持 CSS parser 的 resolveImport 选项 @JSerFeng
+
+2.0 还为 CSS parser 提供了 [`resolveImport`](/config/module#moduleparsercssautoresolveimport) 选项，用来控制是否处理 `@import` 语法。除了直接整体开启或关闭之外，你也可以通过函数按条件决定具体处理哪些 `@import` 规则。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
 <span id="automatic-targets"></span>
 ### 自动继承 targets 配置 @ahabhgk
 
@@ -401,6 +421,8 @@ export default {
 
 ## 其他变更
 
+- 新增 `Compilation.hooks.beforeModuleIds`。
+- 新增 `compiler.hooks.shouldRecord`。
 - [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) 的默认值改为 `error`，缺失导出现在会默认报错而非警告。
 - `module.parser.javascript.strictExportPresence` 已被移除，缺失导出的行为统一由 [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) 控制。
 - [`module.parser.javascript.requireAlias`](/config/module#moduleparserjavascriptrequirealias) 的默认值改为 `false`，改名后的 `require` 调用将不再被解析。

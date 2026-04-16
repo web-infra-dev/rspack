@@ -41,6 +41,7 @@ Rspack 2.0 is now officially available. This release mainly brings:
 - [Optional Module Federation runtime](#mf-runtime)
 - [Module Federation shared dependency pruning](#mf-share-treeshaking)
 - [Built-in SWC loader syntax detection](#detect-syntax)
+- [CSS parser `resolveImport` option](#resolve-import)
 - [Automatic inheritance of target settings](#automatic-targets)
 - [Support for HashedModuleIdsPlugin](#hashed-module-ids-plugin)
 - [Support for splitChunks.enforceSizeThreshold](#enforce-size-threshold)
@@ -352,6 +353,25 @@ export default {
 };
 ```
 
+<span id="resolve-import"></span>
+### CSS parser `resolveImport` option @JSerFeng
+
+Rspack 2.0 also adds a [`resolveImport`](/config/module#moduleparsercssautoresolveimport) option for the CSS parser, allowing you to control whether `@import` syntax should be processed. In addition to enabling or disabling it globally, you can also use a function to decide which `@import` rules should be handled.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
 <span id="automatic-targets"></span>
 ### Automatic inheritance of target settings @ahabhgk
 
@@ -401,6 +421,8 @@ At the same time, some CommonJS imports and exports that were not recognized cor
 
 ## Other changes
 
+- Support for `Compilation.hooks.beforeModuleIds` has been added.
+- Support for `compiler.hooks.shouldRecord` has been added.
 - [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) now defaults to `error`, so missing exports now fail with errors instead of warnings.
 - `module.parser.javascript.strictExportPresence` has been removed, and missing-export behavior is now controlled by [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence).
 - [`module.parser.javascript.requireAlias`](/config/module#moduleparserjavascriptrequirealias) now defaults to `false`, so renamed `require` calls are no longer parsed.
