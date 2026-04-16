@@ -143,18 +143,23 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
         let target_chunks = chunk_graph.get_module_chunks(*target);
 
         // If the target lives in a chunk that is an ancestor of THIS async
-        // chunk, extract it from that specific ancestor chunk.
+        // chunk, extract it from that specific ancestor chunk. Also continue
+        // BFS into the target — its own static deps may also live in ancestor
+        // chunks (e.g. async → sharedA(ancestor) → sharedB(ancestor)).
+        let mut in_ancestor = false;
         for &target_chunk in target_chunks {
           if ancestor_chunks.contains(&target_chunk) {
             modules_to_extract
               .entry(*target)
               .or_default()
               .insert(target_chunk);
+            in_ancestor = true;
           }
         }
 
-        // Continue BFS if target is inside THIS async chunk boundary
-        if target_chunks.contains(&async_chunk_ukey) {
+        // Continue BFS if target is inside this async chunk OR in an ancestor
+        // chunk (to transitively find all ancestor-resident dependencies).
+        if in_ancestor || target_chunks.contains(&async_chunk_ukey) {
           queue.push_back(*target);
         }
       }
