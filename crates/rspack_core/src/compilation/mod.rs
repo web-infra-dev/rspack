@@ -25,6 +25,7 @@ mod process_assets;
 mod run_passes;
 mod runtime_requirements;
 mod seal;
+
 use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
@@ -59,6 +60,14 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 use ustr::Ustr;
 
+#[cfg(feature = "benchmark-passes")]
+pub use self::{
+  assign_runtime_ids::AssignRuntimeIdsPass, code_generation::CodeGenerationPass,
+  create_chunk_assets::CreateChunkAssetsPass, create_hash::CreateHashPass,
+  create_module_assets::CreateModuleAssetsPass, create_module_hashes::CreateModuleHashesPass,
+  optimize_code_generation::OptimizeCodeGenerationPass, process_assets::ProcessAssetsPass,
+  runtime_requirements::RuntimeRequirementsPass,
+};
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,

@@ -76,6 +76,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
-debug_tool = ["rspack_util/debug_tool"]
-default    = []
-napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
+benchmark-passes = []
+debug_tool       = ["rspack_util/debug_tool"]
+default          = []
+napi             = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]

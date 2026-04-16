@@ -3682,6 +3682,7 @@ dependencies = [
 name = "rspack_benchmark"
 version = "0.100.0-rc.2"
 dependencies = [
+ "async-trait",
  "codspeed-criterion-compat",
  "rspack",
  "rspack_cacheable",
