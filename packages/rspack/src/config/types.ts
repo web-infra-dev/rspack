@@ -251,7 +251,7 @@ export type Entry = EntryStatic | EntryDynamic;
 //#endregion
 
 //#region Output
-/** The output directory as an absolute path. */
+/** The output directory. Relative paths are resolved against `context`. */
 export type Path = string;
 
 /** Tells Rspack to include comments in bundles with information about the contained modules. */
@@ -451,7 +451,7 @@ export type Environment = {
 
 export type Output = {
   /**
-   * The output directory as an absolute path.
+   * The output directory. Relative paths are resolved against `context`.
    * @default path.resolve(process.cwd(), 'dist')
    * */
   path?: Path;
