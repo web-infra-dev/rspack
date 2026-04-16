@@ -3053,7 +3053,7 @@ export type Performance =
        */
       hints?: false | 'warning' | 'error';
       /**
-       * File size limit (in bytes) when exceeded, that Rspack will provide performance hints.
+       * File size limit (in bytes) when exceeded, Rspack will provide performance hints.
        * @default 307200 (300 KiB)
        */
       maxAssetSize?: number;
