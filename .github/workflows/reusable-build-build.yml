@@ -151,14 +151,14 @@ jobs:
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # WASM
-      # Also build browser wasm because they can share most of building cache.
-      # Note that we should build browser wasm first because there's a renaming stage
+      # For CI, build the full WASI binding once and reuse it for browser tests by
+      # copying it to the browser artifact name. The browser-specific slim build is
+      # only needed for release packaging.
       - name: Build wasm32-wasip1-threads with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
+          cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       # WASM Release (use profile = release-wasi) + wasm-opt
       - name: Build wasm32-wasip1-threads(release-wasi) with linux
