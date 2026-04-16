@@ -54,11 +54,10 @@ function createCompiler(userOptions: RspackOptions): Compiler {
     throw new Error('options.context is required');
   }
 
-  const compiler = new Compiler(options.context, options);
-
-  new NodeEnvironmentPlugin({
-    infrastructureLogging: options.infrastructureLogging,
-  }).apply(compiler);
+	const compiler = new Compiler(options.context, options);
+	new NodeEnvironmentPlugin({
+		infrastructureLogging: options.infrastructureLogging
+	}).apply(compiler);
 
   if (Array.isArray(options.plugins)) {
     for (const plugin of options.plugins) {
