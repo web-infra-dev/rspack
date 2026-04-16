@@ -376,9 +376,9 @@ Rspack 2.0 进一步减少了构建配置中重复描述目标环境的成本。
 这样做可以减少配置冗余，也能避免“转译目标”和“压缩目标”不一致带来的问题。
 
 <span id="hashed-module-ids-plugin"></span>
-### 支持 HashedModuleIdsPlugin @LingyuCoder
+### 支持 HashedModuleIdsPlugin
 
-另外，Rspack 2.0 也补充了 `HashedModuleIdsPlugin`。如果你希望更明确地控制模块 id 的生成策略，而不是只依赖默认配置或 `optimization.moduleIds` 的字符串选项，可以直接使用这个插件。
+`HashedModuleIdsPlugin` 也在 2.0 中得到支持。如果你希望基于模块的相对路径计算出一个简短、稳定且唯一的 id，可以使用这个插件：
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
