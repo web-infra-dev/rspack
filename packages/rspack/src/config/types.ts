@@ -3054,12 +3054,12 @@ export type Performance =
       hints?: false | 'warning' | 'error';
       /**
        * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
-       * @default 250000
+       * @default 307200 (300 KiB)
        */
       maxAssetSize?: number;
       /**
        * Total size of an entry point (in bytes).
-       * @default 250000
+       * @default 512000 (500 KiB)
        */
       maxEntrypointSize?: number;
     };

@@ -4,6 +4,10 @@ module.exports = [
     entry: './index',
     mode: 'production',
     target: 'web',
+    performance: {
+      maxAssetSize: 200 * 1024,
+      maxEntrypointSize: 200 * 1024,
+    },
     output: {
       filename: 'warning.pro-web.js',
     },
@@ -16,6 +20,10 @@ module.exports = [
     entry: './index',
     mode: 'production',
     target: 'webworker',
+    performance: {
+      maxAssetSize: 200 * 1024,
+      maxEntrypointSize: 200 * 1024,
+    },
     output: {
       filename: 'warning.pro-webworker.js',
     },
@@ -84,6 +92,8 @@ module.exports = [
     target: 'node',
     performance: {
       hints: 'warning',
+      maxAssetSize: 200 * 1024,
+      maxEntrypointSize: 200 * 1024,
     },
     output: {
       filename: 'warning.pro-node-with-hints-set.js',

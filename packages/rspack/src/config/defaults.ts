@@ -990,8 +990,8 @@ const applyPerformanceDefaults = (
   { production }: { production: boolean },
 ) => {
   if (performance === false) return;
-  D(performance, 'maxAssetSize', 250000);
-  D(performance, 'maxEntrypointSize', 250000);
+  D(performance, 'maxAssetSize', 300 * 1024);
+  D(performance, 'maxEntrypointSize', 500 * 1024);
   F(performance, 'hints', () => (production ? 'warning' : false));
 };
 
