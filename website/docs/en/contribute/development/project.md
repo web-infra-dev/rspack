@@ -137,7 +137,6 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 
 ### Browser & environment support
 
-- **`rspack_browser`**: Browser environment support providing browser-side implementations
 - **`rspack_browserslist`**: Browserslist support for handling browser compatibility queries
 
 ### Monitoring & tracing

@@ -3719,7 +3719,6 @@ dependencies = [
  "rayon",
  "regex",
  "rspack_allocator",
- "rspack_browser",
  "rspack_browserslist",
  "rspack_cacheable",
  "rspack_collections",
@@ -3842,10 +3841,6 @@ dependencies = [
  "rspack_error",
  "rspack_napi",
 ]
-
-[[package]]
-name = "rspack_browser"
-version = "0.100.0-rc.2"
 
 [[package]]
 name = "rspack_browserslist"
@@ -4248,7 +4243,6 @@ version = "0.100.0-rc.2"
 dependencies = [
  "napi",
  "oneshot",
- "rspack_browser",
  "rspack_error",
  "serde_json",
  "tokio",

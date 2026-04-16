@@ -901,14 +901,20 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::RscServerPlugin => {
-        let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
+        }
       }
       BuiltinPluginName::RscClientPlugin => {
-        let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscClientPlugin::new(options.into()).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          plugins.push(RscClientPlugin::new(options.into()).boxed());
+        }
       }
     }
     Ok(())

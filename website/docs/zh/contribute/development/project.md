@@ -137,7 +137,6 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 
 ### 浏览器与环境支持
 
-- **`rspack_browser`**: 浏览器环境支持，提供浏览器端实现
 - **`rspack_browserslist`**: Browserslist 支持，用于处理浏览器兼容性查询
 
 ### 监控与追踪
