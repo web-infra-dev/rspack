@@ -40,7 +40,8 @@ pub struct RscClientPlugin {
 fn extend_required_chunks(
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
-  required_chunks: &mut Vec<String>,
+  required_chunks: &mut FxIndexSet<String>,
+  required_css_chunks: &mut FxIndexSet<String>,
 ) {
   for chunk_ukey in &chunk_group.chunks {
     let Some(chunk) = compilation
@@ -53,7 +54,11 @@ fn extend_required_chunks(
     let Some(chunk_id) = chunk.id() else {
       continue;
     };
-    for file in chunk.files().iter().filter(|f| f.ends_with(".js")) {
+    for file in chunk
+      .files()
+      .iter()
+      .filter(|file| file.ends_with(".js") || file.ends_with(".css"))
+    {
       if let Some(asset) = compilation.assets().get(file) {
         let asset_info = asset.get_info();
         if asset_info.hot_module_replacement.unwrap_or(false)
@@ -62,13 +67,17 @@ fn extend_required_chunks(
           continue;
         }
       };
-      required_chunks.push(chunk_id.to_string());
-      // We encode the file as a URI because our server (and many other services such as S3)
-      // expect to receive reserved characters such as `[` and `]` as encoded. This was
-      // previously done for dynamic chunks by patching the Rspack runtime but we want
-      // these filenames to be managed by React's Flight runtime instead and so we need
-      // to implement any special handling of the file name here.
-      required_chunks.push(encode_uri_path(file));
+      if file.ends_with(".js") {
+        required_chunks.insert(chunk_id.to_string());
+        // We encode the file as a URI because our server (and many other services such as S3)
+        // expect to receive reserved characters such as `[` and `]` as encoded. This was
+        // previously done for dynamic chunks by patching the Rspack runtime but we want
+        // these filenames to be managed by React's Flight runtime instead and so we need
+        // to implement any special handling of the file name here.
+        required_chunks.insert(encode_uri_path(file));
+      } else {
+        required_css_chunks.insert(encode_uri_path(file));
+      }
     }
   }
 }
@@ -80,7 +89,8 @@ fn record_module(
   module_identifier: &ModuleIdentifier,
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
-  required_chunks: &[String],
+  required_chunks: &FxIndexSet<String>,
+  required_css_chunks: &FxIndexSet<String>,
   entry_state: &mut EntryState,
 ) {
   let Some(module) = compilation.module_by_identifier(module_identifier) else {
@@ -139,7 +149,8 @@ fn record_module(
     ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
-      chunks: required_chunks.to_vec(),
+      chunks: required_chunks.iter().cloned().collect(),
+      css_files: required_css_chunks.iter().cloned().collect(),
       r#async: Some(is_async),
     },
   );
@@ -151,7 +162,8 @@ fn record_chunk_group(
   client_entry_modules: &IdentifierSet,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
-  required_chunks: &mut Vec<String>,
+  required_chunks: &mut FxIndexSet<String>,
+  required_css_chunks: &mut FxIndexSet<String>,
   checked_chunk_groups: &mut FxHashSet<ChunkGroupUkey>,
   checked_chunks: &mut FxHashSet<ChunkUkey>,
   entry_state: &mut EntryState,
@@ -201,6 +213,7 @@ fn record_chunk_group(
           chunk_ukey,
           compilation,
           required_chunks,
+          required_css_chunks,
           entry_state,
         );
       } else {
@@ -211,6 +224,7 @@ fn record_chunk_group(
           chunk_ukey,
           compilation,
           required_chunks,
+          required_css_chunks,
           entry_state,
         );
       }
@@ -227,18 +241,21 @@ fn record_chunk_group(
       continue;
     };
     let start_len = required_chunks.len();
-    extend_required_chunks(child, compilation, required_chunks);
+    let start_css_len = required_css_chunks.len();
+    extend_required_chunks(child, compilation, required_chunks, required_css_chunks);
     record_chunk_group(
       module_loading,
       client_entry_modules,
       child,
       compilation,
       required_chunks,
+      required_css_chunks,
       checked_chunk_groups,
       checked_chunks,
       entry_state,
     );
     required_chunks.truncate(start_len);
+    required_css_chunks.truncate(start_css_len);
   }
 }
 
@@ -435,7 +452,8 @@ impl RscClientPlugin {
       }
     }
 
-    let mut required_chunks: Vec<String> = Default::default();
+    let mut required_chunks: FxIndexSet<String> = Default::default();
+    let mut required_css_chunks: FxIndexSet<String> = Default::default();
     let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
     let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
 
@@ -457,6 +475,7 @@ impl RscClientPlugin {
       };
 
       required_chunks.clear();
+      required_css_chunks.clear();
       checked_chunk_groups.clear();
       checked_chunks.clear();
 
@@ -466,6 +485,7 @@ impl RscClientPlugin {
         entrypoint,
         compilation,
         &mut required_chunks,
+        &mut required_css_chunks,
         &mut checked_chunk_groups,
         &mut checked_chunks,
         entry_state,

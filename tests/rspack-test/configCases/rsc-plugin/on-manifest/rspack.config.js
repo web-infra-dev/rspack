@@ -82,6 +82,7 @@ module.exports = [
           expect(mainEntry.moduleLoading.prefix).toBe('/');
           expect(mainEntry).toHaveProperty('serverManifest');
           expect(mainEntry).toHaveProperty('clientManifest');
+          expect(mainEntry).not.toHaveProperty('clientCssManifest');
           expect(mainEntry).toHaveProperty('serverConsumerModuleMap');
           expect(mainEntry).toHaveProperty('entryCssFiles');
           expect(mainEntry).toHaveProperty('entryJsFiles');
@@ -93,6 +94,26 @@ module.exports = [
           const clientManifestExport = mainEntry.clientManifest[clientPath];
           expect(clientManifestExport.id).toBe(clientModuleId);
           expect(clientManifestExport.name).toBe('*');
+          expect(clientManifestExport.chunks.length % 2).toBe(0);
+          expect(clientManifestExport.chunks).toEqual([
+            ...new Set(clientManifestExport.chunks),
+          ]);
+          expect(
+            clientManifestExport.chunks.every(
+              (chunk, index) => index % 2 === 0 || chunk.endsWith('.js'),
+            ),
+          ).toBe(true);
+          expect(clientManifestExport).toHaveProperty('cssFiles');
+          const clientCssFiles = clientManifestExport.cssFiles;
+          expect(clientCssFiles).toEqual([
+            expect.stringMatching(/^src_Client_js\..*\.css$/),
+          ]);
+          expect(clientCssFiles).toEqual([...new Set(clientCssFiles)]);
+          expect(
+            clientCssFiles.some((cssFile) =>
+              clientManifestExport.chunks.includes(cssFile),
+            ),
+          ).toBe(false);
 
           expect(mainEntry.serverConsumerModuleMap[clientModuleId]).toEqual({
             '*': {

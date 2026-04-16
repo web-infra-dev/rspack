@@ -1,5 +1,6 @@
 'use client';
 
+import './Client.css';
 import { add, del, get, update } from './actions';
 
 export const Client = () => {
@@ -11,7 +12,7 @@ export const Client = () => {
     }
 
     return (
-        <button type="button" onClick={onClick}>
+        <button className="client-button" type="button" onClick={onClick}>
             Run actions
         </button>
     );
