@@ -175,24 +175,30 @@ To make Rspack's package format better aligned with the modern Node.js / ESM eco
 As a result, you need to upgrade Node.js to 20.19+ or 22.12+, which natively support `require(esm)`.
 
 <span id="better-esm"></span>
-## Better ESM output @jserfeng
+## Better ESM output
 
 For library bundling scenarios, ESM output quality is especially important. The cleaner the ESM output is, the better it is for static analysis, and the more effective downstream code splitting and tree shaking can be.
 
-Building on the earlier experimental `EsmLibraryPlugin`, Rspack 2.0 further improves ESM output quality and also consolidates configuration into the more natural [`modern-module`](/config/output#outputlibrarytype) and [`output.module`](/config/output#outputmodule).
-
-You can configure it like this in a library build:
+In Rspack 1.6 we shipped the experimental [`rspack.experiments.EsmLibraryPlugin`](https://v1.rspack.rs/plugins/rspack/esm-library-plugin), which replaced the module-concatenation-based ESM output pipeline with a dedicated one. Over the following minor releases it was hardened and made responsible for more parts of the pipeline, and in 2.0 it is fully stabilized. The experimental plugin entry is gone — you enable the same pipeline by setting [`output.library.type`](/config/output#outputlibrarytype) to `'modern-module'`:
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    module: true,
     library: {
       type: 'modern-module',
     },
   },
 };
 ```
+
+Compared with the generic [`output.module`](/config/output#outputmodule) path — which stays on the regular chunk/runtime renderer and then turns entry exports into `export` statements — `modern-module` takes over the full library rendering path. In particular:
+
+- It uses its own scope-hoisting algorithm instead of [`optimization.concatenateModules`](/config/optimization#optimizationconcatenatemodules), so multiple modules can be concatenated into a single ESM output without dragging in Rspack's runtime wrappers.
+- It renders chunks directly as ESM files and links them together with real `import` / `export` statements, so consumers can keep statically analyzing the output even after [code splitting](/guide/optimization/code-splitting).
+- It deduplicates modules that would otherwise appear in multiple chunks, reducing redundancy when a library is split into several entries.
+- It unlocks [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules), which preserves the original source directory structure in the output — useful for publishing libraries whose consumers expect one output file per source file.
+
+At the configuration level, `modern-module` also implies a set of defaults that are otherwise tedious to wire up by hand — [`output.module`](/config/output#outputmodule) is set to `true`, `output.chunkLoading` is set to `'import'`, and [`splitChunks`](/plugins/webpack/split-chunks-plugin) defaults are widened so that split output remains clean. For a broader walk-through of ESM scenarios and configuration, see the [ESM guide](/guide/features/esm).
 
 <span id="import-meta-properties"></span>
 ## Better import.meta support @ahabhgk
@@ -365,19 +371,26 @@ export default {
 ```
 
 <span id="enforce-size-threshold"></span>
-### Support for splitChunks.enforceSizeThreshold @jserfeng
+### Support for splitChunks.enforceSizeThreshold
 
-The `splitChunks.enforceSizeThreshold` option is also supported in 2.0. It lets you set a hard threshold for chunk size during code splitting. Once a module group's size exceeds that threshold, some `maxRequests` limits are skipped so that splitting can continue more aggressively.
+The [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin) option is also supported in 2.0. It sets a size threshold at which chunk splitting is enforced regardless of [`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests), [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests), and `splitChunks.minRemainingSize`. Without this option, those request limits can prevent a large cache group from being split out even when splitting would clearly be desirable; once the group size crosses the threshold, those limits are skipped so the split still happens.
+
+Following webpack's defaults, Rspack defaults `enforceSizeThreshold` to `50000` in production mode and `30000` in other modes, and also accepts a per-type object to target specific module types such as JavaScript and CSS:
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     splitChunks: {
+      // single number applies to all source types
       enforceSizeThreshold: 50000,
+      // or per source type
+      // enforceSizeThreshold: { javascript: 50000, css: 30000 },
     },
   },
 };
 ```
+
+The option can also be set per cache group, so you can keep a strict global request budget while letting a specific group (for example `defaultVendors`) split more aggressively once it grows past a chosen size. Other constraints such as [`minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize), [`maxSize`](/plugins/webpack/split-chunks-plugin#splitchunksmaxsize), and [`minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks) continue to apply.
 
 <span id="better-tree-shaking"></span>
 ### Better tree shaking @ahabhgk

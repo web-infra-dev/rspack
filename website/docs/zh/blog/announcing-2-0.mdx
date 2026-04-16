@@ -175,24 +175,30 @@ export default {
 因此，你需要将 Node.js 升级到原生支持 `require(esm)` 的 20.19+ 或 22.12+ 版本。
 
 <span id="better-esm"></span>
-## 更好的 ESM 产物 @jserfeng
+## 更好的 ESM 产物
 
 对于库打包场景来说，ESM 产物质量尤为重要。越纯净的 ESM 产物越有利于静态分析，下游的代码分割和 tree shaking 的效果也会越好。
 
-Rspack 2.0 在此前实验性的 `EsmLibraryPlugin` 基础上进一步提升了 ESM 产物质量，同时也将配置方式收敛到了更自然的 [`modern-module`](/config/output#outputlibrarytype) 和 [`output.module`](/config/output#outputmodule) 上。
-
-你可以在库构建中这样配置：
+在 Rspack 1.6 中，我们引入了实验性的 [`rspack.experiments.EsmLibraryPlugin`](https://v1.rspack.rs/plugins/rspack/esm-library-plugin)，以一条专用的渲染路径替代了此前基于 module concatenation 的 ESM 输出方案。之后的若干个小版本里，它持续被打磨并接管了产物流水线中更多的环节，到 2.0 中已经完全稳定。我们也移除了实验性插件入口，现在你只需要将 [`output.library.type`](/config/output#outputlibrarytype) 配置为 `'modern-module'` 即可启用这条路径：
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    module: true,
     library: {
       type: 'modern-module',
     },
   },
 };
 ```
+
+与通用的 [`output.module`](/config/output#outputmodule)（仍沿用常规的 chunk / runtime 渲染流程，再将入口导出转换为 `export` 语句）不同，`modern-module` 会完整接管库产物的渲染流程，具体包括：
+
+- 使用独立的 scope hoisting 算法，而不再依赖 [`optimization.concatenateModules`](/config/optimization#optimizationconcatenatemodules)，可以在不引入 Rspack 运行时包装代码的前提下，将多个模块合并到同一个 ESM 产物中。
+- 直接将 chunk 渲染为 ESM 文件，并使用真实的 `import` / `export` 语句在 chunk 之间进行链接，即使经过[代码分割](/guide/optimization/code-splitting)，产物依然能被下游工具静态分析。
+- 自动对会在多个 chunk 中重复出现的模块进行去重，以减少库被拆分为多个入口时的冗余代码。
+- 启用 [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules) 能力：在产物中保留源码目录结构，适合需要“源码一个文件、产物一个文件”发布形态的库。
+
+在配置层面，`modern-module` 也内置了一组默认值来简化手动配置：会自动将 [`output.module`](/config/output#outputmodule) 置为 `true`，将 `output.chunkLoading` 设为 `'import'`，并放宽 [`splitChunks`](/plugins/webpack/split-chunks-plugin) 的默认值，以保证拆分后产物的纯净度。更完整的 ESM 场景和配置说明可参考 [ESM 指南](/guide/features/esm)。
 
 <span id="import-meta-properties"></span>
 ## 更好的 import.meta 支持 @ahabhgk
@@ -365,19 +371,26 @@ export default {
 ```
 
 <span id="enforce-size-threshold"></span>
-### 支持 splitChunks.enforceSizeThreshold @jserfeng
+### 支持 splitChunks.enforceSizeThreshold
 
-代码分割选项 `splitChunks.enforceSizeThreshold` 也在 2.0 中得到支持。它可以在代码分割时为 chunk 体积设置一个强制阈值，当模块组大小超过这个阈值时，会跳过部分 `maxRequests` 限制，从而更积极地执行拆分策略。
+代码分割选项 [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin) 在 2.0 中得到支持。它用于设置一个强制拆分的体积阈值：当某个模块组的体积超过该阈值时，[`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests)、[`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) 和 `splitChunks.minRemainingSize` 等限制会被忽略，从而确保拆分仍然发生。没有这个配置时，这些请求数限制可能会阻止一个很大的 cache group 被拆分出来——即便拆分显然更合理——而在加入该阈值后，一旦模块组的体积超过阈值，Rspack 就会跳过这些限制，完成拆分。
+
+与 webpack 对齐，Rspack 中 `enforceSizeThreshold` 的默认值在生产模式下为 `50000`，其他模式下为 `30000`；同时它也支持以对象形式针对不同模块类型（如 JavaScript、CSS）分别设置阈值：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     splitChunks: {
+      // 使用数字形式会对所有模块类型生效
       enforceSizeThreshold: 50000,
+      // 也可以按模块类型分别配置
+      // enforceSizeThreshold: { javascript: 50000, css: 30000 },
     },
   },
 };
 ```
+
+该选项同样可以在 cache group 粒度上配置：你可以保留较严格的全局请求数限制，同时允许某个 cache group（如 `defaultVendors`）在体积超过指定阈值后更积极地完成拆分。此外，[`minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize)、[`maxSize`](/plugins/webpack/split-chunks-plugin#splitchunksmaxsize) 和 [`minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks) 等体积与共享度相关的约束会继续生效。
 
 <span id="better-tree-shaking"></span>
 ### 更好的 tree shaking @ahabhgk
