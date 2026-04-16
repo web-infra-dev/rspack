@@ -72,7 +72,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           ),
           _ => format!(
             "return Promise.all({}.map({}, {})).then(next);",
-            rspack_util::json_stringify(&chunk_ids),
+            serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),

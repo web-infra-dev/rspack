@@ -117,7 +117,8 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
             .clone()
         })
         .collect::<Vec<_>>();
-      let entry_chunk_ids_literal = rspack_util::json_stringify(&entry_chunk_ids);
+      let entry_chunk_ids_literal =
+        serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
       Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Async),
         Some(serde_json::json!({

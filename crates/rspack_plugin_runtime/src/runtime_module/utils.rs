@@ -181,7 +181,7 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&ChunkId]) -> 
   let condition = if chunk_ids.len() == 1 {
     format!(
       "chunkId === {}",
-      rspack_util::json_stringify(*chunk_ids.first().expect("should have chunk id"))
+      serde_json::to_string(&chunk_ids.first()).expect("invalid json to_string")
     )
   } else {
     let content = chunk_ids
