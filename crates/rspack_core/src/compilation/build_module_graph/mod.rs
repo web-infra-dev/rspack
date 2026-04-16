@@ -1,7 +1,6 @@
 mod graph_updater;
 mod lazy_barrel_artifact;
 mod module_executor;
-pub mod pass;
 
 use std::sync::atomic::Ordering;
 
