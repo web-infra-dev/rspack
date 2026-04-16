@@ -15,10 +15,10 @@ const validateContext = ({ context }: Configuration) => {
   }
 };
 
-const validateOutputPath = ({ output }: Configuration) => {
-  if (output?.path && !isAbsolute(output.path)) {
+const validateOutputPath = ({ context, output }: Configuration) => {
+  if (output?.path && !isAbsolute(output.path) && !context) {
     throw new Error(
-      `${ERROR_PREFIX} "output.path" must be an absolute path, get "${output.path}".`,
+      `${ERROR_PREFIX} "context" must be a non-empty absolute path when "output.path" is relative, get "${context ?? ''}".`,
     );
   }
 };
