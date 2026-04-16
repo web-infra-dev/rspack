@@ -14,7 +14,6 @@ use crate::RayonConsumer;
 
 pub const SCOPE: &str = "occasion_minimize";
 
-/// The value struct of current storage scope
 #[cacheable]
 struct Entry {
   #[cacheable(with=AsPreset)]
@@ -29,7 +28,6 @@ struct ExtractedCommentsEntry {
   pub comments_file_name: String,
 }
 
-/// A content hash key for the minimize cache.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MinimizeCacheKey(u64);
 
@@ -49,45 +47,36 @@ impl MinimizeCacheKey {
   }
 }
 
-/// In-memory representation of cached minimize results.
-///
-/// Keys are content hashes (computed from source content + plugin options).
-/// Values are the minimized source and optional extracted comments.
 #[derive(Debug, Default)]
-pub struct MinimizeCacheArtifact {
+pub struct MinimizePersistentCacheArtifact {
   entries: FxHashMap<MinimizeCacheKey, CachedMinimizeEntry>,
   /// Keys of entries that were added during this build and need to be persisted.
   dirty_keys: Vec<MinimizeCacheKey>,
 }
 
-/// A single cached minimize result.
 #[derive(Debug, Clone)]
 pub struct CachedMinimizeEntry {
   pub source: BoxSource,
   pub extracted_comments: Option<CachedExtractedComments>,
 }
 
-/// Cached extracted comments data.
 #[derive(Debug, Clone)]
 pub struct CachedExtractedComments {
   pub source: BoxSource,
   pub comments_file_name: String,
 }
 
-impl MinimizeCacheArtifact {
-  /// Look up a cached minimize result by content hash key.
+impl MinimizePersistentCacheArtifact {
   pub fn get(&self, key: MinimizeCacheKey) -> Option<&CachedMinimizeEntry> {
     self.entries.get(&key)
   }
 
-  /// Insert a new minimize result. Marks the key as dirty for persistence.
   pub fn insert(&mut self, key: MinimizeCacheKey, entry: CachedMinimizeEntry) {
     self.dirty_keys.push(key);
     self.entries.insert(key, entry);
   }
 }
 
-/// Minimize Occasion is used to save minimized asset results.
 #[derive(Debug)]
 pub struct MinimizeOccasion {
   codec: Arc<CacheCodec>,
@@ -101,7 +90,7 @@ impl MinimizeOccasion {
 
 #[async_trait::async_trait]
 impl Occasion for MinimizeOccasion {
-  type Artifact = MinimizeCacheArtifact;
+  type Artifact = MinimizePersistentCacheArtifact;
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {
@@ -109,7 +98,7 @@ impl Occasion for MinimizeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::save", skip_all)]
-  fn save(&self, storage: &mut dyn Storage, artifact: &MinimizeCacheArtifact) {
+  fn save(&self, storage: &mut dyn Storage, artifact: &MinimizePersistentCacheArtifact) {
     // Only persist entries that were added during this build.
     artifact
       .dirty_keys
@@ -129,7 +118,7 @@ impl Occasion for MinimizeOccasion {
         match self.codec.encode(&storage_entry) {
           Ok(bytes) => Some((key.to_bytes(), bytes)),
           Err(err) => {
-            tracing::warn!("minimize cache encode failed: {:?}", err);
+            tracing::warn!("minimize persistent cache encode failed: {:?}", err);
             None
           }
         }
@@ -138,18 +127,21 @@ impl Occasion for MinimizeOccasion {
         storage.set(SCOPE, key, bytes);
       });
 
-    tracing::debug!("saved {} minimize cache entries", artifact.dirty_keys.len());
+    tracing::debug!(
+      "saved {} minimize persistent cache entries",
+      artifact.dirty_keys.len()
+    );
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<MinimizeCacheArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<MinimizePersistentCacheArtifact> {
     let items = storage.load(SCOPE).await?;
     let mut entries = FxHashMap::default();
     entries.reserve(items.len());
 
     for (key, value) in items {
       let Some(key) = MinimizeCacheKey::from_bytes(&key) else {
-        tracing::warn!("minimize cache key has invalid length");
+        tracing::warn!("minimize persistent cache key has invalid length");
         continue;
       };
       match self.codec.decode::<Entry>(&value) {
@@ -166,13 +158,16 @@ impl Occasion for MinimizeOccasion {
           );
         }
         Err(err) => {
-          tracing::warn!("minimize cache decode failed: {:?}", err);
+          tracing::warn!("minimize persistent cache decode failed: {:?}", err);
         }
       }
     }
 
-    tracing::debug!("recovered {} minimize cache entries", entries.len());
-    Ok(MinimizeCacheArtifact {
+    tracing::debug!(
+      "recovered {} minimize persistent cache entries",
+      entries.len()
+    );
+    Ok(MinimizePersistentCacheArtifact {
       entries,
       dirty_keys: Vec::new(),
     })

@@ -179,8 +179,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Take persistent cache out if enabled. When Some, we compute cache keys and
   // do lookups; when None, we skip all cache overhead entirely.
-  let minimize_cache = compilation.minimize_cache_artifact.take();
-  let new_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
+  let minimize_persistent_cache = compilation.minimize_persistent_cache_artifact.take();
+  let new_persistent_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
   let cache_hits = AtomicU32::new(0);
   let cache_misses = AtomicU32::new(0);
@@ -233,19 +233,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
 
         // Compute cache key and check persistent cache (only when enabled)
-        let cache_key = if let Some(minimize_cache) = &minimize_cache {
+        let cache_key = if let Some(cache) = &minimize_persistent_cache {
           let key = {
-            let source_buffer = original_source.buffer();
             let mut hasher = FxHasher::default();
-            source_buffer.hash(&mut hasher);
-            filename.hash(&mut hasher);
+            original_source.buffer().hash(&mut hasher);
             self.options_hash.hash(&mut hasher);
+            filename.hash(&mut hasher);
             is_module.hash(&mut hasher);
             MinimizeCacheKey::new(hasher.finish())
           };
 
           // Check persistent cache
-          if let Some(cached) = minimize_cache.get(key) {
+          if let Some(cached) = cache.get(key) {
             cache_hits.fetch_add(1, Ordering::Relaxed);
             original.set_source(Some(cached.source.clone()));
             original.get_info_mut().minimized.replace(true);
@@ -466,7 +465,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               comments_file_name: ec.comments_file_name.clone(),
             });
 
-          new_cache_entries
+          new_persistent_cache_entries
             .lock()
             .expect("new_cache_entries lock failed")
             .push((
@@ -486,20 +485,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   })?;
 
   // Restore persistent cache with new entries (only when enabled)
-  if let Some(mut minimize_cache) = minimize_cache {
-    for (key, entry) in new_cache_entries
+  if let Some(mut cache) = minimize_persistent_cache {
+    for (key, entry) in new_persistent_cache_entries
       .into_inner()
-      .expect("new_cache_entries lock failed")
+      .expect("new_persistent_cache_entries lock failed")
     {
-      minimize_cache.insert(key, entry);
+      cache.insert(key, entry);
     }
-    compilation.minimize_cache_artifact = Some(minimize_cache);
+    compilation.minimize_persistent_cache_artifact = Some(cache);
 
     // Log cache statistics
     let hits = cache_hits.load(Ordering::Relaxed);
     let misses = cache_misses.load(Ordering::Relaxed);
     let logger = compilation.get_logger(PLUGIN_NAME);
-    logger.log(format!("minimize cache: {hits} hit, {misses} miss"));
+    logger.log(format!(
+      "minimize persistent cache: {hits} hit, {misses} miss"
+    ));
   }
 
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());

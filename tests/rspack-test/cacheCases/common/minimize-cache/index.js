@@ -1,6 +1,6 @@
 import value from "./file";
 
-it("should hit minimize cache on cold restart and across HMR", async () => {
+it("should hit minimize persistent cache on cold restart and across HMR", async () => {
 	const asyncMod = await import("./async-module");
 	expect(asyncMod.value).toBe(42);
 

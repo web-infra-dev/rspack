@@ -22,7 +22,7 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{MakeOccasion, MetaOccasion, MinimizeCacheArtifact, MinimizeOccasion},
+  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{StorageOptions, create_storage},
 };
@@ -213,22 +213,19 @@ impl Cache for PersistentCache {
 
   async fn before_process_assets(&mut self, compilation: &mut Compilation) {
     if compilation.is_rebuild {
-      // During rebuild (HMR), start with a fresh empty cache.
-      // The persistent storage is not loaded; cache entries from the
-      // previous compilation are not reused across in-memory rebuilds.
-      compilation.minimize_cache_artifact = Some(MinimizeCacheArtifact::default());
       return;
     }
 
-    let artifact = match self.ctx.load_occasion(&self.minimize_occasion).await {
-      Some(artifact) => artifact,
-      None => MinimizeCacheArtifact::default(),
-    };
-    compilation.minimize_cache_artifact = Some(artifact);
+    let artifact = self
+      .ctx
+      .load_occasion(&self.minimize_occasion)
+      .await
+      .unwrap_or_default();
+    compilation.minimize_persistent_cache_artifact = Some(artifact);
   }
 
   async fn after_process_assets(&mut self, compilation: &Compilation) {
-    if let Some(artifact) = &compilation.minimize_cache_artifact {
+    if let Some(artifact) = &compilation.minimize_persistent_cache_artifact {
       self.ctx.save_occasion(&self.minimize_occasion, artifact);
     }
   }

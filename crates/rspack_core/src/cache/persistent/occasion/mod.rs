@@ -5,7 +5,7 @@ pub mod minimize;
 pub use make::MakeOccasion;
 pub use meta::MetaOccasion;
 pub use minimize::{
-  CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheArtifact, MinimizeOccasion,
+  CachedExtractedComments, CachedMinimizeEntry, MinimizeOccasion, MinimizePersistentCacheArtifact,
 };
 use rspack_error::Result;
 

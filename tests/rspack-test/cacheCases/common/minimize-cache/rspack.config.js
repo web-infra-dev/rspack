@@ -21,7 +21,7 @@ module.exports = {
   plugins: [
     {
       apply(compiler) {
-        compiler.hooks.done.tap('MinimizeCacheTest', (stats) => {
+        compiler.hooks.done.tap('MinimizePersistentCacheTest', (stats) => {
           const s = stats.toJson({
             all: false,
             assets: true,
@@ -35,12 +35,21 @@ module.exports = {
 
           const logEntries = s.logging[PLUGIN_NAME]?.entries ?? [];
           const cacheLogEntry = logEntries.find(
-            (e) => e.message && e.message.includes('minimize cache:'),
+            (e) =>
+              e.message && e.message.includes('minimize persistent cache:'),
           );
+
+          if (updateIndex === 5) {
+            // HMR update with changed file content
+            // Minimize persistent cache is not shared across in-memory rebuilds, so both assets are processed as new → all misses.
+            expect(cacheLogEntry).toBeUndefined();
+            return;
+          }
+
           expect(cacheLogEntry).toBeTruthy();
 
           const match = cacheLogEntry.message.match(
-            /minimize cache: (\d+) hit, (\d+) miss/,
+            /minimize persistent cache: (\d+) hit, (\d+) miss/,
           );
           expect(match).toBeTruthy();
 
@@ -72,12 +81,6 @@ module.exports = {
             // Cold restart. Async chunk still unchanged → hit.
             expect(hits).toBe(1);
             expect(misses).toBe(1);
-          }
-          if (updateIndex === 5) {
-            // HMR update with changed file content
-            // Minimize cache is not shared across in-memory rebuilds, so both assets are processed as new → all misses.
-            expect(hits).toBe(0);
-            expect(misses).toBe(3); // hot-update.js
           }
 
           updateIndex++;
