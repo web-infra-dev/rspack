@@ -37,7 +37,6 @@ Rspack 2.0 is now officially available. This release mainly brings:
 - [Better deferred import support](#import-defer)
 - [A lighter development server](#dev-server)
 - [Support for `#/` subpath alias imports](#subpath-alias-import)
-- [Support for resolve.pnpManifest](#pnp-manifest)
 - [Optional Module Federation runtime](#mf-runtime)
 - [Module Federation shared dependency pruning](#mf-share-treeshaking)
 - [Built-in SWC loader syntax detection](#detect-syntax)
@@ -258,22 +257,6 @@ In module resolution, Rspack 2.0 supports `#/`-style subpath alias imports. This
 
 ```js title="src/index.js"
 import main from '#/main.ts';
-```
-
-<span id="pnp-manifest"></span>
-## Support for resolve.pnpManifest @stormslowly
-
-For Yarn PnP scenarios, the Rspack 2.0 resolver adds support for the `resolve.pnpManifest` option, which lets you explicitly specify the path to the PnP manifest file. This gives you more fine-grained control over how PnP metadata is read and resolved in complex package-management and monorepo environments, instead of relying entirely on auto-detection:
-
-```js title="rspack.config.mjs"
-import path from 'node:path';
-
-export default {
-  resolve: {
-    pnp: true,
-    pnpManifest: path.resolve(import.meta.dirname, '.pnp.cjs'),
-  },
-};
 ```
 
 <span id="mf-runtime"></span>

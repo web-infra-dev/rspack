@@ -37,7 +37,6 @@ _2026 年 4 月 28 日_
 - [更好的延迟导入支持](#import-defer)
 - [更轻量的开发服务器](#dev-server)
 - [支持 `#/` 子路径别名导入](#subpath-alias-import)
-- [支持 resolve.pnpManifest](#pnp-manifest)
 - [可选的模块联邦运行时](#mf-runtime)
 - [模块联邦共享依赖裁剪](#mf-share-treeshaking)
 - [内置 SWC loader 自动检测语法](#detect-syntax)
@@ -258,22 +257,6 @@ pnpm add -D @rspack/dev-server
 
 ```js title="src/index.js"
 import main from '#/main.ts';
-```
-
-<span id="pnp-manifest"></span>
-## 支持 resolve.pnpManifest @stormslowly
-
-在 Yarn PnP 场景下，Rspack 2.0 的 resolver 支持了 `resolve.pnpManifest` 选项，用于显式指定 PnP 清单文件路径。这样在复杂的包管理和 monorepo 环境下，你依然可以细致地控制 PnP 元信息的读取与解析行为，而不必完全依赖自动探测：
-
-```js title="rspack.config.mjs"
-import path from 'node:path';
-
-export default {
-  resolve: {
-    pnp: true,
-    pnpManifest: path.resolve(import.meta.dirname, '.pnp.cjs'),
-  },
-};
 ```
 
 <span id="mf-runtime"></span>
