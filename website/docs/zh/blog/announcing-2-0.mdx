@@ -113,33 +113,21 @@ Rspack 2.0 不仅是一个里程碑，也意味着一个新的起点。
 在 Rspack 2.0 中，我们移除了部分废弃的功能和代码，升级了部分老旧的依赖，也因此有机会进一步优化内部的算法和数据结构，这也带来了约 **10%** 的性能收益。
 
 <span id="rsc-support"></span>
-## 内置 React Server Components 支持 @SyMind
+## 内置 React Server Components 支持
 
-在 Rspack 2.0 中，[React Server Components](/guide/tech/rsc) 将在核心中直接提供了面向 RSC 的插件与编译支持，而不再完全依赖上层框架做额外拼装。
+React 服务器组件是一种新型的组件，它在打包之前，在独立于客户端应用程序或 SSR 服务器的环境中提前渲染。Rspack v2.0.0 及更高版本已内置对服务器组件的完整支持。
 
-通过 [`rsc.createPlugins()`](/guide/tech/rsc#配置插件) 生成的 `ServerPlugin` 与 `ClientPlugin`，Rspack 可以协调 Server Compiler 和 Client Compiler 两套构建流程，自动收集 `"use client"`、`"use server"`、`"use server-entry"` 等指令信息，生成 RSC 运行时所需的 manifest，并在服务端组件变更时通过 [`onServerComponentChanges`](/guide/tech/rsc#开发服务器) 暴露更新信号。
+1. 框架无关：不依赖任何元框架，提供通用的底层 RSC 构建能力。
+2. 编译时检查：编译时拦截违反 RSC 规范的 API 调用，提前规避运行时错误。
+3. CSS 支持：编译时收集服务器和客户端组件样式，并在渲染时注入。
+4. HMR 支持：支持服务端与客户端组件的热更新。
 
-与此同时，`builtin:swc-loader` 也被增强为可以识别并转换这些 RSC 指令，使 React 19 时代的 RSC、Server Actions、客户端引用和服务端引用能够在同一套构建体系里协同工作。
+Rspack 提供两种方案来支持 React 服务器组件：
 
-例如：
+- **使用 Rsbuild**：Rsbuild 提供对 React 服务器组件开箱即用的支持，能够快速创建一个 React 服务器组件项目，详见 [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)。
+- **手动配置 Rspack**：你可以参考当前文档，手动添加 React 服务器组件相关的配置。
 
-```js title="rspack.config.mjs"
-import { experiments } from '@rspack/core';
-
-const { createPlugins } = experiments.rsc;
-const { ServerPlugin, ClientPlugin } = createPlugins();
-
-export default [
-  {
-    target: 'web',
-    plugins: [new ClientPlugin()],
-  },
-  {
-    target: 'node',
-    plugins: [new ServerPlugin()],
-  },
-];
-```
+[rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) 仓库包含了使用 Rspack 构建 React 服务器组件应用的完整示例。
 
 <span id="portable-cache"></span>
 ## 可移植缓存 @jerrykingxyz
