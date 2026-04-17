@@ -10,7 +10,7 @@ use rspack_core::{
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec,
+  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec, RuntimeSpecMap,
   SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
@@ -114,7 +114,7 @@ pub struct ModuleConcatenationPlugin {
 #[derive(Default)]
 pub struct RuntimeIdentifierCache<T> {
   no_runtime_map: IdentifierMap<T>,
-  runtime_map: HashMap<RuntimeSpec, IdentifierMap<T>>,
+  runtime_map: RuntimeSpecMap<IdentifierMap<T>>,
 }
 
 struct ModuleGraphArtifacts<'a> {
@@ -131,7 +131,7 @@ impl<T> RuntimeIdentifierCache<T> {
       } else {
         let mut map = IdentifierMap::with_capacity_and_hasher(1, Default::default());
         map.insert(module, value);
-        self.runtime_map.insert(runtime.clone(), map);
+        self.runtime_map.set(runtime.clone(), map);
       }
     } else {
       self.no_runtime_map.insert(module, value);
@@ -1875,5 +1875,20 @@ mod tests {
     super::push_unique_module(&mut modules, &mut seen, a);
 
     assert_eq!(modules, vec![b, a, c]);
+  }
+
+  #[test]
+  fn runtime_identifier_cache_uses_single_entry_fast_path() {
+    let module = ModuleIdentifier::from("module");
+    let runtime = RuntimeSpec::from_iter(["runtime".into()]);
+    let mut cache = RuntimeIdentifierCache::default();
+
+    cache.insert(module, Some(&runtime), 1usize);
+
+    assert_eq!(cache.get(&module, Some(&runtime)), Some(&1));
+    assert_eq!(
+      cache.runtime_map.mode,
+      rspack_core::RuntimeMode::SingleEntry
+    );
   }
 }
