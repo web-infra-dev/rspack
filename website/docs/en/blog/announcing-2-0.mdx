@@ -45,7 +45,7 @@ Rspack 2.0 is now officially available. This release mainly brings:
 - [Support for `#/` subpath alias imports](#subpath-alias-import)
 - [Support for resolve.pnpManifest](#pnp-manifest)
 - [Optional Module Federation runtime](#mf-runtime)
-- [Module Federation shared dependency pruning](#mf-share-treeshaking)
+- [Module Federation shared dependency Tree Shaking](#mf-share-treeshaking)
 - [Built-in SWC loader syntax detection](#detect-syntax)
 - [CSS parser `resolveImport` option](#resolve-import)
 - [Automatic inheritance of target settings](#automatic-targets)
@@ -302,11 +302,20 @@ pnpm add @module-federation/runtime-tools
 ```
 
 <span id="mf-share-treeshaking"></span>
-## Module Federation shared dependency pruning @2heal1
+## Module Federation shared treeshaking
 
-Rspack 2.0 further improves pruning for shared dependencies in [Module Federation](/guide/features/module-federation). It can now apply finer-grained export-level optimization to `shared` dependencies and remove parts of shared packages that are not actually used. This further reduces output size in micro-frontend scenarios.
+Rspack 2.0 further improves shared treeshaking for [Module Federation](/guide/features/module-federation). It can optimize `shared` dependencies at the export level and remove parts that are not actually used, which helps reduce the size of shared bundles in micro-frontend scenarios.
 
-This capability supports both `runtime-infer` and `server-calc`, corresponding to two different engineering strategies: runtime inference and deployment-side secondary calculation.
+In the Module Federation shared used in Rspack 1.x, once a dependency was declared in `shared`, the runtime usually had to prepare the full package. Even if an application only used a small subset of its exports, the entire dependency was often pulled in. For libraries with many exports, such as `antd` or `lodash-es`, this could noticeably increase the size of shared bundles.
+
+Rspack 2.0 integrates this capability directly into `ModuleFederationPlugin`. When `treeshaking` is enabled for a `shared` entry, Rspack generates a treeshaking result for that shared dependency and lets the runtime load it first. If the current request cannot be satisfied by that result, the runtime falls back to the full dependency to preserve stable behavior.
+
+It supports both `runtime-infer` and `server-calc` modes:
+
+- `runtime-infer` is suitable for quick adoption and local validation. The runtime reuses a treeshaking shared bundle when possible, and falls back to the full dependency when the required exports are not available. You can also declare common exports ahead of time through `usedExports` to improve hit rates.
+- `server-calc` is better suited to production deployments with multiple consuming applications. You can aggregate the exports actually used by consumers during deployment and generate a more stable shared dependency treeshaking result.
+
+For component libraries and other large shared packages, this turns "share the full package" into "share what is actually used", reducing unnecessary code loading. For more details on configuration and behavior, see the [Shared Treeshaking guide](https://module-federation.io/guide/performance/shared-tree-shaking).
 
 For example:
 
