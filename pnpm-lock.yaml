@@ -513,8 +513,8 @@ importers:
         version: 19.2.5(react@19.2.5)
     devDependencies:
       '@codspeed/vitest-plugin':
-        specifier: ^5.2.0
-        version: 5.2.0(tinybench@2.9.0)(vite@7.3.1)(vitest@3.2.4)
+        specifier: ^5.3.0
+        version: 5.3.0(tinybench@2.9.0)(vite@7.3.1)(vitest@3.2.4)
       '@rspack/cli':
         specifier: workspace:*
         version: link:../../packages/rspack-cli
@@ -1360,11 +1360,11 @@ packages:
   '@chevrotain/utils@11.1.2':
     resolution: {integrity: sha512-4mudFAQ6H+MqBTfqLmU7G1ZwRzCLfJEooL/fsF6rCX5eePMbGhoy5n4g+G4vlh2muDcsCTJtL+uKbOzWxs5LHA==}
 
-  '@codspeed/core@5.2.0':
-    resolution: {integrity: sha512-CmDhpWjcOJg2iBOQ/BmBnSBq8qxlM3r4h8uvYDkoUaba+EKRT3T73BZtKuml/48jZMsB+4/FG2UbTBinDWtuvw==}
+  '@codspeed/core@5.3.0':
+    resolution: {integrity: sha512-++/kkPHPFI+dzX6FD+w+jFgKk8rgm5O1Tpg5nKUuFLENaB9ma///CZv76HdYZTJHu46dEeWwxGH+z0G3lLh59Q==}
 
-  '@codspeed/vitest-plugin@5.2.0':
-    resolution: {integrity: sha512-soXKIQBqJzjVQyWRwe2HNfhCaBgxhG25m8+PI3F5zFFsV3FQxMJXHsMECNtrgm+SRiCiWv/OFTcfCMZRy4nKtw==}
+  '@codspeed/vitest-plugin@5.3.0':
+    resolution: {integrity: sha512-rkuG6BCyw/haGMsB+E5Zv3DWzfzMj/8LJ4jdRSnzWwKzUxS+NlnOFWNYw/QfeWL7HfT388plefa0HSyRtoLMRA==}
     peerDependencies:
       tinybench: '>=2.9.0'
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
@@ -8154,7 +8154,7 @@ snapshots:
 
   '@chevrotain/utils@11.1.2': {}
 
-  '@codspeed/core@5.2.0':
+  '@codspeed/core@5.3.0':
     dependencies:
       axios: 1.15.0
       find-up: 6.3.0
@@ -8163,9 +8163,9 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@codspeed/vitest-plugin@5.2.0(tinybench@2.9.0)(vite@7.3.1)(vitest@3.2.4)':
+  '@codspeed/vitest-plugin@5.3.0(tinybench@2.9.0)(vite@7.3.1)(vitest@3.2.4)':
     dependencies:
-      '@codspeed/core': 5.2.0
+      '@codspeed/core': 5.3.0
       tinybench: 2.9.0
       vite: 7.3.1(@types/node@20.19.39)(jiti@2.6.1)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.3)
       vitest: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.39)(jiti@2.6.1)(jsdom@26.1.0)(less@4.6.4)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.46.1)(yaml@2.8.3)
@@ -14112,7 +14112,7 @@ snapshots:
   rsbuild-plugin-dts@0.21.0(@rsbuild/core@2.0.0-rc.1)(typescript@6.0.2):
     dependencies:
       '@ast-grep/napi': 0.37.0
-      '@rsbuild/core': 2.0.0-rc.1(@emnapi/core@1.9.2)(@emnapi/runtime@1.9.2)(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)
+      '@rsbuild/core': 2.0.0-rc.1(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)
     optionalDependencies:
       typescript: 6.0.2
 
