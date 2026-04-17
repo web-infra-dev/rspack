@@ -43,7 +43,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    optimize_runtime_chunks,
+    extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
@@ -695,6 +695,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   } else if let Some(cache_groups) = &self.split_chunks {
     crate::split_chunks::split(cache_groups, compilation).await?;
+  }
+
+  let extracted_tla_shared = extract_tla_shared_modules(compilation);
+  if extracted_tla_shared {
+    compilation.push_diagnostic(rspack_error::Diagnostic::warn(
+      "EsmLibraryPlugin".into(),
+      "Top-level await with shared modules caused a circular dependency between async and \
+       parent chunks. The shared modules have been extracted into separate chunks to break \
+       the cycle. After bundling, the execution order of top-level await may differ from the \
+       original source, which could lead to incorrect runtime behavior."
+        .into(),
+    ));
   }
 
   ensure_entry_exports(compilation);
