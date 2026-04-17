@@ -220,8 +220,8 @@ jobs:
 
   size-limit:
     name: Binary Size Limit
-    if: ${{ github.event_name == 'pull_request' }}
-    needs: [build-linux]
+    needs: [check-changed, build-linux]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
     uses: ./.github/workflows/size-limit.yml
 
   ecosystem_ci_per_commit:
