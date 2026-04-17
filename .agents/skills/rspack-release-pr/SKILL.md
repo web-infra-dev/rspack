@@ -109,7 +109,7 @@ Example commands:
 
 ```sh
 JS_VERSION="$(pnpm exec node -e 'const fs=require("node:fs"); console.log(JSON.parse(fs.readFileSync("packages/rspack/package.json","utf8")).version)')"
-RUST_VERSION="$(pnpm exec node -e 'const fs=require("node:fs"); const TOML=require("@iarna/toml"); console.log(TOML.parse(fs.readFileSync("Cargo.toml","utf8")).workspace.package.version)')"
+RUST_VERSION="$(pnpm --dir scripts exec node -e 'const fs=require("node:fs"); const TOML=require("@iarna/toml"); console.log(TOML.parse(fs.readFileSync("../Cargo.toml","utf8")).workspace.package.version)')"
 printf 'JavaScript packages version: %s\nRust crates version: %s\n' "$JS_VERSION" "$RUST_VERSION"
 ```
 
@@ -177,6 +177,15 @@ The workflow file is [`.github/workflows/ecosystem-ci.yml`](../../../.github/wor
 Trigger it with the PR number:
 
 ```sh
+DISPATCH_USER="$(gh api user --jq .login)"
+PREV_ECOSYSTEM_CI_RUN_ID="$(gh run list \
+  --workflow ecosystem-ci.yml \
+  --event workflow_dispatch \
+  --user "$DISPATCH_USER" \
+  --limit 1 \
+  --json databaseId \
+  --jq '.[0].databaseId // ""')"
+
 gh workflow run ecosystem-ci.yml --ref main \
   -f pr="$PR_NUMBER" \
   -f suite=- \
@@ -184,19 +193,35 @@ gh workflow run ecosystem-ci.yml --ref main \
   -f suiteRef=precoded
 ```
 
-Then wait a few seconds and fetch the newest matching run URL:
+Then wait a few seconds and poll until a new workflow-dispatch run appears for this workflow:
 
 ```sh
 sleep 5
-ECOSYSTEM_CI_URL="$(gh run list \
-  --workflow ecosystem-ci.yml \
-  --event workflow_dispatch \
-  --limit 5 \
-  --json url,createdAt \
-  --jq '.[0].url')"
+while :; do
+  RUN_ID="$(gh run list \
+    --workflow ecosystem-ci.yml \
+    --event workflow_dispatch \
+    --user "$DISPATCH_USER" \
+    --limit 1 \
+    --json databaseId \
+    --jq '.[0].databaseId // ""')"
+  ECOSYSTEM_CI_URL="$(gh run list \
+    --workflow ecosystem-ci.yml \
+    --event workflow_dispatch \
+    --user "$DISPATCH_USER" \
+    --limit 1 \
+    --json url \
+    --jq '.[0].url // ""')"
+
+  if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "$PREV_ECOSYSTEM_CI_RUN_ID" ]; then
+    break
+  fi
+
+  sleep 5
+done
 ```
 
-If the returned run is clearly older than the dispatch you just created, wait and query again until the newest workflow-dispatch run appears.
+Do not report the previous latest run. Only report the first new `workflow_dispatch` run from `DISPATCH_USER` that appears after your dispatch for `PR_NUMBER`.
 
 ### 8) Report the result
 
