@@ -5208,10 +5208,10 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.20"
-source = "git+https://github.com/rstackjs/rspack-sources?branch=expose-inner#8d30ea97045aa5c519573e7426fb163a3104c698"
 dependencies = [
  "dyn-clone",
  "memchr",
+ "rkyv 0.8.8",
  "rustc-hash",
  "serde",
  "simd-json",
