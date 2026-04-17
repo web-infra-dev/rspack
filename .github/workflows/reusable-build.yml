@@ -23,6 +23,9 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      binding_postfix: # specify binding with postfix for build mult profile in a workflow
+        required: false
+        type: string
 
 permissions:
   # Allow commenting on issues
@@ -36,6 +39,7 @@ jobs:
       runner: ${{ inputs.runner }}
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
+      binding_postfix: ${{ inputs.binding_postfix }}
   test:
     if: inputs.test
     needs: build
