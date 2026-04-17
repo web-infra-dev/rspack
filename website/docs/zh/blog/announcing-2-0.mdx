@@ -37,6 +37,7 @@ _2026 年 4 月 28 日_
 - [更快的构建速度](#build-performance)
 - [内置 React Server Components 支持](#rsc-support)
 - [可移植缓存](#portable-cache)
+- [持久化缓存优化](#persistent-cache-improvements)
 - [纯 ESM 包](#pure-esm)
 - [更好的 ESM 产物](#better-esm)
 - [更好的 import.meta 支持](#import-meta-properties)
@@ -165,6 +166,14 @@ export default {
   },
 };
 ```
+
+<span id="persistent-cache-improvements"></span>
+
+## 持久化缓存优化
+
+- 在 Rspack 2.0 中，我们重写了持久化缓存的底层存储实现（[#13292](https://github.com/web-infra-dev/rspack/pull/13292)），大型项目开启持久化缓存的内存占用降低了 **20%+**。
+
+- [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 现在也支持持久化缓存（[#13706](https://github.com/web-infra-dev/rspack/pull/13706)），压缩结果可以跨构建复用，大型项目热启动性能提升 **80%+**。
 
 <span id="pure-esm"></span>
 ## 纯 ESM 包 @chenjiahan
