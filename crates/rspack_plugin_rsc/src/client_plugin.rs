@@ -242,10 +242,7 @@ fn record_chunk_group(
   }
 }
 
-async fn collect_entry_js_files(
-  compilation: &Compilation,
-  plugin_state: &mut PluginState,
-) -> Result<()> {
+fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginState) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
     let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
       continue;
@@ -367,7 +364,7 @@ impl RscClientPlugin {
     Self::new_inner(options.coordinator, Default::default(), Default::default())
   }
 
-  async fn traverse_modules(
+  fn traverse_modules(
     &self,
     compilation: &Compilation,
     plugin_state: &mut PluginState,
@@ -584,32 +581,32 @@ async fn after_process_assets(
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
-  let Some(mut plugin_state) = PLUGIN_STATES.get_mut(&server_compiler_id) else {
-    return Err(rspack_error::error!(
-      "Failed to find plugin state for server compiler (ID: {}). \
-     The server compiler may not have properly collected client entry information, \
-     or the compiler has not been initialized yet.",
-      server_compiler_id.as_u32()
-    ));
-  };
+  {
+    let Some(mut plugin_state) = PLUGIN_STATES.get_mut(&server_compiler_id) else {
+      return Err(rspack_error::error!(
+        "Failed to find plugin state for server compiler (ID: {}). \
+       The server compiler may not have properly collected client entry information, \
+       or the compiler has not been initialized yet.",
+        server_compiler_id.as_u32()
+      ));
+    };
 
-  let start = logger.time("create client reference manifest");
-  self
-    .traverse_modules(compilation, &mut plugin_state)
-    .await?;
-  logger.time_end(start);
+    let start = logger.time("create client reference manifest");
+    self.traverse_modules(compilation, &mut plugin_state)?;
+    logger.time_end(start);
 
-  let start = logger.time("record entry js files");
-  collect_entry_js_files(compilation, &mut plugin_state).await?;
-  logger.time_end(start);
+    let start = logger.time("record entry js files");
+    collect_entry_js_files(compilation, &mut plugin_state)?;
+    logger.time_end(start);
 
-  for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
-    let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
-    plugin_state
-      .entries
-      .entry(entry_name.clone())
-      .or_default()
-      .client_actions = client_actions;
+    for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
+      let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
+      plugin_state
+        .entries
+        .entry(entry_name.clone())
+        .or_default()
+        .client_actions = client_actions;
+    }
   }
 
   self
