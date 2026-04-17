@@ -17,13 +17,6 @@ enum State {
 
 type GetServerCompilerId = Box<dyn Fn() -> BoxFuture<'static, Result<CompilerId>> + Sync + Send>;
 
-fn coordination_failed_error(context: &'static str) -> rspack_error::Error {
-  rspack_error::error!(
-    "RSC compilation coordination failed in {} because another compiler failed",
-    context
-  )
-}
-
 /// Coordinates the compilation sequence between Server Compiler and Client Compiler.
 ///
 /// Ensures the following compilation order:
@@ -52,33 +45,25 @@ impl Coordinator {
     (self.get_server_compiler_id)().await
   }
 
-  async fn wait_for(
-    &self,
-    mut predicate: impl FnMut(State) -> bool,
-    context: &'static str,
-  ) -> Result<()> {
+  async fn wait_for(&self, mut predicate: impl FnMut(State) -> bool) -> Result<()> {
     loop {
-      let notified = self.state_notify.notified();
-      futures::pin_mut!(notified);
-      let _ = notified.as_mut().enable();
-
       {
         let state = *self.state.lock().await;
         if predicate(state) {
           return Ok(());
         }
         if state == State::Failed {
-          return Err(coordination_failed_error(context));
+          return Ok(());
         }
       }
-      notified.await;
+      self.state_notify.notified().await;
     }
   }
 
   async fn transition(&self, expected: State, next: State, context: &'static str) -> Result<()> {
     let mut state = self.state.lock().await;
     if *state == State::Failed {
-      return Err(coordination_failed_error(context));
+      return Ok(());
     }
 
     if *state != expected {
@@ -112,7 +97,7 @@ impl Coordinator {
   }
 
   async fn wait_idle(&self) -> Result<()> {
-    self.wait_for(|s| s == State::Idle, "wait_idle").await
+    self.wait_for(|s| s == State::Idle).await
   }
 
   pub async fn start_server_entries_compilation(&self) -> Result<()> {
@@ -138,12 +123,7 @@ impl Coordinator {
   }
 
   async fn wait_server_entries_compiled(&self) -> Result<()> {
-    self
-      .wait_for(
-        |s| s == State::ServerEntriesDone,
-        "wait_server_entries_compiled",
-      )
-      .await
+    self.wait_for(|s| s == State::ServerEntriesDone).await
   }
 
   pub async fn start_client_entries_compilation(&self) -> Result<()> {
@@ -169,12 +149,7 @@ impl Coordinator {
   }
 
   async fn wait_client_entries_compiled(&self) -> Result<()> {
-    self
-      .wait_for(
-        |s| s == State::ClientEntriesDone,
-        "wait_client_entries_compiled",
-      )
-      .await
+    self.wait_for(|s| s == State::ClientEntriesDone).await
   }
 
   pub async fn start_server_actions_compilation(&self) -> Result<()> {
@@ -191,11 +166,6 @@ impl Coordinator {
         match state {
           State::ServerEntriesDone | State::ClientEntriesCompiling => {
             // fallthrough to wait below
-          }
-          State::Failed => {
-            return Err(coordination_failed_error(
-              "start_server_actions_compilation",
-            ));
           }
           _ => {
             return Err(rspack_error::error!(
