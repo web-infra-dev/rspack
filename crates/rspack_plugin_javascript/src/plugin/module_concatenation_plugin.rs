@@ -23,8 +23,20 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 use rustc_hash::FxHashMap as HashMap;
 
+type CachedModuleList = Arc<[ModuleIdentifier]>;
+
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
+}
+
+fn push_unique_module(
+  modules: &mut Vec<ModuleIdentifier>,
+  seen: &mut IdentifierSet,
+  module: ModuleIdentifier,
+) {
+  if seen.insert(module) {
+    modules.push(module);
+  }
 }
 
 #[derive(Clone, Debug)]
@@ -190,22 +202,19 @@ impl ModuleConcatenationPlugin {
     artifacts: &ModuleGraphArtifacts,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
+    imports_cache: &mut RuntimeIdentifierCache<CachedModuleList>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
-  ) -> IdentifierIndexSet {
+  ) -> CachedModuleList {
     if let Some(set) = imports_cache.get(&mi, runtime) {
       return set.clone();
     }
 
     let cached = module_cache.get(&mi).expect("should have module");
 
-    let mut set =
-      IdentifierIndexSet::with_capacity_and_hasher(cached.connections.len(), Default::default());
+    let mut seen =
+      IdentifierSet::with_capacity_and_hasher(cached.connections.len(), Default::default());
+    let mut modules = Vec::with_capacity(cached.connections.len());
     for (con, (has_imported_names, cached_active)) in &cached.connections {
-      if set.contains(con.module_identifier()) {
-        continue;
-      }
-
       let is_target_active = if let Some(runtime) = runtime {
         if cached.runtime == *runtime {
           // runtime is same, use cached value
@@ -241,12 +250,13 @@ impl ModuleConcatenationPlugin {
         continue;
       }
       if *has_imported_names || cached.provided_names {
-        set.insert(*con.module_identifier());
+        push_unique_module(&mut modules, &mut seen, *con.module_identifier());
       }
     }
 
-    imports_cache.insert(mi, runtime, set.clone());
-    set
+    let modules: CachedModuleList = modules.into();
+    imports_cache.insert(mi, runtime, modules.clone());
+    modules
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -259,10 +269,10 @@ impl ModuleConcatenationPlugin {
     possible_modules: &IdentifierSet,
     candidates: &mut IdentifierSet,
     failure_cache: &mut IdentifierMap<Warning>,
-    success_cache: &mut RuntimeIdentifierCache<Vec<ModuleIdentifier>>,
+    success_cache: &mut RuntimeIdentifierCache<CachedModuleList>,
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
-    imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
+    imports_cache: &mut RuntimeIdentifierCache<CachedModuleList>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
   ) -> Option<Warning> {
     statistics
@@ -295,6 +305,7 @@ impl ModuleConcatenationPlugin {
       side_effects_state_artifact,
       exports_info_artifact: &compilation.exports_info_artifact,
     };
+    let root_chunks = chunk_graph.get_module_chunks(config.root_module);
 
     let incoming_modules = if let Some(incomings) = success_cache.get(module_id, runtime) {
       statistics.cache_hit += 1;
@@ -314,18 +325,16 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let missing_chunks: Vec<_> = chunk_graph
-        .get_module_chunks(config.root_module)
+      let has_missing_chunks = root_chunks
         .iter()
-        .filter(|chunk| !chunk_graph.is_module_in_chunk(module_id, **chunk))
-        .collect();
+        .any(|chunk| !chunk_graph.is_module_in_chunk(module_id, *chunk));
 
-      if !missing_chunks.is_empty() {
+      if has_missing_chunks {
         let problem_string = {
-          let mut missing_chunks_list = missing_chunks
+          let mut missing_chunks_list = root_chunks
             .iter()
             .map(|&chunk| {
-              let chunk = chunk_by_ukey.expect_get(chunk);
+              let chunk = chunk_by_ukey.expect_get(&chunk);
               chunk.name().unwrap_or("unnamed chunk(s)")
             })
             .collect::<Vec<_>>();
@@ -432,19 +441,19 @@ impl ModuleConcatenationPlugin {
           continue;
         }
 
-        let active_connections: Vec<_> = connections
-          .iter()
-          .filter(|&connection| {
-            is_connection_active_in_runtime(
-              connection,
-              runtime,
-              active_incomings,
-              cached_module_runtime,
-              module_graph,
-              &module_graph_artifacts,
-            )
-          })
-          .collect();
+        let mut active_connections = Vec::with_capacity(connections.len());
+        for connection in connections {
+          if is_connection_active_in_runtime(
+            connection,
+            runtime,
+            active_incomings,
+            cached_module_runtime,
+            module_graph,
+            &module_graph_artifacts,
+          ) {
+            active_connections.push(connection);
+          }
+        }
 
         if !active_connections.is_empty() {
           incoming_connections_from_modules.insert(*origin_module, active_connections);
@@ -455,20 +464,21 @@ impl ModuleConcatenationPlugin {
         .keys()
         .copied()
         .collect::<Vec<_>>();
-      let other_chunk_modules = incoming_modules
-        .iter()
-        .filter(|&origin_module| {
-          chunk_graph
-            .get_module_chunks(config.root_module)
-            .iter()
-            .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
-        })
-        .collect::<Vec<_>>();
+      let has_other_chunk_modules = incoming_modules.iter().any(|origin_module| {
+        root_chunks
+          .iter()
+          .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
+      });
 
-      if !other_chunk_modules.is_empty() {
+      if has_other_chunk_modules {
         let problem = {
-          let mut names: Vec<_> = other_chunk_modules
-            .into_iter()
+          let mut names: Vec<_> = incoming_modules
+            .iter()
+            .filter(|origin_module| {
+              root_chunks
+                .iter()
+                .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
+            })
             .map(|mid| {
               get_cached_readable_identifier(
                 mid,
@@ -492,25 +502,25 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let mut non_esm_connections = IdentifierMap::with_capacity_and_hasher(
-        incoming_connections_from_modules.len(),
-        Default::default(),
-      );
-      for (origin_module, connections) in incoming_connections_from_modules.iter() {
-        let has_non_esm_connections = connections.iter().any(|connection| {
-          let dep = module_graph.dependency_by_id(&connection.dependency_id);
-          !is_esm_dep_like(dep)
+      let has_non_esm_connections = incoming_connections_from_modules
+        .values()
+        .any(|connections| {
+          connections.iter().any(|connection| {
+            let dep = module_graph.dependency_by_id(&connection.dependency_id);
+            !is_esm_dep_like(dep)
+          })
         });
 
-        if has_non_esm_connections {
-          non_esm_connections.insert(*origin_module, connections);
-        }
-      }
-
-      if !non_esm_connections.is_empty() {
+      if has_non_esm_connections {
         let problem = {
-          let names: Vec<_> = non_esm_connections
+          let names: Vec<_> = incoming_connections_from_modules
             .iter()
+            .filter(|(_, connections)| {
+              connections.iter().any(|connection| {
+                let dep = module_graph.dependency_by_id(&connection.dependency_id);
+                !is_esm_dep_like(dep)
+              })
+            })
             .map(|(origin_module, connections)| {
               let readable_identifier = get_cached_readable_identifier(
                 origin_module,
@@ -623,6 +633,7 @@ impl ModuleConcatenationPlugin {
       }
 
       incoming_modules.sort();
+      let incoming_modules: CachedModuleList = incoming_modules.into();
       success_cache.insert(*module_id, runtime, incoming_modules.clone());
       incoming_modules
     };
@@ -635,7 +646,7 @@ impl ModuleConcatenationPlugin {
 
     config.add(*module_id);
 
-    for origin_module in &incoming_modules {
+    for origin_module in incoming_modules.iter() {
       if let Some(problem) = Self::try_to_add(
         compilation,
         config,
@@ -667,8 +678,10 @@ impl ModuleConcatenationPlugin {
       runtime,
       imports_cache,
       module_cache,
-    ) {
-      candidates.insert(imp);
+    )
+    .iter()
+    {
+      candidates.insert(*imp);
     }
     statistics.added += 1;
     None
@@ -1087,7 +1100,7 @@ impl ModuleConcatenationPlugin {
     let start = logger.time("find modules to concatenate");
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
     let mut used_as_inner: IdentifierSet = IdentifierSet::default();
-    let mut imports_cache = RuntimeIdentifierCache::<IdentifierIndexSet>::default();
+    let mut imports_cache = RuntimeIdentifierCache::<CachedModuleList>::default();
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -1278,8 +1291,8 @@ impl ModuleConcatenationPlugin {
           &modules_without_runtime_cache,
         )
       };
-      for import in imports {
-        candidates.push_back(import);
+      for import in imports.iter() {
+        candidates.push_back(*import);
       }
 
       let mut import_candidates = IdentifierSet::default();
@@ -1841,4 +1854,26 @@ fn is_connection_active_in_runtime(
     artifacts.side_effects_state_artifact,
     artifacts.exports_info_artifact,
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn push_unique_module_preserves_first_seen_order() {
+    let a = ModuleIdentifier::from("a");
+    let b = ModuleIdentifier::from("b");
+    let c = ModuleIdentifier::from("c");
+    let mut seen = IdentifierSet::default();
+    let mut modules = Vec::new();
+
+    super::push_unique_module(&mut modules, &mut seen, b);
+    super::push_unique_module(&mut modules, &mut seen, a);
+    super::push_unique_module(&mut modules, &mut seen, b);
+    super::push_unique_module(&mut modules, &mut seen, c);
+    super::push_unique_module(&mut modules, &mut seen, a);
+
+    assert_eq!(modules, vec![b, a, c]);
+  }
 }
