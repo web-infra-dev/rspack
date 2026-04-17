@@ -62,9 +62,9 @@ module.exports = {
             expect(misses).toBe(2);
           }
           if (updateIndex === 1) {
-            // First hot build with same source content, module is recovered from cache.
-            expect(hits).toBe(1);
-            expect(misses).toBe(1);
+            // First hot build with same source content, all recovered from cache.
+            expect(hits).toBe(2);
+            expect(misses).toBe(0);
           }
           if (updateIndex === 2) {
             // Hot build with same source content.
