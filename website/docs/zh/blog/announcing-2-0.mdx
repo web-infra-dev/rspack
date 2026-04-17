@@ -45,7 +45,7 @@ _2026 年 4 月 28 日_
 - [支持 `#/` 子路径别名导入](#subpath-alias-import)
 - [支持 resolve.pnpManifest](#pnp-manifest)
 - [可选的模块联邦运行时](#mf-runtime)
-- [模块联邦共享依赖裁剪](#mf-share-treeshaking)
+- [模块联邦共享依赖 Tree Shaking](#mf-share-treeshaking)
 - [内置 SWC loader 自动检测语法](#detect-syntax)
 - [支持 CSS parser 的 resolveImport 选项](#resolve-import)
 - [自动继承 targets 配置](#automatic-targets)
@@ -302,18 +302,18 @@ pnpm add @module-federation/runtime-tools
 ```
 
 <span id="mf-share-treeshaking"></span>
-## 模块联邦共享依赖裁剪 @2heal1
+## 模块联邦共享依赖 Tree Shaking @2heal1
 
-Rspack 2.0 进一步完善了 [Module Federation](/guide/features/module-federation) 场景下共享依赖的裁剪能力。它可以对 `shared` 依赖做导出级别的裁剪，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
+Rspack 2.0 进一步完善了 [Module Federation](/guide/features/module-federation) 场景下的共享依赖 Tree Shaking。它可以对 `shared` 依赖做导出级别的优化，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
 
 在 Rspack 1.x 的模块联邦共享依赖方案里，只要一个依赖被声明到 `shared`，运行时通常就需要准备完整的依赖包。即使应用实际只用到了其中少量导出，也往往会把整份依赖带进来。对于 `antd`、`lodash-es` 这类体积较大、导出较多的库来说，这会明显增加共享包的体积。
 
-Rspack 2.0 将这项能力直接接入了 `ModuleFederationPlugin`。当某个 `shared` 项开启 `treeShaking` 后，Rspack 会为这类共享依赖生成对应的裁剪产物，并让运行时优先加载这份更小的结果。如果当前请求无法命中，运行时会回退到完整依赖，以保证行为稳定。
+Rspack 2.0 将这项能力直接接入了 `ModuleFederationPlugin`。当某个 `shared` 项开启 `treeShaking` 后，Rspack 会为这类共享依赖生成对应的 Tree Shaking 产物，并让运行时优先加载这份更小的结果。如果当前请求无法命中，运行时会回退到完整依赖，以保证行为稳定。
 
 它同时支持 `runtime-infer` 和 `server-calc` 两种模式：
 
-- `runtime-infer` 适合先快速接入和本地验证。运行时会优先复用已经加载过的裁剪共享包；如果当前需要的导出无法满足，则自动回退到完整依赖。你也可以通过 `usedExports` 预先声明常用导出，以提升命中率。
-- `server-calc` 更适合多应用协作的线上场景。你可以在部署侧统一汇总各个消费者真正会用到的导出，再生成更稳定的共享裁剪结果。
+- `runtime-infer` 适合先快速接入和本地验证。运行时会优先复用已经加载过的 Tree Shaking 共享包；如果当前需要的导出无法满足，则自动回退到完整依赖。你也可以通过 `usedExports` 预先声明常用导出，以提升命中率。
+- `server-calc` 更适合多应用协作的线上场景。你可以在部署侧统一汇总各个消费者真正会用到的导出，再生成更稳定的共享依赖 Tree Shaking 结果。
 
 对于组件库这类典型场景，这项能力可以把“整包共享”变成“按实际使用结果共享”，减少不必要的代码加载。更完整的配置与工作方式，可以参考 [共享依赖 Tree Shaking 指南](https://module-federation.io/zh/guide/performance/shared-tree-shaking)。
 

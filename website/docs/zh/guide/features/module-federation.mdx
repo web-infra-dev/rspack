@@ -61,6 +61,8 @@ export default {
 
 这是 Rspack 内置支持的版本，除了支持 Module Federation v1.0 的模块导出、模块加载、依赖共享等能力之外，还添加了运行时插件功能，允许用户扩展模块联邦的行为、功能。
 
+在 Rspack 2.0 中，`ModuleFederationPlugin` 也进一步完善了共享依赖 Tree Shaking 能力。你可以通过 `shared.treeShaking` 对共享依赖做按需优化，相关配置可参考 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin#shared)。
+
 你可以通过 Rspack 的 [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) 来使用它，无须安装任何插件。
 
 ```js title="rspack.config.mjs"
