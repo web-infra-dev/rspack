@@ -37,7 +37,7 @@
     "@discoveryjs/json-ext": "^0.5.7",
     "@rslib/core": "0.21.0",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "2.0.0-rc.3",
+    "@rspack/dev-server": "2.0.0-rc.2",
     "@rspack/test-tools": "workspace:*",
     "cac": "^7.0.0",
     "concat-stream": "^2.0.0",
