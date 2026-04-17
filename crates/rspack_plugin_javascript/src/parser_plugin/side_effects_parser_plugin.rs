@@ -22,7 +22,7 @@ use swc_core::{
   },
 };
 
-use super::pure_globals::{ArgGate, CalleePosition, are_args_trivially_safe, classify_pure_global};
+use super::pure_globals::{ArgGate, CalleePosition, check_arg_gate, classify_pure_global};
 use crate::{
   ClassExt, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -932,20 +932,26 @@ fn is_pure_call_expr(
 
   // Fast path: known pure global calls — `Boolean(x)`, `Array.isArray(x)`,
   // `Object.is(a, b)`, `String('x')`, `Symbol()`, etc.
+  //
+  // For `AnyPureArgs` we still defer to `is_pure_call_args` so nested
+  // side effects (`Boolean(sideEffect())`) are caught. Other gates require
+  // literal-shaped args that can't have nested side effects on their own,
+  // so the gate's arg-shape check is sufficient.
   if let Some(callee_expr) = call_expr.callee.as_expr()
     && let Some(gate) =
       classify_pure_global(callee_expr.as_ref(), unresolved_ctxt, CalleePosition::Call)
   {
-    return match gate {
-      ArgGate::AnyPureArgs => is_pure_call_args(
+    return if matches!(gate, ArgGate::AnyPureArgs) {
+      is_pure_call_args(
         parser,
         analyze_side_effects_free,
         call_expr,
         unresolved_ctxt,
         comments,
         callees,
-      ),
-      ArgGate::TriviallySafeArgs => are_args_trivially_safe(&call_expr.args, unresolved_ctxt),
+      )
+    } else {
+      check_arg_gate(gate, &call_expr.args, unresolved_ctxt)
     };
   }
 
@@ -1082,21 +1088,26 @@ fn is_pure_new_expr(
 
   // Fast path: known pure global constructors (`new Set()`, `new Map()`,
   // `new WeakMap()`, TypedArrays, etc.).
+  //
+  // For `AnyPureArgs` (e.g. `new Boolean(x)`) we still defer to
+  // `are_pure_args` so nested side effects are caught. Other gates require
+  // literal-shaped args, so the gate's arg-shape check is sufficient.
   if let Some(gate) = classify_pure_global(
     new_expr.callee.as_ref(),
     unresolved_ctxt,
     CalleePosition::New,
   ) {
     let args = new_expr.args.as_deref().unwrap_or(&[]);
-    return match gate {
-      ArgGate::AnyPureArgs => are_pure_args(
+    return if matches!(gate, ArgGate::AnyPureArgs) {
+      are_pure_args(
         parser,
         analyze_side_effects_free,
         args,
         unresolved_ctxt,
         comments,
-      ),
-      ArgGate::TriviallySafeArgs => are_args_trivially_safe(args, unresolved_ctxt),
+      )
+    } else {
+      check_arg_gate(gate, args, unresolved_ctxt)
     };
   }
 
