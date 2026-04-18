@@ -3516,6 +3516,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "regress"
+version = "0.11.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "158a764437582235e3501f683b93a0a6f8d825d04a789dbe5ed30b8799b8908a"
+dependencies = [
+ "hashbrown 0.16.1",
+ "memchr",
+]
+
+[[package]]
 name = "rend"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4647,7 +4657,7 @@ dependencies = [
  "once_cell",
  "rayon",
  "regex",
- "regress",
+ "regress 0.11.1",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -5175,7 +5185,7 @@ dependencies = [
  "napi",
  "regex",
  "regex-syntax",
- "regress",
+ "regress 0.11.1",
  "rspack_cacheable",
  "rspack_error",
  "swc_core",
@@ -5974,7 +5984,7 @@ dependencies = [
  "indexmap",
  "once_cell",
  "regex",
- "regress",
+ "regress 0.10.5",
  "rustc-hash",
  "serde",
  "serde_json",
