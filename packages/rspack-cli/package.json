@@ -46,7 +46,7 @@
     "exit-hook": "^4.0.0",
     "jiti": "^2.6.1",
     "prebundle": "^1.6.4",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "@rspack/core": "^2.0.0-0",
