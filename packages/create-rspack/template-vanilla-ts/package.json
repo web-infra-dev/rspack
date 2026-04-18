@@ -11,7 +11,7 @@
   "devDependencies": {
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "2.0.0-rc.2",
+    "@rspack/dev-server": "2.0.0-rc.3",
     "typescript": "^6.0.3"
   }
 }
