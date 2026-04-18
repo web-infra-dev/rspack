@@ -39,6 +39,6 @@
     "rsbuild-plugin-google-analytics": "1.0.5",
     "rsbuild-plugin-open-graph": "1.1.2",
     "rspress-plugin-font-open-sans": "1.0.3",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   }
 }

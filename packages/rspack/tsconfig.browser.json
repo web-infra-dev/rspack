@@ -12,8 +12,5 @@
     "declarationMap": false
   },
   "include": ["src", "src/**/*.json"],
-  "exclude": ["src/container/default.runtime.js"],
-  "ts-node": {
-    "transpileOnly": true
-  }
+  "exclude": ["src/container/default.runtime.js"]
 }

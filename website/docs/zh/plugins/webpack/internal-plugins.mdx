@@ -75,11 +75,17 @@ import WebpackLicense from '@components/WebpackLicense';
 
 通过在每个模块中使用带有 `// @sourceURL` 注释的 `eval` 来装饰模块模板。
 
+### JsonpTemplatePlugin
+
+`web.JsonpTemplatePlugin()`
+
+在 Web 环境中通过 `jsonp` 加载代码块。
+
 ### WebWorkerTemplatePlugin
 
 `webworker.WebWorkerTemplatePlugin(options)`
 
-通过 `importScripts` 加载代码块。
+在 Web Worker 环境中通过 `importScripts` 加载代码块。
 
 `options` 是输出配置。
 

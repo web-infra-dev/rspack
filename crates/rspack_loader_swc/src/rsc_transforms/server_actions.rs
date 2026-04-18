@@ -1300,6 +1300,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     // 2. Register any remaining exports in the post-pass that weren't handled by the visitor.
     if should_track_exports {
       for stmt in stmts.iter() {
+        #[allow(clippy::collapsible_match)]
         match stmt {
           ModuleItem::ModuleDecl(ModuleDecl::ExportDefaultExpr(export_default_expr)) => {
             if let Expr::Ident(ident) = &*export_default_expr.expr {
@@ -1447,7 +1448,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
     for mut stmt in stmts.take() {
       if should_track_exports {
         let mut disallowed_export_span = DUMMY_SP;
-
+        #[allow(clippy::collapsible_match)]
         match &mut stmt {
           ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl { decl, span })) => match decl {
             Decl::Var(_)
@@ -1902,10 +1903,8 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
   fn visit_mut_assign_expr(&mut self, assign_expr: &mut AssignExpr) {
     let old_arrow_or_fn_expr_ident = self.arrow_or_fn_expr_ident.clone();
 
-    if let (
-      AssignTarget::Simple(SimpleAssignTarget::Ident(ident)),
-      box (Expr::Arrow(_) | Expr::Fn(_)),
-    ) = (&assign_expr.left, &assign_expr.right)
+    if let (AssignTarget::Simple(SimpleAssignTarget::Ident(ident)), Expr::Arrow(_) | Expr::Fn(_)) =
+      (&assign_expr.left, assign_expr.right.as_ref())
     {
       self.arrow_or_fn_expr_ident = Some(ident.id.clone());
     }

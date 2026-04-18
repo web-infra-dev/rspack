@@ -1,6 +1,6 @@
 {
   "name": "@rspack/browser",
-  "version": "2.0.0-rc.1",
+  "version": "2.0.0-rc.3",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
@@ -32,8 +32,8 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@emnapi/core": "1.9.2",
-    "@emnapi/runtime": "1.9.2",
+    "@emnapi/core": "1.10.0",
+    "@emnapi/runtime": "1.10.0",
     "@napi-rs/wasm-runtime": "1.1.3",
     "@rspack/lite-tapable": "1.1.0",
     "@swc/types": "0.1.26",

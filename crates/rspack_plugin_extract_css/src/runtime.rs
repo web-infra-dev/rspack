@@ -165,7 +165,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     let mut attr = String::default();
     let mut attributes: Vec<(&String, &String)> = self.attributes.iter().collect::<Vec<_>>();
-    attributes.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
+    attributes.sort_unstable_by_key(|(k1, _)| *k1);
 
     for (attr_key, attr_value) in attributes {
       attr += &format!("linkTag.setAttribute({attr_key}, {attr_value});\n");
@@ -226,7 +226,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           Some(serde_json::json!({
             "_installed_chunks": format!(
               "{}: 0,\n",
-              rspack_util::json_stringify_str(chunk.expect_id().as_str())
+              rspack_util::json_stringify(chunk.expect_id())
             ),
             "_css_chunks": format!(
               "{{\n{}\n}}",
@@ -238,7 +238,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
                   chunk.id().map(|id| {
                     format!(
                       "{}: 1,\n",
-                      rspack_util::json_stringify_str(id.as_str())
+                      rspack_util::json_stringify(id)
                     )
                   })
                 })

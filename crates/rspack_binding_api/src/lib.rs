@@ -7,7 +7,7 @@
 //!
 //! ## Features
 //!
-//! - `browser`: Enable browser environment support
+//! - `browser`: Enable browser-specific wasm behavior
 //! - `debug_tool`: Enable debug tools
 //! - `plugin`: Enable SWC plugin support
 //! - `sftrace-setup`: Enable performance tracing setup
@@ -595,9 +595,6 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   #[cfg(target_family = "wasm")]
   {
-    #[cfg(feature = "browser")]
-    rspack_browser::panic::install_panic_handler();
-    #[cfg(not(feature = "browser"))]
     panic::install_panic_handler();
     let rt = tokio::runtime::Builder::new_multi_thread()
       .max_blocking_threads(1)

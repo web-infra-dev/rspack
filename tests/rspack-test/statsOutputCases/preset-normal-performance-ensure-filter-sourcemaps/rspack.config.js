@@ -4,6 +4,8 @@ module.exports = {
   devtool: 'source-map',
   performance: {
     hints: 'warning',
+    maxAssetSize: 200 * 1024,
+    maxEntrypointSize: 200 * 1024,
   },
   entry: './index',
   stats: {

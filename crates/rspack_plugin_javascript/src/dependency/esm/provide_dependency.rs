@@ -194,18 +194,21 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       )
     };
 
-    init_fragments.push(Box::new(NormalInitFragment::new(
-      format!(
-        "/* provided dependency */ var {} = {}{};\n",
-        dep.identifier,
-        runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
-        path_to_string(used_name.as_ref())
-      ),
-      InitFragmentStage::StageProvides,
-      1,
-      InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
-      None,
-    )));
+    init_fragments.push(Box::new(
+      NormalInitFragment::new(
+        format!(
+          "/* provided dependency */ var {} = {}{};\n",
+          dep.identifier,
+          runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
+          path_to_string(used_name.as_ref())
+        ),
+        InitFragmentStage::StageProvides,
+        1,
+        InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
+        None,
+      )
+      .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
+    ));
     source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
   }
 }

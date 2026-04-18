@@ -444,9 +444,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
               let convention_names = export_locals_convention(&name, convention);
               let convention_local_class = export_locals_convention(local_class, convention);
 
-              for (convention_name, local_class) in convention_names
-                .into_iter()
-                .zip(convention_local_class.into_iter())
+              for (convention_name, local_class) in
+                convention_names.into_iter().zip(convention_local_class)
               {
                 if let Some(existing) = exports.get(name.as_str())
                   && from.is_none()

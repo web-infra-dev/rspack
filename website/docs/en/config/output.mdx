@@ -461,7 +461,7 @@ type Environment = {
   module?: boolean;
   /**
    * Determines if the node: prefix is generated for core module imports in environments that support it.
-   * This is only applicable to Webpack runtime code.
+   * This is only applicable to Rspack runtime code.
    * */
   nodePrefixForCoreModules?: boolean;
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
@@ -1613,7 +1613,7 @@ Note that `[fullhash]` in this parameter will be replaced with a hash of the com
 :::warning
 
 - The path must not contain an exclamation mark (`!`) as it is reserved by Rspack for loader syntax.
-- `output.path` must be an absolute path.
+- Relative paths are resolved against `context`.
 
 :::
 

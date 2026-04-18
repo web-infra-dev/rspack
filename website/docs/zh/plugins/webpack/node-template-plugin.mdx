@@ -1,11 +1,24 @@
 ---
-description: 'Rspack NodeTemplatePlugin 插件参考，说明用途、可用选项、典型场景、使用方式与常见集成方式。'
+description: 'Rspack NodeTemplatePlugin 用于打包 Node.js 产物，经常配合 childCompiler 一起使用。'
 ---
 
 # NodeTemplatePlugin
 
-此插件用来打包出 Node.js 的产物，经常配合 childCompiler 一起使用。
+此插件用于打包 Node.js 产物，经常配合 childCompiler 一起使用。
+
+它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，并为 Node.js 运行时配置 [output.chunkLoading](/config/output#outputchunkloading)。
+
+默认情况下，它会将 `output.chunkLoading` 设为 `'require'`。当启用 `asyncChunkLoading` 时，则会改为 `'async-node'`。
 
 ```js
 new rspack.node.NodeTemplatePlugin();
 ```
+
+## 选项
+
+### asyncChunkLoading
+
+- 类型：`boolean`
+- 默认值：`false`
+
+为异步 chunk 使用 `'async-node'` 加载 chunks，而不是 `'require'`。

@@ -106,7 +106,6 @@ use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
 use rspack_plugin_wasm::{
   AsyncWasmPlugin, FetchCompileAsyncWasmPlugin, enable_wasm_loading_plugin,
 };
-use rspack_plugin_web_worker_template::web_worker_template_plugin;
 use rspack_plugin_worker::WorkerPlugin;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -175,7 +174,6 @@ pub enum BuiltinPluginName {
   HotModuleReplacementPlugin,
   LimitChunkCountPlugin,
   WorkerPlugin,
-  WebWorkerTemplatePlugin,
   MergeDuplicateChunksPlugin,
   SplitChunksPlugin,
   RemoveDuplicateModulesPlugin,
@@ -473,9 +471,6 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::WorkerPlugin => {
         plugins.push(WorkerPlugin::default().boxed());
-      }
-      BuiltinPluginName::WebWorkerTemplatePlugin => {
-        web_worker_template_plugin(plugins);
       }
       BuiltinPluginName::MergeDuplicateChunksPlugin => {
         plugins.push(MergeDuplicateChunksPlugin::default().boxed());
@@ -906,14 +901,20 @@ impl<'a> BuiltinPlugin<'a> {
         plugins.push(CssChunkingPlugin::new(options.into()).boxed());
       }
       BuiltinPluginName::RscServerPlugin => {
-        let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
+        }
       }
       BuiltinPluginName::RscClientPlugin => {
-        let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(RscClientPlugin::new(options.into()).boxed());
+        #[cfg(not(feature = "browser"))]
+        {
+          let options = &downcast_into::<JsRscClientPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?;
+          plugins.push(RscClientPlugin::new(options.into()).boxed());
+        }
       }
     }
     Ok(())

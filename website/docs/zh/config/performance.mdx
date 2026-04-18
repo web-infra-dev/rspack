@@ -71,7 +71,8 @@ export default {
 
 ## performance.maxAssetSize
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
+- **类型：**: `number`
+- **默认值：**: `307200` (`300 KiB`)
 
 设置单个资源体积阈值（单位：bytes）。当某个资源超过该值时，Rspack 会触发性能提示。
 
@@ -87,7 +88,8 @@ export default {
 
 ## performance.maxEntrypointSize
 
-<PropertyType type="number" defaultValueList={[{ defaultValue: '250000' }]} />
+- **类型：**: `number`
+- **默认值：**: `512000` (`500 KiB`)
 
 设置入口总体积阈值（单位：bytes）。这里的入口总体积指初始加载该入口时需要的所有资源总体积，当入口总体积超过该值时，Rspack 会触发性能提示。
 

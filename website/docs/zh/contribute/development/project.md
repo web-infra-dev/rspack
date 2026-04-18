@@ -115,7 +115,6 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_plugin_mf`**: 模块联邦插件，实现微前端模块联邦
 - **`rspack_plugin_dll`**: DLL 插件，实现动态链接库功能
 - **`rspack_plugin_worker`**: Web Worker 插件，用于处理 Worker 文件
-- **`rspack_plugin_web_worker_template`**: Web Worker 模板插件
 - **`rspack_plugin_schemes`**: 自定义 scheme 插件，支持自定义资源协议
 - **`rspack_plugin_runtime_chunk`**: Runtime chunk 插件，用于分离运行时代码
 
@@ -138,7 +137,6 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 
 ### 浏览器与环境支持
 
-- **`rspack_browser`**: 浏览器环境支持，提供浏览器端实现
 - **`rspack_browserslist`**: Browserslist 支持，用于处理浏览器兼容性查询
 
 ### 监控与追踪

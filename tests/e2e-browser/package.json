@@ -11,6 +11,6 @@
     "@playwright/test": "1.59.1",
     "@rsbuild/core": "2.0.0-rc.1",
     "@rspack/browser": "workspace:*",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.3"
   }
 }

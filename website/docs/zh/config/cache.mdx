@@ -11,9 +11,7 @@ import PropertyType from '@components/PropertyType';
 
 缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。
 
-- **类型：** `CacheOptions`
-
-- **默认值：** production 模式为 `false`, development 模式为 `true`
+- **类型：**
 
 ```ts
 type CacheOptions =
@@ -39,7 +37,7 @@ type CacheOptions =
     };
 ```
 
-<span id="disable-cache"></span>
+- **默认值：** development 模式为 `true`，production 模式和 none 模式为 `false`
 
 ## 禁用缓存
 
@@ -50,8 +48,6 @@ export default {
   cache: false,
 };
 ```
-
-<span id="memory-cache"></span>
 
 ## 内存缓存
 
@@ -72,8 +68,6 @@ export default {
   },
 };
 ```
-
-<span id="persistent-cache"></span>
 
 ## 持久化缓存
 
@@ -96,14 +90,24 @@ export default {
 `cache.buildDependencies` 是一个包含构建依赖的文件数组，Rspack 会使用这些文件的哈希值来使持久化缓存失效。
 
 :::tip
-建议在 rspack 配置中设置 `cache.buildDependencies`: [__filename]，以获取最新的配置。
+与 webpack 不同，Rspack 默认不预设任何构建依赖。建议将项目配置文件添加到 `cache.buildDependencies`，以确保配置变更时缓存能及时失效。
+
+注意：使用 Rspack CLI 时，配置文件会自动被添加到 `cache.buildDependencies` 中。
+
+在解析构建依赖文件时，Rspack 会通过 AST 递归解析 JS/TS 文件，追踪其传递依赖。对于 `node_modules` 下的包，Rspack 会停止递归解析，转而追踪该包的 `package.json`。
 :::
 
 ```js title="rspack.config.mjs"
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export default {
   cache: {
     type: 'persistent',
-    buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
+    buildDependencies: [__filename, join(__dirname, './tsconfig.json')],
   },
 };
 ```
@@ -115,6 +119,10 @@ export default {
 - **默认值:** `""`
 
 缓存版本，不同版本的缓存彼此隔离。
+
+:::warning
+不要在不同配置之间共享同一份缓存（相同的 `version` 和 `storage.directory`），这样可能导致错误的缓存命中。
+:::
 
 :::tip 持久化缓存失效
 
@@ -182,7 +190,11 @@ export default {
 
 ### cache.snapshot
 
-配置快照策略。快照用于在关闭期间确定哪些文件已被修改。支持以下配置：
+- **类型：** `object`
+
+- **默认值：** `{}`
+
+配置快照策略。快照用于确定自上次构建以来哪些文件发生了变化。支持以下配置：
 
 #### snapshot.immutablePaths
 
@@ -190,7 +202,7 @@ export default {
 
 - **默认值：** `[]`
 
-不可变文件的路径数组，热重启期间对这些路径的更改将被忽略。
+不可变文件的路径数组。热重启时，这些路径下的文件变更将被忽略，缓存会直接视为有效而无需重新检查文件内容。适用于保证写入后永不变更的内容寻址路径。
 
 #### snapshot.managedPaths
 
@@ -198,7 +210,7 @@ export default {
 
 - **默认值：** `[/[\\/]node_modules[\\/][^.]/]`
 
-包管理器管理的路径数组。在热启动时，将基于 package.json 中的版本来确定是否修改该路径。
+包管理器管理的路径数组。在热启动时，Rspack 会通过对应 `package.json` 中的 `version` 字段来判断包是否发生变化，而无需对文件内容进行哈希。这可以加速对仅通过包管理器更新的依赖包的缓存校验。
 
 #### snapshot.unmanagedPaths
 
@@ -206,11 +218,11 @@ export default {
 
 - **默认值：** `[]`
 
-指定 `snapshot.managedPaths` 中不受包管理器管理的路径数组
+指定 `snapshot.managedPaths` 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
 
 ### cache.storage
 
-- **类型：** `{ type: 'filesystem', directory: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string }`
 
 - **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
 

@@ -457,7 +457,7 @@ type Environment = {
   module?: boolean;
   /**
    * Determines if the node: prefix is generated for core module imports in environments that support it.
-   * This is only applicable to Webpack runtime code.
+   * This is only applicable to Rspack runtime code.
    * */
   nodePrefixForCoreModules?: boolean;
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
@@ -1604,7 +1604,7 @@ module.exports = {
 :::warning
 
 - 路径中不能包含感叹号（!），因为感叹号在 Rspack 中被用作 loader 语法。
-- `output.path` 必须是一个绝对路径。
+- 相对路径会基于 `context` 进行解析。
 
 :::
 

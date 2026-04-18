@@ -11,16 +11,12 @@ import PropertyType from '@components/PropertyType';
 
 Rspack caches snapshots and intermediate build artifacts, then reuses them in subsequent builds to improve build speed.
 
-- **Type:** `CacheOptions`
-
-- **Default:** production mode is `false`, development mode is `true`
+- **Type:**
 
 ```ts
 type CacheOptions =
   | boolean
-  | {
-      type: 'memory';
-    }
+  | { type: 'memory' }
   | {
       type: 'persistent';
       buildDependencies?: string[];
@@ -39,7 +35,7 @@ type CacheOptions =
     };
 ```
 
-<span id="disable-cache"></span>
+- **Default:** `true` in development mode, `false` in production mode and none mode
 
 ## Disable cache
 
@@ -50,8 +46,6 @@ export default {
   cache: false,
 };
 ```
-
-<span id="memory-cache"></span>
 
 ## Memory cache
 
@@ -72,8 +66,6 @@ export default {
   },
 };
 ```
-
-<span id="persistent-cache"></span>
 
 ## Persistent cache
 
@@ -96,7 +88,11 @@ export default {
 `cache.buildDependencies` is an array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
 
 :::tip
-It's recommended to set `cache.buildDependencies`: [__filename] in your rspack configuration to get the latest configuration.
+Unlike webpack, Rspack does not include any preset build dependencies by default. It's recommended to add your project config files to `cache.buildDependencies` to ensure the cache is invalidated when configuration changes.
+
+Note: When using Rspack CLI, the config file is automatically added to `cache.buildDependencies`.
+
+When resolving build dependency files, Rspack recursively parses JS/TS files via AST to track transitive dependencies. For packages under `node_modules`, recursive resolution stops and the package's `package.json` is tracked instead.
 :::
 
 ```js title="rspack.config.mjs"
@@ -115,6 +111,10 @@ export default {
 - **Default:** `""`
 
 Cache versions, different versions of caches are isolated from each other.
+
+:::warning
+Don't share the same cache (same `version` and same `storage.directory`) between builds with different configurations. Doing so may cause incorrect cache hits.
+:::
 
 :::tip Persistent cache invalidation
 
@@ -182,7 +182,11 @@ export default {
 
 ### cache.snapshot
 
-Configure snapshot strategy. Snapshot is used to determine which files have been modified during shutdown. The following configurations are supported:
+- **Type:** `object`
+
+- **Default:** `{}`
+
+Configure snapshot strategy. Snapshot is used to determine which files have been modified since the last build. The following configurations are supported:
 
 #### snapshot.immutablePaths
 
@@ -190,7 +194,7 @@ Configure snapshot strategy. Snapshot is used to determine which files have been
 
 - **Default:** `[]`
 
-An array of paths to immutable files, changes to these paths will be ignored during hot restart.
+An array of paths to immutable files. On hot restart, changes to these paths will be ignored and the cache will be considered valid without re-checking file contents. Suitable for content-addressed paths that are guaranteed to never change once written.
 
 #### snapshot.managedPaths
 
@@ -198,7 +202,7 @@ An array of paths to immutable files, changes to these paths will be ignored dur
 
 - **Default:** `[/[\\/]node_modules[\\/][^.]/]`
 
-An array of paths managed by the package manager. During hot start, it will determine whether to modify the path based on the version in package.json.
+An array of paths managed by the package manager. On hot restart, Rspack will use the `version` field in the corresponding `package.json` to determine whether a package has changed, instead of hashing file contents. This speeds up cache validation for packages that are only updated via the package manager.
 
 #### snapshot.unmanagedPaths
 
@@ -206,11 +210,11 @@ An array of paths managed by the package manager. During hot start, it will dete
 
 - **Default:** `[]`
 
-Specifies an array of paths in `snapshot.managedPaths` that are not managed by the package manager
+Specifies paths within `snapshot.managedPaths` that should not be treated as managed by the package manager. Files in these paths will fall back to content-hash-based cache validation.
 
 ### cache.storage
 
-- **Type:** `{ type: 'filesystem', directory: string }`
+- **Type:** `{ type: 'filesystem'; directory?: string }`
 
 - **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
 

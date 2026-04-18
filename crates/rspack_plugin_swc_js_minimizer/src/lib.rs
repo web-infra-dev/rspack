@@ -1,7 +1,11 @@
 use std::{
-  hash::Hash,
+  hash::{Hash, Hasher},
   path::Path,
-  sync::{LazyLock, Mutex, mpsc},
+  sync::{
+    LazyLock, Mutex,
+    atomic::{AtomicU32, Ordering},
+    mpsc,
+  },
 };
 
 use cow_utils::CowUtils;
@@ -10,7 +14,10 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   AssetInfo, ChunkUkey, Compilation, CompilationAsset, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, Plugin,
+  CompilerCompilation, Logger, Plugin,
+  cache::persistent::occasion::minimize::{
+    CachedExtractedComments, CachedMinimizeEntry, MinimizeCacheKey,
+  },
   diagnostics::MinifyError,
   rspack_sources::{
     ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
@@ -23,7 +30,10 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
 use rspack_regex::RspackRegex;
-use rspack_util::{asset_condition::AssetConditions, fx_hash::FxHashMap};
+use rspack_util::{
+  asset_condition::AssetConditions,
+  fx_hash::{FxHashMap, FxHasher},
+};
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
   base::config::JsMinifyFormatOptions,
@@ -126,11 +136,16 @@ struct NormalizedExtractComments {
 #[derive(Debug)]
 pub struct SwcJsMinimizerRspackPlugin {
   options: PluginOptions,
+  options_hash: u64,
 }
 
 impl SwcJsMinimizerRspackPlugin {
   pub fn new(options: PluginOptions) -> Self {
-    Self::new_inner(options)
+    let mut hasher = FxHasher::default();
+    PLUGIN_NAME.hash(&mut hasher);
+    options.hash(&mut hasher);
+    let options_hash = hasher.finish();
+    Self::new_inner(options, options_hash)
   }
 }
 
@@ -153,8 +168,7 @@ async fn js_chunk_hash(
   _chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  PLUGIN_NAME.hash(hasher);
-  self.options.hash(hasher);
+  self.options_hash.hash(hasher);
   Ok(())
 }
 
@@ -162,6 +176,14 @@ async fn js_chunk_hash(
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let options = &self.options;
   let minimizer_options = &self.options.minimizer_options;
+
+  // Take persistent cache out if enabled. When Some, we compute cache keys and
+  // do lookups; when None, we skip all cache overhead entirely.
+  let minimize_persistent_cache = compilation.minimize_persistent_cache_artifact.take();
+  let new_persistent_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
+    Mutex::new(Vec::new());
+  let cache_hits = AtomicU32::new(0);
+  let cache_misses = AtomicU32::new(0);
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
@@ -198,10 +220,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       let _guard = enter_span.enter();
       let filename = filename.split('?').next().expect("Should have filename");
       if let Some(original_source) = original.get_source() {
-        let input = original_source.source().into_string_lossy().into_owned();
-        let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
-
         let is_module = if let Some(module) = minimizer_options.module {
           Some(module)
         } else if let Some(module) = original.info.javascript_module {
@@ -214,6 +232,46 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           None
         };
 
+        // Compute cache key and check persistent cache (only when enabled)
+        let cache_key = if let Some(cache) = &minimize_persistent_cache {
+          let key = {
+            let mut hasher = FxHasher::default();
+            original_source.buffer().hash(&mut hasher);
+            self.options_hash.hash(&mut hasher);
+            filename.hash(&mut hasher);
+            is_module.hash(&mut hasher);
+            MinimizeCacheKey::new(hasher.finish())
+          };
+
+          // Check persistent cache
+          if let Some(cached) = cache.get(key) {
+            cache_hits.fetch_add(1, Ordering::Relaxed);
+            original.set_source(Some(cached.source.clone()));
+            original.get_info_mut().minimized.replace(true);
+            if let Some(ec) = &cached.extracted_comments {
+              all_extracted_comments
+                .lock()
+                .expect("all_extract_comments lock failed")
+                .insert(
+                  filename.to_string(),
+                  ExtractedCommentsInfo {
+                    source: ec.source.clone(),
+                    comments_file_name: ec.comments_file_name.clone(),
+                  },
+                );
+            }
+            return Ok(());
+          }
+
+          cache_misses.fetch_add(1, Ordering::Relaxed);
+          Some(key)
+        } else {
+          None
+        };
+        let input = original_source.source().into_string_lossy().into_owned();
+        let object_pool = tls.get_or(ObjectPool::default);
+        let input_source_map = original_source.map(object_pool, &MapOptions::default());
+
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),
           compress: minimizer_options.compress.clone(),
@@ -224,7 +282,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           inline_sources_content: true, /* Using true so original_source can be None in SourceMapSource */
           module: is_module,
           ..Default::default()
-          };
+        };
         let extract_comments_option = options.extract_comments.as_ref().map(|extract_comments| {
           let comments_filename = format!("{filename}.LICENSE.txt");
           let banner = match &extract_comments.banner {
@@ -396,12 +454,55 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             },
         };
 
+        // Store result in persistent cache (only when enabled)
+        if let Some(cache_key) = cache_key {
+          let extracted_comments_for_cache = all_extracted_comments
+            .lock()
+            .expect("all_extract_comments lock failed")
+            .get(filename)
+            .map(|ec| CachedExtractedComments {
+              source: ec.source.clone(),
+              comments_file_name: ec.comments_file_name.clone(),
+            });
+
+          new_persistent_cache_entries
+            .lock()
+            .expect("new_cache_entries lock failed")
+            .push((
+              cache_key,
+              CachedMinimizeEntry {
+                source: source.clone(),
+                extracted_comments: extracted_comments_for_cache,
+              },
+            ));
+        }
+
         original.set_source(Some(source));
         original.get_info_mut().minimized.replace(true);
       }
 
       Ok(())
   })?;
+
+  // Restore persistent cache with new entries (only when enabled)
+  if let Some(mut cache) = minimize_persistent_cache {
+    for (key, entry) in new_persistent_cache_entries
+      .into_inner()
+      .expect("new_persistent_cache_entries lock failed")
+    {
+      cache.insert(key, entry);
+    }
+    compilation.minimize_persistent_cache_artifact = Some(cache);
+
+    // Log cache statistics
+    let hits = cache_hits.load(Ordering::Relaxed);
+    let misses = cache_misses.load(Ordering::Relaxed);
+    let logger = compilation.get_logger(PLUGIN_NAME);
+    logger.log(format!(
+      "minimize persistent cache: {hits} hit, {misses} miss"
+    ));
+  }
+
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
 
   // write all extracted comments to assets

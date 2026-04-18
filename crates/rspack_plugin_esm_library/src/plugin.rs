@@ -43,7 +43,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    optimize_runtime_chunks,
+    extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
@@ -99,7 +99,7 @@ impl EsmLibraryPlugin {
     let mut modules_map = IdentifierIndexMap::default();
     let modules = module_graph.modules();
     let mut modules = modules.collect::<Vec<_>>();
-    modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+    modules.sort_by_key(|(m1, _)| *m1);
     let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
     for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
@@ -300,7 +300,7 @@ async fn finish_modules(
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let mut modules = module_graph.modules().collect::<Vec<_>>();
-  modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+  modules.sort_by_key(|(m1, _)| *m1);
   let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
   for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
@@ -695,6 +695,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   } else if let Some(cache_groups) = &self.split_chunks {
     crate::split_chunks::split(cache_groups, compilation).await?;
+  }
+
+  let extracted_tla_shared = extract_tla_shared_modules(compilation);
+  if extracted_tla_shared {
+    compilation.push_diagnostic(rspack_error::Diagnostic::warn(
+      "EsmLibraryPlugin".into(),
+      "Top-level await with shared modules caused a circular dependency between async and \
+       parent chunks. The shared modules have been extracted into separate chunks to break \
+       the cycle. After bundling, the execution order of top-level await may differ from the \
+       original source, which could lead to incorrect runtime behavior."
+        .into(),
+    ));
   }
 
   ensure_entry_exports(compilation);

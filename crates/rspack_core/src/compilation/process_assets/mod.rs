@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use super::*;
-use crate::compilation::pass::PassExt;
+use crate::{cache::Cache, compilation::pass::PassExt};
 
 pub struct ProcessAssetsPass;
 
@@ -11,9 +11,17 @@ impl PassExt for ProcessAssetsPass {
     "process assets"
   }
 
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_process_assets(compilation).await;
+  }
+
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
     let plugin_driver = compilation.plugin_driver.clone();
     process_assets(compilation, plugin_driver).await
+  }
+
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.after_process_assets(compilation).await;
   }
 }
 

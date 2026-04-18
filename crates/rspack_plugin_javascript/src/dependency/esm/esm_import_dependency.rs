@@ -456,6 +456,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return Some(create_error(msg));
     }
   }
+  #[allow(clippy::collapsible_match)]
   match exports_type {
     ExportsType::DefaultOnly => {
       if !ids.is_empty() && ids[0] != "default" {

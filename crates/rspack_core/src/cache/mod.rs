@@ -84,6 +84,10 @@ pub trait Cache: Debug + Send + Sync {
   async fn before_chunk_asset(&mut self, _compilation: &mut Compilation) {}
   async fn after_chunk_asset(&self, _compilation: &Compilation) {}
 
+  // PROCESS_ASSETS hooks
+  async fn before_process_assets(&mut self, _compilation: &mut Compilation) {}
+  async fn after_process_assets(&mut self, _compilation: &Compilation) {}
+
   // EMIT_ASSETS hooks
   async fn before_emit_assets(&mut self, _compilation: &mut Compilation) {}
   async fn after_emit_assets(&self, _compilation: &Compilation) {}

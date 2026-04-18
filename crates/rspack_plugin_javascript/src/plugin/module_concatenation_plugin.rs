@@ -1391,7 +1391,7 @@ impl ModuleConcatenationPlugin {
     // TODO(from webpack): Allow reusing existing configuration while trying to add dependencies.
     // This would improve performance. O(n^2) -> O(n)
     let start = logger.time("sort concat configurations");
-    concat_configurations.sort_by(|a, b| b.modules.len().cmp(&a.modules.len()));
+    concat_configurations.sort_by_key(|b| std::cmp::Reverse(b.modules.len()));
     logger.time_end(start);
 
     let mut used_modules = IdentifierSet::default();

@@ -251,7 +251,7 @@ export type Entry = EntryStatic | EntryDynamic;
 //#endregion
 
 //#region Output
-/** The output directory as an absolute path. */
+/** The output directory. Relative paths are resolved against `context`. */
 export type Path = string;
 
 /** Tells Rspack to include comments in bundles with information about the contained modules. */
@@ -334,7 +334,7 @@ export type WorkerPublicPath = string;
 /** Controls [Trusted Types](https://web.dev/articles/trusted-types) compatibility. */
 export type TrustedTypes = {
   /**
-   * The name of the Trusted Types policy created by webpack to serve bundle chunks.
+   * The name of the Trusted Types policy created by Rspack to serve bundle chunks.
    */
   policyName?: string;
   /**
@@ -438,7 +438,7 @@ export type Environment = {
 
   /**
    * Determines if the node: prefix is generated for core module imports in environments that support it.
-   * This is only applicable to Webpack runtime code.
+   * This is only applicable to Rspack runtime code.
    * */
   nodePrefixForCoreModules?: boolean;
 
@@ -451,7 +451,7 @@ export type Environment = {
 
 export type Output = {
   /**
-   * The output directory as an absolute path.
+   * The output directory. Relative paths are resolved against `context`.
    * @default path.resolve(process.cwd(), 'dist')
    * */
   path?: Path;
@@ -2949,14 +2949,14 @@ export type Watch = boolean;
 export type WatchOptions = {
   /**
    * Add a delay before rebuilding once the first file changed.
-   * This allows webpack to aggregate any other changes made during this time period into one rebuild.
+   * This allows Rspack to aggregate any other changes made during this time period into one rebuild.
    * @default 5
    */
   aggregateTimeout?: number;
 
   /**
    * Follow symlinks while looking for files.
-   * This is usually not needed as webpack already resolves symlinks ('resolve.symlinks' and 'resolve.alias').
+   * This is usually not needed as Rspack already resolves symlinks ('resolve.symlinks' and 'resolve.alias').
    */
   followSymlinks?: boolean;
 
@@ -3053,13 +3053,13 @@ export type Performance =
        */
       hints?: false | 'warning' | 'error';
       /**
-       * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
-       * @default 250000
+       * File size limit (in bytes) when exceeded, Rspack will provide performance hints.
+       * @default 307200 (300 KiB)
        */
       maxAssetSize?: number;
       /**
        * Total size of an entry point (in bytes).
-       * @default 250000
+       * @default 512000 (500 KiB)
        */
       maxEntrypointSize?: number;
     };
