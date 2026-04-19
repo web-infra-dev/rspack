@@ -175,13 +175,23 @@ export default {
 - [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 现在也支持持久化缓存（[#13706](https://github.com/web-infra-dev/rspack/pull/13706)），压缩结果可以跨构建复用，大型项目热启动性能提升 **80%+**。
 
 <span id="pure-esm"></span>
-## 纯 ESM 包 @chenjiahan
 
-为了让 Rspack 的包形态更符合现代 Node.js / ESM 生态，`@rspack/core`、`@rspack/cli`、`@rspack/dev-server` 和 `@rspack/plugin-react-refresh` 等包已正式切换为纯 ESM 形式发布，CommonJS 构建产物也被一并移除。这让模块加载和工具链集成方式更加统一。
+## 纯 ESM 包
 
-因此，你需要将 Node.js 升级到原生支持 `require(esm)` 的 20.19+ 或 22.12+ 版本。
+Rspack 的核心包现在以 pure ESM 包的形式发布，并移除了自身的 CommonJS 构建产物，这使模块加载方式更加统一，也更符合当前 Node.js 的主流实践。
+
+本次变更涉及以下 npm 包：
+
+- [@rspack/core](https://www.npmjs.com/package/@rspack/core)
+- [@rspack/cli](https://www.npmjs.com/package/@rspack/cli)
+- [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server)
+- [@rspack/dev-middleware](https://www.npmjs.com/package/@rspack/dev-middleware)
+- [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh)
+
+在 Node.js 20 及以上版本中，运行时已原生支持通过 [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require) 加载 ESM 模块。因此，对大多数仍通过 JavaScript API 使用 Rspack 的项目来说，这一变更通常不会带来实际影响，也无需额外修改现有代码。
 
 <span id="better-esm"></span>
+
 ## 更好的 ESM 产物
 
 对于库构建场景，ESM 产物的质量非常重要。产物越纯净，越有利于静态分析，也越有利于下游继续做代码分割和 tree shaking。
