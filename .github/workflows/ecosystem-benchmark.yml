@@ -135,7 +135,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           RSPACK_DIR=$(pwd)
-          git clone --single-branch --branch ci_profile  --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
+          git clone --single-branch --depth 1 https://github.com/web-infra-dev/rspack-ecosystem-benchmark.git
           cd rspack-ecosystem-benchmark
           pnpm i
           RSPACK_DIR="$RSPACK_DIR" node bin/cli.js bench
