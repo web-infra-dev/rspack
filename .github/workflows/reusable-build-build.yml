@@ -16,7 +16,7 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
-      binding_postfix: # Git reference to checkout
+      binding_postfix: # specify extrat postfix for binding artifact
         required: false
         type: string
 
