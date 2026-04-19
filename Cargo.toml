@@ -121,9 +121,9 @@ xxhash-rust         = { version = "0.8.15", default-features = false }
 allocative = { package = "rspack-allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "hashbrown", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
 
 # Pinned
-napi        = { version = "3.8.4", default-features = false }
+napi        = { version = "3.8.5", default-features = false }
 napi-build  = { version = "2.3.1", default-features = false }
-napi-derive = { version = "3.5.3", default-features = false }
+napi-derive = { version = "3.5.4", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
