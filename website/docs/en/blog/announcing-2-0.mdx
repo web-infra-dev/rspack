@@ -95,8 +95,7 @@ In the near term, the team will focus on the following areas:
 - Continue improving the quality and stability of ESM output, and work with other teams in the community to explore better bundler support for the ESM specification
 - Continue building [Rstack Skills](https://github.com/rstackjs/agent-skills) to give developers more AI-friendly tools for improving development efficiency and reducing the cost of debugging and output analysis
 
-<span id="faq"></span>
-## FAQ
+## FAQ \{#faq}
 
 ### Does Rspack stop being compatible with webpack after 2.0?
 
@@ -112,15 +111,13 @@ No. After 2.0, Rspack's main direction will gradually move to 2.x, but that does
 
 In the long run, however, new capabilities and major optimizations will primarily move forward on 2.x, so if your project is still on 1.x, we recommend planning the upgrade sooner rather than later.
 
-<span id="build-performance"></span>
-## Faster build performance
+## Faster build performance \{#build-performance}
 
 ![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
 
 In Rspack 2.0, we removed some deprecated features and legacy code, and upgraded several outdated dependencies. That created room for further optimization of internal algorithms and data structures, and brought about roughly a **10%** performance improvement.
 
-<span id="rsc-support"></span>
-## Built-in React Server Components support
+## Built-in React Server Components support \{#rsc-support}
 
 Rspack v2.0.0 and later include built-in support for React Server Components.
 
@@ -138,8 +135,7 @@ There are currently two ways to use it:
 
 The [rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) repository contains complete examples of building RSC applications with Rspack.
 
-<span id="portable-cache"></span>
-## Portable cache @jerrykingxyz
+## Portable cache @jerrykingxyz \{#portable-cache}
 
 In Rspack 1.2, we introduced [persistent cache](/config/cache#persistent-cache). However, that cache could not be reused across different machines, different paths, or different environments, which made cache reuse much less useful for scenarios such as team collaboration and remote builds.
 
@@ -165,15 +161,13 @@ export default {
 };
 ```
 
-<span id="pure-esm"></span>
-## ESM-only packages @chenjiahan
+## ESM-only packages @chenjiahan \{#pure-esm}
 
 To make Rspack's package format better aligned with the modern Node.js / ESM ecosystem, packages such as `@rspack/core`, `@rspack/cli`, `@rspack/dev-server`, and `@rspack/plugin-react-refresh` are now officially published as ESM-only packages, and the CommonJS builds have been removed as well. This makes module loading and toolchain integration more consistent.
 
 As a result, you need to upgrade Node.js to 20.19+ or 22.12+, which natively support `require(esm)`.
 
-<span id="better-esm"></span>
-## Better ESM output
+## Better ESM output \{#better-esm}
 
 For library builds, ESM output quality matters a lot. The cleaner the output is, the easier it is to analyze statically, and the better downstream tools can perform code splitting and tree shaking.
 
@@ -200,8 +194,7 @@ Compared with the generic [`output.module`](/config/output#outputmodule) path, `
 
 At the configuration level, `modern-module` also implies a set of defaults that would otherwise be tedious to wire up by hand: [`output.module`](/config/output#outputmodule) is set to `true`, `output.chunkLoading` is set to `'import'`, and [`splitChunks`](/plugins/webpack/split-chunks-plugin) defaults are widened so that split output remains clean. For a broader walk-through of ESM scenarios and configuration, see the [ESM guide](/guide/features/esm).
 
-<span id="import-meta-properties"></span>
-## Better import.meta support @ahabhgk
+## Better import.meta support @ahabhgk \{#import-meta-properties}
 
 On the source side, Rspack 2.0 continues improving `import.meta` support. For unknown `import.meta` properties, you can configure [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) so they are not resolved too early at compile time and are instead preserved for runtime evaluation.
 
@@ -224,8 +217,7 @@ export default {
 
 In addition, Rspack 2.0 also adds support for capabilities such as [`import.meta.main`](/api/runtime-api/module-variables#importmetamain), [`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename), and [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname).
 
-<span id="import-defer"></span>
-## Better deferred import support @ahabhgk
+## Better deferred import support @ahabhgk \{#import-defer}
 
 Rspack first added support for the `import defer` syntax in 1.6. In 2.0, that support moves one step closer to a more complete form. In addition to the original `import defer * as foo from './foo'`, Rspack now also supports `import.defer()`, allowing the "import now, execute later" model to cover more real-world usage.
 
@@ -245,8 +237,7 @@ import defer * as foo from './foo';
 console.log(foo.bar);
 ```
 
-<span id="dev-server"></span>
-## A lighter development server @chenjiahan
+## A lighter development server @chenjiahan \{#dev-server}
 
 In 2.0, `@rspack/dev-server` is no longer a default dependency of `@rspack/cli`, because not every project needs a development server. If your project uses `rspack dev` or `rspack serve`, you now need to install it manually:
 
@@ -256,8 +247,7 @@ pnpm add -D @rspack/dev-server
 
 At the same time, to further slim down `@rspack/dev-server`, we introduced `@rspack/dev-middleware` to replace `webpack-dev-middleware`, and `connect-next` to replace Express v4.
 
-<span id="subpath-alias-import"></span>
-## Support for `#/` subpath alias imports @stormslowly
+## Support for `#/` subpath alias imports @stormslowly \{#subpath-alias-import}
 
 In module resolution, Rspack 2.0 supports `#/`-style subpath alias imports. This means you can directly reuse the `imports` field in `package.json` to organize intra-package path mapping, instead of maintaining a separate alias configuration.
 
@@ -273,8 +263,7 @@ In module resolution, Rspack 2.0 supports `#/`-style subpath alias imports. This
 import main from '#/main.ts';
 ```
 
-<span id="mf-runtime"></span>
-## Optional Module Federation runtime @chenjiahan
+## Optional Module Federation runtime @chenjiahan \{#mf-runtime}
 
 In 2.0, `@module-federation/runtime-tools` has also been changed into an optional dependency, and its compatible version range has been widened to accept newer runtime versions as well.
 
@@ -284,8 +273,7 @@ If you use Module Federation, you now need to install `@module-federation/runtim
 pnpm add @module-federation/runtime-tools
 ```
 
-<span id="mf-share-treeshaking"></span>
-## Module Federation shared treeshaking
+## Module Federation shared treeshaking \{#mf-share-treeshaking}
 
 Rspack 2.0 further improves shared treeshaking for [Module Federation](/guide/features/module-federation). It can optimize `shared` dependencies at the export level and remove parts that are not actually used, which helps reduce the size of shared bundles in micro-frontend scenarios.
 
@@ -324,8 +312,7 @@ export default {
 
 ## Other feature updates
 
-<span id="detect-syntax"></span>
-### Built-in SWC loader syntax detection @chenjiahan
+### Built-in SWC loader syntax detection @chenjiahan \{#detect-syntax}
 
 When one rule handles different file types such as `.js`, `.jsx`, `.ts`, and `.tsx` together, [`detectSyntax` in `builtin:swc-loader`](/guide/features/builtin-swc-loader#detectsyntax) can infer parser configuration from the file extension automatically, helping you avoid repeated configuration.
 
@@ -347,8 +334,7 @@ export default {
 };
 ```
 
-<span id="resolve-import"></span>
-### CSS parser `resolveImport` option
+### CSS parser `resolveImport` option \{#resolve-import}
 
 Rspack 2.0 exposes a [`resolveImport`](/config/module#moduleparsercssautoresolveimport) option on the CSS parser, available on `css`, `css/auto`, and `css/module`. It controls whether `@import` at-rules are resolved and inlined at build time.
 
@@ -368,15 +354,13 @@ export default {
 };
 ```
 
-<span id="automatic-targets"></span>
-### Automatic inheritance of target settings @ahabhgk
+### Automatic inheritance of target settings @ahabhgk \{#automatic-targets}
 
 The target-environment options of [`builtin:swc-loader`](/guide/features/builtin-swc-loader), [`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader), [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin), and [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) now inherit from the top-level [`target`](/config/target) configuration by default.
 
 This means developers no longer need to keep loader, plugin, and top-level target settings in sync by hand. It reduces configuration duplication and also avoids mismatches between transform targets and minification targets.
 
-<span id="hashed-module-ids-plugin"></span>
-### Support for HashedModuleIdsPlugin
+### Support for HashedModuleIdsPlugin \{#hashed-module-ids-plugin}
 
 `HashedModuleIdsPlugin` is also supported in 2.0. If you want a short, stable, and unique id derived from the relative path of a module, you can use this plugin:
 
@@ -388,8 +372,7 @@ export default {
 };
 ```
 
-<span id="enforce-size-threshold"></span>
-### Support for splitChunks.enforceSizeThreshold
+### Support for splitChunks.enforceSizeThreshold \{#enforce-size-threshold}
 
 The [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin) option is also supported in 2.0. It defines a size threshold at which chunk splitting is enforced. Once a module group exceeds that threshold, limits such as [`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests), [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests), and `splitChunks.minRemainingSize` are ignored so the split can still happen.
 
@@ -414,8 +397,7 @@ The option can also be set per cache group. This lets you keep a strict global r
 
 Other constraints such as [`minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize), [`maxSize`](/plugins/webpack/split-chunks-plugin#splitchunksmaxsize), and [`minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks) continue to apply.
 
-<span id="better-tree-shaking"></span>
-### Better tree shaking @ahabhgk
+### Better tree shaking @ahabhgk \{#better-tree-shaking}
 
 2.0 introduces `experiments.pureFunctions`, which allows finer-grained analysis of cross-module pure function calls through `/*#__NO_SIDE_EFFECTS__*/` annotations or the [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) option.
 
