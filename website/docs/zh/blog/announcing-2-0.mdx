@@ -47,8 +47,7 @@ _2026 年 4 月 22 日_
   - [更好的 import.meta 支持](#import-meta-properties)
   - [更好的延迟导入支持](#import-defer)
 - 更轻量的依赖
-  - [更轻量的开发服务器](#dev-server)
-  - [可选的模块联邦运行时](#mf-runtime)
+  - [更少的默认依赖](#fewer-deps)
 - 更多功能
   - [自动继承 targets 配置](#automatic-targets)
   - [支持 `#/` 子路径别名导入](#subpath-alias-import)
@@ -279,25 +278,24 @@ import defer * as foo from './foo';
 console.log(foo.bar);
 ```
 
-## 更轻量的开发服务器 @chenjiahan \{#dev-server}
+## 更少的默认依赖 \{#fewer-deps}
 
-在 2.0 中，`@rspack/dev-server` 不再作为 `@rspack/cli` 的默认依赖，因为并不是所有场景都需要开发服务器。如果你在项目中使用 `rspack dev` 或 `rspack serve`，现在需要手动安装：
+Rspack 2.0 减少了默认安装的 npm 依赖数量：
 
-```bash
-pnpm add -D @rspack/dev-server
-```
+- `@rspack/dev-server` 的依赖数量从 192 降至 1，安装体积减少超过 90%，从 15 MB 降至 1.4 MB。
+- `@rspack/core` 的依赖数量从 8 降至 1。
+- `@rspack/cli` 现在为零依赖。
 
-同时，为了进一步精简 `@rspack/dev-server`，我们引入了 `@rspack/dev-middleware` 来替代 `webpack-dev-middleware`，并用 `connect-next` 替代了 Express v4。
+在 Rspack v1 中，`@rspack/dev-server` 通过 `webpack-dev-server` 间接引入了较多依赖，这增加了安装体积，也提高了依赖管理的复杂度。为此，我们对 `@rspack/dev-server` 进行了重构，重新梳理并精简了功能和默认依赖。
 
-## 可选的模块联邦运行时 @chenjiahan \{#mf-runtime}
+同时，`@rspack/cli` 也不再默认依赖 `@rspack/dev-server`，这意味着如果只使用构建能力，将不再需要引入开发服务器相关的依赖。
 
-在 2.0 中，`@module-federation/runtime-tools` 改成了可选依赖，并扩展了兼容版本范围，以同时接受较新的运行时版本。
+此外，我们还采用了以下方式来减少依赖：
 
-如果你使用了模块联邦特性，现在需要手动安装 `@module-federation/runtime-tools`：
-
-```bash
-pnpm add @module-federation/runtime-tools
-```
+- 将非核心依赖调整为可选依赖。例如 [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) 现在仅在使用 [模块联邦插件](/plugins/webpack/module-federation-plugin) 时才需要手动安装。
+- 使用更轻量的替代实现，例如以 [connect-next](https://github.com/rstackjs/connect-next) 替代 Express。对于开发服务器而言，Connect 的中间件模型已经能够覆盖大多数场景，这也与 Rsbuild 的开发服务器实现保持一致。
+- 将部分依赖打包进发布产物，由 Rspack 统一控制这些依赖及其子依赖的版本，避免依赖自动升级带来的潜在供应链风险。
+- 优先使用 Node.js 20+ 内置的原生 API，例如用 [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) 替代 `picocolors`。
 
 ## 其他特性更新
 
