@@ -175,11 +175,11 @@ console.log('hello');
 
 ## 模块联邦共享依赖 tree shaking \{#mf-share-treeshaking}
 
-Rspack 2.0 进一步完善了 [Module Federation](/guide/features/module-federation) 场景下的共享依赖 tree shaking。它可以对 `shared` 依赖做导出级别的优化，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
+除了对普通模块导入导出的分析，Rspack 2.0 也继续完善了[模块联邦](/guide/features/module-federation) 场景下的共享依赖 tree shaking。它可以对 `shared` 依赖做导出级别的优化，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
 
-在 Rspack 1.x 的模块联邦共享依赖方案里，只要一个依赖被声明到 `shared`，运行时通常就需要准备完整的依赖包。即使应用实际只用到了其中少量导出，也往往会把整份依赖带进来。对于 `antd`、`lodash-es` 这类体积较大、导出较多的库来说，这会明显增加共享包的体积。
+在 Rspack 1.x 的模块联邦共享依赖方案里，只要一个依赖被声明到 `shared`，运行时通常就需要准备完整的依赖包。即使应用实际只用到了其中少量导出，也往往会把整份依赖带进来。对于 `antd`、`lodash-es` 这类体积较大、导出较多的库来说，这会明显增加共享包体积。
 
-Rspack 2.0 将这项能力直接接入了 `ModuleFederationPlugin`。当某个 `shared` 项开启 `treeShaking` 后，Rspack 会为这类共享依赖生成对应的 tree shaking 产物，并让运行时优先加载这份更小的结果。如果当前请求无法命中，运行时会回退到完整依赖，以保证行为稳定。
+在 Rspack 2.0 中，当某个 `shared` 项开启 `treeShaking` 后，`ModuleFederationPlugin` 会为这类共享依赖生成对应的 tree shaking 产物。运行时会优先加载这份更小的结果；如果当前请求无法命中，再回退到完整依赖，以保证行为稳定。
 
 它同时支持 `runtime-infer` 和 `server-calc` 两种模式：
 
