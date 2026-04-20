@@ -53,8 +53,8 @@
     "pnpm": "10.33.0"
   },
   "devDependencies": {
-    "@rslint/core": "0.4.1",
-    "@rstest/core": "^0.9.7",
+    "@rslint/core": "0.4.2",
+    "@rstest/core": "^0.9.8",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.39",
     "check-dependency-version-consistency": "^6.0.0",
@@ -64,8 +64,8 @@
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
     "lint-staged": "^16.3.3",
-    "prettier": "3.8.2",
-    "typescript": "^6.0.2",
+    "prettier": "3.8.3",
+    "typescript": "^6.0.3",
     "zx": "8.8.5"
   },
   "packageManager": "pnpm@10.33.0"
