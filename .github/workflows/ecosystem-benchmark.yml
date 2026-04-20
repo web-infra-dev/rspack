@@ -37,6 +37,18 @@ jobs:
       profile: 'release'
       test: false
 
+  build-ci:
+    name: Build Linux CI Profile binding
+    if: github.repository == 'web-infra-dev/rspack'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS ||  '"ubuntu-22.04"' }}
+      ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/pull/{0}/head', inputs.pr) || github.sha }}
+      profile: 'ci'
+      test: false
+      binding_postfix: '-ci'
+
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
     runs-on: ubuntu-latest
@@ -73,7 +85,7 @@ jobs:
 
   bench:
     if: github.repository == 'web-infra-dev/rspack'
-    needs: [build]
+    needs: [build, build-ci]
     runs-on: [self-hosted, benchmark]
     outputs:
       diff-result: ${{ steps.run-benchmark.outputs.diff-result }}
@@ -94,6 +106,15 @@ jobs:
           name: bindings-x86_64-unknown-linux-gnu
           path: crates/node_binding/
           force-use-github-only: true
+
+      - name: Download CI profile bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-x86_64-unknown-linux-gnu-ci
+          path: crates/node_binding/ci/
+          force-use-github-only: true
+      - name: strip CI binding
+        run: strip crates/node_binding/ci/rspack.linux-x64-gnu.node
 
       - name: Show restored binding
         shell: bash
