@@ -1653,30 +1653,38 @@ fn prepare_concatenated_module_connections<F>(
   filter_connection: F,
 ) -> Vec<DependencyId>
 where
-  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
+  F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool + Sync,
 {
   let mg = compilation.get_module_graph();
-  let mut res = vec![];
-  for m in modules_set.iter() {
-    if m == new_module {
-      continue;
-    }
 
-    let old_mgm_connections = mg
-      .module_graph_module_by_identifier(m)
-      .expect("should have mgm")
-      .outgoing_connections();
-
-    // Outgoing connections
-    for dep_id in old_mgm_connections {
-      let connection = mg
-        .connection_by_dependency_id(dep_id)
-        .expect("should have connection");
-      let dep = mg.dependency_by_id(dep_id);
-      if filter_connection(m, connection, dep) {
-        res.push(*dep_id);
+  let dependency_parts = modules_set
+    .par_iter()
+    .filter_map(|m| {
+      if m == new_module {
+        return None;
       }
-    }
+      let old_mgm_connections = mg
+        .module_graph_module_by_identifier(&m)
+        .expect("should have mgm")
+        .outgoing_connections();
+
+      let mut part = vec![];
+      for dep_id in old_mgm_connections {
+        let connection = mg
+          .connection_by_dependency_id(dep_id)
+          .expect("should have connection");
+        let dep = mg.dependency_by_id(dep_id);
+        if filter_connection(&m, connection, dep) {
+          part.push(*dep_id);
+        }
+      }
+      Some(part)
+    })
+    .collect::<Vec<_>>();
+
+  let mut res = vec![];
+  for part in dependency_parts {
+    res.extend(part);
   }
   res
 }
