@@ -13,7 +13,6 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
-use tokio::runtime::Builder;
 
 pub(crate) static NUM_MODULES: usize = 10000;
 
@@ -103,9 +102,7 @@ pub fn build_chunk_graph_benchmark(c: &mut Criterion) {
   })
 }
 pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
-  let rt = Builder::new_multi_thread()
-    .build()
-    .expect("should not fail to build tokio runtime");
+  let rt = rspack_benchmark::build_tokio_rt();
   let _guard = rt.enter();
 
   let fs = Arc::new(MemoryFileSystem::default());
@@ -227,9 +224,7 @@ pub fn build_module_graph_benchmark(c: &mut Criterion) {
 }
 
 pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
-  let rt = Builder::new_multi_thread()
-    .build()
-    .expect("should not fail to build tokio runtime");
+  let rt = rspack_benchmark::build_tokio_rt();
   let _guard = rt.enter();
 
   let fs = Arc::new(MemoryFileSystem::default());

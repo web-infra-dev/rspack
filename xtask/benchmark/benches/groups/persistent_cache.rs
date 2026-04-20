@@ -15,7 +15,6 @@ use rspack_core::{
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
-use tokio::runtime::Builder;
 
 use super::bundle::basic_react;
 
@@ -35,11 +34,7 @@ const UPDATED_TEXT: &str = "Hello from cache";
 // is covered by dedicated test cases elsewhere.
 pub fn persistent_cache_benchmark(c: &mut Criterion) {
   let mut group = c.benchmark_group("persistent_cache");
-  let rt = Builder::new_multi_thread()
-    .worker_threads(8)
-    .max_blocking_threads(8)
-    .build()
-    .unwrap();
+  let rt = rspack_benchmark::build_tokio_rt();
   let pending_cleanup = RefCell::new(Vec::new());
 
   group.bench_function(

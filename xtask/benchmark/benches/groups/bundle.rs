@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use criterion::{Criterion, criterion_group};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
-use tokio::runtime;
 
 use crate::groups::bundle::util::{CompilerBuilderGenerator, derive_projects};
 
@@ -21,12 +20,7 @@ fn bundle_benchmark(c: &mut Criterion) {
   ];
 
   // Codspeed can only handle to up to 500 threads by default
-  let rt = runtime::Builder::new_multi_thread()
-    .worker_threads(8)
-    .max_blocking_threads(8)
-    .build()
-    .unwrap();
-
+  let rt = rspack_benchmark::build_tokio_rt();
   for (id, get_compiler) in derive_projects(projects) {
     group.bench_function(format!("bundle@{id}"), |b| {
       b.to_async(&rt).iter_batched(
