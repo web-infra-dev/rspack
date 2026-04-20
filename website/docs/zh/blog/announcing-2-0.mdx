@@ -42,14 +42,14 @@ _2026 年 4 月 22 日_
 - 性能提升
   - [提升构建速度](#build-performance)
   - [更少的默认依赖](#fewer-deps)
-- 更优的产物
-  - [更好的 tree shaking](#better-tree-shaking)
+- 产物优化
+  - [改进 tree shaking](#better-tree-shaking)
   - [模块联邦共享依赖 Tree Shaking](#mf-share-treeshaking)
 - 更好的规范支持
   - [纯 ESM 包](#pure-esm)
-  - [更好的 ESM 产物](#better-esm)
-  - [更好的 import.meta 支持](#import-meta-properties)
-  - [更好的延迟导入支持](#import-defer)
+  - [改进 ESM 产物](#better-esm)
+  - [改进 import.meta 支持](#import-meta-properties)
+  - [改进延迟导入支持](#import-defer)
 - 更多功能
   - [支持 `#/` 子路径别名导入](#subpath-alias-import)
   - [简化目标环境配置](#automatic-targets)
@@ -121,7 +121,7 @@ Rspack 2.0 减少了默认安装的 npm 依赖数量：
 - 将部分依赖 [打包进发布产物](https://e18e.dev/blog/bundling-dependencies)，由 Rspack 统一控制这些依赖及其子依赖的版本，避免依赖自动升级带来的潜在供应链风险。
 - 优先使用 Node.js 20+ 内置的原生 API，例如用 [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) 替代 `picocolors`。
 
-## 更好的 tree shaking \{#better-tree-shaking}
+## 改进 tree shaking \{#better-tree-shaking}
 
 Rspack 2.0 在 tree shaking 上继续补齐了若干过去难以静态分析的代码场景。现在，以下几类写法也能够被更准确地识别并参与 [tree shaking](/guide/optimization/tree-shaking)：
 
@@ -209,7 +209,7 @@ Rspack 的核心包现在以 pure ESM 包的形式发布，并移除了自身的
 
 在 Node.js 20 及以上版本中，运行时已原生支持通过 [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require) 加载 ESM 模块。因此，对大多数仍通过 JavaScript API 使用 Rspack 的项目来说，这一变更通常不会带来实际影响，也无需额外修改现有代码。
 
-## 更好的 ESM 产物 \{#better-esm}
+## 改进 ESM 产物 \{#better-esm}
 
 对于库构建场景，ESM 产物的质量非常重要。产物越纯净，越有利于静态分析，也越有利于下游继续做代码分割和 tree shaking。
 
@@ -236,7 +236,7 @@ export default {
 
 在配置层面，`modern-module` 也内置了一组默认值，用来简化手动配置：它会自动将 [`output.module`](/config/output#outputmodule) 置为 `true`，将 `output.chunkLoading` 设为 `'import'`，并放宽 [`splitChunks`](/plugins/webpack/split-chunks-plugin) 的默认值，以保证拆分后产物的纯净度。更完整的 ESM 场景和配置说明可参考 [ESM 指南](/guide/features/esm)。
 
-## 更好的 import.meta 支持 @ahabhgk \{#import-meta-properties}
+## 改进 import.meta 支持 @ahabhgk \{#import-meta-properties}
 
 在源码侧，Rspack 2.0 继续完善了 `import.meta` 相关能力。对于未知的 `import.meta` 属性，你可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 控制其行为，使它不在编译期被过早静态决定，而是保留到运行时求值。
 
@@ -259,7 +259,7 @@ export default {
 
 此外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 等能力的支持。
 
-## 更好的延迟导入支持 @ahabhgk \{#import-defer}
+## 改进延迟导入支持 @ahabhgk \{#import-defer}
 
 Rspack 在 1.6 首次支持了 `import defer` 语法，到了 2.0，这项能力又向更完整的形态推进了一步。除了最初的 `import defer * as foo from './foo'`，Rspack 还补齐了 `import.defer()` 的支持，使“导入模块但延后执行”的语义能够覆盖更多真实用法。
 
