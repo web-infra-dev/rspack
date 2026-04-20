@@ -61,21 +61,24 @@ _2026 年 4 月 28 日_
 
 ## 内置 React Server Components 支持 \{#rsc-support}
 
-Rspack 2.0 内置了对 React Server Components 的完整支持。
+Rspack v2.0.0 及更高版本内置了对 React Server Components 通用的底层构建能力：
 
-这套支持主要包括：
-
-1. 框架无关：不依赖任何元框架，提供通用的底层 RSC 构建能力。
-2. 编译期检查：在编译阶段拦截违反 RSC 规范的 API 调用，提前规避运行时错误。
-3. CSS 支持：在编译阶段收集服务端与客户端组件样式，并在渲染时注入。
-4. HMR 支持：同时支持服务端和客户端组件的热更新。
+1. 编译期检查：在编译阶段拦截违反 RSC 规范的 API 调用，提前规避运行时错误。
+2. CSS 支持：在编译阶段收集服务端与客户端组件样式，并在渲染时注入。
+3. HMR 支持：同时支持服务端和客户端组件的热更新。
 
 当前有两种使用方式：
 
 - **使用 Rsbuild**：Rsbuild 提供对 React Server Components 的开箱即用支持，可以快速创建一个 RSC 项目。详见 [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)。
-- **手动配置 Rspack**：你也可以参考当前文档，手动添加 React Server Components 相关配置。
+- **手动配置 Rspack**：你也可以参考 [React Server Components 文档](https://v2.rspack.rs/guide/tech/rsc)，手动添加 React Server Components 相关配置。
 
 [rspack-rsc-examples](https://github.com/rstackjs/rspack-rsc-examples) 仓库中提供了使用 Rspack 构建 RSC 应用的完整示例。
+
+生态落地与合作：
+
+- Modern.js 框架目前已采用 Rspack 的 RSC 实现（[详见 Modern.js RSC 文档](https://modernjs.dev/guides/basic-features/render/rsc.html)）。
+- 支持 React Router Data Mode（[React Router 示例](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router)）。
+- 我们正与 TanStack 展开深度合作，全面支持其利用 Rspack 作为底层引擎来编译和构建 RSC 应用。
 
 ## 可移植缓存 @jerrykingxyz \{#portable-cache}
 
