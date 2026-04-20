@@ -324,14 +324,36 @@ console.log(compiler.webpack === compiler.rspack); // true
 
 ### target
 
-- **类型：** `{ targets: Record<string, string>, esVersion: number }`
+- **类型：**
 
-从 [`target`](/config/target) 配置中推断出。这对需要访问目标环境信息的插件和 loader 作者非常有用。
+```ts
+type CompilerTarget = {
+  // ECMAScript 版本
+  esVersion?: number | null;
+  // 包含版本号的平台名称
+  targets?: Record<string, string> | null;
+};
+```
+
+从 [target](/config/target) 配置中推断出。这对需要访问目标环境信息的插件和 loader 作者非常有用。
 
 - `targets`: 带有版本的平台字符串数组 (例如：`{ 'chrome': '87', 'firefox': '78', 'node': '18' }`)。
 - `esVersion`: ECMAScript 版本号 (例如：`5`, `2015`, `2022`)。
 
-在自定义 loader 中使用 `compiler.target` 设置默认 targets 的示例：
+例如，在插件中访问 `compiler.target`：
+
+```js
+class ExamplePlugin {
+  apply(compiler) {
+    compiler.hooks.initialize.tap('ExamplePlugin', () => {
+      const { targets, esVersion } = compiler.target ?? {};
+      console.log(targets, esVersion);
+    });
+  }
+}
+```
+
+或是在自定义 loader 中访问 `compiler.target`：
 
 ```js title="my-loader.js"
 export default function myLoader(source) {
