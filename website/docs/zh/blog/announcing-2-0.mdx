@@ -265,7 +265,7 @@ export default {
 
 ## 改进延迟导入支持 \{#import-defer}
 
-Rspack 在 1.6 首次支持了 `import defer` 语法，到了 2.0，这项能力又向更完整的形态推进了一步。除了最初的 `import defer * as foo from './foo'`，Rspack 还补齐了 `import.defer()` 的支持，使“导入模块但延后执行”的语义能够覆盖更多真实用法。
+Rspack 在 1.6 在开启 deferImport 时能够解析 `import defer * as foo from './foo'` 语法，而在 2.0 中进一步支持了 `import.defer()`，使“导入模块但延后执行”的语义能够覆盖更多真实用法。
 
 这允许你更细致地控制模块执行时机和副作用触发时机。
 
@@ -278,9 +278,8 @@ export default {
 ```
 
 ```js title="app.js"
-import defer * as foo from './foo';
-
-console.log(foo.bar);
+const file = Math.random() > 0.5 ? 'a.js' : 'b.js';
+import.defer('./dir' + file);
 ```
 
 ## 其他特性更新
