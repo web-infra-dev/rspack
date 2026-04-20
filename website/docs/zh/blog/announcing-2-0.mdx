@@ -56,7 +56,7 @@ _2026 年 4 月 22 日_
   - [简化 swc-loader 配置](#detect-syntax)
   - [支持 CSS parser 的 resolveImport 选项](#resolve-import)
   - [支持哈希作为模块 ID](#hashed-module-ids-plugin)
-  - [支持 splitChunks.enforceSizeThreshold](#enforce-size-threshold)
+  - [支持代码分割的强制体积阈值](#enforce-size-threshold)
 
 ## 更加面向未来的设计 \{#future-oriented-design}
 
@@ -399,7 +399,7 @@ export default {
 };
 ```
 
-### 支持 splitChunks.enforceSizeThreshold \{#enforce-size-threshold}
+### 支持代码分割的强制体积阈值 \{#enforce-size-threshold}
 
 代码分割选项 [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin) 在 2.0 中得到了支持。它用于设置一个强制拆分的体积阈值：当某个模块组的体积超过该阈值时，[`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests)、[`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) 和 `splitChunks.minRemainingSize` 等限制会被忽略，从而确保拆分仍然发生。
 
