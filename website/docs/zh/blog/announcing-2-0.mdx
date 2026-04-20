@@ -240,9 +240,11 @@ export default {
 
 ## 改进 import.meta 支持 @ahabhgk \{#import-meta-properties}
 
-在源码侧，Rspack 2.0 继续完善了 `import.meta` 相关能力。对于未知的 `import.meta` 属性，你可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 控制其行为，使它不在编译期被过早静态决定，而是保留到运行时求值。
+Rspack 2.0 继续完善了 `import.meta` 相关能力。
 
-例如，如果你希望未知的 `import.meta` 属性保留到运行时求值，可以显式配置：
+对于编译阶段无法静态确定的 `import.meta` 属性，你可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 控制其行为，让它不要在编译阶段被转译，而是保留到运行时再求值。
+
+例如：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -259,7 +261,7 @@ export default {
 };
 ```
 
-此外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 等能力的支持。
+除了这类保留策略之外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 等值的支持。
 
 ## 改进延迟导入支持 @ahabhgk \{#import-defer}
 
