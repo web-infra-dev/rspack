@@ -52,7 +52,7 @@ _2026 年 4 月 22 日_
 - 更多功能
   - [自动继承 targets 配置](#automatic-targets)
   - [支持 `#/` 子路径别名导入](#subpath-alias-import)
-  - [内置 SWC loader 自动检测语法](#detect-syntax)
+  - [简化 swc-loader 配置](#detect-syntax)
   - [支持 CSS parser 的 resolveImport 选项](#resolve-import)
   - [支持 HashedModuleIdsPlugin](#hashed-module-ids-plugin)
   - [支持 splitChunks.enforceSizeThreshold](#enforce-size-threshold)
@@ -331,9 +331,13 @@ pnpm add @module-federation/runtime-tools
 import main from '#/main.ts';
 ```
 
-### 内置 SWC loader 自动检测语法 @chenjiahan \{#detect-syntax}
+### 简化 swc-loader 配置 \{#detect-syntax}
 
-当你用同一条规则同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等不同类型文件时，[`builtin:swc-loader` 的 `detectSyntax`](/guide/features/builtin-swc-loader#detectsyntax) 可以根据扩展名自动推断 parser 配置，从而避免重复配置。
+在以往的配置中，如果希望 [builtin:swc-loader](/guide/features/builtin-swc-loader) 同时处理 `.js`、`.jsx`、`.ts`、`.tsx` 等文件，需要根据文件类型显式指定 `jsc.parser` 中 的 `syntax`、`jsx`、`tsx`等选项，以确保 SWC 能以正确的语义解析代码，例如将 `<` 解析为 JSX 语法还是 TypeScript 泛型。
+
+这带来了一定的配置复杂度。为了让 SWC 正确解析不同后缀的文件，通常需要定义多条 `rules`，导致配置变得冗长，不利于维护。
+
+为了解决这一问题，Rspack 2.0 在内置的 `swc-loader` 中引入了 [detectSyntax](/guide/features/builtin-swc-loader#detectsyntax) 选项。启用 `detectSyntax: 'auto'` 后，loader 会根据文件扩展名自动推断 `syntax`、`jsx`、`tsx` 等 `parser` 选项。通过一条规则即可覆盖不同的文件类型，使配置更清晰。
 
 ```js title="rspack.config.mjs"
 export default {
