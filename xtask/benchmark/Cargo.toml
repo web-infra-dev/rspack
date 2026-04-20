@@ -13,6 +13,7 @@ default  = []
 
 [dependencies]
 criterion = { workspace = true }
+tokio     = { workspace = true }
 
 [dev-dependencies]
 # Make rust analyzer happy
@@ -32,7 +33,6 @@ rspack_tasks               = { workspace = true }
 rustc-hash                 = { workspace = true }
 serde_json                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__parser", "base"] }
-tokio                      = { workspace = true }
 
 [[bench]]
 harness = false
