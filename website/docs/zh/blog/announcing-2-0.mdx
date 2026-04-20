@@ -16,15 +16,17 @@ _2026 年 4 月 22 日_
 
 距离 Rspack 1.0 正式发布，已经过去了 1 年 8 个月。
 
-在这段时间里，我们保持着每周发布一个小版本、每两个月发布一个中版本的节奏。Rspack 逐步补齐了 webpack 中诸如持久化缓存、Layers、Lazy Compilation 等能力，也补全了大量插件依赖的钩子和 Node API。这让更多项目能够以更可控的成本迁移到 Rspack。
+2024 年 8 月发布 1.0 时，我们给 Rspack 设定了一个非常明确的阶段目标：在尽可能保持 webpack API 和生态兼容的前提下，帮助项目以可控的迁移成本获得 5 到 10 倍的构建性能提升。
 
-与此同时，我们也持续投入性能优化。除了不断改进内部算法和数据结构，我们还实现了增量构建、Lazy Barrel、原生文件系统监听器等能力。Rspack 因而逐步发展为一个既兼容 webpack 生态、又具备更高构建性能的打包方案。
+从今天回看，1.x 基本完成了这个阶段的任务。Rspack 逐步补齐了持久化缓存、Layers、Lazy Compilation 等关键能力，也补全了大量插件依赖的钩子和 Node API，让更多项目可以在不重写工程体系的前提下迁移到 Rspack。
+
+与此同时，我们也没有把 1.x 做成单纯的“webpack 替代品”。在持续对齐生态的同时，Rspack 也引入了增量构建、Lazy Barrel、原生文件系统监听器等能力，让兼容性和性能能够在同一套工具中成立。
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-在这个过程中，Rspack 也逐渐获得了更多前端开发者的认可。与 1.0 发布时相比，Rspack 的周下载量增长了约 **48 倍**。Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台也已经接入 Rspack。
+在这个过程中，Rspack 也在越来越多的真实项目中得到验证。与 1.0 发布时相比，Rspack 的周下载量增长了约 **48 倍**。Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台都已经接入 Rspack。
 
-这说明 Rspack 已经在越来越多的真实项目中得到验证，并逐步成为社区里可以稳定使用的 bundler 方案。
+这说明 Rspack 已经从一个主要面向迁移场景的选择，逐步成为社区里可以稳定使用并持续演进的 bundler 方案。
 
 ![Rspack 2.0 repo stats](https://assets.rspack.rs/rspack/assets/rspack-v2-0-repo-stats.png)
 
@@ -32,7 +34,11 @@ _2026 年 4 月 22 日_
 
 感谢所有社区贡献者。正是这些持续的反馈、讨论和代码贡献，推动着 Rspack 不断向前。
 
-如今，Rspack 2.0 已正式发布。本次版本主要带来了：
+与此同时，前端社区也在继续变化。Node.js 对 ESM 的支持更加成熟，新的模块规范和运行时能力在不断演进，AI 也在显著降低工具迁移和问题排查的成本。随着这些变化逐步成为日常开发的一部分，我们也开始重新思考：一个面向未来的 bundler，应该默认提供怎样的能力。
+
+正是在这样的背景下，我们在 2025 年启动了 Rspack 2.0 的设计与迭代。经过数十个 beta 和 RC 版本的打磨之后，Rspack 2.0 现在正式发布。
+
+本次版本主要带来了：
 
 - [内置 React Server Components 支持](#rsc-support)
 - 更快的构建速度
@@ -55,6 +61,14 @@ _2026 年 4 月 22 日_
   - [支持 CSS parser 的 resolveImport 选项](#resolve-import)
   - [支持 HashedModuleIdsPlugin](#hashed-module-ids-plugin)
   - [支持 splitChunks.enforceSizeThreshold](#enforce-size-threshold)
+
+## 更加面向未来的设计 \{#future-oriented-design}
+
+与 1.0 主要聚焦于兼顾既有生态不同，2.0 更强调在保持迁移成本可控的前提下，为未来的 JavaScript 工程提供更合适的默认设计。
+
+在 1.x 阶段，Rspack 有意让诸多 API 和默认值尽量与 webpack 5 对齐。这一策略有效降低了迁移成本，也使更多上层工具和框架能够较早接入 Rspack。随着 ESM、`import.meta`、`import defer` 等现代模块能力逐步走向主流，一部分历史设计已不再是当前语境下的最优选择。对于 bundler 而言，需要考虑的不仅是对既有行为的兼容，还包括更合理的默认值、更清晰的配置模型，以及更有利于性能和产物优化的底层抽象。
+
+基于这一判断，Rspack 2.0 对部分历史设计进行了重新审视。Rspack 仍将保持对 webpack 生态的高兼容性；在此基础上，我们也会优先采用更符合现代工程需求的 API、默认值与产物形态，并通过迁移指南与升级工具将迁移成本控制在合理范围内。
 
 ## 内置 React Server Components 支持 \{#rsc-support}
 
@@ -432,14 +446,59 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 Rspack 2.0 是一个里程碑，也意味着新的开始。
 
-从长期来看，Rspack 团队会将工作重心从“兼容 webpack”逐步转向**构建性能**、**产物体积**、**社区规范**、**Agent 协同**等方向，并结合 Rstack 生态中的一整套开发工具，为开发者提供“AI 友好的一体化 JavaScript 工具链”。
+1.x 主要回答的是“如何让 webpack 项目低成本迁移到高性能 bundler 上”；从 2.x 开始，我们会更多回答另一个问题：在今天的 JavaScript 工程里，bundler 应该默认提供什么样的能力。
 
-短期内，团队会主要推进以下几项工作：
+### 更优的产物优化
 
-- 持续改进 tree shaking 和 side effects 分析能力，并探索函数级的模块切分方案，以进一步降低产物体积
-- 持续优化构建链路上各个环节的算法和数据结构，并将它们接入到增量构建和持久化缓存当中，以提升各种场景下的构建速度
-- 持续增强 ESM 产物的质量和稳定性，并与社区中的其他团队共同探讨 bundler 对 ESM 规范更好的支持方式
-- 持续建设 [Rstack Skills](https://github.com/rstackjs/agent-skills)，为开发者提供更多 AI 友好的工具来提升开发效率，降低问题排查、产物分析的成本
+Rspack 和 webpack 一样，在很多默认优化上都会优先保证产物行为的稳定性，尤其是在 side effects 判断等环节通常会更保守。这种策略适合大多数项目，但我们也注意到，对于追求极致产物体积的场景来说，仍然有进一步挖掘的空间。
+
+#### 更高级的 Tree Shaking 优化
+
+Rspack 2.0 已经支持基于 pure annotation 的更细粒度优化。接下来，我们会继续提供更细粒度的 Tree Shaking 配置，让项目可以在“安全默认值”和“更激进的产物优化”之间做出更明确的选择，在保障产物稳定性的同时，更好地满足对体积有更高要求的场景。
+
+与此同时，我们也在探索结合静态类型信息来增强优化分析，借鉴 Prepack、Closure Compiler 和 React Compiler 在静态编译上的一些思路，把更多来自业务代码的可优化信息引入 bundler。
+
+{/* TODO: add AI-generated tree shaking optimization comparison diagram */}
+
+#### 更细粒度的代码拆分架构
+
+今天的 code splitting 最小粒度通常仍然是模块。当 chunk A 和 chunk B 只共享某个模块中的一个很小函数时，运行时仍然可能需要把整个模块都带上。这种粒度在很多项目里已经足够，但对于大型应用和框架场景来说，仍然会带来额外的冗余加载。
+
+未来我们会参考 esbuild、Turbopack 等工具在 module splitting 方向上的经验，探索按照实际复用关系把公共模块继续拆成更小的子模块。在保证缓存稳定性、调试体验和运行时行为可控的前提下，进一步减少 chunk 中不必要的加载。同时，我们也会结合 `import defer` 等更新的模块能力，探索更适合现代应用的加载策略。
+
+{/* TODO: add AI-generated code splitting architecture diagram */}
+
+### 更优的构建性能
+
+Rspack 会继续优化自身的算法、数据结构以及增量构建路径，但我们也越来越明确地看到：在很多真实项目里，瓶颈并不总是出在 bundler 主流程本身，而更常见地出现在 Tailwind、lint、typecheck 等社区插件和配套工具上。
+
+因此，后续的性能工作不会只关注 Rspack 内核。我们也会继续推动 Rstack 生态中的配套工具演进，例如探索基于 tsgo 的 lint 和 typecheck 方案，作为当前常见的 `eslint-webpack-plugin` 和 `fork-ts-checker-webpack-plugin` 组合的替代选择，让整个构建链路都能获得更稳定的性能收益。
+
+### 更好的 AI 集成
+
+越来越多的项目已经开始使用 AI 工具处理 Rspack 相关问题，包括构建性能分析、产物优化和自动化迁移。我们已经通过 [Rstack Skills](https://github.com/rstackjs/agent-skills) 为这类工作提供了一定支持，同时也越来越明显地感受到，可观测性对于 AI 与 bundler 的协作非常重要。
+
+这部分工作会主要围绕三个方向展开：
+
+- 更好的 Debugger 支持，让 AI Agent 能够更容易基于 Rspack 的调试版本排查问题。
+- 更丰富的诊断信息，在编译阶段暴露更多可机器消费的过程数据，例如 Tree Shaking、scope hoisting 等优化阶段的 bailout reason，帮助 AI 自动分析并迭代优化。
+- 更快的反馈循环，为 Agent 场景探索更高效的编译模式，帮助 AI 更快完成验证和迭代。
+
+### 更现代化的产物格式
+
+在 1.x 和 2.0 阶段，Rspack 一直兼容 webpack 的产物格式。这对迁移正确性和生态兼容非常重要，但也意味着我们需要继承一部分历史包袱。为了同时支持 CJS、UMD、ESM 等不同输出格式，以及 HMR、Module Federation 等运行时能力，传统 bundler 产物通常会在可读性和二次静态分析能力上做出妥协。
+
+未来我们会在保留关键运行时能力的前提下，继续探索更现代的产物形态，例如更纯净的 ESM 输出，以及基于 import maps、`import defer`、module fragments 等新标准的组织方式，让产物既更适合运行，也更适合被下游工具继续分析和优化。
+
+### 持续跟进社区规范与平台能力
+
+JavaScript 社区仍在持续演进，新的语法、模块能力和运行时接口也在不断成熟。Rspack 会继续第一时间跟进这些变化，把对新规范的支持尽可能早地带给上层工具和框架。2.0 中已经可以看到这一方向，例如对 pure ESM、`import.meta` 和 `import defer` 的持续完善；后续我们会继续沿着这条路线推进。
+
+### 更好的框架原语支持
+
+今天的 bundler 已经不只是“把模块打成 bundle”的工具。对于框架来说，它还需要承担多环境编译、服务端与客户端边界分析、样式与资源收集、运行时协调等更底层的职责。
+
+Rspack 2.0 已经在 React Server Components 上迈出了一步。接下来，我们会继续把更多能力沉淀为稳定的框架原语，而不是把复杂度全部留给框架层自行实现。这样，上层框架和工具在接入 Rspack 时，可以用更少的适配代码获得更完整的默认能力。
 
 ## 常见问题 \{#faq}
 
