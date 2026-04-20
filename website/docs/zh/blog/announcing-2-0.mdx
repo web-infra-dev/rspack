@@ -16,21 +16,15 @@ _2026 年 4 月 22 日_
 
 我们很高兴地宣布 Rspack 2.0 已正式发布！
 
-在 2024 年 8 月发布 1.0 时，我们给 Rspack 设定了一个非常明确的阶段目标：在尽可能保持 webpack API 和生态兼容的前提下，帮助项目以可控的迁移成本获得 5 到 10 倍的构建性能提升。
+在 2024 年 8 月发布 1.0 时，我们为 Rspack 设定了一个明确的阶段目标：在保持与 webpack API 和生态兼容的前提下，实现 10 倍的构建性能提升。
 
-从今天回看，1.x 基本完成了这个阶段的任务。Rspack 逐步补齐了持久化缓存、Layers、Lazy Compilation 等关键能力，也补全了大量插件依赖的钩子和 Node API，让更多项目可以在不重写工程体系的前提下迁移到 Rspack。
+回顾 1.x 阶段，这一目标已经基本实现。Rspack 不仅对齐了 webpack 的核心能力和插件 API，也在持续完善开发体验，改进了内置能力、产物优化以及对现代语言特性的支持，让更多项目能够轻松地接入 Rspack。
 
-与此同时，我们也没有把 1.x 做成单纯的“webpack 替代品”。在持续对齐生态的同时，Rspack 也引入了增量构建、Lazy Barrel、原生文件系统监听器等能力，让兼容性和性能能够在同一套工具中成立。
+与此同时，Rspack 也在被越来越多的用户采用，并逐步融入更广泛的生态。与 1.0 发布时相比，**Rspack 的周下载量已从 10 万增长到 500 万**。Rspack 的生态支持也在持续发展，Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox 等社区框架、工具和平台，均已提供对 Rspack 的支持。
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-在这个过程中，Rspack 也在越来越多的真实项目中得到验证。与 1.0 发布时相比，Rspack 的周下载量增长了约 **48 倍**。Docusaurus、Nuxt、Nx、Next.js、Storybook、Meteor、Remotion、Addfox、Vize 等框架、工具和平台都已经接入 Rspack。
-
-这说明 Rspack 已经从一个主要面向迁移场景的选择，逐步成为社区里可以稳定使用并持续演进的 bundler 方案。
-
-社区的支持也在持续增长。自 1.0 发布以来，Rspack 仓库累计收到了 **4,728 个 PR** 和 **1,052 个 Issue**，共有 **164 位贡献者**参与共建。
-
-感谢所有社区贡献者。正是这些持续的反馈、讨论和代码贡献，推动着 Rspack 不断向前。
+与此同时，Rspack 并未停留在“webpack 替代品”的定位。在持续对齐生态的过程中，我们也引入了增量构建、Lazy Barrel、原生文件系统监听器等能力，使兼容性与性能能够在同一套工具中兼顾。
 
 与此同时，前端社区也在继续变化。Node.js 对 ESM 的支持更加成熟，新的模块规范和运行时能力在不断演进，AI 也在显著降低工具迁移和问题排查的成本。随着这些变化逐步成为日常开发的一部分，我们也开始重新思考：一个面向未来的 bundler，应该默认提供怎样的能力。
 
@@ -78,7 +72,7 @@ _2026 年 4 月 22 日_
 
 而针对开启了[持久化缓存](/config/cache#persistent-cache)场景，我们也在缓存的流程覆盖和内存消耗上更进一步：
 
-- 将 [`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 接入到了持久化缓存，代码压缩结果可以跨构建复用，使得大型项目的热启动性能提升约 **80%**。
+- 将 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 接入到了持久化缓存，代码压缩结果可以跨构建复用，使得大型项目的热启动性能提升约 **80%**。
 - 优化持久化缓存的底层存储实现，使大型项目开启持久化缓存时的内存占用降低了 **20%+**。
 
 ### 精简默认依赖 \{#fewer-deps}
