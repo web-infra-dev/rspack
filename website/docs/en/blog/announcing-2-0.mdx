@@ -16,15 +16,17 @@ _April 22, 2026_
 
 It has been 1 year and 8 months since the official release of Rspack 1.0.
 
-During that time, we kept a steady cadence of one patch release every week and one minor release every two months. Rspack gradually filled in webpack features such as persistent cache, Layers, and Lazy Compilation, and also completed many of the hooks and Node APIs that plugins rely on. This made it easier for more projects to migrate to Rspack with lower and more predictable cost.
+When we released 1.0 in August 2024, we set a very clear goal for Rspack: to help projects achieve 5x to 10x faster builds with a predictable migration cost, while preserving as much webpack API and ecosystem compatibility as possible.
 
-At the same time, we continued investing in performance. Alongside ongoing improvements to internal algorithms and data structures, we also introduced capabilities such as incremental build, Lazy Barrel, and the native file system watcher. Rspack has therefore gradually grown into a bundler that stays compatible with the webpack ecosystem while delivering stronger build performance.
+Looking back today, the 1.x line largely achieved that goal. Rspack gradually filled in key capabilities such as persistent cache, Layers, and Lazy Compilation, and also completed many of the hooks and Node APIs that plugins rely on. This made it possible for more projects to migrate to Rspack without having to rebuild their entire engineering setup.
+
+At the same time, we did not want 1.x to become only a "webpack replacement". While continuing to align with the ecosystem, Rspack also introduced capabilities such as incremental build, Lazy Barrel, and the native file system watcher, so compatibility and performance could both improve within the same toolchain.
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-Along the way, Rspack has also been recognized by more and more frontend developers. Compared with the 1.0 release, Rspack's weekly downloads have grown by about **48x**. Frameworks, tools, and platforms such as Docusaurus, Nuxt, Nx, Next.js, Storybook, Meteor, Remotion, Addfox, and Vize have also adopted Rspack.
+Along the way, Rspack has also been validated by more and more real-world projects. Compared with the 1.0 release, Rspack's weekly downloads have grown by about **48x**. Frameworks, tools, and platforms such as Docusaurus, Nuxt, Nx, Next.js, Storybook, Meteor, Remotion, Addfox, and Vize have also adopted Rspack.
 
-That means Rspack has now been validated by more real-world projects and is gradually becoming a bundler the community can rely on in production.
+This means Rspack has gradually evolved from an option mainly aimed at migration into a bundler the community can rely on in production and continue building on.
 
 ![Rspack 2.0 repo stats](https://assets.rspack.rs/rspack/assets/rspack-v2-0-repo-stats.png)
 
@@ -32,7 +34,11 @@ Community support has continued to grow as well. Since the release of 1.0, the R
 
 Thanks to all community contributors. Ongoing feedback, discussions, and code contributions are what keep moving Rspack forward.
 
-Rspack 2.0 is now officially available. This release mainly brings:
+At the same time, the web platform and tooling landscape continues to change. Node.js has gained much more mature ESM support, new module semantics and runtime capabilities keep evolving, and AI is significantly reducing the cost of migration and troubleshooting. As these changes become part of everyday development, we also started to reconsider what a future-oriented bundler should provide by default.
+
+Against this backdrop, we began designing and iterating on Rspack 2.0 in 2025. After dozens of beta and RC releases, Rspack 2.0 is now officially available.
+
+This release mainly brings:
 
 - [Faster build performance](#build-performance)
 - [Built-in React Server Components support](#rsc-support)
@@ -51,6 +57,14 @@ Rspack 2.0 is now officially available. This release mainly brings:
 - [Support for HashedModuleIdsPlugin](#hashed-module-ids-plugin)
 - [Support for splitChunks.enforceSizeThreshold](#enforce-size-threshold)
 - [Better tree shaking](#better-tree-shaking)
+
+## A More Future-Oriented Design \{#future-oriented-design}
+
+Unlike 1.0, which primarily focused on accommodating the existing ecosystem, 2.0 places more emphasis on providing defaults that are better suited to the future of web tooling while keeping migration cost under control.
+
+During the 1.x cycle, Rspack intentionally aligned many APIs and defaults with webpack 5. That strategy effectively reduced migration cost and helped more upper-layer tools and frameworks integrate with Rspack early. As modern module capabilities such as ESM, `import.meta`, and `import defer` continue to become mainstream, some historical designs are no longer the best fit for today's environment. For a bundler, the question is not only how to remain compatible with existing behavior, but also how to offer more reasonable defaults, a clearer configuration model, and lower-level abstractions that work better for performance and output optimization.
+
+Based on that judgment, Rspack 2.0 re-evaluates some of these historical designs. Rspack will continue to maintain a high level of compatibility with the webpack ecosystem. On top of that, we will also prefer APIs, defaults, and output forms that better fit modern engineering needs, while using migration guides and upgrade tooling to keep the migration cost within a reasonable range.
 
 ## Try 2.0
 
@@ -86,14 +100,60 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 Rspack 2.0 is a milestone, and also a new starting point.
 
-In the long run, the Rspack team will gradually shift its focus from "compatibility with webpack" toward **build performance**, **bundle size**, **community conventions**, and **agent collaboration**, while also combining the full Rstack toolchain to provide developers with an AI-friendly integrated JavaScript toolchain.
+1.x mainly answered one question: how can webpack projects migrate to a high-performance bundler with low cost? Starting with 2.x, we want to answer another: what capabilities should a bundler provide by default for modern web development?
 
-In the near term, the team will focus on the following areas:
+### Better Output Optimization
 
-- Continue improving tree shaking and side effects analysis, and explore function-level module splitting strategies to further reduce bundle size
-- Continue optimizing algorithms and data structures across the build pipeline, and connect them with incremental build and persistent cache to improve build speed in different scenarios
-- Continue improving the quality and stability of ESM output, and work with other teams in the community to explore better bundler support for the ESM specification
-- Continue building [Rstack Skills](https://github.com/rstackjs/agent-skills) to give developers more AI-friendly tools for improving development efficiency and reducing the cost of debugging and output analysis
+Like webpack, Rspack tends to prioritize stable output behavior in many default optimizations, especially around side effects analysis, where the strategy is often conservative. This works well for most projects, but we also see more room to improve for scenarios that pursue the smallest possible bundle size.
+
+#### More Advanced Tree Shaking Optimization
+
+Rspack 2.0 already supports finer-grained optimization based on pure annotations. Going forward, we will continue to provide more granular tree shaking controls, so projects can make clearer choices between "safe defaults" and more aggressive bundle optimization, while still preserving stable output behavior.
+
+At the same time, we are exploring how to strengthen optimization analysis with static type information, drawing on ideas from projects like Prepack, Closure Compiler, and React Compiler to bring more optimizable signals from application code into the bundler.
+
+{/* TODO: add AI-generated tree shaking optimization comparison diagram */}
+
+#### Finer-Grained Code Splitting Architecture
+
+Today, the minimum unit of code splitting is still usually the module. When chunk A and chunk B only share a very small function from a module, the runtime may still need to include the whole module. That granularity is already sufficient for many projects, but in large applications and framework scenarios it can still lead to unnecessary duplicated loading.
+
+In the future, we will draw on ideas from tools such as esbuild and Turbopack around module splitting, and explore splitting shared modules into smaller submodules according to actual reuse patterns. While keeping cache stability, debugging experience, and runtime behavior under control, we want to further reduce unnecessary code loading in chunks. We will also explore loading strategies that fit modern applications better, together with newer module capabilities such as `import defer`.
+
+{/* TODO: add AI-generated code splitting architecture diagram */}
+
+### Better Build Performance
+
+Rspack will continue optimizing its own algorithms, data structures, and incremental build paths. At the same time, we are increasingly seeing that in many real-world projects, the bottleneck is not always in the bundler's main pipeline itself, but more often in community plugins and companion tools such as Tailwind, linting, and type checking.
+
+That means performance work should not focus only on the Rspack core. We will also keep pushing the broader Rstack toolchain forward. For example, we are exploring linting and type-checking solutions based on tsgo as an alternative to the common `eslint-webpack-plugin` and `fork-ts-checker-webpack-plugin` combination, so the entire build pipeline can benefit from more stable performance gains.
+
+### Better AI Integration
+
+More and more projects are already using AI tools to deal with Rspack-related work, including build performance analysis, output optimization, and automated migration. We already provide some support for this through [Rstack Skills](https://github.com/rstackjs/agent-skills). At the same time, practical usage has made one thing increasingly clear: whether AI can truly help solve build problems depends largely on three conditions, namely whether it can access sufficiently accurate context, whether the issue can be reproduced reliably, and whether hypotheses can be validated at low enough cost.
+
+Going forward, this work will mainly move in four directions:
+
+- Better debugger support, so AI agents can more easily troubleshoot problems using Rspack debug builds and correlate compile-time and runtime information.
+- Richer and more structured diagnostics, exposing more machine-consumable compilation data such as bailout reasons in tree shaking and scope hoisting, as well as clearer module, chunk, and plugin-pipeline information, so AI can analyze and iterate on optimizations more automatically.
+- More stable context collection and reproducibility, for example by exposing resolved configuration, environment information, and key compilation paths more clearly, so suggestions generated by AI are easier to reproduce and verify.
+- Faster feedback loops, exploring more efficient compilation modes for agent-driven workflows and shortening the loop of proposing a hypothesis, validating it, and iterating further.
+
+### More Modern Output Formats
+
+Throughout 1.x and 2.0, Rspack has stayed compatible with webpack's output formats. That has been important for migration correctness and ecosystem compatibility, but it also means inheriting some historical baggage. To support multiple output formats such as CJS, UMD, and ESM, as well as runtime capabilities like HMR and Module Federation, traditional bundler outputs often trade away some readability and secondary static analysis friendliness.
+
+Going forward, we will continue exploring more modern output forms while preserving key runtime capabilities, such as cleaner ESM output and ways of organizing output around newer standards like import maps, `import defer`, and module fragments, so outputs work better both at runtime and for downstream analysis and optimization.
+
+### Keeping Pace with Community Standards and Platform Capabilities
+
+The web platform continues to evolve, and new syntax, module capabilities, and runtime APIs keep maturing. Rspack will continue following these changes early and bringing support for new standards to upper-layer tools and frameworks as soon as possible. You can already see this direction in 2.0, for example in the continued improvements around pure ESM, `import.meta`, and `import defer`, and we will keep moving along that path.
+
+### Better Framework Primitives
+
+Today, a bundler is no longer only a tool that turns modules into bundles. For frameworks, it also needs to take on more foundational responsibilities, such as multi-environment compilation, server/client boundary analysis, style and asset collection, and runtime coordination.
+
+Rspack 2.0 has already taken a step in this direction with React Server Components. Going forward, we want to turn more of these capabilities into stable framework primitives instead of leaving all of the complexity to framework-specific integrations. That allows upper-layer frameworks and tools to integrate with Rspack using less adaptation code while getting more complete default capabilities.
 
 ## FAQ \{#faq}
 
