@@ -57,7 +57,7 @@ _2026 年 4 月 22 日_
   - [简化目标环境配置](#automatic-targets)
   - [简化 swc-loader 配置](#detect-syntax)
   - [支持 CSS parser 的 resolveImport 选项](#resolve-import)
-  - [支持 HashedModuleIdsPlugin](#hashed-module-ids-plugin)
+  - [支持哈希作为模块 ID](#hashed-module-ids-plugin)
   - [支持 splitChunks.enforceSizeThreshold](#enforce-size-threshold)
 
 ## 更加面向未来的设计 \{#future-oriented-design}
@@ -417,15 +417,17 @@ export default {
 };
 ```
 
-### 支持 HashedModuleIdsPlugin \{#hashed-module-ids-plugin}
+### 支持使用哈希生成模块 ID \{#hashed-module-ids-plugin}
 
-`HashedModuleIdsPlugin` 也在 2.0 中得到支持。如果你希望基于模块的相对路径计算出一个简短、稳定且唯一的 id，可以使用这个插件：
+Rspack 2.0 为 `optimization.moduleIds` 新增了 `hashed` 选项。启用后，Rspack 会基于模块的相对路径生成哈希值，并将其用作模块 ID。
+
+这适合希望模块 ID 更短、同时又保持稳定性的场景：
 
 ```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
 export default {
-  plugins: [new rspack.ids.HashedModuleIdsPlugin()],
+  optimization: {
+    moduleIds: 'hashed',
+  },
 };
 ```
 
