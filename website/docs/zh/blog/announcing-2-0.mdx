@@ -53,8 +53,8 @@ _2026 年 4 月 22 日_
 - 更轻量的依赖
   - [更少的默认依赖](#fewer-deps)
 - 更多功能
-  - [自动继承 targets 配置](#automatic-targets)
   - [支持 `#/` 子路径别名导入](#subpath-alias-import)
+  - [简化目标环境配置](#automatic-targets)
   - [简化 swc-loader 配置](#detect-syntax)
   - [支持 CSS parser 的 resolveImport 选项](#resolve-import)
   - [支持 HashedModuleIdsPlugin](#hashed-module-ids-plugin)
@@ -276,7 +276,7 @@ export default {
 
 Rspack 在 1.6 首次支持了 `import defer` 语法，到了 2.0，这项能力又向更完整的形态推进了一步。除了最初的 `import defer * as foo from './foo'`，Rspack 还补齐了 `import.defer()` 的支持，使“导入模块但延后执行”的语义能够覆盖更多真实用法。
 
-这让开发者可以更细致地控制模块执行时机和副作用触发时机。
+这允许你更细致地控制模块执行时机和副作用触发时机。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -313,12 +313,6 @@ Rspack 2.0 减少了默认安装的 npm 依赖数量：
 
 ## 其他特性更新
 
-### 自动继承 targets 配置 @ahabhgk \{#automatic-targets}
-
-[`builtin:swc-loader`](/guide/features/builtin-swc-loader)、[`builtin:lightningcss-loader`](/guide/features/builtin-lightningcss-loader)、[`SwcJsMinimizerRspackPlugin`](/plugins/rspack/swc-js-minimizer-rspack-plugin) 和 [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin) 的目标环境配置项，现在会默认继承顶层的 [`target`](/config/target) 配置。
-
-这意味着开发者不再需要在 loader、plugin 和顶层目标环境之间手动同步配置，既减少了配置冗余，也能避免“转译目标”和“压缩目标”不一致带来的问题。
-
 ### 支持 `#/` 子路径别名导入 @stormslowly \{#subpath-alias-import}
 
 在模块解析方面，Rspack 2.0 支持了 `#/` 形式的子路径别名导入。这样你就可以直接复用 `package.json` 中的 `imports` 字段来组织包内路径映射，而不必额外维护一套独立的别名配置。
@@ -334,6 +328,48 @@ Rspack 2.0 减少了默认安装的 npm 依赖数量：
 ```js title="src/index.js"
 import main from '#/main.ts';
 ```
+
+### 简化目标环境配置 \{#automatic-targets}
+
+在 Rspack 1.x 中，顶层的 [target](/config/target) 选项不会影响 loader 或压缩工具的转换目标，你通常还需要在 loaders 或压缩插件的选项中分别配置目标环境选项。这带来了额外的配置成本，同一份目标环境信息需要在多个位置重复声明。
+
+Rspack 2.0 对此进行了改进，内置的 loaders 和压缩插件会默认解析顶层的 `target` 配置，并据此推断各自需要的目标环境设置。多数情况下，你只需要在顶层声明一次目标环境，就能让 JavaScript 代码转换、CSS 转换和代码压缩保持目标一致。
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'browserslist: Chrome >= 100',
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              env: { targets: 'Chrome >= 100' }, // [!code --]
+            },
+          },
+        ],
+      },
+    ],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin(),
+      new rspack.LightningCssMinimizerRspackPlugin({
+        minimizerOptions: { targets: 'Chrome >= 100' }, // [!code --]
+      }),
+    ],
+  },
+};
+```
+
+该变更影响以下 loaders 和插件：
+
+- [swc-loader](/guide/features/builtin-swc-loader)
+- [lightningcss-loader](/guide/features/builtin-lightningcss-loader)
+- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)
+- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)
 
 ### 简化 swc-loader 配置 \{#detect-syntax}
 
