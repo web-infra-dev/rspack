@@ -265,9 +265,9 @@ export default {
 
 ## 改进延迟导入支持 \{#import-defer}
 
-Rspack 在 1.6 在开启 deferImport 时能够解析 `import defer * as foo from './foo'` 语法，而在 2.0 中进一步支持了 `import.defer()`，使“导入模块但延后执行”的语义能够覆盖更多真实用法。
+[`import defer`](https://github.com/tc39/proposal-defer-import-eval) 是 JavaScript 中一项用于延后模块求值的能力，也已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持。它允许你在导入模块时先完成加载，而不立即执行模块及其依赖，从而更好地控制代码加载和副作用发生的时机。
 
-这允许你更细致地控制模块执行时机和副作用触发时机。
+Rspack 在 1.6 中已经支持了 `import defer * as foo from './foo'` 语法，而在 2.0 中又进一步补齐了 `import.defer()` 的支持，使这项能力能够覆盖更多真实用法。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -279,6 +279,7 @@ export default {
 
 ```js title="app.js"
 const file = Math.random() > 0.5 ? 'a.js' : 'b.js';
+
 import.defer('./dir' + file);
 ```
 
