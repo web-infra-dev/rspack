@@ -120,13 +120,11 @@ Today, the minimum unit of code splitting is still usually the module. When chun
 
 In the future, we will draw on ideas from tools such as esbuild and Turbopack around module splitting, and explore splitting shared modules into smaller submodules according to actual reuse patterns. While keeping cache stability, debugging experience, and runtime behavior under control, we want to further reduce unnecessary code loading in chunks. We will also explore loading strategies that fit modern applications better, together with newer module capabilities such as `import defer`.
 
-{/* TODO: add AI-generated code splitting architecture diagram */}
-
 ### Better Build Performance
 
 Rspack will continue optimizing its own algorithms, data structures, and incremental build paths. At the same time, we are increasingly seeing that in many real-world projects, the bottleneck is not always in the bundler's main pipeline itself, but more often in community plugins and companion tools such as Tailwind, linting, and type checking.
 
-That means performance work should not focus only on the Rspack core. We will also keep pushing the broader Rstack toolchain forward. For example, we are exploring linting and type-checking solutions based on tsgo as an alternative to the common `eslint-webpack-plugin` and `fork-ts-checker-webpack-plugin` combination, so the entire build pipeline can benefit from more stable performance gains.
+That means performance work should not focus only on the Rspack core. We will also keep pushing the broader Rstack toolchain forward. For example, within Rslint, we are exploring linting and type-checking solutions based on tsgo as an alternative to the common `eslint-webpack-plugin` and `fork-ts-checker-webpack-plugin` combination, so the entire build pipeline can benefit from more stable performance gains.
 
 ### Better AI Integration
 
