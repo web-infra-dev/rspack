@@ -270,15 +270,12 @@ impl RscServerPlugin {
 
         for client_entry_to_inject in client_entries_to_inject {
           let entry_name = client_entry_to_inject.entry_name.clone();
-          let Some(injected) = self
-            .inject_client_entry_and_ssr_modules(
-              compilation,
-              client_entry_to_inject,
-              component_info.should_inject_ssr_modules,
-              &mut plugin_state,
-            )
-            .await
-          else {
+          let Some(injected) = self.inject_client_entry_and_ssr_modules(
+            compilation,
+            client_entry_to_inject,
+            component_info.should_inject_ssr_modules,
+            &mut plugin_state,
+          ) else {
             continue;
           };
 
@@ -363,18 +360,25 @@ impl RscServerPlugin {
       .complete_server_actions_compilation()
       .await?;
 
-    let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
-    let plugin_state = PLUGIN_STATES
-      .get(&compilation.compiler_id())
-      .ok_or_else(|| {
-        rspack_error::error!(
-          "RscServerPlugin: Plugin state not found in finish_make hook for compiler {:#?}.",
-          compilation.compiler_id()
-        )
-      })?;
+    let client_actions_per_entry = {
+      let plugin_state = PLUGIN_STATES
+        .get(&compilation.compiler_id())
+        .ok_or_else(|| {
+          rspack_error::error!(
+            "RscServerPlugin: Plugin state not found in finish_make hook for compiler {:#?}.",
+            compilation.compiler_id()
+          )
+        })?;
 
-    for (entry_name, entry_state) in &plugin_state.entries {
-      let action_entry_imports = &entry_state.client_actions;
+      plugin_state
+        .entries
+        .iter()
+        .map(|(entry_name, entry_state)| (entry_name.clone(), entry_state.client_actions.clone()))
+        .collect::<Vec<_>>()
+    };
+
+    let mut added_client_action_entry_list: Vec<InjectedActionEntry> = Vec::new();
+    for (entry_name, action_entry_imports) in client_actions_per_entry {
       // If an action method is already created in the server layer, we don't
       // need to create it again in the action layer.
       // This is to avoid duplicate action instances and make sure the module
@@ -394,7 +398,7 @@ impl RscServerPlugin {
           }
         }
         if !remaining_actions.is_empty() {
-          remaining_action_entry_imports.insert(dependency.clone(), remaining_actions);
+          remaining_action_entry_imports.insert(dependency, remaining_actions);
           remaining_client_imported_actions = true;
         }
       }
@@ -440,7 +444,7 @@ impl RscServerPlugin {
     Ok(())
   }
 
-  async fn inject_client_entry_and_ssr_modules(
+  fn inject_client_entry_and_ssr_modules(
     &self,
     _compilation: &Compilation,
     client_entry: ClientEntry,
@@ -606,18 +610,20 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
   }
 
   if let Some(on_server_component_changes) = self.on_server_component_changes.as_ref() {
-    let plugin_state = PLUGIN_STATES
-      .get(&compilation.compiler_id())
-      .ok_or_else(|| {
-        rspack_error::error!(
-          "RscServerPlugin: Plugin state not found in done hook for compiler {:#?}.",
-          compilation.compiler_id()
-        )
-      })?;
-    let has_changed_server_components = plugin_state
-      .entries
-      .values()
-      .any(|e| !e.changed_server_components.is_empty());
+    let has_changed_server_components = {
+      let plugin_state = PLUGIN_STATES
+        .get(&compilation.compiler_id())
+        .ok_or_else(|| {
+          rspack_error::error!(
+            "RscServerPlugin: Plugin state not found in done hook for compiler {:#?}.",
+            compilation.compiler_id()
+          )
+        })?;
+      plugin_state
+        .entries
+        .values()
+        .any(|e| !e.changed_server_components.is_empty())
+    };
     if has_changed_server_components {
       (on_server_component_changes)().await?;
     }

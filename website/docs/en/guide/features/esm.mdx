@@ -30,28 +30,25 @@ You can check out examples of [building React applications to ESM output](https:
 
 We recommend using [Rslib](https://rslib.rs) to build library output. Rslib is built on top of Rspack and can build multiple formats including ES Module, CommonJS, and UMD. Rslib provides higher-level APIs that simplify the library building process. Compared to using Rspack directly, using Rslib for library building is more convenient and efficient.
 
-If you need to use Rspack directly to build ESM format output for libraries (npm library), you need to configure the following:
+If you need to use Rspack directly to build ESM format output for libraries (npm library), `modern-module` is the recommended starting point:
 
 ```js title="rspack.config.mjs"
 export default {
   //...
   output: {
-    module: true,
-    chunkFormat: 'module',
     library: {
       type: 'modern-module',
     },
-    chunkLoading: 'import',
-    workerChunkLoading: 'import',
   },
   externalsType: 'module-import',
   optimization: {
-    concatenateModules: true,
     avoidEntryIife: true,
     minimize: false,
   },
 };
 ```
+
+Unlike application-oriented `output.module: true`, `modern-module` switches Rspack onto a dedicated ESM library rendering path. It automatically enables `output.module` and moves chunk loading to `import`, so you usually do not need to manually set `chunkFormat: 'module'` or `chunkLoading: 'import'`. If your library also needs ESM worker chunk loading, configure `workerChunkLoading: 'import'` explicitly. Also, do not enable `optimization.concatenateModules`, because `modern-module` uses its own linking and scope-hoisting pipeline.
 
 You can check out this [rspack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/library-esm) ESM library example.
 
@@ -59,14 +56,17 @@ Building ESM output also requires handling various detailed issues, which are no
 
 ## Future plans for ESM output
 
-Currently, Rspack's ESM support is still being improved. In certain use cases, you may encounter integration issues between ESM and other features. The main limitations include:
+Compared with earlier versions, `modern-module` now covers the more important library capabilities, including code splitting, custom splitChunks, [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules), and external-module re-exports such as `export *` / `export * as`.
 
-1. Lack of static analysis friendly code splitting support
-2. Limited custom chunk splitting support in ESM format
-3. Lack of module-level side effect information preservation, affecting tree-shaking accuracy
-4. Re-exports of external modules (`export * from '...'`) cannot be properly preserved in ESM format
+The remaining work is now more about spec alignment and edge cases than basic ESM availability:
 
-We are continuously improving Rspack's ESM support to provide a comprehensive solution that addresses existing issues and makes ESM usage more simple and intuitive, better embracing the modern JavaScript module system.
+1. Better application-oriented ESM output and development experience, including HMR and lazy compilation
+2. Namespace objects still differ from native ESM in a few places, such as `null` prototype behavior, frozen / non-extensible semantics, and observable own-key ordering
+3. Some string-export-name edge cases are still being completed, for example quoted names that affect temporary identifier generation
+4. `preserveModules` currently only works with `modern-module`; using the same module as the output root of multiple entries is also discouraged, and currently errors
+5. `modern-module` cannot be mixed with other `library.type` values in the same compilation, because it takes over chunk rendering, chunk loading, and splitChunks behavior
+
+In other words, the focus has been shifting from "can Rspack emit ESM at all?" to "can Rspack make library ESM closer to native semantics across more edge cases?".
 
 ## Configuration checklist
 
@@ -79,15 +79,15 @@ Below are the main configuration options related to ESM and their descriptions, 
    4. Affects [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename) default value: When `output.module` is `true`, defaults to `'[id].[fullhash].hot-update.mjs'`
    5. Affects [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) default value: When `output.module` is `true`, defaults to `'[runtime].[fullhash].hot-update.json.mjs'`
    6. Affects [output.iife](/config/output#outputiife) default value: When `output.module` is `true`, `output.iife` defaults to `false`
-   7. Affects [output.library.type](/config/output#outputlibrarytype) default value: When `output.module` is `true`, defaults to `'module'` instead of `'var'`
+   7. If [`output.library`](/config/output#outputlibrary) is also configured and [`output.library.type`](/config/output#outputlibrarytype) is not set explicitly, the default becomes `'modern-module'` instead of `'var'`
    8. Affects [output.scriptType](/config/output#outputscripttype) default value: When `output.module` is `true`, defaults to `'module'`
    9. Affects [output.environment.dynamicImport](/config/output#outputenvironmentdynamicimport) default value: Enabled when `output.module` is `true`
    10. Affects [output.environment.dynamicImportInWorker](/config/output#outputenvironmentdynamicimportinworker) default value: Enabled when `output.module` is `true`
    11. Affects [output.environment.module](/config/output#outputenvironmentmodule) default value: Enabled when `output.module` is `true`
    12. Affects Node.js related configuration defaults: In Node.js environment, when `output.module` is `true`, `__filename` and `__dirname` default to `'node-module'`
-2. [output.chunkFormat](/config/output#outputchunkformat): Set to `'module'` to use ESM format.
-3. [output.library.type](/config/output#outputlibrarytype): Set to `'modern-module'` for additional optimization of library ESM output format.
-4. [output.chunkLoading](/config/output#outputchunkloading): Set to `'import'` to use ESM `import` for loading chunks.
-5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): Set to `'import'` to use ESM `import` for loading workers.
+2. [output.chunkFormat](/config/output#outputchunkformat): When building application ESM output, this is typically set to `'module'` to use ESM-format chunks.
+3. [output.library.type](/config/output#outputlibrarytype): When building library ESM output, this is typically set to `'modern-module'` to use Rspack's dedicated ESM library rendering path.
+4. [output.chunkLoading](/config/output#outputchunkloading): When building application ESM output, this is typically set to `'import'`; for `modern-module`, Rspack switches chunk loading to `import` automatically.
+5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): When your application or library also needs ESM worker chunk loading, this is typically set to `'import'`.
 6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): In some cases, Rspack wraps ESM output in an IIFE, which breaks ESM's modular characteristics.
 7. [HtmlWebpackPlugin.scriptLoading](/guide/tech/html#htmlwebpackplugin): Set to `'module'` to use ESM `<script type="module">` for loading `.mjs` modules.

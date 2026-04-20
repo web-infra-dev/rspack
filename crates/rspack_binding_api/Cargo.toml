@@ -12,7 +12,7 @@ version.workspace       = true
 
 [features]
 allocative    = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto/allocative"]
-browser       = ["dep:rspack_browser", "rspack_napi/browser"]
+browser       = []
 debug_tool    = ["rspack_core/debug_tool"]
 plugin        = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
 sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
@@ -61,7 +61,6 @@ heck                                   = { workspace = true }
 once_cell                              = { workspace = true }
 rayon                                  = { workspace = true }
 regex                                  = { workspace = true }
-rspack_browser                         = { workspace = true, optional = true }
 rspack_cacheable                       = { workspace = true }
 rspack_ids                             = { workspace = true }
 rspack_javascript_compiler             = { workspace = true }
@@ -109,7 +108,6 @@ rspack_plugin_split_chunks             = { workspace = true }
 rspack_plugin_sri                      = { workspace = true }
 rspack_plugin_swc_js_minimizer         = { workspace = true }
 rspack_plugin_wasm                     = { workspace = true }
-rspack_plugin_web_worker_template      = { workspace = true }
 rspack_plugin_worker                   = { workspace = true }
 rspack_regex                           = { workspace = true }
 rspack_resolver                        = { workspace = true }

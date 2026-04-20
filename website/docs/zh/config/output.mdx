@@ -457,7 +457,7 @@ type Environment = {
   module?: boolean;
   /**
    * Determines if the node: prefix is generated for core module imports in environments that support it.
-   * This is only applicable to Webpack runtime code.
+   * This is only applicable to Rspack runtime code.
    * */
   nodePrefixForCoreModules?: boolean;
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
@@ -863,7 +863,7 @@ export default {
 
 - **类型：** `string`
 
-  类型默认包括 `'var'`、`'module'`、`'assign'`、`'assign-properties'`、`'this'`、`'window'`、`'self'`、`'global'`、`'commonjs'`、`'commonjs2'`、`'commonjs-module'`、`'commonjs-static'`、`'amd'`、`'amd-require'`、`'umd'`、`'umd2'`、`'jsonp'` 和 `'system'`，除此之外也可以通过插件添加。
+  类型默认包括 `'var'`、`'module'`、`'modern-module'`、`'assign'`、`'assign-properties'`、`'this'`、`'window'`、`'self'`、`'global'`、`'commonjs'`、`'commonjs2'`、`'commonjs-module'`、`'commonjs-static'`、`'amd'`、`'amd-require'`、`'umd'`、`'umd2'`、`'jsonp'` 和 `'system'`，除此之外也可以通过插件添加。
 
 对于接下来的示例，我们将会使用 `_entry_return_` 表示被入口点返回的值。
 
@@ -1058,6 +1058,8 @@ export default {
 
 输出 ESM 模块。
 
+这是一条更偏向兼容性的 ESM library 路径：Rspack 仍沿用常规的 chunk / runtime 渲染流程，再把入口导出转换成 `export` 语句。它更适合较简单的 ESM 库输出，或者你只需要 webpack 风格 `module` 语义的场景。
+
 ##### type: 'modern-module'
 
 ```js title="rspack.config.mjs"
@@ -1071,7 +1073,18 @@ export default {
 };
 ```
 
-这项配置将生成支持 tree-shaking 和 code-splitting 的 ES 模块输出。
+这项配置会启用 Rspack 为 ESM 库单独设计的渲染路径，直接输出 `import` / `export`，并支持库场景下的 tree-shaking、scope hoisting、code splitting 以及 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
+
+:::tip `module` 和 `modern-module` 的区别
+
+- `module` 仍走常规的 chunk / runtime 渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。
+- `modern-module` 会由专用的 ESM library 插件接管 chunk 渲染、链接、scope hoisting 和 splitChunks，更适合发布可 tree-shake、可 code-split 的 ESM 库。
+- `modern-module` 当前是为补齐库场景 ESM 能力而单独引入的类型；等能力进一步稳定后，计划与 `module` 收敛为同一个 `library.type`。
+- `preserveModules` 仅在 `modern-module` 下可用。
+- 当你配置了 `output.library` 且 `output.module = true` 时，如果没有显式指定 `output.library.type`，Rspack 当前默认会使用 `modern-module`。
+- 不允许在同一次编译中把 `modern-module` 和其他 `library.type` 混用，因为它会同时影响 chunk loading、chunk 渲染和 scope hoisting 的行为。
+
+:::
 
 ##### type: 'commonjs2'
 
@@ -1143,6 +1156,19 @@ import { doSomething } from './output.cjs'; // doSomething => [Function: doSomet
 
 :::tip
 当源代码是用 ESM 编写的，并且输出应该兼容 CJS 和 ESM 时，这是很有用的。获取更多详情，请阅读该 [issue](https://github.com/webpack/webpack/issues/14998) 或者 [这篇文档](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed)（尤其是 [这个章节](https://dev.to/jakobjingleheimer/configuring-commonjs-es-modules-for-nodejs-12ed#publish-only-a-cjs-distribution-with-property-exports)）。
+:::
+
+:::tip 如何选择 CommonJS 的 `library.type`
+
+| 类型              | 写入目标            | 更适合的场景                                           |
+| ----------------- | ------------------- | ------------------------------------------------------ |
+| `commonjs`        | `exports[...]`      | 兼容已有依赖 `exports` 对象的历史配置；更偏兼容写法    |
+| `commonjs2`       | `module.exports`    | 通用的 Node.js / CJS 库输出；大多数新配置优先选它      |
+| `commonjs-module` | `module.exports`    | 当前与 `commonjs2` 等价，主要用于兼容历史 webpack 配置 |
+| `commonjs-static` | `exports.foo = ...` | 需要让 Node.js ESM 能够对 CJS 产物做具名导入           |
+
+Rspack 当前保留这些写法主要是为了兼容 webpack 生态，并没有在配置层面对它们做废弃。对于新项目，通常优先考虑 `commonjs2` 或 `commonjs-static`；只有在迁移既有配置、或明确依赖 `exports` 赋值语义时，再使用 `commonjs` / `commonjs-module`。
+
 :::
 
 ##### type: 'amd'
@@ -1578,7 +1604,7 @@ module.exports = {
 :::warning
 
 - 路径中不能包含感叹号（!），因为感叹号在 Rspack 中被用作 loader 语法。
-- `output.path` 必须是一个绝对路径。
+- 相对路径会基于 `context` 进行解析。
 
 :::
 

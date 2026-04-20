@@ -115,7 +115,6 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 - **`rspack_plugin_mf`**: Module Federation plugin implementing micro-frontend module federation
 - **`rspack_plugin_dll`**: DLL plugin implementing dynamic link library functionality
 - **`rspack_plugin_worker`**: Web Worker plugin for processing Worker files
-- **`rspack_plugin_web_worker_template`**: Web Worker template plugin
 - **`rspack_plugin_schemes`**: Custom scheme plugin supporting custom resource protocols
 - **`rspack_plugin_runtime_chunk`**: Runtime chunk plugin for separating runtime code
 
@@ -138,7 +137,6 @@ This is a **monorepo** containing both Rust crates and JavaScript packages:
 
 ### Browser & environment support
 
-- **`rspack_browser`**: Browser environment support providing browser-side implementations
 - **`rspack_browserslist`**: Browserslist support for handling browser compatibility queries
 
 ### Monitoring & tracing

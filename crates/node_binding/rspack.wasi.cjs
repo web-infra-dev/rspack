@@ -98,10 +98,6 @@ const { instance: __napiInstance, module: __wasiModule, napiModule: __napiModule
       ...importObject.napi,
       ...importObject.emnapi,
       memory: __sharedMemory,
-      // Override emnapi's napi_adjust_external_memory to a no-op.
-      // emnapi implements this by calling memory.grow, but we've disabled memory.grow
-      // (initial == maximum).
-      napi_adjust_external_memory() { return 0 },
     }
     return importObject
   },

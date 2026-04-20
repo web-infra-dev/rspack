@@ -422,12 +422,7 @@ async fn visit_dirs(
   resolve_options: &ResolveInnerOptions<'_>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
-  if !fs
-    .metadata(dir)
-    .await
-    .map(|m| m.is_directory)
-    .unwrap_or(false)
-  {
+  if !fs.metadata(dir).await.is_ok_and(|m| m.is_directory) {
     return Ok(());
   }
   let include = &options.context_options.include;
@@ -443,12 +438,7 @@ async fn visit_dirs(
       continue;
     }
 
-    if fs
-      .metadata(&path)
-      .await
-      .map(|m| m.is_directory)
-      .unwrap_or(false)
-    {
+    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
       if options.context_options.recursive {
         visit_dirs(
           ctx,

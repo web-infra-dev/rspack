@@ -14,24 +14,36 @@ Welcome to try running Rspack in the browser at the [Rspack Playground](https://
 `@rspack/browser` is currently experimental. We will continue to improve its online bundling capabilities, and future releases may introduce breaking changes.
 :::
 
-## Basic example
+## Usage
 
-The following example demonstrates the basic usage of `@rspack/browser`. Except for the additional APIs used to read and write project files and outputs, other APIs are consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`.
+Run `@rspack/browser` inside a dedicated Web Worker, because `Atomics.wait` is not allowed on the browser main thread.
 
-```ts
-import { rspack, builtinMemFs } from '@rspack/browser';
+Except for the browser-specific file system and Worker setup, the rest of the API is consistent with the [JavaScript API](/api/javascript-api/) of `@rspack/core`.
 
-// Write files to memfs
-builtinMemFs.volume.fromJSON({
-  // ...project files
+```ts title="main.ts"
+const worker = new Worker(new URL('./rspack.worker.ts', import.meta.url), {
+  type: 'module',
 });
 
-rspack({}, (err, stats) => {
-  if (err || stats.hasErrors()) {
-    // ...
+worker.addEventListener('message', (event) => {
+  if (event.data.type === 'done') {
+    console.log(event.data.output);
   }
-  // Get output from memfs after bundling
-  const files = builtinMemFs.volume.toJSON();
+});
+```
+
+```ts title="rspack.worker.ts"
+import { rspack, builtinMemFs } from '@rspack/browser';
+
+builtinMemFs.volume.fromJSON({
+  '/src/index.js': 'console.log("hello from rspack")',
+});
+
+rspack({ entry: '/src/index.js' }, (err, stats) => {
+  self.postMessage({
+    type: 'done',
+    output: builtinMemFs.volume.readFileSync('/dist/main.js', 'utf-8'),
+  });
 });
 ```
 

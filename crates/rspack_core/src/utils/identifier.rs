@@ -97,14 +97,19 @@ pub fn to_identifier_with_escaped(v: String) -> String {
     return v;
   }
 
-  if let Some(first_char) = v.chars().next() {
-    if first_char.is_ascii_alphabetic() || first_char == '$' || first_char == '_' {
-      return v;
-    }
-    format!("_{v}")
-  } else {
-    v
+  let bytes = v.as_bytes();
+  // Fast path: the input is already a valid JS identifier — skip the full
+  // escape (see #10760). `_` is a valid continuation char even though
+  // `is_ident_safe` excludes it (it's the replacement sentinel for the escape
+  // impl), so handle it inline here.
+  if is_ident_first_safe(bytes[0]) && bytes.iter().all(|&b| is_ident_safe(b) || b == b'_') {
+    return v;
   }
+
+  // Defensive path: invalid characters anywhere in the input (e.g. JSON keys
+  // like "!top" or "with space") need the full escape so we never emit bare
+  // invalid characters into a JS identifier position.
+  to_identifier(&v).into_owned()
 }
 
 pub fn escape_identifier(v: &str) -> Cow<'_, str> {
@@ -191,4 +196,25 @@ fn test_to_identifier() {
     to_identifier("ident0_stable/src/core/iter//range.rs?"),
     "ident0_stable_src_core_iter_range_rs_"
   );
+}
+
+#[test]
+fn test_to_identifier_with_escaped() {
+  // Already-valid identifiers pass through unchanged.
+  assert_eq!(to_identifier_with_escaped("ident0".into()), "ident0");
+  assert_eq!(to_identifier_with_escaped("_top".into()), "_top");
+  assert_eq!(to_identifier_with_escaped("$foo".into()), "$foo");
+
+  // First-char-only fixups still work.
+  assert_eq!(to_identifier_with_escaped("0ident".into()), "_0ident");
+
+  // Invalid characters anywhere in the input are escaped — regression coverage
+  // for JSON keys like "!top" / "with space" leaking into JS identifier positions.
+  assert_eq!(to_identifier_with_escaped("!top".into()), "_top");
+  assert_eq!(to_identifier_with_escaped("_!top".into()), "_top");
+  assert_eq!(
+    to_identifier_with_escaped("with space".into()),
+    "with_space"
+  );
+  assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
 }

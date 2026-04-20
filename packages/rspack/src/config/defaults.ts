@@ -51,6 +51,8 @@ import type {
   SnapshotOptions,
 } from './types';
 
+const ERROR_PREFIX = 'Invalid Rspack configuration:';
+
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
 ) => {
@@ -704,6 +706,14 @@ const applyOutputDefaults = (
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
   D(output, 'compareBeforeEmit', true);
+  if (output.path && !path.isAbsolute(output.path)) {
+    if (!context) {
+      throw new Error(
+        `${ERROR_PREFIX} "context" must be a non-empty absolute path when "output.path" is relative, get "${context ?? ''}".`,
+      );
+    }
+    output.path = path.resolve(context, output.path);
+  }
   F(output, 'path', () => path.join(process.cwd(), 'dist'));
   F(output, 'pathinfo', () => false);
   D(
@@ -990,8 +1000,8 @@ const applyPerformanceDefaults = (
   { production }: { production: boolean },
 ) => {
   if (performance === false) return;
-  D(performance, 'maxAssetSize', 250000);
-  D(performance, 'maxEntrypointSize', 250000);
+  D(performance, 'maxAssetSize', 300 * 1024);
+  D(performance, 'maxEntrypointSize', 500 * 1024);
   F(performance, 'hints', () => (production ? 'warning' : false));
 };
 

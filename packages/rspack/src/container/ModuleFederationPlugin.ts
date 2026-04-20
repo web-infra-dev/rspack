@@ -42,7 +42,7 @@ export class ModuleFederationPlugin {
   constructor(private _options: ModuleFederationPluginOptions) {}
 
   apply(compiler: Compiler) {
-    const { webpack } = compiler;
+    const { rspack } = compiler;
     const paths = getPaths(this._options, compiler);
     compiler.options.resolve.alias = {
       '@module-federation/runtime-tools': paths.runtimeTools,
@@ -124,7 +124,7 @@ export class ModuleFederationPlugin {
       shared: this._options.shared,
       enhanced: true,
     };
-    new webpack.container.ModuleFederationPluginV1(v1Options).apply(compiler);
+    new rspack.container.ModuleFederationPluginV1(v1Options).apply(compiler);
 
     if (this._options.manifest) {
       new ModuleFederationManifestPlugin(this._options).apply(compiler);

@@ -658,7 +658,7 @@ impl ConcatenatedModule {
     runtime: Option<RuntimeSpec>,
     compilation: &Compilation,
   ) -> Self {
-    modules.sort_unstable_by(|a, b| a.id.cmp(&b.id));
+    modules.sort_unstable_by_key(|a| a.id);
     let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }

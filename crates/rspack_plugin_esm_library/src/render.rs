@@ -308,7 +308,7 @@ var {} = {{}};
       .namespace_object_sources
       .iter()
       .collect::<Vec<_>>();
-    namespace_object_sources.sort_by(|(a, _), (b, _)| a.cmp(b));
+    namespace_object_sources.sort_by_key(|(a, _)| *a);
     for (_, namespace) in namespace_object_sources {
       render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }

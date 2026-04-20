@@ -12,12 +12,18 @@ use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash, ChunkGraph,
-  ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, Compilation, Compiler, DEFAULT_DELIMITER,
-  Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, SideEffectsOptimizeArtifact,
+  AssignRuntimeIdsPass, AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash,
+  ChunkGraph, ChunkNamedIdArtifact, ChunkUkey, CodeGenerationJob, CodeGenerationPass, Compilation,
+  CompilationAsset, CompilationAssets, Compiler, CreateChunkAssetsPass, CreateHashPass,
+  CreateModuleAssetsPass, CreateModuleHashesPass, DEFAULT_DELIMITER, LogType, MangleExportsOption,
+  Mode, ModuleCodeGenerationContext, ModuleIdsArtifact, Optimization, OptimizeCodeGenerationPass,
+  OutputOptions, ProcessAssetsPass, RuntimeRequirementsPass, SideEffectsOptimizeArtifact,
   SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
+  cache::Cache,
   incremental::IncrementalOptions,
+  pass::PassExt,
+  rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
@@ -40,6 +46,7 @@ const SPLIT_CHUNKS_ENTRY_COUNT: usize = 48;
 const SPLIT_CHUNKS_SHARED_MODULES: usize = 192;
 const SPLIT_CHUNKS_WINDOW: usize = 20;
 const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
+const MODULE_ASSET_SEED_COUNT: usize = 256;
 
 pub fn compilation_stages_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
@@ -58,8 +65,14 @@ fn compilation_stages_benchmark_inner(c: &mut Criterion) {
   create_module_ids_benchmark(c, &rt);
   split_chunks_benchmark(c, &rt);
   create_chunk_ids_benchmark(c, &rt);
+  mangle_exports_benchmark(c, &rt);
   create_module_hashes_benchmark(c, &rt);
+  runtime_requirements_benchmark(c, &rt);
   create_chunk_hashes_benchmark(c, &rt);
+  create_full_hash_benchmark(c, &rt);
+  create_module_assets_benchmark(c, &rt);
+  create_chunk_assets_benchmark(c, &rt);
+  real_content_hash_benchmark(c, &rt);
   create_concatenate_module_benchmark(c, &rt);
   concatenate_module_code_generation_benchmark(c, &rt);
 }
@@ -355,6 +368,83 @@ fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
+fn mangle_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_mangle_exports_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_optimize_code_generation(&mut compiler)
+      .await
+      .unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "mangle_exports setup");
+  compiler
+    .compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut()
+    .checkpoint();
+  compiler.compilation.exports_info_artifact.checkpoint();
+
+  rt.block_on(async {
+    run_compiler_pass(&OptimizeCodeGenerationPass, &mut compiler)
+      .await
+      .unwrap();
+  });
+  let assigned_export_used_names = count_assigned_export_used_names(&compiler.compilation);
+  assert!(
+    assigned_export_used_names > 0,
+    "mangle_exports setup should assign export used names"
+  );
+  compiler
+    .compilation
+    .build_module_graph_artifact
+    .get_module_graph_mut()
+    .reset();
+  compiler.compilation.exports_info_artifact.reset();
+
+  let compiler = RefCell::new(compiler);
+  let should_reset = Cell::new(false);
+  c.bench_function("rust@mangle_exports", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        if should_reset.get() {
+          compiler
+            .compilation
+            .build_module_graph_artifact
+            .get_module_graph_mut()
+            .reset();
+          compiler.compilation.exports_info_artifact.reset();
+        } else {
+          should_reset.set(true);
+        }
+        compiler
+          .compilation
+          .build_module_graph_artifact
+          .get_module_graph_mut()
+          .checkpoint();
+        compiler.compilation.exports_info_artifact.checkpoint();
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_compiler_pass(&OptimizeCodeGenerationPass, &mut compiler)
+            .await
+            .unwrap();
+        });
+        black_box(count_assigned_export_used_names(&compiler.compilation));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
 fn create_module_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
@@ -413,6 +503,303 @@ fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
+fn runtime_requirements_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_runtime_requirements(&mut compiler)
+      .await
+      .unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "runtime_requirements setup");
+  assert!(
+    !compiler.compilation.code_generation_results.is_empty(),
+    "runtime_requirements setup should prepare code generation results"
+  );
+  assert!(
+    compiler.compilation.runtime_modules.is_empty(),
+    "runtime_requirements setup should not have runtime modules before the pass runs"
+  );
+
+  c.bench_function("rust@runtime_requirements", |b| {
+    b.iter_batched(
+      || {
+        let fs = Arc::new(MemoryFileSystem::default());
+        let random_table = random_table.clone();
+        let mut compiler = create_general_stage_compiler(fs.clone());
+        rt.block_on(async {
+          fs.create_dir_all("/src".into())
+            .await
+            .expect("should not fail to create dir");
+          prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+          prepare_for_runtime_requirements(&mut compiler)
+            .await
+            .unwrap();
+        });
+        compiler
+      },
+      |mut compiler| {
+        rt.block_on(async {
+          run_runtime_requirements_pass(&mut compiler).await.unwrap();
+        });
+        black_box((
+          compiler.compilation.runtime_modules.len(),
+          compiler.compilation.cgc_runtime_requirements_artifact.len(),
+        ));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_runtime_requirements(&mut compiler)
+      .await
+      .unwrap();
+    run_runtime_requirements_pass(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_full_hash setup");
+  let initial_code_generated_modules = compiler.compilation.code_generated_modules.clone();
+
+  rt.block_on(async {
+    run_create_hash_pass(&mut compiler).await.unwrap();
+  });
+  assert!(
+    !compiler.compilation.chunk_hashes_artifact.is_empty(),
+    "create_full_hash setup should prepare chunk hashes"
+  );
+  assert!(
+    compiler.compilation.hash.is_some(),
+    "create_full_hash setup should set the compilation hash"
+  );
+  compiler.compilation.chunk_hashes_artifact.clear();
+  compiler.compilation.runtime_modules_hash.clear();
+  compiler
+    .compilation
+    .runtime_modules_code_generation_source
+    .clear();
+  compiler.compilation.hash = None;
+  compiler.compilation.code_generated_modules = initial_code_generated_modules.clone();
+
+  let compiler = RefCell::new(compiler);
+
+  c.bench_function("rust@create_full_hash", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        compiler.compilation.chunk_hashes_artifact.clear();
+        compiler.compilation.runtime_modules_hash.clear();
+        compiler
+          .compilation
+          .runtime_modules_code_generation_source
+          .clear();
+        compiler.compilation.hash = None;
+        compiler.compilation.code_generated_modules = initial_code_generated_modules.clone();
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_create_hash_pass(&mut compiler).await.unwrap();
+        });
+        black_box((
+          !compiler.compilation.chunk_hashes_artifact.is_empty(),
+          compiler.compilation.hash.is_some(),
+          compiler
+            .compilation
+            .runtime_modules_code_generation_source
+            .len(),
+        ));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_chunk_assets(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_chunk_assets setup");
+  let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
+  let initial_totals = chunk_asset_totals(&compiler.compilation);
+
+  rt.block_on(async {
+    run_create_chunk_assets_pass(&mut compiler).await.unwrap();
+  });
+  let rendered_totals = chunk_asset_totals(&compiler.compilation);
+  assert!(
+    rendered_totals.0 > initial_totals.0,
+    "create_chunk_assets setup should render chunk files"
+  );
+  assert!(
+    rendered_totals.1 > initial_totals.1,
+    "create_chunk_assets setup should mark chunks as rendered"
+  );
+  restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_chunk_assets", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_create_chunk_assets_pass(&mut compiler).await.unwrap();
+        });
+        black_box(chunk_asset_totals(&compiler.compilation));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn create_module_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_module_assets(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_module_assets setup");
+  let seeded_module_assets = count_module_assets(&compiler.compilation);
+  assert!(
+    seeded_module_assets > 0,
+    "create_module_assets setup should seed module build_info assets"
+  );
+  let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
+  let initial_asset_count = compiler.compilation.assets().len();
+  let initial_totals = chunk_asset_totals(&compiler.compilation);
+
+  rt.block_on(async {
+    run_create_module_assets_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
+  });
+  let emitted_asset_count = compiler.compilation.assets().len();
+  let emitted_totals = chunk_asset_totals(&compiler.compilation);
+  assert!(
+    emitted_asset_count > initial_asset_count,
+    "create_module_assets setup should emit seeded module assets"
+  );
+  assert!(
+    emitted_totals.2 > initial_totals.2,
+    "create_module_assets setup should register seeded module assets as chunk auxiliary files"
+  );
+  restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_module_assets", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_create_module_assets_pass(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box((
+          compiler.compilation.assets().len(),
+          chunk_asset_totals(&compiler.compilation),
+        ));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_real_content_hash_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_real_content_hash(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "real_content_hash setup");
+  let initial_state = snapshot_chunk_asset_state(&compiler.compilation);
+  let initial_asset_names = sorted_asset_names(&compiler.compilation);
+  assert!(
+    count_assets_with_content_hash(&compiler.compilation) > 0,
+    "real_content_hash setup should produce content-hashed assets"
+  );
+
+  rt.block_on(async {
+    run_process_assets_pass(&mut compiler.compilation)
+      .await
+      .unwrap();
+  });
+  let renamed_asset_names = sorted_asset_names(&compiler.compilation);
+  assert_ne!(
+    renamed_asset_names, initial_asset_names,
+    "real_content_hash setup should rename content-hashed assets during process_assets"
+  );
+  restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@real_content_hash", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        restore_chunk_asset_state(&mut compiler.compilation, &initial_state);
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_process_assets_pass(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box(asset_name_fingerprint(&compiler.compilation));
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
 fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
@@ -444,10 +831,10 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
       .await
       .unwrap();
   });
-  let concatenated_count = count_concatenated_modules(&compiler.compilation);
+  let statistics_fingerprint = concatenation_statistics_fingerprint(&compiler.compilation);
   assert!(
-    concatenated_count > 0,
-    "create_concatenate_module setup should produce concatenated modules"
+    statistics_fingerprint > 0,
+    "create_concatenate_module setup should produce module concatenation statistics"
   );
   compiler
     .compilation
@@ -459,6 +846,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
     .compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey = initial_chunk_by_ukey.clone();
+  clear_concatenation_statistics_logs(&compiler.compilation);
 
   let compiler = RefCell::new(compiler);
   let should_reset = Cell::new(false);
@@ -485,6 +873,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
           .compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey = initial_chunk_by_ukey.clone();
+        clear_concatenation_statistics_logs(&compiler.compilation);
       },
       |_| {
         let mut compiler = compiler.borrow_mut();
@@ -493,7 +882,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
             .await
             .unwrap();
         });
-        black_box(count_concatenated_modules(&compiler.compilation));
+        black_box(concatenation_statistics_fingerprint(&compiler.compilation));
       },
       BatchSize::PerIteration,
     );
@@ -557,6 +946,57 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
       Optimization::builder()
         .provided_exports(true)
         .used_exports(UsedExportsOption::True)
+        .module_ids("deterministic".to_string())
+        .chunk_ids("deterministic".to_string())
+        .concatenate_modules(false),
+    )
+    .incremental(IncrementalOptions::empty_passes())
+    .build()
+    .unwrap()
+}
+
+fn create_mangle_exports_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  Compiler::builder()
+    .context("/")
+    .mode(Mode::Development)
+    .cache(CacheOptions::Disabled)
+    .entry("main", "/src/dynamic-0.js")
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs)
+    .optimization(
+      Optimization::builder()
+        .provided_exports(true)
+        .used_exports(UsedExportsOption::True)
+        .mangle_exports(MangleExportsOption::Deterministic)
+        .module_ids("deterministic".to_string())
+        .chunk_ids("deterministic".to_string())
+        .concatenate_modules(false),
+    )
+    .incremental(IncrementalOptions::empty_passes())
+    .build()
+    .unwrap()
+}
+
+fn create_real_content_hash_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  Compiler::builder()
+    .context("/")
+    .mode(Mode::Development)
+    .cache(CacheOptions::Disabled)
+    .entry("main", "/src/dynamic-0.js")
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs)
+    .output(
+      OutputOptions::builder()
+        .filename("[name].[contenthash:8].js".into())
+        .chunk_filename("[name].[contenthash:8].js".into())
+        .css_filename("[name].[contenthash:8].css".into())
+        .css_chunk_filename("[name].[contenthash:8].css".into()),
+    )
+    .optimization(
+      Optimization::builder()
+        .provided_exports(true)
+        .used_exports(UsedExportsOption::True)
+        .real_content_hash(true)
         .module_ids("deterministic".to_string())
         .chunk_ids("deterministic".to_string())
         .concatenate_modules(false),
@@ -681,9 +1121,48 @@ async fn prepare_for_chunk_ids(compiler: &mut Compiler) -> Result<()> {
   Ok(())
 }
 
+async fn prepare_for_optimize_code_generation(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_chunk_ids(compiler).await?;
+  run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
+  run_compiler_pass(&AssignRuntimeIdsPass, compiler).await?;
+  Ok(())
+}
+
 async fn prepare_for_module_hashes(compiler: &mut Compiler) -> Result<()> {
   prepare_for_chunk_ids(compiler).await?;
   run_chunk_ids_on_compilation(&mut compiler.compilation).await?;
+  Ok(())
+}
+
+async fn prepare_for_runtime_requirements(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_optimize_code_generation(compiler).await?;
+  run_compiler_pass(&OptimizeCodeGenerationPass, compiler).await?;
+  run_create_module_hashes_pass(compiler).await?;
+  run_code_generation_pass(compiler).await?;
+  Ok(())
+}
+
+async fn prepare_for_module_assets(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_runtime_requirements(compiler).await?;
+  run_runtime_requirements_pass(compiler).await?;
+  run_create_hash_pass(compiler).await?;
+  let seeded_module_assets = seed_module_assets(&mut compiler.compilation);
+  assert!(
+    seeded_module_assets > 0,
+    "create_module_assets setup should seed module build_info assets"
+  );
+  Ok(())
+}
+
+async fn prepare_for_chunk_assets(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_module_assets(compiler).await?;
+  run_create_module_assets_pass(&mut compiler.compilation).await?;
+  Ok(())
+}
+
+async fn prepare_for_real_content_hash(compiler: &mut Compiler) -> Result<()> {
+  prepare_for_chunk_assets(compiler).await?;
+  run_create_chunk_assets_pass(compiler).await?;
   Ok(())
 }
 
@@ -922,6 +1401,150 @@ async fn run_chunk_ids_on_compilation(compilation: &mut Compilation) -> Result<(
   Ok(())
 }
 
+async fn run_create_module_hashes_pass(compiler: &mut Compiler) -> Result<()> {
+  run_compiler_pass(&CreateModuleHashesPass, compiler).await
+}
+
+async fn run_code_generation_pass(compiler: &mut Compiler) -> Result<()> {
+  run_compiler_pass(&CodeGenerationPass, compiler).await
+}
+
+#[derive(Clone)]
+struct ChunkAssetStateSnapshot {
+  assets: CompilationAssets,
+  chunk_by_ukey: ChunkByUkey,
+}
+
+fn snapshot_chunk_asset_state(compilation: &Compilation) -> ChunkAssetStateSnapshot {
+  ChunkAssetStateSnapshot {
+    assets: compilation.assets().clone(),
+    chunk_by_ukey: compilation.build_chunk_graph_artifact.chunk_by_ukey.clone(),
+  }
+}
+
+fn restore_chunk_asset_state(compilation: &mut Compilation, snapshot: &ChunkAssetStateSnapshot) {
+  let current_asset_names = compilation.assets().keys().cloned().collect::<Vec<_>>();
+  for asset_name in current_asset_names {
+    compilation.delete_asset(&asset_name);
+  }
+  for (asset_name, asset) in snapshot.assets.clone() {
+    compilation.emit_asset(asset_name, asset);
+  }
+  compilation.build_chunk_graph_artifact.chunk_by_ukey = snapshot.chunk_by_ukey.clone();
+}
+
+fn chunk_asset_totals(compilation: &Compilation) -> (usize, usize, usize) {
+  let mut emitted_files = 0;
+  let mut rendered_chunks = 0;
+  let mut auxiliary_files = 0;
+
+  for chunk in compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .values()
+  {
+    emitted_files += chunk.files().len();
+    auxiliary_files += chunk.auxiliary_files().len();
+    rendered_chunks += usize::from(chunk.rendered());
+  }
+
+  (emitted_files, rendered_chunks, auxiliary_files)
+}
+
+fn count_module_assets(compilation: &Compilation) -> usize {
+  compilation
+    .get_module_graph()
+    .modules()
+    .map(|(_, module)| module.build_info().assets.len())
+    .sum()
+}
+
+fn sorted_asset_names(compilation: &Compilation) -> Vec<String> {
+  let mut asset_names = compilation.assets().keys().cloned().collect::<Vec<_>>();
+  asset_names.sort_unstable();
+  asset_names
+}
+
+fn asset_name_fingerprint(compilation: &Compilation) -> usize {
+  sorted_asset_names(compilation)
+    .into_iter()
+    .map(|asset_name| asset_name.bytes().map(usize::from).sum::<usize>())
+    .sum()
+}
+
+fn count_assets_with_content_hash(compilation: &Compilation) -> usize {
+  compilation
+    .assets()
+    .values()
+    .filter(|asset| !asset.get_info().content_hash.is_empty())
+    .count()
+}
+
+async fn run_compiler_pass<P: PassExt>(pass: &P, compiler: &mut Compiler) -> Result<()> {
+  let compilation = &mut compiler.compilation;
+  let cache = &mut compiler.cache;
+  pass.run(compilation, &mut **cache).await
+}
+
+async fn run_create_hash_pass(compiler: &mut Compiler) -> Result<()> {
+  run_compiler_pass(&CreateHashPass, compiler).await
+}
+
+async fn run_create_module_assets_pass(compilation: &mut Compilation) -> Result<()> {
+  let mut noop_cache = NoopCache;
+  CreateModuleAssetsPass
+    .run(compilation, &mut noop_cache)
+    .await
+}
+
+fn seed_module_assets(compilation: &mut Compilation) -> usize {
+  let mut module_identifiers = compilation
+    .get_module_graph()
+    .modules_keys()
+    .copied()
+    .filter(|module_identifier| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_module_chunks(*module_identifier)
+        > 0
+    })
+    .collect::<Vec<_>>();
+  module_identifiers.sort_unstable();
+  module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
+
+  for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
+    let module = compilation
+      .get_module_graph_mut()
+      .module_by_identifier_mut(&module_identifier)
+      .expect("seeded module should exist");
+    module.build_info_mut().assets.insert(
+      format!("module-assets/module-{asset_index}.txt"),
+      CompilationAsset::new(
+        Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),
+        Default::default(),
+      ),
+    );
+  }
+
+  module_identifiers.len()
+}
+
+async fn run_create_chunk_assets_pass(compiler: &mut Compiler) -> Result<()> {
+  run_compiler_pass(&CreateChunkAssetsPass, compiler).await
+}
+
+async fn run_process_assets_pass(compilation: &mut Compilation) -> Result<()> {
+  let mut noop_cache = NoopCache;
+  ProcessAssetsPass.run(compilation, &mut noop_cache).await
+}
+
+#[derive(Debug, Default)]
+struct NoopCache;
+
+#[async_trait::async_trait]
+impl Cache for NoopCache {}
+
 async fn compute_module_hashes(compilation: &Compilation) -> Result<usize> {
   let module_graph = compilation.get_module_graph();
   let mut total = 0;
@@ -964,6 +1587,10 @@ async fn compute_chunk_hashes(compilation: &Compilation) -> Result<usize> {
   }
 
   Ok(total)
+}
+
+async fn run_runtime_requirements_pass(compiler: &mut Compiler) -> Result<()> {
+  run_compiler_pass(&RuntimeRequirementsPass, compiler).await
 }
 
 async fn process_chunk_hash(
@@ -1202,12 +1829,48 @@ async fn prepare_large_split_chunks_case(
   }
 }
 
-fn count_concatenated_modules(compilation: &Compilation) -> usize {
+fn clear_concatenation_statistics_logs(compilation: &Compilation) {
+  compilation
+    .get_logging()
+    .remove("rspack.ModuleConcatenationPlugin");
+}
+
+fn concatenation_statistics_fingerprint(compilation: &Compilation) -> usize {
+  let Some(logs) = compilation
+    .get_logging()
+    .get("rspack.ModuleConcatenationPlugin")
+  else {
+    return 0;
+  };
+
+  logs
+    .iter()
+    .filter_map(|log| match log {
+      LogType::Debug { message } | LogType::Log { message } => Some(message),
+      _ => None,
+    })
+    .filter(|message| {
+      message.contains("successful concat configurations")
+        || message.contains("candidates were considered")
+    })
+    .map(|message| message.bytes().map(usize::from).sum::<usize>())
+    .sum()
+}
+
+fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
   compilation
     .get_module_graph()
     .modules()
-    .filter(|(_, module)| module.as_concatenated_module().is_some())
-    .count()
+    .map(|(module_identifier, _)| {
+      compilation
+        .exports_info_artifact
+        .get_exports_info_data(module_identifier)
+        .exports()
+        .values()
+        .filter(|export_info| export_info.used_name().is_some())
+        .count()
+    })
+    .sum()
 }
 
 fn assert_no_compilation_errors(compilation: &Compilation, context: &str) {

@@ -171,6 +171,10 @@ pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
   fn position(&self) -> i32;
 
   fn key(&self) -> &InitFragmentKey;
+
+  fn top_level_decl_symbols(&self) -> &[Atom] {
+    &[]
+  }
 }
 
 clone_trait_object!(InitFragment<GenerateContext<'_>>);
@@ -292,6 +296,7 @@ pub struct NormalInitFragment {
   position: i32,
   key: InitFragmentKey,
   end_content: Option<String>,
+  top_level_decl_symbols: Vec<Atom>,
 }
 
 impl NormalInitFragment {
@@ -308,7 +313,13 @@ impl NormalInitFragment {
       position,
       key,
       end_content,
+      top_level_decl_symbols: Vec::new(),
     }
+  }
+
+  pub fn with_top_level_decl_symbols(mut self, top_level_decl_symbols: Vec<Atom>) -> Self {
+    self.top_level_decl_symbols = top_level_decl_symbols;
+    self
   }
 }
 
@@ -330,6 +341,10 @@ impl<C> InitFragment<C> for NormalInitFragment {
 
   fn key(&self) -> &InitFragmentKey {
     &self.key
+  }
+
+  fn top_level_decl_symbols(&self) -> &[Atom] {
+    &self.top_level_decl_symbols
   }
 }
 

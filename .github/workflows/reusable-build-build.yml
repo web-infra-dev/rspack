@@ -16,6 +16,10 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      binding_postfix: # specify extra postfix for binding artifact
+        required: false
+        type: string
+
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
@@ -30,7 +34,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -151,14 +155,14 @@ jobs:
           RUST_TARGET=${{ inputs.target }} pnpm build:binding:${{ inputs.profile }}
 
       # WASM
-      # Also build browser wasm because they can share most of building cache.
-      # Note that we should build browser wasm first because there's a renaming stage
+      # For CI, build the full WASI binding once and reuse it for browser tests by
+      # copying it to the browser artifact name. The browser-specific slim build is
+      # only needed for release packaging.
       - name: Build wasm32-wasip1-threads with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile != 'release' }}
         run: |
-
-          DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 pnpm build:binding:${{ inputs.profile }}
           DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads pnpm build:binding:${{ inputs.profile }}
+          cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       # WASM Release (use profile = release-wasi) + wasm-opt
       - name: Build wasm32-wasip1-threads(release-wasi) with linux
@@ -175,13 +179,13 @@ jobs:
 
       - name: Diff artifact
         run: |
-          export EXCLUDE=":(exclude).cargo/config.toml" 
+          export EXCLUDE=":(exclude).cargo/config.toml"
           git diff --quiet -- . "$EXCLUDE" || (git diff --name-status -- . "$EXCLUDE" && exit 1)
 
       - name: Upload artifact
         uses: ./.github/actions/artifact/upload
         with:
-          name: bindings-${{ inputs.target }}
+          name: bindings-${{ inputs.target }}${{ inputs.binding_postfix}}
           path: |
             crates/node_binding/*.node
             crates/node_binding/*.d.ts

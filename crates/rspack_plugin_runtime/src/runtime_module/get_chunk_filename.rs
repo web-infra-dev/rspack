@@ -380,7 +380,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           static_urls
             .entry(filename)
             .or_insert(Vec::new())
-            .push(chunk_id.as_str());
+            .push(chunk_id);
         }
       }
     }

@@ -211,6 +211,7 @@ async fn runtime_requirements_in_tree(
   };
 
   let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  #[allow(clippy::collapsible_match)]
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
       RuntimeGlobals::ASYNC_MODULE => {

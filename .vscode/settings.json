@@ -49,6 +49,7 @@
   "cSpell.words": [
     "contextify",
     "Ctxt",
+    "dedupe",
     "Deque",
     "ecma",
     "napi",
