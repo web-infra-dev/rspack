@@ -159,20 +159,20 @@ console.log('hello');
 
 在这个例子里，`joinClassName` 被标记为“调用无副作用”，当它的返回值没有被使用时，这次调用就可以在构建产物中被安全移除。
 
-## 模块联邦共享依赖 Treeshaking \{#mf-share-treeshaking}
+## 模块联邦共享依赖 tree shaking \{#mf-share-treeshaking}
 
-Rspack 2.0 进一步完善了 [Module Federation](/guide/features/module-federation) 场景下的共享依赖 Treeshaking。它可以对 `shared` 依赖做导出级别的优化，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
+Rspack 2.0 进一步完善了 [Module Federation](/guide/features/module-federation) 场景下的共享依赖 tree shaking。它可以对 `shared` 依赖做导出级别的优化，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
 
 在 Rspack 1.x 的模块联邦共享依赖方案里，只要一个依赖被声明到 `shared`，运行时通常就需要准备完整的依赖包。即使应用实际只用到了其中少量导出，也往往会把整份依赖带进来。对于 `antd`、`lodash-es` 这类体积较大、导出较多的库来说，这会明显增加共享包的体积。
 
-Rspack 2.0 将这项能力直接接入了 `ModuleFederationPlugin`。当某个 `shared` 项开启 `treeShaking` 后，Rspack 会为这类共享依赖生成对应的 Tree Shaking 产物，并让运行时优先加载这份更小的结果。如果当前请求无法命中，运行时会回退到完整依赖，以保证行为稳定。
+Rspack 2.0 将这项能力直接接入了 `ModuleFederationPlugin`。当某个 `shared` 项开启 `treeShaking` 后，Rspack 会为这类共享依赖生成对应的 tree shaking 产物，并让运行时优先加载这份更小的结果。如果当前请求无法命中，运行时会回退到完整依赖，以保证行为稳定。
 
 它同时支持 `runtime-infer` 和 `server-calc` 两种模式：
 
-- `runtime-infer` 适合先快速接入和本地验证。运行时会优先复用已经加载过的 Tree Shaking 共享包；如果当前需要的导出无法满足，则自动回退到完整依赖。你也可以通过 `usedExports` 预先声明常用导出，以提升命中率。
-- `server-calc` 更适合多应用协作的线上场景。你可以在部署侧统一汇总各个消费者真正会用到的导出，再生成更稳定的共享依赖 Tree Shaking 结果。
+- `runtime-infer` 适合先快速接入和本地验证。运行时会优先复用已经加载过的 tree shaking 共享包；如果当前需要的导出无法满足，则自动回退到完整依赖。你也可以通过 `usedExports` 预先声明常用导出，以提升命中率。
+- `server-calc` 更适合多应用协作的线上场景。你可以在部署侧统一汇总各个消费者真正会用到的导出，再生成更稳定的共享依赖 tree shaking 结果。
 
-对于组件库这类典型场景，这项能力可以把“整包共享”变成“按实际使用结果共享”，减少不必要的代码加载。更完整的配置与工作方式，可以参考 [共享依赖 Tree Shaking 指南](https://module-federation.io/zh/guide/performance/shared-tree-shaking)。
+对于组件库这类典型场景，这项能力可以把“整包共享”变成“按实际使用结果共享”，减少不必要的代码加载。更完整的配置与工作方式，可以参考 [共享依赖 tree shaking 指南](https://module-federation.io/zh/guide/performance/shared-tree-shaking)。
 
 例如：
 
@@ -456,50 +456,3 @@ Rspack 2.0 是一个里程碑，也意味着新的开始。
 不会。2.0 发布后，Rspack 的主要演进方向会逐步转向 2.x，但这并不意味着 1.x 会立刻完全停止维护。对于仍在使用 1.x 的项目，我们会根据实际情况，在一段较长的时间内继续提供必要的维护，例如关键问题修复或迁移期支持。
 
 但从长期来看，新增能力和主要优化都会优先在 2.x 上推进，因此如果你的项目还停留在 1.x，我们建议尽早规划升级。
-
-## 其他变更
-
-- 新增 `Compilation.hooks.beforeModuleIds`。
-- 新增 `compiler.hooks.shouldRecord`。
-- [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) 的默认值改为 `error`，缺失导出现在会默认报错而非警告。
-- `module.parser.javascript.strictExportPresence` 已被移除，缺失导出的行为统一由 [`module.parser.javascript.exportsPresence`](/config/module#moduleparserjavascriptexportspresence) 控制。
-- [`module.parser.javascript.requireAlias`](/config/module#moduleparserjavascriptrequirealias) 的默认值改为 `false`，改名后的 `require` 调用将不再被解析。
-- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 不再读取 `.swcrc`，SWC 配置需迁移到 loader 选项中。
-- [`builtin:swc-loader`](/guide/features/builtin-swc-loader) 的 `rspackExperiments.collectTypeScriptInfo` 配置已被移除，TypeScript 信息收集现在统一通过 [`collectTypeScriptInfo`](/guide/features/builtin-swc-loader#collecttypescriptinfo) 配置。
-- `builtin:swc-loader.rspackExperiments.import` 已迁移到顶层 [`transformImport`](/guide/features/builtin-swc-loader#transformimport)。
-- `output.libraryTarget`、`output.libraryExport`、`output.umdNamedDefine` 和 `output.auxiliaryComment` 都已迁移到 [`output.library.*`](/config/output#outputlibrary) 下。
-- [`output.chunkLoadingGlobal`](/config/output#outputchunkloadingglobal) 的默认值改为 `rspackChunk${output.uniqueName}`。
-- [`output.hotUpdateGlobal`](/config/output#outputhotupdateglobal) 的默认值改为 `rspackHotUpdate${output.uniqueName}`。
-- [`output.bundlerInfo.force`](/config/output#outputbundlerinfo) 的默认值改为 `false`，bundler 信息不再强制注入。
-- [`output.trustedTypes.policyName`](/config/output#outputtrustedtypes) 在没有设置 `output.uniqueName` 时的兜底值从 `'webpack'` 改为 `'rspack'`。
-- `output.charset` 已被移除，现代浏览器会按 UTF-8 处理脚本。
-- `optimization.removeAvailableModules` 已被移除。
-- [`stats.toJson()`](/api/javascript-api/stats#tojson) 默认不再返回 `modules`、`assets`、`chunks`、`chunkGroups` 和 `entryPoints`。
-- `profile` 和 `stats.profile` 已被移除，建议使用 [Rsdoctor](/guide/optimization/use-rsdoctor) 分析性能。
-- [`WarnCaseSensitiveModulesPlugin`](/plugins/webpack/case-sensitive-plugin) 已被 [`CaseSensitivePlugin`](/plugins/webpack/case-sensitive-plugin) 替代。
-- [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 和 [`RuntimePlugin`](/api/plugin-api/runtime-plugin-hooks) 上的 `getHooks` 别名已被移除，请使用 `getCompilationHooks` 替代。
-- [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin) 和 [`RuntimePlugin`](/api/plugin-api/runtime-plugin-hooks) 的 `sri` 配置已被移除，SRI 相关能力现在请使用 [`SubresourceIntegrityPlugin`](/plugins/rspack/subresource-integrity-plugin)。
-- [`LightningCssMinimizerRspackPlugin`](/plugins/rspack/lightning-css-minimizer-rspack-plugin.mdx) 的 `draft` 配置已被移除并由 `drafts` 取代，同时 `cssHeadDataCompression` 已被移除。
-- JavaScript 请求默认的 [`resolve.extensions`](/config/resolve#resolveextensions) 不再包含 `.wasm`。
-- CSS `@import` 默认的解析 [`conditionNames`](/config/resolve#resolveconditionnames) 不再包含 `webpack`。
-- [`devtool`](/config/devtool) 在开发模式下的默认值改为 `cheap-module-source-map`，在 CLI 生产模式下的默认值改为 `false`。
-- [`resolve.roots`](/config/resolve#resolveroots) 的默认值从 `[context]` 改为 `[]`。
-- Runtime module 上废弃的 `constructorName`、`moduleIdentifier` 等属性已被移除。
-- [`ProgressPlugin`](/plugins/webpack/progress-plugin) 自定义 handler 的第三个参数从 `items: string[]` 改成了结构化的 `info` 对象。
-- `NormalModule.getCompilationHooks(compilation).readResourceForScheme` 已被移除，改用 `readResource.for(scheme)`。
-- `module.unsafeCache` 已被移除。
-- `experiments.css` 已被移除，[CSS](/guide/tech/css) 能力现在默认可用。
-- [`experiments.asyncWebAssembly`](/config/experiments#experimentsasyncwebassembly) 的默认值改为 `true`。
-- `experiments.cache` 已迁移到顶层 [`cache`](/config/cache)。
-- `experiments.rspackFuture` 已被移除，`bundlerInfo` 迁移至 [`output.bundlerInfo`](/config/output#outputbundlerinfo)。
-- `experiments.incremental` 已迁移到顶层 [`incremental`](/config/incremental)。
-- `experiments.layers` 已被移除，[layers](/guide/features/layer) 能力默认可用。
-- `experiments.topLevelAwait` 已被移除，top-level await 解析能力默认可用。
-- `experiments.lazyCompilation` 已迁移到顶层 [`lazyCompilation`](/config/lazy-compilation)。
-- `experiments.lazyCompilationMiddleware` 已迁移到顶层 [`lazyCompilationMiddleware`](/guide/features/lazy-compilation#与自定义的服务器集成)。
-- `experiments.lazyBarrel` 已被移除，[lazy barrel](/guide/optimization/lazy-barrel) 优化默认开启。
-- `experiments.typeReexportsPresence` 已被移除，其行为现通过 [`module.parser.javascript.typeReexportsPresence`](/config/module#moduleparserjavascripttypereexportspresence) 控制。
-- `experiments.inlineConst` 已被移除，常量内联现通过 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 控制。
-- `experiments.inlineEnum` 已被移除，枚举内联现通过 [`optimization.inlineExports`](/config/optimization#optimizationinlineexports) 配合 [`collectTypeScriptInfo.exportedEnum`](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制。
-- `experiments.outputModule` 已被移除，[ESM 格式产物](/guide/features/esm)输出现通过 [`output.module`](/config/output#outputmodule) 控制。
-- `experiments.parallelLoader` 已被移除，[并行 loader](/config/module-rules#rulesuseparallel) 能力默认可用。
