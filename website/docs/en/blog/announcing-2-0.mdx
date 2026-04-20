@@ -100,7 +100,7 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 Rspack 2.0 is a milestone, and also a new starting point.
 
-1.x mainly answered one question: how can webpack projects migrate to a high-performance bundler with low cost? Starting with 2.x, we want to answer another: what capabilities should a bundler provide by default for modern web development?
+1.x mainly answered one question: how can webpack projects migrate to a high-performance bundler with low cost? Starting with 2.x, we want to answer another: how should a bundler for modern web development be designed?
 
 ### Better Output Optimization
 
@@ -149,9 +149,9 @@ Going forward, we will continue exploring more modern output forms while preserv
 
 The web platform continues to evolve, and new syntax, module capabilities, and runtime APIs keep maturing. Rspack will continue following these changes early and bringing support for new standards to upper-layer tools and frameworks as soon as possible. You can already see this direction in 2.0, for example in the continued improvements around pure ESM, `import.meta`, and `import defer`, and we will keep moving along that path.
 
-### Better Framework Primitives
+### Broader Capability Support
 
-Today, a bundler is no longer only a tool that turns modules into bundles. For frameworks, it also needs to take on more foundational responsibilities, such as multi-environment compilation, server/client boundary analysis, style and asset collection, and runtime coordination.
+Today, a bundler is no longer only a tool that turns modules into bundles. For frameworks and upper-layer tools, it also needs to take on more foundational responsibilities, such as multi-environment compilation, server/client boundary analysis, style and asset collection, and runtime coordination.
 
 Rspack 2.0 has already taken a step in this direction with React Server Components. Going forward, we want to turn more of these capabilities into stable framework primitives instead of leaving all of the complexity to framework-specific integrations. That allows upper-layer frameworks and tools to integrate with Rspack using less adaptation code while getting more complete default capabilities.
 
