@@ -35,9 +35,9 @@
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
-    "@rslib/core": "0.21.0",
+    "@rslib/core": "0.21.2",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "2.0.0-rc.2",
+    "@rspack/dev-server": "^2.0.0",
     "@rspack/test-tools": "workspace:*",
     "cac": "^7.0.0",
     "concat-stream": "^2.0.0",

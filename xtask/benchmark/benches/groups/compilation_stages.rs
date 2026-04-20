@@ -35,7 +35,6 @@ use rspack_plugin_split_chunks::{
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashMap;
-use tokio::runtime::Builder;
 
 use crate::groups::build_chunk_graph::prepare_large_code_splitting_case;
 
@@ -55,9 +54,7 @@ pub fn compilation_stages_benchmark(c: &mut Criterion) {
 }
 
 fn compilation_stages_benchmark_inner(c: &mut Criterion) {
-  let rt = Builder::new_multi_thread()
-    .build()
-    .expect("should not fail to build tokio runtime");
+  let rt = rspack_benchmark::build_tokio_rt();
   let _guard = rt.enter();
 
   flag_dependency_exports_benchmark(c, &rt);
