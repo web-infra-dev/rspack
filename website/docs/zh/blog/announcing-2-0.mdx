@@ -444,9 +444,9 @@ npm create rsbuild@latest
 
 ### 从 v1 升级
 
-Rspack 2.0 带来了不少新特性，同时也移除了历史上已经废弃的一些能力。对于已有项目，建议先阅读 [迁移指南](/guide/migration/rspack_1.x)。文档中已经整理了从 v1 到 v2 的主要不兼容变更，以及对应的迁移方式。
+Rspack 2.0 带来了不少新能力，也移除了此前已经废弃的一些选项。对于已有项目，我们建议先阅读 [迁移指南](/guide/migration/rspack_1.x)。文档中已经整理了从 v1 到 v2 的主要不兼容变更，以及对应的迁移方式。
 
-如果你正在使用支持 Skills 的 Coding Agent，我们也推荐借助它来完成迁移。安装 `rspack-v2-upgrade` 之后，Agent 就可以结合你的项目配置和官方迁移规则辅助完成升级流程。对于配置项较多、历史包袱较重的项目，这通常会比手工逐项排查更高效。
+如果你正在使用支持 Skills 的 Coding Agent，我们更推荐你借助它来完成升级。安装 [`rspack-v2-upgrade`](https://github.com/rstackjs/agent-skills/blob/main/skills/rspack-v2-upgrade/SKILL.md) 之后，Agent 可以结合你的项目配置和官方迁移规则，辅助梳理和执行迁移步骤。对于配置项较多、历史包袱较重的项目，这通常会比手工逐项排查更高效。
 
 ```
 npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
