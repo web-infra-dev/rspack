@@ -46,6 +46,9 @@ const testFilter = process.argv.includes("--test") || process.argv.includes("-t"
 const reporters: RstestConfig['reporters'] = testFilter ? ['verbose' as const] : ['default' as const];
 if (process.env.CI) {
   reporters.push(new StreamedEventReporter(path.join(__dirname, '../../', 'rspack-test-event-report.txt')));
+}
+
+if (process.env.GITHUB_ACTIONS || process.env.GITHUB_STEP_SUMMARY) {
   reporters.push(['github-actions', {
     annotations: false,
     summary: true,
@@ -114,6 +117,7 @@ const sharedConfig = defineProject({
 }) as ProjectConfig;
 
 export default defineConfig({
+  name: "rspack-test",
   projects: [{
     extends: sharedConfig,
     name: 'base',
