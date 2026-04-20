@@ -358,8 +358,11 @@ class ExamplePlugin {
 ```js title="my-loader.js"
 export default function myLoader(source) {
   const options = this.getOptions();
+  const compilerTarget = this._compiler.target ?? {};
   // 使用用户指定的 targets，或者回退到 Rspack 推断出的 targets
-  const targets = options.targets ?? this._compiler.target.targets;
+  const targets = options.targets ?? compilerTarget.targets;
+  // 需要时回退到 Rspack 推断出的 ECMAScript 版本
+  const ecmaVersion = options.ecmaVersion ?? compilerTarget.esVersion;
   // 使用 targets 进行转换...
   return transform(source, { targets, ecmaVersion });
 }
