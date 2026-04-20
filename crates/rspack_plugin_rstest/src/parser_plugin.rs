@@ -65,16 +65,6 @@ pub struct RstestParserPlugin {
   options: RstestParserPluginOptions,
 }
 
-trait JavascriptParserExt<'a> {
-  fn handle_top_level_await(&mut self);
-}
-
-impl<'a> JavascriptParserExt<'a> for JavascriptParser<'a> {
-  fn handle_top_level_await(&mut self) {
-    self.build_meta.has_top_level_await = true;
-  }
-}
-
 impl RstestParserPlugin {
   pub fn new(options: RstestParserPluginOptions) -> Self {
     Self { options }
@@ -271,10 +261,6 @@ impl RstestParserPlugin {
         let first_arg_lit_str = self.handle_mock_first_arg(parser, call_expr);
 
         if let Some(lit_str) = first_arg_lit_str {
-          if hoist && method != MockMethod::Unmock && method != MockMethod::DoMock {
-            parser.handle_top_level_await();
-          }
-
           let dep = MockModuleIdDependency::new(
             lit_str.clone(),
             first_arg.span().into(),
@@ -329,10 +315,6 @@ impl RstestParserPlugin {
         let lit_str = self.handle_mock_first_arg(parser, call_expr);
 
         if let Some(lit_str) = lit_str {
-          if hoist {
-            parser.handle_top_level_await();
-          }
-
           let module_dep = MockModuleIdDependency::new(
             lit_str.clone(),
             first_arg.span().into(),
