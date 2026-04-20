@@ -142,8 +142,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-rc.3
-        version: 2.0.0-rc.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.0
+        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
 
   examples/react:
     dependencies:
@@ -161,8 +161,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-rc.3
-        version: 2.0.0-rc.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.0
+        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.0
         version: 2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -188,8 +188,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-rc.3
-        version: 2.0.0-rc.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.0
+        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -352,8 +352,8 @@ importers:
         specifier: workspace:*
         version: link:../rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-rc.3
-        version: 2.0.0-rc.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.0
+        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
@@ -552,8 +552,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: 2.0.0-rc.3
-        version: 2.0.0-rc.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.0
+        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.0
         version: 2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -3267,8 +3267,8 @@ packages:
       '@rspack/core':
         optional: true
 
-  '@rspack/dev-server@2.0.0-rc.3':
-    resolution: {integrity: sha512-05awfTvXy9ZgWsKnYR3oOoPGJ+XS0RN/mhfPfA9WmWCETG9+Wop/OkL54FgokSPG0nJInfU3byNskTdDFYY4eQ==}
+  '@rspack/dev-server@2.0.0':
+    resolution: {integrity: sha512-bSdIlt8Nq1Q2K0Gv+AMmETMKsLjEgTtL8DNlDtSe14cdtBrF0Z8kfpKUpgUKb5i0O7CZ5pmPzVwHZIEqMrCJNQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspack/core': ^2.0.0-0
@@ -10155,7 +10155,7 @@ snapshots:
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspack/dev-server@2.0.0-rc.3(@rspack/core@packages+rspack)(selfsigned@5.5.0)':
+  '@rspack/dev-server@2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)':
     dependencies:
       '@rspack/core': link:packages/rspack
       '@rspack/dev-middleware': 2.0.1(@rspack/core@packages+rspack)
