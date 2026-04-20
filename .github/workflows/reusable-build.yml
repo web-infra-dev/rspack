@@ -23,7 +23,7 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
-      binding_postfix: # specify binding with postfix for build mult profile in a workflow
+      binding_postfix: # Use when building multiple profiles in one workflow run; appends a postfix to the uploaded artifact name to distinguish each build.
         required: false
         type: string
 
