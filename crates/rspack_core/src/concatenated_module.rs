@@ -868,11 +868,7 @@ impl Module for ConcatenatedModule {
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
-    let modules = self
-      .modules
-      .iter()
-      .map(|item| Some(&item.id))
-      .collect::<HashSet<_>>();
+    let modules: IdentifierSet = self.modules.iter().map(|item| item.id).collect();
 
     let root_module = module_graph
       .module_by_identifier(&self.root_module_ctxt.id)
@@ -880,6 +876,31 @@ impl Module for ConcatenatedModule {
 
     // populate root inline_exports
     self.build_info.inline_exports = root_module.build_info().inline_exports;
+
+    let dependency_parts = self
+      .modules
+      .par_iter()
+      .map(|item| {
+        let module = module_graph
+          .module_by_identifier(&item.id)
+          .expect("should have module");
+
+        module
+          .get_dependencies()
+          .iter()
+          .copied()
+          .filter(|dep_id| {
+            let dep = module_graph.dependency_by_id(dep_id);
+            let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
+            !is_esm_dep_like(dep)
+              || module_id_of_dep.is_none_or(|module_id| !modules.contains(module_id))
+          })
+          .collect::<Vec<_>>()
+      })
+      .collect::<Vec<_>>();
+    for part in dependency_parts {
+      self.dependencies.extend(part);
+    }
 
     for m in self.modules.iter() {
       let module = module_graph
@@ -890,15 +911,6 @@ impl Module for ConcatenatedModule {
       // populate cacheable
       if !cur_build_info.cacheable {
         self.build_info.cacheable = false;
-      }
-
-      // populate dependencies
-      for dep_id in module.get_dependencies().iter() {
-        let dep = module_graph.dependency_by_id(dep_id);
-        let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
-          self.dependencies.push(*dep_id);
-        }
       }
 
       // populate blocks
