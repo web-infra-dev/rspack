@@ -296,7 +296,7 @@ Rspack 2.0 减少了默认安装的 npm 依赖数量：
 
 - 将非核心依赖调整为可选依赖。例如 [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) 现在仅在使用 [模块联邦插件](/plugins/webpack/module-federation-plugin) 时才需要手动安装。
 - 使用更轻量的替代实现，例如以 [connect-next](https://github.com/rstackjs/connect-next) 替代 Express。对于开发服务器而言，Connect 的中间件模型已经能够覆盖大多数场景，这也与 Rsbuild 的开发服务器实现保持一致。
-- 将部分依赖打包进发布产物，由 Rspack 统一控制这些依赖及其子依赖的版本，避免依赖自动升级带来的潜在供应链风险。
+- 将部分依赖 [打包进发布产物](https://e18e.dev/blog/bundling-dependencies)，由 Rspack 统一控制这些依赖及其子依赖的版本，避免依赖自动升级带来的潜在供应链风险。
 - 优先使用 Node.js 20+ 内置的原生 API，例如用 [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) 替代 `picocolors`。
 
 ## 其他特性更新
