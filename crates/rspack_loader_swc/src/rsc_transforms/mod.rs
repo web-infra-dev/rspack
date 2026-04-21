@@ -34,10 +34,16 @@ pub fn rsc_pass(
     .resource_query()
     .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
 
+  // Match the RSC manifest resource key from get_module_resource: path + query.
+  let module_resource = match loader_context.resource_query() {
+    Some(query) => format!("{resource_path}{query}"),
+    None => resource_path.to_string(),
+  };
+
   (
     server_components(
       filename,
-      resource_path.to_string(),
+      module_resource,
       Config::WithOptions(Options {
         is_react_server_layer,
         enable_server_entry: !server_entry_proxy,

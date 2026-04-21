@@ -88,8 +88,8 @@ module.exports = [
 
           expect(Object.keys(mainEntry.serverManifest).length).toBe(4);
 
-          const clientPath = path.join(__dirname, './src/Client.js');
-          const clientModuleId = './src/Client.js';
+          const clientPath = `${path.join(__dirname, './src/Client.js')}?foo=1`;
+          const clientModuleId = './src/Client.js?foo=1';
           const clientManifestExport = mainEntry.clientManifest[clientPath];
           expect(clientManifestExport.id).toBe(clientModuleId);
           expect(clientManifestExport.name).toBe('*');
@@ -98,7 +98,7 @@ module.exports = [
 
           expect(mainEntry.serverConsumerModuleMap[clientModuleId]).toEqual({
             '*': {
-              id: '(server-side-rendering)/./src/Client.js',
+              id: '(server-side-rendering)/./src/Client.js?foo=1',
               name: '*',
               chunks: [],
               async: false,
@@ -113,7 +113,9 @@ module.exports = [
         },
       }),
       new rspack.DefinePlugin({
-        CLIENT_PATH: JSON.stringify(path.resolve(__dirname, 'src/Client.js')),
+        CLIENT_PATH: JSON.stringify(
+          `${path.resolve(__dirname, 'src/Client.js')}?foo=1`,
+        ),
       }),
     ],
     optimization: {

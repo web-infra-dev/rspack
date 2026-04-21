@@ -83,9 +83,9 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
 }
 
 pub fn to_server_entry(module: &NormalModule) -> Result<Option<String>> {
-  if !module
+  if module
     .get_layer()
-    .is_some_and(|layer| layer == "react-server-components")
+    .is_none_or(|layer| layer != "react-server-components")
   {
     return Ok(None);
   }
