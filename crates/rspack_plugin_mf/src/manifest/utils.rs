@@ -246,7 +246,6 @@ pub fn collect_expose_requirements(
   links: Vec<(String, String)>,
   expose_module_paths: &HashMap<String, String>,
 ) {
-  #[cfg(debug_assertions)]
   for (pkg, expose_key) in links {
     if let Some(expose) = exposes_map.get_mut(&expose_key) {
       if !expose.requires.contains(&pkg) {
