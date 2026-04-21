@@ -479,8 +479,6 @@ Rspack 2.0 不是终点，而是一条新路线的开始。
 
 Rspack 和 webpack 一样，在很多默认优化上都会优先保证产物行为的稳定性，尤其是在 side effects 判断等环节通常会更保守。这种策略适合大多数项目，但我们也注意到，对于追求极致产物体积的场景来说，仍然有进一步挖掘的空间。
 
-#### 更细粒度的 Tree Shaking 与代码拆分
-
 Rspack 2.0 已经支持基于 pure annotation 的更细粒度优化。后续会继续提供更高级的 Tree Shaking 能力和更可控的优化配置，让业务可以按场景选择产物优化级别，在安全默认值与更激进优化之间取得平衡。
 
 我们也会结合静态类型信息增强优化分析，借鉴 Prepack、Closure Compiler 和 React Compiler 的思路，把更多来自业务代码的可优化信息引入 bundler。

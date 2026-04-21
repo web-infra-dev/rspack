@@ -106,8 +106,6 @@ Rspack 2.0 is a milestone, and also a new starting point.
 
 Like webpack, Rspack tends to prioritize stable output behavior in many default optimizations, especially around side effects analysis, where the strategy is often conservative. This works well for most projects, but we also see more room to improve for scenarios that pursue the smallest possible bundle size.
 
-#### Finer-Grained Tree Shaking and Code Splitting
-
 Rspack 2.0 already supports finer-grained optimization based on pure annotations. We will continue providing more advanced tree shaking capabilities and more controllable optimization settings, so applications can choose the right output optimization level for each scenario and balance safe defaults with more aggressive optimization.
 
 We will also use static type information to strengthen optimization analysis, drawing on ideas from Prepack, Closure Compiler, and React Compiler to bring more optimizable signals from application code into the bundler.
