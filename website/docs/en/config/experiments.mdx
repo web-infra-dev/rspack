@@ -193,11 +193,11 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Enables cross-module side-effect-free function analysis, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions). Functions marked through annotations or user configuration are omitted from the output when they are not actually used.
+Enables cross-module side-effect-free function call optimization, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions). Functions marked through annotations or user configuration are omitted from the output when they are not actually used.
 
 For more background, see the [pureFunctions section](/guide/optimization/tree-shaking#purefunctions) and the [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation) in the [Tree Shaking](/guide/optimization/tree-shaking) guide.
 
-Use this option to turn on the capability itself. To manually mark exported functions in matched third-party modules, prefer configuring [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
+Use this option to turn on the capability itself. To manually mark exported functions in matched third-party modules, configure [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
 
 ```js title="rspack.config.mjs"
 export default {
