@@ -102,6 +102,14 @@ npx rspack s
 npx rspack serve
 ```
 
+Use `--open` or `--no-open` to override [`devServer.open`](/config/dev-server#devserveropen) from the CLI without editing your config file:
+
+```bash
+npx rspack dev --open
+npx rspack dev --open /my-page
+npx rspack dev --no-open
+```
+
 The complete flags are as follows:
 
 ```
@@ -117,6 +125,7 @@ Options:
       --hot            enables hot module replacement
       --port           allows to specify a port to use                  [number]
       --host           allows to specify a hostname to use              [string]
+      --open [value]   open browser on server start; pass --no-open to disable, or --open <url> to open a specific URL
 ```
 
 ## rspack preview
