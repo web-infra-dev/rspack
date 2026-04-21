@@ -195,7 +195,7 @@ export default {
 
 Enables cross-module side-effect-free function analysis, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions).
 
-For more background, see the [Tree Shaking](/guide/optimization/tree-shaking) guide, especially the pure notation section.
+For more background, see the [pureFunctions section](/guide/optimization/tree-shaking#purefunctions) and the [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation) in the [Tree Shaking](/guide/optimization/tree-shaking) guide.
 
 Use this option to turn on the capability itself. To manually mark exported functions in matched third-party modules, prefer configuring [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
 
