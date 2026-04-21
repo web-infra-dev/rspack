@@ -229,6 +229,37 @@ export default {
 
 每一个入口点所允许的的最大并行请求数。
 
+### splitChunks.enforceSizeThreshold
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.enforceSizeThreshold
+
+- **类型：** `number | Record<string, number>`
+- **默认值：** 生产环境下为 `50000`，其他模式下为 `30000`
+
+设置一个体积阈值，让 Rspack 在拆分候选 chunk 足够大时继续拆分。
+
+当候选 chunk 达到这个阈值后，Rspack 会忽略 [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests) 这类请求数量限制。
+
+相比 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce)，这个选项更克制一些：只有体积已经足够大的候选才会继续被强制拆分，较小的候选仍然遵循默认启发式规则。
+
+当使用 `number` 形式配置时，会对 [`splitChunks.defaultSizeTypes`](#splitchunksdefaultsizetypes) 中定义的所有 size type 使用同一个阈值；使用对象形式时，则可以按 size type 分别设置不同阈值。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      enforceSizeThreshold: 80 * 1000,
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          enforceSizeThreshold: 120 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
 ### splitChunks.minSize
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.minSize
