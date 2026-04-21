@@ -1,0 +1,29 @@
+```css title=components/button/index.css
+.button {
+  color: blue;
+}
+
+
+```
+
+```css title=index.css
+.app {
+  color: red;
+}
+
+
+```
+
+```mjs title=index.mjs
+// ./src/index.js
+
+
+
+
+it('should preserve modules with css-extract', () => {
+  expect((/* inlined export .name */"button")).toBe('button')
+})
+
+export {};
+
+```
