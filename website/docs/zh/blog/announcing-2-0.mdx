@@ -65,13 +65,13 @@ Rspack 2.0 主要带来以下更新：
 
 构建性能始终是 Rspack 的核心指标之一。与 Rspack 1.7 相比，Rspack 2.0 的性能提升约 10%，相较 1.0 提升至多 100%。
 
-| 版本       | 生产构建 | HMR    |
-| ---------- | -------- | ------ |
-| Rspack 1.0 | 4.16 s   | 127 ms |
-| Rspack 1.7 | 2.19 s   | 105 ms |
-| Rspack 2.0 | 2.03 s   | 93 ms  |
+| 版本       | 生产构建（无缓存） | 生产构建（有缓存） | HMR    |
+| ---------- | ------------------ | ------------------ | ------ |
+| Rspack 1.0 | 6.1 s              | 6.1 s              | 133 ms |
+| Rspack 1.7 | 3.4 s              | 1.2s               | 134 ms |
+| Rspack 2.0 | 2.8 s              | 0.9s               | 118 ms |
 
-> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark)
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/24708478134)
 
 这些改进主要来自对核心架构的持续优化。我们针对关键性能路径重构了部分算法与数据结构，升级了部分过时依赖，并清理了不再使用的代码路径。
 
