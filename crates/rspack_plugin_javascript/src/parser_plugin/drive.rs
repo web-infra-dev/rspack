@@ -8,7 +8,7 @@ use swc_core::{
   },
 };
 
-use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
+use super::{ArcJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
 use crate::{
   parser_plugin::r#const::is_logic_op,
   utils::eval::BasicEvaluatedExpression,
@@ -20,7 +20,7 @@ use crate::{
 };
 
 pub struct JavaScriptParserPluginDrive {
-  plugins: Vec<BoxJavascriptParserPlugin>,
+  plugins: Vec<ArcJavascriptParserPlugin>,
   // `SmallVec<[u32; 4]>` has (approximately) the same stack size/layout as `Vec<u32>`
   // (3 machine words: ptr/len/cap), but stores up to 4 elements inline.
   //
@@ -30,7 +30,7 @@ pub struct JavaScriptParserPluginDrive {
 }
 
 impl JavaScriptParserPluginDrive {
-  pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+  pub fn new(plugins: Vec<ArcJavascriptParserPlugin>) -> Self {
     let mut plugins_by_hook = std::array::from_fn(|_| SmallVec::new());
 
     for (idx, plugin) in plugins.iter().enumerate() {
@@ -52,7 +52,7 @@ impl JavaScriptParserPluginDrive {
   fn plugins_for(
     &self,
     hook: JavascriptParserPluginHook,
-  ) -> impl Iterator<Item = &BoxJavascriptParserPlugin> {
+  ) -> impl Iterator<Item = &ArcJavascriptParserPlugin> {
     let hooks = unsafe { self.plugins_by_hook.get_unchecked(hook as usize) };
     hooks
       .iter()

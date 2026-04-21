@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use swc_core::{
   atoms::Atom,
   common::Span,
@@ -665,3 +667,4 @@ Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_
 }
 
 pub type BoxJavascriptParserPlugin = Box<dyn JavascriptParserPlugin + Send + Sync>;
+pub type ArcJavascriptParserPlugin = Arc<dyn JavascriptParserPlugin + Send + Sync>;

@@ -28,7 +28,7 @@ use swc_core::{
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
@@ -93,7 +93,7 @@ impl ParserRuntimeRequirementsData {
 #[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
   #[cacheable(with=Skip)]
-  parser_plugins: Vec<BoxJavascriptParserPlugin>,
+  parser_plugins: Vec<ArcJavascriptParserPlugin>,
 }
 
 impl std::fmt::Debug for JavaScriptParserAndGenerator {
@@ -106,7 +106,7 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 
 impl JavaScriptParserAndGenerator {
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
-    self.parser_plugins.push(parser_plugin);
+    self.parser_plugins.push(Arc::from(parser_plugin));
   }
 
   fn source_block(
@@ -174,7 +174,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     resource = parse_context.resource_data.resource()
   ))]
   async fn parse<'a>(
-    &mut self,
+    &self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {
@@ -305,7 +305,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         module_parser_options,
         &mut semicolons,
         unresolved_mark,
-        &mut self.parser_plugins,
+        &self.parser_plugins,
         parse_meta,
         &parser_runtime_requirements,
       )

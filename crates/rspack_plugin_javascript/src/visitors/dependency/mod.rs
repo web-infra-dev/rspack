@@ -22,7 +22,7 @@ pub use self::{
   },
   util::*,
 };
-use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData};
+use crate::{ArcJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData};
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
@@ -47,7 +47,7 @@ pub fn scan_dependencies(
   module_parser_options: Option<&ParserOptions>,
   semicolons: &mut FxHashSet<BytePos>,
   unresolved_mark: Mark,
-  parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
+  parser_plugins: &[ArcJavascriptParserPlugin],
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {

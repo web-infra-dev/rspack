@@ -32,9 +32,9 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
 
     // entry resource
     if source_types.is_empty()
-      && self
-        .0
-        .parsed_asset_config
+      && module
+        .build_info()
+        .asset_data_url
         .as_ref()
         .is_some_and(|config| !config.is_inline() && !config.is_source())
     {
@@ -45,7 +45,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
   }
 
   async fn parse<'a>(
-    &mut self,
+    &self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
     self.0.parse(parse_context).await
