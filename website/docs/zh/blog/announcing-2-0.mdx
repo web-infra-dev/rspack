@@ -212,7 +212,7 @@ Rspack 的核心包现在以 pure ESM 包的形式发布，并移除了自身的
 
 ### import.meta 支持 \{#import-meta-properties}
 
-Rspack 2.0 继续完善了 `import.meta` 相关能力。
+Rspack 2.0 改进了对 [import.meta](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta) 的支持。
 
 对于编译阶段无法静态确定的 `import.meta` 属性，你可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 控制其行为，让它不要在编译阶段被转译，而是保留到运行时再求值。
 
