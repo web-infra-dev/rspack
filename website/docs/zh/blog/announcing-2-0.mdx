@@ -57,7 +57,7 @@ Rspack 2.0 主要带来以下更新：
   - [简化 swc-loader 配置](#detect-syntax)
   - [支持控制 CSS 导入](#resolve-import)
   - [使用哈希作为模块 ID](#hashed-module-ids-plugin)
-  - [支持代码分割的强制体积阈值](#enforce-size-threshold)
+  - [代码分割改进](#enforce-size-threshold)
 
 ## 性能提升
 
@@ -163,7 +163,7 @@ export default {
 
 ### 模块联邦 tree shaking \{#mf-share-treeshaking}
 
-Rspack 现在支持对 [模块联邦](/guide/features/module-federation) 的共享依赖进行 tree shaking。它可以在导出级别裁剪共享依赖，移除未使用的部分，从而减小微前端中的共享包体积。
+Rspack 现在支持对 [模块联邦](/guide/features/module-federation) 的共享依赖进行 tree shaking。它可以在导出级别裁剪共享依赖，移除未使用的部分，从而减小共享包的体积。
 
 在 Rspack 1.x 中，只要依赖被声明为 `shared`，运行时通常需要加载完整包。即使只用到少量导出，也会引入全部内容。在共享体积较大的库时，这会带来显著的开销。
 
@@ -419,19 +419,19 @@ export default {
 };
 ```
 
-### 支持代码分割的强制体积阈值 \{#enforce-size-threshold}
+### 代码分割改进 \{#enforce-size-threshold}
 
-代码分割选项 `splitChunks.enforceSizeThreshold` 在 2.0 中得到了支持。它用于为拆分设置一个强制生效的体积阈值。
+Rspack 2.0 现在支持 `splitChunks.enforceSizeThreshold` 选项，用于为代码分割设置一个强制生效的体积阈值。
 
-在默认情况下，[`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) 和 [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) 等限制可能会阻止一个较大的 cache group 被继续拆分，即使拆分本身会是更合理的结果。开启这个阈值后，一旦模块组体积超过设定值，Rspack 就会忽略这些限制，并继续完成拆分。
+默认情况下，`splitChunks` 中的请求数限制选项，例如 [maxAsyncRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) 和 [maxInitialRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests)，可能会阻止较大的 chunk 继续拆分。在启用 `enforceSizeThreshold` 后，只要模块组的体积超过设定阈值，Rspack 就会忽略这些限制并进行强制拆分。
 
-在生产模式下，Rspack 会为所有模块类型默认设置 `50000` 的 `enforceSizeThreshold`；在其他模式下，这个默认值则是 `30000`。你也可以按模块类型分别设置不同的阈值：
+在生产模式下，Rspack 默认为所有模块类型设置 `50000`（500 kB）的 `enforceSizeThreshold`，在其他模式下默认值为 `30000`。你也可以按自定义该选项：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     splitChunks: {
-      // 使用数字形式会对所有模块类型生效
+      // 对所有模块类型生效
       enforceSizeThreshold: 50000,
       // 也可以按模块类型分别配置
       // enforceSizeThreshold: { javascript: 50000, css: 30000 },
@@ -440,9 +440,7 @@ export default {
 };
 ```
 
-该选项也可以在 cache group 粒度上配置。这样一来，你可以保留较严格的全局请求数限制，同时允许某个 cache group（例如 `defaultVendors`）在体积超过指定阈值后更积极地完成拆分。
-
-此外，[`minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize)、[`maxSize`](/plugins/webpack/split-chunks-plugin#splitchunksmaxsize) 和 [`minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks) 等与体积和共享度相关的约束仍会继续生效。
+这个选项也支持在 cache group 中单独配置，这允许你为特定的 cache group 指定单独的值。
 
 ## 尝试 2.0
 
