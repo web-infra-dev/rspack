@@ -191,8 +191,8 @@ When an unused variable's initial value is marked as side-effect-free (pure), it
 
 This feature is currently experimental and needs to be enabled via following experimental feature configuration, and it depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) (`sideEffects` is enabled by default in production mode):
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     pureFunctions: true,
   },
@@ -203,7 +203,7 @@ module.exports = {
 
 You can place this annotation before function declarations, function expressions, arrow functions, or export statements, check [spec](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md) for details:
 
-```javascript
+```js
 /*#__NO_SIDE_EFFECTS__*/
 function foo() {
   console.log('foo');
@@ -241,8 +241,8 @@ For business source code where modification is possible, it is recommended to us
 
 This option is configured in `module.rules[i].parser`:
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     pureFunctions: true,
   },
