@@ -418,7 +418,7 @@ Rspack 2.0 现在支持 `splitChunks.enforceSizeThreshold` 选项，用于为代
 
 默认情况下，`splitChunks` 中的请求数限制选项，例如 [maxAsyncRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) 和 [maxInitialRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests)，可能会阻止较大的 chunk 继续拆分。在启用 `enforceSizeThreshold` 后，只要模块组的体积超过设定阈值，Rspack 就会忽略这些限制并进行强制拆分。
 
-在生产模式下，Rspack 默认为所有模块类型设置 `50000`（500 kB）的 `enforceSizeThreshold`，在其他模式下默认值为 `30000`。你也可以按自定义该选项：
+在生产模式下，Rspack 默认会为所有模块类型设置 `50000` 字节的 `enforceSizeThreshold`，其他模式下默认值为 `30000` 字节。你也可以根据需要自行调整这个选项：
 
 ```js title="rspack.config.mjs"
 export default {
