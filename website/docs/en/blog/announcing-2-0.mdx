@@ -384,14 +384,14 @@ Rspack 2.0's CSS parser provides the [`resolveImport`](/config/module#modulepars
 
 By default, Rspack resolves `@import` and merges the imported content directly into the current file. You can also set `resolveImport` to `false` to preserve the original `@import` and leave it to the browser or downstream tools.
 
-`resolveImport` also accepts a function, allowing you to decide whether each `@import` should be inlined. For example, you can inline only local CSS while leaving remote URLs as `@import`:
+`resolveImport` also accepts a function, allowing you to decide whether each `@import` should be inlined. For example, you can inline only imports whose filename contains `style.css`, while leaving other imports unchanged:
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       'css/auto': {
-        resolveImport: ({ url }) => !/^https?:\/\//.test(url),
+        resolveImport: ({ url }) => url.includes('style.css'),
       },
     },
   },

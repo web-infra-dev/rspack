@@ -384,14 +384,14 @@ Rspack 2.0 的 CSS 解析器提供了 [`resolveImport`](/config/module#modulepar
 
 默认情况下，Rspack 会解析 `@import`，并将导入的内容直接合并到当前文件中。你也可以将 `resolveImport` 设为 `false`，保留原始的 `@import`，交由浏览器或下游工具处理。
 
-`resolveImport` 还支持传入函数，用来按需决定每一条 `@import` 是否需要内联。例如，你可以只内联本地 CSS，而将远程地址保留为 `@import`：
+`resolveImport` 还支持传入函数，用来按需决定每一条 `@import` 是否需要内联。例如，你可以只内联文件名包含 `style.css` 的导入，其他导入则保留原样：
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       'css/auto': {
-        resolveImport: ({ url }) => !/^https?:\/\//.test(url),
+        resolveImport: ({ url }) => url.includes('style.css'),
       },
     },
   },
