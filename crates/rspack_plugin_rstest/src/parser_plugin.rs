@@ -371,7 +371,7 @@ impl RstestParserPlugin {
     match call_expr.args.len() {
       1 => {
         let dep = if let Some(stmt_span) = statement_span {
-          MockMethodDependency::new_with_statement_span(
+          MockMethodDependency::new_with_statement_range(
             call_expr.span().into(),
             call_expr.callee.span().into(),
             stmt_span.into(),

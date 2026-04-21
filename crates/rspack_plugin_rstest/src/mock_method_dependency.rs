@@ -11,6 +11,8 @@ use rspack_core::{
 pub struct MockMethodDependency {
   call_expr_range: DependencyRange,
   callee_range: DependencyRange,
+  // Intentionally stored as `DependencyRange` so hoist insertion positions
+  // remain cacheable and survive persistent cache restore.
   statement_range: Option<DependencyRange>,
   request: String,
   hoist: bool,
@@ -48,7 +50,7 @@ impl MockMethodDependency {
     }
   }
 
-  pub fn new_with_statement_span(
+  pub fn new_with_statement_range(
     call_expr_range: DependencyRange,
     callee_range: DependencyRange,
     statement_range: DependencyRange,
