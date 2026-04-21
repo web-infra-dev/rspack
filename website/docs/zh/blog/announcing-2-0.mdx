@@ -286,7 +286,7 @@ export default {
 [React Server Components](https://react.dev/reference/rsc/server-components)（RSC）正在成为 React 全栈框架中的一项重要基础能力。Rspack 2.0 也为此提供了实验性的底层构建支持，包括：
 
 - **指令支持**：支持 `"use client"` 声明，以及模块和函数级别的 `"use server"` 声明
-- **编译期检查**：在编译阶段识别违反 RSC 规范的 React API 调用，提前规避运行时错误
+- **编译期检查**：在编译阶段识别违反 RSC 规范的 React API 调用，帮助在进入运行时前尽早发现问题
 - **CSS 支持**：在构建阶段收集服务端与客户端组件的样式，并在渲染时注入
 - **HMR 支持**：同时支持服务端组件和客户端组件的热更新
 

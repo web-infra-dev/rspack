@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.0 is out! It introduces more modern defaults, API design, and build outputs for JavaScript development, while remaining compatible with the webpack ecosystem.'
+description: 'Rspack 2.0 is out! It introduces more modern defaults, API design choices, and build outputs for JavaScript development while remaining compatible with the webpack ecosystem.'
 date: 2026-04-22 16:00:01
 sidebar: false
 ---
@@ -16,7 +16,7 @@ We are excited to announce the official release of Rspack 2.0!
 
 When we released Rspack 1.0 in August 2024, we set a clear goal: deliver a 10x performance improvement while staying compatible with the webpack API and ecosystem.
 
-Looking back at the 1.x cycle, we have largely achieved that goal. Rspack not only implemented webpack's core capabilities and plugin APIs, but also kept evolving in developer experience, output optimization, and support for modern language features. Along the way, we introduced and refined incremental builds, lazy compilation, persistent cache, constant inlining, virtual modules, barrel file optimization, and more.
+Looking back at the 1.x cycle, we have largely achieved that goal. Rspack not only implemented webpack's core capabilities and plugin APIs, but also continued to improve developer experience, output optimization, and support for modern language features. Along the way, we introduced and refined incremental builds, lazy compilation, persistent cache, constant inlining, virtual modules, barrel file optimization, and more.
 
 Rspack is also being adopted by a growing number of users. Compared with the 1.0 release, **Rspack's weekly downloads have grown from 100,000 to 5 million**:
 
@@ -24,7 +24,7 @@ Rspack is also being adopted by a growing number of users. Compared with the 1.0
 
 We also built Rstack around Rspack, a unified JavaScript toolchain that includes [Rsbuild](https://github.com/web-infra-dev/rsbuild), [Rslib](https://github.com/web-infra-dev/rslib), [Rstest](https://github.com/web-infra-dev/rstest), [Rspress](https://github.com/web-infra-dev/rspress), [Rsdoctor](https://github.com/web-infra-dev/rsdoctor), and [Rslint](https://github.com/web-infra-dev/rslint). These tools serve different use cases, but they share the same mission: making web development simpler, more consistent, and more efficient.
 
-Rspack is also becoming part of the broader JavaScript ecosystem. Many excellent tools, frameworks, and platforms in the community now support Rspack, including [Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack), [Addfox](https://github.com/addfox/addfox), [Docusaurus](https://github.com/facebook/docusaurus), [Extension.js](https://github.com/extension-js/extension.js), [ice.js](https://github.com/alibaba/ice), [Lynx](https://github.com/lynx-family/lynx), [Meteor](https://github.com/meteor/meteor), [Modern.js](https://github.com/web-infra-dev/modern.js), [Next.js](https://github.com/vercel/next.js), [Nuxt](https://github.com/nuxt/nuxt), [Nx](https://github.com/nrwl/nx), [Kmi](https://github.com/kmijs/kmi), [Re.Pack](https://github.com/callstack/repack), [Remotion](https://github.com/remotion-dev/remotion), [Shakapacker](https://github.com/shakacode/shakapacker), [Storybook](https://github.com/storybookjs/storybook), [TanStack Router](https://tanstack.com/router), [Unplugin](https://github.com/unjs/unplugin), [Vize](https://github.com/ubugeeei/vize), [xmcp](https://github.com/basementstudio/xmcp), and [Zephyr](https://zephyr-cloud.io/). We sincerely thank all of the community projects and teams that support Rspack.
+Rspack is also becoming part of the broader JavaScript ecosystem. Many excellent tools, frameworks, and platforms in the community now support Rspack, including [Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack), [Addfox](https://github.com/addfox/addfox), [Docusaurus](https://github.com/facebook/docusaurus), [Extension.js](https://github.com/extension-js/extension.js), [ice.js](https://github.com/alibaba/ice), [Lynx](https://github.com/lynx-family/lynx), [Meteor](https://github.com/meteor/meteor), [Modern.js](https://github.com/web-infra-dev/modern.js), [Next.js](https://github.com/vercel/next.js), [Nuxt](https://github.com/nuxt/nuxt), [Nx](https://github.com/nrwl/nx), [Kmi](https://github.com/kmijs/kmi), [Re.Pack](https://github.com/callstack/repack), [Remotion](https://github.com/remotion-dev/remotion), [Shakapacker](https://github.com/shakacode/shakapacker), [Storybook](https://github.com/storybookjs/storybook), [TanStack Router](https://tanstack.com/router), [Unplugin](https://github.com/unjs/unplugin), [Vize](https://github.com/ubugeeei/vize), [xmcp](https://github.com/basementstudio/xmcp), and [Zephyr](https://zephyr-cloud.io/). We sincerely thank all the projects and teams in the community that support Rspack.
 
 ## Toward 2.0
 
@@ -92,9 +92,9 @@ In Rspack 1.x, `@rspack/dev-server` pulled in many dependencies indirectly throu
 
 At the same time, `@rspack/cli` no longer depends on `@rspack/dev-server` by default. That means if you only use `rspack build`, you no longer need to install dev-server-related dependencies.
 
-We also reduced dependencies through the following changes:
+We also reduced dependencies through the following measures:
 
-- Moving non-core dependencies to optional dependencies. For example, [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) now only needs to be installed when you use the [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin).
+- Making non-core dependencies optional. For example, [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) now only needs to be installed when you use the [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin).
 - Replacing heavier dependencies with lighter alternatives, such as using [connect-next](https://github.com/rstackjs/connect-next) instead of Express. For dev servers, Connect's middleware model already covers most scenarios, and using it also keeps Rspack aligned with Rsbuild's dev server implementation.
 - [Bundling some dependencies into the npm package](https://e18e.dev/blog/bundling-dependencies) so that Rspack can control the versions of those dependencies and their transitive dependencies, reducing potential supply-chain risks caused by automatic upgrades.
 - Preferring native Node.js 20+ APIs where possible, such as using [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) instead of `picocolors`.
@@ -163,7 +163,7 @@ export default {
 
 ### Module Federation tree shaking \{#mf-share-treeshaking}
 
-Rspack now supports tree shaking for shared dependencies in [Module Federation](/guide/features/module-federation). It can prune shared dependencies at the export level and remove unused parts, reducing the size of shared packages.
+Rspack now supports tree shaking for shared dependencies in [Module Federation](/guide/features/module-federation), allowing it to prune them at the export level, remove unused parts, and reduce the size of shared packages.
 
 In Rspack 1.x, once a dependency was declared as `shared`, the runtime usually had to load the entire package. Even if only a few exports were used, the whole package would still be included. For large shared libraries, that could add significant overhead.
 
@@ -263,7 +263,7 @@ import.defer('./dir' + file);
 
 When building JavaScript libraries, the quality of ESM output directly affects how well downstream tools can analyze and optimize it. Cleaner ESM output is usually better for static analysis, code splitting, and tree shaking.
 
-In Rspack 2.0, you can set [`output.library.type`](/config/output#outputlibrarytype) to `'modern-module'` to generate ESM output that is better suited for published libraries.
+In Rspack 2.0, you can set [`output.library.type`](/config/output#outputlibrarytype) to `'modern-module'` to generate ESM output that is better suited to published libraries.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -285,8 +285,8 @@ In addition, `modern-module` supports preserving the source directory structure.
 
 [React Server Components](https://react.dev/reference/rsc/server-components) (RSC) are becoming an important foundation for full-stack React frameworks. Rspack 2.0 now provides experimental low-level build support, including:
 
-- **Directive support**: Supports `"use client"` as well as module-level and function-level `"use server"` directives.
-- **Compile-time checks**: Detects React API usage that violates RSC rules during compilation, helping avoid runtime errors earlier.
+- **Directive support**: Handles `"use client"` as well as module-level and function-level `"use server"` directives.
+- **Compile-time checks**: Detects React API usage that violates RSC rules during compilation, helping catch issues before they reach runtime.
 - **CSS support**: Collects styles from server and client components during the build and injects them during rendering.
 - **HMR support**: Supports hot updates for both server and client components.
 
@@ -402,7 +402,7 @@ export default {
 
 Rspack 2.0 adds a new `hashed` option to [optimization.moduleIds](/config/optimization#optimizationmoduleids). When enabled, Rspack generates short, stable hashes from module paths and uses them as module IDs.
 
-This is useful when you want module IDs to remain stable while also shortening them. For large applications with many modules, it can also help reduce the space they occupy in the output in some cases.
+This is useful when you want module IDs to remain stable while also shortening them. For large applications with many modules, it can also reduce their footprint in the output in some cases.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -459,7 +459,7 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 ## Looking ahead
 
-Rspack 2.0 is a new starting point. In 2.0, we have already introduced some forward-looking design choices. Going forward, we will continue moving in these directions: improving output optimization and build performance, strengthening support for agents, and keeping up with new web platform capabilities.
+Rspack 2.0 is a new starting point. In 2.0, we have already introduced some forward-looking design choices. Going forward, we will continue to move in these directions: improving output optimization and build performance, strengthening support for agents, and keeping up with new web platform capabilities.
 
 - For output optimization, we will continue improving tree shaking, code splitting, and static analysis while providing fine-grained, controllable optimization options for different scenarios. We will also keep exploring more modern output formats.
 - For performance, we care not only about the bundler itself, but also about the overall overhead introduced by related tools such as linters, type checkers, and Tailwind CSS. We will keep advancing the Rstack toolchain so performance improvements can cover more of the end-to-end build process.
