@@ -4,7 +4,7 @@ import { useLang, usePages } from '@rspress/core/runtime';
 
 const DEFAULT_AUTHOR: BlogAvatarAuthor = {
   name: 'Rspack Team',
-  avatar: 'https://assets.rspack.rs/rspack/rspack-logo.svg',
+  avatar: 'https://assets.rspack.rs/rspack/rspack-logo-with-background.png',
   github: 'https://github.com/web-infra-dev',
   x: 'https://x.com/rspack_dev',
   title: 'Rspack contributors',
