@@ -206,6 +206,7 @@ valorkin
 vant
 verkada
 viktoriialurie
+vize
 weapp
 webpack
 xcode
