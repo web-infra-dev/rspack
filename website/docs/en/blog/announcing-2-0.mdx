@@ -145,9 +145,9 @@ import { join } from './utils';
 join('btn', 'primary');
 ```
 
-> This feature is still experimental. Enable it with `experiments.pureFunctions`. See the [guide](/guide/optimization/tree-shaking#no_side_effects-annotation) for more details.
+> This feature is still experimental. Enable it with [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions). See the [guide](/guide/optimization/tree-shaking#no_side_effects-annotation) for more details.
 
-For third-party modules whose source code you cannot modify directly, Rspack also lets you manually declare pure functions through the [pureFunctions](/config/module#moduleparserjavascriptpurefunctions) option to achieve the same effect.
+For third-party modules whose source code you cannot modify directly, Rspack also lets you manually declare pure functions through [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) to achieve the same effect.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -352,7 +352,7 @@ export default {
 
 > See [target - Target inheritance](/config/target#target-inheritance) for more details.
 
-### Simplified `swc-loader` configuration \{#detect-syntax}
+### Simplified swc-loader configuration \{#detect-syntax}
 
 In earlier versions, if you wanted [builtin:swc-loader](/guide/features/builtin-swc-loader) to handle `.js`, `.jsx`, `.ts`, `.tsx`, and similar files in a single rule, you had to explicitly set options such as `syntax`, `jsx`, and `tsx` in `jsc.parser` based on the file type. This ensured that SWC could parse each file with the correct semantics, such as deciding whether `<` should be treated as JSX syntax or a TypeScript generic.
 
@@ -414,7 +414,7 @@ export default {
 
 ### Improved code splitting \{#enforce-size-threshold}
 
-Rspack 2.0 now supports the `splitChunks.enforceSizeThreshold` option, which lets you define a size threshold that Rspack will enforce during code splitting.
+Rspack 2.0 now supports [`splitChunks.enforceSizeThreshold`](/plugins/webpack/split-chunks-plugin#splitchunksenforcesizethreshold), which lets you define a size threshold that Rspack will enforce during code splitting.
 
 By default, request-count limits in `splitChunks`, such as [maxAsyncRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) and [maxInitialRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests), can prevent large chunks from being split further. With `enforceSizeThreshold` enabled, once a module group exceeds the configured threshold, Rspack ignores those limits and forces the split.
 
@@ -467,7 +467,7 @@ Rspack 2.0 is a new starting point. In 2.0, we have already introduced some forw
 
 ## FAQ \{#faq}
 
-### Will Rspack still be compatible with webpack after 2.0?
+### Will Rspack 2.0 still be compatible with webpack?
 
 Yes. In the 2.0 era, compatibility with the webpack ecosystem will remain an important goal for Rspack.
 
