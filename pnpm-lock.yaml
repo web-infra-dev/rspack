@@ -441,6 +441,9 @@ importers:
       terser-webpack-plugin:
         specifier: ^5.4.0
         version: 5.4.0(webpack@5.104.1)
+      wast-loader:
+        specifier: ^1.14.1
+        version: 1.14.1
       webpack:
         specifier: 5.104.1
         version: 5.104.1
@@ -469,9 +472,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-      wast-loader:
-        specifier: ^1.14.1
-        version: 1.14.1
 
   scripts:
     devDependencies:
