@@ -144,98 +144,145 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(pattern).expect("should construct the regex")
 });
 
+#[derive(Debug, Clone, Default)]
+struct EscapedIdentifierHints {
+  shortest: Option<Atom>,
+  full: Box<str>,
+}
+
+static EMPTY_ESCAPED_IDENTIFIER_HINTS: LazyLock<EscapedIdentifierHints> =
+  LazyLock::new(EscapedIdentifierHints::default);
+
 #[derive(Default)]
 struct NameAllocator {
-  used_names: HashSet<Atom>,
   used_strings: HashSet<String>,
-  suffix_counters: HashMap<Atom, u32>,
+  suffix_counters: HashMap<String, u32>,
+  scratch: String,
 }
 
 impl NameAllocator {
+  fn observe_used_name(&mut self, name: &str) {
+    if let Some((base, suffix)) = name.rsplit_once('_')
+      && let Ok(index) = suffix.parse::<u32>()
+    {
+      let next = index.saturating_add(1);
+      self
+        .suffix_counters
+        .entry(base.to_string())
+        .and_modify(|current| *current = (*current).max(next))
+        .or_insert(next);
+    }
+  }
+
   fn new(used_names: HashSet<Atom>) -> Self {
     let mut used_strings: HashSet<String> = HashSet::default();
     used_strings.reserve(used_names.len());
+    let mut suffix_counters = HashMap::default();
     for name in &used_names {
-      used_strings.insert(name.as_ref().to_string());
+      let name = name.as_ref().to_string();
+      if let Some((base, suffix)) = name.rsplit_once('_')
+        && let Ok(index) = suffix.parse::<u32>()
+      {
+        let next = index.saturating_add(1);
+        suffix_counters
+          .entry(base.to_string())
+          .and_modify(|current: &mut u32| *current = (*current).max(next))
+          .or_insert(next);
+      }
+      used_strings.insert(name);
     }
 
     Self {
-      used_names,
       used_strings,
-      suffix_counters: HashMap::default(),
+      suffix_counters,
+      scratch: String::default(),
     }
   }
 
   fn contains(&self, name: &Atom) -> bool {
-    self.used_names.contains(name)
+    self.used_strings.contains(name.as_ref())
   }
 
   fn insert(&mut self, name: Atom) {
+    self.observe_used_name(name.as_ref());
     self.used_strings.insert(name.as_ref().to_string());
-    self.used_names.insert(name);
   }
 
-  fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
-    let mut name = old_name.to_string();
+  fn render_candidate(&mut self, old_name: &str, prefix: Option<&str>) {
+    self.scratch.clear();
+    if let Some(prefix) = prefix {
+      self.scratch.push_str(prefix);
+      if !(old_name.is_empty() || old_name.starts_with('_') || prefix.ends_with('_')) {
+        self.scratch.push('_');
+      }
+    }
+    self.scratch.push_str(old_name);
+  }
 
-    // try to prepend extra_info segments one by one (from most specific to least),
-    // checking for an available escaped identifier at each step
-    for info_part in extra_info {
-      let info_str = info_part.as_ref();
-      let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
-      new_name.push_str(info_str);
-      if !name.is_empty() {
-        if name.starts_with('_') || info_str.ends_with('_') {
-          new_name.push_str(&name);
-        } else {
-          new_name.push('_');
-          new_name.push_str(&name);
+  fn finalize_current(&mut self) -> Atom {
+    let candidate_string = mem::take(&mut self.scratch);
+    let reused_capacity = candidate_string.capacity();
+    let candidate: Atom = candidate_string.as_str().into();
+    self.observe_used_name(candidate_string.as_str());
+    self.used_strings.insert(candidate_string);
+    self.scratch = String::with_capacity(reused_capacity);
+    candidate
+  }
+
+  fn find_new_name(&mut self, old_name: &str, extra_info: &EscapedIdentifierHints) -> Atom {
+    // Heuristic:
+    // - For common synthetic names, the shortest context tends to collide, so
+    //   try the full escaped context first.
+    // - For ordinary names, try the cheapest disambiguator first, then jump to
+    //   the full context instead of walking every prefix length.
+    fn prefer_full_context(old_name: &str) -> bool {
+      matches!(
+        old_name,
+        "" | "default"
+          | "namespaceObject"
+          | "namespaceObject2"
+          | "deferred"
+          | "deferredNamespaceObject"
+      )
+    }
+
+    if let Some(shortest) = extra_info.shortest.as_deref() {
+      let first_prefix = if prefer_full_context(old_name) {
+        extra_info.full.as_ref()
+      } else {
+        shortest
+      };
+
+      self.render_candidate(old_name, Some(first_prefix));
+      if !self.used_strings.contains(self.scratch.as_str()) {
+        return self.finalize_current();
+      }
+
+      if first_prefix != extra_info.full.as_ref() {
+        self.render_candidate(old_name, Some(extra_info.full.as_ref()));
+        if !self.used_strings.contains(self.scratch.as_str()) {
+          return self.finalize_current();
         }
       }
-      name = new_name;
-
-      let escaped = to_identifier_with_escaped(name.clone());
-      if !self.used_strings.contains(&escaped) {
-        self.used_strings.insert(escaped.clone());
-        let candidate: Atom = escaped.into();
-        self.used_names.insert(candidate.clone());
-        return candidate;
-      }
+    } else {
+      self.render_candidate(old_name, None);
     }
 
-    let base_str = to_identifier_with_escaped(name);
-    if !base_str.is_empty() && !self.used_strings.contains(&base_str) {
-      self.used_strings.insert(base_str.clone());
-      let base: Atom = base_str.into();
-      self.used_names.insert(base.clone());
-      return base;
+    let base_len = self.scratch.len();
+    if base_len != 0 && !self.used_strings.contains(self.scratch.as_str()) {
+      return self.finalize_current();
     }
 
-    let base: Atom = base_str.into();
-    let counter = self.suffix_counters.entry(base.clone()).or_insert(0);
-    let mut i = *counter;
+    let i = self
+      .suffix_counters
+      .get(self.scratch.as_str())
+      .copied()
+      .unwrap_or(0);
     let mut i_buffer = itoa::Buffer::new();
-
-    let mut base_with_underscore = String::with_capacity(base.len() + 1);
-    base_with_underscore.push_str(base.as_ref());
-    base_with_underscore.push('_');
-
-    let mut numbered = String::with_capacity(base_with_underscore.len() + 8);
-    loop {
-      numbered.clear();
-      numbered.push_str(&base_with_underscore);
-      numbered.push_str(i_buffer.format(i));
-
-      if !self.used_strings.contains(&numbered) {
-        self.used_strings.insert(numbered.clone());
-        let candidate: Atom = Atom::from(numbered.as_str());
-        self.used_names.insert(candidate.clone());
-        *counter = i + 1;
-        return candidate;
-      }
-
-      i += 1;
-    }
+    self.scratch.truncate(base_len);
+    self.scratch.push('_');
+    self.scratch.push_str(i_buffer.format(i));
+    self.finalize_current()
   }
 }
 
@@ -1080,7 +1127,7 @@ impl Module for ConcatenatedModule {
           &compilation.module_static_cache,
           &context,
         );
-        let splitted_readable_identifier = split_readable_identifier(&readable_identifier);
+        let splitted_readable_identifier = build_escaped_identifier_hints(&readable_identifier);
         escaped_identifiers.push((readable_identifier, splitted_readable_identifier));
 
         match info {
@@ -1094,8 +1141,10 @@ impl Module for ConcatenatedModule {
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported) in import_map.iter() {
                 let specifiers = &imported.specifiers;
-                escaped_identifiers
-                  .push((source.clone(), split_readable_identifier(source.as_str())));
+                escaped_identifiers.push((
+                  source.clone(),
+                  build_escaped_identifier_hints(source.as_str()),
+                ));
                 for atom in specifiers {
                   escaped_names
                     .entry(atom.clone())
@@ -1220,7 +1269,7 @@ impl Module for ConcatenatedModule {
                         .get(&ns_import)
                         .expect("should have escaped name")
                         .as_ref(),
-                      &[],
+                      &EMPTY_ESCAPED_IDENTIFIER_HINTS,
                     )
                   } else {
                     name_allocator.insert(ns_import);
@@ -3418,6 +3467,36 @@ pub fn get_cached_readable_identifier(
     let module = mg.module_by_identifier(mid).expect("should have module");
     module.readable_identifier(compilation_context).to_string()
   })
+}
+
+fn build_escaped_identifier_hints(extra_info: &str) -> EscapedIdentifierHints {
+  let extra_info = REGEX.replace_all(extra_info, "");
+  let mut splitted_info: Vec<Atom> = extra_info
+    .split('/')
+    .map(|s| match escape_identifier(s) {
+      Cow::Borrowed(s) => Atom::from(s),
+      Cow::Owned(s) => Atom::from(s),
+    })
+    .collect();
+  splitted_info.reverse();
+  let shortest = splitted_info
+    .first()
+    .map(|part| Atom::from(to_identifier_with_escaped(part.as_ref().to_string())));
+  let mut full = String::new();
+  for (i, part) in splitted_info.iter().enumerate().rev() {
+    full.push_str(part);
+    if i != 0 {
+      let next = splitted_info[i - 1].as_ref();
+      if !(next.starts_with('_') || part.ends_with('_')) {
+        full.push('_');
+      }
+    }
+  }
+
+  EscapedIdentifierHints {
+    shortest,
+    full: to_identifier_with_escaped(full).into_boxed_str(),
+  }
 }
 
 pub fn split_readable_identifier(extra_info: &str) -> Vec<Atom> {

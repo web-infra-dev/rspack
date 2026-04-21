@@ -67,11 +67,11 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 "use strict";
 
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/request/a.js
-var a = __webpack_require__("../../normalModuleFactory​#afterResolve/request/a.js");
-var a_default = /*#__PURE__*/__webpack_require__.n(a);
+var normalModuleFactory_afterResolve_request_a = __webpack_require__("../../normalModuleFactory​#afterResolve/request/a.js");
+var normalModuleFactory_afterResolve_request_a_default = /*#__PURE__*/__webpack_require__.n(normalModuleFactory_afterResolve_request_a);
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/request/c.js
-var c = __webpack_require__("../../normalModuleFactory​#afterResolve/request/c.js");
-var c_default = /*#__PURE__*/__webpack_require__.n(c);
+var normalModuleFactory_afterResolve_request_c = __webpack_require__("../../normalModuleFactory​#afterResolve/request/c.js");
+var normalModuleFactory_afterResolve_request_c_default = /*#__PURE__*/__webpack_require__.n(normalModuleFactory_afterResolve_request_c);
 ;// CONCATENATED MODULE: external "fs"
 const external_fs_namespaceObject = require("fs");
 var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
@@ -81,8 +81,8 @@ var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespa
 
 
 it("should modify request by after resolve hook", () => {
-	expect((a_default())).toBe("a");
-	expect((c_default())).toBe("b");
+	expect((normalModuleFactory_afterResolve_request_a_default())).toBe("a");
+	expect((normalModuleFactory_afterResolve_request_c_default())).toBe("b");
 	const ext = ".js";
 	expect(external_fs_default().readFileSync(__filename, "utf-8")).toContain("request/c" + ext);
 });
