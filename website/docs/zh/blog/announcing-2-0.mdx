@@ -42,7 +42,7 @@ Rspack 2.0 主要带来以下更新：
 
 - 性能提升
   - [构建提速](#build-performance)：生产构建和 HMR 提速 10%，热构建提速 80%
-  - [精简默认依赖](#fewer-deps)：大幅减少 npm 依赖数量和安装体积
+  - [精简默认依赖](#fewer-deps)：显著减少安装的依赖数量和体积
 - 产物优化
   - [增强 tree shaking](#better-tree-shaking)
   - [模块联邦 tree shaking](#mf-share-treeshaking)
@@ -64,16 +64,22 @@ Rspack 2.0 主要带来以下更新：
 
 ### 构建提速 \{#build-performance}
 
-![Rspack 2.0 performance comparison](https://assets.rspack.rs/rspack/assets/rspack-v2-0-perf-comparison.png)
+构建性能始终是 Rspack 的核心指标之一。与 Rspack 1.7 相比，Rspack 2.0 的性能提升约 10%，相较 1.0 提升至多 100%。
 
-在 Rspack 2.0 中，我们继续整理构建主流程。我们升级了一批老旧依赖，清理了一些已经废弃的代码路径，也优化了性能热点上的算法和数据结构。
+| 版本       | 生产构建 | HMR    |
+| ---------- | -------- | ------ |
+| Rspack 1.0 | 4.16 s   | 127 ms |
+| Rspack 1.7 | 2.19 s   | 105 ms |
+| Rspack 2.0 | 2.03 s   | 93 ms  |
 
-以 [10K 个 React 组件 benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/24661521793) 为例，2.0 在生产构建和 HMR 两个流程上都实现了约 **10%** 的性能提升。
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark)
 
-而针对开启了[持久化缓存](/config/cache#persistent-cache)场景，我们也在缓存的流程覆盖和内存消耗上更进一步：
+这些改进主要来自对核心架构的持续优化。我们针对关键性能路径重构了部分算法与数据结构，升级了部分过时依赖，并清理了不再使用的代码路径。
 
-- 将 [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin) 接入到了持久化缓存，代码压缩结果可以跨构建复用，使得大型项目的热启动性能提升约 **80%**。
-- 优化持久化缓存的底层存储实现，使大型项目开启持久化缓存时的内存占用降低了 **20%+**。
+在开启 [持久化缓存](/config/cache#persistent-cache) 的场景下，构建性能和内存占用还可进一步改善：
+
+- **热启动性能提升约 80%**：现在 [SWC 压缩插件](/plugins/rspack/swc-js-minimizer-rspack-plugin) 已经支持持久化缓存，使压缩结果可以跨构建复用
+- **内存占用降低 20%+**：这得益于底层存储实现的优化，大型项目启用缓存时的内存开销将显著降低
 
 ### 精简默认依赖 \{#fewer-deps}
 
