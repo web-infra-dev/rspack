@@ -1292,7 +1292,7 @@ impl Module for ConcatenatedModule {
 
                 let new_name = if name_allocator.contains(&atom) {
                   let new_name = if atom == "default" {
-                    name_allocator.find_new_name("", source_parts)
+                    name_allocator.find_new_name("default", source_parts)
                   } else {
                     name_allocator.find_new_name(
                       escaped_names
