@@ -5354,6 +5354,7 @@ dependencies = [
  "rspack_util",
  "tempfile",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
