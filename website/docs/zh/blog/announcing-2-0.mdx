@@ -49,7 +49,7 @@ Rspack 2.0 主要带来以下更新：
   - [纯 ESM 包](#pure-esm)
   - [import.meta 支持](#import-meta)
   - [import defer 支持](#import-defer)
-  - [现代 ESM 库](#better-esm)
+  - [改进 ESM 库构建](#modern-module)
 - 新特性
   - [React Server Components 支持](#rsc-support)
   - [支持 `#/` 子路径别名导入](#subpath-alias-import)
@@ -259,13 +259,11 @@ const file = Math.random() > 0.5 ? 'a.js' : 'b.js';
 import.defer('./dir' + file);
 ```
 
-### 现代 ESM 库 \{#better-esm}
+### 改进 ESM 库构建 \{#modern-module}
 
-对于库构建场景，ESM 产物的质量非常重要。产物越纯净，越有利于静态分析，也越有利于下游继续做代码分割和 tree shaking。
+在构建一个 JavaScript 库时，ESM 输出的质量会直接影响下游工具的分析和优化效果。更纯净的 ESM 产物，通常也更有利于静态分析、代码分割和 tree shaking。
 
-在 Rspack 1.6 中，我们引入了实验性的 [`rspack.experiments.EsmLibraryPlugin`](https://v1.rspack.rs/plugins/rspack/esm-library-plugin)，用一条专用的渲染路径替代此前基于 module concatenation 的 ESM 输出方案。之后的若干个小版本里，这条路径持续被打磨，并逐步接管了产物流水线中更多的环节。到 2.0，它已经完全稳定。
-
-与此同时，我们移除了实验性插件入口。现在你只需要将 [`output.library.type`](/config/output#outputlibrarytype) 配置为 `'modern-module'`，就可以启用这条路径：
+在 Rspack 2.0 中，你可以将 [`output.library.type`](/config/output#outputlibrarytype) 配置为 `'modern-module'`，以生成更适合库发布的 ESM 产物。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -277,14 +275,9 @@ export default {
 };
 ```
 
-与通用的 [`output.module`](/config/output#outputmodule) 不同，`modern-module` 会完整接管库产物的渲染流程。前者仍沿用常规的 chunk / runtime 渲染流程，再将入口导出转换为 `export` 语句；而 `modern-module` 会直接走一条更适合库产物的专用路径，具体包括：
+相比面向普通 ESM 输出的 [`output.module`](/config/output#outputmodule) 选项，`modern-module` 针对库构建场景做了专门优化。它基于 Rspack 1.x 中引入的实验性 [`rspack.experiments.EsmLibraryPlugin`](https://v1.rspack.rs/plugins/rspack/esm-library-plugin) 演进而来，生成的产物更便于下游工具继续分析和处理。在代码分割场景下，它也能保持更清晰的 ESM 结构，并减少多入口构建中的重复代码。
 
-- 使用独立的 scope hoisting 算法，而不再依赖 [`optimization.concatenateModules`](/config/optimization#optimizationconcatenatemodules)，可以在不引入 Rspack 运行时包装代码的前提下，将多个模块合并到同一个 ESM 产物中。
-- 直接将 chunk 渲染为 ESM 文件，并使用真实的 `import` / `export` 语句在 chunk 之间进行链接，即使经过[代码分割](/guide/optimization/code-splitting)，产物依然能被下游工具静态分析。
-- 自动对会在多个 chunk 中重复出现的模块进行去重，以减少库被拆分为多个入口时的冗余代码。
-- 启用 [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules) 能力：在产物中保留源码目录结构，适合需要“源码一个文件、产物一个文件”发布形态的库。
-
-在配置层面，`modern-module` 也内置了一组默认值，用来简化手动配置：它会自动将 [`output.module`](/config/output#outputmodule) 置为 `true`，将 `output.chunkLoading` 设为 `'import'`，并放宽 [`splitChunks`](/plugins/webpack/split-chunks-plugin) 的默认值，以保证拆分后产物的纯净度。更完整的 ESM 场景和配置说明可参考 [ESM 指南](/guide/features/esm)。
+此外，`modern-module` 还支持保留源码目录结构，详见 [ESM 指南](/guide/features/esm)。
 
 ## 新特性
 
