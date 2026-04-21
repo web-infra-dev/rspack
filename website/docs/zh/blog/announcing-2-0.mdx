@@ -45,6 +45,7 @@ Rspack 2.0 主要带来以下更新：
   - [精简默认依赖](#fewer-deps)：显著减少安装的依赖数量和体积
 - 产物优化
   - [静态分析增强](#better-tree-shaking)
+  - [编译器注解支持](#pure-functions)
   - [模块联邦 tree shaking](#mf-share-treeshaking)
 - 改进 ESM 支持
   - [纯 ESM 包](#pure-esm)
@@ -127,33 +128,39 @@ foo.baz();
 (await import('./foo')).bar;
 ```
 
-### TODO
+### 编译器注解支持 \{#pure-functions}
 
-此外，2.0 还新增了 `experiments.pureFunctions`，用于对 pure function 调用做更细粒度的 tree shaking。你既可以在源码中通过 `/*#__NO_SIDE_EFFECTS__*/` 注解标记函数定义，也可以通过 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 为无法直接修改源码的第三方模块手动标记顶层导出函数。
+Rspack 2.0 现在支持 [编译器注解](https://github.com/javascript-compiler-hints/compiler-notations-spec)，允许你使用 `#__NO_SIDE_EFFECTS__` 将一个函数标记为无副作用，如果该函数被调用后的返回值没有被使用，tree shaking 会自动移除未使用的代码。
 
-在下面的例子中，`joinClassName` 被标记为"调用无副作用"，当它的返回值没有被使用时，这次调用就可以在构建产物中被安全移除。
-
-```js title="rspack.config.mjs"
-export default {
-  mode: 'production',
-  experiments: {
-    pureFunctions: true,
-  },
-};
-```
+例如，在下面的代码中，`join` 被标记为一个无副作用函数。当它的返回值没有被使用时，这次调用会被安全移除。
 
 ```js title="utils.js"
 /*#__NO_SIDE_EFFECTS__*/
-export function joinClassName(a, b) {
+export function join(a, b) {
   return `${a}-${b}`;
 }
 ```
 
 ```js title="index.js"
-import { joinClassName } from './utils';
+import { join } from './utils';
 
-joinClassName('btn', 'primary');
-console.log('hello');
+join('btn', 'primary');
+```
+
+> 该功能仍处于实验阶段，需要通过 `experiments.pureFunctions` 启用，查看 [指南](/guide/optimization/tree-shaking#no_side_effects-注解) 了解更多。
+
+对于无法直接修改源码的第三方模块，Rspack 还允许你通过 [pureFunctions](/config/module#moduleparserjavascriptpurefunctions) 选项手动声明纯函数列表，以达到同样的效果。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        pureFunctions: ['joinClassName'],
+      },
+    },
+  },
+};
 ```
 
 ### 模块联邦 tree shaking \{#mf-share-treeshaking}
