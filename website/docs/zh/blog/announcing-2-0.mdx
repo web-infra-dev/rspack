@@ -55,8 +55,8 @@ Rspack 2.0 主要带来以下更新：
   - [支持 `#/` 子路径别名导入](#subpath-alias-import)
   - [简化目标环境配置](#automatic-targets)
   - [简化 swc-loader 配置](#detect-syntax)
-  - [支持按需控制 CSS 导入解析](#resolve-import)
-  - [支持哈希作为模块 ID](#hashed-module-ids-plugin)
+  - [支持控制 CSS 导入](#resolve-import)
+  - [使用哈希作为模块 ID](#hashed-module-ids-plugin)
   - [支持代码分割的强制体积阈值](#enforce-size-threshold)
 
 ## 性能提升
@@ -385,7 +385,7 @@ export default {
 };
 ```
 
-### 支持按需控制 CSS 导入解析 \{#resolve-import}
+### 支持控制 CSS 导入 \{#resolve-import}
 
 Rspack 2.0 的 CSS 解析器提供了 [`resolveImport`](/config/module#moduleparsercssautoresolveimport) 选项，它用于控制构建时是否解析并内联 `@import`。
 
@@ -405,11 +405,11 @@ export default {
 };
 ```
 
-### 支持使用哈希生成模块 ID \{#hashed-module-ids-plugin}
+### 使用哈希作为模块 ID \{#hashed-module-ids-plugin}
 
-Rspack 2.0 为 `optimization.moduleIds` 新增了 `hashed` 选项。启用后，Rspack 会基于模块的路径生成哈希值，并将其用作模块 ID。
+Rspack 2.0 为 [optimization.moduleIds](/config/optimization#optimizationmoduleids) 新增了 `hashed` 选项。启用后，Rspack 会基于模块路径生成较短且稳定的哈希值，并将其用作模块 ID。
 
-这适合希望模块 ID 更短、同时又保持稳定性的场景：
+这适用于希望在保持模块 ID 稳定性的同时，进一步缩短模块 ID 长度的场景。对于模块数量较多的大型应用，这在某些情况下也有助于减少产物中的 ID 体积。
 
 ```js title="rspack.config.mjs"
 export default {
