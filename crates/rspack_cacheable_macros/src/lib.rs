@@ -19,16 +19,10 @@ pub fn disable_cacheable(
 
 #[proc_macro_attribute]
 pub fn enable_cacheable_dyn(
-  _args: proc_macro::TokenStream,
+  args: proc_macro::TokenStream,
   tokens: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-  let input = syn::parse_macro_input!(tokens as syn::Item);
-
-  match input {
-    syn::Item::Trait(input) => cacheable_dyn::impl_trait(input),
-    syn::Item::Impl(input) => cacheable_dyn::impl_impl(input),
-    _ => panic!("expect Trait or Impl"),
-  }
+  cacheable_dyn::cacheable_dyn(args, tokens)
 }
 
 #[proc_macro_attribute]
