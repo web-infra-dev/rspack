@@ -61,7 +61,14 @@ const creator = new BasicCaseCreator({
       },
       check: async (env: ITestEnv, context: ITestContext) => {
         await check(env, context, name);
-        await checkSnapshot(env, context, name, 'esm.snap.txt');
+        const testConfig = context.getTestConfig();
+        await checkSnapshot(
+          env,
+          context,
+          name,
+          'esm.snap.txt',
+          testConfig.snapshotFileFilter,
+        );
       },
       after: async (context: ITestContext) => {
         await afterExecute(context, name);
