@@ -24,21 +24,17 @@ _2026 年 4 月 22 日_
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-我们还围绕 Rspack 打造了 Rstack，一套统一的 JavaScript 工具链，包括 [Rsbuild](https://github.com/web-infra-dev/rsbuild)、[Rslib](https://github.com/web-infra-dev/rslib)、[Rstest](https://github.com/web-infra-dev/rstest)、[Rspress](https://github.com/web-infra-dev/rspress)、[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 和 [Rslint](https://github.com/web-infra-dev/rslint)。这些工具面向不同场景，但都共享了同一个使命：让 Web 开发变得更加简洁、一致和高效。
+我们还围绕 Rspack 打造了 Rstack，一套统一的 JavaScript 工具链，包括 [Rsbuild](https://github.com/web-infra-dev/rsbuild)、[Rslib](https://github.com/web-infra-dev/rslib)、[Rstest](https://github.com/web-infra-dev/rstest)、[Rspress](https://github.com/web-infra-dev/rspress)、[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 和 [Rslint](https://github.com/web-infra-dev/rslint)。这些工具面向不同的场景，但都共享了同一个使命：让 Web 开发变得更加简洁、一致和高效。
 
-Rspack 也在逐步融入更广泛的 JavaScript 生态，社区中许多优秀的工具、框架和平台已经提供对 Rspack 的支持，包括但不限于：[Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack)、[Addfox](https://github.com/addfox/addfox)、[Docusaurus](https://github.com/facebook/docusaurus)、[Extension.js](https://github.com/extension-js/extension.js)、[ice.js](https://github.com/alibaba/ice)、[Kmi](https://github.com/kmijs/kmi)、[Lynx](https://github.com/lynx-family/lynx)、[Meteor](https://github.com/meteor/meteor)、[Modern.js](https://github.com/web-infra-dev/modern.js)、[Next.js](https://github.com/vercel/next.js)、[Nuxt](https://github.com/nuxt/nuxt)、[Nx](https://github.com/nrwl/nx)、[Re.Pack](https://github.com/callstack/repack)、[Remotion](https://github.com/remotion-dev/remotion)、[Shakapacker](https://github.com/shakacode/shakapacker)、[Storybook](https://github.com/storybookjs/storybook)、[TanStack Router](https://tanstack.com/router)、[Unplugin](https://github.com/unjs/unplugin)、[Vize](https://github.com/ubugeeei/vize)、[xmcp](https://github.com/basementstudio/xmcp)、[Zephyr](https://zephyr-cloud.io/)。在此，我们衷心感谢所有支持 Rspack 的社区项目和团队。
+Rspack 也在逐步融入更广泛的 JavaScript 生态，社区中许多优秀的工具、框架和平台已经提供对 Rspack 的支持，包括但不限于：[Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack)、[Addfox](https://github.com/addfox/addfox)、[Docusaurus](https://github.com/facebook/docusaurus)、[Extension.js](https://github.com/extension-js/extension.js)、[ice.js](https://github.com/alibaba/ice)、[Lynx](https://github.com/lynx-family/lynx)、[Meteor](https://github.com/meteor/meteor)、[Modern.js](https://github.com/web-infra-dev/modern.js)、[Next.js](https://github.com/vercel/next.js)、[Nuxt](https://github.com/nuxt/nuxt)、[Nx](https://github.com/nrwl/nx)、[Kmi](https://github.com/kmijs/kmi)、[Re.Pack](https://github.com/callstack/repack)、[Remotion](https://github.com/remotion-dev/remotion)、[Shakapacker](https://github.com/shakacode/shakapacker)、[Storybook](https://github.com/storybookjs/storybook)、[TanStack Router](https://tanstack.com/router)、[Unplugin](https://github.com/unjs/unplugin)、[Vize](https://github.com/ubugeeei/vize)、[xmcp](https://github.com/basementstudio/xmcp)、[Zephyr](https://zephyr-cloud.io/)。在此，我们衷心感谢所有支持 Rspack 的社区项目和团队。
 
 ## 迈向 2.0
 
-Rspack 的目标不仅是一个"更快的 webpack"。JavaScript 生态正在持续演进，ESM 的支持更加成熟，新的模块规范和运行时能力在不断演进，coding agent 正在加速软件迭代。随着这些变化逐步成为日常开发的一部分，我们也开始重新思考：一个面向未来的打包工具，应该默认提供怎样的能力。
+JavaScript 生态在持续蓬勃发展，coding agent 正在改变软件的研发范式。这促使我们重新思考，一个面向未来的打包工具应当如何演进。
 
-正是在这样的背景下，我们在 2025 年启动了 Rspack 2.0 的设计与迭代。经过数十个 beta 和 RC 版本的打磨之后，Rspack 2.0 现在正式发布。
+**Rspack 的目标不只是成为一个"更快的 webpack"**。在 1.x 阶段，我们有意让 Rspack 的 API 和默认值与 webpack 5 保持一致，这一策略是为了帮助现有项目低成本迁移到 Rspack。但随着 JavaScript 模块规范和生态的发展，一些历史设计已不再适合作为当下的默认选择。
 
-与 1.0 主要聚焦于兼顾既有生态不同，2.0 更强调在保持迁移成本可控的前提下，为未来的 JavaScript 工程提供更合适的默认设计。
-
-在 1.x 阶段，Rspack 有意让诸多 API 和默认值尽量与 webpack 5 对齐。这一策略有效降低了迁移成本，也使更多上层工具和框架能够较早接入 Rspack。随着 ESM、`import.meta`、`import defer` 等现代模块能力逐步走向主流，一部分历史设计已不再是当前语境下的最优选择。对于 bundler 而言，需要考虑的不仅是对既有行为的兼容，还包括更合理的默认值、更清晰的配置模型，以及更有利于性能和产物优化的底层抽象。
-
-基于这一判断，Rspack 2.0 对部分历史设计进行了重新审视。Rspack 仍将保持对 webpack 生态的高兼容性；在此基础上，我们也会优先采用更符合现代工程需求的 API、默认值与产物形态，并通过迁移指南与升级工具将迁移成本控制在合理范围内。
+从 2.0 开始，在保持对 webpack 生态兼容的前提下，Rspack 将逐步引入更符合现代 JavaScript 工程的默认行为、API 设计和构建产物。这将是一个渐进的过程，我们会尽量避免在单个主版本中引入过多不兼容变更。同时也会提供迁移指南与 Agent Skills，将迁移成本控制在可接受范围内。
 
 Rspack 2.0 主要带来以下更新：
 
