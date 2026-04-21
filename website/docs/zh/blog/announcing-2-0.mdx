@@ -18,13 +18,15 @@ _2026 年 4 月 22 日_
 
 在 2024 年 8 月发布 Rspack 1.0 时，我们设定了一个明确的阶段目标：在保持与 webpack API 和生态兼容的前提下，实现 10 倍的构建性能提升。
 
-回顾 1.x 阶段，这一目标已经基本实现。Rspack 不仅逐步补齐了 webpack 的核心能力和插件 API，也在开发体验、产物优化、内置能力以及现代语言特性支持等方面不断演进，使更多项目能够顺畅地接入 Rspack。
+回顾 1.x 阶段，这一目标已经基本达成。Rspack 不仅实现了 webpack 的核心能力和插件 API，也在开发体验、产物优化以及现代语言特性支持等方面不断演进，陆续引入并完善了增量构建、按需编译、持久化缓存、常量内联、虚拟模块、Barrel 文件优化等新特性。
 
 同时，Rspack 也在被更多用户采用，与 1.0 发布时相比，**Rspack 的周下载量已由 10 万增长至 500 万**：
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
-Rspack 正在逐步融入更广泛的 JavaScript 生态，许多优秀的社区工具、框架和平台已经提供对 Rspack 的支持，包括但不限于：[Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack)、[Addfox](https://github.com/addfox/addfox)、[Docusaurus](https://github.com/facebook/docusaurus)、[Extension.js](https://github.com/extension-js/extension.js)、[ice.js](https://github.com/alibaba/ice)、[Kmi](https://github.com/kmijs/kmi)、[Lynx](https://github.com/lynx-family/lynx)、[Meteor](https://github.com/meteor/meteor)、[Modern.js](https://github.com/web-infra-dev/modern.js)、[Next.js](https://github.com/vercel/next.js)、[Nuxt](https://github.com/nuxt/nuxt)、[Nx](https://github.com/nrwl/nx)、[Re.Pack](https://github.com/callstack/repack)、[Remotion](https://github.com/remotion-dev/remotion)、[Shakapacker](https://github.com/shakacode/shakapacker)、[Storybook](https://github.com/storybookjs/storybook)、[TanStack Router](https://tanstack.com/router)、[Unplugin](https://github.com/unjs/unplugin)、[Vize](https://github.com/ubugeeei/vize)、[xmcp](https://github.com/basementstudio/xmcp)、[Zephyr](https://zephyr-cloud.io/)。在此，我们衷心感谢所有支持 Rspack 的社区项目和团队。
+我们还围绕 Rspack 打造了 Rstack，一套统一的 JavaScript 工具链，包括 [Rsbuild](https://github.com/web-infra-dev/rsbuild)、[Rslib](https://github.com/web-infra-dev/rslib)、[Rstest](https://github.com/web-infra-dev/rstest)、[Rspress](https://github.com/web-infra-dev/rspress)、[Rsdoctor](https://github.com/web-infra-dev/rsdoctor) 和 [Rslint](https://github.com/web-infra-dev/rslint)。这些工具面向不同场景，但都共享了同一个使命：让 Web 开发变得更加简洁、一致和高效。
+
+Rspack 也在逐步融入更广泛的 JavaScript 生态，社区中许多优秀的工具、框架和平台已经提供对 Rspack 的支持，包括但不限于：[Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack)、[Addfox](https://github.com/addfox/addfox)、[Docusaurus](https://github.com/facebook/docusaurus)、[Extension.js](https://github.com/extension-js/extension.js)、[ice.js](https://github.com/alibaba/ice)、[Kmi](https://github.com/kmijs/kmi)、[Lynx](https://github.com/lynx-family/lynx)、[Meteor](https://github.com/meteor/meteor)、[Modern.js](https://github.com/web-infra-dev/modern.js)、[Next.js](https://github.com/vercel/next.js)、[Nuxt](https://github.com/nuxt/nuxt)、[Nx](https://github.com/nrwl/nx)、[Re.Pack](https://github.com/callstack/repack)、[Remotion](https://github.com/remotion-dev/remotion)、[Shakapacker](https://github.com/shakacode/shakapacker)、[Storybook](https://github.com/storybookjs/storybook)、[TanStack Router](https://tanstack.com/router)、[Unplugin](https://github.com/unjs/unplugin)、[Vize](https://github.com/ubugeeei/vize)、[xmcp](https://github.com/basementstudio/xmcp)、[Zephyr](https://zephyr-cloud.io/)。在此，我们衷心感谢所有支持 Rspack 的社区项目和团队。
 
 ## 迈向 2.0
 
