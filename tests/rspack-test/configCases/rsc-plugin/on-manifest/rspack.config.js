@@ -93,6 +93,8 @@ module.exports = [
           const clientManifestExport = mainEntry.clientManifest[clientPath];
           expect(clientManifestExport.id).toBe(clientModuleId);
           expect(clientManifestExport.name).toBe('*');
+          expect(clientManifestExport.cssFiles.length).toBe(1);
+          expect(clientManifestExport.cssFiles[0]).toMatch(/\.css$/);
 
           expect(mainEntry.serverConsumerModuleMap[clientModuleId]).toEqual({
             '*': {

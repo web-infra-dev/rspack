@@ -134,12 +134,27 @@ fn record_module(
   }
 
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
+  let css_files: Vec<String> = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .map(|chunk| {
+      let prefix = &module_loading.prefix;
+      chunk
+        .files()
+        .iter()
+        .filter(|file| file.ends_with(".css"))
+        .map(|file| format!("{prefix}{file}"))
+        .collect()
+    })
+    .unwrap_or_default();
   entry_state.client_modules.insert(
     resource.to_string(),
     ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
       chunks: required_chunks.to_vec(),
+      css_files,
       r#async: Some(is_async),
     },
   );
