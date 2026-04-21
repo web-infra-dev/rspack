@@ -231,6 +231,37 @@ Maximum number of parallel requests when on-demand loading.
 
 Maximum number of parallel requests at an entry point.
 
+### splitChunks.enforceSizeThreshold
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.enforceSizeThreshold
+
+- **Type:** `number | Record<string, number>`
+- **Default:** `50000` in production and `30000` in others
+
+Set a size threshold that lets Rspack continue splitting once a candidate chunk is large enough.
+
+When a candidate reaches this threshold, Rspack ignores request-limit checks such as [`splitChunks.maxAsyncRequests`](#splitchunksmaxasyncrequests) and [`splitChunks.maxInitialRequests`](#splitchunksmaxinitialrequests).
+
+Compared with [`splitChunks.cacheGroups.{cacheGroup}.enforce`](#splitchunkscachegroupscachegroupenforce), this is more targeted: only sufficiently large candidates are forced to keep splitting, while smaller ones still follow the normal heuristics.
+
+When configured with a `number`, the same threshold is applied to all size types defined in [`splitChunks.defaultSizeTypes`](#splitchunksdefaultsizetypes). The object form lets you set different thresholds per size type.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      enforceSizeThreshold: 80 * 1000,
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          enforceSizeThreshold: 120 * 1000,
+        },
+      },
+    },
+  },
+};
+```
+
 ### splitChunks.minChunks
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.minChunks

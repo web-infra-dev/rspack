@@ -1674,17 +1674,22 @@ export default {
 
 这个选项主要面向无法直接修改源码的第三方库，例如 `node_modules` 中的包。
 
+虽然这个选项定义在 `module.parser.javascript` 下，但在实际使用时通常更推荐通过 `module.rules[i].parser` 应用它，这样可以更细粒度地为特定第三方模块配置 `pureFunctions`。
+
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
     pureFunctions: true,
   },
   module: {
-    parser: {
-      javascript: {
-        pureFunctions: ['isString', 'default'],
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
       },
-    },
+    ],
   },
 };
 ```

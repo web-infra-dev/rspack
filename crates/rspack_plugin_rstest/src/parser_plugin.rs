@@ -276,8 +276,8 @@ impl RstestParserPlugin {
           parser.add_dependency(Box::new(dep));
 
           parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
             lit_str.clone(),
             hoist,
             method,
@@ -329,8 +329,8 @@ impl RstestParserPlugin {
           );
 
           parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
             lit_str,
             hoist,
             method,
@@ -371,18 +371,18 @@ impl RstestParserPlugin {
     match call_expr.args.len() {
       1 => {
         let dep = if let Some(stmt_span) = statement_span {
-          MockMethodDependency::new_with_statement_span(
-            call_expr.span(),
-            call_expr.callee.span(),
-            stmt_span,
+          MockMethodDependency::new_with_statement_range(
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
+            stmt_span.into(),
             call_expr.span().real_lo().to_string(),
             true,
             MockMethod::Hoisted,
           )
         } else {
           MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
             call_expr.span().real_lo().to_string(),
             true,
             MockMethod::Hoisted,

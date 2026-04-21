@@ -217,7 +217,7 @@ export default {
 
 ### 新增 `experiments.pureFunctions`，用于函数粒度 tree shaking
 
-Rspack 2.0 新增了实验性的 `experiments.pureFunctions` 开关，用于在跨模块场景下进行更细粒度的 pure function tree shaking。
+Rspack 2.0 新增了实验性的 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 开关，用于在跨模块场景下进行更细粒度的 pure function tree shaking。
 
 启用后，可以根据代码是否可修改选择不同入口：
 
@@ -234,7 +234,7 @@ export default {
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
-          pureFunctions: ['isString', 'default'],
+          pureFunctions: ['isString'],
         },
       },
     ],
@@ -242,7 +242,7 @@ export default {
 };
 ```
 
-更多说明可参考 [tree shaking 指南](/guide/optimization/tree-shaking#purefunctions)。
+更多说明可参考 [tree shaking 指南](/guide/optimization/tree-shaking)中的 [pureFunctions 章节](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
 
 ## 产物相关配置变更
 
