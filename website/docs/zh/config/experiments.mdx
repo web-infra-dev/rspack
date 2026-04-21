@@ -195,7 +195,7 @@ export default {
 
 开启跨模块的无副作用函数调用优化，包括 `/*#__NO_SIDE_EFFECTS__*/` 注解和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置。被注解或用户配置标记的无副作用函数如果没有被真正使用到，则不会被打包进产物。
 
-更多背景可参考 [Tree Shaking](/guide/optimization/tree-shaking) 文档中的 [pureFunctions 章节](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
+更多背景可参考 [pureFunctions](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
 
 这个选项用于开启能力本身。若要手动为命中的第三方模块标记导出函数，推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)，这样规则只会作用于目标模块。
 
