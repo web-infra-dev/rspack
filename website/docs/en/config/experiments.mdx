@@ -2,7 +2,7 @@
 description: 'In minor releases, Rspack may change the APIs of experimental features'
 ---
 
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 
@@ -185,6 +185,39 @@ export default {
   },
 };
 ```
+
+## experiments.pureFunctions
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enables pure-function-based tree shaking, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions).
+
+Use this option to turn on the capability itself. To manually mark exported functions in matched third-party modules, prefer configuring [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString', 'default'],
+        },
+      },
+    ],
+  },
+};
+```
+
+:::warning
+This option depends on `optimization.sideEffects`. If you disable [`optimization.sideEffects`](/config/optimization#optimizationsideeffects), pure-function hints will not be analyzed.
+:::
 
 ## experiments.useInputFileSystem
 

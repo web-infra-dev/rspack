@@ -2,7 +2,7 @@
 description: '在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。'
 ---
 
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
@@ -185,6 +185,39 @@ export default {
   },
 };
 ```
+
+## experiments.pureFunctions
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启基于 pure function 的 tree shaking，包括 `/*#__NO_SIDE_EFFECTS__*/` 注解和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置。
+
+这个选项用于开启能力本身。若要手动为命中的第三方模块标记导出函数，更推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)，这样规则只会作用于目标模块。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString', 'default'],
+        },
+      },
+    ],
+  },
+};
+```
+
+:::warning
+这个选项依赖 `optimization.sideEffects`。如果你关闭了 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects)，pure function 相关提示将不会被分析。
+:::
 
 ## experiments.useInputFileSystem
 

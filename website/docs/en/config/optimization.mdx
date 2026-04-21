@@ -537,7 +537,37 @@ It is enabled by default for dynamically imported modules.
 
 To turn it off, set it to `false`.
 
-See available options for configuring this behavior in the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
+This page documents config entries such as `splitChunks.enforceSizeThreshold`. For more background and the broader plugin-oriented reference, see the [SplitChunksPlugin](/plugins/webpack/split-chunks-plugin) page.
+
+### splitChunks.enforceSizeThreshold
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.enforceSizeThreshold
+
+<PropertyType type="number | Record<string, number>" />
+
+Set a size threshold that forces Rspack to keep splitting once a candidate chunk is large enough. The default value is `50000` in production mode and `30000` in other modes.
+
+When a candidate reaches this threshold, Rspack ignores request-limit checks such as `splitChunks.maxAsyncRequests` and `splitChunks.maxInitialRequests`.
+
+Compared with `splitChunks.cacheGroups.{cacheGroup}.enforce`, this is more targeted: only sufficiently large candidates are forced to split, while smaller ones still follow the normal heuristics.
+
+When configured with a `number`, the same threshold is applied to all size types defined in [`splitChunks.defaultSizeTypes`](/plugins/webpack/split-chunks-plugin#splitchunksdefaultsizetypes). The object form lets you set different thresholds per size type.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      enforceSizeThreshold: 80 * 1000,
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          enforceSizeThreshold: 120 * 1000,
+        },
+      },
+    },
+  },
+};
+```
 
 ## optimization.usedExports
 

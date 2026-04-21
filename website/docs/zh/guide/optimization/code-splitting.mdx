@@ -108,6 +108,8 @@ export default {
 
 如果在调低 [`splitChunks.minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize) 之后，`shared.js` 仍然重复出现，下一步应优先检查 [`splitChunks.minSizeReduction`](/plugins/webpack/split-chunks-plugin#splitchunksminsizereduction)、[`splitChunks.minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks)，以及 [`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) 这类请求数量限制，而不是直接使用 [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupenforce)。
 
+如果你的目标是让体积已经足够大的候选 chunk 在触发这些请求限制后仍然继续拆分，优先考虑 [`splitChunks.enforceSizeThreshold`](/config/optimization#splitchunksenforcesizethreshold)，而不是直接对整个 cacheGroup 使用 `enforce`。
+
 对于大多数生产环境应用，推荐先使用：
 
 ```js title="rspack.config.mjs"

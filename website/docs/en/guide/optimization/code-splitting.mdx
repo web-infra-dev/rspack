@@ -108,6 +108,8 @@ After rebuilding, you will find that `shared.js` has been extracted separately, 
 
 If `shared.js` still appears duplicated after lowering [`splitChunks.minSize`](/plugins/webpack/split-chunks-plugin#splitchunksminsize), check [`splitChunks.minSizeReduction`](/plugins/webpack/split-chunks-plugin#splitchunksminsizereduction), [`splitChunks.minChunks`](/plugins/webpack/split-chunks-plugin#splitchunksminchunks), and request limits such as [`splitChunks.maxAsyncRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) / [`splitChunks.maxInitialRequests`](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests) before reaching for [`splitChunks.cacheGroups.{cacheGroup}.enforce`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegroupenforce).
 
+If you want sufficiently large candidates to keep splitting after hitting those request limits, prefer [`splitChunks.enforceSizeThreshold`](/config/optimization#splitchunksenforcesizethreshold) before forcing an entire cache group with `enforce`.
+
 For most production applications, a good baseline is:
 
 ```js title="rspack.config.mjs"
