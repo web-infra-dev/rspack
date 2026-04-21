@@ -156,7 +156,7 @@ export default {
   module: {
     parser: {
       javascript: {
-        pureFunctions: ['joinClassName'],
+        pureFunctions: ['myFunctionName'],
       },
     },
   },
@@ -165,18 +165,11 @@ export default {
 
 ### 模块联邦 tree shaking \{#mf-share-treeshaking}
 
-除了对普通模块导入导出的分析，Rspack 2.0 也继续完善了[模块联邦](/guide/features/module-federation) 场景下的共享依赖 tree shaking。它可以对 `shared` 依赖做导出级别的优化，移除实际不会被使用到的部分，从而减少微前端场景中的共享包体积。
+Rspack 现在支持对 [模块联邦](/guide/features/module-federation) 的共享依赖进行 tree shaking。它可以在导出级别裁剪共享依赖，移除未使用的部分，从而减小微前端中的共享包体积。
 
-在 Rspack 1.x 的模块联邦共享依赖方案里，只要一个依赖被声明到 `shared`，运行时通常就需要准备完整的依赖包。即使应用实际只用到了其中少量导出，也往往会把整份依赖带进来。对于 `antd`、`lodash-es` 这类体积较大、导出较多的库来说，这会明显增加共享包体积。
+在 Rspack 1.x 中，只要依赖被声明为 `shared`，运行时通常需要加载完整包。即使只用到少量导出，也会引入全部内容。在共享体积较大的库时，这会带来显著的开销。
 
-在 Rspack 2.0 中，当某个 `shared` 项开启 `treeShaking` 后，`ModuleFederationPlugin` 会为这类共享依赖生成对应的 tree shaking 产物。运行时会优先加载这份更小的结果；如果当前请求无法命中，再回退到完整依赖，以保证行为稳定。
-
-它同时支持 `runtime-infer` 和 `server-calc` 两种模式：
-
-- `runtime-infer` 适合先快速接入和本地验证。运行时会优先复用已经加载过的 tree shaking 共享包；如果当前需要的导出无法满足，则自动回退到完整依赖。你也可以通过 `usedExports` 预先声明常用导出，以提升命中率。
-- `server-calc` 更适合多应用协作的线上场景。你可以在部署侧统一汇总各个消费者真正会用到的导出，再生成更稳定的共享依赖 tree shaking 结果。
-
-对于组件库这类典型场景，这项能力可以把“整包共享”变成“按实际使用结果共享”，减少不必要的代码加载。更完整的配置与工作方式，可以参考 [共享依赖 tree shaking 指南](https://module-federation.io/zh/guide/performance/shared-tree-shaking)。
+而 Rspack 2.0 支持在 `shared` 选项中开启 `treeShaking`。此时，`ModuleFederationPlugin` 会为共享依赖生成裁剪后的产物，运行时优先加载该结果；若无法命中，再回退到完整依赖，以保证行为一致。
 
 例如：
 
@@ -199,6 +192,8 @@ export default {
   ],
 };
 ```
+
+> 查看 [共享依赖 tree shaking 指南](https://module-federation.io/zh/guide/performance/shared-tree-shaking) 了解更多。
 
 ## 改进 ESM 支持
 
