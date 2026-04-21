@@ -44,7 +44,7 @@ Rspack 2.0 主要带来以下更新：
   - [构建提速](#build-performance)：生产构建和 HMR 提速 10%，热构建提速 80%
   - [精简默认依赖](#fewer-deps)：显著减少安装的依赖数量和体积
 - 产物优化
-  - [增强 tree shaking](#better-tree-shaking)
+  - [静态分析增强](#better-tree-shaking)
   - [模块联邦 tree shaking](#mf-share-treeshaking)
 - 改进 ESM 支持
   - [纯 ESM 包](#pure-esm)
@@ -102,13 +102,32 @@ Rspack 2.0 减少了默认安装的 npm 依赖数量：
 
 ## 产物优化
 
-### 增强 tree shaking \{#better-tree-shaking}
+### 静态分析增强 \{#better-tree-shaking}
 
-Rspack 2.0 在 [tree shaking](/guide/optimization/tree-shaking) 上继续补齐了若干过去难以静态分析的代码场景。现在，以下几类写法也能够被更准确地识别并参与 tree shaking：
+Rspack 2.0 在静态分析能力上进行了增强，使更多复杂代码模式可以被 [tree shaking](/guide/optimization/tree-shaking) 优化。一些过去难以分析的场景，现在也能够参与导出级别的裁剪。
 
-- **CommonJS `require` 解构赋值**：例如 `const { a } = require("./m")`，Rspack 现在可以识别其中实际使用到的导出。
-- **CommonJS `require` 变量成员访问 / 调用**：例如 `const m = require("./m"); m.a; m.b();`，Rspack 现在也能继续向下分析具体使用到的成员。
-- **动态 `import()` 结果的内联成员访问 / 调用**：例如 `(await import("./m")).a` 以及类似的成员访问、成员调用形式，也能够参与导出级别的裁剪。
+- **CommonJS `require` 解构赋值**：Rspack 现在可以识别解构中实际使用到的导出成员，仅保留必要代码
+
+```js
+const { bar } = require('./foo');
+```
+
+- **CommonJS `require` 成员访问与调用**：Rspack 现在能继续向下分析对象的成员访问和调用，判断哪些导出被使用
+
+```js
+const foo = require('./foo');
+
+foo.bar;
+foo.baz();
+```
+
+- **动态 `import()` 结果的内联成员访问与调用**：对于这种直接在表达式中访问模块成员的写法，Rspack 同样可以识别使用到的导出，并进行裁剪
+
+```js
+(await import('./foo')).bar;
+```
+
+### TODO
 
 此外，2.0 还新增了 `experiments.pureFunctions`，用于对 pure function 调用做更细粒度的 tree shaking。你既可以在源码中通过 `/*#__NO_SIDE_EFFECTS__*/` 注解标记函数定义，也可以通过 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 为无法直接修改源码的第三方模块手动标记顶层导出函数。
 
