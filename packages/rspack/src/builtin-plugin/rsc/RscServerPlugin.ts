@@ -8,6 +8,7 @@ export interface RscManifestExport {
   id: string;
   name: string;
   chunks: string[];
+  cssFiles?: string[];
   async?: boolean;
 }
 
