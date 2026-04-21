@@ -47,7 +47,7 @@ Rspack 2.0 主要带来以下更新：
   - [模块联邦 tree shaking](#mf-share-treeshaking)
 - 改进 ESM 支持
   - [纯 ESM 包](#pure-esm)
-  - [import.meta 支持](#import-meta-properties)
+  - [import.meta 支持](#import-meta)
   - [import defer 支持](#import-defer)
   - [现代 ESM 库](#better-esm)
 - 新特性
@@ -208,13 +208,15 @@ Rspack 的核心包现在以 pure ESM 包的形式发布，并移除了自身的
 
 在 Node.js 20 及以上版本中，运行时已原生支持通过 [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require) 加载 ESM 模块。因此，对大多数仍通过 JavaScript API 使用 Rspack 的项目来说，这一变更通常不会带来实际影响，也无需额外修改现有代码。
 
-### import.meta 支持 \{#import-meta-properties}
+### import.meta 支持 \{#import-meta}
 
 Rspack 2.0 改进了对 [import.meta](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/import.meta) 的支持。
 
-对于编译阶段无法静态确定的 `import.meta` 属性，你可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 控制其行为，让它不要在编译阶段被转译，而是保留到运行时再求值。
+在 Rspack 1.x 中，为了兼容非 ESM 产物，Rspack 会在编译阶段解析 `import.meta` 并替换为对应的值。对于无法识别的 `import.meta` 属性，通常会直接替换为 `undefined`。
 
-例如：
+从 Rspack 2.0 开始，在生成 ESM 产物时，Rspack 默认会保留无法识别的 `import.meta` 属性，而不是在编译阶段将其替换，这允许你使用一些自定义 `import.meta` 属性，也使其行为更符合 ESM 规范。
+
+这个行为也可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 进行控制，例如：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -231,13 +233,15 @@ export default {
 };
 ```
 
-此外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 等值的支持。
+此外，Rspack 2.0 还补充了对 [`import.meta.main`](/api/runtime-api/module-variables#importmetamain)、[`import.meta.filename`](/api/runtime-api/module-variables#importmetafilename) 和 [`import.meta.dirname`](/api/runtime-api/module-variables#importmetadirname) 的支持。
 
 ### import defer 支持 \{#import-defer}
 
 [import defer](https://github.com/tc39/proposal-defer-import-eval) 是 JavaScript 中一项用于延后模块求值的能力，也已经在 [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer) 中得到支持。它允许你在导入模块时先完成加载，而不立即执行模块及其依赖，从而更好地控制代码加载和副作用发生的时机。
 
-Rspack 在 1.6 中已经支持了 `import defer * as foo from './foo'` 语法，而在 2.0 中又进一步补齐了 `import.defer()` 的支持，使这项能力能够覆盖更多真实用法。
+Rspack 从 1.6 开始支持 `import defer * as foo from './foo'` 语法。在 2.0 中，我们进一步补齐了对 `import.defer()` 的支持，使这项能力能够覆盖更多实际场景。
+
+- 启用实验性开关：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -246,6 +250,8 @@ export default {
   },
 };
 ```
+
+- 使用 `import.defer()` 来动态导入模块：
 
 ```js title="app.js"
 const file = Math.random() > 0.5 ? 'a.js' : 'b.js';
