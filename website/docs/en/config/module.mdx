@@ -1681,7 +1681,7 @@ Manually mark top-level exported functions in matched modules as side-effect-fre
 
 This option is mainly intended for third-party libraries whose source cannot be annotated directly, such as packages in `node_modules`.
 
-Although the option lives under `module.parser.javascript`, in practice it is usually better to apply it through `module.rules[i].parser` so only the intended third-party modules are matched.
+Although the option lives under `module.parser.javascript`, in practice it is usually better to apply it through `module.rules[i].parser` so you can configure `pureFunctions` more precisely for specific third-party modules.
 
 ```js title="rspack.config.mjs"
 export default {
