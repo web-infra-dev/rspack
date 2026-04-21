@@ -18,7 +18,7 @@ When we released Rspack 1.0 in August 2024, we set a clear milestone: deliver a 
 
 Looking back at the 1.x cycle, we have largely achieved that goal. Rspack not only implemented webpack's core capabilities and plugin APIs, but also kept evolving in developer experience, output optimization, and support for modern language features. Along the way, we introduced and refined incremental builds, lazy compilation, persistent cache, constant inlining, virtual modules, Barrel file optimization, and more.
 
-Rspack is also being adopted by more and more users. Compared with the 1.0 release, **Rspack's weekly downloads have grown from 100,000 to 5 million**:
+Rspack is also being adopted by a growing number of users. Compared with the 1.0 release, **Rspack's weekly downloads have grown from 100,000 to 5 million**:
 
 ![Rspack 2.0 npm downloads](https://assets.rspack.rs/rspack/assets/rspack-v2-0-npm-downloads.png)
 
@@ -28,11 +28,11 @@ Rspack is also becoming part of the broader JavaScript ecosystem. Many excellent
 
 ## Toward 2.0
 
-The JavaScript ecosystem keeps evolving, and coding agents are also changing how software is built. That pushed us to rethink how a future-ready bundler should evolve.
+The JavaScript ecosystem keeps evolving, and coding agents are also changing how software is built. This pushed us to rethink how a future-ready bundler should evolve.
 
-**Rspack's goal is not just to be "a faster webpack."** During the 1.x cycle, we intentionally aligned Rspack's APIs and defaults with webpack 5 to help existing projects migrate with minimal cost. But as JavaScript modules and the surrounding ecosystem continue to evolve, some historical design choices are no longer the right defaults for modern development.
+**Rspack's goal is not just to be "a faster webpack."** During the 1.x cycle, we intentionally aligned Rspack's APIs and defaults with webpack 5 to help existing projects migrate at minimal cost. But as JavaScript modules and the surrounding ecosystem continue to evolve, some historical design choices are no longer the right defaults for modern development.
 
-Starting in 2.0, while remaining compatible with the webpack ecosystem, Rspack will gradually introduce defaults, API design, and build outputs that better match modern JavaScript development. This will be a gradual process. We will avoid packing too many breaking changes into a single major release whenever possible, and we will provide migration guides and Agent Skills to keep migration costs manageable.
+Starting in 2.0, while remaining compatible with the webpack ecosystem, Rspack will gradually introduce defaults, API design, and build outputs that better match modern JavaScript development. We will roll out these changes in stages. We will avoid packing too many breaking changes into a single major release whenever possible, and we will provide migration guides and Agent Skills to keep migration costs manageable.
 
 ## Highlights in 2.0
 
@@ -77,7 +77,7 @@ These improvements mainly come from continued optimization of the core architect
 
 With [persistent cache](/config/cache) enabled, both build performance and memory usage improve even further:
 
-- Rspack now supports cache reuse for the [SWC minimizer plugin](/plugins/rspack/swc-js-minimizer-rspack-plugin). When the cache hits, **build performance improves by around 50%**.
+- Rspack now supports cache reuse for the [SWC minimizer plugin](/plugins/rspack/swc-js-minimizer-rspack-plugin). On cache hits, **build performance improves by around 50%**.
 - With optimized underlying storage, **memory usage drops by more than 20%** when cache is enabled.
 
 ### Fewer default dependencies \{#fewer-deps}
@@ -95,7 +95,7 @@ At the same time, `@rspack/cli` no longer depends on `@rspack/dev-server` by def
 We also reduced dependencies through the following changes:
 
 - Moving non-core dependencies to optional dependencies. For example, [@module-federation/runtime-tools](https://www.npmjs.com/package/@module-federation/runtime-tools) now only needs to be installed manually when you use the [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin).
-- Replacing heavier dependencies with lighter implementations, such as using [connect-next](https://github.com/rstackjs/connect-next) instead of Express. For a dev server, Connect's middleware model already covers most scenarios, and this also keeps it aligned with Rsbuild's dev server implementation.
+- Replacing heavier dependencies with lighter alternatives, such as using [connect-next](https://github.com/rstackjs/connect-next) instead of Express. For a dev server, Connect's middleware model already covers most scenarios, and using it also keeps Rspack aligned with Rsbuild's dev server implementation.
 - [Bundling some dependencies into the npm package](https://e18e.dev/blog/bundling-dependencies), so Rspack can control the versions of those dependencies and their transitive dependencies, reducing potential supply-chain risks caused by automatic upgrades.
 - Preferring native Node.js 20+ APIs where possible, such as using [styleText](https://nodejs.org/api/util.html#utilstyletextformat-text-options) instead of `picocolors`.
 
@@ -103,7 +103,7 @@ We also reduced dependencies through the following changes:
 
 ### Better static analysis \{#better-tree-shaking}
 
-Rspack 2.0 improves static analysis so that more complex code patterns can benefit from [tree shaking](/guide/optimization/tree-shaking). Some cases that were previously difficult to analyze can now participate in export-level pruning.
+Rspack 2.0 improves static analysis so that more complex code patterns can benefit from [tree shaking](/guide/optimization/tree-shaking). Some patterns that were previously difficult to analyze can now participate in export-level pruning.
 
 - **CommonJS `require` destructuring**: Rspack can now identify which exported members are actually used in a destructuring assignment and keep only the required code.
 
@@ -111,7 +111,7 @@ Rspack 2.0 improves static analysis so that more complex code patterns can benef
 const { bar } = require('./foo');
 ```
 
-- **CommonJS `require` property access and calls**: Rspack can now continue analyzing property access and calls to determine which exports are used.
+- **CommonJS `require` property access and calls**: Rspack can now continue to analyze property access and calls to determine which exports are used.
 
 ```js
 const foo = require('./foo');
@@ -167,7 +167,7 @@ Rspack now supports tree shaking for shared dependencies in [Module Federation](
 
 In Rspack 1.x, once a dependency was declared as `shared`, the runtime usually had to load the entire package. Even if only a few exports were used, the whole package would still be included. For large shared libraries, that could add significant overhead.
 
-Rspack 2.0 adds `treeShaking` support inside the `shared` option. When enabled, `ModuleFederationPlugin` generates a pruned build for the shared dependency and loads that result at runtime when possible. If it cannot be used, Rspack falls back to the full dependency to keep behavior consistent.
+Rspack 2.0 adds `treeShaking` support to the `shared` option. When enabled, `ModuleFederationPlugin` generates a pruned build for the shared dependency and loads that result at runtime when possible. If it cannot be used, Rspack falls back to the full dependency to keep behavior consistent.
 
 For example:
 
@@ -206,7 +206,7 @@ This change affects the following npm packages:
 - [@rspack/dev-server](https://www.npmjs.com/package/@rspack/dev-server)
 - [@rspack/plugin-react-refresh](https://www.npmjs.com/package/@rspack/plugin-react-refresh)
 
-In Node.js 20 and above, the runtime already supports loading ESM modules through [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require). So for most projects that still use Rspack through the JavaScript API, this change usually has no practical impact and does not require extra code changes.
+In Node.js 20 and above, the runtime already supports loading ESM modules through [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require). So for most projects that still use Rspack through the JavaScript API, this change usually has no practical impact and does not require additional code changes.
 
 ### Support for `import.meta` \{#import-meta}
 
@@ -239,7 +239,7 @@ Rspack 2.0 also adds support for [`import.meta.main`](/api/runtime-api/module-va
 
 [import defer](https://github.com/tc39/proposal-defer-import-eval) is a JavaScript feature for deferring module evaluation, and it is also supported in [TypeScript 5.9](https://devblogs.microsoft.com/typescript/announcing-typescript-5-9-beta/#support-for-import-defer). It allows a module to be loaded without immediately evaluating the module and its dependencies, giving you more control over when code runs and when side effects happen.
 
-Rspack has supported the `import defer * as foo from './foo'` syntax since 1.6. In 2.0, we further complete support for `import.defer()`, allowing this capability to cover more real-world scenarios.
+Rspack has supported the `import defer * as foo from './foo'` syntax since 1.6. In 2.0, we have expanded that support to include `import.defer()`, allowing this capability to cover more real-world scenarios.
 
 - Enable the experimental flag:
 
@@ -285,23 +285,23 @@ In addition, `modern-module` supports preserving the source directory structure.
 
 [React Server Components](https://react.dev/reference/rsc/server-components) (RSC) are becoming an important foundation for full-stack React frameworks. Rspack 2.0 now provides experimental low-level build support for them, including:
 
-- **Directive support**: supports `"use client"`, as well as module-level and function-level `"use server"` directives.
+- **Directive support**: supports `"use client"` as well as module-level and function-level `"use server"` directives.
 - **Compile-time checks**: detects React API usage that violates RSC rules during compilation, helping avoid runtime errors earlier.
 - **CSS support**: collects styles from server and client components during the build and injects them during rendering.
-- **HMR support**: supports hot updates for both server components and client components.
+- **HMR support**: supports hot updates for both server and client components.
 
 You can use this capability in two ways:
 
 - **Use Rsbuild**: we provide out-of-the-box RSC support through [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc).
 - **Configure Rspack manually**: refer to the [React Server Components documentation](/guide/tech/rsc) to add the required configuration yourself.
 
-On the ecosystem side, Modern.js already provides RSC support based on Rspack. See the [Modern.js RSC documentation](https://modernjs.dev/guides/basic-features/render/rsc.html) for details. Rspack also supports React Router's Data Mode, with examples available in the [React Router examples](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router).
+Across the ecosystem, Modern.js already provides RSC support based on Rspack. See the [Modern.js RSC documentation](https://modernjs.dev/guides/basic-features/render/rsc.html) for details. Rspack also supports React Router's Data Mode, with examples available in the [React Router examples](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router).
 
 We are also collaborating with the [TanStack](https://tanstack.com/) team and plan to support [TanStack Start](https://tanstack.com/start) and [TanStack RSC](https://tanstack.com/blog/react-server-components) in future releases. TanStack Start is a full-stack framework built on TanStack Router. We are excited to explore more RSC possibilities together across different scenarios.
 
 ### Support for `#/` subpath alias imports \{#subpath-alias-import}
 
-Rspack 2.0 supports `#/` subpath alias imports during module resolution. This lets you reuse the `imports` field in `package.json` directly to organize internal path mappings, without maintaining a separate alias configuration.
+Rspack 2.0 supports `#/` subpath alias imports during module resolution. This lets you use the `imports` field in `package.json` directly to organize internal path mappings, without maintaining a separate alias configuration.
 
 ```json title="package.json"
 {
@@ -317,9 +317,9 @@ import main from '#/main.ts';
 
 ### Simplified target configuration \{#automatic-targets}
 
-In Rspack 1.x, the top-level [target](/config/target) option did not affect the transformation targets used by loaders or minifiers. As a result, you often had to configure target environments separately in loaders and minimizer plugins, which increased configuration cost and duplicated the same information in multiple places.
+In Rspack 1.x, the top-level [target](/config/target) option did not affect the transformation targets used by loaders or minifiers. As a result, you often had to configure target environments separately in loaders and minimizer plugins, which increased configuration overhead and duplicated the same information in multiple places.
 
-Rspack 2.0 improves this. Built-in loaders and minimizer plugins now read the top-level `target` configuration by default and infer their own target environments from it. In most cases, you only need to declare the target once at the top level to keep JavaScript transforms, CSS transforms, and minification aligned.
+Rspack 2.0 improves this behavior. Built-in loaders and minimizer plugins now read the top-level `target` configuration by default and infer their own target environments from it. In most cases, you only need to declare the target once at the top level to keep JavaScript transforms, CSS transforms, and minification aligned.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -354,7 +354,7 @@ export default {
 
 ### Simplified `swc-loader` configuration \{#detect-syntax}
 
-In previous configurations, if you wanted [builtin:swc-loader](/guide/features/builtin-swc-loader) to handle `.js`, `.jsx`, `.ts`, `.tsx`, and similar files at the same time, you had to explicitly set options like `syntax`, `jsx`, and `tsx` in `jsc.parser` based on the file type. This ensured SWC could parse the code with the correct semantics, such as deciding whether `<` should be treated as JSX syntax or a TypeScript generic.
+In earlier versions, if you wanted [builtin:swc-loader](/guide/features/builtin-swc-loader) to handle `.js`, `.jsx`, `.ts`, `.tsx`, and similar files in a single rule, you had to explicitly set options such as `syntax`, `jsx`, and `tsx` in `jsc.parser` based on the file type. This ensured that SWC could parse each file with the correct semantics, such as deciding whether `<` should be treated as JSX syntax or a TypeScript generic.
 
 That added extra configuration complexity. To make SWC parse files with different extensions correctly, you often needed multiple `rules`, which made the config longer and harder to maintain.
 
@@ -402,7 +402,7 @@ export default {
 
 Rspack 2.0 adds a new `hashed` option to [optimization.moduleIds](/config/optimization#optimizationmoduleids). When enabled, Rspack generates short, stable hashes from module paths and uses them as module IDs.
 
-This is useful when you want stable module IDs while also making them shorter. For large applications with many modules, it can also help reduce the space taken by module IDs in the output in some cases.
+This is useful when you want stable module IDs while also making them shorter. For large applications with many modules, it can also help reduce the space module IDs take up in the output in some cases.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -414,7 +414,7 @@ export default {
 
 ### Improved code splitting \{#enforce-size-threshold}
 
-Rspack 2.0 now supports the `splitChunks.enforceSizeThreshold` option, which lets you define a size threshold that code splitting will enforce.
+Rspack 2.0 now supports the `splitChunks.enforceSizeThreshold` option, which lets you define a size threshold that Rspack will enforce during code splitting.
 
 By default, request-count limits in `splitChunks`, such as [maxAsyncRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxasyncrequests) and [maxInitialRequests](/plugins/webpack/split-chunks-plugin#splitchunksmaxinitialrequests), can prevent large chunks from being split further. With `enforceSizeThreshold` enabled, once a module group exceeds the configured threshold, Rspack ignores those limits and forces the split.
 
@@ -459,7 +459,7 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 ## Looking ahead
 
-Rspack 2.0 is a new starting point. In 2.0, we have already introduced some forward-looking design choices. Next, we will continue moving in these directions: improving output optimization and build performance, strengthening agent-oriented capabilities, and keeping up with new web platform capabilities.
+Rspack 2.0 is a new starting point. In 2.0, we have already introduced some forward-looking design choices. Going forward, we will continue in these directions: improving output optimization and build performance, strengthening agent-oriented capabilities, and keeping up with new web platform capabilities.
 
 - For output optimization, we will continue improving tree shaking, code splitting, and static analysis, while providing fine-grained and controllable optimization options for different scenarios. We will also keep exploring more modern output formats.
 - For performance, we care not only about the bundler itself, but also about the overall cost introduced by surrounding tools such as linters, type checkers, and Tailwind CSS. We will keep advancing the Rstack toolchain so performance improvements can cover more of the end-to-end build process.
