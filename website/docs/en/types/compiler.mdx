@@ -9,10 +9,9 @@ type Compiler = {
   options: RspackOptionsNormalized;
   watching: Watching;
   target: {
-    targets?: Record<string, string>;
-    esVersion?: number;
+    esVersion?: number | null;
+    targets?: Record<string, string> | null;
   };
-
   getInfrastructureLogger(name: string | (() => string)): Logger;
   getCache(name: string): CacheFacade;
   watch(
