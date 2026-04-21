@@ -238,11 +238,7 @@ impl NameAllocator {
     fn prefer_full_context(old_name: &str) -> bool {
       matches!(
         old_name,
-        "" | "default"
-          | "namespaceObject"
-          | "namespaceObject2"
-          | "deferred"
-          | "deferredNamespaceObject"
+        "default" | "namespaceObject" | "namespaceObject2" | "deferred" | "deferredNamespaceObject"
       )
     }
 

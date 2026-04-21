@@ -67,11 +67,11 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 "use strict";
 
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/resource/a.js
-var normalModuleFactory_afterResolve_resource_a = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/a.js");
-var normalModuleFactory_afterResolve_resource_a_default = /*#__PURE__*/__webpack_require__.n(normalModuleFactory_afterResolve_resource_a);
+var a = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/a.js");
+var normalModuleFactory_afterResolve_resource_a_default = /*#__PURE__*/__webpack_require__.n(a);
 // EXTERNAL MODULE: ../../normalModuleFactory​#afterResolve/resource/b.js
-var normalModuleFactory_afterResolve_resource_b = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/b.js");
-var normalModuleFactory_afterResolve_resource_b_default = /*#__PURE__*/__webpack_require__.n(normalModuleFactory_afterResolve_resource_b);
+var b = __webpack_require__("../../normalModuleFactory​#afterResolve/resource/b.js");
+var normalModuleFactory_afterResolve_resource_b_default = /*#__PURE__*/__webpack_require__.n(b);
 ;// CONCATENATED MODULE: external "fs"
 const external_fs_namespaceObject = require("fs");
 var external_fs_default = /*#__PURE__*/__webpack_require__.n(external_fs_namespaceObject);
