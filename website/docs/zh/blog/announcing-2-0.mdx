@@ -283,28 +283,20 @@ export default {
 
 ### React Server Components 支持 \{#rsc-support}
 
-React Server Components（简称 RSC）是 React 提供的一种组件模型：它允许一部分组件直接在服务端执行和渲染，再把结果传递给客户端；与此同时，需要交互的部分仍然可以作为 Client Components 在浏览器中运行。
+[React Server Components](https://react.dev/reference/rsc/server-components)（RSC）已经成为 React 全栈框架中一项重要的基础能力。Rspack 2.0 也为此提供了实验性的构建能力支持，包括：
 
-这种模型可以让数据获取更贴近服务端，减少发送到客户端的 JavaScript 体积，并更自然地把“服务端渲染内容”和“客户端交互能力”组合在同一个应用里。因此，RSC 也正在成为 React 全栈框架中越来越重要的一类基础能力。
+1. **编译期检查**：在编译阶段识别违反 RSC 规范的 React API 调用，提前规避运行时错误。
+2. **CSS 支持**：在构建阶段收集服务端与客户端组件的样式，并在渲染时注入。
+3. **HMR 支持**：同时支持服务端组件和客户端组件的热更新。
 
-Rspack 2.0 内置了对 React Server Components 通用的底层构建能力的支持，包括：
+你可以通过以下两种方式使用这项能力：
 
-1. 编译期检查：在编译阶段拦截违反 RSC 规范的 React API 调用，提前规避运行时错误。
-2. CSS 支持：在编译阶段收集服务端与客户端组件样式，并在渲染时注入。
-3. HMR 支持：同时支持服务端和客户端组件的热更新。
+- **使用 Rsbuild**：我们通过 [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc) 提供了开箱即用的 RSC 支持。
+- **手动配置 Rspack**：参考 [React Server Components 文档](/guide/tech/rsc) 以手动添加相关配置。
 
-你可以通过如下两种方式来使用它：
+在生态支持方面，Modern.js 已基于 Rspack 提供 RSC 支持，详见 [Modern.js RSC 文档](https://modernjs.dev/guides/basic-features/render/rsc.html)。同时，Rspack 已支持 React Router 的 Data Mode，相关示例见 [React Router 示例](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router)。
 
-- **使用 Rsbuild**：Rsbuild 提供对 React Server Components 的开箱即用支持，可以快速创建一个 RSC 项目。详见 [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)。
-- **手动配置 Rspack**：你也可以参考 [React Server Components 文档](https://v2.rspack.rs/guide/tech/rsc)，手动添加 React Server Components 相关配置。
-
-[rspack-rsc-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/rspack-rsc) 仓库中提供了使用 Rspack 构建 RSC 应用的完整示例。
-
-生态落地与合作：
-
-- Modern.js 框架目前已采用 Rspack 的 RSC 实现（[详见 Modern.js RSC 文档](https://modernjs.dev/guides/basic-features/render/rsc.html)）。
-- 支持 React Router Data Mode（[React Router 示例](https://github.com/rstackjs/rsbuild-plugin-rsc/tree/main/examples/react-router)）。
-- 我们正与 [TanStack](https://tanstack.com/) 展开深度合作，全面支持其利用 Rspack 作为底层引擎来编译和构建 RSC 应用。
+同时，我们也在与 [TanStack](https://tanstack.com/) 团队展开合作，计划在后续版本中提供对 [TanStack Start](https://tanstack.com/start) 和 [TanStack RSC](https://tanstack.com/blog/react-server-components) 的支持。TanStack Start 是一个基于 TanStack Router 构建的全栈框架，我们非常期待结合双方的能力，共同探索 RSC 在不同场景下的更多可能性。
 
 ### `#/` 子路径别名导入 \{#subpath-alias-import}
 
