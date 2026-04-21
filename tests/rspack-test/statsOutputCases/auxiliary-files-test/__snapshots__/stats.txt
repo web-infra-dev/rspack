@@ -4,7 +4,7 @@ asset 98396dbfd5c74c34.png xx bytes ({889}) [emitted] [immutable] [from: raw.png
 Entrypoint main xx KiB (xx bytes) = bundle.js xx KiB (98396dbfd5c74c34.png xx bytes)
 chunk {889} (runtime: main) bundle.js (main) xx bytes (asset) xx bytes (javascript) xx KiB (runtime) [entry] [rendered]
   > ./index main
-  ./index.js + 1 modules [587] xx bytes {889} [depth 0] [code generated]
+  ./index.js + 1 modules [523] xx bytes {889} [depth 0] [code generated]
     [no exports]
     [no exports used]
     entry ./index
@@ -22,7 +22,7 @@ chunk {889} (runtime: main) bundle.js (main) xx bytes (asset) xx bytes (javascri
     esm import ./raw.png ./index.js 2:1-34
 modules by path ./ xx bytes (javascript) xx bytes (asset)
   code generated modules xx bytes (javascript) xx bytes (asset) [code generated]
-    ./index.js + 1 modules [587] xx bytes {889} [depth 0] [code generated]
+    ./index.js + 1 modules [523] xx bytes {889} [depth 0] [code generated]
       [no exports]
       [no exports used]
       entry ./index
@@ -45,7 +45,7 @@ modules by path ./ xx bytes (javascript) xx bytes (asset)
   ./stringModule.js xx bytes [depth 1] [orphan] [built]
     [module unused]
     ModuleConcatenation bailout: Module is not an ECMAScript module
-    [inactive] esm import ./stringModule [587] ./index.js 1:1-42
+    [inactive] esm import ./stringModule [523] ./index.js 1:1-42
 runtime modules xx KiB
   webpack/runtime/auto_public_path xx KiB {889} [code generated]
     [no exports]
@@ -54,4 +54,4 @@ runtime modules xx KiB
     [no exports]
     [used exports unknown]
   
-Rspack compiled successfully (22f3c5609dfa3f0b)
+Rspack compiled successfully (a4c5cc66aa20bea2)
