@@ -8,6 +8,10 @@ use swc_core::{
 
 const RSC_SERVER_MODULE: &str = "react-server-dom-rspack/server";
 const REGISTER_CLIENT_REFERENCE: &str = "registerClientReference";
+const REACT_MODULE: &str = "react";
+const REACT_BINDING: &str = "React";
+const REACT_FRAGMENT: &str = "Fragment";
+const REACT_CREATE_ELEMENT: &str = "createElement";
 const CSS_RESOURCES_BINDING: &str = "resources";
 const CLIENT_REF_BINDING_PREFIX: &str = "Ref";
 const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
@@ -20,15 +24,25 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///
 /// ```text
 /// import { registerClientReference } from "react-server-dom-rspack/server";
+/// import * as React from "react";
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => <link key={href} rel="stylesheet" href={href} precedence="default" />);
+///   .map(href => React.createElement("link", {
+///     key: href,
+///     rel: "stylesheet",
+///     href,
+///     precedence: "default"
+///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
-/// export default resources.length ? props => <>{resources}<Ref1 {...props} /></> : Ref1;
+/// export default resources.length
+///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref1, props))
+///   : Ref1;
 ///
 /// const Ref2 = registerClientReference(function() { throw new Error(...); }, resource, "Button");
-/// export const Button = resources.length ? props => <>{resources}<Ref2 {...props} /></> : Ref2;
+/// export const Button = resources.length
+///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref2, props))
+///   : Ref2;
 /// ```
 ///
 /// CJS modules use the same proxy declarations, but import through `require`
@@ -36,15 +50,25 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///
 /// ```text
 /// const { registerClientReference } = require("react-server-dom-rspack/server");
+/// const React = require("react");
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => <link key={href} rel="stylesheet" href={href} precedence="default" />);
+///   .map(href => React.createElement("link", {
+///     key: href,
+///     rel: "stylesheet",
+///     href,
+///     precedence: "default"
+///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
-/// module.exports = resources.length ? props => <>{resources}<Ref1 {...props} /></> : Ref1;
+/// module.exports = resources.length
+///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref1, props))
+///   : Ref1;
 ///
 /// const Ref2 = registerClientReference(function() { throw new Error(...); }, resource, "Button");
-/// exports["Button"] = resources.length ? props => <>{resources}<Ref2 {...props} /></> : Ref2;
+/// exports["Button"] = resources.length
+///   ? props => React.createElement(React.Fragment, null, resources, React.createElement(Ref2, props))
+///   : Ref2;
 /// ```
 ///
 /// Returns `false` for `export *` client refs, so the caller can keep the
@@ -99,14 +123,17 @@ fn to_client_ref_module(
 ) -> Vec<ModuleItem> {
   let mut bindings = BindingNameAllocator::new(client_refs);
   let resources_name = bindings.claim_available(CSS_RESOURCES_BINDING);
+  let react_name = bindings.claim_available(REACT_BINDING);
 
-  let mut items = Vec::with_capacity(client_refs.len() * 2 + 2);
+  let mut items = Vec::with_capacity(client_refs.len() * 2 + 3);
   items.push(register_client_reference_decl);
-  items.push(css_resources_decl(resource, &resources_name));
+  items.push(react_decl(&react_name, is_cjs));
+  items.push(css_resources_decl(resource, &resources_name, &react_name));
   items.extend(client_exports(
     resource,
     client_refs,
     &resources_name,
+    &react_name,
     &mut bindings,
     is_cjs,
   ));
@@ -117,6 +144,7 @@ fn client_exports(
   resource: &str,
   client_refs: &[Wtf8Atom],
   resources_name: &str,
+  react_name: &str,
   bindings: &mut BindingNameAllocator,
   is_cjs: bool,
 ) -> Vec<ModuleItem> {
@@ -138,6 +166,7 @@ fn client_exports(
       export_name,
       &ref_name,
       resources_name,
+      react_name,
       is_cjs,
     ));
   }
@@ -149,9 +178,10 @@ fn client_export_decl(
   export_name: &str,
   ref_name: &str,
   resources_name: &str,
+  react_name: &str,
   is_cjs: bool,
 ) -> ModuleItem {
-  let export_expr = client_export_expr(ref_name, resources_name);
+  let export_expr = client_export_expr(ref_name, resources_name, react_name);
 
   match (is_cjs, export_name) {
     (false, "default") => {
@@ -245,7 +275,7 @@ impl<'a> BindingNameAllocator<'a> {
   }
 }
 
-fn css_resources_decl(resource: &str, resources_name: &str) -> ModuleItem {
+fn css_resources_decl(resource: &str, resources_name: &str, react_name: &str) -> ModuleItem {
   const_decl(
     resources_name,
     call_expr(
@@ -253,7 +283,7 @@ fn css_resources_decl(resource: &str, resources_name: &str) -> ModuleItem {
         nullish_coalescing(client_css_files_expr(resource), empty_array_expr()),
         "map",
       ),
-      vec![css_resource_mapper()],
+      vec![css_resource_mapper(react_name)],
       DUMMY_SP,
     ),
   )
@@ -277,7 +307,7 @@ fn client_manifest_expr() -> Expr {
   member_expr(ident_expr(API_RSC_MANIFEST), "clientManifest")
 }
 
-fn css_resource_mapper() -> Expr {
+fn css_resource_mapper(react_name: &str) -> Expr {
   Expr::Fn(FnExpr {
     ident: None,
     function: Box::new(Function {
@@ -290,7 +320,7 @@ fn css_resource_mapper() -> Expr {
         span: DUMMY_SP,
         stmts: vec![Stmt::Return(ReturnStmt {
           span: DUMMY_SP,
-          arg: Some(Box::new(jsx_link_element())),
+          arg: Some(Box::new(react_link_element(react_name))),
         })],
         ..Default::default()
       }),
@@ -334,100 +364,91 @@ fn throw_error_function(call_error: &str) -> Expr {
   })
 }
 
-fn client_export_expr(ref_name: &str, resources_name: &str) -> Expr {
+fn client_export_expr(ref_name: &str, resources_name: &str, react_name: &str) -> Expr {
   Expr::Cond(CondExpr {
     span: DUMMY_SP,
     test: Box::new(member_expr(ident_expr(resources_name), "length")),
-    cons: Box::new(client_wrapper_arrow(ref_name, resources_name)),
+    cons: Box::new(client_wrapper_arrow(ref_name, resources_name, react_name)),
     alt: Box::new(ident_expr(ref_name)),
   })
 }
 
-fn client_wrapper_arrow(ref_name: &str, resources_name: &str) -> Expr {
+fn client_wrapper_arrow(ref_name: &str, resources_name: &str, react_name: &str) -> Expr {
   arrow_expr(
     &["props"],
-    fragment_with_resources(ref_name, resources_name),
+    react_fragment_with_resources(ref_name, resources_name, react_name),
   )
 }
 
-fn fragment_with_resources(ref_name: &str, resources_name: &str) -> Expr {
-  Expr::JSXFragment(JSXFragment {
-    span: DUMMY_SP,
-    opening: JSXOpeningFragment { span: DUMMY_SP },
-    children: vec![
-      jsx_expr_child(ident_expr(resources_name)),
-      JSXElementChild::JSXElement(jsx_ref_element(ref_name)),
-    ],
-    closing: JSXClosingFragment { span: DUMMY_SP },
-  })
-}
-
-fn jsx_link_element() -> Expr {
-  Expr::JSXElement(jsx_self_closing_element(
-    "link",
+fn react_fragment_with_resources(ref_name: &str, resources_name: &str, react_name: &str) -> Expr {
+  react_create_element_call(
+    react_name,
+    member_expr(ident_expr(react_name), REACT_FRAGMENT),
+    null_expr(),
     vec![
-      jsx_expr_attr("key", ident_expr("href")),
-      jsx_str_attr("rel", "stylesheet"),
-      jsx_expr_attr("href", ident_expr("href")),
-      jsx_str_attr("precedence", "default"),
+      ident_expr(resources_name),
+      react_create_element_call(
+        react_name,
+        ident_expr(ref_name),
+        ident_expr("props"),
+        vec![],
+      ),
     ],
-  ))
+  )
 }
 
-fn jsx_ref_element(ref_name: &str) -> Box<JSXElement> {
-  jsx_self_closing_element(ref_name, vec![jsx_spread_attr(ident_expr("props"))])
+fn react_link_element(react_name: &str) -> Expr {
+  react_create_element_call(
+    react_name,
+    str_expr("link"),
+    object_expr(vec![
+      key_value_prop("key", ident_expr("href")),
+      key_value_prop("rel", str_expr("stylesheet")),
+      key_value_prop("href", ident_expr("href")),
+      key_value_prop("precedence", str_expr("default")),
+    ]),
+    vec![],
+  )
 }
 
-fn jsx_self_closing_element(name: &str, attrs: Vec<JSXAttrOrSpread>) -> Box<JSXElement> {
-  Box::new(JSXElement {
+fn react_create_element_call(
+  react_name: &str,
+  element: Expr,
+  props: Expr,
+  children: Vec<Expr>,
+) -> Expr {
+  let mut args = vec![element, props];
+  args.extend(children);
+  call_expr(
+    member_expr(ident_expr(react_name), REACT_CREATE_ELEMENT),
+    args,
+    DUMMY_SP,
+  )
+}
+
+fn object_expr(props: Vec<PropOrSpread>) -> Expr {
+  Expr::Object(ObjectLit {
     span: DUMMY_SP,
-    opening: JSXOpeningElement {
-      name: JSXElementName::Ident(ident(name)),
-      span: DUMMY_SP,
-      attrs,
-      self_closing: true,
-      type_args: None,
-    },
-    children: vec![],
-    closing: None,
+    props,
   })
 }
 
-fn jsx_str_attr(name: &str, value: &str) -> JSXAttrOrSpread {
-  JSXAttrOrSpread::JSXAttr(JSXAttr {
-    span: DUMMY_SP,
-    name: JSXAttrName::Ident(ident_name(name)),
-    value: Some(JSXAttrValue::Str(Str {
-      span: DUMMY_SP,
-      value: Wtf8Atom::from(value),
-      raw: None,
-    })),
-  })
+fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+    key: PropName::Ident(ident_name(name)),
+    value: Box::new(value),
+  })))
 }
 
-fn jsx_expr_attr(name: &str, expr: Expr) -> JSXAttrOrSpread {
-  JSXAttrOrSpread::JSXAttr(JSXAttr {
-    span: DUMMY_SP,
-    name: JSXAttrName::Ident(ident_name(name)),
-    value: Some(JSXAttrValue::JSXExprContainer(jsx_expr_container(expr))),
-  })
+fn null_expr() -> Expr {
+  Expr::Lit(Lit::Null(Null { span: DUMMY_SP }))
 }
 
-fn jsx_spread_attr(expr: Expr) -> JSXAttrOrSpread {
-  JSXAttrOrSpread::SpreadElement(SpreadElement {
-    dot3_token: DUMMY_SP,
-    expr: Box::new(expr),
-  })
-}
-
-fn jsx_expr_child(expr: Expr) -> JSXElementChild {
-  JSXElementChild::JSXExprContainer(jsx_expr_container(expr))
-}
-
-fn jsx_expr_container(expr: Expr) -> JSXExprContainer {
-  JSXExprContainer {
-    span: DUMMY_SP,
-    expr: JSXExpr::Expr(Box::new(expr)),
+fn react_decl(name: &str, is_cjs: bool) -> ModuleItem {
+  if is_cjs {
+    const_decl(name, require_call(REACT_MODULE))
+  } else {
+    import_namespace(REACT_MODULE, name)
   }
 }
 
@@ -445,6 +466,24 @@ fn import_named(source: &str, names: &[&str]) -> ModuleItem {
         })
       })
       .collect(),
+    src: Box::new(Str {
+      span: DUMMY_SP,
+      value: Wtf8Atom::from(source),
+      raw: None,
+    }),
+    type_only: false,
+    with: None,
+    phase: Default::default(),
+  }))
+}
+
+fn import_namespace(source: &str, name: &str) -> ModuleItem {
+  ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
+    span: DUMMY_SP,
+    specifiers: vec![ImportSpecifier::Namespace(ImportStarAsSpecifier {
+      span: DUMMY_SP,
+      local: ident(name),
+    })],
     src: Box::new(Str {
       span: DUMMY_SP,
       value: Wtf8Atom::from(source),
