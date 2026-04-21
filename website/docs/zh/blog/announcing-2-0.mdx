@@ -479,19 +479,13 @@ Rspack 2.0 不是终点，而是一条新路线的开始。
 
 Rspack 和 webpack 一样，在很多默认优化上都会优先保证产物行为的稳定性，尤其是在 side effects 判断等环节通常会更保守。这种策略适合大多数项目，但我们也注意到，对于追求极致产物体积的场景来说，仍然有进一步挖掘的空间。
 
-#### 更高级的 Tree Shaking 优化
+#### 更细粒度的 Tree Shaking 与代码拆分
 
-Rspack 2.0 已经支持基于 pure annotation 的更细粒度优化。接下来，我们会继续提供更细粒度的 Tree Shaking 配置，让项目可以在“安全默认值”和“更激进的产物优化”之间做出更明确的选择，在保障产物稳定性的同时，更好地满足对体积有更高要求的场景。
+Rspack 2.0 已经支持基于 pure annotation 的更细粒度优化。后续会继续提供更高级的 Tree Shaking 能力和更可控的优化配置，让业务可以按场景选择产物优化级别，在安全默认值与更激进优化之间取得平衡。
 
-与此同时，我们也在探索结合静态类型信息来增强优化分析，借鉴 Prepack、Closure Compiler 和 React Compiler 在静态编译上的一些思路，把更多来自业务代码的可优化信息引入 bundler。
+我们也会结合静态类型信息增强优化分析，借鉴 Prepack、Closure Compiler 和 React Compiler 的思路，把更多来自业务代码的可优化信息引入 bundler。
 
-{/* TODO: add AI-generated tree shaking optimization comparison diagram */}
-
-#### 更细粒度的代码拆分架构
-
-今天的 code splitting 最小粒度通常仍然是模块。当 chunk A 和 chunk B 只共享某个模块中的一个很小函数时，运行时仍然可能需要把整个模块都带上。这种粒度在很多项目里已经足够，但对于大型应用和框架场景来说，仍然会带来额外的冗余加载。
-
-未来我们会参考 esbuild、Turbopack 等工具在 module splitting 方向上的经验，探索按照实际复用关系把公共模块继续拆成更小的子模块。在保证缓存稳定性、调试体验和运行时行为可控的前提下，进一步减少 chunk 中不必要的加载。同时，我们也会结合 `import defer` 等更新的模块能力，探索更适合现代应用的加载策略。
+代码拆分也会走向更细粒度。今天的 code splitting 最小粒度通常仍然是模块，模块内部的局部复用仍可能带来额外加载。我们会参考 esbuild、Turbopack 等工具在 module splitting 方向上的经验，按照实际复用关系把公共模块拆成更小的子模块，在保证缓存稳定性、调试体验和运行时行为可控的前提下减少不必要加载；也会结合 `import defer` 等模块能力探索新的加载策略。
 
 ### 更优的构建性能
 

@@ -106,19 +106,13 @@ Rspack 2.0 is a milestone, and also a new starting point.
 
 Like webpack, Rspack tends to prioritize stable output behavior in many default optimizations, especially around side effects analysis, where the strategy is often conservative. This works well for most projects, but we also see more room to improve for scenarios that pursue the smallest possible bundle size.
 
-#### More Advanced Tree Shaking Optimization
+#### Finer-Grained Tree Shaking and Code Splitting
 
-Rspack 2.0 already supports finer-grained optimization based on pure annotations. Going forward, we will continue to provide more granular tree shaking controls, so projects can make clearer choices between "safe defaults" and more aggressive bundle optimization, while still preserving stable output behavior.
+Rspack 2.0 already supports finer-grained optimization based on pure annotations. We will continue providing more advanced tree shaking capabilities and more controllable optimization settings, so applications can choose the right output optimization level for each scenario and balance safe defaults with more aggressive optimization.
 
-At the same time, we are exploring how to strengthen optimization analysis with static type information, drawing on ideas from projects like Prepack, Closure Compiler, and React Compiler to bring more optimizable signals from application code into the bundler.
+We will also use static type information to strengthen optimization analysis, drawing on ideas from Prepack, Closure Compiler, and React Compiler to bring more optimizable signals from application code into the bundler.
 
-{/* TODO: add AI-generated tree shaking optimization comparison diagram */}
-
-#### Finer-Grained Code Splitting Architecture
-
-Today, the minimum unit of code splitting is still usually the module. When chunk A and chunk B only share a very small function from a module, the runtime may still need to include the whole module. That granularity is already sufficient for many projects, but in large applications and framework scenarios it can still lead to unnecessary duplicated loading.
-
-In the future, we will draw on ideas from tools such as esbuild and Turbopack around module splitting, and explore splitting shared modules into smaller submodules according to actual reuse patterns. While keeping cache stability, debugging experience, and runtime behavior under control, we want to further reduce unnecessary code loading in chunks. We will also explore loading strategies that fit modern applications better, together with newer module capabilities such as `import defer`.
+Code splitting will also become more granular. Today, its minimum unit is still usually the module, so localized reuse inside a module can still lead to extra loading. We will draw on ideas from esbuild and Turbopack around module splitting, split shared modules into smaller submodules according to actual reuse patterns, and reduce unnecessary loading while keeping cache stability, debugging experience, and runtime behavior under control. We will also explore new loading strategies based on module capabilities such as `import defer`.
 
 ### Better Build Performance
 
