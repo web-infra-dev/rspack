@@ -37,7 +37,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   }
 
   async fn parse<'a>(
-    &self,
+    &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
     parse_context.build_info.strict = true;

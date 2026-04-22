@@ -34,8 +34,8 @@ pub mod provide_plugin;
 pub mod side_effects_parser_plugin;
 
 pub use self::r#trait::{
-  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin, JavascriptParserPlugin,
-  JavascriptParserPluginHook, JavascriptParserPluginHooks,
+  BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,
+  JavascriptParserPluginHooks,
 };
 pub(crate) use self::{
   amd::{

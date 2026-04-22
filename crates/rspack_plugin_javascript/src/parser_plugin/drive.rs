@@ -7,7 +7,7 @@ use swc_core::{
   },
 };
 
-use super::{ArcJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
+use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
 use crate::{
   parser_plugin::r#const::is_logic_op,
   utils::eval::BasicEvaluatedExpression,
@@ -21,19 +21,19 @@ use crate::{
 const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 
 pub struct JavaScriptParserPluginDrive {
-  plugins: Vec<ArcJavascriptParserPlugin>,
+  plugins: Vec<BoxJavascriptParserPlugin>,
   // Each bit stores whether the plugin at the same index implements the hook.
   // This keeps hook dispatch allocation-free for the common case while preserving plugin order.
   plugins_by_hook: [u64; JavascriptParserPluginHook::COUNT],
 }
 
 struct PluginBitmaskIter<'a> {
-  plugins: &'a [ArcJavascriptParserPlugin],
+  plugins: &'a [BoxJavascriptParserPlugin],
   plugin_bitmask: u64,
 }
 
 impl<'a> Iterator for PluginBitmaskIter<'a> {
-  type Item = &'a ArcJavascriptParserPlugin;
+  type Item = &'a BoxJavascriptParserPlugin;
 
   fn next(&mut self) -> Option<Self::Item> {
     if self.plugin_bitmask != 0 {
@@ -47,7 +47,7 @@ impl<'a> Iterator for PluginBitmaskIter<'a> {
 }
 
 impl JavaScriptParserPluginDrive {
-  pub fn new(plugins: Vec<ArcJavascriptParserPlugin>) -> Self {
+  pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
     assert!(
       plugins.len() <= PLUGIN_BITMASK_BITS,
       "JavaScript parser plugin bitmask supports at most {PLUGIN_BITMASK_BITS} parser plugins"

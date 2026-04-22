@@ -16,7 +16,7 @@ use rspack_core::{
 };
 use rspack_javascript_compiler::{JavaScriptCompiler, ast::Program};
 use rspack_plugin_javascript::{
-  ArcJavascriptParserPlugin,
+  BoxJavascriptParserPlugin,
   parser_and_generator::ParserRuntimeRequirementsData,
   visitors::{
     ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
@@ -74,7 +74,7 @@ struct ScanDependenciesIterationState {
   build_meta: BuildMeta,
   build_info: BuildInfo,
   semicolons: FxHashSet<BytePos>,
-  parser_plugins: Vec<ArcJavascriptParserPlugin>,
+  parser_plugins: Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
 }
 
@@ -277,7 +277,7 @@ impl PreparedScanDependenciesBenchmarkCase {
       Some(&self.parser_options),
       &mut iteration_state.semicolons,
       self.unresolved_mark,
-      &iteration_state.parser_plugins,
+      &mut iteration_state.parser_plugins,
       std::mem::take(&mut iteration_state.parse_meta),
       &self.parser_runtime_requirements,
     )

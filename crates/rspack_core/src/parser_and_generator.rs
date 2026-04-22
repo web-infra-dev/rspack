@@ -129,7 +129,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType];
   /// Parse the source and return the dependencies and the ast or source
   async fn parse<'a>(
-    &self,
+    &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>>;
   /// Size of the original source
