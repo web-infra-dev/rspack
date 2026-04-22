@@ -112,6 +112,18 @@ pub fn to_identifier_with_escaped(v: String) -> String {
   to_identifier(&v).into_owned()
 }
 
+#[inline]
+pub fn to_identifier_from_escaped(mut v: String) -> String {
+  if v
+    .as_bytes()
+    .first()
+    .is_some_and(|&b| !is_ident_first_safe(b))
+  {
+    v.insert(0, '_');
+  }
+  v
+}
+
 pub fn escape_identifier(v: &str) -> Cow<'_, str> {
   let mut buf = String::new();
   if escape_identifier_impl(v, &mut buf) {
@@ -217,4 +229,15 @@ fn test_to_identifier_with_escaped() {
     "with_space"
   );
   assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
+}
+
+#[test]
+fn test_to_identifier_from_escaped() {
+  assert_eq!(to_identifier_from_escaped("ident0".into()), "ident0");
+  assert_eq!(to_identifier_from_escaped("_top".into()), "_top");
+  assert_eq!(to_identifier_from_escaped("0ident".into()), "_0ident");
+  assert_eq!(
+    to_identifier_from_escaped("with_space".into()),
+    "with_space"
+  );
 }
