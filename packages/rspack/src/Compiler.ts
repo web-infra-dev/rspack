@@ -11,7 +11,6 @@
 import { createRequire } from 'node:module';
 import type binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import type Watchpack from 'watchpack';
 import type { Source } from 'webpack-sources';
 import {
   createRsdoctorPluginHooksRegisters,
@@ -520,7 +519,7 @@ class Compiler {
    * @returns a compiler watcher
    */
   watch(
-    watchOptions: Watchpack.WatchOptions,
+    watchOptions: WatchOptions,
     handler: liteTapable.Callback<Error, Stats>,
   ): Watching {
     if (this.running) {

@@ -11,6 +11,7 @@
 import { createRequire } from 'node:module';
 import util from 'node:util';
 import type Watchpack from 'watchpack';
+import type { WatchOptions } from '../config';
 
 import type {
   FileSystemInfoEntry,
@@ -20,6 +21,58 @@ import type {
 } from '../util/fs';
 
 const require = createRequire(import.meta.url);
+const globToRegExp = require('../compiled/glob-to-regexp/index.js') as (
+  glob: string,
+  options: { globstar: boolean; extended: boolean },
+) => RegExp;
+
+const stringToRegexp = (ignored: string) => {
+  if (ignored.length === 0) {
+    return;
+  }
+  const source = globToRegExp(ignored, {
+    globstar: true,
+    extended: true,
+  }).source;
+  return `${source.slice(0, source.length - 1)}(?:$|\\/)`;
+};
+
+const mixedIgnoredToFunction = (
+  ignored: (string | RegExp)[],
+): ((path: string) => boolean) => {
+  const stringRegexpSources: string[] = [];
+  const regexps: RegExp[] = [];
+  for (const item of ignored) {
+    if (typeof item === 'string') {
+      const regexpSource = stringToRegexp(item);
+      if (regexpSource) {
+        stringRegexpSources.push(regexpSource);
+      }
+    } else {
+      regexps.push(item);
+    }
+  }
+
+  const stringRegexp =
+    stringRegexpSources.length > 0
+      ? new RegExp(stringRegexpSources.join('|'))
+      : undefined;
+
+  if (!stringRegexp && regexps.length === 0) {
+    return () => false;
+  }
+
+  return (path: string) => {
+    const normalizedPath = path.replace(/\\/g, '/');
+    return (
+      stringRegexp?.test(normalizedPath) ||
+      regexps.some((regexp) => {
+        regexp.lastIndex = 0;
+        return regexp.test(normalizedPath);
+      })
+    );
+  };
+};
 
 export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
@@ -38,7 +91,7 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     directories: Iterable<string>,
     missing: Iterable<string>,
     startTime: number,
-    options: Watchpack.WatchOptions,
+    options: WatchOptions,
     callback: (
       error: Error | null,
       fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
@@ -72,6 +125,14 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
     const oldWatcher = this.watcher;
     const Watchpack = require('../compiled/watchpack/index.js');
+    if (
+      Array.isArray(options.ignored) &&
+      options.ignored.some((item) => item instanceof RegExp)
+    ) {
+      (options as Record<string, unknown>).ignored = mixedIgnoredToFunction(
+        options.ignored,
+      );
+    }
     this.watcher = new Watchpack(options);
 
     if (callbackUndelayed) {

@@ -11,7 +11,7 @@ use std::{sync::Arc, time::SystemTime};
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
-pub use ignored::FsWatcherIgnored;
+pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::ArcPath;

@@ -42,6 +42,7 @@ export default {
       name: 'open',
       dtsOnly: true,
     },
+    'glob-to-regexp',
     {
       name: 'watchpack',
       dtsExternals: ['graceful-fs'],

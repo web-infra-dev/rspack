@@ -59,7 +59,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **Type:** `RegExp | string | string[]`
+- **Type:** `RegExp | string | (string | RegExp)[]`
 - **Default:** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 The path that matches is excluded while watching. Watching many files can result in a lot of CPU or memory usage.
@@ -96,6 +96,16 @@ export default {
 };
 ```
 
+You can also mix glob patterns and regular expressions in an array:
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: [/\.git/, '**/node_modules', '**/.cache'],
+  },
+};
+```
+
 In addition, you can specify one or more absolute paths:
 
 ```js title="rspack.config.mjs"
@@ -108,7 +118,7 @@ export default {
 };
 ```
 
-When using glob patterns, Rspack convert them to regular expressions with [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp), so make sure to get yourself familiar with it before you use glob patterns for watchOptions.ignored.
+When using glob patterns, Rspack matches them with glob semantics, so make sure to get yourself familiar with glob matching before you use glob patterns for watchOptions.ignored.
 
 ### watchOptions.poll
 
