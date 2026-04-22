@@ -171,6 +171,7 @@ impl Module for ProvideSharedModule {
       dependencies,
       blocks,
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

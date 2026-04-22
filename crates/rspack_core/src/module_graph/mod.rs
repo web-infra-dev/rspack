@@ -24,7 +24,7 @@ pub use connection::*;
 
 use crate::{
   BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
-  ModuleIdentifier,
+  ModuleIdentifier, ParserAndGenerator,
 };
 
 // TODO Here request can be used Atom
@@ -151,10 +151,18 @@ pub(crate) struct ModuleGraphData {
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
   dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+
+  /// Runtime-only parser/generator instances keyed by normal module identifier.
+  parser_and_generators: rollback::RollbackMap<
+    ModuleIdentifier,
+    Box<dyn ParserAndGenerator>,
+    BuildHasherDefault<IdentifierHasher>,
+  >,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
     self.modules.checkpoint();
+    self.parser_and_generators.checkpoint();
     self.module_graph_modules.checkpoint();
     self.connections.checkpoint();
     // dep_meta_map is not used for build_module_graph
@@ -162,6 +170,7 @@ impl ModuleGraphData {
   // reset to checkpoint
   fn recover(&mut self) {
     self.modules.reset();
+    self.parser_and_generators.reset();
     self.module_graph_modules.reset();
     self.connections.reset();
     // reset data to save memory
@@ -357,6 +366,7 @@ impl ModuleGraph {
       .unwrap_or_default();
 
     self.inner.modules.remove(module_id);
+    self.inner.parser_and_generators.remove(module_id);
     self.inner.module_graph_modules.remove(module_id);
 
     for block in blocks {
@@ -549,6 +559,28 @@ impl ModuleGraph {
 
   pub fn add_module(&mut self, module: BoxModule) {
     self.inner.modules.insert(module.identifier(), module);
+  }
+
+  pub fn set_parser_and_generator(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    parser_and_generator: Box<dyn ParserAndGenerator>,
+  ) {
+    self
+      .inner
+      .parser_and_generators
+      .insert(module_identifier, parser_and_generator);
+  }
+
+  pub fn parser_and_generator(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&dyn ParserAndGenerator> {
+    self
+      .inner
+      .parser_and_generators
+      .get(module_identifier)
+      .map(|parser_and_generator| &**parser_and_generator)
   }
 
   pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {

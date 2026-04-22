@@ -153,7 +153,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
       let module = module_graph
         .module_by_identifier(module_identifier)
         .unwrap();
-      let size = module.size(None, None);
+      let size = module.size(None, Some(compilation));
       result.insert(*module_identifier, (size, module.name_for_condition()));
     }
     result

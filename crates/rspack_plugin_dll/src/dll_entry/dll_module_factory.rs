@@ -17,6 +17,7 @@ impl ModuleFactory for DllModuleFactory {
 
     Ok(ModuleFactoryResult {
       module: Some(DllModule::new(dll_entry_dependency).boxed()),
+      parser_and_generator: None,
     })
   }
 }

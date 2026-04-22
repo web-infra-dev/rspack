@@ -27,7 +27,10 @@ use self::{
   storage::{StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{Compilation, CompilerOptions, Logger};
+use crate::{
+  Compilation, CompilerOptions, GeneratorOptions, Logger, Module, ModuleIdentifier, ModuleType,
+  ParserOptions,
+};
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -122,6 +125,45 @@ impl PersistentCache {
   }
 }
 
+async fn restore_parser_and_generators(compilation: &mut Compilation) {
+  let normal_modules = {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .modules()
+      .filter_map(|(module_identifier, module)| {
+        module.as_normal_module().map(|normal_module| {
+          (
+            *module_identifier,
+            *normal_module.module_type(),
+            normal_module.get_parser_options().cloned(),
+            normal_module.get_generator_options().cloned(),
+          )
+        })
+      })
+      .collect::<Vec<(
+        ModuleIdentifier,
+        ModuleType,
+        Option<ParserOptions>,
+        Option<GeneratorOptions>,
+      )>>()
+  };
+
+  for (module_identifier, module_type, parser_options, generator_options) in normal_modules {
+    let parser_and_generator = compilation
+      .plugin_driver
+      .create_parser_and_generator(
+        &module_type,
+        parser_options.as_ref(),
+        generator_options.as_ref(),
+      )
+      .await
+      .expect("should restore parser_and_generator for cached NormalModule");
+    compilation
+      .get_module_graph_mut()
+      .set_parser_and_generator(module_identifier, parser_and_generator);
+  }
+}
+
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
@@ -201,6 +243,7 @@ impl Cache for PersistentCache {
       {
         compilation.exports_info_artifact.new_exports_info(*module);
       }
+      restore_parser_and_generators(compilation).await;
     }
   }
 

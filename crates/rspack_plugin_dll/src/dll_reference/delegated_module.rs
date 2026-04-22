@@ -115,6 +115,7 @@ impl Module for DelegatedModule {
       dependencies,
       blocks: vec![],
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

@@ -177,6 +177,7 @@ impl Module for CssModule {
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

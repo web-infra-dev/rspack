@@ -193,6 +193,7 @@ impl Module for RemoteModule {
       dependencies,
       blocks: vec![],
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

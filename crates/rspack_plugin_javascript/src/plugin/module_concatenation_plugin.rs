@@ -777,6 +777,7 @@ impl ModuleConcatenationPlugin {
           compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
           runtime_template: compilation.runtime_template.create_module_code_template(),
+          parser_and_generator: None,
         },
         Some(compilation),
       )
@@ -1637,6 +1638,7 @@ async fn create_concatenated_module(
         compiler_options: compilation.options.clone(),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
+        parser_and_generator: None,
       },
       Some(compilation),
     )

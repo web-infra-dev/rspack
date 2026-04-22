@@ -351,6 +351,7 @@ impl ContextModuleFactory {
 
     let module_factory_result = ModuleFactoryResult {
       module: Some(module),
+      parser_and_generator: None,
     };
     Ok((module_factory_result, context_module_options))
   }

@@ -189,6 +189,7 @@ impl Module for RscEntryModule {
         dependencies,
         blocks: vec![],
         optimization_bailouts: vec![],
+        parser_and_generator: None,
       })
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
@@ -216,6 +217,7 @@ impl Module for RscEntryModule {
         dependencies,
         blocks,
         optimization_bailouts: vec![],
+        parser_and_generator: None,
       })
     }
   }

@@ -5,7 +5,7 @@ use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
   BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory,
+  ModuleLayer, ParserAndGenerator, Resolve, ResolverFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -69,17 +69,27 @@ impl ModuleFactoryCreateData {
 #[derive(Debug, Default)]
 pub struct ModuleFactoryResult {
   pub module: Option<BoxModule>,
+  pub parser_and_generator: Option<Box<dyn ParserAndGenerator>>,
 }
 
 impl ModuleFactoryResult {
   pub fn new_with_module(module: BoxModule) -> Self {
     Self {
       module: Some(module),
+      parser_and_generator: None,
     }
   }
 
   pub fn module(mut self, module: Option<BoxModule>) -> Self {
     self.module = module;
+    self
+  }
+
+  pub fn parser_and_generator(
+    mut self,
+    parser_and_generator: Option<Box<dyn ParserAndGenerator>>,
+  ) -> Self {
+    self.parser_and_generator = parser_and_generator;
     self
   }
 }

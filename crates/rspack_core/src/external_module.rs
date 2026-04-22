@@ -926,6 +926,7 @@ impl Module for ExternalModule {
       ))],
       blocks: Vec::new(),
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

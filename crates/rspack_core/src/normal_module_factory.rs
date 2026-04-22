@@ -523,27 +523,12 @@ module.exports = "data:,";
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
-    let mut resolved_parser_and_generator = self
+    let resolved_parser_and_generator = self
       .plugin_driver
-      .registered_parser_and_generator_builder
-      .get(&resolved_module_type)
-      .ok_or_else(|| {
-        error!(
-          "No parser registered for '{}'",
-          resolved_module_type.as_str()
-        )
-      })?(
-      resolved_parser_options.as_ref(),
-      resolved_generator_options.as_ref(),
-    );
-    self
-      .plugin_driver
-      .normal_module_factory_hooks
-      .parser
-      .call(
+      .create_parser_and_generator(
         &resolved_module_type,
-        &mut resolved_parser_and_generator,
         resolved_parser_options.as_ref(),
+        resolved_generator_options.as_ref(),
       )
       .await?;
 
@@ -575,6 +560,7 @@ module.exports = "data:,";
       create_data
     };
 
+    let mut parser_and_generator = Some(resolved_parser_and_generator);
     let mut module = if let Some(module) = self
       .plugin_driver
       .normal_module_factory_hooks
@@ -582,6 +568,7 @@ module.exports = "data:,";
       .call(data, &mut create_data)
       .await?
     {
+      parser_and_generator = None;
       module
     } else {
       NormalModule::new(
@@ -590,7 +577,6 @@ module.exports = "data:,";
         create_data.raw_request.clone(),
         resolved_module_type,
         resolved_module_layer,
-        resolved_parser_and_generator,
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
@@ -613,7 +599,13 @@ module.exports = "data:,";
     data.add_file_dependencies(file_dependencies);
     data.add_missing_dependencies(missing_dependencies);
 
-    Ok(Some(ModuleFactoryResult::new_with_module(module)))
+    if module.as_normal_module().is_none() {
+      parser_and_generator = None;
+    }
+
+    Ok(Some(
+      ModuleFactoryResult::new_with_module(module).parser_and_generator(parser_and_generator),
+    ))
   }
 
   async fn calculate_module_rules<'a>(

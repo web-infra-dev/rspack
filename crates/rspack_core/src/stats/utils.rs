@@ -12,8 +12,8 @@ use super::{
 };
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
+  ChunkGroupOrderKey, ChunkGroupUkey, Compilation, CompilationAssets, Context, ModuleGraph,
+  ModuleId, ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
 };
 
 pub fn get_asset_size(file: &str, assets: &CompilationAssets) -> usize {
@@ -336,6 +336,7 @@ pub fn get_chunk_modules_size(
   chunk: &crate::ChunkUkey,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  compilation: &Compilation,
 ) -> f64 {
   chunk_graph
     .get_chunk_modules(chunk, module_graph)
@@ -345,7 +346,7 @@ pub fn get_chunk_modules_size(
         + m
           .source_types(module_graph)
           .iter()
-          .fold(0.0, |acc, t| acc + m.size(Some(t), None))
+          .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
     })
 }
 
@@ -353,6 +354,7 @@ pub fn get_chunk_modules_sizes(
   chunk: &crate::ChunkUkey,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
+  compilation: &Compilation,
   runtime_modules: &IdentifierMap<BoxRuntimeModule>,
   runtime_modules_code_generation_source: &IdentifierMap<BoxSource>,
 ) -> HashMap<SourceType, f64> {
@@ -364,7 +366,7 @@ pub fn get_chunk_modules_sizes(
     let module = module_graph.module_by_identifier(identifier);
     if let Some(module) = module {
       for source_type in module.source_types(module_graph) {
-        let size = module.size(Some(source_type), None);
+        let size = module.size(Some(source_type), Some(compilation));
         sizes
           .entry(*source_type)
           .and_modify(|s| *s += size)

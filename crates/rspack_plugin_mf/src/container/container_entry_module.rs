@@ -239,6 +239,7 @@ impl Module for ContainerEntryModule {
       dependencies,
       blocks,
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

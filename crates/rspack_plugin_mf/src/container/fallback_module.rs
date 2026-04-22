@@ -145,6 +145,7 @@ impl Module for FallbackModule {
       dependencies,
       blocks: vec![],
       optimization_bailouts: vec![],
+      parser_and_generator: None,
     })
   }
 

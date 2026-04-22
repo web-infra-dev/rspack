@@ -739,7 +739,7 @@ impl Stats<'_> {
           names: c.name().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
           initial: c.can_be_initial(&build_chunk_graph_artifact.chunk_group_by_ukey),
-          size: get_chunk_modules_size(&c.ukey(), chunk_graph, module_graph),
+          size: get_chunk_modules_size(&c.ukey(), chunk_graph, module_graph, self.context.0),
           modules: chunk_modules,
           parents,
           children,
@@ -750,6 +750,7 @@ impl Stats<'_> {
             &c.ukey(),
             chunk_graph,
             module_graph,
+            self.context.0,
             self.runtime_modules(),
             self.runtime_modules_code_generation_source(),
           ),
@@ -1170,7 +1171,7 @@ impl Stats<'_> {
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,
-        size: module.size(Some(t), None),
+        size: module.size(Some(t), Some(self.context.0)),
       })
       .collect_vec();
 
@@ -1189,7 +1190,7 @@ impl Stats<'_> {
       r#type: "module",
       module_type: *module.module_type(),
       layer: module.get_layer().map(|layer| layer.into()),
-      size: module.size(None, None),
+      size: module.size(None, Some(self.context.0)),
       sizes,
       built,
       code_generated,

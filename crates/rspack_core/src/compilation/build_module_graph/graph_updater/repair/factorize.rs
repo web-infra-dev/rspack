@@ -214,6 +214,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     }
 
+    let parser_and_generator = factory_result.parser_and_generator;
     let Some(module) = factory_result.module else {
       let dep = &dependencies[0];
       tracing::trace!("Module ignored: {dep:?}");
@@ -232,6 +233,7 @@ impl Task<TaskContext> for FactorizeResultTask {
     Ok(vec![Box::new(AddTask {
       original_module_identifier,
       module,
+      parser_and_generator,
       module_graph_module: Box::new(mgm),
       dependencies,
       from_unlazy,
