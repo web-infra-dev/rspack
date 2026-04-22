@@ -460,8 +460,9 @@ export class IndependentSharedPlugin {
           return;
         }
 
-        currentShare &&
+        if (currentShare) {
           console.log(`${currentShare.shareName} Compile success`);
+        }
         resolve(extraPlugin.getData());
       });
     });
