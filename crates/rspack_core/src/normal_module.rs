@@ -10,7 +10,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsOption, AsPreset},
+  with::{As, AsOption, AsPreset, Skip},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -122,6 +122,7 @@ pub struct NormalModule {
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[debug(skip)]
+  #[cacheable(with=Skip)]
   loaders: Vec<BoxLoader>,
 
   /// Built source of this module (passed with loaders)
@@ -257,6 +258,10 @@ impl NormalModule {
 
   pub fn loaders(&self) -> &[BoxLoader] {
     &self.loaders
+  }
+
+  pub fn set_loaders(&mut self, loaders: Vec<BoxLoader>) {
+    self.loaders = loaders;
   }
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
