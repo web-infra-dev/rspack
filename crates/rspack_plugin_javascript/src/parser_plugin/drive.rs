@@ -7,7 +7,10 @@ use swc_core::{
   },
 };
 
-use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
+use super::{
+  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin, JavascriptParserPlugin,
+  JavascriptParserPluginHook,
+};
 use crate::{
   parser_plugin::r#const::is_logic_op,
   utils::eval::BasicEvaluatedExpression,
@@ -20,34 +23,76 @@ use crate::{
 
 const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 
-pub struct JavaScriptParserPluginDrive {
-  plugins: Vec<BoxJavascriptParserPlugin>,
+enum JavaScriptParserPluginItem<'a> {
+  Shared(ArcJavascriptParserPlugin),
+  BorrowedBuiltin(&'a (dyn JavascriptParserPlugin + Send + Sync)),
+}
+
+impl JavaScriptParserPluginItem<'_> {
+  #[inline]
+  fn as_plugin(&self) -> &(dyn JavascriptParserPlugin + Send + Sync) {
+    match self {
+      Self::Shared(plugin) => plugin.as_ref(),
+      Self::BorrowedBuiltin(plugin) => *plugin,
+    }
+  }
+}
+
+pub struct JavaScriptParserPluginDrive<'a> {
+  plugins: Vec<JavaScriptParserPluginItem<'a>>,
   // Each bit stores whether the plugin at the same index implements the hook.
   // This keeps hook dispatch allocation-free for the common case while preserving plugin order.
   plugins_by_hook: [u64; JavascriptParserPluginHook::COUNT],
 }
 
-struct PluginBitmaskIter<'a> {
-  plugins: &'a [BoxJavascriptParserPlugin],
+struct PluginBitmaskIter<'a, 'plugin> {
+  plugins: &'a [JavaScriptParserPluginItem<'plugin>],
   plugin_bitmask: u64,
 }
 
-impl<'a> Iterator for PluginBitmaskIter<'a> {
-  type Item = &'a BoxJavascriptParserPlugin;
+impl<'a, 'plugin> Iterator for PluginBitmaskIter<'a, 'plugin> {
+  type Item = &'a (dyn JavascriptParserPlugin + Send + Sync);
 
   fn next(&mut self) -> Option<Self::Item> {
     if self.plugin_bitmask != 0 {
       let idx = self.plugin_bitmask.trailing_zeros() as usize;
       self.plugin_bitmask &= self.plugin_bitmask - 1;
-      return Some(unsafe { self.plugins.get_unchecked(idx) });
+      return Some(unsafe { self.plugins.get_unchecked(idx) }.as_plugin());
     }
 
     None
   }
 }
 
-impl JavaScriptParserPluginDrive {
-  pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+impl<'plugin> JavaScriptParserPluginDrive<'plugin> {
+  pub fn new(
+    hook_parser_plugins: &[ArcJavascriptParserPlugin],
+    builtin_parser_plugins: &'plugin [BoxJavascriptParserPlugin],
+    parse_local_parser_plugins: Vec<ArcJavascriptParserPlugin>,
+  ) -> Self {
+    // Merge the three plugin sources into one ordered drive:
+    // - hook_parser_plugins: added by external hooks and shared by Arc.
+    // - builtin_parser_plugins: built into the shared parser/generator and borrowed here.
+    // - parse_local_parser_plugins: created per parse because they depend on parse-local state.
+    let mut plugins = Vec::with_capacity(
+      hook_parser_plugins.len() + builtin_parser_plugins.len() + parse_local_parser_plugins.len(),
+    );
+    plugins.extend(
+      hook_parser_plugins
+        .iter()
+        .cloned()
+        .map(JavaScriptParserPluginItem::Shared),
+    );
+    plugins.extend(
+      builtin_parser_plugins
+        .iter()
+        .map(|plugin| JavaScriptParserPluginItem::BorrowedBuiltin(plugin.as_ref())),
+    );
+    plugins.extend(
+      parse_local_parser_plugins
+        .into_iter()
+        .map(JavaScriptParserPluginItem::Shared),
+    );
     assert!(
       plugins.len() <= PLUGIN_BITMASK_BITS,
       "JavaScript parser plugin bitmask supports at most {PLUGIN_BITMASK_BITS} parser plugins"
@@ -57,7 +102,7 @@ impl JavaScriptParserPluginDrive {
 
     for (idx, plugin) in plugins.iter().enumerate() {
       let plugin_bit = 1u64 << idx;
-      let mut implemented_hooks = plugin.implemented_hooks().bits();
+      let mut implemented_hooks = plugin.as_plugin().implemented_hooks().bits();
 
       while implemented_hooks != 0 {
         let hook_idx = implemented_hooks.trailing_zeros() as usize;
@@ -74,7 +119,7 @@ impl JavaScriptParserPluginDrive {
   }
 
   #[inline]
-  fn plugins_for(&self, hook: JavascriptParserPluginHook) -> PluginBitmaskIter<'_> {
+  fn plugins_for(&self, hook: JavascriptParserPluginHook) -> PluginBitmaskIter<'_, 'plugin> {
     let hook_idx = hook as usize;
     PluginBitmaskIter {
       plugins: &self.plugins,
@@ -83,7 +128,7 @@ impl JavaScriptParserPluginDrive {
   }
 }
 
-impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
+impl JavascriptParserPlugin for JavaScriptParserPluginDrive<'_> {
   fn top_level_await_expr(
     &self,
     parser: &mut JavascriptParser,

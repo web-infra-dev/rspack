@@ -46,7 +46,7 @@ use crate::{
     local_module_dependency::LocalModuleDependencyTemplate,
     unsupported_dependency::UnsupportedDependencyTemplate,
   },
-  parser_and_generator::JavaScriptParserAndGenerator,
+  parser_and_generator::{JavaScriptParserAndGenerator, JavaScriptParserAndGeneratorOptions},
 };
 
 #[plugin_hook(CompilerCompilation for JsPlugin)]
@@ -646,19 +646,33 @@ impl Plugin for JsPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
+    let parser_and_generator_options =
+      JavaScriptParserAndGeneratorOptions::from(ctx.compiler_options);
     ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
-      Box::new(move |_, _| {
-        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      Box::new(move |parser_options, _| {
+        Box::new(JavaScriptParserAndGenerator::new(
+          ModuleType::JsAuto,
+          parser_options,
+          parser_and_generator_options,
+        )) as Box<dyn ParserAndGenerator>
       })
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
-      Box::new(move |_, _| {
-        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      Box::new(move |parser_options, _| {
+        Box::new(JavaScriptParserAndGenerator::new(
+          ModuleType::JsEsm,
+          parser_options,
+          parser_and_generator_options,
+        )) as Box<dyn ParserAndGenerator>
       })
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
-      Box::new(move |_, _| {
-        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
+      Box::new(move |parser_options, _| {
+        Box::new(JavaScriptParserAndGenerator::new(
+          ModuleType::JsDynamic,
+          parser_options,
+          parser_and_generator_options,
+        )) as Box<dyn ParserAndGenerator>
       })
     });
 

@@ -111,7 +111,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   }
 
   async fn parse<'a>(
-    &mut self,
+    &self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
     let ParseContext {

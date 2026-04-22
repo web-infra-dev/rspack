@@ -12,6 +12,7 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
+  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -22,9 +23,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -44,7 +45,7 @@ use swc_core::{
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin,
   dependency::local_module::LocalModule,
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
@@ -360,7 +361,7 @@ pub struct JavascriptParser<'parser> {
   pub module_type: &'parser ModuleType,
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
-  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive<'parser>>,
   // ===== states =======
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) definitions: ScopeInfoId,
@@ -406,7 +407,8 @@ impl<'parser> JavascriptParser<'parser> {
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
-    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
+    hook_parser_plugins: &'parser [ArcJavascriptParserPlugin],
+    builtin_parser_plugins: &'parser [BoxJavascriptParserPlugin],
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
@@ -417,116 +419,30 @@ impl<'parser> JavascriptParser<'parser> {
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
-    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
-
-    plugins.append(parser_plugins);
-
-    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
-    plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
-    plugins.push(Box::new(parser_plugin::ConstPlugin));
-    plugins.push(Box::new(parser_plugin::UseStrictPlugin));
-
-    if matches!(module_type, ModuleType::JsAuto | ModuleType::JsDynamic) {
-      plugins.push(Box::new(
-        parser_plugin::RequireContextDependencyParserPlugin,
-      ));
-      plugins.push(Box::new(
-        parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
-      ));
-    }
-    plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
-
-    if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
-      plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
-      plugins.push(Box::new(
-        parser_plugin::ImportMetaContextDependencyParserPlugin,
-      ));
-      if matches!(
-        javascript_options.import_meta,
-        Some(ImportMeta::Enabled | ImportMeta::PreserveUnknown)
-      ) {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(
-          javascript_options.import_meta.expect("should have value"),
-        )));
-      } else {
-        plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
-      }
-
-      plugins.push(Box::new(parser_plugin::ESMImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
-    }
-
-    if compiler_options.amd.is_some() && (module_type.is_js_auto() || module_type.is_js_dynamic()) {
-      plugins.push(Box::new(
-        parser_plugin::AMDRequireDependenciesBlockParserPlugin,
-      ));
-      plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::AMDParserPlugin));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
-      plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
-      plugins.push(Box::new(parser_plugin::CommonJsPlugin));
-      let commonjs_exports = javascript_options
-        .commonjs
-        .as_ref()
-        .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
-          commonjs.exports
-        });
-      if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
-        plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
-          commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
-        )));
-      }
-    }
-
-    // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
-    // CJS features require node options; ESM features are always available for ESM-capable modules
-    let handle_cjs =
-      (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
-    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
-    if handle_cjs || handle_esm {
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
-        handle_cjs, handle_esm,
-      )));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
-      plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
-      plugins.push(Box::new(parser_plugin::APIPlugin::new(
-        compiler_options.output.module,
-      )));
-      plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-      plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        javascript_options
-          .worker
-          .as_ref()
-          .expect("should have worker"),
-      )));
-      plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
-    }
+    let mut parse_local_parser_plugins: Vec<ArcJavascriptParserPlugin> = Vec::with_capacity(2);
 
     if compiler_options.optimization.inline_exports {
       build_info.inline_exports = true;
-      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
     if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
+      parse_local_parser_plugins.push(Arc::new(parser_plugin::InnerGraphParserPlugin::new(
         unresolved_mark,
         compiler_options.experiments.pure_functions,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
-      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
+      parse_local_parser_plugins.push(Arc::new(parser_plugin::SideEffectsParserPlugin::new(
         unresolved_mark,
         compiler_options.experiments.pure_functions,
       )));
     }
 
-    let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));
+    let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(
+      hook_parser_plugins,
+      builtin_parser_plugins,
+      parse_local_parser_plugins,
+    ));
     let mut db = ScopeInfoDB::new();
 
     Self {

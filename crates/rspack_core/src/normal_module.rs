@@ -115,7 +115,7 @@ pub struct NormalModule {
   /// Layer of the module
   layer: Option<ModuleLayer>,
   /// Affiliated parser and generator to the module type
-  parser_and_generator: Box<dyn ParserAndGenerator>,
+  parser_and_generator: Arc<dyn ParserAndGenerator>,
   /// Resource matched with inline match resource, (`!=!` syntax)
   match_resource: Option<ResourceData>,
   /// Resource data (path, query, fragment etc.)
@@ -178,7 +178,7 @@ impl NormalModule {
     raw_request: String,
     module_type: impl Into<ModuleType>,
     layer: Option<ModuleLayer>,
-    parser_and_generator: Box<dyn ParserAndGenerator>,
+    parser_and_generator: Arc<dyn ParserAndGenerator>,
     parser_options: Option<ParserOptions>,
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
@@ -261,10 +261,6 @@ impl NormalModule {
 
   pub fn parser_and_generator(&self) -> &dyn ParserAndGenerator {
     &*self.parser_and_generator
-  }
-
-  pub fn parser_and_generator_mut(&mut self) -> &mut dyn ParserAndGenerator {
-    &mut *self.parser_and_generator
   }
 
   pub fn code_generation_dependencies(&self) -> &Option<Vec<BoxModuleDependency>> {
