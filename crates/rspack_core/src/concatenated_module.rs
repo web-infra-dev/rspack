@@ -167,44 +167,12 @@ impl NameAllocator {
     self.used_names.insert(name);
   }
 
-  fn try_insert_with_first_prefix(&mut self, old_name: &str, extra_info: &[Atom]) -> Option<Atom> {
-    self.try_insert_with_prefix_limit(old_name, extra_info, 1)
-  }
-
-  fn try_insert_with_prefix_limit(
+  fn find_new_name_from_state(
     &mut self,
-    old_name: &str,
+    mut name: String,
     extra_info: &[Atom],
-    limit: usize,
-  ) -> Option<Atom> {
-    let mut name = old_name.to_string();
-    for info_part in extra_info.iter().take(limit) {
-      let info_str = info_part.as_ref();
-      let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
-      new_name.push_str(info_str);
-      if !name.is_empty() {
-        if name.starts_with('_') || info_str.ends_with('_') {
-          new_name.push_str(&name);
-        } else {
-          new_name.push('_');
-          new_name.push_str(&name);
-        }
-      }
-      name = to_identifier_from_escaped(new_name);
-      let candidate: Atom = Atom::from(name.as_str());
-      if self.used_names.insert(candidate.clone()) {
-        return Some(candidate);
-      }
-    }
-    None
-  }
-
-  fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
-    let mut name = old_name.to_string();
-    let mut base_candidate = None;
-
-    // try to prepend extra_info segments one by one (from most specific to least),
-    // checking for an available escaped identifier at each step
+    mut base_candidate: Option<Atom>,
+  ) -> Atom {
     for info_part in extra_info {
       let info_str = info_part.as_ref();
       let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
@@ -237,6 +205,43 @@ impl NameAllocator {
     };
 
     self.find_numbered_name(base, 0)
+  }
+
+  fn reserve_name_with_prefix_limit(
+    &mut self,
+    old_name: &str,
+    extra_info: &[Atom],
+    limit: usize,
+  ) -> Atom {
+    let mut name = old_name.to_string();
+    let mut base_candidate = None;
+    let fast_path_limit = extra_info.len().min(limit);
+
+    for info_part in extra_info.iter().take(fast_path_limit) {
+      let info_str = info_part.as_ref();
+      let mut new_name = String::with_capacity(info_str.len() + 1 + name.len());
+      new_name.push_str(info_str);
+      if !name.is_empty() {
+        if name.starts_with('_') || info_str.ends_with('_') {
+          new_name.push_str(&name);
+        } else {
+          new_name.push('_');
+          new_name.push_str(&name);
+        }
+      }
+      name = to_identifier_from_escaped(new_name);
+      let candidate: Atom = Atom::from(name.as_str());
+      if self.used_names.insert(candidate.clone()) {
+        return candidate;
+      }
+      base_candidate = Some(candidate);
+    }
+
+    self.find_new_name_from_state(name, &extra_info[fast_path_limit..], base_candidate)
+  }
+
+  fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
+    self.find_new_name_from_state(old_name.to_string(), extra_info, None)
   }
 
   fn find_numbered_name(&mut self, base: Atom, start: u32) -> Atom {
@@ -1203,13 +1208,11 @@ impl Module for ConcatenatedModule {
                 .expect("should have escaped name")
                 .as_ref();
               let fast_path_limit = usize::from(old_name.is_empty()) + 1;
-              let new_name = if let Some(new_name) =
-                name_allocator.try_insert_with_prefix_limit(old_name, extra_info, fast_path_limit)
-              {
-                new_name
-              } else {
-                name_allocator.find_new_name(old_name, extra_info)
-              };
+              let new_name = name_allocator.reserve_name_with_prefix_limit(
+                old_name,
+                extra_info,
+                fast_path_limit,
+              );
               info.internal_names.insert(name.clone(), new_name.clone());
               top_level_declarations.insert(new_name.clone());
 
@@ -1283,13 +1286,7 @@ impl Module for ConcatenatedModule {
 
                 let new_name = if name_allocator.contains(&atom) {
                   let new_name = if atom == "default" {
-                    if let Some(new_name) =
-                      name_allocator.try_insert_with_first_prefix("", source_parts)
-                    {
-                      new_name
-                    } else {
-                      name_allocator.find_new_name("", source_parts)
-                    }
+                    name_allocator.reserve_name_with_prefix_limit("", source_parts, 1)
                   } else {
                     let extra_info = escaped_identifiers
                       .get(&readable_identifier)
@@ -1298,13 +1295,7 @@ impl Module for ConcatenatedModule {
                       .get(&atom)
                       .expect("should have escaped name")
                       .as_ref();
-                    if let Some(new_name) =
-                      name_allocator.try_insert_with_first_prefix(old_name, extra_info)
-                    {
-                      new_name
-                    } else {
-                      name_allocator.find_new_name(old_name, extra_info)
-                    }
+                    name_allocator.reserve_name_with_prefix_limit(old_name, extra_info, 1)
                   };
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
@@ -1353,15 +1344,7 @@ impl Module for ConcatenatedModule {
               let extra_info = escaped_identifiers
                 .get(&readable_identifier)
                 .expect("should have escaped identifier");
-              Some(
-                if let Some(new_name) =
-                  name_allocator.try_insert_with_first_prefix("namespaceObject", extra_info)
-                {
-                  new_name
-                } else {
-                  name_allocator.find_new_name("namespaceObject", extra_info)
-                },
-              )
+              Some(name_allocator.reserve_name_with_prefix_limit("namespaceObject", extra_info, 1))
             };
           if let Some(namespace_object_name) = namespace_object_name {
             info.namespace_object_name = Some(namespace_object_name.clone());
@@ -1384,32 +1367,21 @@ impl Module for ConcatenatedModule {
             .get(&readable_identifier)
             .expect("should have escaped identifier");
           let external_name: Atom =
-            if let Some(new_name) = name_allocator.try_insert_with_first_prefix("", extra_info) {
-              new_name
-            } else {
-              name_allocator.find_new_name("", extra_info)
-            };
+            name_allocator.reserve_name_with_prefix_limit("", extra_info, 1);
           info.name = Some(external_name.clone());
           top_level_declarations.insert(external_name.clone());
 
           if info.deferred {
-            let external_name = if let Some(new_name) =
-              name_allocator.try_insert_with_first_prefix("deferred", extra_info)
-            {
-              new_name
-            } else {
-              name_allocator.find_new_name("deferred", extra_info)
-            };
+            let external_name =
+              name_allocator.reserve_name_with_prefix_limit("deferred", extra_info, 1);
             info.deferred_name = Some(external_name.clone());
             top_level_declarations.insert(external_name.clone());
 
-            let external_name_interop = if let Some(new_name) =
-              name_allocator.try_insert_with_first_prefix("deferredNamespaceObject", extra_info)
-            {
-              new_name
-            } else {
-              name_allocator.find_new_name("deferredNamespaceObject", extra_info)
-            };
+            let external_name_interop = name_allocator.reserve_name_with_prefix_limit(
+              "deferredNamespaceObject",
+              extra_info,
+              1,
+            );
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
             top_level_declarations.insert(external_name_interop.clone());
           }
@@ -1420,13 +1392,8 @@ impl Module for ConcatenatedModule {
         let extra_info = escaped_identifiers
           .get(&readable_identifier)
           .expect("should have escaped identifier");
-        let external_name_interop: Atom = if let Some(new_name) =
-          name_allocator.try_insert_with_first_prefix("namespaceObject", extra_info)
-        {
-          new_name
-        } else {
-          name_allocator.find_new_name("namespaceObject", extra_info)
-        };
+        let external_name_interop: Atom =
+          name_allocator.reserve_name_with_prefix_limit("namespaceObject", extra_info, 1);
         info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -1437,13 +1404,8 @@ impl Module for ConcatenatedModule {
         let extra_info = escaped_identifiers
           .get(&readable_identifier)
           .expect("should have escaped identifier");
-        let external_name_interop: Atom = if let Some(new_name) =
-          name_allocator.try_insert_with_first_prefix("namespaceObject2", extra_info)
-        {
-          new_name
-        } else {
-          name_allocator.find_new_name("namespaceObject2", extra_info)
-        };
+        let external_name_interop: Atom =
+          name_allocator.reserve_name_with_prefix_limit("namespaceObject2", extra_info, 1);
         info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -1455,13 +1417,8 @@ impl Module for ConcatenatedModule {
         let extra_info = escaped_identifiers
           .get(&readable_identifier)
           .expect("should have escaped identifier");
-        let external_name_interop: Atom = if let Some(new_name) =
-          name_allocator.try_insert_with_first_prefix("default", extra_info)
-        {
-          new_name
-        } else {
-          name_allocator.find_new_name("default", extra_info)
-        };
+        let external_name_interop: Atom =
+          name_allocator.reserve_name_with_prefix_limit("default", extra_info, 1);
         info.set_interop_default_access_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -3459,54 +3416,28 @@ mod tests {
   }
 
   #[test]
-  fn first_prefix_fast_path_inserts_when_available() {
-    let mut allocator = NameAllocator::new(HashSet::default());
-
-    let new_name = allocator
-      .try_insert_with_first_prefix("leaf", &[Atom::from("module")])
-      .expect("should reserve first prefixed name");
-
-    assert_eq!(new_name.as_ref(), "module_leaf");
-    assert!(allocator.contains(&Atom::from("module_leaf")));
-  }
-
-  #[test]
-  fn first_prefix_fast_path_falls_back_on_collision() {
-    let mut allocator = NameAllocator::new(HashSet::from_iter([Atom::from("module_leaf")]));
-
-    assert!(
-      allocator
-        .try_insert_with_first_prefix("leaf", &[Atom::from("module")])
-        .is_none()
-    );
-
-    let new_name = allocator.find_new_name("leaf", &[Atom::from("module")]);
-    assert_eq!(new_name.as_ref(), "module_leaf_0");
-  }
-
-  #[test]
-  fn two_prefix_fast_path_uses_second_prefix_when_first_collides() {
-    let mut allocator = NameAllocator::new(HashSet::from_iter([Atom::from("module_leaf")]));
-
-    let new_name = allocator
-      .try_insert_with_prefix_limit("leaf", &[Atom::from("module"), Atom::from("pkg")], 2)
-      .expect("should reserve second prefixed name");
-
-    assert_eq!(new_name.as_ref(), "pkg_module_leaf");
-  }
-
-  #[test]
-  fn two_prefix_fast_path_returns_none_when_prefixes_collide() {
+  fn reserve_name_with_prefix_limit_falls_back_without_restarting() {
     let mut allocator = NameAllocator::new(HashSet::from_iter([
       Atom::from("module_leaf"),
-      Atom::from("pkg_module_leaf"),
+      Atom::from("module_leaf_0"),
     ]));
 
-    assert!(
-      allocator
-        .try_insert_with_prefix_limit("leaf", &[Atom::from("module"), Atom::from("pkg")], 2)
-        .is_none()
+    let new_name = allocator.reserve_name_with_prefix_limit("leaf", &[Atom::from("module")], 1);
+
+    assert_eq!(new_name.as_ref(), "module_leaf_1");
+  }
+
+  #[test]
+  fn reserve_name_with_prefix_limit_continues_into_second_prefix() {
+    let mut allocator = NameAllocator::new(HashSet::from_iter([Atom::from("module_leaf")]));
+
+    let new_name = allocator.reserve_name_with_prefix_limit(
+      "leaf",
+      &[Atom::from("module"), Atom::from("pkg")],
+      1,
     );
+
+    assert_eq!(new_name.as_ref(), "pkg_module_leaf");
   }
 
   #[test]
