@@ -145,7 +145,7 @@ import { join } from './utils';
 join('btn', 'primary');
 ```
 
-> 该功能仍处于实验阶段，需要通过 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 启用，查看 [指南](/guide/optimization/tree-shaking#no_side_effects-注解) 了解更多。
+> 该功能仍处于实验阶段，目前需要通过 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 启用，并将在后续版本中默认开启，查看 [指南](/guide/optimization/tree-shaking#no_side_effects-注解) 了解更多。
 
 对于无法直接修改源码的第三方模块，Rspack 还允许你通过 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 选项手动声明纯函数列表，以达到同样的效果。
 
