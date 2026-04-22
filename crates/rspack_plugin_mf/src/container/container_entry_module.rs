@@ -9,14 +9,13 @@ use rspack_core::{
   Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
   ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, TopLevelDeclarations,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
-use rustc_hash::FxHashSet;
 
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
@@ -65,7 +64,7 @@ impl ContainerEntryModule {
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: TopLevelDeclarations::Single(Default::default()),
         ..Default::default()
       },
       build_meta: BuildMeta {
@@ -93,7 +92,7 @@ impl ContainerEntryModule {
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: TopLevelDeclarations::Single(Default::default()),
         ..Default::default()
       },
       build_meta: BuildMeta {

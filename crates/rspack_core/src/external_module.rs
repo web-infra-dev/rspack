@@ -6,7 +6,7 @@ use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
-use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
@@ -17,8 +17,8 @@ use crate::{
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, TopLevelDeclarations,
+  UsedExports, extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -275,7 +275,7 @@ impl ExternalModule {
       user_request,
       factory_meta: None,
       build_info: BuildInfo {
-        top_level_declarations: Some(FxHashSet::default()),
+        top_level_declarations: TopLevelDeclarations::Single(Default::default()),
         strict: true,
         ..Default::default()
       },
