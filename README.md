@@ -88,7 +88,7 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Benchmarks
 
-- See [build-tools-performance](https://github.com/rstackjs/build-tools-performance) for comparisons between Rspack and other tools
+- See [build-tools-performance](https://github.com/rstackjs/build-tools-performance) for comparisons between Rspack and other tools.
 - See [Rspack Benchmarks](https://ecosystem-benchmark.rspack.rs/) for Rspack's performance trends over time.
 
 ## Credits
