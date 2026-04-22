@@ -4,7 +4,8 @@ import * as m_2 from './module2';
 import * as m_3 from './module3';
 import data from "./data";
 
-const { expectSourceToContain } = require("@rspack/test-tools/helper/legacy/expectSource");
+const { expectSourceToContain, expectSourceToMatch } = require("@rspack/test-tools/helper/legacy/expectSource");
+const regexEscape = require("@rspack/test-tools/helper/legacy/regexEscape");
 
 // It's important to preserve the same accessor syntax (quotes vs. dot notatation) after the actual export variable.
 // Else, minifiers such as Closure Compiler will not be able to minify correctly in ADVANCED mode.
@@ -69,9 +70,9 @@ it("should use/preserve accessor form for import object and namespaces", functio
 
 	expectSourceToContain(source, 'const bb = module1.obj1.up.down?.left.right;');
 
-	expectSourceToContain(source, 'const ww = (__webpack_require__(602)/* .obj1.bing.bang */.obj1.bing.bang);');
-	expectSourceToContain(source, 'const xx = (__webpack_require__(602)/* .obj1.pip.pop */.obj1.pip.pop)();');
-	expectSourceToContain(source, 'const yy = (__webpack_require__(818)/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();');
+	expectSourceToMatch(source, `${regexEscape('const ww = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.bing.bang */.obj1.bing.bang);')}`);
+	expectSourceToMatch(source, `${regexEscape('const xx = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.pip.pop */.obj1.pip.pop)();')}`);
+	expectSourceToMatch(source, `${regexEscape('const yy = (__webpack_require__(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();')}`);
 
 	expectSourceToContain(source, 'data_namespaceObject.a.a.unknownProperty.depth = "deep";');
 

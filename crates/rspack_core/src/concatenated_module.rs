@@ -868,11 +868,7 @@ impl Module for ConcatenatedModule {
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
-    let modules = self
-      .modules
-      .iter()
-      .map(|item| Some(&item.id))
-      .collect::<HashSet<_>>();
+    let modules: IdentifierSet = self.modules.iter().map(|item| item.id).collect();
 
     let root_module = module_graph
       .module_by_identifier(&self.root_module_ctxt.id)
@@ -880,6 +876,31 @@ impl Module for ConcatenatedModule {
 
     // populate root inline_exports
     self.build_info.inline_exports = root_module.build_info().inline_exports;
+
+    let dependency_parts = self
+      .modules
+      .par_iter()
+      .map(|item| {
+        let module = module_graph
+          .module_by_identifier(&item.id)
+          .expect("should have module");
+
+        module
+          .get_dependencies()
+          .iter()
+          .copied()
+          .filter(|dep_id| {
+            let dep = module_graph.dependency_by_id(dep_id);
+            let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
+            !is_esm_dep_like(dep)
+              || module_id_of_dep.is_none_or(|module_id| !modules.contains(module_id))
+          })
+          .collect::<Vec<_>>()
+      })
+      .collect::<Vec<_>>();
+    for part in dependency_parts {
+      self.dependencies.extend(part);
+    }
 
     for m in self.modules.iter() {
       let module = module_graph
@@ -890,15 +911,6 @@ impl Module for ConcatenatedModule {
       // populate cacheable
       if !cur_build_info.cacheable {
         self.build_info.cacheable = false;
-      }
-
-      // populate dependencies
-      for dep_id in module.get_dependencies().iter() {
-        let dep = module_graph.dependency_by_id(dep_id);
-        let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-        if !is_esm_dep_like(dep) || !modules.contains(&module_id_of_dep) {
-          self.dependencies.push(*dep_id);
-        }
       }
 
       // populate blocks
@@ -2367,68 +2379,82 @@ impl ConcatenatedModule {
       defer: bool,
     }
 
-    let mut connections: Vec<&ModuleGraphConnection> =
-      mg.get_ordered_outgoing_connections(module_id).collect();
-    if module_id == root_module_id {
-      for c in mg.get_outgoing_connections(&self.id) {
-        connections.push(c);
+    fn to_reference<'a>(
+      connection: &'a ModuleGraphConnection,
+      module_id: &ModuleIdentifier,
+      self_runtime: Option<&RuntimeSpec>,
+      mg: &ModuleGraph,
+      artifacts: &ConcatenationArtifacts,
+    ) -> Option<ConcatenatedModuleImportInfo<'a>> {
+      if connection.resolved_original_module_identifier != Some(*module_id) {
+        return None;
       }
+
+      let dep = mg.dependency_by_id(&connection.dependency_id);
+      if !is_esm_dep_like(dep) {
+        return None;
+      }
+
+      let ref_module = mg
+        .module_by_identifier(connection.module_identifier())
+        .expect("should have module");
+
+      if ref_module
+        .source_types(mg)
+        .iter()
+        .all(|source_type| source_type == &SourceType::Css)
+      {
+        return None;
+      }
+
+      let active_in_self_runtime = connection.is_target_active(
+        mg,
+        self_runtime,
+        artifacts.mg_cache,
+        artifacts.side_effects_state_artifact,
+        artifacts.exports_info_artifact,
+      );
+      if !active_in_self_runtime {
+        return None;
+      }
+
+      // now the dep should be one of `ESMExportImportedSpecifierDependency`, `ESMImportSideEffectDependency`, `ESMImportSpecifierDependency`,
+      // the expect is safe now
+      Some(ConcatenatedModuleImportInfo {
+        connection,
+        source_order: dep
+          .source_order()
+          .expect("source order should not be empty"),
+        range_start: dep.range().map(|range| range.start),
+        defer: dep.get_phase().is_defer(),
+      })
     }
 
-    let mut references = connections
-      .into_iter()
+    let mut references = mg
+      .get_ordered_outgoing_connections(module_id)
       .filter_map(|connection| {
-        let dep = mg.dependency_by_id(&connection.dependency_id);
-        if !is_esm_dep_like(dep) {
-          return None;
-        }
-        let ref_module = mg
-          .module_by_identifier(connection.module_identifier())
-          .expect("should have module");
-
-        if ref_module
-          .source_types(mg)
-          .iter()
-          .all(|source_type| source_type == &SourceType::Css)
-        {
-          return None;
-        }
-
-        if !(connection.resolved_original_module_identifier == Some(*module_id)
-          && connection.is_target_active(
-            mg,
-            self.runtime.as_ref(),
-            artifacts.mg_cache,
-            artifacts.side_effects_state_artifact,
-            artifacts.exports_info_artifact,
-          ))
-        {
-          return None;
-        }
-        // now the dep should be one of `ESMExportImportedSpecifierDependency`, `ESMImportSideEffectDependency`, `ESMImportSpecifierDependency`,
-        // the expect is safe now
-        Some(ConcatenatedModuleImportInfo {
-          connection,
-          source_order: dep
-            .source_order()
-            .expect("source order should not be empty"),
-          range_start: dep.range().map(|range| range.start),
-          defer: dep.get_phase().is_defer(),
-        })
+        to_reference(connection, module_id, self.runtime.as_ref(), mg, artifacts)
       })
       .collect::<Vec<_>>();
-
-    references.sort_by(|a, b| {
-      if a.source_order != b.source_order {
-        return a.source_order.cmp(&b.source_order);
-      }
-      match (a.range_start, b.range_start) {
-        (None, None) => std::cmp::Ordering::Equal,
-        (None, Some(_)) => std::cmp::Ordering::Greater,
-        (Some(_), None) => std::cmp::Ordering::Less,
-        (Some(a), Some(b)) => a.cmp(&b),
-      }
-    });
+    if module_id == root_module_id {
+      references.extend(
+        mg.get_outgoing_connections(&self.id)
+          .filter_map(|connection| {
+            to_reference(connection, module_id, self.runtime.as_ref(), mg, artifacts)
+          }),
+      );
+      references.sort_by(|a, b| {
+        if a.source_order != b.source_order {
+          return a.source_order.cmp(&b.source_order);
+        }
+        match (a.range_start, b.range_start) {
+          (None, None) => std::cmp::Ordering::Equal,
+          (None, Some(_)) => std::cmp::Ordering::Greater,
+          (Some(_), None) => std::cmp::Ordering::Less,
+          (Some(a), Some(b)) => a.cmp(&b),
+        }
+      });
+    }
 
     let mut references_map: IdentifierIndexMap<ConcatenatedImport> = IdentifierIndexMap::default();
     for reference in references {
