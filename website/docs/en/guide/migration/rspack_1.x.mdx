@@ -23,14 +23,14 @@ After installation, let the agent guide you through the upgrade.
 
 ## Upgrade Rspack to v2
 
-- Upgrade `@rspack/core` to the 2.0 RC release.
+- Upgrade `@rspack/core` to the 2.0 release.
 - If you use `@rspack/cli`, `@rspack/dev-server`, or `@rspack/plugin-react-refresh`, upgrade them to the latest compatible versions so they stay in sync with `@rspack/core`. For example:
 
 ```json
 {
   "devDependencies": {
-    "@rspack/core": "^2.0.0-rc.0",
-    "@rspack/cli": "^2.0.0-rc.0",
+    "@rspack/core": "^2.0.0",
+    "@rspack/cli": "^2.0.0",
     "@rspack/dev-server": "^2.0.0",
     "@rspack/plugin-react-refresh": "^2.0.0"
   }
@@ -55,7 +55,7 @@ In Node.js 20 and later, the runtime natively supports loading ESM modules via [
 
 - `@rspack/cli` no longer depends on `@rspack/dev-server` by default, since some workflows do not require a dev server. When using the `rspack dev` or `rspack serve` commands, install `@rspack/dev-server` manually:
 
-<PackageManagerTabs command="add @rspack/dev-server@rc -D" />
+<PackageManagerTabs command="add @rspack/dev-server -D" />
 
 - Some [devServer](/config/dev-server) options have changed, including `devServer.proxy` and `devServer.watchFiles`. See the [upgrade guide](https://github.com/rstackjs/rspack-dev-server/blob/main/docs/migrate-v1-to-v2.md) for details.
 
