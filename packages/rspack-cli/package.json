@@ -33,13 +33,15 @@
     "prepare": "prebundle",
     "test": "rstest"
   },
+  "dependencies": {
+    "cac": "^7.0.0"
+  },
   "devDependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
     "@rslib/core": "0.21.2",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.0.0",
     "@rspack/test-tools": "workspace:*",
-    "cac": "^7.0.0",
     "concat-stream": "^2.0.0",
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",
