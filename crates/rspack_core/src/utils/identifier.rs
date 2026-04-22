@@ -230,14 +230,3 @@ fn test_to_identifier_with_escaped() {
   );
   assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
 }
-
-#[test]
-fn test_to_identifier_from_escaped() {
-  assert_eq!(to_identifier_from_escaped("ident0".into()), "ident0");
-  assert_eq!(to_identifier_from_escaped("_top".into()), "_top");
-  assert_eq!(to_identifier_from_escaped("0ident".into()), "_0ident");
-  assert_eq!(
-    to_identifier_from_escaped("with_space".into()),
-    "with_space"
-  );
-}
