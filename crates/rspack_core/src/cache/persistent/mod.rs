@@ -28,8 +28,7 @@ use self::{
 };
 use super::Cache;
 use crate::{
-  Compilation, CompilerOptions, GeneratorOptions, Logger, Module, ModuleIdentifier, ModuleType,
-  ParserOptions,
+  Compilation, CompilerOptions, GeneratorOptions, Logger, Module, ModuleType, ParserOptions,
 };
 
 #[cacheable]
@@ -130,37 +129,30 @@ async fn restore_parser_and_generators(compilation: &mut Compilation) {
     let module_graph = compilation.get_module_graph();
     module_graph
       .modules()
-      .filter_map(|(module_identifier, module)| {
+      .filter_map(|(_, module)| {
         module.as_normal_module().map(|normal_module| {
           (
-            *module_identifier,
             *normal_module.module_type(),
             normal_module.get_parser_options().cloned(),
             normal_module.get_generator_options().cloned(),
           )
         })
       })
-      .collect::<Vec<(
-        ModuleIdentifier,
-        ModuleType,
-        Option<ParserOptions>,
-        Option<GeneratorOptions>,
-      )>>()
+      .collect::<Vec<(ModuleType, Option<ParserOptions>, Option<GeneratorOptions>)>>()
   };
 
   let Some(normal_module_factory) = &compilation.normal_module_factory else {
     return;
   };
-  for (module_identifier, module_type, parser_options, generator_options) in normal_modules {
-    let parser_and_generator = normal_module_factory
-      .create_parser_and_generator(
+  for (module_type, parser_options, generator_options) in normal_modules {
+    normal_module_factory
+      .ensure_parser_and_generator(
         &module_type,
         parser_options.as_ref(),
         generator_options.as_ref(),
       )
       .await
       .expect("should restore parser_and_generator for cached NormalModule");
-    normal_module_factory.set_parser_and_generator(module_identifier, parser_and_generator.into());
   }
 }
 

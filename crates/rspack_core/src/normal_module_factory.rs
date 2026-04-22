@@ -10,13 +10,13 @@ use winnow::prelude::*;
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, Dependency,
+  DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  NormalModule, ParseOption, ParserAndGenerator, ParserOptions, PublicPath, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
@@ -62,7 +62,122 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
-  parser_and_generators: FxDashMap<ModuleIdentifier, Arc<dyn ParserAndGenerator>>,
+  parser_and_generators: FxDashMap<ParserAndGeneratorCacheKey, Arc<dyn ParserAndGenerator>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ParserAndGeneratorCacheKey {
+  module_type: ModuleType,
+  parser_options: String,
+  parser_function_ids: Vec<usize>,
+  generator_options: String,
+  generator_function_ids: Vec<usize>,
+}
+
+impl ParserAndGeneratorCacheKey {
+  fn new(
+    module_type: &ModuleType,
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
+  ) -> Self {
+    let mut parser_function_ids = Vec::new();
+    if let Some(parser_options) = parser_options {
+      collect_parser_function_ids(parser_options, &mut parser_function_ids);
+    }
+
+    let mut generator_function_ids = Vec::new();
+    if let Some(generator_options) = generator_options {
+      collect_generator_function_ids(generator_options, &mut generator_function_ids);
+    }
+
+    Self {
+      module_type: *module_type,
+      parser_options: format!("{parser_options:?}"),
+      parser_function_ids,
+      generator_options: format!("{generator_options:?}"),
+      generator_function_ids,
+    }
+  }
+}
+
+fn arc_data_ptr<T: ?Sized>(arc: &Arc<T>) -> usize {
+  Arc::as_ptr(arc) as *const () as usize
+}
+
+fn collect_css_parser_import_function_id(
+  resolve_import: Option<&CssParserImport>,
+  function_ids: &mut Vec<usize>,
+) {
+  if let Some(CssParserImport::Func(f)) = resolve_import {
+    function_ids.push(arc_data_ptr(f));
+  }
+}
+
+fn collect_parser_function_ids(parser_options: &ParserOptions, function_ids: &mut Vec<usize>) {
+  match parser_options {
+    ParserOptions::Css(options) => {
+      collect_css_parser_import_function_id(options.resolve_import.as_ref(), function_ids);
+    }
+    ParserOptions::CssAuto(options) => {
+      collect_css_parser_import_function_id(options.resolve_import.as_ref(), function_ids);
+    }
+    ParserOptions::CssModule(options) => {
+      collect_css_parser_import_function_id(options.resolve_import.as_ref(), function_ids);
+    }
+    ParserOptions::Json(options) => {
+      if let ParseOption::Func(f) = &options.parse {
+        function_ids.push(arc_data_ptr(f));
+      }
+    }
+    _ => {}
+  }
+}
+
+fn collect_asset_data_url_function_id(
+  data_url: Option<&crate::AssetGeneratorDataUrl>,
+  function_ids: &mut Vec<usize>,
+) {
+  if let Some(crate::AssetGeneratorDataUrl::Func(f)) = data_url {
+    function_ids.push(arc_data_ptr(f));
+  }
+}
+
+fn collect_filename_function_id(filename: Option<&crate::Filename>, function_ids: &mut Vec<usize>) {
+  if let Some(function_id) = filename.and_then(|filename| filename.function_id()) {
+    function_ids.push(function_id);
+  }
+}
+
+fn collect_public_path_function_id(
+  public_path: Option<&PublicPath>,
+  function_ids: &mut Vec<usize>,
+) {
+  if let Some(PublicPath::Filename(filename)) = public_path {
+    collect_filename_function_id(Some(filename), function_ids);
+  }
+}
+
+fn collect_generator_function_ids(
+  generator_options: &GeneratorOptions,
+  function_ids: &mut Vec<usize>,
+) {
+  match generator_options {
+    GeneratorOptions::Asset(options) => {
+      collect_filename_function_id(options.filename.as_ref(), function_ids);
+      collect_filename_function_id(options.output_path.as_ref(), function_ids);
+      collect_public_path_function_id(options.public_path.as_ref(), function_ids);
+      collect_asset_data_url_function_id(options.data_url.as_ref(), function_ids);
+    }
+    GeneratorOptions::AssetInline(options) => {
+      collect_asset_data_url_function_id(options.data_url.as_ref(), function_ids);
+    }
+    GeneratorOptions::AssetResource(options) => {
+      collect_filename_function_id(options.filename.as_ref(), function_ids);
+      collect_filename_function_id(options.output_path.as_ref(), function_ids);
+      collect_public_path_function_id(options.public_path.as_ref(), function_ids);
+    }
+    _ => {}
+  }
 }
 
 #[async_trait::async_trait]
@@ -129,24 +244,59 @@ impl NormalModuleFactory {
     Ok(parser_and_generator)
   }
 
-  pub fn set_parser_and_generator(
+  pub fn get_or_insert_parser_and_generator(
     &self,
-    module_identifier: ModuleIdentifier,
-    parser_and_generator: Arc<dyn ParserAndGenerator>,
-  ) {
+    module_type: &ModuleType,
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
+    parser_and_generator: Box<dyn ParserAndGenerator>,
+  ) -> Arc<dyn ParserAndGenerator> {
+    let cache_key = ParserAndGeneratorCacheKey::new(module_type, parser_options, generator_options);
+    if let Some(parser_and_generator) = self.parser_and_generators.get(&cache_key) {
+      return parser_and_generator.clone();
+    }
+
+    let parser_and_generator: Arc<dyn ParserAndGenerator> = Arc::from(parser_and_generator);
     self
       .parser_and_generators
-      .insert(module_identifier, parser_and_generator);
+      .insert(cache_key, parser_and_generator.clone());
+    parser_and_generator
   }
 
   pub fn parser_and_generator(
     &self,
-    module_identifier: &ModuleIdentifier,
+    module_type: &ModuleType,
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
   ) -> Option<Arc<dyn ParserAndGenerator>> {
+    let cache_key = ParserAndGeneratorCacheKey::new(module_type, parser_options, generator_options);
     self
       .parser_and_generators
-      .get(module_identifier)
+      .get(&cache_key)
       .map(|parser_and_generator| parser_and_generator.clone())
+  }
+
+  pub async fn ensure_parser_and_generator(
+    &self,
+    module_type: &ModuleType,
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
+  ) -> Result<Arc<dyn ParserAndGenerator>> {
+    if let Some(parser_and_generator) =
+      self.parser_and_generator(module_type, parser_options, generator_options)
+    {
+      return Ok(parser_and_generator);
+    }
+
+    let parser_and_generator = self
+      .create_parser_and_generator(module_type, parser_options, generator_options)
+      .await?;
+    Ok(self.get_or_insert_parser_and_generator(
+      module_type,
+      parser_options,
+      generator_options,
+      parser_and_generator,
+    ))
   }
 
   async fn before_resolve(

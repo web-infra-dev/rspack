@@ -104,7 +104,6 @@ impl Task<TaskContext> for BuildResultTask {
       mut forwarded_ids,
     } = *self;
     let mut module = build_result.module;
-    let parser_and_generator = build_result.parser_and_generator;
 
     plugin_driver
       .compilation_hooks
@@ -194,11 +193,6 @@ impl Task<TaskContext> for BuildResultTask {
 
     let module_identifier = module.identifier();
 
-    if let Some(parser_and_generator) = parser_and_generator {
-      if let Some(normal_module_factory) = &context.normal_module_factory {
-        normal_module_factory.set_parser_and_generator(module_identifier, parser_and_generator);
-      }
-    }
     module_graph.add_module(module);
 
     let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];

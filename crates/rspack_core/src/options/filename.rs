@@ -51,6 +51,13 @@ enum FilenameKind {
 pub struct Filename(FilenameKind);
 
 impl Filename {
+  pub(crate) fn function_id(&self) -> Option<usize> {
+    match &self.0 {
+      FilenameKind::Fn(filename_fn) => Some(Arc::as_ptr(filename_fn) as *const () as usize),
+      _ => None,
+    }
+  }
+
   pub fn as_str(&self) -> &str {
     self.template().unwrap_or("")
   }

@@ -306,7 +306,11 @@ impl NormalModule {
       .normal_module_factory
       .as_ref()
       .expect("normal_module_factory should exist")
-      .parser_and_generator(&self.id)
+      .parser_and_generator(
+        &self.module_type,
+        self.parser_options.as_ref(),
+        self.generator_options.as_ref(),
+      )
       .expect("parser_and_generator should be registered for NormalModule")
   }
 }
@@ -504,12 +508,24 @@ impl Module for NormalModule {
 
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      let parser_and_generator =
+        build_context
+          .normal_module_factory
+          .as_ref()
+          .map(|normal_module_factory| {
+            normal_module_factory.get_or_insert_parser_and_generator(
+              &self.module_type,
+              self.parser_options.as_ref(),
+              self.generator_options.as_ref(),
+              parser_and_generator,
+            )
+          });
       return Ok(BuildResult {
         module: BoxModule::new(self),
         dependencies: Vec::new(),
         blocks: Vec::new(),
         optimization_bailouts: vec![],
-        parser_and_generator: Some(parser_and_generator.into()),
+        parser_and_generator,
       });
     };
 
@@ -569,13 +585,25 @@ impl Module for NormalModule {
 
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      let parser_and_generator =
+        build_context
+          .normal_module_factory
+          .as_ref()
+          .map(|normal_module_factory| {
+            normal_module_factory.get_or_insert_parser_and_generator(
+              &self.module_type,
+              self.parser_options.as_ref(),
+              self.generator_options.as_ref(),
+              parser_and_generator,
+            )
+          });
 
       return Ok(BuildResult {
         module: BoxModule::new(self),
         dependencies: vec![],
         blocks: vec![],
         optimization_bailouts: vec![],
-        parser_and_generator: Some(parser_and_generator.into()),
+        parser_and_generator,
       });
     }
 
@@ -636,13 +664,25 @@ impl Module for NormalModule {
 
     self.build_info.hash =
       Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+    let parser_and_generator =
+      build_context
+        .normal_module_factory
+        .as_ref()
+        .map(|normal_module_factory| {
+          normal_module_factory.get_or_insert_parser_and_generator(
+            &self.module_type,
+            self.parser_options.as_ref(),
+            self.generator_options.as_ref(),
+            parser_and_generator,
+          )
+        });
 
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts,
-      parser_and_generator: Some(parser_and_generator.into()),
+      parser_and_generator,
     })
   }
 
