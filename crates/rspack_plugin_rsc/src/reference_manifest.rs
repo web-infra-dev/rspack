@@ -20,8 +20,11 @@ pub struct ManifestExport {
   pub id: String,
   /// Export name
   pub name: String,
-  /// Chunks for the module. JS and CSS.
+  /// JS chunks required for the module.
   pub chunks: Vec<String>,
+  /// CSS files emitted with the client module chunk.
+  #[serde(rename = "cssFiles", skip_serializing_if = "Vec::is_empty")]
+  pub css_files: Vec<String>,
   /// If chunk contains async module
   #[serde(skip_serializing_if = "Option::is_none")]
   pub r#async: Option<bool>,
@@ -122,6 +125,7 @@ fn build_server_manifest_per_entry(
                 // Server Action modules serve as endpoints rather than code splitting points,
                 // so ensuring chunk loading at runtime is unnecessary.
                 chunks: vec![],
+                css_files: vec![],
                 r#async: Some(ModuleGraph::is_async(
                   &compilation.async_modules_artifact,
                   &module.identifier(),
@@ -212,6 +216,7 @@ pub fn build_server_consumer_module_map(
       id: module_id.to_string(),
       name: "*".to_string(),
       chunks: vec![],
+      css_files: vec![],
       r#async: Some(ModuleGraph::is_async(
         &compilation.async_modules_artifact,
         &module.identifier(),

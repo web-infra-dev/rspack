@@ -217,7 +217,7 @@ export default {
 
 ### New `experiments.pureFunctions` for function-level tree shaking
 
-Rspack 2.0 adds an experimental `experiments.pureFunctions` switch for finer-grained, pure-function-based tree shaking across modules.
+Rspack 2.0 adds an experimental [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) switch for finer-grained, pure-function-based tree shaking across modules.
 
 After enabling it, you can choose one of these entry points depending on your code ownership:
 
@@ -234,7 +234,7 @@ export default {
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
-          pureFunctions: ['isString', 'default'],
+          pureFunctions: ['isString'],
         },
       },
     ],
@@ -242,7 +242,7 @@ export default {
 };
 ```
 
-For more details, see the [tree shaking guide](/guide/optimization/tree-shaking#purefunctions).
+For more details, see the [pureFunctions section](/guide/optimization/tree-shaking#purefunctions) and the [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation) in the [tree shaking guide](/guide/optimization/tree-shaking).
 
 ## Output configuration changes
 

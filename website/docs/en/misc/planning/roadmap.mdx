@@ -1,70 +1,52 @@
----
-description: 'provides an overview of the latest plans and progress for Rspack and the Rstack toolchain'
----
-
 # Roadmap
 
-This document provides an overview of the latest plans and progress for Rspack and the Rstack toolchain. It will be continuously updated as new versions are released.
+This document outlines the current direction of Rspack and will continue to evolve alongside future releases.
 
-> Last updated: 2025-10
+> Last updated: 2026-04
 
-## Rspack 2.0
+## Advanced output optimization
 
-We are developing Rspack 2.0 and Rsbuild 2.0, focusing on API and internal architecture improvements, performance optimization, adoption of modern web standards, and a better developer experience.
+Rspack prioritizes stable output behavior in its default optimization pipeline. In areas such as side effects analysis, it intentionally takes a conservative approach. This trade-off works well for most projects, but there is still room to push optimization further in scenarios where bundle size matters most.
 
-Key areas include:
+Rspack already supports fine-grained optimizations based on pure annotations. Going forward, we will continue improving tree shaking and provide optimization controls with clearer boundaries and more explicit trade-offs, so users can choose the level of optimization that best fits their needs.
 
-- **Streamlined outputs and APIs**: Redesigning output structure and webpack-specific APIs for better clarity and simplicity, while maintaining compatibility.
-- **Improved ESM output**: Enhancing ESM support and providing an out-of-the-box experience through Rsbuild and Rslib.
-- **Built-in RSC support**: Inspired by tools like Parcel, offering built-in support for React Server Components.
-- **More stable persistent cache**: Improving usability and reliability of persistent cache, with plans to enable it by default in development mode.
-- **Enable Native watcher**: Using native watcher to reduce rebuild latency and improve HMR performance.
-- **Core architecture optimization**: Refining the internal data flow to reduce memory usage and improve performance and maintainability.
-- **Migration to pure ESM packages**: Converting all npm packages to pure ESM format and dropping Node.js 18 support.
-- And more...
+We also plan to incorporate more static type information into optimization analysis, drawing on ideas from projects such as Prepack, Closure Compiler, and React Compiler. The goal is to bring more optimization-relevant signals from source code into the bundling pipeline.
 
-The first preview release is planned for **February 2026**. We will carefully review every breaking change to ensure a smooth upgrade path.
+For code splitting, we will continue exploring finer-grained strategies. Today, the smallest practical unit of splitting is still usually the module, which means partially reused modules can still introduce unnecessary loading. We plan to explore approaches inspired by tools such as esbuild and Turbopack, including module-level partitioning based on actual reuse patterns, while keeping cache stability, debugging experience, and runtime behavior predictable. We will also explore new loading strategies alongside emerging module capabilities such as `import defer`.
 
-> Join the discussion on breaking changes here: 👉 [discussions/9270](https://github.com/web-infra-dev/rspack/discussions/9270)
+## Improving build performance
 
-## Rstack toolchain
+Rspack will continue improving its core algorithms, data structures, and incremental build paths. In real-world projects, however, bottlenecks are often not limited to the bundling pipeline itself. They also come from surrounding tools such as linters, type checkers, and Tailwind CSS.
 
-We are building a unified JavaScript toolchain centered around Rspack — [Rstack](/guide/start/ecosystem#rstack).
+For that reason, our performance work will not focus only on the Rspack core. We will continue improving related tools across the Rstack ecosystem as well. For example, in Rslint we are exploring linting and type checking based on tsgo as an alternative to the common `eslint-webpack-plugin` and `fork-ts-checker-webpack-plugin` combination, with the goal of improving the performance of the overall build pipeline.
 
-The main focus areas across Rstack tools include:
+## Support for agents
 
-- Rsbuild: Developing 2.0 alongside Rspack, focusing on performance and developer experience.
-- Rslib: Integrating Rspack's new ESM output, aiming for a 1.0 release once the APIs stabilize.
-- Rsdoctor: Expanding AI Agent support via MCP and adding new features such as tree-shaking analysis.
-- Rspress: Developing v2.0 with major architecture, UI, and feature improvements.
-- Rstest: Enhancing testing capabilities with browser mode and VS Code extension. See the [Rstest Roadmap](https://github.com/web-infra-dev/rstest/issues/85) for details.
+More developers are already using coding agents for bundling-related tasks such as performance analysis, output optimization, and automated migration. We have started supporting these workflows through [Rstack Skills](https://github.com/rstackjs/agent-skills). At the same time, it has become increasingly clear that effective AI-assisted problem solving in bundling depends on three things: access to accurate context, reliable reproduction of issues, and fast, low-cost hypothesis validation.
 
-## Remote cache
+Going forward, this work will focus on four areas:
 
-Rspack's caching system is evolving from memory cache to persistent cache, and we are actively exploring remote cache (portable cache).
+- Improving debugging capabilities so coding agents can investigate issues with Rspack debug builds and connect compile-time information with runtime behavior.
+- Improving diagnostic output by exposing more machine-readable compilation data, including bailout reasons in optimization stages such as tree shaking and scope hoisting, as well as module, chunk, and plugin pipeline information for automated analysis.
+- Improving context collection and issue reproduction by exposing resolved configuration results, environment details, and key compilation paths, so AI-generated suggestions can be reproduced and verified more reliably.
+- Shortening the feedback loop by exploring more efficient compilation modes for agent-driven workflows, reducing the cost of iterative validation.
 
-This effort aims to make build caches shareable across different machines and environments, helping teams reduce redundant builds and improve efficiency.
+## More modern output formats
 
-## Enhanced ESM support
+Rspack has historically maintained compatibility with webpack’s output formats. This is important for migration correctness and ecosystem compatibility, but it also means carrying forward some historical design constraints. Supporting formats such as CJS, UMD, and ESM alongside runtime features such as HMR and Module Federation often forces traditional bundlers to trade off readability against how well generated code can be analyzed by downstream tools.
 
-We are improving Rspack's ESM output and providing a seamless library-building experience through Rslib. This enables developers to build npm packages with better static analysis and tree-shaking support.
+Looking ahead, while preserving key runtime capabilities, we will continue exploring more modern output forms, including cleaner ESM output and organizational patterns based on emerging standards such as import maps and module fragments.
 
-In parallel, we're extending Rspack's ESM capabilities for web applications, enabling applications to run natively as ESM in modern browsers.
+## Keeping up with community standards and platform capabilities
 
-## Performance improvements
+The JavaScript ecosystem continues to evolve, and new syntax, module capabilities, and runtime APIs keep maturing. Rspack will continue to follow these changes closely, including support for features such as `import.meta` and `import defer`.
 
-We are continuously optimizing internal implementations — exploring more efficient concurrency models, better caching strategies, lower-overhead plugin communication, and various micro-optimizations.
+## Supporting higher-level frameworks
+
+Modern bundlers are no longer only responsible for turning modules into bundles. For frameworks and higher-level tooling, they increasingly need to handle responsibilities such as multi-environment compilation, server/client boundary analysis, style and asset collection, and runtime coordination.
+
+Rspack already provides experimental support for React Server Components. Going forward, we will continue turning more of these capabilities into stable foundational primitives, reducing the integration cost for higher-level frameworks and tools while lowering the amount of adapter code they need to maintain.
 
 ## Community collaboration
 
-Rspack has helped us solve many performance and efficiency challenges in real-world projects. We hope it can bring similar value to the broader community. We welcome collaborations with framework and tooling teams interested in Rspack integration — feel free to reach out for support.
-
-## Webpack compatibility
-
-Webpack provides a rich and diverse API. Rspack takes a progressive approach to compatibility, prioritizing high-usage loaders and plugins based on community feedback to ensure a smooth migration experience.
-
-## Extending Rspack with Rust
-
-Currently, higher-level tools and frameworks can integrate Rspack through its [JavaScript API](/api/javascript-api/index), which offers good extensibility. However, Rust-to-JavaScript communication introduces some overhead and limits performance.
-
-We are developing a Rust extension system for Rspack to eliminate cross-language overhead. For more details, see the [Rspack 1.5 blog](/blog/announcing-1-5#extending-rspack-with-rust).
+Rspack has already helped address many performance and efficiency problems in practice, and we hope it can continue to be useful to a broader range of projects. We look forward to deeper collaboration with framework and tooling teams across the ecosystem. If your framework or toolchain is interested in working with Rspack, feel free to reach out.

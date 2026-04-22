@@ -441,6 +441,9 @@ importers:
       terser-webpack-plugin:
         specifier: ^5.4.0
         version: 5.4.0(webpack@5.104.1)
+      wast-loader:
+        specifier: ^1.14.1
+        version: 1.14.1
       webpack:
         specifier: 5.104.1
         version: 5.104.1
@@ -469,9 +472,6 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-      wast-loader:
-        specifier: ^1.14.1
-        version: 1.14.1
 
   scripts:
     devDependencies:
@@ -849,8 +849,8 @@ importers:
   website:
     dependencies:
       '@rstack-dev/doc-ui':
-        specifier: 1.12.5
-        version: 1.12.5
+        specifier: 1.13.2
+        version: 1.13.2
       axios:
         specifier: ^1.15.0
         version: 1.15.0
@@ -3336,8 +3336,8 @@ packages:
   '@rspress/shared@2.0.9':
     resolution: {integrity: sha512-G48n3pC7AVAR58pLqwClUCYj5Nt7ZgYEStR8VTBGFuPgXtzb3+KPfo/gz0hb6wxdKJ1cL5ohPsZ6EXqllu6lew==}
 
-  '@rstack-dev/doc-ui@1.12.5':
-    resolution: {integrity: sha512-fwPRz8R52VHVW1u8SFH7uqon4IL2BAfYwrNDEPlB4rPAz+DrOkhag16oQtcQ2ApUXTInrQjEOXK9TaqfP02MXg==}
+  '@rstack-dev/doc-ui@1.13.2':
+    resolution: {integrity: sha512-CKS/wjJoJBIOR2HDDad03e5SXyyToPjuu0sIgrtWToxlWoF9DcywoE68Q/umixnPC6kxnEpaUoz8JwAwEH3rrg==}
 
   '@rstest/core@0.9.8':
     resolution: {integrity: sha512-teTuindQULqvjcYZeDULhrLcd6NDY9KSI7ck24YfZbZ2dm/zvEbBNB19V1l0UuJqRzjVsbw2DlIHNqQAt5ZLyw==}
@@ -10270,7 +10270,7 @@ snapshots:
       - '@module-federation/runtime-tools'
       - core-js
 
-  '@rstack-dev/doc-ui@1.12.5': {}
+  '@rstack-dev/doc-ui@1.13.2': {}
 
   '@rstest/core@0.9.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)(jsdom@26.1.0)':
     dependencies:

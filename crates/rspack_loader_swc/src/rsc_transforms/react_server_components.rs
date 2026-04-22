@@ -21,7 +21,7 @@ use swc_core::{
   },
 };
 
-use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap};
+use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap, to_client_ref::to_client_ref};
 
 static NODE_MODULES_PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
   #[allow(clippy::unwrap_used)]
@@ -63,6 +63,7 @@ struct ReactServerComponents<'a> {
   enable_server_entry: bool,
   disable_client_api_checks: bool,
   filepath: String,
+  resource_path: String,
   rsc_meta: &'a RefCell<Option<RscMeta>>,
   directive_import_collection: Option<DirectiveImportCollection>,
 }
@@ -100,6 +101,7 @@ impl VisitMut for ReactServerComponents<'_> {
 
     let is_server_entry = self.enable_server_entry && directive_import_collection.is_server_entry;
     let is_client_entry = directive_import_collection.is_client_entry;
+    let client_refs = directive_import_collection.export_names.clone();
 
     self.remove_top_level_directive(module);
 
@@ -110,6 +112,9 @@ impl VisitMut for ReactServerComponents<'_> {
         self.set_server_entry_metadata(is_cjs);
       } else if is_client_entry {
         self.set_client_metadata(is_cjs);
+        if to_client_ref(module, &self.resource_path, &client_refs, is_cjs) {
+          return;
+        }
       }
     }
     module.visit_mut_children_with(self)
@@ -524,6 +529,7 @@ impl Visit for ReactServerComponentValidator {
 /// running assertion.
 pub fn server_components(
   filename: Arc<FileName>,
+  resource_path: String,
   config: Config,
   rsc_meta: &RefCell<Option<RscMeta>>,
 ) -> impl Pass + VisitMut {
@@ -548,6 +554,7 @@ pub fn server_components(
       FileName::Custom(path) => format!("<{path}>"),
       _ => filename.to_string(),
     },
+    resource_path,
     directive_import_collection: None,
   })
 }
