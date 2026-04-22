@@ -206,11 +206,13 @@ valorkin
 vant
 verkada
 viktoriialurie
+vize
 weapp
 webpack
 xcode
 xcrun
 xctrace
+xmcp
 Xeon
 XKKCNZZNJD
 xstyled
