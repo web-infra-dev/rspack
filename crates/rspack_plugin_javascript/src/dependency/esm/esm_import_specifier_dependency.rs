@@ -558,14 +558,29 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace_static(dep.range.start, dep.range.end, " false", None)
       }
       _ => {
+        let used_name_ids = if matches!(exports_type, ExportsType::DefaultWithNamed)
+          && first == "default"
+          && ids.len() > 1
+        {
+          &ids[1..]
+        } else {
+          ids
+        };
         let Some(used_name) = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),
           *runtime,
-          ids,
+          used_name_ids,
         )
         .and_then(|used_name| match used_name {
           UsedName::Normal(names) => names.last().cloned(),
           UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
+        })
+        .or_else(|| {
+          // External modules can legitimately lack nested exports usage info here.
+          // Fall back to the requested property name so we still rewrite the import binding.
+          module
+            .as_external_module()
+            .and_then(|_| ids.last().cloned())
         }) else {
           return;
         };
