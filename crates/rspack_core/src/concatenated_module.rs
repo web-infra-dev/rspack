@@ -1163,14 +1163,15 @@ impl Module for ConcatenatedModule {
             // Check if the name is already used
             if name_allocator.contains(name) {
               // Find a new name and update references
-              let extra_info = escaped_identifiers
-                .get(&readable_identifier)
-                .expect("should have escaped identifier");
-              let old_name = escaped_names
-                .get(name)
-                .expect("should have escaped name")
-                .as_ref();
-              let new_name = name_allocator.find_new_name(old_name, extra_info);
+              let new_name = name_allocator.find_new_name(
+                escaped_names
+                  .get(name)
+                  .expect("should have escaped name")
+                  .as_ref(),
+                escaped_identifiers
+                  .get(&readable_identifier)
+                  .expect("should have escaped identifier"),
+              );
               info.internal_names.insert(name.clone(), new_name.clone());
               top_level_declarations.insert(new_name.clone());
 
@@ -1246,14 +1247,15 @@ impl Module for ConcatenatedModule {
                   let new_name = if atom == "default" {
                     name_allocator.find_new_name("", source_parts)
                   } else {
-                    let extra_info = escaped_identifiers
-                      .get(&readable_identifier)
-                      .expect("should have escaped identifier");
-                    let old_name = escaped_names
-                      .get(&atom)
-                      .expect("should have escaped name")
-                      .as_ref();
-                    name_allocator.find_new_name(old_name, extra_info)
+                    name_allocator.find_new_name(
+                      escaped_names
+                        .get(&atom)
+                        .expect("should have escaped name")
+                        .as_ref(),
+                      escaped_identifiers
+                        .get(&readable_identifier)
+                        .expect("should have escaped identifier"),
+                    )
                   };
                   // if the imported symbol is exported, we rename the export as well
                   if let Some(raw_export_map) = info.raw_export_map.as_mut()
@@ -1299,10 +1301,14 @@ impl Module for ConcatenatedModule {
             if let Some(ref namespace_export_symbol) = info.namespace_export_symbol {
               info.internal_names.get(namespace_export_symbol).cloned()
             } else {
-              let extra_info = escaped_identifiers
-                .get(&readable_identifier)
-                .expect("should have escaped identifier");
-              Some(name_allocator.find_new_name("namespaceObject", extra_info))
+              Some(
+                name_allocator.find_new_name(
+                  "namespaceObject",
+                  escaped_identifiers
+                    .get(&readable_identifier)
+                    .expect("should have escaped identifier"),
+                ),
+              )
             };
           if let Some(namespace_object_name) = namespace_object_name {
             info.namespace_object_name = Some(namespace_object_name.clone());
@@ -1342,11 +1348,12 @@ impl Module for ConcatenatedModule {
       }
       // Handle additional logic based on module build meta
       if exports_type != BuildMetaExportsType::Namespace {
-        let extra_info = escaped_identifiers
-          .get(&readable_identifier)
-          .expect("should have escaped identifier");
-        let external_name_interop: Atom =
-          name_allocator.find_new_name("namespaceObject", extra_info);
+        let external_name_interop: Atom = name_allocator.find_new_name(
+          "namespaceObject",
+          escaped_identifiers
+            .get(&readable_identifier)
+            .expect("should have escaped identifier"),
+        );
         info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -1354,11 +1361,12 @@ impl Module for ConcatenatedModule {
       if exports_type == BuildMetaExportsType::Default
         && !matches!(default_object, BuildMetaDefaultObject::Redirect)
       {
-        let extra_info = escaped_identifiers
-          .get(&readable_identifier)
-          .expect("should have escaped identifier");
-        let external_name_interop: Atom =
-          name_allocator.find_new_name("namespaceObject2", extra_info);
+        let external_name_interop: Atom = name_allocator.find_new_name(
+          "namespaceObject2",
+          escaped_identifiers
+            .get(&readable_identifier)
+            .expect("should have escaped identifier"),
+        );
         info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
@@ -1367,10 +1375,12 @@ impl Module for ConcatenatedModule {
         exports_type,
         BuildMetaExportsType::Dynamic | BuildMetaExportsType::Unset
       ) {
-        let extra_info = escaped_identifiers
-          .get(&readable_identifier)
-          .expect("should have escaped identifier");
-        let external_name_interop: Atom = name_allocator.find_new_name("default", extra_info);
+        let external_name_interop: Atom = name_allocator.find_new_name(
+          "default",
+          escaped_identifiers
+            .get(&readable_identifier)
+            .expect("should have escaped identifier"),
+        );
         info.set_interop_default_access_name(Some(external_name_interop.clone()));
         top_level_declarations.insert(external_name_interop.clone());
       }
