@@ -15,9 +15,8 @@ use ustr::Ustr;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
-  ChunkGroupUkey, ChunkUkey, Compilation, ExportsInfoGetter, Module, ModuleGraph, ModuleIdentifier,
-  ModuleIdsArtifact, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, RuntimeSpecMap,
-  RuntimeSpecSet, for_each_runtime,
+  ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime,
 };
 
 pub type ModuleIdMap<V> =
@@ -401,9 +400,7 @@ impl ChunkGraph {
     runtime: Option<&RuntimeSpec>,
   ) -> u64 {
     let mg = compilation.get_module_graph();
-    let mut hasher = FxHasher::default();
-
-    let (hash, exports_info_entry, exports_info_exports) = compilation
+    compilation
       .module_graph_cache_artifact
       .cached_module_graph_hash(module.identifier(), || {
         let mut hasher = FxHasher::default();
@@ -416,17 +413,11 @@ impl ChunkGraph {
           .dyn_hash(&mut hasher);
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Full);
-        let (entry, exports) = exports_info.meta();
-        (hasher.finish(), entry, exports)
-      });
-
-    hasher.write_u64(hash);
-    let exports_info = ExportsInfoGetter::from_meta(
-      (exports_info_entry, exports_info_exports),
-      &compilation.exports_info_artifact,
-    );
-    exports_info.update_hash(&mut hasher, runtime);
-    hasher.finish()
+          .get_exports_info(&module_identifier);
+        exports_info
+          .as_data(&compilation.exports_info_artifact)
+          .update_hash(&compilation.exports_info_artifact, &mut hasher, runtime);
+        hasher.finish()
+      })
   }
 }
