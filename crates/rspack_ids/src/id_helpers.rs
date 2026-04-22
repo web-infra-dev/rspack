@@ -17,8 +17,7 @@ use rspack_core::{
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
-  itoa,
-  number_hash::get_number_hash,
+  number_hash::get_number_hash_combined,
 };
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 
@@ -159,12 +158,10 @@ pub fn assign_deterministic_ids<T>(
   for item in items {
     let ident = get_name(&item);
     let mut i = salt;
-    let mut i_buffer = itoa::Buffer::new();
-    let mut id = get_number_hash(&format!("{ident}{}", i_buffer.format(i)), range);
+    let mut id = get_number_hash_combined(&ident, i, range);
     while !assign_id(&item, id) {
       i += 1;
-      let mut i_buffer = itoa::Buffer::new();
-      id = get_number_hash(&format!("{ident}{}", i_buffer.format(i)), range);
+      id = get_number_hash_combined(&ident, i, range);
     }
   }
 }
