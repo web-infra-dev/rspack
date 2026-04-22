@@ -329,7 +329,7 @@ impl ChunkGraph {
       .build_module_graph_artifact
       .side_effects_state_artifact;
     self
-      .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
+      .get_module_graph_hash_without_connections(module, compilation, runtime)
       .hash(&mut hasher);
 
     let mut visited_modules = IdentifierSet::default();
@@ -378,8 +378,16 @@ impl ChunkGraph {
         .module_by_identifier(module_identifier)
         .expect("should have module")
         .as_ref();
+      module
+        .get_exports_type(
+          mg,
+          &compilation.module_graph_cache_artifact,
+          &compilation.exports_info_artifact,
+          strict,
+        )
+        .hash(&mut hasher);
       self
-        .get_module_graph_hash_without_connections(module, compilation, runtime, strict)
+        .get_module_graph_hash_without_connections(module, compilation, runtime)
         .hash(&mut hasher);
     }
 
@@ -391,7 +399,6 @@ impl ChunkGraph {
     module: &dyn Module,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
-    strict: bool,
   ) -> u64 {
     let mg = compilation.get_module_graph();
     let mut hasher = FxHasher::default();
@@ -403,14 +410,6 @@ impl ChunkGraph {
         let module_identifier = module.identifier();
         Self::get_module_id(&compilation.module_ids_artifact, module_identifier)
           .dyn_hash(&mut hasher);
-        module
-          .get_exports_type(
-            mg,
-            &compilation.module_graph_cache_artifact,
-            &compilation.exports_info_artifact,
-            strict,
-          )
-          .hash(&mut hasher);
         module.source_types(mg).dyn_hash(&mut hasher);
 
         ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier)
