@@ -3,6 +3,25 @@ import fs from 'fs-extra';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext } from '../type';
 
+function isNodeEsmNamespaceObject(
+  value: unknown,
+): value is {
+  default: RspackOptions | ((...args: unknown[]) => RspackOptions);
+} {
+  if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+    return false;
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(value, 'default')) {
+    return false;
+  }
+
+  return (
+    (value as { [Symbol.toStringTag]?: unknown })[Symbol.toStringTag] ===
+    'Module'
+  );
+}
+
 export function readConfigFile(
   files: string[],
   context: ITestContext,
@@ -13,6 +32,10 @@ export function readConfigFile(
 ): RspackOptions[] {
   const existsFile = files.find((i) => fs.existsSync(i));
   let fileConfig = existsFile ? require(existsFile) : {};
+
+  if (isNodeEsmNamespaceObject(fileConfig)) {
+    fileConfig = fileConfig.default;
+  }
 
   if (typeof fileConfig === 'function') {
     fileConfig = fileConfig(
