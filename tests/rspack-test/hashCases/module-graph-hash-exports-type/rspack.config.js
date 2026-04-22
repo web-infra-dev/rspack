@@ -9,17 +9,15 @@ class CheckHashPlugin {
         const sharedModule = Array.from(compilation.modules).find((module) =>
           module.resource?.endsWith('shared.cjs'),
         );
-        if (!sharedModule) {
-          throw new Error('no shared.cjs found');
-        }
-        const hash = compilation.chunkGraph.getModuleHash(
+        expect(sharedModule).toBeTruthy();
+
+        const moduleHash = compilation.chunkGraph.getModuleHash(
           sharedModule,
           'runtime',
         );
-        if (!hash) {
-          throw new Error('no hash for shared.cjs');
-        }
-        hashes.add(hash);
+        expect(moduleHash).toBeTruthy();
+
+        hashes.add(moduleHash);
         expect(hashes.size).toBe(1);
       });
     });
