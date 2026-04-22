@@ -85,6 +85,16 @@ fn push_relative_path_to_request(rel: &str, out: &mut String) {
   }
 }
 
+/// Appends a request-form path for `maybe_absolute_path` into `out`.
+///
+/// This function appends to the provided output buffer and does not clear or
+/// overwrite existing contents in `out`.
+///
+/// Accepted inputs:
+/// - Absolute POSIX paths are converted to a request relative to `context`.
+/// - Absolute Windows paths are converted similarly when possible.
+/// - Query parts (for example `?foo`) are preserved and appended.
+/// - Non-absolute inputs are accepted and appended unchanged.
 pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &mut String) {
   if maybe_absolute_path.starts_with('/')
     && maybe_absolute_path.len() > 1
