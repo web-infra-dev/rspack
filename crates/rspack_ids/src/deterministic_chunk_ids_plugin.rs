@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rayon::prelude::*;
 use rspack_core::{
   ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
@@ -87,10 +89,12 @@ async fn chunk_ids(
   assign_deterministic_ids(
     chunks,
     |chunk| {
-      chunk_names
-        .get(&chunk.ukey())
-        .expect("should have generated full chunk name")
-        .clone()
+      Cow::Borrowed(
+        chunk_names
+          .get(&chunk.ukey())
+          .expect("should have generated full chunk name")
+          .as_str(),
+      )
     },
     |a, b| {
       compare_chunks_natural(

@@ -1,4 +1,4 @@
-use std::sync::LazyLock;
+use std::{borrow::Cow, sync::LazyLock};
 
 use itertools::Itertools;
 use rayon::prelude::*;
@@ -273,10 +273,12 @@ fn mangle_exports_info(
     assign_deterministic_ids(
       mangleable_exports,
       |e| {
-        mangleable_export_names
-          .get(e)
-          .expect("should have name")
-          .to_string()
+        Cow::Borrowed(
+          mangleable_export_names
+            .get(e)
+            .expect("should have name")
+            .as_str(),
+        )
       },
       |a, b| {
         compare_strings_numeric(

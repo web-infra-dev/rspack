@@ -128,9 +128,9 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn assign_deterministic_ids<T>(
+pub fn assign_deterministic_ids<'a, T>(
   mut items: Vec<T>,
-  get_name: impl Fn(&T) -> String,
+  get_name: impl Fn(&T) -> Cow<'a, str>,
   comparator: impl FnMut(&T, &T) -> Ordering,
   mut assign_id: impl FnMut(&T, usize) -> bool,
   ranges: &[usize],
@@ -158,10 +158,10 @@ pub fn assign_deterministic_ids<T>(
   for item in items {
     let ident = get_name(&item);
     let mut i = salt;
-    let mut id = get_number_hash_combined(&ident, i, range);
+    let mut id = get_number_hash_combined(ident.as_ref(), i, range);
     while !assign_id(&item, id) {
       i += 1;
-      id = get_number_hash_combined(&ident, i, range);
+      id = get_number_hash_combined(ident.as_ref(), i, range);
     }
   }
 }
@@ -197,6 +197,40 @@ pub fn compare_modules_by_pre_order_index_or_identifier(
     compare_numbers(a, b)
   } else {
     compare_ids(a, b)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rustc_hash::FxHashMap;
+
+  use super::assign_deterministic_ids;
+
+  #[test]
+  fn assign_deterministic_ids_accepts_borrowed_names() {
+    let items = vec![1usize, 2usize, 3usize];
+    let names = FxHashMap::from_iter([
+      (1usize, "module-a".to_string()),
+      (2usize, "module-b".to_string()),
+      (3usize, "module-c".to_string()),
+    ]);
+    let mut assigned = FxHashMap::default();
+
+    assign_deterministic_ids(
+      items,
+      |item| std::borrow::Cow::Borrowed(names.get(item).expect("should have name").as_str()),
+      |a, b| a.cmp(b),
+      |item, id| {
+        assigned.insert(*item, id);
+        true
+      },
+      &[1000],
+      10,
+      0,
+      0,
+    );
+
+    assert_eq!(assigned.len(), 3);
   }
 }
 
