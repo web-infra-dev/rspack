@@ -15,8 +15,8 @@ importers:
   .:
     devDependencies:
       '@rslint/core':
-        specifier: 0.4.2
-        version: 0.4.2(jiti@2.6.1)
+        specifier: 0.5.0
+        version: 0.5.0(jiti@2.6.1)
       '@rstest/core':
         specifier: ^0.9.8
         version: 0.9.8(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)(jsdom@26.1.0)
@@ -3015,8 +3015,8 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.4.2':
-    resolution: {integrity: sha512-YlTtjsJXoDftUf+xbMUabWEFnE9ya2p+VyPY3bJGFgqeF4u0yfEOn96/V2GoLMh7HqD6XMsSdg3/0SPxdE9bcA==}
+  '@rslint/core@0.5.0':
+    resolution: {integrity: sha512-RkP/xqWx+Nvj7awvALIpbGnc5ECv8/AjPXqQDixhms4bu4dW5UbNNZ9XbrvJ4JoToUC/Ac5CrwW+nOj7JItSFQ==}
     hasBin: true
     peerDependencies:
       jiti: ^2.0.0
@@ -3024,33 +3024,33 @@ packages:
       jiti:
         optional: true
 
-  '@rslint/darwin-arm64@0.4.2':
-    resolution: {integrity: sha512-a+YeQA+I/RsNnj9ioak7KOpuKSWjt/hv8lvcMvxLy8r4uVcc6orhmccASfEfcpm1HdZHrEm+HJ25CFd3KZrCwA==}
+  '@rslint/darwin-arm64@0.5.0':
+    resolution: {integrity: sha512-AgsyJBnmXBuTnXAB5YUr6fhgfxvCl+iNRFlCjNN4WiClKEQyRLkU8KAmqVoZWOMyNszDUl9k/KT5P5KrBEJCJQ==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rslint/darwin-x64@0.4.2':
-    resolution: {integrity: sha512-KrQ870EeDXc0V4ncfvZMUEX5uphwemy+Bhia5KDEKURR6rZtpROy/RLLKEn+UkavBJi8ygTv5HXRC4EI6OEHjA==}
+  '@rslint/darwin-x64@0.5.0':
+    resolution: {integrity: sha512-4vxDu0DFzJVsGGxmmGmtSqKOPPfVcJvqxZP7XXDf9isFPg3L9jF+2DW3QL3KL7LO3Q+3zVG9eL+MQslMUf9NSw==}
     cpu: [x64]
     os: [darwin]
 
-  '@rslint/linux-arm64@0.4.2':
-    resolution: {integrity: sha512-E2yEe0ZeMhZNuafrTfKrFy3iWKDMwpnnxCeRzq3AsTmwLmsQDgUZ2iuSxO5EL3eeAJn/7R/hQ3/MKirbcsIWlA==}
+  '@rslint/linux-arm64@0.5.0':
+    resolution: {integrity: sha512-sNdDT7Omf6GttaJOql1915t/6txHlo0mEulLNhuDK4KVD9EnSltQ1uIDeqhNVvsKSnqIuTp3qCWmo1qYv5xKTA==}
     cpu: [arm64]
     os: [linux]
 
-  '@rslint/linux-x64@0.4.2':
-    resolution: {integrity: sha512-vyVsZHLiaGrWrlRFN7l6I+XxCCH4sI3LkhItA//My/chFIo3zyUa6hwooqllpA3Pb/eXdKVfvurF0hceKEQFjw==}
+  '@rslint/linux-x64@0.5.0':
+    resolution: {integrity: sha512-Er/feorEUqOjee1ueE02fHIaPB1haxoGdh3uNqNrm3CUyrBp+Amjb8HL3MRzIYQuYoZWBAw9fU67YG8FxcWUsA==}
     cpu: [x64]
     os: [linux]
 
-  '@rslint/win32-arm64@0.4.2':
-    resolution: {integrity: sha512-1dsU4zm5y+GoO45qLL9pxisXh7NFdX01m26a146rS1bCu9skHqSofmufVYLNrWtnMf7Wso2iaJKVsJya077PRQ==}
+  '@rslint/win32-arm64@0.5.0':
+    resolution: {integrity: sha512-Y895KBuDVfoprZqr1BKX4YwP4kA2cqUuQr1B50+W8yjSRznyotNa09pRqUi+FrgJ5z6x07JjmW3Ggv8t5z9wwg==}
     cpu: [arm64]
     os: [win32]
 
-  '@rslint/win32-x64@0.4.2':
-    resolution: {integrity: sha512-QBZHeBDW3f6pEHZLB7/2/w/KTv1O5RK1dtr9yLdqev93Tcgk9qwXXLm8TB/6JP9tx+0EyVo8f0XSAS1gtLJ9hQ==}
+  '@rslint/win32-x64@0.5.0':
+    resolution: {integrity: sha512-pTvCNr99DQg+22XQ5QkHySOLD4ap3wJ6yuwoW2r/4dW4MbmyDF9FfQGfhH1ZsQA3h20H8/3ANGdKuCbZnjkSrg==}
     cpu: [x64]
     os: [win32]
 
@@ -9937,34 +9937,34 @@ snapshots:
       - '@typescript/native-preview'
       - core-js
 
-  '@rslint/core@0.4.2(jiti@2.6.1)':
+  '@rslint/core@0.5.0(jiti@2.6.1)':
     dependencies:
       picomatch: 4.0.4
     optionalDependencies:
-      '@rslint/darwin-arm64': 0.4.2
-      '@rslint/darwin-x64': 0.4.2
-      '@rslint/linux-arm64': 0.4.2
-      '@rslint/linux-x64': 0.4.2
-      '@rslint/win32-arm64': 0.4.2
-      '@rslint/win32-x64': 0.4.2
+      '@rslint/darwin-arm64': 0.5.0
+      '@rslint/darwin-x64': 0.5.0
+      '@rslint/linux-arm64': 0.5.0
+      '@rslint/linux-x64': 0.5.0
+      '@rslint/win32-arm64': 0.5.0
+      '@rslint/win32-x64': 0.5.0
       jiti: 2.6.1
 
-  '@rslint/darwin-arm64@0.4.2':
+  '@rslint/darwin-arm64@0.5.0':
     optional: true
 
-  '@rslint/darwin-x64@0.4.2':
+  '@rslint/darwin-x64@0.5.0':
     optional: true
 
-  '@rslint/linux-arm64@0.4.2':
+  '@rslint/linux-arm64@0.5.0':
     optional: true
 
-  '@rslint/linux-x64@0.4.2':
+  '@rslint/linux-x64@0.5.0':
     optional: true
 
-  '@rslint/win32-arm64@0.4.2':
+  '@rslint/win32-arm64@0.5.0':
     optional: true
 
-  '@rslint/win32-x64@0.4.2':
+  '@rslint/win32-x64@0.5.0':
     optional: true
 
   '@rspack/binding-darwin-arm64@2.0.0-rc.1':
