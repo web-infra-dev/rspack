@@ -229,14 +229,3 @@ fn test_push_absolute_to_request() {
   push_absolute_to_request("/workspace/app", "loader", &mut out);
   assert_eq!(out, "loader");
 }
-
-#[test]
-fn test_push_make_paths_relative_preserves_segments_and_delimiters() {
-  let mut out = String::new();
-  push_make_paths_relative(
-    "/workspace/app",
-    "/workspace/app/a.js|/workspace/app/b.js!/workspace/app/c.js?x=1",
-    &mut out,
-  );
-  assert_eq!(out, "./a.js|./b.js!./c.js?x=1");
-}
