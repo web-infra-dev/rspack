@@ -459,11 +459,11 @@ npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
 
 ## Looking ahead
 
-Rspack 2.0 is a new starting point. In 2.0, we have already introduced some forward-looking design choices. Going forward, we will continue to move in these directions: improving output optimization and build performance, strengthening support for agents, and keeping up with new web platform capabilities.
+Rspack 2.0 marks a new phase in the project's evolution. Compared with 1.0, it already includes a range of improvements to default behavior, API design, and build outputs. Looking ahead, we will continue advancing in three areas: output optimization, agent support, and toolchain collaboration.
 
-- For output optimization, we will continue improving tree shaking, code splitting, and static analysis while providing fine-grained, controllable optimization options for different scenarios. We will also keep exploring more modern output formats.
-- For performance, we care not only about the bundler itself, but also about the overall overhead introduced by related tools such as linters, type checkers, and Tailwind CSS. We will keep advancing the Rstack toolchain so performance improvements can cover more of the end-to-end build process.
-- For AI integration, we will continue improving debugging, diagnostics, context collection, and issue reproduction workflows, helping AI understand and handle build problems more accurately and shortening the feedback loop between analysis, validation, and iteration.
+- **Output optimization**: Rspack's goal is not only to speed up builds, but also to generate higher-quality outputs while keeping behavior stable. We will continue improving core capabilities such as tree shaking, code splitting, and static analysis, explore optimizations based on static type information, and provide finer-grained controls for code splitting and optimization.
+- **Agent-friendly workflows**: As coding agents become an increasingly important user group, we will incorporate these use cases more broadly into Rspack's design so agents can understand and handle build issues more easily. For example, we will expose richer debugging information, performance data, and other context through the CLI to help agents analyze problems more accurately and contribute to debugging and performance optimization.
+- **Toolchain collaboration**: In real projects, time is often spent on more than just bundling. Testing, type checking, and linting can also add significant overhead. We will continue advancing the Rstack toolchain as a coordinated system and further integrate it with typescript-go. For example, Rslint already supports [`rslint --type-check`](https://rslint.rs/guide/type-checking), which runs linting and type checking together. We also plan to add typescript-go support to [`ts-checker-rspack-plugin`](https://github.com/rstackjs/ts-checker-rspack-plugin).
 
 > See [Rspack Roadmap](/misc/planning/roadmap) for more details.
 
@@ -478,3 +478,7 @@ As JavaScript standards continue to evolve, Rspack will also adopt better defaul
 ### Will the 1.x line continue to be maintained?
 
 Yes. After the 2.0 release, we will continue to maintain the 1.x line for a period of time, including fixes for critical issues and migration support. However, new features and optimizations will be prioritized in 2.x, so we recommend upgrading to 2.x as soon as possible.
+
+### When will tools built on Rspack upgrade to 2.0?
+
+Rsbuild 2.0 has already been released alongside Rspack 2.0. Rslib, Rstest, and Rspress will also upgrade to Rspack 2.0 soon. At the same time, we will continue helping frameworks and tools in the community upgrade and adapt to Rspack 2.0.
