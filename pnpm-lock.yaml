@@ -341,6 +341,10 @@ importers:
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
 
   packages/rspack-cli:
+    dependencies:
+      cac:
+        specifier: ^7.0.0
+        version: 7.0.0
     devDependencies:
       '@discoveryjs/json-ext':
         specifier: ^0.5.7
@@ -357,9 +361,6 @@ importers:
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
-      cac:
-        specifier: ^7.0.0
-        version: 7.0.0
       concat-stream:
         specifier: ^2.0.0
         version: 2.0.0
