@@ -16,7 +16,7 @@ import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
 import { HomeLayout } from './pages';
 
 // Enable this when we need a new announcement
-const ANNOUNCEMENT_URL = '';
+const ANNOUNCEMENT_URL = '/blog/announcing-2-0';
 
 const DocLayout = (props: DocLayoutProps) => {
   const { page } = usePage();
@@ -69,8 +69,8 @@ const Layout = () => {
                 }
                 message={
                   lang === 'en'
-                    ? 'Rspack 1.0 has been released!'
-                    : 'Rspack 1.0 正式发布！'
+                    ? 'Rspack 2.0 has been released!'
+                    : 'Rspack 2.0 正式发布！'
                 }
                 localStorageKey="rspack-announcement-closed"
                 display={page.pageType === 'home'}
