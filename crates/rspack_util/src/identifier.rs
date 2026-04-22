@@ -11,8 +11,6 @@ use sugar_path::SugarPath;
 
 static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([|!])").expect("should be a valid regex"));
-static WINDOWS_ABS_PATH_REGEXP: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^[a-zA-Z]:[/\\]").expect("should be a valid regex"));
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
 /// # Example
@@ -38,36 +36,14 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
     return Cow::Borrowed(maybe_absolute_path);
   }
 
-  let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
-
-  let relative_resource = if maybe_absolute_path.starts_with('/') {
-    let tmp = Path::new(maybe_absolute_resource).relative(context);
-    let tmp_path = tmp.to_string_lossy();
-    relative_path_to_request(&tmp_path).into_owned()
-  } else if WINDOWS_ABS_PATH_REGEXP.is_match(maybe_absolute_path) {
-    let mut resource = maybe_absolute_resource
-      .as_path()
-      .relative(context)
-      .to_string_lossy()
-      .into_owned();
-
-    // In windows, A path that relative to a another path could still be absolute.
-    // ("d:/aaaa/cccc").relative("c:/aaaaa/") would get "d:/aaaa/cccc".
-    if !WINDOWS_ABS_PATH_REGEXP.is_match(&resource) {
-      resource =
-        relative_path_to_request(&resource.cow_replace(WINDOWS_PATH_SEPARATOR, "/")).into_owned();
-    }
-    resource
-  } else {
+  if !maybe_absolute_path.starts_with('/') && !is_windows_absolute_path(maybe_absolute_path) {
     // not an absolute path
     return Cow::Borrowed(maybe_absolute_path);
-  };
-
-  if let Some(query_part) = query_part {
-    Cow::Owned(concat_string!(relative_resource, query_part))
-  } else {
-    Cow::Owned(relative_resource)
   }
+
+  let mut result = String::with_capacity(maybe_absolute_path.len());
+  push_absolute_to_request(context, maybe_absolute_path, &mut result);
+  Cow::Owned(result)
 }
 
 /// # Context
@@ -84,6 +60,72 @@ pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
   } else {
     Cow::Owned(concat_string!("./", rel))
   }
+}
+
+#[inline]
+fn is_windows_absolute_path(path: &str) -> bool {
+  let bytes = path.as_bytes();
+  bytes.len() >= 3
+    && bytes[0].is_ascii_alphabetic()
+    && bytes[1] == b':'
+    && matches!(bytes[2], b'/' | b'\\')
+}
+
+#[inline]
+fn push_relative_path_to_request(rel: &str, out: &mut String) {
+  if rel.is_empty() {
+    out.push_str("./.");
+  } else if rel == ".." {
+    out.push_str("../.");
+  } else if rel.starts_with("../") {
+    out.push_str(rel);
+  } else {
+    out.push_str("./");
+    out.push_str(rel);
+  }
+}
+
+pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &mut String) {
+  if maybe_absolute_path.starts_with('/')
+    && maybe_absolute_path.len() > 1
+    && maybe_absolute_path.ends_with('/')
+  {
+    out.push_str(maybe_absolute_path);
+    return;
+  }
+
+  if maybe_absolute_path.starts_with('/') {
+    let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
+    let tmp = Path::new(maybe_absolute_resource).relative(context);
+    let tmp_path = tmp.to_string_lossy();
+    push_relative_path_to_request(&tmp_path, out);
+    if let Some(query_part) = query_part {
+      out.push_str(query_part);
+    }
+    return;
+  }
+
+  if is_windows_absolute_path(maybe_absolute_path) {
+    let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
+    let relative_resource = maybe_absolute_resource.as_path().relative(context);
+    let resource = relative_resource.to_string_lossy();
+
+    // In windows, A path that relative to a another path could still be absolute.
+    // ("d:/aaaa/cccc").relative("c:/aaaaa/") would get "d:/aaaa/cccc".
+    if is_windows_absolute_path(resource.as_ref()) {
+      out.push_str(resource.as_ref());
+    } else {
+      let resource = resource.cow_replace(WINDOWS_PATH_SEPARATOR, "/");
+      push_relative_path_to_request(resource.as_ref(), out);
+    }
+
+    if let Some(query_part) = query_part {
+      out.push_str(query_part);
+    }
+    return;
+  }
+
+  out.push_str(maybe_absolute_path);
 }
 
 fn request_to_absolute(context: &str, relative_path: &str) -> String {
@@ -154,4 +196,23 @@ pub fn request_to_id(request: &str) -> String {
   REQUEST_TO_ID_REGEX2
     .replace_all(&REQUEST_TO_ID_REGEX1.replace(request, ""), "_")
     .to_string()
+}
+
+#[test]
+fn test_push_absolute_to_request() {
+  let mut out = String::new();
+  push_absolute_to_request(
+    "/workspace/app",
+    "/workspace/app/src/index.js?foo=1",
+    &mut out,
+  );
+  assert_eq!(out, "./src/index.js?foo=1");
+
+  let mut out = String::new();
+  push_absolute_to_request("/workspace/app", "/regexp/", &mut out);
+  assert_eq!(out, "/regexp/");
+
+  let mut out = String::new();
+  push_absolute_to_request("/workspace/app", "loader", &mut out);
+  assert_eq!(out, "loader");
 }
