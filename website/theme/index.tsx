@@ -72,7 +72,7 @@ const Layout = () => {
                     ? 'Rspack 2.0 has been released!'
                     : 'Rspack 2.0 正式发布！'
                 }
-                localStorageKey="rspack-announcement-closed"
+                localStorageKey="rspack-v2-announcement-closed"
                 display={page.pageType === 'home'}
               />
             </NoSSR>
