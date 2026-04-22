@@ -139,8 +139,12 @@ impl Module for ConsumeSharedModule {
     &ModuleType::ConsumeShared
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::ConsumeShared]
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    vec![SourceType::ConsumeShared]
   }
 
   fn source(&self) -> Option<&BoxSource> {

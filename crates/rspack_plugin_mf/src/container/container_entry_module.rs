@@ -163,8 +163,12 @@ impl Module for ContainerEntryModule {
     }
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::JavaScript, SourceType::Expose]
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    vec![SourceType::JavaScript, SourceType::Expose]
   }
 
   fn source(&self) -> Option<&BoxSource> {

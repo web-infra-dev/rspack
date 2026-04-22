@@ -38,8 +38,9 @@ use crate::{
 fn is_css_only_module(
   module: &dyn rspack_core::Module,
   module_graph: &rspack_core::ModuleGraph,
+  compilation: &Compilation,
 ) -> bool {
-  let source_types = module.source_types(module_graph);
+  let source_types = module.source_types(module_graph, Some(compilation));
   !source_types.is_empty()
     && source_types
       .iter()
@@ -427,7 +428,7 @@ var {} = {{}};
       // Skip CSS-only modules (native CSS or extract-css CssModule). They
       // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
       if let Some(module) = module_graph.module_by_identifier(m)
-        && is_css_only_module(module.as_ref(), module_graph)
+        && is_css_only_module(module.as_ref(), module_graph, compilation)
       {
         continue;
       }
@@ -449,7 +450,12 @@ var {} = {{}};
         if !compilation
           .build_chunk_graph_artifact
           .chunk_graph
-          .has_chunk_module_by_source_type(&target_chunk, SourceType::JavaScript, module_graph)
+          .has_chunk_module_by_source_type(
+            &target_chunk,
+            SourceType::JavaScript,
+            module_graph,
+            Some(compilation),
+          )
         {
           continue;
         }
@@ -546,7 +552,12 @@ var {} = {{}};
       if !compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .has_chunk_module_by_source_type(&chunk, SourceType::JavaScript, module_graph)
+        .has_chunk_module_by_source_type(
+          &chunk,
+          SourceType::JavaScript,
+          module_graph,
+          Some(compilation),
+        )
       {
         continue;
       }
@@ -981,7 +992,7 @@ var {} = {{}};
       // Skip CSS-only modules (native CSS or extract-css CssModule). They
       // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
       if let Some(module) = module_graph.module_by_identifier(id)
-        && is_css_only_module(module.as_ref(), module_graph)
+        && is_css_only_module(module.as_ref(), module_graph, compilation)
       {
         continue;
       }

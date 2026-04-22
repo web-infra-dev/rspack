@@ -214,7 +214,7 @@ async fn render_chunk(
         .module_by_identifier(module)
         .is_some_and(|module| {
           module
-            .source_types(module_graph)
+            .source_types(module_graph, Some(compilation))
             .contains(&SourceType::JavaScript)
         })
       {

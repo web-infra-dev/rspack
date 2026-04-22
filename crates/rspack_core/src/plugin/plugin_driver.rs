@@ -1,14 +1,13 @@
 use std::sync::{Arc, Mutex};
 
 use derive_more::Debug;
-use rspack_error::{Diagnostic, Result, error};
+use rspack_error::Diagnostic;
 use rspack_util::fx_hash::FxDashMap;
 
 use crate::{
   ApplyContext, BoxedParserAndGeneratorBuilder, CompilationHooks, CompilationId, CompilerHooks,
-  CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks, GeneratorOptions,
-  ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
-  Plugin, ResolverFactory,
+  CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, Plugin, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -86,26 +85,5 @@ impl PluginDriver {
     for plugin in &self.plugins {
       plugin.clear_cache(id);
     }
-  }
-
-  pub async fn create_parser_and_generator(
-    &self,
-    module_type: &ModuleType,
-    parser_options: Option<&ParserOptions>,
-    generator_options: Option<&GeneratorOptions>,
-  ) -> Result<Box<dyn ParserAndGenerator>> {
-    let mut parser_and_generator = self
-      .registered_parser_and_generator_builder
-      .get(module_type)
-      .ok_or_else(|| error!("No parser registered for '{}'", module_type.as_str()))?(
-      parser_options,
-      generator_options,
-    );
-    self
-      .normal_module_factory_hooks
-      .parser
-      .call(module_type, &mut parser_and_generator, parser_options)
-      .await?;
-    Ok(parser_and_generator)
   }
 }

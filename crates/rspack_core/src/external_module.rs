@@ -809,6 +809,7 @@ impl Module for ExternalModule {
 
   fn get_concatenation_bailout_reason(
     &self,
+    _compilation: &Compilation,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
@@ -825,18 +826,22 @@ impl Module for ExternalModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
     if self.external_type == "asset"
       && self
         .dependency_meta
         .source_type
         .is_some_and(|t| t == SourceType::CssUrl)
     {
-      EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES
+      EXTERNAL_MODULE_CSS_URL_SOURCE_TYPES.to_vec()
     } else if self.external_type == "css-import" {
-      EXTERNAL_MODULE_CSS_SOURCE_TYPES
+      EXTERNAL_MODULE_CSS_SOURCE_TYPES.to_vec()
     } else {
-      EXTERNAL_MODULE_JS_SOURCE_TYPES
+      EXTERNAL_MODULE_JS_SOURCE_TYPES.to_vec()
     }
   }
 

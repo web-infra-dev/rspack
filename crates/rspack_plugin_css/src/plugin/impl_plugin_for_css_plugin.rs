@@ -380,11 +380,16 @@ async fn content_hash(
   let css_import_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::CssImport, module_graph);
+    .get_chunk_modules_by_source_type(
+      chunk_ukey,
+      SourceType::CssImport,
+      module_graph,
+      Some(compilation),
+    );
   let css_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph, Some(compilation));
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let mut hasher = hashes
@@ -431,11 +436,16 @@ async fn render_manifest(
   let css_import_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::CssImport, module_graph);
+    .get_chunk_modules_by_source_type(
+      chunk_ukey,
+      SourceType::CssImport,
+      module_graph,
+      Some(compilation),
+    );
   let css_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
+    .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph, Some(compilation));
   if css_import_modules.is_empty() && css_modules.is_empty() {
     return Ok(());
   }

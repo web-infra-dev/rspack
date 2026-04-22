@@ -411,7 +411,9 @@ impl ChunkGraph {
             strict,
           )
           .hash(&mut hasher);
-        module.source_types(mg).dyn_hash(&mut hasher);
+        module
+          .source_types(mg, Some(compilation))
+          .dyn_hash(&mut hasher);
 
         ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier)
           .dyn_hash(&mut hasher);

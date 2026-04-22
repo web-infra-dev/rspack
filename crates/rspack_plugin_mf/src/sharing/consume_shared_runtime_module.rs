@@ -138,6 +138,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           &chunk,
           SourceType::ConsumeShared,
           module_graph,
+          Some(compilation),
         );
       let chunk = compilation
         .build_chunk_graph_artifact
@@ -168,6 +169,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
           &chunk,
           SourceType::ConsumeShared,
           module_graph,
+          Some(compilation),
         );
       let chunk = compilation
         .build_chunk_graph_artifact

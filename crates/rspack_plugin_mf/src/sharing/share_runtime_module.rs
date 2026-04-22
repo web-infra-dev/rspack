@@ -65,7 +65,12 @@ impl RuntimeModule for ShareRuntimeModule {
       let mut modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .get_chunk_modules_identifier_by_source_type(&c, SourceType::ShareInit, module_graph);
+        .get_chunk_modules_identifier_by_source_type(
+          &c,
+          SourceType::ShareInit,
+          module_graph,
+          Some(compilation),
+        );
       modules.sort_unstable();
       for mid in modules {
         let code_gen = compilation

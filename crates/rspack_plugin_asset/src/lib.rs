@@ -811,7 +811,12 @@ async fn render_manifest(
   let ordered_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::Asset, module_graph);
+    .get_chunk_modules_identifier_by_source_type(
+      chunk_ukey,
+      SourceType::Asset,
+      module_graph,
+      Some(compilation),
+    );
 
   let assets = ordered_modules
     .par_iter()

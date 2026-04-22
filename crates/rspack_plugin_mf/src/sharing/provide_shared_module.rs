@@ -135,8 +135,12 @@ impl Module for ProvideSharedModule {
     &ModuleType::ProvideShared
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::ShareInit]
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    vec![SourceType::ShareInit]
   }
 
   fn source(&self) -> Option<&BoxSource> {

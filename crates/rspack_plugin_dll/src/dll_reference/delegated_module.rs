@@ -67,8 +67,12 @@ impl Module for DelegatedModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::JavaScript]
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    vec![SourceType::JavaScript]
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {

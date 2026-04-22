@@ -301,11 +301,11 @@ impl NormalModule {
     self.generator_options = generator_options;
   }
 
-  fn parser_and_generator<'a>(
-    &self,
-    module_graph: &'a ModuleGraph,
-  ) -> &'a dyn crate::ParserAndGenerator {
-    module_graph
+  fn parser_and_generator(&self, compilation: &Compilation) -> Arc<dyn crate::ParserAndGenerator> {
+    compilation
+      .normal_module_factory
+      .as_ref()
+      .expect("normal_module_factory should exist")
       .parser_and_generator(&self.id)
       .expect("parser_and_generator should be registered for NormalModule")
   }
@@ -347,10 +347,18 @@ impl Module for NormalModule {
     &self.module_type
   }
 
-  fn source_types<'a>(&'a self, module_graph: &'a ModuleGraph) -> &'a [SourceType] {
+  fn source_types(
+    &self,
+    module_graph: &ModuleGraph,
+    compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    let Some(compilation) = compilation else {
+      return Vec::new();
+    };
     self
-      .parser_and_generator(module_graph)
+      .parser_and_generator(compilation)
       .source_types(self, module_graph)
+      .to_vec()
   }
 
   fn source(&self) -> Option<&BoxSource> {
@@ -362,11 +370,8 @@ impl Module for NormalModule {
   }
 
   fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64 {
-    let parser_and_generator = compilation.and_then(|compilation| {
-      compilation
-        .get_module_graph()
-        .parser_and_generator(&self.id)
-    });
+    let parser_and_generator =
+      compilation.map(|compilation| self.parser_and_generator(compilation));
     let Some(parser_and_generator) = parser_and_generator else {
       if let Some(source_type) = source_type
         && let Some(size) = self.cached_source_sizes.get(source_type)
@@ -405,7 +410,9 @@ impl Module for NormalModule {
         parser_and_generator
       } else {
         build_context
-          .plugin_driver
+          .normal_module_factory
+          .as_ref()
+          .expect("normal_module_factory should exist")
           .create_parser_and_generator(
             &self.module_type,
             self.parser_options.as_ref(),
@@ -502,7 +509,7 @@ impl Module for NormalModule {
         dependencies: Vec::new(),
         blocks: Vec::new(),
         optimization_bailouts: vec![],
-        parser_and_generator: Some(parser_and_generator),
+        parser_and_generator: Some(parser_and_generator.into()),
       });
     };
 
@@ -568,7 +575,7 @@ impl Module for NormalModule {
         dependencies: vec![],
         blocks: vec![],
         optimization_bailouts: vec![],
-        parser_and_generator: Some(parser_and_generator),
+        parser_and_generator: Some(parser_and_generator.into()),
       });
     }
 
@@ -635,7 +642,7 @@ impl Module for NormalModule {
       dependencies,
       blocks,
       optimization_bailouts,
-      parser_and_generator: Some(parser_and_generator),
+      parser_and_generator: Some(parser_and_generator.into()),
     })
   }
 
@@ -652,21 +659,7 @@ impl Module for NormalModule {
     } = code_generation_context;
 
     let module_graph = compilation.get_module_graph();
-    let local_parser_and_generator;
-    let parser_and_generator =
-      if let Some(parser_and_generator) = module_graph.parser_and_generator(&self.id) {
-        parser_and_generator
-      } else {
-        local_parser_and_generator = compilation
-          .plugin_driver
-          .create_parser_and_generator(
-            &self.module_type,
-            self.parser_options.as_ref(),
-            self.generator_options.as_ref(),
-          )
-          .await?;
-        &*local_parser_and_generator
-      };
+    let parser_and_generator = self.parser_and_generator(compilation);
     let source_types = parser_and_generator
       .source_types(self, module_graph)
       .to_vec();
@@ -729,22 +722,7 @@ impl Module for NormalModule {
     self.build_info.hash.dyn_hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() {
-      let module_graph = compilation.get_module_graph();
-      let local_parser_and_generator;
-      let parser_and_generator =
-        if let Some(parser_and_generator) = module_graph.parser_and_generator(&self.id) {
-          parser_and_generator
-        } else {
-          local_parser_and_generator = compilation
-            .plugin_driver
-            .create_parser_and_generator(
-              &self.module_type,
-              self.parser_options.as_ref(),
-              self.generator_options.as_ref(),
-            )
-            .await?;
-          &*local_parser_and_generator
-        };
+      let parser_and_generator = self.parser_and_generator(compilation);
       parser_and_generator
         .get_runtime_hash(self, compilation, runtime)
         .await?
@@ -864,11 +842,12 @@ impl Module for NormalModule {
 
   fn get_concatenation_bailout_reason(
     &self,
+    compilation: &Compilation,
     mg: &ModuleGraph,
     cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     self
-      .parser_and_generator(mg)
+      .parser_and_generator(compilation)
       .get_concatenation_bailout_reason(self, mg, cg)
   }
 

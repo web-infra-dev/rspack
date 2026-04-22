@@ -148,9 +148,11 @@ async fn restore_parser_and_generators(compilation: &mut Compilation) {
       )>>()
   };
 
+  let Some(normal_module_factory) = &compilation.normal_module_factory else {
+    return;
+  };
   for (module_identifier, module_type, parser_options, generator_options) in normal_modules {
-    let parser_and_generator = compilation
-      .plugin_driver
+    let parser_and_generator = normal_module_factory
       .create_parser_and_generator(
         &module_type,
         parser_options.as_ref(),
@@ -158,9 +160,7 @@ async fn restore_parser_and_generators(compilation: &mut Compilation) {
       )
       .await
       .expect("should restore parser_and_generator for cached NormalModule");
-    compilation
-      .get_module_graph_mut()
-      .set_parser_and_generator(module_identifier, parser_and_generator);
+    normal_module_factory.set_parser_and_generator(module_identifier, parser_and_generator.into());
   }
 }
 

@@ -112,8 +112,8 @@ fn get_modules_size(modules: &[&BoxModule], compilation: &Compilation) -> f64 {
   let mut size = 0f64;
   let module_graph = compilation.get_module_graph();
   for module in modules {
-    for source_type in module.source_types(module_graph) {
-      size += module.size(Some(source_type), Some(compilation));
+    for source_type in module.source_types(module_graph, Some(compilation)) {
+      size += module.size(Some(&source_type), Some(compilation));
     }
   }
   size
@@ -422,6 +422,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &ModuleGraph,
+    compilation: Option<&Compilation>,
   ) -> bool {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let source_types = &chunk_graph_chunk.source_types_by_module;
@@ -441,7 +442,11 @@ impl ChunkGraph {
       } else {
         module_graph
           .module_by_identifier(mid)
-          .is_some_and(|module| module.source_types(module_graph).contains(&source_type))
+          .is_some_and(|module| {
+            module
+              .source_types(module_graph, compilation)
+              .contains(&source_type)
+          })
       }
     })
   }
@@ -453,6 +458,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &'module ModuleGraph,
+    compilation: Option<&Compilation>,
   ) -> Vec<&'module dyn Module> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let source_types = &chunk_graph_chunk.source_types_by_module;
@@ -475,7 +481,10 @@ impl ChunkGraph {
           }
         } else {
           let module = module_graph.module_by_identifier(mid)?;
-          if module.source_types(module_graph).contains(&source_type) {
+          if module
+            .source_types(module_graph, compilation)
+            .contains(&source_type)
+          {
             Some(module.as_ref())
           } else {
             None
@@ -492,6 +501,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     source_type: SourceType,
     module_graph: &ModuleGraph,
+    compilation: Option<&Compilation>,
   ) -> Vec<ModuleIdentifier> {
     let chunk_graph_chunk = self.expect_chunk_graph_chunk(chunk);
     let source_types = &chunk_graph_chunk.source_types_by_module;
@@ -514,7 +524,10 @@ impl ChunkGraph {
           }
         } else {
           let module = module_graph.module_by_identifier(mid)?;
-          if module.source_types(module_graph).contains(&source_type) {
+          if module
+            .source_types(module_graph, compilation)
+            .contains(&source_type)
+          {
             Some(module.identifier())
           } else {
             None
@@ -532,7 +545,7 @@ impl ChunkGraph {
       .fold(0.0, |acc, m| {
         acc
           + m
-            .source_types(module_graph)
+            .source_types(module_graph, Some(compilation))
             .iter()
             .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
       })
@@ -549,10 +562,10 @@ impl ChunkGraph {
     for identifier in &cgc.modules {
       let module = module_graph.module_by_identifier(identifier);
       if let Some(module) = module {
-        for source_type in module.source_types(module_graph) {
-          let size = module.size(Some(source_type), Some(compilation));
+        for source_type in module.source_types(module_graph, Some(compilation)) {
+          let size = module.size(Some(&source_type), Some(compilation));
           sizes
-            .entry(*source_type)
+            .entry(source_type)
             .and_modify(|s| *s += size)
             .or_insert(size);
         }
@@ -1165,6 +1178,7 @@ impl ChunkGraph {
     chunk: &ChunkUkey,
     module: &BoxModule,
     module_graph: &ModuleGraph,
+    compilation: Option<&Compilation>,
   ) -> FxHashSet<SourceType> {
     self
       .chunk_graph_chunk_by_chunk_ukey
@@ -1176,7 +1190,12 @@ impl ChunkGraph {
 
         None
       })
-      .unwrap_or_else(|| module.source_types(module_graph).iter().copied().collect())
+      .unwrap_or_else(|| {
+        module
+          .source_types(module_graph, compilation)
+          .into_iter()
+          .collect()
+      })
   }
 }
 

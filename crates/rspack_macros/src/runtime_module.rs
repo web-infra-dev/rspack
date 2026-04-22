@@ -171,8 +171,12 @@ pub fn impl_runtime_module(
         &::rspack_core::ModuleType::Runtime
       }
 
-      fn source_types(&self, module_graph: &::rspack_core::ModuleGraph) -> &[::rspack_core::SourceType] {
-        &[::rspack_core::SourceType::JavaScript]
+      fn source_types(
+        &self,
+        _module_graph: &::rspack_core::ModuleGraph,
+        _compilation: Option<&::rspack_core::Compilation>,
+      ) -> Vec<::rspack_core::SourceType> {
+        vec![::rspack_core::SourceType::JavaScript]
       }
 
       fn size(

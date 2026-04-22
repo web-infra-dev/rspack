@@ -344,7 +344,7 @@ pub fn get_chunk_modules_size(
     .fold(0.0, |acc, m| {
       acc
         + m
-          .source_types(module_graph)
+          .source_types(module_graph, Some(compilation))
           .iter()
           .fold(0.0, |acc, t| acc + m.size(Some(t), Some(compilation)))
     })
@@ -365,10 +365,10 @@ pub fn get_chunk_modules_sizes(
   for identifier in cgc.modules() {
     let module = module_graph.module_by_identifier(identifier);
     if let Some(module) = module {
-      for source_type in module.source_types(module_graph) {
-        let size = module.size(Some(source_type), Some(compilation));
+      for source_type in module.source_types(module_graph, Some(compilation)) {
+        let size = module.size(Some(&source_type), Some(compilation));
         sizes
-          .entry(*source_type)
+          .entry(source_type)
           .and_modify(|s| *s += size)
           .or_insert(size);
       }

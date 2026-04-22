@@ -77,7 +77,11 @@ impl Module for TempModule {
     &mut self.build_meta
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
     unreachable!()
   }
 

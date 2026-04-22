@@ -610,7 +610,7 @@ async fn content_hash(
   let rendered_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk_ukey, SOURCE_TYPE[0], module_graph);
+    .get_chunk_modules_by_source_type(chunk_ukey, SOURCE_TYPE[0], module_graph, Some(compilation));
 
   if rendered_modules.is_empty() {
     return Ok(());
@@ -663,7 +663,7 @@ async fn render_manifest(
   let rendered_modules = compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .get_chunk_modules_by_source_type(chunk_ukey, SOURCE_TYPE[0], module_graph);
+    .get_chunk_modules_by_source_type(chunk_ukey, SOURCE_TYPE[0], module_graph, Some(compilation));
 
   if rendered_modules.is_empty() {
     return Ok(());

@@ -113,7 +113,7 @@ impl CssLoadingRuntimeModule {
       if compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .has_chunk_module_by_source_type(&chunk, SOURCE_TYPE[0], module_graph)
+        .has_chunk_module_by_source_type(&chunk, SOURCE_TYPE[0], module_graph, Some(compilation))
       {
         set.insert(chunk);
       }
@@ -199,7 +199,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           compilation
             .build_chunk_graph_artifact
             .chunk_graph
-            .has_chunk_module_by_source_type(chunk, SOURCE_TYPE[0], compilation.get_module_graph())
+            .has_chunk_module_by_source_type(
+              chunk,
+              SOURCE_TYPE[0],
+              compilation.get_module_graph(),
+              Some(compilation),
+            )
         })
     };
 
@@ -412,5 +417,10 @@ fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
   compilation
     .build_chunk_graph_artifact
     .chunk_graph
-    .has_chunk_module_by_source_type(chunk, SOURCE_TYPE[0], compilation.get_module_graph())
+    .has_chunk_module_by_source_type(
+      chunk,
+      SOURCE_TYPE[0],
+      compilation.get_module_graph(),
+      Some(compilation),
+    )
 }

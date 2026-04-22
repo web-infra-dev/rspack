@@ -123,6 +123,7 @@ async fn additional_tree_runtime_requirements(
         chunk_ukey,
         SourceType::Expose,
         compilation.get_module_graph(),
+        Some(compilation),
       )
     && compilation
       .build_chunk_graph_artifact

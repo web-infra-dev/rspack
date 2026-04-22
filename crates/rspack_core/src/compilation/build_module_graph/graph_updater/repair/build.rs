@@ -8,8 +8,8 @@ use super::{
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ParserAndGenerator,
-  ResolverFactory, SharedPluginDriver,
+  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, NormalModuleFactory,
+  ParserAndGenerator, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
@@ -27,6 +27,7 @@ pub struct BuildTask {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub normal_module_factory: Option<Arc<NormalModuleFactory>>,
   pub parser_and_generator: Option<Box<dyn ParserAndGenerator>>,
   pub forwarded_ids: ForwardedIdSet,
 }
@@ -46,6 +47,7 @@ impl Task<TaskContext> for BuildTask {
       runtime_template,
       mut module,
       fs,
+      normal_module_factory,
       parser_and_generator,
       forwarded_ids,
     } = *self;
@@ -66,6 +68,7 @@ impl Task<TaskContext> for BuildTask {
           plugin_driver: plugin_driver.clone(),
           runtime_template,
           fs: fs.clone(),
+          normal_module_factory: normal_module_factory.clone(),
           parser_and_generator,
         },
         None,
@@ -192,7 +195,9 @@ impl Task<TaskContext> for BuildResultTask {
     let module_identifier = module.identifier();
 
     if let Some(parser_and_generator) = parser_and_generator {
-      module_graph.set_parser_and_generator(module_identifier, parser_and_generator);
+      if let Some(normal_module_factory) = &context.normal_module_factory {
+        normal_module_factory.set_parser_and_generator(module_identifier, parser_and_generator);
+      }
     }
     module_graph.add_module(module);
 

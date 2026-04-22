@@ -7,8 +7,9 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
-  RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, NormalModuleFactory,
+  ResolverFactory, RuntimeTemplate, SharedPluginDriver, incremental::Incremental,
+  module_graph::ModuleGraph,
 };
 
 #[derive(Debug)]
@@ -26,6 +27,7 @@ pub struct TaskContext {
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
   pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub normal_module_factory: Option<Arc<NormalModuleFactory>>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
 
@@ -49,6 +51,7 @@ impl TaskContext {
       resolver_factory: compilation.resolver_factory.clone(),
       loader_resolver_factory: compilation.loader_resolver_factory.clone(),
       dependency_factories: compilation.dependency_factories.clone(),
+      normal_module_factory: compilation.normal_module_factory.clone(),
       dependency_templates: compilation.dependency_templates.clone(),
       fs: compilation.input_filesystem.clone(),
       intermediate_fs: compilation.intermediate_filesystem.clone(),
@@ -90,6 +93,7 @@ impl TaskContext {
       compiler_context,
     );
     compilation.dependency_factories = self.dependency_factories.clone();
+    compilation.normal_module_factory = self.normal_module_factory.clone();
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(
       &mut *compilation.build_module_graph_artifact,

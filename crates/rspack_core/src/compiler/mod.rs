@@ -283,6 +283,7 @@ impl Compiler {
   #[instrument("Compiler:compile", target=TRACING_BENCH_TARGET,skip_all)]
   async fn compile(&mut self) -> Result<()> {
     let mut compilation_params = self.new_compilation_params();
+    self.compilation.normal_module_factory = Some(compilation_params.normal_module_factory.clone());
     // Make sure `thisCompilation` is emitted before any JS side access to `JsCompilation`.
     self
       .plugin_driver

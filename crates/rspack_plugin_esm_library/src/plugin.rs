@@ -107,6 +107,7 @@ impl EsmLibraryPlugin {
       let mut should_scope_hoisting = true;
 
       if let Some(reason) = module.get_concatenation_bailout_reason(
+        compilation,
         module_graph,
         &compilation.build_chunk_graph_artifact.chunk_graph,
       ) {
@@ -308,6 +309,7 @@ async fn finish_modules(
     let mut should_scope_hoisting = true;
 
     if let Some(reason) = module.get_concatenation_bailout_reason(
+      compilation,
       module_graph,
       &compilation.build_chunk_graph_artifact.chunk_graph,
     ) {

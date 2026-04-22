@@ -62,8 +62,12 @@ pub fn entry_name_for_module(
 /// Returns whether a module should be processed by `preserve_modules`.
 /// JS, CSS and asset modules are relevant. Other types (wasm, etc.) are
 /// handled by their own output pipelines.
-fn should_preserve_module(module: &dyn Module, module_graph: &rspack_core::ModuleGraph) -> bool {
-  let source_types = module.source_types(module_graph);
+fn should_preserve_module(
+  module: &dyn Module,
+  module_graph: &rspack_core::ModuleGraph,
+  compilation: &Compilation,
+) -> bool {
+  let source_types = module.source_types(module_graph, Some(compilation));
   if source_types.iter().any(|t| {
     matches!(
       t,
@@ -82,17 +86,25 @@ fn should_preserve_module(module: &dyn Module, module_graph: &rspack_core::Modul
 /// modules use their own filename template (`output.assetModuleFilename`)
 /// rather than the chunk's `[name]` template, so `preserve_modules` has to
 /// override it per-module instead of setting `chunk.name`.
-fn is_asset_module(module: &dyn Module, module_graph: &rspack_core::ModuleGraph) -> bool {
+fn is_asset_module(
+  module: &dyn Module,
+  module_graph: &rspack_core::ModuleGraph,
+  compilation: &Compilation,
+) -> bool {
   module
-    .source_types(module_graph)
+    .source_types(module_graph, Some(compilation))
     .iter()
     .any(|t| matches!(t, SourceType::Asset))
 }
 
 /// Whether this module contributes JavaScript output.
-fn has_js_output(module: &dyn Module, module_graph: &rspack_core::ModuleGraph) -> bool {
+fn has_js_output(
+  module: &dyn Module,
+  module_graph: &rspack_core::ModuleGraph,
+  compilation: &Compilation,
+) -> bool {
   module
-    .source_types(module_graph)
+    .source_types(module_graph, Some(compilation))
     .iter()
     .any(|t| matches!(t, SourceType::JavaScript))
 }
@@ -145,7 +157,7 @@ pub async fn preserve_modules(
         .module_by_identifier(&module_id)
         .expect("should have module");
 
-      if !should_preserve_module(module.as_ref(), module_graph) {
+      if !should_preserve_module(module.as_ref(), module_graph, compilation) {
         continue;
       }
       let Some(abs_path) = module_resource_path(module.as_ref()) else {
@@ -153,8 +165,8 @@ pub async fn preserve_modules(
       };
       (
         abs_path,
-        is_asset_module(module.as_ref(), module_graph),
-        has_js_output(module.as_ref(), module_graph),
+        is_asset_module(module.as_ref(), module_graph, compilation),
+        has_js_output(module.as_ref(), module_graph, compilation),
       )
     };
     if !abs_path.starts_with(root) {

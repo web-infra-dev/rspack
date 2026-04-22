@@ -34,11 +34,12 @@ use crate::{
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
   ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
-  ParserAndGenerator, PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec,
-  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, NormalModuleFactory,
+  OptimizationBailoutItem, ParserAndGenerator, PrefetchExportsInfoMode, RawModule, Resolve,
+  ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact,
+  SourceType, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -49,6 +50,7 @@ pub struct BuildContext {
   pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
+  pub normal_module_factory: Option<Arc<NormalModuleFactory>>,
   pub parser_and_generator: Option<Box<dyn ParserAndGenerator>>,
 }
 
@@ -293,7 +295,7 @@ pub struct BuildResult {
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
   pub optimization_bailouts: Vec<OptimizationBailoutItem>,
-  pub parser_and_generator: Option<Box<dyn ParserAndGenerator>>,
+  pub parser_and_generator: Option<Arc<dyn ParserAndGenerator>>,
 }
 
 #[cacheable]
@@ -330,7 +332,11 @@ pub trait Module:
   fn module_type(&self) -> &ModuleType;
 
   /// Defines what kind of code generation results this module can generate.
-  fn source_types<'a>(&'a self, module_graph: &'a ModuleGraph) -> &'a [SourceType];
+  fn source_types(
+    &self,
+    module_graph: &ModuleGraph,
+    compilation: Option<&Compilation>,
+  ) -> Vec<SourceType>;
 
   /// The source of the module. This could be optional, modules like the `NormalModule` can have the corresponding source.
   /// However, modules that is created from "nowhere" (e.g. `ExternalModule` and `MissingModule`) does not have its source.
@@ -439,6 +445,7 @@ pub trait Module:
 
   fn get_concatenation_bailout_reason(
     &self,
+    _compilation: &Compilation,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
@@ -858,7 +865,11 @@ mod test {
           unreachable!()
         }
 
-        fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
+        fn source_types(
+          &self,
+          _module_graph: &ModuleGraph,
+          _compilation: Option<&Compilation>,
+        ) -> Vec<SourceType> {
           unreachable!()
         }
 

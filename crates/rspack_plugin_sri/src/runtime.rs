@@ -123,7 +123,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
           compilation
             .build_chunk_graph_artifact
             .chunk_graph
-            .has_chunk_module_by_source_type(c, source_type, module_graph)
+            .has_chunk_module_by_source_type(c, source_type, module_graph, Some(compilation))
         })
         .map(|c| {
           compilation

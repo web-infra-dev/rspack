@@ -103,8 +103,12 @@ impl Module for RawModule {
     &ModuleType::JsAuto
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    RAW_MODULE_SOURCE_TYPES
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    RAW_MODULE_SOURCE_TYPES.to_vec()
   }
 
   fn source(&self) -> Option<&BoxSource> {

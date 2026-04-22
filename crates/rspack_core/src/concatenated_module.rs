@@ -824,8 +824,12 @@ impl Module for ConcatenatedModule {
     &mut self.root_module_ctxt.build_meta
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::JavaScript]
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    vec![SourceType::JavaScript]
   }
 
   fn source(&self) -> Option<&BoxSource> {
@@ -966,6 +970,7 @@ impl Module for ConcatenatedModule {
     let context = compilation.options.context.clone();
 
     let (references_info, module_to_info_map) = self.get_modules_with_info(
+      compilation,
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
       runtime,
@@ -2006,6 +2011,7 @@ impl Module for ConcatenatedModule {
     };
     let runtime = runtime.as_deref();
     let concatenation_entries = self.create_concatenation_list(
+      compilation,
       runtime,
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
@@ -2130,6 +2136,7 @@ impl ConcatenatedModule {
   // TODO: replace self.modules with indexmap or linkedhashset
   fn get_modules_with_info(
     &self,
+    compilation: &Compilation,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
     runtime: Option<&RuntimeSpec>,
@@ -2141,6 +2148,7 @@ impl ConcatenatedModule {
     IdentifierIndexMap<ModuleInfo>,
   ) {
     let ordered_concatenation_list = self.create_concatenation_list(
+      compilation,
       runtime,
       mg,
       mg_cache,
@@ -2183,6 +2191,7 @@ impl ConcatenatedModule {
 
   fn create_concatenation_list(
     &self,
+    compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
@@ -2213,8 +2222,14 @@ impl ConcatenatedModule {
         let imports_map = module_set
           .par_iter()
           .map(|module| {
-            let imports =
-              self.get_concatenated_imports(module, &root_module, runtime, mg, &artifacts);
+            let imports = self.get_concatenated_imports(
+              compilation,
+              module,
+              &root_module,
+              runtime,
+              mg,
+              &artifacts,
+            );
             (*module, imports)
           })
           .collect::<IdentifierMap<_>>();
@@ -2354,6 +2369,7 @@ impl ConcatenatedModule {
 
   fn get_concatenated_imports(
     &self,
+    compilation: &Compilation,
     module_id: &ModuleIdentifier,
     root_module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
@@ -2388,7 +2404,7 @@ impl ConcatenatedModule {
           .expect("should have module");
 
         if ref_module
-          .source_types(mg)
+          .source_types(mg, Some(compilation))
           .iter()
           .all(|source_type| source_type == &SourceType::Css)
         {

@@ -741,7 +741,7 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
     }
 
     if let Some(module) = module {
-      let source_types = module.source_types(module_graph);
+      let source_types = module.source_types(module_graph, Some(compilation));
       if source_types
         .iter()
         .all(|source_type| matches!(source_type, SourceType::Css))

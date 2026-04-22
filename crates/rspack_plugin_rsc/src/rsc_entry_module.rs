@@ -130,8 +130,12 @@ impl Module for RscEntryModule {
     &ModuleType::JsDynamic
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &[SourceType::JavaScript]
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    vec![SourceType::JavaScript]
   }
 
   fn source(&self) -> Option<&BoxSource> {

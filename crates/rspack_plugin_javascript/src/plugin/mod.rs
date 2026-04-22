@@ -703,7 +703,12 @@ var {} = {{}};
     let all_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_modules_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
+      .get_chunk_modules_by_source_type(
+        chunk_ukey,
+        SourceType::JavaScript,
+        module_graph,
+        Some(compilation),
+      );
     let has_entry_modules =
       chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph);
     let inlined_modules = if allow_inline_startup && has_entry_modules {
@@ -1379,7 +1384,12 @@ var {} = {{}};
     let chunk_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_modules_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
+      .get_chunk_modules_by_source_type(
+        chunk_ukey,
+        SourceType::JavaScript,
+        module_graph,
+        Some(compilation),
+      );
     let mut sources = ConcatSource::default();
     if !all_strict && chunk_modules.iter().all(|m| m.build_info().strict) {
       if let Some(strict_bailout) = hooks

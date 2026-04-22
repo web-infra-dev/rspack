@@ -62,7 +62,12 @@ impl RuntimeModule for RemoteRuntimeModule {
       let modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
-        .get_chunk_modules_by_source_type(&chunk, SourceType::Remote, module_graph);
+        .get_chunk_modules_by_source_type(
+          &chunk,
+          SourceType::Remote,
+          module_graph,
+          Some(compilation),
+        );
       let mut remotes = Vec::new();
       for m in modules {
         let Some(m) = m.downcast_ref::<RemoteModule>() else {

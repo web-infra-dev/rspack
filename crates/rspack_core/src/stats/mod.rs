@@ -1167,7 +1167,7 @@ impl Stats<'_> {
     let code_generated = self.code_generated_modules().contains(&identifier);
 
     let sizes = module
-      .source_types(module_graph)
+      .source_types(module_graph, Some(self.context.0))
       .iter()
       .map(|t| StatsSourceTypeSize {
         source_type: *t,

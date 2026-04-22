@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
-use rspack_util::MergeFrom;
+use rspack_util::{MergeFrom, fx_hash::FxDashMap};
 use sugar_path::SugarPath;
 use winnow::prelude::*;
 
@@ -62,6 +62,7 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
+  parser_and_generators: FxDashMap<ModuleIdentifier, Arc<dyn ParserAndGenerator>>,
 }
 
 #[async_trait::async_trait]
@@ -101,7 +102,51 @@ impl NormalModuleFactory {
       options,
       loader_resolver_factory,
       plugin_driver,
+      parser_and_generators: Default::default(),
     }
+  }
+
+  pub async fn create_parser_and_generator(
+    &self,
+    module_type: &ModuleType,
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
+  ) -> Result<Box<dyn ParserAndGenerator>> {
+    let mut parser_and_generator = self
+      .plugin_driver
+      .registered_parser_and_generator_builder
+      .get(module_type)
+      .ok_or_else(|| error!("No parser registered for '{}'", module_type.as_str()))?(
+      parser_options,
+      generator_options,
+    );
+    self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .parser
+      .call(module_type, &mut parser_and_generator, parser_options)
+      .await?;
+    Ok(parser_and_generator)
+  }
+
+  pub fn set_parser_and_generator(
+    &self,
+    module_identifier: ModuleIdentifier,
+    parser_and_generator: Arc<dyn ParserAndGenerator>,
+  ) {
+    self
+      .parser_and_generators
+      .insert(module_identifier, parser_and_generator);
+  }
+
+  pub fn parser_and_generator(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<Arc<dyn ParserAndGenerator>> {
+    self
+      .parser_and_generators
+      .get(module_identifier)
+      .map(|parser_and_generator| parser_and_generator.clone())
   }
 
   async fn before_resolve(
@@ -524,7 +569,6 @@ module.exports = "data:,";
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
     let resolved_parser_and_generator = self
-      .plugin_driver
       .create_parser_and_generator(
         &resolved_module_type,
         resolved_parser_options.as_ref(),

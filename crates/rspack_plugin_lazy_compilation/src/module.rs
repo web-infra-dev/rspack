@@ -116,8 +116,12 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 impl Module for LazyCompilationProxyModule {
   impl_module_meta_info!();
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &SOURCE_TYPE
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    SOURCE_TYPE.to_vec()
   }
 
   fn module_type(&self) -> &ModuleType {

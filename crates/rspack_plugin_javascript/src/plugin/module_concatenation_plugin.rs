@@ -693,7 +693,7 @@ impl ModuleConcatenationPlugin {
     let box_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have module");
-    let root_module_source_types = box_module.source_types(module_graph);
+    let root_module_source_types = box_module.source_types(module_graph, Some(compilation));
 
     let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
     if is_root_module_asset_module && !root_module_source_types.contains(&SourceType::JavaScript) {
@@ -777,6 +777,7 @@ impl ModuleConcatenationPlugin {
           compiler_options: compilation.options.clone(),
           fs: compilation.input_filesystem.clone(),
           runtime_template: compilation.runtime_template.create_module_code_template(),
+          normal_module_factory: compilation.normal_module_factory.clone(),
           parser_and_generator: None,
         },
         Some(compilation),
@@ -807,7 +808,7 @@ impl ModuleConcatenationPlugin {
           .expect("should exist module");
 
         let source_types =
-          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph, None);
 
         if source_types.len() == 1
           && !matches!(
@@ -843,7 +844,7 @@ impl ModuleConcatenationPlugin {
           .expect("should exist module");
 
         let source_types =
-          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+          chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph, None);
         let new_source_types = source_types
           .iter()
           .filter(|source_type| !matches!(source_type, SourceType::JavaScript))
@@ -925,6 +926,7 @@ impl ModuleConcatenationPlugin {
           .expect("should have module");
 
         if let Some(reason) = m.get_concatenation_bailout_reason(
+          compilation,
           module_graph,
           &compilation.build_chunk_graph_artifact.chunk_graph,
         ) {
@@ -1638,6 +1640,7 @@ async fn create_concatenated_module(
         compiler_options: compilation.options.clone(),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),
+        normal_module_factory: compilation.normal_module_factory.clone(),
         parser_and_generator: None,
       },
       Some(compilation),
@@ -1740,7 +1743,7 @@ fn add_concatenated_module(
   let box_module = module_graph
     .module_by_identifier(&root_module_id)
     .expect("should have module");
-  let root_module_source_types = box_module.source_types(module_graph);
+  let root_module_source_types = box_module.source_types(module_graph, Some(compilation));
   let is_root_module_asset_module = root_module_source_types.contains(&SourceType::Asset);
 
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
@@ -1763,7 +1766,7 @@ fn add_concatenated_module(
     // TODO: optimize asset module https://github.com/webpack/webpack/pull/15515/files
     for chunk_ukey in chunk_graph.get_module_chunks(root_module_id).clone() {
       let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph, None);
 
       if source_types.len() == 1 {
         chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
@@ -1794,7 +1797,7 @@ fn add_concatenated_module(
         .expect("should exist module");
 
       let source_types =
-        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
+        chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph, None);
       let new_source_types = source_types
         .iter()
         .filter(|source_type| !matches!(source_type, SourceType::JavaScript))

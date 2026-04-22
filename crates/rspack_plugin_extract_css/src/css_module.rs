@@ -158,8 +158,12 @@ impl Module for CssModule {
     &MODULE_TYPE
   }
 
-  fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
-    &*SOURCE_TYPE
+  fn source_types(
+    &self,
+    _module_graph: &ModuleGraph,
+    _compilation: Option<&Compilation>,
+  ) -> Vec<SourceType> {
+    SOURCE_TYPE.to_vec()
   }
 
   fn need_id(&self) -> bool {
