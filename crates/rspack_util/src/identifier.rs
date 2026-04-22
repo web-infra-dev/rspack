@@ -153,11 +153,24 @@ pub fn make_paths_absolute(context: &str, identifier: &str) -> String {
     .collect()
 }
 
+fn push_make_paths_relative(context: &str, identifier: &str, out: &mut String) {
+  let mut last = 0;
+
+  for (index, byte) in identifier.bytes().enumerate() {
+    if matches!(byte, b'|' | b'!') {
+      push_absolute_to_request(context, &identifier[last..index], out);
+      out.push(byte as char);
+      last = index + 1;
+    }
+  }
+
+  push_absolute_to_request(context, &identifier[last..], out);
+}
+
 pub fn make_paths_relative(context: &str, identifier: &str) -> String {
-  split_keep(&SEGMENTS_SPLIT_REGEXP, identifier)
-    .into_iter()
-    .map(|str| absolute_to_request(context, str))
-    .collect()
+  let mut result = String::with_capacity(identifier.len());
+  push_make_paths_relative(context, identifier, &mut result);
+  result
 }
 
 pub fn strip_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
@@ -215,4 +228,15 @@ fn test_push_absolute_to_request() {
   let mut out = String::new();
   push_absolute_to_request("/workspace/app", "loader", &mut out);
   assert_eq!(out, "loader");
+}
+
+#[test]
+fn test_push_make_paths_relative_preserves_segments_and_delimiters() {
+  let mut out = String::new();
+  push_make_paths_relative(
+    "/workspace/app",
+    "/workspace/app/a.js|/workspace/app/b.js!/workspace/app/c.js?x=1",
+    &mut out,
+  );
+  assert_eq!(out, "./a.js|./b.js!./c.js?x=1");
 }
