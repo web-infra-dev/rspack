@@ -451,8 +451,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let unresolved_mark = ast.get_context().unresolved_mark;
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
-    let parse_local_parser_plugins =
-      self.create_parse_local_parser_plugins(compiler_options, unresolved_mark);
 
     let ScanDependenciesResult {
       dependencies,
@@ -461,6 +459,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut warning_diagnostics,
       mut side_effects_item,
     } = match ast.visit(|program, _| {
+      let parse_local_parser_plugins =
+        self.create_parse_local_parser_plugins(compiler_options, unresolved_mark);
+
       scan_dependencies(
         &source_string,
         program,

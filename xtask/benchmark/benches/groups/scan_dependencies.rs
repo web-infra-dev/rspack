@@ -62,6 +62,7 @@ struct PreparedScanDependenciesBenchmarkCase {
   module_type: ModuleType,
   resource_data: ResourceData,
   unresolved_mark: Mark,
+  globals: Globals,
   parser_and_generator: JavaScriptParserAndGenerator,
   parser_runtime_requirements: ParserRuntimeRequirementsData,
 }
@@ -69,6 +70,7 @@ struct PreparedScanDependenciesBenchmarkCase {
 struct PreparedScanDependenciesProgram {
   program: Program,
   unresolved_mark: Mark,
+  globals: Globals,
   semicolons: FxHashSet<BytePos>,
 }
 
@@ -155,6 +157,7 @@ fn prepare_scan_dependencies_benchmark_case(
   let PreparedScanDependenciesProgram {
     program,
     unresolved_mark,
+    globals,
     semicolons,
   } = parse_benchmark_program(resource_path, &source_text, &module_type);
   let compiler_options = compiler.options.clone();
@@ -183,6 +186,7 @@ fn prepare_scan_dependencies_benchmark_case(
     module_type,
     resource_data: ResourceData::new_with_resource(resource_path.to_string()),
     unresolved_mark,
+    globals,
     parser_and_generator,
     parser_runtime_requirements: ParserRuntimeRequirementsData::new(&ModuleCodeTemplate::new(
       compiler_options,
@@ -244,9 +248,11 @@ fn parse_benchmark_program(
 
   let (program, unresolved_mark) =
     ast.visit(|program, context| (program.clone(), context.unresolved_mark));
+  let globals = ast.get_context().globals.clone_data();
   PreparedScanDependenciesProgram {
     program,
     unresolved_mark,
+    globals,
     semicolons,
   }
 }
@@ -271,35 +277,38 @@ impl PreparedScanDependenciesBenchmarkCase {
     &self,
     iteration_state: &mut ScanDependenciesIterationState,
   ) -> ScanDependenciesResult {
-    let parse_local_parser_plugins = self
-      .parser_and_generator
-      .create_parse_local_parser_plugins(self.compiler_options.as_ref(), self.unresolved_mark);
+    GLOBALS
+      .set(&self.globals, || {
+        let parse_local_parser_plugins = self
+          .parser_and_generator
+          .create_parse_local_parser_plugins(self.compiler_options.as_ref(), self.unresolved_mark);
 
-    run_scan_dependencies(
-      &self.source_text,
-      &self.program,
-      &self.resource_data,
-      self.compiler_options.as_ref(),
-      &self.module_type,
-      None,
-      None,
-      &mut iteration_state.build_meta,
-      &mut iteration_state.build_info,
-      self.module_identifier,
-      Some(&self.parser_options),
-      &mut iteration_state.semicolons,
-      self.parser_and_generator.hook_parser_plugins(),
-      self.parser_and_generator.builtin_parser_plugins(),
-      parse_local_parser_plugins,
-      std::mem::take(&mut iteration_state.parse_meta),
-      &self.parser_runtime_requirements,
-    )
-    .unwrap_or_else(|diagnostics| {
-      panic!(
-        "{} should execute without scan errors. Diagnostics: {diagnostics:#?}",
-        self.benchmark_id
-      )
-    })
+        run_scan_dependencies(
+          &self.source_text,
+          &self.program,
+          &self.resource_data,
+          self.compiler_options.as_ref(),
+          &self.module_type,
+          None,
+          None,
+          &mut iteration_state.build_meta,
+          &mut iteration_state.build_info,
+          self.module_identifier,
+          Some(&self.parser_options),
+          &mut iteration_state.semicolons,
+          self.parser_and_generator.hook_parser_plugins(),
+          self.parser_and_generator.builtin_parser_plugins(),
+          parse_local_parser_plugins,
+          std::mem::take(&mut iteration_state.parse_meta),
+          &self.parser_runtime_requirements,
+        )
+      })
+      .unwrap_or_else(|diagnostics| {
+        panic!(
+          "{} should execute without scan errors. Diagnostics: {diagnostics:#?}",
+          self.benchmark_id
+        )
+      })
   }
 
   fn assert_can_execute(&self) {
