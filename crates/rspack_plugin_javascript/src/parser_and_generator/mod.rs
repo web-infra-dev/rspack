@@ -245,6 +245,14 @@ impl JavaScriptParserAndGenerator {
     self.hook_parser_plugins.push(parser_plugin.into());
   }
 
+  pub fn hook_parser_plugins(&self) -> &[ArcJavascriptParserPlugin] {
+    &self.hook_parser_plugins
+  }
+
+  pub fn builtin_parser_plugins(&self) -> &[BoxJavascriptParserPlugin] {
+    &self.builtin_parser_plugins
+  }
+
   fn source_block(
     &self,
     compilation: &Compilation,

@@ -16,8 +16,10 @@ use rspack_core::{
 };
 use rspack_javascript_compiler::{JavaScriptCompiler, ast::Program};
 use rspack_plugin_javascript::{
-  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin,
-  parser_and_generator::ParserRuntimeRequirementsData,
+  parser_and_generator::{
+    JavaScriptParserAndGenerator, JavaScriptParserAndGeneratorOptions,
+    ParserRuntimeRequirementsData,
+  },
   visitors::{
     ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
     semicolon::InsertedSemicolons, swc_visitor::resolver,
@@ -60,6 +62,7 @@ struct PreparedScanDependenciesBenchmarkCase {
   module_type: ModuleType,
   resource_data: ResourceData,
   unresolved_mark: Mark,
+  parser_and_generator: JavaScriptParserAndGenerator,
   parser_runtime_requirements: ParserRuntimeRequirementsData,
 }
 
@@ -74,8 +77,6 @@ struct ScanDependenciesIterationState {
   build_meta: BuildMeta,
   build_info: BuildInfo,
   semicolons: FxHashSet<BytePos>,
-  hook_parser_plugins: Vec<ArcJavascriptParserPlugin>,
-  builtin_parser_plugins: Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
 }
 
@@ -165,6 +166,11 @@ fn prepare_scan_dependencies_benchmark_case(
     .and_then(|parser_map| parser_map.get("javascript"))
     .cloned()
     .expect("scan_dependencies benchmark compiler should include javascript parser options");
+  let parser_and_generator = JavaScriptParserAndGenerator::new(
+    module_type.clone(),
+    Some(&parser_options),
+    JavaScriptParserAndGeneratorOptions::from(compiler_options.as_ref()),
+  );
 
   PreparedScanDependenciesBenchmarkCase {
     benchmark_id,
@@ -177,6 +183,7 @@ fn prepare_scan_dependencies_benchmark_case(
     module_type,
     resource_data: ResourceData::new_with_resource(resource_path.to_string()),
     unresolved_mark,
+    parser_and_generator,
     parser_runtime_requirements: ParserRuntimeRequirementsData::new(&ModuleCodeTemplate::new(
       compiler_options,
     )),
@@ -278,8 +285,8 @@ impl PreparedScanDependenciesBenchmarkCase {
       Some(&self.parser_options),
       &mut iteration_state.semicolons,
       self.unresolved_mark,
-      &iteration_state.hook_parser_plugins,
-      &iteration_state.builtin_parser_plugins,
+      self.parser_and_generator.hook_parser_plugins(),
+      self.parser_and_generator.builtin_parser_plugins(),
       std::mem::take(&mut iteration_state.parse_meta),
       &self.parser_runtime_requirements,
     )
