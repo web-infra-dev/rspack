@@ -227,7 +227,6 @@ impl Module for RscEntryModule {
           None,
           ImportPhase::Evaluation,
         );
-        self.dependencies.push(*dep.id());
         dependencies.push(Box::new(dep));
       }
       Ok(BuildResult {

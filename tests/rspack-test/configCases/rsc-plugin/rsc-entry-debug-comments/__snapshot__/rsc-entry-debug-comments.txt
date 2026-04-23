@@ -5,11 +5,6 @@ server
  * import: import() eager
  * exports: Client
  */
-/*!
- * module: ./src/Client.js
- * import: import() eager
- * exports: Client
- */
 
 client
 "use strict";
