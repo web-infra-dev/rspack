@@ -17,6 +17,7 @@ pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_defa
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
 pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
+const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
 #[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
@@ -160,6 +161,9 @@ impl ConcatenationScope {
   }
 
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
+    let name = name
+      .strip_suffix(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX)
+      .unwrap_or(name);
     let encoded = name
       .strip_prefix(MODULE_REFERENCE_PREFIX)?
       .strip_suffix("__")?;
@@ -223,5 +227,94 @@ impl ConcatenationScope {
       self.modules_map.get(module).expect("should have module"),
       ModuleInfo::Concatenated(_)
     )
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::concatenated_module::ExternalModuleInfo;
+
+  fn create_test_scope(index: usize) -> (ConcatenationScope, ModuleIdentifier) {
+    let concat_module_id: ModuleIdentifier = "concat-module".into();
+    let referenced_module_id: ModuleIdentifier = "referenced-module".into();
+
+    let mut current_module = ConcatenatedModuleInfo::default();
+    current_module.module = concat_module_id;
+
+    let mut modules_map = IdentifierIndexMap::default();
+    modules_map.insert(
+      referenced_module_id,
+      ModuleInfo::External(ExternalModuleInfo::new(index, referenced_module_id)),
+    );
+
+    (
+      ConcatenationScope::new(concat_module_id, Arc::new(modules_map), current_module),
+      referenced_module_id,
+    )
+  }
+
+  fn assert_module_reference_options_eq(
+    actual: &ModuleReferenceOptions,
+    expected: &ModuleReferenceOptions,
+  ) {
+    assert_eq!(actual.ids, expected.ids);
+    assert_eq!(actual.call, expected.call);
+    assert_eq!(actual.direct_import, expected.direct_import);
+    assert_eq!(actual.deferred_import, expected.deferred_import);
+    assert_eq!(actual.asi_safe, expected.asi_safe);
+    assert_eq!(actual.index, expected.index);
+  }
+
+  #[test]
+  fn create_module_reference_round_trips_through_matcher() {
+    let (mut scope, referenced_module_id) = create_test_scope(7);
+    let options = ModuleReferenceOptions {
+      ids: vec![Atom::from("default"), Atom::from("named")],
+      call: true,
+      direct_import: true,
+      deferred_import: true,
+      asi_safe: Some(false),
+      ..Default::default()
+    };
+
+    let module_ref = scope.create_module_reference(&referenced_module_id, options.clone());
+
+    let stored = scope
+      .refs
+      .get(&referenced_module_id)
+      .and_then(|refs| refs.get(&module_ref))
+      .expect("should store created module reference");
+    assert_module_reference_options_eq(stored, &options);
+
+    let parsed = ConcatenationScope::match_module_reference(&module_ref)
+      .expect("should parse full module reference");
+    let expected = ModuleReferenceOptions {
+      index: 7,
+      ..options
+    };
+    assert_module_reference_options_eq(&parsed, &expected);
+  }
+
+  #[test]
+  fn match_module_reference_accepts_identifier_without_property_access_suffix() {
+    let parsed = ConcatenationScope::match_module_reference(
+      "__rspack_module_ref3_ns_call_directImport_deferredImport_asiSafe1__",
+    )
+    .expect("should parse identifier-only module reference");
+
+    assert!(parsed.ids.is_empty());
+    assert!(parsed.call);
+    assert!(parsed.direct_import);
+    assert!(parsed.deferred_import);
+    assert_eq!(parsed.asi_safe, Some(true));
+    assert_eq!(parsed.index, 3);
+  }
+
+  #[test]
+  fn match_module_reference_rejects_invalid_suffix() {
+    assert!(
+      ConcatenationScope::match_module_reference("__rspack_module_ref1_ns_asiSafe2__").is_none()
+    );
   }
 }
