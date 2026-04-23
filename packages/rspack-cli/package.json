@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@discoveryjs/json-ext": "^0.5.7",
+    "@microsoft/api-extractor": "^7.58.7",
     "@rslib/core": "0.21.2",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.0.0",
