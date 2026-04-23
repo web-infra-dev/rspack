@@ -2463,7 +2463,7 @@ fn extract_block_modules(
     .expect("should have outgoing deps");
 
   for ((block_id, module_identifier), connections) in connection_map {
-    if map.contains_key(&block_id) {
+    if map.contains_key(block_id) {
       continue;
     }
     let modules = module_map

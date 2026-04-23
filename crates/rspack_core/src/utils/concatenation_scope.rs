@@ -127,30 +127,12 @@ impl ConcatenationScope {
   pub fn create_module_reference(
     &mut self,
     module: &ModuleIdentifier,
-    options: &ModuleReferenceOptions,
+    options: ModuleReferenceOptions,
   ) -> String {
     let info = self
       .modules_map
       .get(module)
       .expect("should have module info");
-
-    let call_flag = match options.call {
-      true => "_call",
-      _ => "",
-    };
-    let direct_import_flag = match options.direct_import {
-      true => "_directImport",
-      _ => "",
-    };
-    let deferred_import_flag = match options.deferred_import {
-      true => "_deferredImport",
-      _ => "",
-    };
-    let asi_safe_flag = match options.asi_safe {
-      Some(true) => "_asiSafe1",
-      Some(false) => "_asiSafe0",
-      None => "",
-    };
 
     let export_data = if !options.ids.is_empty() {
       hex::encode(serde_json::to_string(&options.ids).expect("should serialize to json string"))
@@ -160,11 +142,26 @@ impl ConcatenationScope {
 
     let mut index_buffer = itoa::Buffer::new();
     let index_str = index_buffer.format(info.index());
-    let module_ref = format!(
-      "__rspack_module_ref{index_str}_{export_data}{call_flag}{direct_import_flag}{deferred_import_flag}{asi_safe_flag}__._"
-    );
+    let mut module_ref = String::with_capacity(index_str.len() + export_data.len() + 64);
+    module_ref.push_str("__rspack_module_ref");
+    module_ref.push_str(index_str);
+    module_ref.push('_');
+    module_ref.push_str(&export_data);
+    if options.call {
+      module_ref.push_str("_call");
+    }
+    if options.direct_import {
+      module_ref.push_str("_directImport");
+    }
+    if options.deferred_import {
+      module_ref.push_str("_deferredImport");
+    }
+    if let Some(asi_safe) = options.asi_safe {
+      module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
+    }
+    module_ref.push_str("__._");
     let entry = self.refs.entry(*module).or_default();
-    entry.insert(module_ref.clone(), options.clone());
+    entry.insert(module_ref.clone(), options);
 
     module_ref
   }
