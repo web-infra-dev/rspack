@@ -558,10 +558,18 @@ impl ESMImportSpecifierDependencyTemplate {
         source.replace_static(dep.range.start, dep.range.end, " false", None)
       }
       _ => {
+        let used_name_ids = if matches!(exports_type, ExportsType::DefaultWithNamed)
+          && first == "default"
+          && ids.len() > 1
+        {
+          &ids[1..]
+        } else {
+          ids
+        };
         let Some(used_name) = ExportsInfoGetter::get_used_name(
           GetUsedNameParam::WithNames(&exports_info),
           *runtime,
-          ids,
+          used_name_ids,
         )
         .and_then(|used_name| match used_name {
           UsedName::Normal(names) => names.last().cloned(),
