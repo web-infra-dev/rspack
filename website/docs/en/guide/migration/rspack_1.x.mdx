@@ -500,12 +500,29 @@ The `ProgressPlugin` custom handler's third argument changed from `items: string
 
 ### Changed default value of `resolve.roots`
 
-The resolve's [roots](/config/resolve#resolveroots) configuration default value changed from `[ context ]` to `[]`. If you rely on server-relative URL resolution that expects paths to resolve relative to the `roots` directories, explicitly configure the `roots` option:
+The [resolve.roots](/config/resolve#resolveroots) configuration default value changed from `[context]` to `[]`.
+
+In Rspack 1.x, `resolve.roots` implicitly included the project `context`, so the following CSS import could be resolved as `<context>/node_modules/lib/style.css`:
+
+```css title="styles.css"
+@import '/node_modules/lib/style.css';
+```
+
+In Rspack 2.0, this implicit behavior has been removed to align with standard module resolution. Requests starting with `/` are treated as file-system absolute paths.
+
+Use a package request or a relative path instead:
+
+```css title="styles.css"
+@import 'lib/style.css';
+@import '../node_modules/lib/style.css';
+```
+
+If you do rely on the previous behavior, add the following configuration:
 
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    roots: [context], // the context path of the rspack config
+    roots: [import.meta.dirname],
   },
 };
 ```
