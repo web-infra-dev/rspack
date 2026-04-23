@@ -1364,8 +1364,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let blocks = self
       .prepared_blocks_map
       .get(&item.block.into())
-      .expect("should have blocks")
-      .clone();
+      .cloned()
+      .unwrap_or_default();
 
     for block in blocks {
       self.make_chunk_group(
@@ -1445,8 +1445,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let blocks = self
       .prepared_blocks_map
       .get(&item.block)
-      .expect("should have blocks")
-      .clone();
+      .cloned()
+      .unwrap_or_default();
 
     for block in blocks {
       self.make_chunk_group(
@@ -2308,6 +2308,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         while let Some(module) = queue.pop_front() {
           let blocks = module.get_blocks(compilation);
 
+          if blocks.is_empty() {
+            continue;
+          }
+
           for block in blocks.iter() {
             queue.push_back((*block).into());
           }
@@ -2446,18 +2450,13 @@ fn extract_block_modules(
   map: &mut BlockConnectionMap,
 ) {
   let block = module.into();
-  let blocks = prepared_blocks_map.get(&block).expect("should have blocks");
+  let blocks = prepared_blocks_map.get(&block).cloned().unwrap_or_default();
   let mut module_map: DependenciesBlockIdentifierMap<
     Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>,
   > =
     DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
-  module_map.extend(
-    blocks
-      .iter()
-      .copied()
-      .map(|block| (block.into(), Vec::new())),
-  );
+  module_map.extend(blocks.into_iter().map(|block| (block.into(), Vec::new())));
 
   let connection_map = prepared_connection_map
     .get(&module)
