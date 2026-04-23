@@ -4,7 +4,6 @@ use std::{
   sync::{Arc, atomic::AtomicU32},
 };
 
-use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rayon::prelude::*;
@@ -30,8 +29,6 @@ use crate::{
   merge_runtime,
 };
 
-type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
-type IndexSet<K, H = FxHasher> = RawIndexSet<K, BuildHasherDefault<H>>;
 pub(crate) type DependenciesBlockIdentifierMap<V> =
   std::collections::HashMap<DependenciesBlockIdentifier, V, BuildHasherDefault<FxHasher>>;
 pub(crate) type DependenciesBlockIdentifierSet =
@@ -39,7 +36,7 @@ pub(crate) type DependenciesBlockIdentifierSet =
 
 type ConnectionIdList = Arc<Vec<DependencyId>>;
 type PreparedBlockConnectionMap =
-  IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
+  FxIndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
 type BlockConnectionMap =
   DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
 
@@ -56,7 +53,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: IndexSet<(ModuleIdentifier, ConnectionIdList)>,
+  pub skipped_module_connections: FxIndexSet<(ModuleIdentifier, ConnectionIdList)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -223,10 +220,10 @@ pub(crate) struct CodeSplitter {
   next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  queue_connect: FxIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
+  queue_connect: FxIndexMap<CgiUkey, FxIndexSet<(CgiUkey, Option<ProcessBlock>)>>,
   chunk_groups_for_combining: FxIndexSet<CgiUkey>,
   pub(crate) outdated_chunk_group_info: FxIndexSet<CgiUkey>,
-  chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
+  chunk_groups_for_merging: FxIndexSet<(CgiUkey, Option<ProcessBlock>)>,
   pub(crate) block_to_chunk_group: DependenciesBlockIdentifierMap<CgiUkey>,
 
   // outgoing blocks for a chunk group
@@ -1096,7 +1093,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module_identifier: ModuleIdentifier,
     runtime: Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
-    ctx: &mut (u32, u32, IndexMap<ModuleIdentifier, (u32, u32)>),
+    ctx: &mut (u32, u32, FxIndexMap<ModuleIdentifier, (u32, u32)>),
     compilation: &Compilation,
   ) {
     if !visited.insert(module_identifier) {
@@ -2253,8 +2250,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
-        let mut connection_map =
-          IndexMap::<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>::default();
+        let mut connection_map = FxIndexMap::<
+          (DependenciesBlockIdentifier, ModuleIdentifier),
+          Vec<DependencyId>,
+        >::default();
 
         let mut deps = mg
           .get_outgoing_deps_in_order(module)
