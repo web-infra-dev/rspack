@@ -207,12 +207,16 @@ fn collect_module_external_remapping(
           return None;
         };
 
-        let nested = export_info.exports_info().and_then(|nested_exports_info| {
-          collect_module_external_remapping(
-            &exports_info.redirect(nested_exports_info, false),
-            runtime,
-          )
-        });
+        let nested = if export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed {
+          export_info.exports_info().and_then(|nested_exports_info| {
+            collect_module_external_remapping(
+              &exports_info.redirect(nested_exports_info, false),
+              runtime,
+            )
+          })
+        } else {
+          None
+        };
 
         Some(ModuleExternalRemapping {
           exposed_name: used_name.to_string(),
@@ -1075,6 +1079,64 @@ mod tests {
           raw_export_name: "EventEmitter".to_string(),
           nested: None,
         }]),
+      }])
+    );
+  }
+
+  #[test]
+  fn module_external_remapping_does_not_recurse_when_export_is_directly_used() {
+    let mut exports_info_artifact = ExportsInfoArtifact::default();
+    let root_exports_info_data = ExportsInfoData::default();
+    let root_exports_info = root_exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(root_exports_info, root_exports_info_data);
+
+    let nested_exports_info_data = ExportsInfoData::default();
+    let nested_exports_info = nested_exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(nested_exports_info, nested_exports_info_data);
+
+    {
+      let root_exports_info_data =
+        exports_info_artifact.get_exports_info_mut_by_id(&root_exports_info);
+      root_exports_info_data
+        .other_exports_info_mut()
+        .set_has_use_info();
+
+      let export_info = root_exports_info_data.ensure_owned_export_info(&Atom::from("pkg"));
+      export_info.set_has_use_info();
+      export_info.set_used(UsageState::Used, None);
+      export_info.set_provided(Some(ExportProvided::Provided));
+      export_info.set_used_name(UsedNameItem::Str(Atom::from("b")));
+      export_info.set_exports_info(Some(nested_exports_info));
+      export_info.set_exports_info_owned(true);
+    }
+
+    {
+      let nested_exports_info_data =
+        exports_info_artifact.get_exports_info_mut_by_id(&nested_exports_info);
+      nested_exports_info_data
+        .other_exports_info_mut()
+        .set_has_use_info();
+
+      let export_info =
+        nested_exports_info_data.ensure_owned_export_info(&Atom::from("EventEmitter"));
+      export_info.set_has_use_info();
+      export_info.set_used(UsageState::Used, None);
+      export_info.set_provided(Some(ExportProvided::Provided));
+      export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
+    }
+
+    let exports_info = ExportsInfoGetter::prefetch(
+      &root_exports_info,
+      &exports_info_artifact,
+      PrefetchExportsInfoMode::Full,
+    );
+
+    assert_eq!(
+      collect_module_external_remapping(&exports_info, None),
+      Some(vec![super::ModuleExternalRemapping {
+        exposed_name: "b".to_string(),
+        raw_export_name: "pkg".to_string(),
+        nested: None,
       }])
     );
   }
