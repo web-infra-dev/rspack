@@ -252,13 +252,14 @@ fn collect_module_exports_specs(
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<(Vec<(DependencyId, ExportsSpec)>, bool)> {
   let mgm = mg.module_graph_module_by_identifier(module_id)?;
+  let all_dependencies = mgm.all_dependencies();
 
   // There is no need to use the cache here
   // because the `get_exports` of each dependency will only be called once
   // mg_cache.freeze();
   let mut has_nested_exports = false;
-  let mut res = Vec::new();
-  for id in mgm.all_dependencies().iter().copied() {
+  let mut res = Vec::with_capacity(all_dependencies.len());
+  for id in all_dependencies.iter().copied() {
     let Some(exports_spec) =
       mg.dependency_by_id(&id)
         .get_exports(mg, mg_cache, exports_info_artifact)
