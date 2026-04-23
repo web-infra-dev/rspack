@@ -1,3 +1,3 @@
-"use strict";
+'use strict';
 
-module.exports = () => Boolean(require("module").createRequire);
+module.exports = () => Boolean(require('module').createRequire);

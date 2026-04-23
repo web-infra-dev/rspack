@@ -1,7 +1,7 @@
-"use strict";
+'use strict';
 
 module.exports = {
   findBundle() {
-    return ["require.mjs", "import.mjs"];
+    return ['require.mjs', 'import.mjs'];
   },
 };

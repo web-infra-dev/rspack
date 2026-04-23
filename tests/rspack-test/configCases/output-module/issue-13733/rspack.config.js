@@ -1,18 +1,18 @@
-const rspack = require("@rspack/core");
+const rspack = require('@rspack/core');
 
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
-  mode: "production",
-  target: "node14",
-  entry: "./index.js",
+  mode: 'production',
+  target: 'node14',
+  entry: './index.js',
   output: {
-    filename: "[name].mjs",
+    filename: '[name].mjs',
     module: true,
-    chunkFormat: "module",
-    chunkLoading: "import",
+    chunkFormat: 'module',
+    chunkLoading: 'import',
   },
   optimization: {
-    mangleExports: "size",
+    mangleExports: 'size',
     minimize: false,
   },
   plugins: [
@@ -21,7 +21,7 @@ module.exports = {
     }),
   ],
   externals(ctx) {
-    if (ctx.request?.startsWith("node:")) {
+    if (ctx.request?.startsWith('node:')) {
       return `module ${ctx.request}`;
     }
   },

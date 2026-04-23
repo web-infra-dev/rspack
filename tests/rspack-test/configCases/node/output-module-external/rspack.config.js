@@ -1,25 +1,25 @@
-"use strict";
+'use strict';
 
-const { DefinePlugin } = require("@rspack/core");
+const { DefinePlugin } = require('@rspack/core');
 
-/** @type {import("@rspack/core").Configuration} */
+/** @type {import('@rspack/core').Configuration} */
 module.exports = {
-  target: "node",
+  target: 'node',
   entry: {
-    require: "./require.js",
-    import: "./import.js",
+    require: './require.js',
+    import: './import.js',
   },
   experiments: {
     outputModule: true,
   },
   output: {
     module: true,
-    filename: "[name].mjs",
+    filename: '[name].mjs',
   },
   plugins: [
     new DefinePlugin({
       NODE_VERSION: JSON.stringify(
-        process.versions.node.split(".").map(Number)[0]
+        process.versions.node.split('.').map(Number)[0]
       ),
     }),
   ],

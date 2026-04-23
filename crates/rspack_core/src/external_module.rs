@@ -307,10 +307,7 @@ fn get_source_for_module_external(
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
     let create_namespace_object = runtime_template.basic_function(
       "y",
-      &format!(
-        "var x = {{}};\n{}(x, y);\nreturn x;",
-        define_property_getters
-      ),
+      &format!("var x = {{}};\n{define_property_getters}(x, y);\nreturn x;"),
     );
     let return_x = runtime_template.returning_function("x", "");
     format!(

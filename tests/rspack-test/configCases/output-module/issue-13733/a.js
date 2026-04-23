@@ -1,5 +1,5 @@
-import { EventEmitter } from "node:events";
+import { EventEmitter } from 'node:events';
 
 export default class Foo extends EventEmitter {}
 
-import("./b.js");
+import('./b.js');
