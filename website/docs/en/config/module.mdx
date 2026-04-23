@@ -1673,11 +1673,11 @@ This option is experimental in Rspack and may change or be removed.
 
 <PropertyType type="string[]" />
 
-Manually mark top-level exported functions in matched modules as side-effect-free for pure-function-based tree shaking.
+Manually mark top-level identifiers in matched modules as side-effect-free for pure-function-based tree shaking. Each name must resolve to a top-level binding in the module — a function/class/variable declaration, or an `import` specifier.
 
-This option is mainly intended for third-party libraries whose source cannot be annotated directly, such as packages in `node_modules`.
+This option is mainly intended for third-party libraries whose source cannot be annotated directly. You can either configure it on the library file itself, or on a consumer file to assert that calls to a particular import are pure.
 
-Although the option lives under `module.parser.javascript`, in practice it is usually better to apply it through `module.rules[i].parser` so you can configure `pureFunctions` more precisely for specific third-party modules.
+Although the option lives under `module.parser.javascript`, in practice it is usually better to apply it through `module.rules[i].parser` so you can configure `pureFunctions` more precisely for specific modules.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1686,10 +1686,19 @@ export default {
   },
   module: {
     rules: [
+      // Mark exports of a third-party library as pure.
       {
         test: /node_modules\/some-library\/index\.js$/,
         parser: {
           pureFunctions: ['isString'],
+        },
+      },
+      // Or mark imports on the consumer side: calls to `cva` in this file
+      // are treated as pure regardless of how the library declares itself.
+      {
+        test: /src\/styles\.js$/,
+        parser: {
+          pureFunctions: ['cva'],
         },
       },
     ],
@@ -1698,11 +1707,11 @@ export default {
 ```
 
 :::note
-Only top-level exported function definitions are supported. For default exports, use `default` as the exported name.
+For default exports configured on the source module, use `default` as the name.
 :::
 
 :::warning
-This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured exported function name cannot be found in the matched module.
+This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
 :::
 
 ### module.parser["javascript/auto"]

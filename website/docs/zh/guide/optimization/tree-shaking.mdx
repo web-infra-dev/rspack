@@ -226,7 +226,7 @@ export function baz() {}
 
 ## pureFunctions
 
-`pureFunctions` 允许你在命中的模块中，手动将顶层导出函数标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。这在处理无法修改源码的第三方库（例如 `node_modules` 中的包）时非常有用。
+`pureFunctions` 允许你在命中的模块中，手动将顶层标识符标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。配置的名字必须能解析到该模块中的顶层绑定 —— 即顶层的 function/class/变量声明、`import` 引入的标识符，或它们的 export 别名。这既适用于无法修改源码的第三方库（例如 `node_modules` 中的包），也适用于在消费侧直接断言某个 import 调用是 pure 的场景。
 
 配置方式请参考 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)。
 
@@ -235,7 +235,7 @@ export function baz() {}
 :::
 
 :::note
-目前仅支持顶层导出函数定义；对于默认导出，请使用 `default` 作为导出名。
+对于配置在源模块上的默认导出，请使用 `default` 作为名字。
 :::
 
 对于可以修改源码的业务代码，优先使用 `/*#__NO_SIDE_EFFECTS__*/` 注解。
@@ -251,10 +251,18 @@ export default {
   },
   module: {
     rules: [
+      // 将第三方库中的导出标记为 pure
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
           pureFunctions: ['isString', 'default'],
+        },
+      },
+      // 也可以在消费侧标记 import
+      {
+        test: /src\/styles\.js$/,
+        parser: {
+          pureFunctions: ['cva'],
         },
       },
     ],
@@ -262,4 +270,4 @@ export default {
 };
 ```
 
-Rspack 会校验 `pureFunctions` 中配置的每个名字是否确实存在于命中的模块中；如果找不到对应的导出函数名，就会发出警告。
+Rspack 会校验 `pureFunctions` 中配置的每个名字是否能在命中模块中解析到顶层绑定；如果找不到，就会发出警告。
