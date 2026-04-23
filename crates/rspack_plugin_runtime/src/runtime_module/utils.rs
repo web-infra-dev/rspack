@@ -1,6 +1,5 @@
 use std::fmt::Write as _;
 
-use itertools::Itertools;
 use rspack_core::{
   Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
@@ -180,21 +179,38 @@ where
   format!("\" + {content} + \"")
 }
 
-pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&ChunkId]) -> String {
+pub fn stringify_static_chunk_map(filename: &str, chunk_ids: &[&ChunkId]) -> String {
   let condition = if chunk_ids.len() == 1 {
-    format!(
-      "chunkId === {}",
-      serde_json::to_string(&chunk_ids.first()).expect("invalid json to_string")
-    )
+    let mut condition = String::from("chunkId === ");
+    let chunk_id = chunk_ids.first().expect("should have one chunk id");
+    condition.push_str(&rspack_util::json_stringify(*chunk_id));
+    condition
   } else {
-    let content = chunk_ids
-      .iter()
-      .sorted_unstable()
-      .map(|chunk_id| format!("{}:1", rspack_util::json_stringify(*chunk_id)))
-      .join(",");
-    format!("{{ {content} }}[chunkId]")
+    let mut sorted_chunk_ids = chunk_ids.to_vec();
+    sorted_chunk_ids.sort_unstable();
+
+    let mut condition = String::with_capacity(sorted_chunk_ids.len() * 8 + 14);
+    condition.push('{');
+    condition.push(' ');
+    for (idx, chunk_id) in sorted_chunk_ids.iter().enumerate() {
+      if idx != 0 {
+        condition.push(',');
+      }
+      let key = rspack_util::json_stringify(*chunk_id);
+      condition.reserve(key.len() + 2);
+      condition.push_str(&key);
+      condition.push_str(":1");
+    }
+    condition.push_str(" }[chunkId]");
+    condition
   };
-  format!("if ({condition}) return {filename};")
+  let mut result = String::with_capacity(condition.len() + filename.len() + 14);
+  result.push_str("if (");
+  result.push_str(&condition);
+  result.push_str(") return ");
+  result.push_str(filename);
+  result.push(';');
+  result
 }
 
 fn stringify_map<T: std::fmt::Display>(entries: &mut [(&ChunkId, T)]) -> String {
@@ -231,7 +247,7 @@ pub fn generate_javascript_hmr_runtime(
 mod tests {
   use rspack_core::chunk_graph_chunk::{ChunkId, ChunkIdSet};
 
-  use super::{stringify_chunks, stringify_map};
+  use super::{stringify_chunks, stringify_map, stringify_static_chunk_map};
 
   #[test]
   fn stringify_chunks_keeps_sorted_numeric_ids() {
@@ -254,6 +270,29 @@ mod tests {
     assert_eq!(
       stringify_map(&mut entries),
       r#"{"a": "alpha","b": "beta",}"#
+    );
+  }
+
+  #[test]
+  fn stringify_static_chunk_map_single_chunk_keeps_condition_shape() {
+    let filename = "\"style.css\"".to_string();
+    let chunk_id = ChunkId::from("main");
+
+    assert_eq!(
+      stringify_static_chunk_map(&filename, &[&chunk_id]),
+      r#"if (chunkId === "main") return "style.css";"#
+    );
+  }
+
+  #[test]
+  fn stringify_static_chunk_map_multiple_chunks_keeps_sorted_object_shape() {
+    let filename = "\"style.css\"".to_string();
+    let chunk_a = ChunkId::from("b");
+    let chunk_b = ChunkId::from("a");
+
+    assert_eq!(
+      stringify_static_chunk_map(&filename, &[&chunk_a, &chunk_b]),
+      r#"if ({ "a":1,"b":1 }[chunkId]) return "style.css";"#
     );
   }
 }
