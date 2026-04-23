@@ -93,7 +93,7 @@ impl BuildChunkGraphArtifact {
           .module_graph_module_by_identifier(&module)
           .expect("should have module");
         module
-          .all_dependencies
+          .all_dependencies()
           .iter()
           .filter(|dep_id| {
             module_graph

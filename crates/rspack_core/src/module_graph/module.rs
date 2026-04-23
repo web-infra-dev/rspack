@@ -49,7 +49,7 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // an quick way to get a module's all dependencies (including its blocks' dependencies)
   // and it is ordered by dependency creation order
-  pub(crate) all_dependencies: Vec<DependencyId>,
+  all_dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub depth: Option<usize>,
@@ -94,6 +94,14 @@ impl ModuleGraphModule {
 
   pub fn outgoing_connections(&self) -> &FxHashSet<DependencyId> {
     &self.outgoing_connections
+  }
+
+  pub fn all_dependencies(&self) -> &[DependencyId] {
+    &self.all_dependencies
+  }
+
+  pub(crate) fn all_dependencies_mut(&mut self) -> &mut Vec<DependencyId> {
+    &mut self.all_dependencies
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

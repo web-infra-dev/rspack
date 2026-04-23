@@ -1,17 +1,16 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
-  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, SideEffectsStateArtifact, get_target,
+  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
+  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
+  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, SideEffectsStateArtifact,
+  get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxIndexSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -252,29 +251,14 @@ fn collect_module_exports_specs(
   mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<(Vec<(DependencyId, ExportsSpec)>, bool)> {
-  fn walk_block<B: DependenciesBlock + ?Sized>(
-    block: &B,
-    dep_ids: &mut FxIndexSet<DependencyId>,
-    mg: &ModuleGraph,
-  ) {
-    dep_ids.extend(block.get_dependencies().iter().copied());
-    for block_id in block.get_blocks() {
-      if let Some(block) = mg.block_by_id(block_id) {
-        walk_block(block, dep_ids, mg);
-      }
-    }
-  }
-
-  let block = mg.module_by_identifier(module_id)?.as_ref();
-  let mut dep_ids = FxIndexSet::default();
-  walk_block(block, &mut dep_ids, mg);
+  let mgm = mg.module_graph_module_by_identifier(module_id)?;
 
   // There is no need to use the cache here
   // because the `get_exports` of each dependency will only be called once
   // mg_cache.freeze();
   let mut has_nested_exports = false;
   let mut res = Vec::new();
-  for id in dep_ids {
+  for id in mgm.all_dependencies().iter().copied() {
     let Some(exports_spec) =
       mg.dependency_by_id(&id)
         .get_exports(mg, mg_cache, exports_info_artifact)
