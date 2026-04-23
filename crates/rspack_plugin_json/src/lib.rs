@@ -200,7 +200,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           {
             create_object_for_exports_info(
               json_data.clone(),
-              &exports_info,
+              exports_info,
               *runtime,
               &compilation.exports_info_artifact,
             )
@@ -313,7 +313,7 @@ pub fn create_object_for_exports_info(
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
           let exports_info = exports_info.as_data(exports_info_artifact);
-          create_object_for_exports_info(temp, &exports_info, runtime, exports_info_artifact)
+          create_object_for_exports_info(temp, exports_info, runtime, exports_info_artifact)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
@@ -352,7 +352,7 @@ pub fn create_object_for_exports_info(
             let exports_info = exports_info.as_data(exports_info_artifact);
             Some(create_object_for_exports_info(
               item,
-              &exports_info,
+              exports_info,
               runtime,
               exports_info_artifact,
             ))

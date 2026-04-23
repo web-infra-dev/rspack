@@ -1537,7 +1537,7 @@ impl Module for ConcatenatedModule {
       .get_exports_info_data(&root_module_id);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
-    for (_, export_info) in exports_info.exports() {
+    for export_info in exports_info.exports().values() {
       let name = export_info.name().cloned().unwrap_or_else(|| "".into());
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
@@ -1707,7 +1707,7 @@ impl Module for ConcatenatedModule {
       let exports_info = compilation
         .exports_info_artifact
         .get_exports_info_data(&module_info_id);
-      for (_, export_info) in exports_info.exports() {
+      for export_info in exports_info.exports().values() {
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           continue;
         }

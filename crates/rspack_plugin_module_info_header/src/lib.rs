@@ -271,7 +271,7 @@ async fn render_js_module_package(
       print_exports_info_to_source(
         &mut new_source,
         "",
-        &exports_info,
+        exports_info,
         &request_shortener,
         &mut FxHashSet::default(),
         module_graph,
