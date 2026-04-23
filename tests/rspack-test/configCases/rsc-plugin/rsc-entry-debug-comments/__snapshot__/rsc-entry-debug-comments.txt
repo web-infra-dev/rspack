@@ -1,0 +1,25 @@
+server
+"use strict";
+/*!
+ * module: ./src/Client.js
+ * import: import() eager
+ * exports: Client
+ */
+/*!
+ * module: ./src/Client.js
+ * import: import() eager
+ * exports: Client
+ */
+
+client
+"use strict";
+/*!
+ * module: ./src/App.css
+ * import: import()
+ * exports: side-effect
+ */
+/*!
+ * module: ./src/Client.js
+ * import: import()
+ * exports: Client
+ */
