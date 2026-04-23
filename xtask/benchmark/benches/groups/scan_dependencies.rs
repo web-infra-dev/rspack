@@ -271,6 +271,10 @@ impl PreparedScanDependenciesBenchmarkCase {
     &self,
     iteration_state: &mut ScanDependenciesIterationState,
   ) -> ScanDependenciesResult {
+    let parse_local_parser_plugins = self
+      .parser_and_generator
+      .create_parse_local_parser_plugins(self.compiler_options.as_ref(), self.unresolved_mark);
+
     run_scan_dependencies(
       &self.source_text,
       &self.program,
@@ -284,9 +288,9 @@ impl PreparedScanDependenciesBenchmarkCase {
       self.module_identifier,
       Some(&self.parser_options),
       &mut iteration_state.semicolons,
-      self.unresolved_mark,
       self.parser_and_generator.hook_parser_plugins(),
       self.parser_and_generator.builtin_parser_plugins(),
+      parse_local_parser_plugins,
       std::mem::take(&mut iteration_state.parse_meta),
       &self.parser_runtime_requirements,
     )

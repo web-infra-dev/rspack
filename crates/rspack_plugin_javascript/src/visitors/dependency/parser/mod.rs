@@ -12,7 +12,6 @@ use std::{
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
-  sync::Arc,
 };
 
 use bitflags::bitflags;
@@ -33,7 +32,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, Mark, Span, Spanned, comments::Comments},
+  common::{BytePos, Span, Spanned, comments::Comments},
   ecma::{
     ast::{
       ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
@@ -49,7 +48,7 @@ use crate::{
   dependency::local_module::LocalModule,
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
+    ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
     JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
@@ -406,9 +405,9 @@ impl<'parser> JavascriptParser<'parser> {
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
-    unresolved_mark: Mark,
     hook_parser_plugins: &'parser [ArcJavascriptParserPlugin],
     builtin_parser_plugins: &'parser [BoxJavascriptParserPlugin],
+    parse_local_parser_plugins: Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
@@ -419,23 +418,8 @@ impl<'parser> JavascriptParser<'parser> {
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
-    let mut parse_local_parser_plugins: Vec<ArcJavascriptParserPlugin> = Vec::with_capacity(2);
-
     if compiler_options.optimization.inline_exports {
       build_info.inline_exports = true;
-    }
-    if compiler_options.optimization.inner_graph {
-      parse_local_parser_plugins.push(Arc::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
-    }
-
-    if compiler_options.optimization.side_effects.is_true() {
-      parse_local_parser_plugins.push(Arc::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(

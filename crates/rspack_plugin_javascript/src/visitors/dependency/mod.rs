@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_core::common::{BytePos, Mark, comments::Comments};
+use swc_core::common::{BytePos, comments::Comments};
 
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
@@ -49,9 +49,9 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   semicolons: &mut FxHashSet<BytePos>,
-  unresolved_mark: Mark,
   hook_parser_plugins: &[ArcJavascriptParserPlugin],
   builtin_parser_plugins: &[BoxJavascriptParserPlugin],
+  parse_local_parser_plugins: Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
@@ -70,9 +70,9 @@ pub fn scan_dependencies(
     build_meta,
     build_info,
     semicolons,
-    unresolved_mark,
     hook_parser_plugins,
     builtin_parser_plugins,
+    parse_local_parser_plugins,
     parse_meta,
     parser_runtime_requirements,
   );

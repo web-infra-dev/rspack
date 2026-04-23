@@ -26,6 +26,7 @@ const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 enum JavaScriptParserPluginItem<'a> {
   Shared(ArcJavascriptParserPlugin),
   BorrowedBuiltin(&'a (dyn JavascriptParserPlugin + Send + Sync)),
+  Owned(BoxJavascriptParserPlugin),
 }
 
 impl JavaScriptParserPluginItem<'_> {
@@ -34,6 +35,7 @@ impl JavaScriptParserPluginItem<'_> {
     match self {
       Self::Shared(plugin) => plugin.as_ref(),
       Self::BorrowedBuiltin(plugin) => *plugin,
+      Self::Owned(plugin) => plugin.as_ref(),
     }
   }
 }
@@ -68,7 +70,7 @@ impl<'plugin> JavaScriptParserPluginDrive<'plugin> {
   pub fn new(
     hook_parser_plugins: &[ArcJavascriptParserPlugin],
     builtin_parser_plugins: &'plugin [BoxJavascriptParserPlugin],
-    parse_local_parser_plugins: Vec<ArcJavascriptParserPlugin>,
+    parse_local_parser_plugins: Vec<BoxJavascriptParserPlugin>,
   ) -> Self {
     // Merge the three plugin sources into one ordered drive:
     // - hook_parser_plugins: added by external hooks and shared by Arc.
@@ -91,7 +93,7 @@ impl<'plugin> JavaScriptParserPluginDrive<'plugin> {
     plugins.extend(
       parse_local_parser_plugins
         .into_iter()
-        .map(JavaScriptParserPluginItem::Shared),
+        .map(JavaScriptParserPluginItem::Owned),
     );
     assert!(
       plugins.len() <= PLUGIN_BITMASK_BITS,

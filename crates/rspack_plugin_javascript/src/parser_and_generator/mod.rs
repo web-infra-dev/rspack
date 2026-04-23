@@ -20,7 +20,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{BytePos, comments::SingleThreadedComments, input::SourceFileInput},
+  common::{BytePos, Mark, comments::SingleThreadedComments, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -101,7 +101,7 @@ pub struct JavaScriptParserAndGenerator {
   hook_parser_plugins: Vec<ArcJavascriptParserPlugin>,
   // Rspack's built-in JS parser plugins. They are created once with this shared
   // parser/generator and borrowed by each parse; dynamic per-parse plugins are
-  // still created in JavascriptParser::new.
+  // created after each SWC parse because they depend on parse-local marks.
   #[cacheable(with=Skip)]
   builtin_parser_plugins: Vec<BoxJavascriptParserPlugin>,
 }
@@ -251,6 +251,30 @@ impl JavaScriptParserAndGenerator {
 
   pub fn builtin_parser_plugins(&self) -> &[BoxJavascriptParserPlugin] {
     &self.builtin_parser_plugins
+  }
+
+  pub fn create_parse_local_parser_plugins(
+    &self,
+    compiler_options: &CompilerOptions,
+    unresolved_mark: Mark,
+  ) -> Vec<BoxJavascriptParserPlugin> {
+    let mut parse_local_parser_plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(2);
+
+    if compiler_options.optimization.inner_graph {
+      parse_local_parser_plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
+        unresolved_mark,
+        compiler_options.experiments.pure_functions,
+      )));
+    }
+
+    if compiler_options.optimization.side_effects.is_true() {
+      parse_local_parser_plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
+        unresolved_mark,
+        compiler_options.experiments.pure_functions,
+      )));
+    }
+
+    parse_local_parser_plugins
   }
 
   fn source_block(
@@ -427,6 +451,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let unresolved_mark = ast.get_context().unresolved_mark;
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
+    let parse_local_parser_plugins =
+      self.create_parse_local_parser_plugins(compiler_options, unresolved_mark);
 
     let ScanDependenciesResult {
       dependencies,
@@ -448,9 +474,9 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         module_identifier,
         module_parser_options,
         &mut semicolons,
-        unresolved_mark,
         &self.hook_parser_plugins,
         &self.builtin_parser_plugins,
+        parse_local_parser_plugins,
         parse_meta,
         &parser_runtime_requirements,
       )
