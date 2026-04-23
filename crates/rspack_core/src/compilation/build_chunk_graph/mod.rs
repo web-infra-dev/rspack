@@ -50,7 +50,9 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
       .add_module(module_identifier)
   }
 
-  compilation.build_chunk_graph_artifact.code_splitter = splitter;
+  compilation
+    .build_chunk_graph_artifact
+    .set_code_splitter(splitter);
 
   Ok(())
 }

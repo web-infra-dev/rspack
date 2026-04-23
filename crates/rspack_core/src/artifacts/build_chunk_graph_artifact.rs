@@ -11,6 +11,7 @@ use crate::{
   ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
   Logger, ModuleIdentifier,
   build_chunk_graph::code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
+  fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
 
@@ -28,6 +29,10 @@ pub struct BuildChunkGraphArtifact {
 }
 
 impl BuildChunkGraphArtifact {
+  pub(crate) fn set_code_splitter(&mut self, code_splitter: CodeSplitter) {
+    fast_set(&mut self.code_splitter, code_splitter);
+  }
+
   // we can skip rebuilding chunk graph if none of modules
   // has changed its outgoings
   // we don't need to check if module has changed its incomings
@@ -193,7 +198,7 @@ impl BuildChunkGraphArtifact {
     self.async_entrypoints.clear();
     self.named_chunk_groups.clear();
     self.named_chunks.clear();
-    self.code_splitter = Default::default();
+    self.set_code_splitter(Default::default());
     self.module_idx.clear();
   }
 }
