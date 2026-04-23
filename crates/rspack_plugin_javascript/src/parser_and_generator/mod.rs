@@ -7,11 +7,10 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
-  ChunkGraph, CollectedTypeScriptInfo, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, GenerateContext, ImportMeta, JavascriptParserCommonjsExportsOption, Module,
-  ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, RuntimeGlobals, RuntimeVariable, SideEffectsBailoutItem,
-  SourceType, TemplateContext, TemplateReplaceSource,
+  ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, DependencyId,
+  GenerateContext, Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeVariable,
+  SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
@@ -20,7 +19,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnostic
 use rspack_javascript_compiler::JavaScriptCompiler;
 use swc_core::{
   base::config::IsModule,
-  common::{BytePos, Mark, comments::SingleThreadedComments, input::SourceFileInput},
+  common::{BytePos, comments::SingleThreadedComments, input::SourceFileInput},
   ecma::{
     ast,
     parser::{EsSyntax, Syntax, lexer::Lexer},
@@ -31,7 +30,6 @@ use swc_core::{
 use crate::{
   ArcJavascriptParserPlugin, BoxJavascriptParserPlugin,
   dependency::ESMCompatibilityDependency,
-  parser_plugin,
   visitors::{ScanDependenciesResult, scan_dependencies, semicolon, swc_visitor::resolver},
 };
 
@@ -98,183 +96,20 @@ pub struct JavaScriptParserAndGenerator {
   // ProvidePlugin, HMR, and ExtractCss. They live on the shared parser/generator
   // instance and are cloned by Arc for each parse.
   #[cacheable(with=Skip)]
-  hook_parser_plugins: Vec<ArcJavascriptParserPlugin>,
-  // Rspack's built-in JS parser plugins. They are created once with this shared
-  // parser/generator and borrowed by each parse; dynamic per-parse plugins are
-  // created after each SWC parse because they depend on parse-local marks.
-  #[cacheable(with=Skip)]
-  builtin_parser_plugins: Vec<BoxJavascriptParserPlugin>,
+  parser_plugins: Vec<ArcJavascriptParserPlugin>,
 }
 
 impl std::fmt::Debug for JavaScriptParserAndGenerator {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     f.debug_struct("JavaScriptParserAndGenerator")
-      .field("hook_parser_plugins", &"...")
-      .field("builtin_parser_plugins", &"...")
+      .field("parser_plugins", &"...")
       .finish()
   }
 }
 
-#[derive(Clone, Copy)]
-pub struct JavaScriptParserAndGeneratorOptions {
-  amd: bool,
-  node: bool,
-  output_module: bool,
-  inline_exports: bool,
-}
-
-impl From<&CompilerOptions> for JavaScriptParserAndGeneratorOptions {
-  fn from(value: &CompilerOptions) -> Self {
-    Self {
-      amd: value.amd.is_some(),
-      node: value.node.is_some(),
-      output_module: value.output.module,
-      inline_exports: value.optimization.inline_exports,
-    }
-  }
-}
-
 impl JavaScriptParserAndGenerator {
-  pub fn new(
-    module_type: ModuleType,
-    parser_options: Option<&ParserOptions>,
-    options: JavaScriptParserAndGeneratorOptions,
-  ) -> Self {
-    let javascript_options = parser_options
-      .and_then(|p| p.get_javascript())
-      .expect("should at least have a global javascript parser options");
-    let mut builtin_parser_plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32);
-
-    builtin_parser_plugins.push(Box::new(parser_plugin::InitializeEvaluating));
-    builtin_parser_plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
-    builtin_parser_plugins.push(Box::new(parser_plugin::ConstPlugin));
-    builtin_parser_plugins.push(Box::new(parser_plugin::UseStrictPlugin));
-
-    if matches!(module_type, ModuleType::JsAuto | ModuleType::JsDynamic) {
-      builtin_parser_plugins.push(Box::new(
-        parser_plugin::RequireContextDependencyParserPlugin,
-      ));
-      builtin_parser_plugins.push(Box::new(
-        parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
-      ));
-    }
-    builtin_parser_plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
-
-    if module_type.is_js_auto() || module_type.is_js_esm() {
-      builtin_parser_plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
-      builtin_parser_plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
-      builtin_parser_plugins.push(Box::new(
-        parser_plugin::ImportMetaContextDependencyParserPlugin,
-      ));
-      if matches!(
-        javascript_options.import_meta,
-        Some(ImportMeta::Enabled | ImportMeta::PreserveUnknown)
-      ) {
-        builtin_parser_plugins.push(Box::new(parser_plugin::ImportMetaPlugin(
-          javascript_options.import_meta.expect("should have value"),
-        )));
-      } else {
-        builtin_parser_plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
-      }
-
-      builtin_parser_plugins.push(Box::new(parser_plugin::ESMImportDependencyParserPlugin));
-      builtin_parser_plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
-    }
-
-    if options.amd && (module_type.is_js_auto() || module_type.is_js_dynamic()) {
-      builtin_parser_plugins.push(Box::new(
-        parser_plugin::AMDRequireDependenciesBlockParserPlugin,
-      ));
-      builtin_parser_plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-      builtin_parser_plugins.push(Box::new(parser_plugin::AMDParserPlugin));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
-      builtin_parser_plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
-      builtin_parser_plugins.push(Box::new(parser_plugin::CommonJsPlugin));
-      let commonjs_exports = javascript_options
-        .commonjs
-        .as_ref()
-        .map_or(JavascriptParserCommonjsExportsOption::Enable, |commonjs| {
-          commonjs.exports
-        });
-      if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
-        builtin_parser_plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
-          commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
-        )));
-      }
-    }
-
-    // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
-    // CJS features require node options; ESM features are always available for ESM-capable modules
-    let handle_cjs = (module_type.is_js_auto() || module_type.is_js_dynamic()) && options.node;
-    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
-    if handle_cjs || handle_esm {
-      builtin_parser_plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
-        handle_cjs, handle_esm,
-      )));
-    }
-
-    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
-      builtin_parser_plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
-      builtin_parser_plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
-      builtin_parser_plugins.push(Box::new(parser_plugin::APIPlugin::new(
-        options.output_module,
-      )));
-      builtin_parser_plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-      builtin_parser_plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        javascript_options
-          .worker
-          .as_ref()
-          .expect("should have worker"),
-      )));
-      builtin_parser_plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
-    }
-
-    if options.inline_exports {
-      builtin_parser_plugins.push(Box::new(parser_plugin::InlineConstPlugin));
-    }
-
-    Self {
-      hook_parser_plugins: Vec::new(),
-      builtin_parser_plugins,
-    }
-  }
-
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
-    self.hook_parser_plugins.push(parser_plugin.into());
-  }
-
-  pub fn hook_parser_plugins(&self) -> &[ArcJavascriptParserPlugin] {
-    &self.hook_parser_plugins
-  }
-
-  pub fn builtin_parser_plugins(&self) -> &[BoxJavascriptParserPlugin] {
-    &self.builtin_parser_plugins
-  }
-
-  pub fn create_parse_local_parser_plugins(
-    &self,
-    compiler_options: &CompilerOptions,
-    unresolved_mark: Mark,
-  ) -> Vec<BoxJavascriptParserPlugin> {
-    let mut parse_local_parser_plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(2);
-
-    if compiler_options.optimization.inner_graph {
-      parse_local_parser_plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
-    }
-
-    if compiler_options.optimization.side_effects.is_true() {
-      parse_local_parser_plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
-    }
-
-    parse_local_parser_plugins
+    self.parser_plugins.push(parser_plugin.into());
   }
 
   fn source_block(
@@ -459,9 +294,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut warning_diagnostics,
       mut side_effects_item,
     } = match ast.visit(|program, _| {
-      let parse_local_parser_plugins =
-        self.create_parse_local_parser_plugins(compiler_options, unresolved_mark);
-
       scan_dependencies(
         &source_string,
         program,
@@ -475,9 +307,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         module_identifier,
         module_parser_options,
         &mut semicolons,
-        &self.hook_parser_plugins,
-        &self.builtin_parser_plugins,
-        parse_local_parser_plugins,
+        unresolved_mark,
+        &self.parser_plugins,
         parse_meta,
         &parser_runtime_requirements,
       )

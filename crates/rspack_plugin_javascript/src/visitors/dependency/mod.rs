@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_core::common::{BytePos, comments::Comments};
+use swc_core::common::{BytePos, Mark, comments::Comments};
 
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
@@ -22,10 +22,7 @@ pub use self::{
   },
   util::*,
 };
-use crate::{
-  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin,
-  parser_and_generator::ParserRuntimeRequirementsData,
-};
+use crate::{ArcJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData};
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
@@ -49,9 +46,8 @@ pub fn scan_dependencies(
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
   semicolons: &mut FxHashSet<BytePos>,
-  hook_parser_plugins: &[ArcJavascriptParserPlugin],
-  builtin_parser_plugins: &[BoxJavascriptParserPlugin],
-  parse_local_parser_plugins: Vec<BoxJavascriptParserPlugin>,
+  unresolved_mark: Mark,
+  parser_plugins: &[ArcJavascriptParserPlugin],
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
@@ -70,9 +66,8 @@ pub fn scan_dependencies(
     build_meta,
     build_info,
     semicolons,
-    hook_parser_plugins,
-    builtin_parser_plugins,
-    parse_local_parser_plugins,
+    unresolved_mark,
+    parser_plugins,
     parse_meta,
     parser_runtime_requirements,
   );

@@ -47,7 +47,7 @@ pub(crate) use self::{
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
   r#const::{ConstPlugin, is_logic_op},
-  drive::JavaScriptParserPluginDrive,
+  drive::{JavaScriptParserPluginDrive, JavaScriptParserPluginItem},
   esm_detection_parser_plugin::ESMDetectionParserPlugin,
   esm_export_dependency_parser_plugin::ESMExportDependencyParserPlugin,
   esm_import_dependency_parser_plugin::ESMImportDependencyParserPlugin,
