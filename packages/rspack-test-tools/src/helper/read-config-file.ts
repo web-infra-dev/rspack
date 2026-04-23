@@ -3,9 +3,7 @@ import fs from 'fs-extra';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext } from '../type';
 
-function isNodeEsmNamespaceObject(
-  value: unknown,
-): value is {
+function isNodeEsmNamespaceObject(value: unknown): value is {
   default: RspackOptions | ((...args: unknown[]) => RspackOptions);
 } {
   if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
