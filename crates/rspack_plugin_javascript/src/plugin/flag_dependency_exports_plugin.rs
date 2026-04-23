@@ -11,7 +11,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
+use rspack_util::fx_hash::FxIndexSet;
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -251,8 +251,7 @@ fn collect_module_exports_specs(
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<(FxIndexMap<DependencyId, ExportsSpec>, bool)> {
-  let mut has_nested_exports = false;
+) -> Option<(Vec<(DependencyId, ExportsSpec)>, bool)> {
   fn walk_block<B: DependenciesBlock + ?Sized>(
     block: &B,
     dep_ids: &mut FxIndexSet<DependencyId>,
@@ -273,15 +272,18 @@ fn collect_module_exports_specs(
   // There is no need to use the cache here
   // because the `get_exports` of each dependency will only be called once
   // mg_cache.freeze();
-  let res = dep_ids
-    .into_iter()
-    .filter_map(|id| {
-      let dep = mg.dependency_by_id(&id);
-      let exports_spec = dep.get_exports(mg, mg_cache, exports_info_artifact)?;
-      has_nested_exports |= exports_spec.has_nested_exports();
-      Some((id, exports_spec))
-    })
-    .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
+  let mut has_nested_exports = false;
+  let mut res = Vec::new();
+  for id in dep_ids {
+    let Some(exports_spec) =
+      mg.dependency_by_id(&id)
+        .get_exports(mg, mg_cache, exports_info_artifact)
+    else {
+      continue;
+    };
+    has_nested_exports |= exports_spec.has_nested_exports();
+    res.push((id, exports_spec));
+  }
   // mg_cache.unfreeze();
   Some((res, has_nested_exports))
 }
