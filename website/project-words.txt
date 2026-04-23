@@ -93,6 +93,7 @@ memfs
 mimalloc
 minifiers
 miro
+MPHF
 modulegeneratorassetdataurl
 modulegeneratorassetdataurlencoding
 modulegeneratorassetdataurlmimetype
