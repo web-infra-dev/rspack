@@ -136,7 +136,6 @@ fn subtract_non_defer_access(a: NonDeferAccess, b: NonDeferAccess) -> NonDeferAc
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
   pub size: f64,
-  pub shorten_id: String,
 }
 
 static REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -653,30 +652,37 @@ impl ConcatenatedModule {
   // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
   pub fn create(
     root_module_ctxt: RootModuleContext,
-    mut modules: Vec<ConcatenatedInnerModule>,
+    mut modules_with_readable_identifiers: Vec<(ConcatenatedInnerModule, Arc<str>)>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
-    compilation: &Compilation,
+    _compilation: &Compilation,
   ) -> Self {
-    modules.sort_unstable_by_key(|a| a.id);
-    let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
+    modules_with_readable_identifiers.sort_unstable_by_key(|(module, _)| module.id);
+    let id = Self::create_identifier_from_readable_identifiers(
+      &root_module_ctxt,
+      modules_with_readable_identifiers
+        .iter()
+        .map(|(_, readable_identifier)| readable_identifier.as_ref()),
+      hash_function,
+    );
+    let modules = modules_with_readable_identifiers
+      .into_iter()
+      .map(|(module, _)| module)
+      .collect();
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }
 
-  fn create_identifier(
+  fn create_identifier_from_readable_identifiers<'a>(
     root_module_ctxt: &RootModuleContext,
-    modules: &Vec<ConcatenatedInnerModule>,
+    readable_identifiers: impl IntoIterator<Item = &'a str>,
     hash_function: Option<HashFunction>,
   ) -> String {
-    let mut identifiers = vec![];
-    for m in modules {
-      identifiers.push(m.shorten_id.as_str());
-    }
     let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
-    if let Some(id) = identifiers.first() {
+    let mut readable_identifiers = readable_identifiers.into_iter();
+    if let Some(id) = readable_identifiers.next() {
       hash.write(id.as_bytes());
     }
-    for id in identifiers.iter().skip(1) {
+    for id in readable_identifiers {
       hash.write(b" ");
       hash.write(id.as_bytes());
     }
@@ -868,7 +874,6 @@ impl Module for ConcatenatedModule {
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
-    let modules: IdentifierSet = self.modules.iter().map(|item| item.id).collect();
 
     let root_module = module_graph
       .module_by_identifier(&self.root_module_ctxt.id)
@@ -892,8 +897,7 @@ impl Module for ConcatenatedModule {
           .filter(|dep_id| {
             let dep = module_graph.dependency_by_id(dep_id);
             let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep_id);
-            !is_esm_dep_like(dep)
-              || module_id_of_dep.is_none_or(|module_id| !modules.contains(module_id))
+            !is_esm_dep_like(dep) || !contains_inner_module(&self.modules, module_id_of_dep)
           })
           .collect::<Vec<_>>()
       })
@@ -912,13 +916,15 @@ impl Module for ConcatenatedModule {
       if !cur_build_info.cacheable {
         self.build_info.cacheable = false;
       }
-
       // populate blocks
       for b in module.get_blocks() {
         self.blocks.push(*b);
       }
       // populate diagnostic
-      self.diagnostics.extend(module.diagnostics().into_owned());
+      match module.diagnostics() {
+        Cow::Borrowed(diagnostics) => self.diagnostics.extend_from_slice(diagnostics),
+        Cow::Owned(diagnostics) => self.diagnostics.extend(diagnostics),
+      }
 
       // populate topLevelDeclarations
       let module_build_info = module.build_info();
@@ -935,10 +941,9 @@ impl Module for ConcatenatedModule {
       }
 
       // populate assets
-      self
-        .build_info
-        .assets
-        .extend(module_build_info.assets.as_ref().clone());
+      for (name, asset) in module_build_info.assets.as_ref().iter() {
+        self.build_info.assets.insert(name.clone(), asset.clone());
+      }
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult {
@@ -1106,8 +1111,10 @@ impl Module for ConcatenatedModule {
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported) in import_map.iter() {
                 let specifiers = &imported.specifiers;
-                escaped_identifiers
-                  .push((source.clone(), split_readable_identifier(source.as_str())));
+                escaped_identifiers.push((
+                  source.clone().into(),
+                  split_readable_identifier(source.as_str()),
+                ));
                 for atom in specifiers {
                   escaped_names
                     .entry(atom.clone())
@@ -1215,7 +1222,7 @@ impl Module for ConcatenatedModule {
           if let Some(import_map) = info.import_map.take() {
             for ((source, attr), imported) in import_map {
               let source_parts = escaped_identifiers
-                .get(&source)
+                .get(source.as_str())
                 .expect("should have escaped identifier");
               let total_imported_atoms = import_stmts.entry((source, attr)).or_default();
 
@@ -3439,11 +3446,24 @@ pub fn get_cached_readable_identifier(
   mg: &ModuleGraph,
   module_static_cache: &ModuleStaticCache,
   compilation_context: &Context,
-) -> String {
+) -> Arc<str> {
   module_static_cache.cached_readable_identifier((*mid, None), || {
     let module = mg.module_by_identifier(mid).expect("should have module");
     module.readable_identifier(compilation_context).to_string()
   })
+}
+
+fn contains_inner_module(
+  modules: &[ConcatenatedInnerModule],
+  module_id: Option<&ModuleIdentifier>,
+) -> bool {
+  let Some(module_id) = module_id else {
+    return false;
+  };
+
+  modules
+    .binary_search_by_key(module_id, |module| module.id)
+    .is_ok()
 }
 
 pub fn split_readable_identifier(extra_info: &str) -> Vec<Atom> {
@@ -3468,6 +3488,51 @@ fn escaped_name(name: &str) -> Cow<'_, str> {
   }
 
   escape_identifier(name)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn test_root_module_context() -> RootModuleContext {
+    RootModuleContext {
+      id: ModuleIdentifier::from("root"),
+      readable_identifier: "root".to_string(),
+      name_for_condition: None,
+      lib_indent: None,
+      resolve_options: None,
+      code_generation_dependencies: None,
+      presentational_dependencies: None,
+      context: None,
+      layer: None,
+      side_effect_connection_state: ConnectionState::Active(true),
+      factory_meta: None,
+      build_meta: BuildMeta::default(),
+      exports_argument: ExportsArgument::default(),
+      module_argument: ModuleArgument::default(),
+    }
+  }
+
+  #[test]
+  fn concatenated_module_identifier_is_stable_after_create() {
+    let root_module_ctxt = test_root_module_context();
+    let id = ConcatenatedModule::create_identifier_from_readable_identifiers(
+      &root_module_ctxt,
+      ["alpha/readable", "beta/readable"],
+      Some(HashFunction::MD4),
+    );
+    let mut hash = RspackHash::new(&HashFunction::MD4);
+    hash.write("alpha/readable".as_bytes());
+    hash.write(b" ");
+    hash.write("beta/readable".as_bytes());
+    let expected = format!(
+      "{}|{}",
+      root_module_ctxt.id,
+      hash.digest(&HashDigest::Hex).encoded()
+    );
+
+    assert_eq!(id, expected);
+  }
 }
 
 pub fn escape_name(name: &str) -> String {

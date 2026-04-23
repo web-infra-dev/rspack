@@ -235,7 +235,7 @@ impl EsmLibraryPlugin {
   fn assign_external_candidate_name(
     readable_identifier: &str,
     candidate_used_names: &mut FxHashSet<Atom>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    escaped_identifiers: &FxHashMap<Arc<str>, Vec<Atom>>,
   ) -> Atom {
     let name = find_new_name(
       "",
@@ -543,8 +543,10 @@ impl EsmLibraryPlugin {
 
             if let Some(import_map) = &info.import_map {
               for ((source, _), imported_atoms) in import_map.iter() {
-                escaped_identifiers
-                  .push((source.clone(), split_readable_identifier(source.as_str())));
+                escaped_identifiers.push((
+                  source.clone().into(),
+                  split_readable_identifier(source.as_str()),
+                ));
                 for atom in &imported_atoms.specifiers {
                   escaped_names
                     .entry(atom.clone())
@@ -946,7 +948,7 @@ var {} = {{}};
     external_module_init_fragments: &IdentifierMap<ChunkInitFragments>,
     chunk_link: &mut ChunkLinkContext,
     escaped_names: &FxHashMap<Atom, Atom>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    escaped_identifiers: &FxHashMap<Arc<str>, Vec<Atom>>,
   ) {
     let context = &compilation.options.context;
 
@@ -1115,7 +1117,7 @@ var {} = {{}};
 
               let new_name = if all_used_names.contains(atom) {
                 let new_name = if atom == "default" {
-                  find_new_name("", &all_used_names, &escaped_identifiers[source])
+                  find_new_name("", &all_used_names, &escaped_identifiers[source.as_str()])
                 } else {
                   find_new_name(
                     escaped_names
@@ -1123,7 +1125,7 @@ var {} = {{}};
                       .expect("should have escaped name")
                       .as_ref(),
                     &all_used_names,
-                    &escaped_identifiers[&readable_identifier],
+                    &escaped_identifiers[readable_identifier.as_ref()],
                   )
                 };
                 all_used_names.insert(new_name.clone());
@@ -1165,7 +1167,7 @@ var {} = {{}};
                 .expect("should have escaped name")
                 .as_ref(),
               &all_used_names,
-              &escaped_identifiers[&readable_identifier],
+              &escaped_identifiers[readable_identifier.as_ref()],
             );
 
             all_used_names.insert(new_name.clone());
@@ -1208,14 +1210,14 @@ var {} = {{}};
                 find_new_name(
                   "namespaceObject",
                   &all_used_names,
-                  &escaped_identifiers[&readable_identifier],
+                  &escaped_identifiers[readable_identifier.as_ref()],
                 )
               })
           } else {
             find_new_name(
               "namespaceObject",
               &all_used_names,
-              &escaped_identifiers[&readable_identifier],
+              &escaped_identifiers[readable_identifier.as_ref()],
             )
           }
         };
@@ -1227,7 +1229,7 @@ var {} = {{}};
           let external_name_interop: Atom = find_new_name(
             "namespaceObject",
             &all_used_names,
-            &escaped_identifiers[&readable_identifier],
+            &escaped_identifiers[readable_identifier.as_ref()],
           );
           all_used_names.insert(external_name_interop.clone());
           info.set_interop_namespace_object_name(Some(external_name_interop.clone()));
@@ -1239,7 +1241,7 @@ var {} = {{}};
           let external_name_interop: Atom = find_new_name(
             "namespaceObject2",
             &all_used_names,
-            &escaped_identifiers[&readable_identifier],
+            &escaped_identifiers[readable_identifier.as_ref()],
           );
           all_used_names.insert(external_name_interop.clone());
           info.set_interop_namespace_object2_name(Some(external_name_interop.clone()));
@@ -1252,7 +1254,7 @@ var {} = {{}};
           let external_name_interop: Atom = find_new_name(
             "default",
             &all_used_names,
-            &escaped_identifiers[&readable_identifier],
+            &escaped_identifiers[readable_identifier.as_ref()],
           );
           all_used_names.insert(external_name_interop.clone());
           info.set_interop_default_access_name(Some(external_name_interop.clone()));
@@ -1887,7 +1889,7 @@ var {} = {{}};
     needed_namespace_objects: &mut IdentifierIndexSet,
     entry_imports: &mut IdentifierIndexMap<FxHashMap<Atom, Atom>>,
     exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    escaped_identifiers: &FxHashMap<Arc<str>, Vec<Atom>>,
     allow_rename: bool,
     filter_unused: bool,
     re_export_star_cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
@@ -2088,12 +2090,13 @@ var {} = {{}};
             let new_name = find_new_name(
               &name,
               &entry_chunk_link.used_names,
-              &escaped_identifiers[&get_cached_readable_identifier(
+              &escaped_identifiers[get_cached_readable_identifier(
                 &entry_module,
                 module_graph,
                 &compilation.module_static_cache,
                 context,
-              )],
+              )
+              .as_ref()],
             );
             entry_chunk_link.used_names.insert(new_name.clone());
             entry_chunk_link
@@ -2162,7 +2165,7 @@ var {} = {{}};
     runtime_chunks_exporting_require_via_runtime_module: &FxHashSet<ChunkUkey>,
     concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     needed_namespace_objects_by_ukey: &mut FxHashMap<ChunkUkey, IdentifierIndexSet>,
-    escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
+    escaped_identifiers: &FxHashMap<Arc<str>, Vec<Atom>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -2704,7 +2707,7 @@ var {} = {{}};
             let new_symbol = find_new_name(
               &symbol,
               all_used_names,
-              &escaped_identifiers[&readable_identifier],
+              &escaped_identifiers[readable_identifier.as_ref()],
             );
             all_used_names.insert(new_symbol.clone());
 

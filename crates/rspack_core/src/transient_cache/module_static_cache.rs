@@ -31,16 +31,18 @@ impl ModuleStaticCacheInner {
     &self,
     key: ReadableIdentifierCacheKey,
     f: F,
-  ) -> String {
+  ) -> Arc<str> {
     if !self.cache_enabled.load(Ordering::Acquire) {
-      return f();
+      return Arc::<str>::from(f());
     }
 
-    match self.readable_identifier_cache.get(&key) {
+    match self.readable_identifier_cache.get_arc(&key) {
       Some(value) => value,
       None => {
-        let value = f();
-        self.readable_identifier_cache.set(key, value.clone());
+        let value = Arc::<str>::from(f());
+        self
+          .readable_identifier_cache
+          .set_arc(key, Arc::clone(&value));
         value
       }
     }
@@ -56,7 +58,7 @@ pub(super) mod readable_identifier {
 
   #[derive(Debug, Default)]
   pub struct ReadableIdentifierCache {
-    cache: RwLock<HashMap<ReadableIdentifierCacheKey, String>>,
+    cache: RwLock<HashMap<ReadableIdentifierCacheKey, Arc<str>>>,
   }
 
   impl ReadableIdentifierCache {
@@ -64,17 +66,39 @@ pub(super) mod readable_identifier {
       self.cache.write().expect("should get lock").clear();
     }
 
-    pub fn get(&self, key: &ReadableIdentifierCacheKey) -> Option<String> {
+    pub fn get_arc(&self, key: &ReadableIdentifierCacheKey) -> Option<Arc<str>> {
       let inner = self.cache.read().expect("should get lock");
       inner.get(key).cloned()
     }
 
-    pub fn set(&self, key: ReadableIdentifierCacheKey, value: String) {
+    pub fn set_arc(&self, key: ReadableIdentifierCacheKey, value: Arc<str>) {
       self
         .cache
         .write()
         .expect("should get lock")
         .insert(key, value);
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use super::ModuleStaticCacheInner;
+  use crate::ModuleIdentifier;
+
+  #[test]
+  fn cached_readable_identifier_reuses_the_same_allocation() {
+    let cache = ModuleStaticCacheInner::default();
+    cache.enable_new_cache();
+
+    let key = (ModuleIdentifier::from("module-a"), None);
+    let first = cache.cached_readable_identifier(key.clone(), || "alpha".to_string());
+    let second = cache.cached_readable_identifier(key, || "beta".to_string());
+
+    assert_eq!(&*first, "alpha");
+    assert_eq!(&*second, "alpha");
+    assert!(Arc::ptr_eq(&first, &second));
   }
 }

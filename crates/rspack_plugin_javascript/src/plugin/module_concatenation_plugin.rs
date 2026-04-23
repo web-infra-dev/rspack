@@ -1368,7 +1368,8 @@ async fn create_concatenated_module(
       module_graph,
       &compilation.module_static_cache,
       &compilation.options.context,
-    ),
+    )
+    .to_string(),
     name_for_condition: root_module.name_for_condition(),
     lib_indent: root_module
       .lib_ident(LibIdentOptions {
@@ -1405,19 +1406,21 @@ async fn create_concatenated_module(
         .module_by_identifier(id)
         .unwrap_or_else(|| panic!("should have module {id}"));
 
-      ConcatenatedInnerModule {
-        id: *id,
-        size: module.size(
-          Some(&rspack_core::SourceType::JavaScript),
-          Some(compilation),
-        ),
-        shorten_id: get_cached_readable_identifier(
+      (
+        ConcatenatedInnerModule {
+          id: *id,
+          size: module.size(
+            Some(&rspack_core::SourceType::JavaScript),
+            Some(compilation),
+          ),
+        },
+        get_cached_readable_identifier(
           id,
           module_graph,
           &compilation.module_static_cache,
           &compilation.options.context,
         ),
-      }
+      )
     })
     .collect::<Vec<_>>();
   let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
@@ -1456,7 +1459,6 @@ where
   F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool + Sync,
 {
   let mg = compilation.get_module_graph();
-
   let dependency_parts = modules_set
     .par_iter()
     .filter_map(|m| {
@@ -1468,7 +1470,7 @@ where
         .expect("should have mgm")
         .outgoing_connections();
 
-      let mut part = vec![];
+      let mut part = Vec::with_capacity(old_mgm_connections.len());
       for dep_id in old_mgm_connections {
         let connection = mg
           .connection_by_dependency_id(dep_id)
@@ -1498,11 +1500,11 @@ where
   F: Fn(&ModuleIdentifier, &ModuleGraphConnection, &BoxDependency) -> bool,
 {
   let mg = compilation.get_module_graph();
-  let mut outgoings = vec![];
   let old_mgm_connections = mg
     .module_graph_module_by_identifier(root_module_id)
     .expect("should have mgm")
     .outgoing_connections();
+  let mut outgoings = Vec::with_capacity(old_mgm_connections.len());
 
   for dep_id in old_mgm_connections {
     let connection = mg
@@ -1515,11 +1517,11 @@ where
     }
   }
 
-  let mut incomings = vec![];
   let incoming_connections = mg
     .module_graph_module_by_identifier(root_module_id)
     .expect("should have mgm")
     .incoming_connections();
+  let mut incomings = Vec::with_capacity(incoming_connections.len());
 
   for dep_id in incoming_connections {
     let connection = mg
