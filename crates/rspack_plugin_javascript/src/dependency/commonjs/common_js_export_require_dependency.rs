@@ -73,7 +73,8 @@ impl CommonJsExportRequireDependency {
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
-    let mut imported_exports_info = Some(exports_info_artifact.get_exports_info(imported_module));
+    let mut imported_exports_info =
+      Some(exports_info_artifact.get_exports_info_data(imported_module));
 
     if !ids.is_empty() {
       let Some(nested_exports_info) = &imported_exports_info else {
@@ -83,11 +84,11 @@ impl CommonJsExportRequireDependency {
         .get_nested_exports_info(exports_info_artifact, Some(ids))
         .map(|data| data.id());
 
-      imported_exports_info = nested.map(|id| id);
+      imported_exports_info = nested.map(|id| exports_info_artifact.get_exports_info_by_id(&id));
     }
 
     let mut exports_info = Some(
-      exports_info_artifact.get_exports_info(
+      exports_info_artifact.get_exports_info_data(
         mg.get_parent_module(&self.id)
           .expect("Should get parent module"),
       ),
@@ -100,19 +101,17 @@ impl CommonJsExportRequireDependency {
       let nested = nested_exports_info
         .get_nested_exports_info(exports_info_artifact, Some(&self.names))
         .map(|data| data.id());
-      exports_info = nested.map(|id| id);
+      exports_info = nested.map(|id| exports_info_artifact.get_exports_info_by_id(&id));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
-      let provided = data.other_exports_info(exports_info_artifact).provided();
+      let provided = data.other_exports_info().provided();
       matches!(provided, Some(ExportProvided::NotProvided))
     });
 
     let no_extra_imports = exports_info.as_ref().is_some_and(|data| {
       matches!(
-        data
-          .other_exports_info(exports_info_artifact)
-          .get_used(runtime),
+        data.other_exports_info().get_used(runtime),
         UsageState::Unused
       )
     });
@@ -134,7 +133,7 @@ impl CommonJsExportRequireDependency {
       let Some(exports_info) = &exports_info else {
         unreachable!();
       };
-      for (_, export_info) in exports_info.exports(exports_info_artifact) {
+      for export_info in exports_info.exports().values() {
         let name = export_info.name();
         if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
@@ -143,8 +142,7 @@ impl CommonJsExportRequireDependency {
           if name == "__esModule" && is_namespace_import {
             exports.insert(name.to_owned());
           } else if let Some(imported_exports_info) = &imported_exports_info {
-            let imported_export_info =
-              imported_exports_info.get_read_only_export_info(exports_info_artifact, name);
+            let imported_export_info = imported_exports_info.get_read_only_export_info(name);
             if matches!(
               imported_export_info.provided(),
               Some(ExportProvided::NotProvided)
@@ -161,7 +159,7 @@ impl CommonJsExportRequireDependency {
       let Some(imported_exports_info) = &imported_exports_info else {
         unreachable!();
       };
-      for (_, imported_export_info) in imported_exports_info.exports(exports_info_artifact) {
+      for imported_export_info in imported_exports_info.exports().values() {
         let name = imported_export_info.name();
         if let Some(name) = name {
           if matches!(
@@ -171,7 +169,7 @@ impl CommonJsExportRequireDependency {
             continue;
           }
           if let Some(exports_info) = &exports_info {
-            let export_info = exports_info.get_read_only_export_info(exports_info_artifact, name);
+            let export_info = exports_info.get_read_only_export_info(name);
             let used = export_info.get_used(runtime);
             if matches!(used, UsageState::Unused) {
               continue;
@@ -324,13 +322,13 @@ impl Dependency for CommonJsExportRequireDependency {
     if self.result_used {
       return get_full_result();
     }
-    let mut exports_info = exports_info_artifact.get_exports_info(
+    let mut exports_info = exports_info_artifact.get_exports_info_data(
       mg.get_parent_module(&self.id)
         .expect("Can not get parent module"),
     );
 
     for name in &self.names {
-      let export_info = exports_info.get_read_only_export_info(exports_info_artifact, name);
+      let export_info = exports_info.get_read_only_export_info(name);
       let used = export_info.get_used(runtime);
       if matches!(used, UsageState::Unused) {
         return create_no_exports_referenced();
@@ -340,22 +338,20 @@ impl Dependency for CommonJsExportRequireDependency {
       }
 
       match export_info.exports_info() {
-        Some(v) => exports_info = v,
+        Some(v) => exports_info = v.as_data(exports_info_artifact),
         None => return get_full_result(),
       };
     }
 
     if !matches!(
-      exports_info
-        .other_exports_info(exports_info_artifact)
-        .get_used(runtime),
+      exports_info.other_exports_info().get_used(runtime),
       UsageState::Unused
     ) {
       return get_full_result();
     }
 
     let mut referenced_exports = vec![];
-    for (_, export_info) in exports_info.exports(exports_info_artifact) {
+    for export_info in exports_info.exports().values() {
       let prefix = ids
         .iter()
         .chain(if let Some(name) = export_info.name() {
@@ -466,7 +462,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&module.identifier());
+      .get_exports_info_data(&module.identifier());
     let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
     let base = if dep.base.is_exports() {
@@ -486,7 +482,7 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       && let ids = dep.get_ids(mg)
       && let Some(used_imported) = compilation
         .exports_info_artifact
-        .get_exports_info(&imported_module.identifier())
+        .get_exports_info_data(&imported_module.identifier())
         .get_used_name(&compilation.exports_info_artifact, *runtime, ids)
     {
       match used_imported {

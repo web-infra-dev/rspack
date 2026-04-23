@@ -5,7 +5,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoArtifact, Plugin, UsageState, UsedNameItem,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, Plugin, UsageState, UsedNameItem,
   build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
@@ -18,16 +18,12 @@ use crate::utils::mangle_exports::{
   NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS, number_to_identifier,
 };
 
-fn can_mangle(exports_info_artifact: &ExportsInfoArtifact, exports_info: &ExportsInfo) -> bool {
-  if exports_info
-    .other_exports_info(exports_info_artifact)
-    .get_used(None)
-    != UsageState::Unused
-  {
+fn can_mangle(exports_info: &ExportsInfoData) -> bool {
+  if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
     return false;
   }
   let mut has_something_to_mangle = false;
-  for (_, export_info) in exports_info.exports(exports_info_artifact) {
+  for export_info in exports_info.exports().values() {
     if export_info.can_mangle() == Some(true) {
       has_something_to_mangle = true;
     }
@@ -145,23 +141,20 @@ async fn optimize_code_generation(
       .filter_map(|(exports_info, is_namespace)| {
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
-        let exports_info_data = *exports_info;
+        let exports_info_data = exports_info.as_data(exports_info_artifact);
         let export_list = {
-          if !can_mangle(exports_info_artifact, &exports_info_data) {
+          if !can_mangle(exports_info_data) {
             return None;
           }
           if !avoid_mangle_non_provided && deterministic {
-            for (_, export_info) in exports_info_data.exports(exports_info_artifact) {
+            for export_info in exports_info_data.exports().values() {
               if !matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
                 avoid_mangle_non_provided = true;
                 break;
               }
             }
           }
-          exports_info_data
-            .exports(exports_info_artifact)
-            .map(|(_, export_info)| export_info)
-            .collect::<Vec<_>>()
+          exports_info_data.exports().values().collect::<Vec<_>>()
         };
 
         Some((

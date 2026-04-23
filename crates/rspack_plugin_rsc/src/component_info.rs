@@ -157,8 +157,8 @@ fn filter_client_components(
     if side_effect_free {
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(&module.identifier());
-      let unused = !exports_info.is_module_used(&compilation.exports_info_artifact, Some(runtime));
+        .get_exports_info_data(&module.identifier());
+      let unused = !exports_info.is_module_used(Some(runtime));
       if unused {
         return;
       }

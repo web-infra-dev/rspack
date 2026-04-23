@@ -128,7 +128,7 @@ impl Combinator {
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<ChunkCombination> {
-    let exports_info = exports_info_artifact.get_exports_info(module_identifier);
+    let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, FxHashSet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
     for chunk_ukey in module_chunks {
@@ -136,7 +136,7 @@ impl Combinator {
       let runtime = chunk.runtime();
       let usage_key = runtime_key_map
         .entry(get_runtime_key(runtime).clone())
-        .or_insert_with(|| exports_info.get_usage_key(exports_info_artifact, Some(runtime)))
+        .or_insert_with(|| exports_info.get_usage_key(Some(runtime)))
         .clone();
 
       grouped_by_used_exports

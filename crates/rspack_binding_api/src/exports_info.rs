@@ -45,7 +45,8 @@ impl JsExportsInfo {
     Ok(
       self
         .exports_info
-        .is_used(&compilation.exports_info_artifact, runtime.as_ref()),
+        .as_data(&compilation.exports_info_artifact)
+        .is_used(runtime.as_ref()),
     )
   }
 
@@ -59,7 +60,8 @@ impl JsExportsInfo {
     Ok(
       self
         .exports_info
-        .is_module_used(&compilation.exports_info_artifact, runtime.as_ref()),
+        .as_data(&compilation.exports_info_artifact)
+        .is_module_used(runtime.as_ref()),
     )
   }
 
@@ -97,7 +99,9 @@ impl JsExportsInfo {
       Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
     };
     let exports_info = self.exports_info;
-    let used = exports_info.get_used(&compilation.exports_info_artifact, &names, runtime.as_ref());
+    let used = exports_info
+      .as_data(&compilation.exports_info_artifact)
+      .get_used(&compilation.exports_info_artifact, &names, runtime.as_ref());
     Ok(used as u32)
   }
 }

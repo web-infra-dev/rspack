@@ -400,7 +400,7 @@ impl ESMImportSpecifierDependencyTemplate {
       } else if dep.namespace_object_as_context {
         match compilation
           .exports_info_artifact
-          .get_exports_info(con.module_identifier())
+          .get_exports_info_data(con.module_identifier())
           .get_used_name(&compilation.exports_info_artifact, *runtime, ids)
         {
           Some(UsedName::Normal(used_name)) => {
@@ -497,7 +497,7 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(con.module_identifier());
+      .get_exports_info_data(con.module_identifier());
     let exports_type = module.get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
@@ -675,7 +675,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         let Some(new_name) = code_generatable_context
           .compilation
           .exports_info_artifact
-          .get_exports_info(&module.identifier())
+          .get_exports_info_data(&module.identifier())
           .get_used_name(
             &code_generatable_context.compilation.exports_info_artifact,
             code_generatable_context.runtime,

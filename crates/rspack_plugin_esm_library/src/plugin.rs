@@ -139,9 +139,9 @@ impl EsmLibraryPlugin {
 
       // if we reach here, check exports info
       if should_scope_hoisting {
-        let exports_info = exports_info_artifact.get_exports_info(module_identifier);
+        let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
 
-        let relevant_exports = exports_info.get_relevant_exports(exports_info_artifact, None);
+        let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
@@ -339,9 +339,9 @@ async fn finish_modules(
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let exports_info = exports_info_artifact.get_exports_info(module_identifier);
+      let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
 
-      let relevant_exports = exports_info.get_relevant_exports(exports_info_artifact, None);
+      let relevant_exports = exports_info.get_relevant_exports(None);
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {

@@ -101,11 +101,8 @@ impl JsModuleGraph {
     };
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&js_module.identifier);
-    let used_exports = exports_info.get_used_exports(
-      &compilation.exports_info_artifact,
-      Some(&RuntimeSpec::new(runtime)),
-    );
+      .get_exports_info_data(&js_module.identifier);
+    let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
       rspack_core::UsedExports::Unknown => None,
       rspack_core::UsedExports::UsedNamespace(b) => Some(Either::A(b)),

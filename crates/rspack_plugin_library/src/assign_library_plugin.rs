@@ -269,10 +269,12 @@ async fn render_startup(
   let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-    let exports_info = compilation.exports_info_artifact.get_exports_info(module);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(module);
     let mut provided = vec![];
     let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
-    for (_, export_info) in exports_info.exports(&compilation.exports_info_artifact) {
+    for export_info in exports_info.exports().values() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }

@@ -1012,7 +1012,7 @@ impl ModuleCodeTemplate {
           let name = &export_name[1..];
           let exports_info = compilation
             .exports_info_artifact
-            .get_exports_info(&target_module_identifier);
+            .get_exports_info_data(&target_module_identifier);
           let Some(used) =
             exports_info.get_used_name(&compilation.exports_info_artifact, runtime, name)
           else {
@@ -1119,7 +1119,7 @@ impl ModuleCodeTemplate {
     if !export_name.is_empty() {
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(&target_module_identifier);
+        .get_exports_info_data(&target_module_identifier);
       let used_name = match exports_info.get_used_name(
         &compilation.exports_info_artifact,
         runtime,

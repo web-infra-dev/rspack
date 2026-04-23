@@ -534,10 +534,11 @@ fn get_exports_type_impl(
 
         let name = Atom::from("__esModule");
         let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
-        if let Some(export_info) = exports_info
-          .as_ref()
-          .map(|info| info.get_read_only_export_info(exports_info_artifact, &name))
-        {
+        if let Some(export_info) = exports_info.as_ref().map(|info| {
+          info
+            .as_data(exports_info_artifact)
+            .get_read_only_export_info(&name)
+        }) {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {

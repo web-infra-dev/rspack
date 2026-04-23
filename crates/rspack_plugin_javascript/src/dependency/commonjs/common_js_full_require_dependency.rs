@@ -190,7 +190,7 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       && let Some(used) = {
         let exports_info = compilation
           .exports_info_artifact
-          .get_exports_info(&imported_module.module_identifier);
+          .get_exports_info_data(&imported_module.module_identifier);
         exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
       } {
       let mut require_expr = match used {

@@ -128,14 +128,13 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(ident) = ident {
         let exports_info = compilation
           .exports_info_artifact
-          .get_exports_info(&module.identifier());
+          .get_exports_info_data(&module.identifier());
 
-        let provided_exports =
-          match exports_info.get_provided_exports(&compilation.exports_info_artifact) {
-            ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),
-            ProvidedExports::ProvidedAll => Some(DllManifestContentItemExports::True),
-            _ => None,
-          };
+        let provided_exports = match exports_info.get_provided_exports() {
+          ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),
+          ProvidedExports::ProvidedAll => Some(DllManifestContentItemExports::True),
+          _ => None,
+        };
 
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
 

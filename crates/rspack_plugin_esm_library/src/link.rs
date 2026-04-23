@@ -9,7 +9,7 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
+  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
   RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
@@ -2919,7 +2919,7 @@ var {} = {{}};
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<ExportInfoHashKey>,
+    already_visited: &mut FxHashSet<ExportInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Option<Ref> {
@@ -3074,7 +3074,7 @@ var {} = {{}};
       }
     }
 
-    let exports_info = exports_info_artifact.get_exports_info(info_id);
+    let exports_info = exports_info_artifact.get_exports_info_data(info_id);
 
     if export_name.is_empty() {
       let info = module_to_info_map.get_mut_unwrap(info_id);
@@ -3111,17 +3111,16 @@ var {} = {{}};
       }
     }
 
-    let export_info =
-      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, &export_name[0]);
-    let export_info_hash_key = export_info.as_hash_key();
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
+    let export_info_id = export_info.id();
 
-    if already_visited.contains(&export_info_hash_key) {
+    if already_visited.contains(&export_info_id) {
       return Some(Ref::Inline(
         "/* circular reexport */ Object(function x() { x() }())".into(),
       ));
     }
 
-    already_visited.insert(export_info_hash_key);
+    already_visited.insert(export_info_id);
 
     let info = &module_to_info_map[info_id];
     match info {
@@ -3204,7 +3203,7 @@ var {} = {{}};
           FindTargetResult::NoTarget => {}
           FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
-              let exports_info = exports_info_artifact.get_exports_info(&target.module);
+              let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
               if let Some(UsedName::Inlined(inlined)) =
                 exports_info.get_used_name(exports_info_artifact, None, &export)
               {

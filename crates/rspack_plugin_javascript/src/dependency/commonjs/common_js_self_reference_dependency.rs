@@ -153,7 +153,7 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     let used = if !dep.names.is_empty() {
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(&module.identifier());
+        .get_exports_info_data(&module.identifier());
       exports_info
         .get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
         .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))

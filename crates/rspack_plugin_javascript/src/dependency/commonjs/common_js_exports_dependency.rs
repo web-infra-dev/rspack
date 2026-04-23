@@ -176,7 +176,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&module.identifier());
+      .get_exports_info_data(&module.identifier());
     let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
     let exports_argument = module.get_exports_argument();

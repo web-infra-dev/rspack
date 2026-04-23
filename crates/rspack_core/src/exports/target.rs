@@ -4,8 +4,8 @@ use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  DependencyId, ExportInfo, ExportInfoData, ExportInfoHashKey, ExportsInfo, ExportsInfoArtifact,
-  ModuleGraph, ModuleIdentifier,
+  DependencyId, ExportInfo, ExportInfoData, ExportsInfo, ExportsInfoArtifact, ModuleGraph,
+  ModuleIdentifier,
 };
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -78,6 +78,7 @@ pub fn get_terminal_binding(
     return Some(TerminalBinding::ExportsInfo(exports_info));
   };
   exports_info
+    .as_data(exports_info_artifact)
     .get_read_only_export_info_recursive(exports_info_artifact, &export)
     .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
@@ -87,7 +88,7 @@ pub fn find_target(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   valid_target_module_filter: Arc<impl Fn(&ModuleIdentifier) -> bool>,
-  visited: &mut HashSet<ExportInfoHashKey>,
+  visited: &mut HashSet<ExportInfo>,
 ) -> FindTargetResult {
   if !export_info.target_is_set() || export_info.target().is_empty() {
     return FindTargetResult::NoTarget;
@@ -117,11 +118,10 @@ pub fn find_target(
       return FindTargetResult::ValidTarget(target);
     }
     let name = &target.export.as_ref().expect("should have export")[0];
-    let exports_info = exports_info_artifact.get_exports_info(&target.module);
-    let export_info =
-      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, name);
-    let export_info_hash_key = export_info.as_hash_key();
-    if !visited.insert(export_info_hash_key) {
+    let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let export_info_id = export_info.id();
+    if !visited.insert(export_info_id) {
       return FindTargetResult::NoTarget;
     }
     let new_target = find_target(
@@ -169,13 +169,12 @@ pub fn get_target(
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
   resolve_filter: &ResolveFilterFnTy<'_>,
-  already_visited: &mut HashSet<ExportInfoHashKey>,
+  already_visited: &mut HashSet<ExportInfo>,
 ) -> Option<GetTargetResult> {
   if !export_info.target_is_set() || export_info.target().is_empty() {
     return None;
   }
-  let hash_key = export_info.as_hash_key();
-  if !already_visited.insert(hash_key) {
+  if !already_visited.insert(export_info.id()) {
     return Some(GetTargetResult::Circular);
   }
 
@@ -215,7 +214,7 @@ pub fn get_target(
 
 fn resolve_target(
   input_target: UnResolvedExportInfoTarget,
-  already_visited: &mut HashSet<ExportInfoHashKey>,
+  already_visited: &mut HashSet<ExportInfo>,
   resolve_filter: &ResolveFilterFnTy<'_>,
   mg: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
@@ -240,11 +239,10 @@ fn resolve_target(
       return Some(GetTargetResult::Target(target));
     };
 
-    let exports_info = exports_info_artifact.get_exports_info(&target.module);
-    let maybe_export_info =
-      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, name);
-    let maybe_export_info_hash_key = maybe_export_info.as_hash_key();
-    if already_visited.contains(&maybe_export_info_hash_key) {
+    let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
+    let maybe_export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let maybe_export_info_id = maybe_export_info.id();
+    if already_visited.contains(&maybe_export_info_id) {
       return Some(GetTargetResult::Circular);
     }
     let new_target = get_target(
@@ -283,7 +281,7 @@ fn resolve_target(
     if !resolve_filter(&target) {
       return Some(GetTargetResult::Target(target));
     }
-    already_visited.insert(maybe_export_info_hash_key);
+    already_visited.insert(maybe_export_info_id);
   }
 }
 

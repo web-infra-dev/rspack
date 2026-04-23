@@ -731,7 +731,7 @@ fn find_target_exports_info(
   let mut target_exports_info = None;
   let mut target_module = None;
   if let Some(GetTargetResult::Target(target)) = target {
-    let target_module_exports_info = exports_info_artifact.get_exports_info(&target.module);
+    let target_module_exports_info = exports_info_artifact.get_exports_info_data(&target.module);
     target_exports_info = target_module_exports_info
       .get_nested_exports_info(exports_info_artifact, target.export.as_deref())
       .map(|data| data.id());

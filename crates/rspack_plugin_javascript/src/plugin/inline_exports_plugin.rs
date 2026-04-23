@@ -42,7 +42,7 @@ pub fn is_export_inlined(
     );
   }
 
-  let exports_info = exports_info_artifact.get_exports_info(module);
+  let exports_info = exports_info_artifact.get_exports_info_data(module);
   let used_name = exports_info.get_used_name(exports_info_artifact, runtime, ids);
   matches!(used_name, Some(UsedName::Inlined(_)))
 }
@@ -135,20 +135,17 @@ async fn optimize_dependencies(
     let batch = items
       .par_iter()
       .filter_map(|exports_info| {
-        let exports_info_data = *exports_info;
+        let exports_info_data = exports_info.as_data(exports_info_artifact);
         let export_list = {
           // If there are other usage (e.g. `import { Kind } from './enum'; Kind;`) in any runtime,
           // then we cannot inline this export.
-          if exports_info_data
-            .other_exports_info(exports_info_artifact)
-            .get_used(None)
-            != UsageState::Unused
-          {
+          if exports_info_data.other_exports_info().get_used(None) != UsageState::Unused {
             return None;
           }
           exports_info_data
-            .exports(exports_info_artifact)
-            .map(|(_, export_info_data)| {
+            .exports()
+            .values()
+            .map(|export_info_data| {
               let do_inline = !export_info_data.has_used_name()
                 && export_info_data.can_inline() == Some(true)
                 && matches!(export_info_data.provided(), Some(ExportProvided::Provided));

@@ -746,9 +746,8 @@ impl ModuleConcatenationPlugin {
 
         let exports_info = compilation
           .exports_info_artifact
-          .get_exports_info(&module_id);
-        let relevant_exports =
-          exports_info.get_relevant_exports(&compilation.exports_info_artifact, None);
+          .get_exports_info_data(&module_id);
+        let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
@@ -903,9 +902,9 @@ impl ModuleConcatenationPlugin {
       .map(|module_id| {
         let exports_info = compilation
           .exports_info_artifact
-          .get_exports_info(&module_id);
+          .get_exports_info_data(&module_id);
         let provided_names = matches!(
-          exports_info.get_provided_exports(&compilation.exports_info_artifact),
+          exports_info.get_provided_exports(),
           ProvidedExports::ProvidedNames(_)
         );
         let module = module_graph
@@ -1043,10 +1042,8 @@ impl ModuleConcatenationPlugin {
       let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(current_root);
-      let filtered_runtime = filter_runtime(Some(runtime), |r| {
-        exports_info.is_module_used(&compilation.exports_info_artifact, r)
-      });
+        .get_exports_info_data(current_root);
+      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,

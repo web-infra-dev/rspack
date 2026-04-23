@@ -79,7 +79,9 @@ async fn render_startup(
       "{exports_name} = await {exports_name};\n"
     )));
   }
-  let exports_info = compilation.exports_info_artifact.get_exports_info(module);
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_exports_info_data(module);
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");
@@ -89,7 +91,7 @@ async fn render_startup(
     &compilation.exports_info_artifact,
     boxed_module.build_info().strict,
   );
-  for (_, export_info) in exports_info.exports(&compilation.exports_info_artifact) {
+  for export_info in exports_info.exports().values() {
     if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
       continue;
     };

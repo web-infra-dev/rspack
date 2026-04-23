@@ -185,7 +185,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
       } else if let Some(used) = compilation
         .exports_info_artifact
-        .get_exports_info(&module_identifier)
+        .get_exports_info_data(&module_identifier)
         .get_used_name(
           &compilation.exports_info_artifact,
           *runtime,
@@ -226,7 +226,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         )
       } else if let Some(used) = compilation
         .exports_info_artifact
-        .get_exports_info(&module_identifier)
+        .get_exports_info_data(&module_identifier)
         .get_used_name(
           &compilation.exports_info_artifact,
           *runtime,

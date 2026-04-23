@@ -55,9 +55,9 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let name = Atom::from("__esModule");
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&module.identifier());
+      .get_exports_info_data(&module.identifier());
     let used = exports_info
-      .get_read_only_export_info(&compilation.exports_info_artifact, &name)
+      .get_read_only_export_info(&name)
       .get_used(*runtime);
     if !matches!(used, UsageState::Unused) {
       init_fragments.push(Box::new(NormalInitFragment::new(

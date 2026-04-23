@@ -507,9 +507,8 @@ impl ExternalModule {
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = compilation
               .exports_info_artifact
-              .get_exports_info(&self.identifier());
-            let used_exports =
-              exports_info.get_used_exports(&compilation.exports_info_artifact, runtime);
+              .get_exports_info_data(&self.identifier());
+            let used_exports = exports_info.get_used_exports(runtime);
             let namespace_used_by_named_exports = matches!(
               &used_exports,
               UsedExports::UsedNames(atoms)
@@ -517,7 +516,7 @@ impl ExternalModule {
                   .iter()
                   .any(|atom| {
                     exports_info
-                      .get_read_only_export_info(&compilation.exports_info_artifact, atom)
+                      .get_read_only_export_info(atom)
                       .ns_access()
                   })
             );

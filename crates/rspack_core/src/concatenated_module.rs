@@ -42,16 +42,15 @@ use crate::{
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfoHashKey,
-  ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta,
-  ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
-  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
-  module_update_hash, property_access, property_name,
+  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided,
+  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
+  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
+  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
+  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -1535,10 +1534,10 @@ impl Module for ConcatenatedModule {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&root_module_id);
+      .get_exports_info_data(&root_module_id);
     let mut exports_final_names: Vec<(String, String)> = vec![];
 
-    for (_, export_info) in exports_info.exports(&compilation.exports_info_artifact) {
+    for (_, export_info) in exports_info.exports() {
       let name = export_info.name().cloned().unwrap_or_else(|| "".into());
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
@@ -1607,14 +1606,11 @@ impl Module for ConcatenatedModule {
 
     let root_exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&self.id());
+      .get_exports_info_data(&self.id());
     // Add ESM compatibility flag (must be first because of possible circular dependencies)
-    if root_exports_info
-      .other_exports_info(&compilation.exports_info_artifact)
-      .get_used(runtime)
-      != UsageState::Unused
+    if root_exports_info.other_exports_info().get_used(runtime) != UsageState::Unused
       || root_exports_info
-        .get_read_only_export_info(&compilation.exports_info_artifact, &"__esModule".into())
+        .get_read_only_export_info(&"__esModule".into())
         .get_used(runtime)
         != UsageState::Unused
     {
@@ -1710,8 +1706,8 @@ impl Module for ConcatenatedModule {
       let mut ns_obj = Vec::new();
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(&module_info_id);
-      for (_, export_info) in exports_info.exports(&compilation.exports_info_artifact) {
+        .get_exports_info_data(&module_info_id);
+      for (_, export_info) in exports_info.exports() {
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           continue;
         }
@@ -2793,7 +2789,7 @@ impl ConcatenatedModule {
     dep_deferred: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut HashSet<ExportInfoHashKey>,
+    already_visited: &mut HashSet<ExportInfo>,
   ) -> FinalBindingResult {
     let info = module_to_info_map
       .get(info_id)
@@ -3022,14 +3018,13 @@ impl ConcatenatedModule {
       }
     }
 
-    let exports_info = exports_info_artifact.get_exports_info(&info.id());
+    let exports_info = exports_info_artifact.get_exports_info_data(&info.id());
     // webpack use `get_exports_info` here, https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L377-L377
     // But in our arch, there is no way to modify module graph during code_generation phase, so we use `get_export_info_without_mut_module_graph` instead.`
-    let export_info =
-      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, &export_name[0]);
-    let export_info_hash_key = export_info.as_hash_key();
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
+    let export_info_id = export_info.id();
 
-    if already_visited.contains(&export_info_hash_key) {
+    if already_visited.contains(&export_info_id) {
       return FinalBindingResult::from_binding(Binding::Raw(RawBinding {
         raw_name: "/* circular reexport */ Object(function x() { x() }())".into(),
         ids: Vec::new(),
@@ -3039,7 +3034,7 @@ impl ConcatenatedModule {
       }));
     }
 
-    already_visited.insert(export_info_hash_key);
+    already_visited.insert(export_info_id);
 
     match info {
       ModuleInfo::Concatenated(info) => {
@@ -3137,7 +3132,7 @@ impl ConcatenatedModule {
           crate::FindTargetResult::NoTarget => {}
           crate::FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
-              let exports_info = exports_info_artifact.get_exports_info(&target.module);
+              let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
               if let Some(UsedName::Inlined(inlined)) =
                 exports_info.get_used_name(exports_info_artifact, runtime, &export)
               {

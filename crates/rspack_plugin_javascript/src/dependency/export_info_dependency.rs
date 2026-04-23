@@ -53,9 +53,8 @@ impl ExportInfoDependency {
     if export_name.is_empty() && prop == "usedExports" {
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(&module_identifier);
-      let used_exports =
-        exports_info.get_used_exports(&compilation.exports_info_artifact, *runtime);
+        .get_exports_info_data(&module_identifier);
+      let used_exports = exports_info.get_used_exports(*runtime);
       return Some(match used_exports {
         UsedExports::Unknown => "null".to_owned(),
         UsedExports::UsedNamespace(value) => value.to_string(),
@@ -74,7 +73,7 @@ impl ExportInfoDependency {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&module_identifier);
+      .get_exports_info_data(&module_identifier);
 
     match prop.to_string().as_str() {
       "canMangle" => {
@@ -83,9 +82,7 @@ impl ExportInfoDependency {
         {
           export_info.can_mangle()
         } else {
-          exports_info
-            .other_exports_info(&compilation.exports_info_artifact)
-            .can_mangle()
+          exports_info.other_exports_info().can_mangle()
         };
         can_mangle.map(|v| v.to_string())
       }

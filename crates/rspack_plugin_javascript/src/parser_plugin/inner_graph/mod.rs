@@ -22,9 +22,9 @@ pub(crate) fn has_impure_deferred_pure_checks(
         return true;
       };
 
-      let target_exports_info = exports_info_artifact.get_exports_info(ref_module);
-      let target_export_info = target_exports_info
-        .get_export_info_without_mut_module_graph(exports_info_artifact, &deferred_check.atom);
+      let target_exports_info = exports_info_artifact.get_exports_info_data(ref_module);
+      let target_export_info =
+        target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
       let resolve_filter = |_: &ResolvedExportInfoTarget| true;
 
       let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
@@ -82,7 +82,7 @@ pub(crate) fn runtime_condition_used_by_exports(
     UsedByExportsCondition::Set(used_by_exports) => {
       let exports_info = compilation
         .exports_info_artifact
-        .get_exports_info(module_identifier);
+        .get_exports_info_data(module_identifier);
       filter_runtime(runtime, |cur_runtime| {
         used_by_exports.iter().any(|name| {
           exports_info.get_used(

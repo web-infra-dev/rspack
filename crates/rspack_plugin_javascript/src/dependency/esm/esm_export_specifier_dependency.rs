@@ -194,7 +194,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&module.identifier());
+      .get_exports_info_data(&module.identifier());
     let Some(used_name) = exports_info.get_used_name(
       &compilation.exports_info_artifact,
       *runtime,

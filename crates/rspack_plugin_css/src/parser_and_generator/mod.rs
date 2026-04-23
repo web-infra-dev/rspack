@@ -649,10 +649,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let exports_info = generate_context
             .compilation
             .exports_info_artifact
-            .get_exports_info(&module.identifier());
+            .get_exports_info_data(&module.identifier());
           let (ns_obj, left, right) = if self.es_module
             && exports_info
-              .other_exports_info(&generate_context.compilation.exports_info_artifact)
+              .other_exports_info()
               .get_used(generate_context.runtime)
               != UsageState::Unused
           {
@@ -755,14 +755,16 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> FxIndexMap<&'a str, &'a FxIndexSet<CssExport>> {
-  let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
+  let exports_info = exports_info_artifact
+    .get_exports_info_optional(&identifier)
+    .map(|info| info.as_data(exports_info_artifact));
 
   exports
     .iter()
     .filter(|(name, _)| {
-      let export_info = exports_info.as_ref().map(|info| {
-        info.get_read_only_export_info(exports_info_artifact, &Atom::from(name.as_str()))
-      });
+      let export_info = exports_info
+        .as_ref()
+        .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
 
       if let Some(export_info) = export_info {
         export_info.get_used(runtime) != UsageState::Unused
@@ -803,7 +805,9 @@ fn get_unused_local_ident(
     },
   );
 
-  let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
+  let exports_info = exports_info_artifact
+    .get_exports_info_optional(&identifier)
+    .map(|info| info.as_data(exports_info_artifact));
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names
@@ -812,7 +816,7 @@ fn get_unused_local_ident(
         export_names.iter().all(|export_name| {
           let export_info = exports_info
             .as_ref()
-            .map(|info| info.get_read_only_export_info(exports_info_artifact, export_name));
+            .map(|info| info.get_read_only_export_info(export_name));
 
           if let Some(export_info) = export_info {
             matches!(export_info.get_used(runtime), UsageState::Unused)

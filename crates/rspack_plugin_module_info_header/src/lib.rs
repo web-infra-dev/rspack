@@ -3,7 +3,7 @@ use std::{borrow::Cow, hash::Hash};
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfo, ExportsInfoArtifact,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoData,
   GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
   RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
@@ -30,7 +30,7 @@ pub struct ModuleInfoHeaderPlugin {
 fn print_exports_info_to_source<F>(
   source: &mut ConcatSource,
   ident: &str,
-  exports_info: &ExportsInfo,
+  exports_info: &ExportsInfoData,
   request_shortener: &F,
   already_printed: &mut FxHashSet<ExportInfo>,
   module_graph: &ModuleGraph,
@@ -38,13 +38,13 @@ fn print_exports_info_to_source<F>(
 ) where
   F: Fn(&ModuleIdentifier) -> String,
 {
-  let other_exports_info = exports_info.other_exports_info(exports_info_artifact);
+  let other_exports_info = exports_info.other_exports_info();
 
   let mut already_printed_exports = 0;
 
   let mut printed_exports = vec![];
 
-  for (_, export_info) in exports_info.exports(exports_info_artifact) {
+  for export_info in exports_info.exports().values() {
     let export_info_id = export_info.id();
     if !already_printed.contains(&export_info_id) {
       already_printed.insert(export_info_id);
@@ -95,12 +95,11 @@ fn print_exports_info_to_source<F>(
 
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
-    if let Some(exports_info) = &export_info.exports_info() {
-      let exports_info = *exports_info;
+    if let Some(exports_info) = export_info.exports_info() {
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
-        &exports_info,
+        exports_info.as_data(exports_info_artifact),
         request_shortener,
         already_printed,
         module_graph,
@@ -258,7 +257,7 @@ async fn render_js_module_package(
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(&module.identifier());
+      .get_exports_info_data(&module.identifier());
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
       let request_shortener = |id: &ModuleIdentifier| {

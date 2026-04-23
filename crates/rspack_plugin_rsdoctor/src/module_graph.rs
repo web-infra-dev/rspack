@@ -34,25 +34,21 @@ pub fn collect_json_module_sizes(
       continue;
     };
 
-    let exports_info = exports_info_artifact.get_exports_info(module_id);
+    let exports_info = exports_info_artifact.get_exports_info_data(module_id);
 
     let final_json = match json_data {
       json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
-        let needs_tree_shaking = exports_info
-          .other_exports_info(exports_info_artifact)
-          .get_used(None)
+        let needs_tree_shaking = exports_info.other_exports_info().get_used(None)
           == UsageState::Unused
-          || exports_info
-            .exports(exports_info_artifact)
-            .any(|(_, info)| {
-              let used = info.get_used(None);
-              used == UsageState::Unused || used == UsageState::OnlyPropertiesUsed
-            });
+          || exports_info.exports().values().any(|info| {
+            let used = info.get_used(None);
+            used == UsageState::Unused || used == UsageState::OnlyPropertiesUsed
+          });
 
         if needs_tree_shaking {
           create_object_for_exports_info(
             json_data.clone(),
-            &exports_info,
+            exports_info,
             None,
             exports_info_artifact,
           )

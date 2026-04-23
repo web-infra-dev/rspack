@@ -172,7 +172,7 @@ impl DependencyTemplate for ProvideDependencyTemplate {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_exports_info(con.module_identifier());
+      .get_exports_info_data(con.module_identifier());
     let used_name =
       exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
 
