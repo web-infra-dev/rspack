@@ -505,9 +505,7 @@ class MyPlugin {
 在 Rspack 1.x 中，`resolve.roots` 默认包含项目的 `context`，因此下面的 CSS 导入可能会被解析为 `<context>/node_modules/lib/style.css`：
 
 ```css title="styles.css"
-@layer lib {
-  @import '/node_modules/lib/style.css';
-}
+@import '/node_modules/lib/style.css';
 ```
 
 在 Rspack 2.0 中，这个隐式行为已被移除，以对齐标准模块解析。以 `/` 开头的请求会被视为文件系统绝对路径。
@@ -545,7 +543,7 @@ export default {
 
 ### 移除 experiments.css
 
-experiments.css 已被移除。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
+`experiments.css` 选项已被移除，CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
 
 ```js title="rspack.config.mjs"
 export default {
