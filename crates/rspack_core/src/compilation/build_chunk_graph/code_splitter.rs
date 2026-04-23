@@ -2463,6 +2463,9 @@ fn extract_block_modules(
     .expect("should have outgoing deps");
 
   for ((block_id, module_identifier), connections) in connection_map {
+    if map.contains_key(&block_id) {
+      continue;
+    }
     let modules = module_map
       .get_mut(block_id)
       .expect("should have modules in block_modules_runtime_map");
