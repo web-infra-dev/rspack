@@ -16,7 +16,7 @@ use ustr::Ustr;
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupUkey, ChunkUkey, Compilation, Module, ModuleGraph, ModuleIdentifier, ModuleIdsArtifact,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, RuntimeSpecSet, for_each_runtime, get_runtime_key,
 };
 
 pub type ModuleIdMap<V> =
@@ -402,22 +402,36 @@ impl ChunkGraph {
     let mg = compilation.get_module_graph();
     compilation
       .module_graph_cache_artifact
-      .cached_module_graph_hash(module.identifier(), || {
-        let mut hasher = FxHasher::default();
-        let module_identifier = module.identifier();
-        Self::get_module_id(&compilation.module_ids_artifact, module_identifier)
-          .dyn_hash(&mut hasher);
-        module.source_types(mg).dyn_hash(&mut hasher);
+      .cached_module_graph_hash(
+        (
+          module.identifier(),
+          runtime.map(|r| get_runtime_key(r).clone()),
+        ),
+        || {
+          let mut hasher = FxHasher::default();
+          let module_identifier = module.identifier();
+          Self::get_module_id(&compilation.module_ids_artifact, module_identifier)
+            .dyn_hash(&mut hasher);
+          module
+            .get_exports_type(
+              mg,
+              &compilation.module_graph_cache_artifact,
+              &compilation.exports_info_artifact,
+              strict,
+            )
+            .hash(&mut hasher);
+          module.source_types(mg).dyn_hash(&mut hasher);
 
-        ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier)
-          .dyn_hash(&mut hasher);
-        let exports_info = compilation
-          .exports_info_artifact
-          .get_exports_info(&module_identifier);
-        exports_info
-          .as_data(&compilation.exports_info_artifact)
-          .update_hash(&compilation.exports_info_artifact, &mut hasher, runtime);
-        hasher.finish()
-      })
+          ModuleGraph::is_async(&compilation.async_modules_artifact, &module_identifier)
+            .dyn_hash(&mut hasher);
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_exports_info(&module_identifier);
+          exports_info
+            .as_data(&compilation.exports_info_artifact)
+            .update_hash(&compilation.exports_info_artifact, &mut hasher, runtime);
+          hasher.finish()
+        },
+      )
   }
 }

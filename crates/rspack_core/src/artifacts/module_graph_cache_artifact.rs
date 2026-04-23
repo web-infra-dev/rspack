@@ -146,7 +146,11 @@ impl ModuleGraphCacheArtifactInner {
     }
   }
 
-  pub fn cached_module_graph_hash<F: FnOnce() -> u64>(&self, key: ModuleIdentifier, f: F) -> u64 {
+  pub fn cached_module_graph_hash<F: FnOnce() -> u64>(
+    &self,
+    key: ModuleGraphHashCacheKey,
+    f: F,
+  ) -> u64 {
     if !self.freezed.load(Ordering::Acquire) {
       return f();
     }
@@ -163,13 +167,15 @@ impl ModuleGraphCacheArtifactInner {
 }
 
 pub(super) mod module_graph_hash {
-  use rspack_collections::IdentifierDashMap;
+  use rspack_util::fx_hash::FxDashMap;
 
-  use crate::ModuleIdentifier;
+  use crate::{ModuleIdentifier, RuntimeKey};
+
+  pub type ModuleGraphHashCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
   pub struct ModuleGraphHashCache {
-    cache: IdentifierDashMap<u64>,
+    cache: FxDashMap<ModuleGraphHashCacheKey, u64>,
   }
 
   impl ModuleGraphHashCache {
@@ -177,11 +183,11 @@ pub(super) mod module_graph_hash {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<u64> {
+    pub fn get(&self, key: &ModuleGraphHashCacheKey) -> Option<u64> {
       self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: ModuleIdentifier, value: u64) {
+    pub fn set(&self, key: ModuleGraphHashCacheKey, value: u64) {
       self.cache.insert(key, value);
     }
   }
