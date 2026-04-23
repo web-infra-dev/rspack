@@ -206,7 +206,7 @@ fn collect_dependencies_diagnostics(
         .module_graph_module_by_identifier(module_identifier)
         .expect("should have mgm");
       let diagnostics = mgm
-        .all_dependencies
+        .all_dependencies()
         .iter()
         .filter_map(|dependency_id| {
           let dependency = module_graph.dependency_by_id(dependency_id);
