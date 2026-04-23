@@ -130,7 +130,7 @@ fn test_number_hash_combined_matches_concatenated_input() {
     ("chunk~main", 9usize, 167_772_160_usize),
     (
       "君が笑ってると、僕もうれしくなるんだ。",
-      314159usize,
+      314_159_usize,
       167_772_160_usize,
     ),
   ];
