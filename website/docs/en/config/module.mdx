@@ -1673,7 +1673,7 @@ This option is experimental in Rspack and may change or be removed.
 
 <PropertyType type="string[]" />
 
-Manually mark top-level identifiers in matched modules as side-effect-free for pure-function-based tree shaking. Each name must resolve to a top-level binding in the module — a function/class/variable declaration, or an `import` specifier.
+Manually mark top-level identifiers in matched modules as side-effect-free for pure-function-based tree shaking. Each name must resolve to a supported top-level name in the module — a function/class/variable declaration, an `import` specifier, an exported alias such as `export { foo as bar }`, or `default` for a default-exported function or arrow.
 
 This option is mainly intended for third-party libraries whose source cannot be annotated directly. You can either configure it on the library file itself, or on a consumer file to assert that calls to a particular import are pure.
 
@@ -1705,10 +1705,6 @@ export default {
   },
 };
 ```
-
-:::note
-For default exports configured on the source module, use `default` as the name.
-:::
 
 :::warning
 This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.

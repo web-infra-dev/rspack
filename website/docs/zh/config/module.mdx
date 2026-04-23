@@ -1670,7 +1670,7 @@ export default {
 
 <PropertyType type="string[]" />
 
-手动将命中模块中的顶层标识符标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。配置的名字必须能解析到该模块中的顶层绑定 —— 即顶层的 function/class/变量声明，或者 `import` 引入的标识符。
+手动将命中模块中的顶层标识符标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。配置的名字必须能解析到该模块中的某个顶层名 —— 包括顶层的 function/class/变量声明、`import` 引入的标识符、`export { foo as bar }` 这类导出别名，以及匹配源模块默认导出（fn 或 arrow）时使用的 `default`。
 
 这个选项主要面向无法直接修改源码的第三方库。你既可以将其配置在第三方库源文件上，也可以配置在消费侧文件上以断言对某个 import 的调用是 pure 的。
 
@@ -1702,10 +1702,6 @@ export default {
   },
 };
 ```
-
-:::note
-对于配置在源模块上的默认导出，请使用 `default` 作为名字。
-:::
 
 :::warning
 该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。

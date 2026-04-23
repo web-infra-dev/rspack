@@ -13,9 +13,10 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      ArrowExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr, ExportSpecifier,
-      ExprOrSpread, Function, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, Pat,
-      Program, PropName, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr,
+      ArrayPat, ArrowExpr, AssignPat, AssignPatProp, BlockStmt, BlockStmtOrExpr, Class,
+      ClassMember, Decl, ExportSpecifier, Expr, ExprOrSpread, Function, ImportSpecifier,
+      KeyValuePatProp, ModuleDecl, ModuleExportName, ModuleItem, ObjectPat, ObjectPatProp, Pat,
+      Program, PropName, RestPat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
@@ -255,17 +256,38 @@ fn collect_defined_configured_side_effects_free(
     .collect()
 }
 
+fn visit_pat_binding_names(pat: &Pat, f: &mut impl FnMut(&Atom)) {
+  match pat {
+    Pat::Ident(ident) => f(&ident.id.sym),
+    Pat::Array(ArrayPat { elems, .. }) => {
+      for elem in elems.iter().flatten() {
+        visit_pat_binding_names(elem, f);
+      }
+    }
+    Pat::Object(ObjectPat { props, .. }) => {
+      for prop in props {
+        match prop {
+          ObjectPatProp::KeyValue(KeyValuePatProp { value, .. }) => {
+            visit_pat_binding_names(value, f);
+          }
+          ObjectPatProp::Assign(AssignPatProp { key, .. }) => f(&key.id.sym),
+          ObjectPatProp::Rest(RestPat { arg, .. }) => visit_pat_binding_names(arg, f),
+        }
+      }
+    }
+    Pat::Assign(AssignPat { left, .. }) => visit_pat_binding_names(left, f),
+    Pat::Rest(RestPat { arg, .. }) => visit_pat_binding_names(arg, f),
+    Pat::Expr(_) | Pat::Invalid(_) => {}
+  }
+}
+
 fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(&Atom)) {
   match decl {
     Decl::Fn(fn_decl) => f(&fn_decl.ident.sym),
     Decl::Class(class_decl) => f(&class_decl.ident.sym),
     Decl::Var(var_decl) => {
-      for ident in var_decl
-        .decls
-        .iter()
-        .filter_map(|declarator| declarator.name.as_ident())
-      {
-        f(&ident.sym);
+      for declarator in &var_decl.decls {
+        visit_pat_binding_names(&declarator.name, f);
       }
     }
     _ => {}
@@ -910,18 +932,21 @@ fn resolve_explicit_side_effects_free_callee(
     return ExplicitSideEffectsFreeCallee::NotMarked;
   }
 
-  // When the user listed this name in `pureFunctions`, trust the assertion at
-  // the call site instead of deferring to the import target. This lets users
-  // mark imported helpers (e.g. `import { cva } from 'cva'`) as pure on the
-  // consumer side without having to also configure the source module.
-  let is_user_configured = parser
-    .javascript_options
-    .side_effects_free
-    .as_ref()
-    .is_some_and(|names| names.iter().any(|name| name.as_str() == ident.as_str()));
-
-  if !is_user_configured && try_extract_deferred_check(parser, ident.clone(), span).is_some() {
-    return ExplicitSideEffectsFreeCallee::Deferred;
+  // For non-imports the deferred path doesn't apply at all, so we skip the
+  // user-config lookup and fall straight through to Direct/Invalid.
+  if try_extract_deferred_check(parser, ident.clone(), span).is_some() {
+    // When the user explicitly listed this name in `pureFunctions`, trust the
+    // assertion at the call site instead of deferring to the import target.
+    // This lets users mark imported helpers (e.g. `import { cva } from 'cva'`)
+    // as pure on the consumer side without also configuring the source module.
+    let is_user_configured = parser
+      .javascript_options
+      .side_effects_free
+      .as_ref()
+      .is_some_and(|names| names.iter().any(|name| name.as_str() == ident.as_str()));
+    if !is_user_configured {
+      return ExplicitSideEffectsFreeCallee::Deferred;
+    }
   }
 
   if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {
