@@ -1,5 +1,5 @@
 import binding from '@rspack/binding';
-import type Watchpack from 'watchpack';
+import type { WatchOptions } from './config';
 import type {
   FileSystemInfoEntry,
   InputFileSystem,
@@ -16,10 +16,10 @@ import type {
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/watchpack/blob/main/LICENSE
  */
-type JsWatcherIgnored = string | string[] | RegExp | undefined;
+type JsWatcherIgnored = string | (string | RegExp)[] | RegExp | undefined;
 
 const toJsWatcherIgnored = (
-  ignored: Watchpack.WatchOptions['ignored'],
+  ignored: WatchOptions['ignored'],
 ): JsWatcherIgnored => {
   if (
     Array.isArray(ignored) ||
@@ -59,7 +59,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       removed?: Iterable<string>;
     },
     startTime: number,
-    options: Watchpack.WatchOptions,
+    options: WatchOptions,
     callback: (
       error: Error | null,
       fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
@@ -167,7 +167,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     };
   }
 
-  getNativeWatcher(options: Watchpack.WatchOptions): binding.NativeWatcher {
+  getNativeWatcher(options: WatchOptions): binding.NativeWatcher {
     if (this.#inner) {
       return this.#inner;
     }

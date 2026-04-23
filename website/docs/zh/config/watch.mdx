@@ -59,7 +59,7 @@ export default {
 
 ### watchOptions.ignored
 
-- **类型：** `RegExp | string | string[]`
+- **类型：** `RegExp | string | (string | RegExp)[]`
 - **默认值：** `/[\\/](?:\.git|node_modules)[\\/]/`
 
 监听时排除匹配到的路径。监听大量文件可能会导致 CPU 或内存使用率过高。
@@ -96,6 +96,16 @@ export default {
 };
 ```
 
+也可以在数组中混合使用 glob 匹配和正则表达式：
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    ignored: [/\.git/, '**/node_modules', '**/.cache'],
+  },
+};
+```
+
 还可以指定为一个或多个绝对路径：
 
 ```js title="rspack.config.mjs"
@@ -108,7 +118,7 @@ export default {
 };
 ```
 
-当使用 glob 匹配时，Rspack 会将它们转换为正则表达式，因此在使用 glob 匹配之前，请确保你熟悉 [glob-to-regexp](https://github.com/fitzgen/glob-to-regexp)。
+当使用 glob 匹配时，Rspack 会按 glob 语义匹配路径，因此在使用 watchOptions.ignored 的 glob 匹配之前，请确保你熟悉 glob 匹配规则。
 
 ### watchOptions.poll
 

@@ -113,6 +113,14 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    if self
+      .path_manager
+      .ignored
+      .should_be_ignored(&path.to_string_lossy())
+    {
+      return;
+    }
+
     let is_registered_file = self.path_manager.access().files().0.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
@@ -165,6 +173,7 @@ mod tests {
   use std::path::Path;
 
   use rspack_paths::ArcPath;
+  use tokio::sync::mpsc;
 
   use super::*;
 
@@ -218,5 +227,56 @@ mod tests {
     assert_eq!(associated_events.len(), 2);
     assert!(associated_events.contains(&(dir_0, FsEventKind::Change)));
     assert!(associated_events.contains(&(dir_1, FsEventKind::Change)));
+  }
+
+  #[test]
+  fn test_trigger_ignores_event_path_before_parent_association() {
+    let watched_dir = ArcPath::from(Path::new("/path/project"));
+    let ignored_file = ArcPath::from(Path::new("/path/project/.cache/file.js"));
+    let path_manager = Arc::new(PathManager::new(crate::FsWatcherIgnored::Mixed(vec![
+      crate::FsWatcherIgnoredItem::Path("**/.cache".to_string()),
+      crate::FsWatcherIgnoredItem::Regex(
+        rspack_regex::RspackRegex::new("generated").expect("valid regex"),
+      ),
+    ])));
+    path_manager
+      .update(
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::once(watched_dir), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .expect("update watched directories");
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let trigger = Trigger::new(path_manager, tx);
+
+    trigger.on_event(&ignored_file, FsEventKind::Change);
+
+    assert!(rx.try_recv().is_err());
+  }
+
+  #[cfg(unix)]
+  #[test]
+  fn test_trigger_ignores_non_utf8_event_path_under_ignored_parent() {
+    use std::{ffi::OsString, os::unix::ffi::OsStringExt, path::PathBuf};
+
+    let watched_dir = ArcPath::from(Path::new("/path/project"));
+    let mut ignored_file = PathBuf::from("/path/project/.cache");
+    ignored_file.push(OsString::from_vec(vec![b'f', 0x80, b'.', b'j', b's']));
+    let path_manager = Arc::new(PathManager::new(crate::FsWatcherIgnored::Mixed(vec![
+      crate::FsWatcherIgnoredItem::Path("**/.cache".to_string()),
+    ])));
+    path_manager
+      .update(
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::once(watched_dir), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .expect("update watched directories");
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let trigger = Trigger::new(path_manager, tx);
+
+    trigger.on_event(&ArcPath::from(ignored_file), FsEventKind::Change);
+
+    assert!(rx.try_recv().is_err());
   }
 }

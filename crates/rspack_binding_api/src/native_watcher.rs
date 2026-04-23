@@ -4,20 +4,32 @@ use std::{
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use napi::bindgen_prelude::*;
+use napi::{Either, bindgen_prelude::*};
 use napi_derive::*;
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
-use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use rspack_watcher::{
+  FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherIgnoredItem, FsWatcherOptions,
+};
 
-type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
+type JsWatcherIgnoredItem = Either<String, RspackRegex>;
+type JsWatcherIgnored = Either4<String, Vec<String>, RspackRegex, Vec<JsWatcherIgnoredItem>>;
 
 fn to_fs_watcher_ignored(ignored: Option<JsWatcherIgnored>) -> FsWatcherIgnored {
   if let Some(ignored) = ignored {
     match ignored {
-      Either3::A(path) => FsWatcherIgnored::Path(path),
-      Either3::B(paths) => FsWatcherIgnored::Paths(paths),
-      Either3::C(regex) => FsWatcherIgnored::Regex(regex),
+      Either4::A(path) => FsWatcherIgnored::Path(path),
+      Either4::B(paths) => FsWatcherIgnored::Paths(paths),
+      Either4::C(regex) => FsWatcherIgnored::Regex(regex),
+      Either4::D(items) => FsWatcherIgnored::Mixed(
+        items
+          .into_iter()
+          .map(|item| match item {
+            Either::A(path) => FsWatcherIgnoredItem::Path(path),
+            Either::B(regex) => FsWatcherIgnoredItem::Regex(regex),
+          })
+          .collect(),
+      ),
     }
   } else {
     FsWatcherIgnored::None
@@ -32,9 +44,9 @@ pub struct NativeWatcherOptions {
 
   pub aggregate_timeout: Option<u32>,
 
-  #[napi(ts_type = "string | string[] | RegExp")]
+  #[napi(ts_type = "string | (string | RegExp)[] | RegExp")]
   /// The ignored paths for the watcher.
-  /// It can be a single path, an array of paths, or a regular expression.
+  /// It can be a single path, a regular expression, or an array mixing paths and regular expressions.
   pub ignored: Option<JsWatcherIgnored>,
 }
 

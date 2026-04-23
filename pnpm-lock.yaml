@@ -241,7 +241,7 @@ importers:
     dependencies:
       '@module-federation/runtime-tools':
         specifier: ^0.24.1 || ^2.0.0
-        version: 2.3.1
+        version: 2.3.3
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
@@ -257,10 +257,10 @@ importers:
         version: 1.1.4(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.4
-        version: 1.4.4(@rsbuild/core@2.0.0-rc.4)
+        version: 1.4.4(@rsbuild/core@2.0.0-rc.3)
       '@rslib/core':
         specifier: 0.21.2
-        version: 0.21.2(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)(typescript@6.0.3)
+        version: 0.21.2(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)(typescript@6.0.3)
       '@rspack/lite-tapable':
         specifier: 1.1.0
         version: 1.1.0
@@ -285,6 +285,9 @@ importers:
       enhanced-resolve:
         specifier: 5.20.1
         version: 5.20.1
+      glob-to-regexp:
+        specifier: 0.4.1
+        version: 0.4.1
       http-proxy-middleware:
         specifier: ^3.0.5
         version: 3.0.5
@@ -2182,37 +2185,17 @@ packages:
   '@mermaid-js/parser@1.0.1':
     resolution: {integrity: sha512-opmV19kN1JsK0T6HhhokHpcVkqKpF+x2pPDKKM2ThHtZAB5F4PROopk0amuVYK5qMrIA4erzpNm8gmPNJgMDxQ==}
 
-  '@module-federation/error-codes@2.3.1':
-    resolution: {integrity: sha512-s3IjT2OYrSBNNmxdTmmrWBpsFfeNszdL6BSqjXLHb1CgXWUYLNXpb05IopnzMhRLcur6MTGuKR0ZSjJbmvQBbg==}
-
   '@module-federation/error-codes@2.3.3':
     resolution: {integrity: sha512-UVtKBoKnRDcHgByIDvPRZSxQqjqbNH7NvJm1KHLoce33+EDiIdZYs0HvvUQv43RgESpB9s7HjrqFlq3bEcAgfQ==}
-
-  '@module-federation/runtime-core@2.3.1':
-    resolution: {integrity: sha512-E0WgaCn32AWzD0n6SCH7VQ+kxk46XyX432PQWARgyQzCX/wyLkaT+We3A18RVNUevRT85YHLrrVIhMKJJVHgjA==}
 
   '@module-federation/runtime-core@2.3.3':
     resolution: {integrity: sha512-B07LDH9KxhBO3GbULGW64mQFVQBtrEd3PoaCBm7XR1IbU8rMQUJQjDNVZgXYcyhRPBVP+3KWZuiaKFRiNb6PQw==}
 
-  '@module-federation/runtime-tools@2.3.1':
-    resolution: {integrity: sha512-JrTKnNxIglnwrycPHUz9vARHLWqdecgFJxhmu8991z5CjktHc5JIelCbQS5Ur2lABjuwBdlyw8pH2xI3EJpbOg==}
-
   '@module-federation/runtime-tools@2.3.3':
     resolution: {integrity: sha512-XODzyLbBYcy4wnYBXKIBqaHPVfBx1HshGdjZmSctDDnx9/VYgdx9DShb6UI+WuQBKJgPzTcx4xbvbCM4SdMilQ==}
 
-  '@module-federation/runtime@2.3.1':
-    resolution: {integrity: sha512-NiKelHKzOf1Vz8oqcxC/XRUAW224O6lKj9xD0cfp5Bp343iu6s58RlLvX1ypF+UpCl3jA4JM8npGax/3jjyifw==}
-
   '@module-federation/runtime@2.3.3':
     resolution: {integrity: sha512-JYJ3qv9V85DtBtT/ppDuJNwBTUrYqqZDYcyiTzwY5+44dC5QPvgJ//F+BOhAhZ02WkZV0b4jsKTyLOC3vXKGqQ==}
-
-  '@module-federation/sdk@2.3.1':
-    resolution: {integrity: sha512-lgWxFZyLRKDXWRGlV6ROjFJ6MRaJTxs0bBnS6hS9ONfr/0TkeW4JzDbsfzrB8g4p6IgSKB+wQ9XfibJCGBI5OQ==}
-    peerDependencies:
-      node-fetch: ^3.3.2
-    peerDependenciesMeta:
-      node-fetch:
-        optional: true
 
   '@module-federation/sdk@2.3.3':
     resolution: {integrity: sha512-mwCS+LQdqiSc6fM5iz/S60ibaFNSH6kNqlZkCRIuS4yjdZ+jgnihz+6xp1QzppvfFgKLhEHBiXOmcYOdk3Ckew==}
@@ -2221,9 +2204,6 @@ packages:
     peerDependenciesMeta:
       node-fetch:
         optional: true
-
-  '@module-federation/webpack-bundler-runtime@2.3.1':
-    resolution: {integrity: sha512-fnsMncVdBYv7a1gN5ElNK1uA9dmGUgaNqcoNiv9xRtpxFYswchl1kbgxPTliCb8U7quihdWZos7P2lvpYeVRwg==}
 
   '@module-federation/webpack-bundler-runtime@2.3.3':
     resolution: {integrity: sha512-W+P6ZF9J3gwnQuoF07YV0OiR1D6sI/uErUu4+c3QXxka3orANUHujkddNSsDxL1obAGoJa7Da99crZKf7u2j/w==}
@@ -9134,16 +9114,7 @@ snapshots:
     dependencies:
       langium: 4.2.1
 
-  '@module-federation/error-codes@2.3.1': {}
-
   '@module-federation/error-codes@2.3.3': {}
-
-  '@module-federation/runtime-core@2.3.1':
-    dependencies:
-      '@module-federation/error-codes': 2.3.1
-      '@module-federation/sdk': 2.3.1
-    transitivePeerDependencies:
-      - node-fetch
 
   '@module-federation/runtime-core@2.3.3':
     dependencies:
@@ -9152,25 +9123,10 @@ snapshots:
     transitivePeerDependencies:
       - node-fetch
 
-  '@module-federation/runtime-tools@2.3.1':
-    dependencies:
-      '@module-federation/runtime': 2.3.1
-      '@module-federation/webpack-bundler-runtime': 2.3.1
-    transitivePeerDependencies:
-      - node-fetch
-
   '@module-federation/runtime-tools@2.3.3':
     dependencies:
       '@module-federation/runtime': 2.3.3
       '@module-federation/webpack-bundler-runtime': 2.3.3
-    transitivePeerDependencies:
-      - node-fetch
-
-  '@module-federation/runtime@2.3.1':
-    dependencies:
-      '@module-federation/error-codes': 2.3.1
-      '@module-federation/runtime-core': 2.3.1
-      '@module-federation/sdk': 2.3.1
     transitivePeerDependencies:
       - node-fetch
 
@@ -9182,17 +9138,7 @@ snapshots:
     transitivePeerDependencies:
       - node-fetch
 
-  '@module-federation/sdk@2.3.1': {}
-
   '@module-federation/sdk@2.3.3': {}
-
-  '@module-federation/webpack-bundler-runtime@2.3.1':
-    dependencies:
-      '@module-federation/error-codes': 2.3.1
-      '@module-federation/runtime': 2.3.1
-      '@module-federation/sdk': 2.3.1
-    transitivePeerDependencies:
-      - node-fetch
 
   '@module-federation/webpack-bundler-runtime@2.3.3':
     dependencies:
@@ -9831,15 +9777,6 @@ snapshots:
       - '@emnapi/runtime'
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/core@2.0.0-rc.3(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)':
-    dependencies:
-      '@rspack/core': 2.0.0-rc.2(@module-federation/runtime-tools@2.3.1)(@swc/helpers@0.5.21)
-      '@swc/helpers': 0.5.21
-    optionalDependencies:
-      core-js: 3.49.0
-    transitivePeerDependencies:
-      - '@module-federation/runtime-tools'
-
   '@rsbuild/core@2.0.0-rc.3(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)':
     dependencies:
       '@rspack/core': 2.0.0-rc.2(@module-federation/runtime-tools@2.3.3)(@swc/helpers@0.5.21)
@@ -9848,16 +9785,6 @@ snapshots:
       core-js: 3.49.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
-
-  '@rsbuild/core@2.0.0-rc.4(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)':
-    dependencies:
-      '@rspack/core': 2.0.0-rc.3(@module-federation/runtime-tools@2.3.1)(@swc/helpers@0.5.21)
-      '@swc/helpers': 0.5.21
-    optionalDependencies:
-      core-js: 3.49.0
-    transitivePeerDependencies:
-      - '@module-federation/runtime-tools'
-    optional: true
 
   '@rsbuild/core@2.0.0-rc.4(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)':
     dependencies:
@@ -9868,7 +9795,7 @@ snapshots:
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-rc.4)':
+  '@rsbuild/plugin-node-polyfill@1.4.4(@rsbuild/core@2.0.0-rc.3)':
     dependencies:
       assert: 2.1.0
       browserify-zlib: 0.2.0
@@ -9894,7 +9821,7 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
     optionalDependencies:
-      '@rsbuild/core': 2.0.0-rc.4(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)
+      '@rsbuild/core': 2.0.0-rc.3(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)
 
   '@rsbuild/plugin-react@1.4.6(@rsbuild/core@2.0.0-rc.1)':
     dependencies:
@@ -9914,17 +9841,6 @@ snapshots:
       sass-embedded: 1.97.3
     optionalDependencies:
       '@rsbuild/core': 2.0.0-rc.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)
-
-  '@rslib/core@0.21.2(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)(typescript@6.0.3)':
-    dependencies:
-      '@rsbuild/core': 2.0.0-rc.3(@module-federation/runtime-tools@2.3.1)(core-js@3.49.0)
-      rsbuild-plugin-dts: 0.21.2(@rsbuild/core@2.0.0-rc.3)(typescript@6.0.3)
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - '@module-federation/runtime-tools'
-      - '@typescript/native-preview'
-      - core-js
 
   '@rslib/core@0.21.2(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)(typescript@6.0.3)':
     dependencies:
@@ -10122,27 +10038,12 @@ snapshots:
       - '@emnapi/core'
       - '@emnapi/runtime'
 
-  '@rspack/core@2.0.0-rc.2(@module-federation/runtime-tools@2.3.1)(@swc/helpers@0.5.21)':
-    dependencies:
-      '@rspack/binding': 2.0.0-rc.2
-    optionalDependencies:
-      '@module-federation/runtime-tools': 2.3.1
-      '@swc/helpers': 0.5.21
-
   '@rspack/core@2.0.0-rc.2(@module-federation/runtime-tools@2.3.3)(@swc/helpers@0.5.21)':
     dependencies:
       '@rspack/binding': 2.0.0-rc.2
     optionalDependencies:
       '@module-federation/runtime-tools': 2.3.3
       '@swc/helpers': 0.5.21
-
-  '@rspack/core@2.0.0-rc.3(@module-federation/runtime-tools@2.3.1)(@swc/helpers@0.5.21)':
-    dependencies:
-      '@rspack/binding': 2.0.0-rc.3
-    optionalDependencies:
-      '@module-federation/runtime-tools': 2.3.1
-      '@swc/helpers': 0.5.21
-    optional: true
 
   '@rspack/core@2.0.0-rc.3(@module-federation/runtime-tools@2.3.3)(@swc/helpers@0.5.21)':
     dependencies:

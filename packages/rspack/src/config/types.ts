@@ -2963,7 +2963,7 @@ export type WatchOptions = {
   /**
    * Ignore some files from being watched.
    */
-  ignored?: string | RegExp | string[];
+  ignored?: string | RegExp | (string | RegExp)[];
 
   /**
    * Turn on polling by passing true, or specifying a poll interval in milliseconds.

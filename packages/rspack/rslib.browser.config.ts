@@ -125,6 +125,7 @@ export default defineConfig({
       '../compiled/watchpack/index.js': path.dirname(
         require.resolve('watchpack/package.json'),
       ),
+      '../compiled/glob-to-regexp/index.js': require.resolve('glob-to-regexp'),
     },
   },
   tools: {

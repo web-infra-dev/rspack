@@ -75,7 +75,7 @@ export class Coordinator {
     // Ensure client compiler watches nothing.
     // This prevents duplicate rebuilds caused by both server & client receiving FS events.
     clientCompiler.watch = function watch(watchOptions, handler) {
-      watchOptions.ignored = () => true;
+      watchOptions.ignored = /.*/;
       return originalWatch.call(this, watchOptions, handler);
     };
     clientCompiler.hooks.done.tap(PLUGIN_NAME, (stats) => {
