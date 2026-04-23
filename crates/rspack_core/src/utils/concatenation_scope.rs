@@ -239,8 +239,10 @@ mod tests {
     let concat_module_id: ModuleIdentifier = "concat-module".into();
     let referenced_module_id: ModuleIdentifier = "referenced-module".into();
 
-    let mut current_module = ConcatenatedModuleInfo::default();
-    current_module.module = concat_module_id;
+    let current_module = ConcatenatedModuleInfo {
+      module: concat_module_id,
+      ..Default::default()
+    };
 
     let mut modules_map = IdentifierIndexMap::default();
     modules_map.insert(
