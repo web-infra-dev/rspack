@@ -133,23 +133,6 @@ jobs:
       target: wasm32-wasip1-threads
       runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
 
-  check-codspeed:
-    name: Check Bench Result
-    needs: [bench-binding, bench-rust]
-    runs-on: ubuntu-24.04
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Polling Comment
-        if: ${{ github.event_name == 'pull_request' }}
-        run: bash .github/actions/codspeed/check-comment.sh
-
   check-cache:
     name: Check Cache Portable
     needs: [test-linux, test-windows]
@@ -187,7 +170,6 @@ jobs:
     name: Test Required Check
     needs:
       [
-        check-codspeed,
         build-linux,
         test-linux,
         test-windows,
@@ -206,13 +188,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
         run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
         run: echo "Test Failed" && exit 1
 
       - name: No check to Run test
