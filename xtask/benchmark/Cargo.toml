@@ -7,10 +7,6 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
-[features]
-codspeed = ["rspack_core/codspeed"]
-default  = []
-
 [dependencies]
 criterion = { workspace = true }
 tokio     = { workspace = true }
@@ -21,7 +17,7 @@ async-trait                = { workspace = true }
 rspack                     = { workspace = true, features = ["full"] }
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
-rspack_core                = { workspace = true }
+rspack_core                = { workspace = true, features = ["codspeed"] }
 rspack_error               = { workspace = true }
 rspack_fs                  = { workspace = true }
 rspack_hash                = { workspace = true }
