@@ -95,7 +95,7 @@ fn set_sync_modules(
   modules: IdentifierLinkedSet,
   mutations: &mut Option<Mutations>,
 ) {
-  let outgoing_connections = modules
+  let mut outgoing_connections = modules
     .iter()
     .par_bridge()
     .map(|mid| {
@@ -113,17 +113,15 @@ fn set_sync_modules(
 
   let mut queue = modules;
   while let Some(module) = queue.pop_front() {
-    if outgoing_connections
-      .get(&module)
-      .cloned()
-      .unwrap_or_else(|| {
-        module_graph
-          .get_outgoing_connections(&module)
-          .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
-          .filter(|&out| &module != out)
-          .copied()
-          .collect::<Vec<_>>()
-      })
+    let module_outgoing_connections = outgoing_connections.entry(module).or_insert_with(|| {
+      module_graph
+        .get_outgoing_connections(&module)
+        .filter_map(|con| module_graph.module_identifier_by_dependency_id(&con.dependency_id))
+        .filter(|&out| &module != out)
+        .copied()
+        .collect::<Vec<_>>()
+    });
+    if module_outgoing_connections
       .iter()
       .any(|out| ModuleGraph::is_async(async_modules_artifact, out))
     {
