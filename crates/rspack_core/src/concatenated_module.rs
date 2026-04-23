@@ -3015,10 +3015,22 @@ impl ConcatenatedModule {
     match info {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
-        if matches!(
-          export_info.provided(),
-          Some(crate::ExportProvided::NotProvided)
-        ) {
+        let has_direct_or_raw_export = export_id.as_ref().is_some_and(|export_id| {
+          info
+            .export_map
+            .as_ref()
+            .is_some_and(|map| map.contains_key(export_id))
+            || info
+              .raw_export_map
+              .as_ref()
+              .is_some_and(|map| map.contains_key(export_id))
+        });
+        if !has_direct_or_raw_export
+          && matches!(
+            export_info.provided(),
+            Some(crate::ExportProvided::NotProvided)
+          )
+        {
           return FinalBindingResult {
             binding: Binding::Raw(RawBinding {
               raw_name: info
@@ -3235,7 +3247,9 @@ impl ConcatenatedModule {
                   comment
                 )
                 .into(),
-                ids: used_name,
+                // External modules must keep the real exported property path even when the
+                // concatenated bundle mangles the exposed binding name.
+                ids: export_name.clone(),
                 export_name,
                 info_id: info.module,
                 comment: None,

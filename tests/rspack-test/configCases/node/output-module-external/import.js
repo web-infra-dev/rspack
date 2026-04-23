@@ -158,7 +158,7 @@ it('should load node builtins via dynamic import', async () => {
   for (const [request, imported] of Object.entries(builtinImports)) {
     expect(imported).toBeDefined();
     expect(content).toMatch(
-      new RegExp(`import\\(\\s*['']${escapeRegExp(request)}['']\\s*\\)`)
+      new RegExp(`import\\(\\s*['"]${escapeRegExp(request)}['"]\\s*\\)`)
     );
   }
 
