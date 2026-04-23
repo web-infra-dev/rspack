@@ -198,7 +198,7 @@ pub fn stringify_static_chunk_map(filename: &String, chunk_ids: &[&ChunkId]) -> 
 }
 
 fn stringify_map<T: std::fmt::Display>(entries: &mut [(&ChunkId, T)]) -> String {
-  entries.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+  entries.sort_unstable_by_key(|(left, _)| *left);
 
   let mut result = String::with_capacity(entries.len() * 8 + 2);
   result.push('{');
