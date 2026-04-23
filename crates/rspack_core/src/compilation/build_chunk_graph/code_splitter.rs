@@ -37,10 +37,11 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
+type ConnectionIdList = Arc<Vec<DependencyId>>;
 type PreparedBlockConnectionMap =
-  IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>;
+  IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
 type BlockConnectionMap =
-  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>>;
+  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -55,7 +56,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
+  pub skipped_module_connections: IndexSet<(ModuleIdentifier, ConnectionIdList)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -1792,7 +1793,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module: DependenciesBlockIdentifier,
     runtime: Option<Arc<RuntimeSpec>>,
     compilation: &Compilation,
-  ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>> {
+  ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>> {
     let runtime_map = self
       .block_modules_runtime_map
       .entry(runtime.clone())
@@ -2263,7 +2264,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           })
           .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
           .collect::<Vec<_>>();
-        deps.sort_by_key(|a| (a.source_order().is_none(), a.source_order()));
+        deps.sort_unstable_by_key(|a| (a.source_order().is_none(), a.source_order()));
 
         for dep in deps {
           let dep_id = dep.id();
@@ -2285,7 +2286,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .or_insert_with(|| vec![*dep_id]);
         }
 
-        (*module, connection_map)
+        (
+          *module,
+          connection_map
+            .into_iter()
+            .map(|(key, connections)| (key, Arc::new(connections)))
+            .collect(),
+        )
       })
       .collect::<IdentifierMap<_>>();
 
@@ -2440,17 +2447,18 @@ fn extract_block_modules(
   map: &mut BlockConnectionMap,
 ) {
   let block = module.into();
+  let blocks = prepared_blocks_map.get(&block).expect("should have blocks");
   let mut module_map: DependenciesBlockIdentifierMap<
-    Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>,
-  > = DependenciesBlockIdentifierMap::default();
+    Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>,
+  > =
+    DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
-  for b in prepared_blocks_map
-    .get(&block)
-    .expect("should have blocks")
-    .clone()
-  {
-    module_map.insert(b.into(), Vec::new());
-  }
+  module_map.extend(
+    blocks
+      .iter()
+      .copied()
+      .map(|block| (block.into(), Vec::new())),
+  );
 
   let connection_map = prepared_connection_map
     .get(&module)
