@@ -19,7 +19,7 @@ module.exports = {
   plugins: [
     new DefinePlugin({
       NODE_VERSION: JSON.stringify(
-        process.versions.node.split('.').map(Number)[0]
+        process.versions.node.split('.').map(Number)[0],
       ),
     }),
   ],
