@@ -1,8 +1,7 @@
 use std::{borrow::Cow, sync::Arc};
 
 use either::Either;
-use itertools::Itertools;
-use rspack_util::{atom::Atom, ext::DynHash};
+use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap;
 
 use super::{
@@ -318,43 +317,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     ))
   }
 
-  pub fn update_hash(&self, hasher: &mut dyn std::hash::Hasher, runtime: Option<&RuntimeSpec>) {
-    if !matches!(self.mode, PrefetchExportsInfoMode::Full) {
-      panic!("should not update hash when mode is not Full");
-    }
-
-    fn handle_export_info(
-      export_info: &ExportInfoData,
-      hasher: &mut dyn std::hash::Hasher,
-      runtime: Option<&RuntimeSpec>,
-    ) {
-      if let Some(used_name) = export_info.used_name() {
-        used_name.dyn_hash(hasher);
-      } else {
-        export_info.name().dyn_hash(hasher);
-      }
-      export_info.get_used(runtime).dyn_hash(hasher);
-      export_info.provided().dyn_hash(hasher);
-      export_info.terminal_binding().dyn_hash(hasher);
-      export_info.ns_access().dyn_hash(hasher);
-    }
-
-    let mut exports = self.exports.values().collect_vec();
-    exports.sort_unstable_by_key(|a| a.id());
-
-    for exports_info in exports {
-      let other_export_info = exports_info.other_exports_info();
-      let side_effects_only_info = exports_info.side_effects_only_info();
-      for export_info in exports_info.exports().values() {
-        if export_info.has_info(other_export_info, runtime) {
-          handle_export_info(export_info, hasher, runtime);
-        }
-      }
-      handle_export_info(side_effects_only_info, hasher, runtime);
-      handle_export_info(other_export_info, hasher, runtime);
-    }
-  }
-
   pub fn is_module_used(&self, runtime: Option<&RuntimeSpec>) -> bool {
     if self.is_used_impl(self.entry, runtime) {
       return true;
@@ -464,51 +426,6 @@ impl<'a> PrefetchedExportsInfoWrapper<'a> {
     }
 
     key
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use std::{collections::hash_map::DefaultHasher, hash::Hasher};
-
-  use rspack_util::atom::Atom;
-
-  use super::{ExportsInfoGetter, PrefetchExportsInfoMode};
-  use crate::{ExportProvided, ExportsInfoArtifact, ExportsInfoData, UsageState};
-
-  fn hash_with_ns_access(ns_access: bool) -> u64 {
-    let mut exports_info_artifact = ExportsInfoArtifact::default();
-    let exports_info_data = ExportsInfoData::default();
-    let exports_info = exports_info_data.id();
-    exports_info_artifact.set_exports_info_by_id(exports_info, exports_info_data);
-
-    {
-      let exports_info_data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
-      let other_exports_info = exports_info_data.other_exports_info_mut();
-      other_exports_info.set_has_use_info();
-      other_exports_info.set_used(UsageState::OnlyPropertiesUsed, None);
-      other_exports_info.set_provided(Some(ExportProvided::Provided));
-    }
-
-    {
-      let exports_info_data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
-      let export_info = exports_info_data.ensure_owned_export_info(&Atom::from("test"));
-      export_info.set_ns_access(ns_access);
-    }
-
-    let exports_info = ExportsInfoGetter::prefetch(
-      &exports_info,
-      &exports_info_artifact,
-      PrefetchExportsInfoMode::Full,
-    );
-    let mut hasher = DefaultHasher::new();
-    exports_info.update_hash(&mut hasher, None);
-    hasher.finish()
-  }
-
-  #[test]
-  fn update_hash_should_include_namespace_access() {
-    assert_ne!(hash_with_ns_access(false), hash_with_ns_access(true));
   }
 }
 

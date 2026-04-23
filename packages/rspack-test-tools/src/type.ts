@@ -177,6 +177,7 @@ export type TTestConfig = {
   timeout?: number;
   concurrent?: boolean;
   snapshotContent?(content: string): string;
+  snapshotFileFilter?(file: string): boolean;
 
   // Only valid for Hot tests
   checkSteps?: boolean;

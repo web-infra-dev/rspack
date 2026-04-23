@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{AsCacheable, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -21,7 +21,7 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, DynHash},
-  fx_hash::FxIndexMap,
+  fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -85,6 +85,43 @@ pub struct RscMeta {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub enum CanonicalizedDataUrlOption {
+  Source,
+  Bytes,
+  Asset(bool),
+}
+
+impl CanonicalizedDataUrlOption {
+  pub fn is_source(&self) -> bool {
+    matches!(self, Self::Source)
+  }
+
+  pub fn is_bytes(&self) -> bool {
+    matches!(self, Self::Bytes)
+  }
+
+  pub fn is_inline(&self) -> bool {
+    matches!(self, Self::Asset(true))
+  }
+
+  pub fn is_resource(&self) -> bool {
+    matches!(self, Self::Asset(false))
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CssExport {
+  pub ident: String,
+  pub from: Option<String>,
+  pub id: Option<DependencyId>,
+  pub orig_name: String,
+}
+
+pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -103,6 +140,10 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
+  pub asset_data_url: Option<CanonicalizedDataUrlOption>,
+  #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
+  pub css_exports: Option<CssExports>,
+  pub css_local_names: Option<HashMap<String, String>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
@@ -138,6 +179,9 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      asset_data_url: None,
+      css_exports: None,
+      css_local_names: None,
       side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,

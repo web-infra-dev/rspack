@@ -544,6 +544,22 @@ impl GeneratorOptions {
       .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
   }
 
+  /// Sets the asset filename on `Asset` / `AssetResource` variants. Returns
+  /// `true` if the variant supports a per-module filename and it was set.
+  pub fn set_asset_filename(&mut self, filename: Filename) -> bool {
+    match self {
+      Self::Asset(opts) => {
+        opts.filename = Some(filename);
+        true
+      }
+      Self::AssetResource(opts) => {
+        opts.filename = Some(filename);
+        true
+      }
+      _ => false,
+    }
+  }
+
   pub fn asset_output_path(&self) -> Option<&Filename> {
     self
       .get_asset()
@@ -630,7 +646,7 @@ impl Default for AssetGeneratorImportMode {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, Default, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
@@ -654,7 +670,7 @@ impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, Default, MergeFrom)]
 pub struct AssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,

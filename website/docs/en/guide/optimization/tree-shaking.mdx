@@ -191,8 +191,8 @@ When an unused variable's initial value is marked as side-effect-free (pure), it
 
 This feature is currently experimental and needs to be enabled via following experimental feature configuration, and it depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) (`sideEffects` is enabled by default in production mode):
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     pureFunctions: true,
   },
@@ -203,7 +203,7 @@ module.exports = {
 
 You can place this annotation before function declarations, function expressions, arrow functions, or export statements, check [spec](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md) for details:
 
-```javascript
+```js
 /*#__NO_SIDE_EFFECTS__*/
 function foo() {
   console.log('foo');
@@ -227,6 +227,8 @@ If a function is marked as side-effect-free and its return value is unused, Rspa
 
 `pureFunctions` lets you manually mark top-level exported functions in matched modules as side-effect-free for pure-function-based tree shaking. This is useful for third-party libraries where source code cannot be modified, such as packages in `node_modules`.
 
+For configuration details, see [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions).
+
 :::warning
 This option is experimental and only takes effect when `experiments.pureFunctions` is enabled.
 :::
@@ -241,8 +243,8 @@ For business source code where modification is possible, it is recommended to us
 
 This option is configured in `module.rules[i].parser`:
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     pureFunctions: true,
   },

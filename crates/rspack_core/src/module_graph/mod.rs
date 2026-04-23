@@ -327,7 +327,7 @@ impl ModuleGraph {
     {
       mgm.remove_outgoing_connection(dep_id);
       if force {
-        mgm.all_dependencies.retain(|id| id != dep_id);
+        mgm.all_dependencies_mut().retain(|id| id != dep_id);
       }
     }
     // remove incoming from module graph module
@@ -351,7 +351,7 @@ impl ModuleGraph {
       .map(|mgm| {
         (
           mgm.incoming_connections().clone(),
-          mgm.all_dependencies.clone(),
+          mgm.all_dependencies().to_vec(),
         )
       })
       .unwrap_or_default();
@@ -798,7 +798,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies
+        m.all_dependencies()
           .iter()
           .filter_map(|dep_id| self.connection_by_dependency_id(dep_id))
       })
@@ -813,7 +813,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies
+        m.all_dependencies()
           .iter()
           .filter(|dep_id| self.connection_by_dependency_id(dep_id).is_some())
       })

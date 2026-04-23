@@ -120,12 +120,13 @@ impl BuildModuleGraphArtifact {
     let mgm = mg
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    for dep_id in mgm
-      .all_dependencies
-      .clone()
-      .into_iter()
+    let dep_ids = mgm
+      .all_dependencies()
+      .iter()
+      .copied()
       .chain(mgm.incoming_connections().clone())
-    {
+      .collect::<Vec<_>>();
+    for dep_id in dep_ids {
       self.make_failed_dependencies.remove(&dep_id);
 
       let dep = mg.dependency_by_id_mut(&dep_id);

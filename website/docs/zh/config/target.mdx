@@ -107,22 +107,28 @@ export default {
 
 当 Rspack 生成运行时代码时，这有助于确定所能使用的 ES 特性（所有的代码块和模块都被运行时代码包裹）。
 
-## 内置 loader 和插件的默认 target
+## 目标环境继承
 
-Rspack 从 `target` 配置中推断出默认 targets，并将其提供给内置 loader 和插件。如果你没有在 loader 和 plugin 的选项中指定 targets，将使用由 `target` 配置推断出的 targets：
+当你使用 Rspack 内置的 loaders 或压缩插件时，Rspack 会基于 [target](/config/target) 选项自动为它们设置默认的目标环境。
 
-- `builtin:swc-loader` 使用推断出的 targets 作为默认的 `env.targets` 或 `jsc.target`
-- `builtin:lightningcss-loader` 使用推断出的 targets 作为默认的 `targets`（仅适用于与 browserslist 相关的 targets，因为 Lightning CSS 仅支持浏览器 targets）
-- `SwcJsMinimizerRspackPlugin` 使用推断出的 targets 作为默认的 `ecma` 版本
-- `LightningCssMinimizerRspackPlugin` 使用推断出的 targets 作为默认的 `targets`（仅适用于与 browserslist 相关的 targets）
+例如，配置 `target: 'node22'` 后，Rspack 的 `builtin:swc-loader` 会默认使用与 Node.js 22 对应的目标设置。
 
-这意味着你不再需要在多个地方手动配置相同的 targets。例如，如果你设置 `target: 'node18'`，loader 和插件将自动使用与 Node.js 18 兼容的设置。
+这意味着，通常你只需要配置 `target` 选项，JavaScript 转换、CSS 转换和代码压缩就会自动使用一致的目标环境；当你需要为某个 loader 或压缩插件指定不同的目标时，依然可以在它们的配置中覆盖默认值。
 
-第三方 loader 和插件也可以访问 `compiler.target`，根据 Rspack 的 target 配置推断默认 targets。`compiler.target` 对象包含 `targets`（带有版本的平台名称）和 `esVersion`（ECMAScript 版本号）。
+以下 loaders 和插件会继承这个默认值：
 
-## target: false
+- [builtin:swc-loader](/guide/features/builtin-swc-loader)：自动设置 `env.targets` 或 `jsc.target` 选项
+- [builtin:lightningcss-loader](/guide/features/builtin-lightningcss-loader)：自动设置 `targets` 选项。仅对 browserslist 相关的 `target` 生效，因为 Lightning CSS 只支持浏览器目标
+- [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：自动设置 `ecma` 版本
+- [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin)：自动设置 `targets` 选项。仅对 browserslist 相关的 `target` 生效
 
-如果上述列表中的预设 target 都不符合你的需求，你可以将 `target` 设置为 `false`，这将告诉 Rspack 不使用任何插件。
+:::tip
+如果你开发了一个第三方 loader 或插件，你也可以通过 [compiler.target](/api/javascript-api/compiler#target) 访问 Rspack 解析后的目标环境信息，以便根据目标环境调整你的 loader 或插件的行为。
+:::
+
+## 禁用 target
+
+如果上述列表中的预设 target 都不符合你的需求，你可以将 `target` 设置为 `false`，这会禁用基于 `target` 的默认推断和相关的默认行为。
 
 ```js title="rspack.config.mjs"
 export default {

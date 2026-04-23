@@ -61,7 +61,7 @@ pub fn save_module_graph(
         .map(|block_id| mg.block_by_id(block_id).expect("should have block").into())
         .collect::<Vec<_>>();
       let dependencies = mgm
-        .all_dependencies
+        .all_dependencies()
         .par_iter()
         .map(|dep_id| {
           (

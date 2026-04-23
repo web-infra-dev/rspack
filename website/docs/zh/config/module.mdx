@@ -1216,18 +1216,14 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-<PropertyType
-  type="boolean | 'preserve-unknown'"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
+- **类型：** `boolean | 'preserve-unknown'`
+- **默认值：** 当输出为 [ESM 格式](/guide/features/esm) 时，默认值为 `'preserve-unknown'`，其他情况默认值为 `true`
 
-是否要解析替换 `import.meta`。
+用于控制是否要解析和替换源代码中的 `import.meta`，可选值有：
 
-当输出为[ESM 格式](/guide/features/esm)时，默认值为`'preserve-unknown'`，其他情况默认值为`true`。
-
-- `"preserve-unknown"`: [已知的`import.meta`字段](/api/runtime-api/module-variables#importmeta-esm)会在编译期被替换，其他字段会被保留并在运行时被计算。
-- `true`: 所有`import.meta`字段在编译期被替换。
-- `false`: 所有`import.meta`字段都在运行时被计算。
+- `"preserve-unknown"`: [已知的 `import.meta` 字段](/api/runtime-api/module-variables#import-meta) 会在编译期被替换，其他字段会被保留并在运行时被计算。
+- `true`: 所有 `import.meta` 字段在编译期被替换。
+- `false`: 所有 `import.meta` 字段都在运行时被计算。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1678,17 +1674,22 @@ export default {
 
 这个选项主要面向无法直接修改源码的第三方库，例如 `node_modules` 中的包。
 
+虽然这个选项定义在 `module.parser.javascript` 下，但在实际使用时通常更推荐通过 `module.rules[i].parser` 应用它，这样可以更细粒度地为特定第三方模块配置 `pureFunctions`。
+
 ```js title="rspack.config.mjs"
 export default {
   experiments: {
     pureFunctions: true,
   },
   module: {
-    parser: {
-      javascript: {
-        pureFunctions: ['isString', 'default'],
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
       },
-    },
+    ],
   },
 };
 ```

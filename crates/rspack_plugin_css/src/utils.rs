@@ -10,9 +10,9 @@ use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use regex::{Captures, Regex};
 use rspack_core::{
-  ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, GenerateContext, LocalIdentName,
-  ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
-  RuntimeSpec, UsedNameItem,
+  ChunkGraph, Compilation, CompilerOptions, CssExport, CssExportsConvention, GenerateContext,
+  LocalIdentName, ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData,
+  RuntimeGlobals, RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
@@ -25,8 +25,6 @@ use rspack_util::{
   itoa, json_stringify_str,
 };
 use rustc_hash::FxHashSet as HashSet;
-
-use crate::parser_and_generator::CssExport;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =

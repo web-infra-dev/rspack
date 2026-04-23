@@ -29,7 +29,7 @@ use swc_core::{
 
 use crate::{
   collect_ts_info::collect_typescript_info,
-  rsc_transforms::{rsc_pass, to_module_ref},
+  rsc_transforms::{rsc_pass, to_server_entry},
 };
 
 #[cacheable]
@@ -191,8 +191,7 @@ impl SwcLoader {
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
       let module = &mut loader_context.context.module;
       module.build_info_mut().rsc = Some(rsc);
-      // TODO: move to_module_ref into rsc transforms
-      if let Some(code) = to_module_ref(module)? {
+      if let Some(code) = to_server_entry(module)? {
         loader_context.finish_with(code);
         return Ok(());
       }

@@ -103,6 +103,14 @@ npx rspack s
 npx rspack serve
 ```
 
+你可以通过 `--open`、`--open <value>` 或 `--no-open` 在命令行中覆盖 [`devServer.open`](/config/dev-server#devserveropen)。
+
+```bash
+npx rspack dev --open
+npx rspack dev --open /my-page
+npx rspack dev --no-open
+```
+
 完整的选项如下：
 
 ```
@@ -118,6 +126,7 @@ Options:
       --hot          enables hot module replacement
       --port         allows to specify a port to use                    [number]
       --host         allows to specify a hostname to use                [string]
+      --open [value] open browser on server start; pass --no-open to disable, or --open <url> to open a specific URL
 ```
 
 ## rspack preview

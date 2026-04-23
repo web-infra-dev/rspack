@@ -304,6 +304,14 @@ impl NormalModule {
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
     self.generator_options.as_ref()
   }
+
+  pub fn get_generator_options_mut(&mut self) -> Option<&mut GeneratorOptions> {
+    self.generator_options.as_mut()
+  }
+
+  pub fn set_generator_options(&mut self, generator_options: Option<GeneratorOptions>) {
+    self.generator_options = generator_options;
+  }
 }
 
 impl Identifiable for NormalModule {
