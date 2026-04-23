@@ -52,7 +52,9 @@ export default defineConfig({
         },
       ],
     }),
-    pluginAlgolia(),
+    pluginAlgolia({
+      verificationContent: '6D9207CF5E163D9F',
+    }),
     pluginLlms(),
     pluginSitemap({
       siteUrl: PUBLISH_URL,
