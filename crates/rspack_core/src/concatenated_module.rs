@@ -136,6 +136,7 @@ fn subtract_non_defer_access(a: NonDeferAccess, b: NonDeferAccess) -> NonDeferAc
 pub struct ConcatenatedInnerModule {
   pub id: ModuleIdentifier,
   pub size: f64,
+  pub shorten_id: Arc<str>,
 }
 
 static REGEX: LazyLock<Regex> = LazyLock::new(|| {
@@ -623,6 +624,7 @@ impl ConcatenatedModule {
     mut modules: Vec<ConcatenatedInnerModule>,
     runtime: Option<RuntimeSpec>,
   ) -> Self {
+    modules.sort_unstable_by_key(|module| module.id);
     let RootModuleContext {
       module_argument,
       exports_argument,
@@ -652,23 +654,17 @@ impl ConcatenatedModule {
   // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
   pub fn create(
     root_module_ctxt: RootModuleContext,
-    mut modules_with_readable_identifiers: Vec<(ConcatenatedInnerModule, Arc<str>)>,
+    mut modules: Vec<ConcatenatedInnerModule>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
     _compilation: &Compilation,
   ) -> Self {
-    modules_with_readable_identifiers.sort_unstable_by_key(|(module, _)| module.id);
+    modules.sort_unstable_by_key(|module| module.id);
     let id = Self::create_identifier_from_readable_identifiers(
       &root_module_ctxt,
-      modules_with_readable_identifiers
-        .iter()
-        .map(|(_, readable_identifier)| readable_identifier.as_ref()),
+      modules.iter().map(|module| module.shorten_id.as_ref()),
       hash_function,
     );
-    let modules = modules_with_readable_identifiers
-      .into_iter()
-      .map(|(module, _)| module)
-      .collect();
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }
 

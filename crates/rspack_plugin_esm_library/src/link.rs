@@ -3360,6 +3360,8 @@ fn normal_render(
 
 #[cfg(test)]
 mod tests {
+  use std::sync::Arc;
+
   use rspack_core::{ChunkInitFragments, ChunkUkey, InitFragmentKey, ModuleIdentifier};
   use rspack_util::{
     atom::Atom,
@@ -3716,7 +3718,7 @@ mod tests {
     let mut chunk_used_names = FxHashSet::default();
     let mut required = Default::default();
     let escaped_identifiers =
-      FxHashMap::from_iter([("./lib.js".to_string(), vec![Atom::from("lib")])]);
+      FxHashMap::from_iter([(Arc::<str>::from("./lib.js"), vec![Atom::from("lib")])]);
 
     let candidate = EsmLibraryPlugin::assign_external_candidate_name(
       "./lib.js",

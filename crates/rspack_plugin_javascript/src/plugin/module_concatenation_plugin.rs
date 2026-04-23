@@ -1406,21 +1406,19 @@ async fn create_concatenated_module(
         .module_by_identifier(id)
         .unwrap_or_else(|| panic!("should have module {id}"));
 
-      (
-        ConcatenatedInnerModule {
-          id: *id,
-          size: module.size(
-            Some(&rspack_core::SourceType::JavaScript),
-            Some(compilation),
-          ),
-        },
-        get_cached_readable_identifier(
+      ConcatenatedInnerModule {
+        id: *id,
+        size: module.size(
+          Some(&rspack_core::SourceType::JavaScript),
+          Some(compilation),
+        ),
+        shorten_id: get_cached_readable_identifier(
           id,
           module_graph,
           &compilation.module_static_cache,
           &compilation.options.context,
         ),
-      )
+      }
     })
     .collect::<Vec<_>>();
   let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
