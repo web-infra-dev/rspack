@@ -15,16 +15,15 @@ use rspack_core::{
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
-  FactorizeInfo, ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, get_terminal_binding, property_access, property_name,
-  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ExtendedReferencedExport,
+  FactorizeInfo, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, JavascriptParserOptions, LazyUntil, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment, NormalReexportItem,
+  ResourceIdentifier, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
+  StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
+  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
+  filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
+  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_util::json_stringify;
@@ -171,8 +170,7 @@ impl ESMExportImportedSpecifierDependency {
       .expect("should have parent module");
 
     if let Some(name) = name {
-      let exports_info = exports_info_artifact
-        .get_prefetched_exports_info(parent_module, PrefetchExportsInfoMode::Default);
+      let exports_info = exports_info_artifact.get_exports_info_data(parent_module);
       if !exports_info
         .get_read_only_export_info(&name)
         .is_used(runtime)
@@ -250,8 +248,7 @@ impl ESMExportImportedSpecifierDependency {
       return res;
     }
 
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(parent_module, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact.get_exports_info_data(parent_module);
     if !exports_info.is_used(runtime) {
       return ExportMode::Unused(ExportModeUnused { name: "*".into() });
     }
@@ -267,7 +264,7 @@ impl ESMExportImportedSpecifierDependency {
       module_graph_cache,
       exports_info_artifact,
       runtime,
-      &exports_info,
+      exports_info,
       imported_module_identifier,
     );
 
@@ -317,11 +314,11 @@ impl ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
-    exports_info: &PrefetchedExportsInfoWrapper<'_>,
+    exports_info: &ExportsInfoData,
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
-    let imported_exports_info = exports_info_artifact
-      .get_prefetched_exports_info(imported_module_identifier, PrefetchExportsInfoMode::Default);
+    let imported_exports_info =
+      exports_info_artifact.get_exports_info_data(imported_module_identifier);
 
     let no_extra_exports = matches!(
       imported_exports_info.other_exports_info().provided(),
@@ -370,7 +367,7 @@ impl ESMExportImportedSpecifierDependency {
     };
 
     if no_extra_imports {
-      for (_name, export_info) in exports_info.exports() {
+      for export_info in exports_info.exports().values() {
         let export_name = export_info.name().expect("should have export name");
         if ignored_exports.contains(export_name) || !export_info.is_used(runtime) {
           continue;
@@ -402,7 +399,7 @@ impl ESMExportImportedSpecifierDependency {
         checked.insert(export_name.clone());
       }
     } else if no_extra_exports {
-      for (_name, imported_export_info) in imported_exports_info.exports() {
+      for imported_export_info in imported_exports_info.exports().values() {
         let imported_export_info_name = imported_export_info
           .name()
           .expect("should have export name");
@@ -547,13 +544,9 @@ impl ESMExportImportedSpecifierDependency {
         .boxed(),
       ),
       ExportMode::ReexportDynamicDefault(ExportModeReexportDynamicDefault { name }) => {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          std::slice::from_ref(&name),
-        );
+        let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let used_name =
+          exports_info.get_used_name(exports_info_artifact, None, std::slice::from_ref(&name));
         let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
@@ -568,10 +561,9 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(init_fragment);
       }
       ExportMode::ReexportNamedDefault(mode) => {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
+        let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let used_name = exports_info.get_used_name(
+          exports_info_artifact,
           None,
           std::slice::from_ref(&mode.name),
         );
@@ -588,10 +580,9 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(init_fragment);
       }
       ExportMode::ReexportNamespaceObject(mode) => {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
+        let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let used_name = exports_info.get_used_name(
+          exports_info_artifact,
           None,
           std::slice::from_ref(&mode.name),
         );
@@ -634,10 +625,9 @@ impl ESMExportImportedSpecifierDependency {
       }
       ExportMode::ReexportFakeNamespaceObject(mode) => {
         // TODO: reexport fake namespace object
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
+        let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let used_name = exports_info.get_used_name(
+          exports_info_artifact,
           None,
           std::slice::from_ref(&mode.name),
         );
@@ -673,10 +663,9 @@ impl ESMExportImportedSpecifierDependency {
         ctxt.init_fragments.push(namespace_expr.boxed());
       }
       ExportMode::ReexportUndefined(mode) => {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
+        let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
+        let used_name = exports_info.get_used_name(
+          exports_info_artifact,
           None,
           std::slice::from_ref(&mode.name),
         );
@@ -697,8 +686,7 @@ impl ESMExportImportedSpecifierDependency {
         let imported_module = mg
           .module_identifier_by_dependency_id(&self.id)
           .expect("should have imported module identifier");
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         for item in mode.items {
           let NormalReexportItem {
             name,
@@ -712,11 +700,8 @@ impl ESMExportImportedSpecifierDependency {
             continue;
           }
 
-          let used_name = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            None,
-            std::slice::from_ref(&name),
-          );
+          let used_name =
+            exports_info.get_used_name(exports_info_artifact, None, std::slice::from_ref(&name));
           let key = render_used_name(used_name.as_ref());
 
           if checked {
@@ -763,25 +748,8 @@ impl ESMExportImportedSpecifierDependency {
                 runtime_condition,
               )));
           } else {
-            let used_name = if ids.is_empty() {
-              let exports_info_used =
-                exports_info_artifact.get_prefetched_exports_info_used(imported_module, None);
-              ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithoutNames(&exports_info_used),
-                None,
-                &ids,
-              )
-            } else {
-              let exports_info = exports_info_artifact.get_prefetched_exports_info(
-                imported_module,
-                PrefetchExportsInfoMode::Nested(&ids),
-              );
-              ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithNames(&exports_info),
-                None,
-                &ids,
-              )
-            };
+            let exports_info = exports_info_artifact.get_exports_info_data(imported_module);
+            let used_name = exports_info.get_used_name(exports_info_artifact, None, &ids);
             let init_fragment = self
               .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
               .boxed();
@@ -1047,13 +1015,10 @@ impl ESMExportImportedSpecifierDependency {
           ..potential_conflicts.dependency_indices[potential_conflicts.dependency_index]],
       );
       let imported_module = module_graph.get_module_by_dependency_id(&self.id)?;
-      let exports_info = exports_info_artifact.get_prefetched_exports_info(
-        &imported_module.identifier(),
-        PrefetchExportsInfoMode::Default,
-      );
+      let exports_info = exports_info_artifact.get_exports_info_data(&imported_module.identifier());
       let mut conflicts: IndexMap<&str, Vec<&Atom>, BuildHasherDefault<FxHasher>> =
         IndexMap::default();
-      for (_name, export_info) in exports_info.exports() {
+      for export_info in exports_info.exports().values() {
         if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
           continue;
         }
@@ -1100,11 +1065,9 @@ impl ESMExportImportedSpecifierDependency {
         if conflicting_module.identifier() == imported_module.identifier() {
           continue;
         }
-        let exports_info = exports_info_artifact.get_prefetched_exports_info(
-          &conflicting_module.identifier(),
-          PrefetchExportsInfoMode::Default,
-        );
-        let Some(conflicting_export_info) = exports_info.data().named_exports(name) else {
+        let exports_info =
+          exports_info_artifact.get_exports_info_data(&conflicting_module.identifier());
+        let Some(conflicting_export_info) = exports_info.named_exports(name) else {
           continue;
         };
         let Some(conflicting_target) =

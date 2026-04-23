@@ -18,12 +18,12 @@ use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsType, FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase,
-  InitFragment, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName,
-  compile_boolean_matcher_from_lists, contextify, property_access,
+  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  FakeNamespaceObjectMode, GenerateContext, ImportPhase, InitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
+  contextify, property_access,
   runtime_globals::{RuntimeVariable, runtime_globals_to_string, runtime_variable_to_string},
   to_comment, to_normal_comment,
 };
@@ -1010,18 +1010,12 @@ impl ModuleCodeTemplate {
       {
         if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
           let name = &export_name[1..];
-          let Some(used) = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(
-              &compilation
-                .exports_info_artifact
-                .get_prefetched_exports_info(
-                  &target_module_identifier,
-                  PrefetchExportsInfoMode::Nested(name),
-                ),
-            ),
-            runtime,
-            name,
-          ) else {
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_exports_info_data(&target_module_identifier);
+          let Some(used) =
+            exports_info.get_used_name(&compilation.exports_info_artifact, runtime, name)
+          else {
             return to_normal_comment(&format!(
               "unused export {}",
               property_access(export_name, 0)
@@ -1123,15 +1117,11 @@ impl ModuleCodeTemplate {
       .as_deref()
       .unwrap_or(export_name);
     if !export_name.is_empty() {
-      let used_name = match ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(
-          &compilation
-            .exports_info_artifact
-            .get_prefetched_exports_info(
-              &target_module_identifier,
-              PrefetchExportsInfoMode::Nested(export_name),
-            ),
-        ),
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&target_module_identifier);
+      let used_name = match exports_info.get_used_name(
+        &compilation.exports_info_artifact,
         runtime,
         export_name,
       ) {

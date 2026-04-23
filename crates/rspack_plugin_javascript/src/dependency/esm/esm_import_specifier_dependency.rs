@@ -7,13 +7,12 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  ForwardId, GetUsedNameParam, ImportAttributes, ImportPhase, JavascriptParserOptions,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleReferenceOptions, PrefetchExportsInfoMode, ReferencedExport, ResourceIdentifier,
-  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedByExports,
-  UsedByExportsCondition, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
+  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
+  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedByExportsCondition, UsedName,
+  create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::json_stringify_str;
@@ -399,18 +398,11 @@ impl ESMImportSpecifierDependencyTemplate {
           },
         )
       } else if dep.namespace_object_as_context {
-        match ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(
-            &compilation
-              .exports_info_artifact
-              .get_prefetched_exports_info(
-                con.module_identifier(),
-                PrefetchExportsInfoMode::Nested(ids),
-              ),
-          ),
-          *runtime,
-          ids,
-        ) {
+        match compilation
+          .exports_info_artifact
+          .get_exports_info_data(con.module_identifier())
+          .get_used_name(&compilation.exports_info_artifact, *runtime, ids)
+        {
           Some(UsedName::Normal(used_name)) => {
             scope.create_module_reference(
               con.module_identifier(),
@@ -505,10 +497,7 @@ impl ESMImportSpecifierDependencyTemplate {
     };
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(
-        con.module_identifier(),
-        PrefetchExportsInfoMode::Nested(ids),
-      );
+      .get_exports_info_data(con.module_identifier());
     let exports_type = module.get_exports_type(
       mg,
       &compilation.module_graph_cache_artifact,
@@ -524,10 +513,10 @@ impl ESMImportSpecifierDependencyTemplate {
           if ids.len() == 1 {
             Some(ExportProvided::Provided)
           } else {
-            exports_info.is_export_provided(&ids[1..])
+            exports_info.is_export_provided(&compilation.exports_info_artifact, &ids[1..])
           }
         } else {
-          exports_info.is_export_provided(ids)
+          exports_info.is_export_provided(&compilation.exports_info_artifact, ids)
         }
       }
       ExportsType::Namespace => {
@@ -538,12 +527,12 @@ impl ESMImportSpecifierDependencyTemplate {
             None
           }
         } else {
-          exports_info.is_export_provided(ids)
+          exports_info.is_export_provided(&compilation.exports_info_artifact, ids)
         }
       }
       ExportsType::Dynamic => {
         if first != "default" {
-          exports_info.is_export_provided(ids)
+          exports_info.is_export_provided(&compilation.exports_info_artifact, ids)
         } else {
           None
         }
@@ -566,15 +555,13 @@ impl ESMImportSpecifierDependencyTemplate {
         } else {
           ids
         };
-        let Some(used_name) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          *runtime,
-          used_name_ids,
-        )
-        .and_then(|used_name| match used_name {
-          UsedName::Normal(names) => names.last().cloned(),
-          UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
-        }) else {
+        let Some(used_name) = exports_info
+          .get_used_name(&compilation.exports_info_artifact, *runtime, used_name_ids)
+          .and_then(|used_name| match used_name {
+            UsedName::Normal(names) => names.last().cloned(),
+            UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
+          })
+        else {
           return;
         };
         let code = self.get_code_for_ids(
@@ -685,25 +672,22 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
         let prop = stack.last().expect("should have last");
         let mut concated_ids = prefixed_ids.clone();
         concated_ids.extend(stack.iter().map(|p| p.id.clone()));
-        let Some(new_name) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(
-            &code_generatable_context
-              .compilation
-              .exports_info_artifact
-              .get_prefetched_exports_info(
-                &module.identifier(),
-                PrefetchExportsInfoMode::Nested(&concated_ids),
-              ),
-          ),
-          code_generatable_context.runtime,
-          &concated_ids,
-        )
-        .and_then(|used| match used {
-          UsedName::Normal(names) => names.last().cloned(),
-          UsedName::Inlined(inlined) => {
-            unreachable!("should not inline for destructuring {:#?}", inlined)
-          }
-        }) else {
+        let Some(new_name) = code_generatable_context
+          .compilation
+          .exports_info_artifact
+          .get_exports_info_data(&module.identifier())
+          .get_used_name(
+            &code_generatable_context.compilation.exports_info_artifact,
+            code_generatable_context.runtime,
+            &concated_ids,
+          )
+          .and_then(|used| match used {
+            UsedName::Normal(names) => names.last().cloned(),
+            UsedName::Inlined(inlined) => {
+              unreachable!("should not inline for destructuring {:#?}", inlined)
+            }
+          })
+        else {
           return;
         };
 
