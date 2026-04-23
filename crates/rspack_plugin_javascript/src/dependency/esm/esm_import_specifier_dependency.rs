@@ -574,13 +574,6 @@ impl ESMImportSpecifierDependencyTemplate {
         .and_then(|used_name| match used_name {
           UsedName::Normal(names) => names.last().cloned(),
           UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
-        })
-        .or_else(|| {
-          // External modules can legitimately lack nested exports usage info here.
-          // Fall back to the requested property name so we still rewrite the import binding.
-          module
-            .as_external_module()
-            .and_then(|_| ids.last().cloned())
         }) else {
           return;
         };
