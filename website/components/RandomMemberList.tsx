@@ -147,7 +147,7 @@ const coreTeam: Member[] = [
   {
     id: 'Timeless0911',
     avatar: 'https://github.com/Timeless0911.png',
-    x: 'https://x.com/',
+    x: 'https://x.com/Timeless911',
     desc: 'Rspack core team',
   },
   {
