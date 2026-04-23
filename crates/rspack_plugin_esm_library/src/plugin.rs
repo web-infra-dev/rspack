@@ -18,9 +18,9 @@ use rspack_core::{
   ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
   ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
-  REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -139,10 +139,9 @@ impl EsmLibraryPlugin {
 
       // if we reach here, check exports info
       if should_scope_hoisting {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact.get_exports_info(module_identifier);
 
-        let relevant_exports = exports_info.get_relevant_exports(None);
+        let relevant_exports = exports_info.get_relevant_exports(exports_info_artifact, None);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
@@ -340,10 +339,9 @@ async fn finish_modules(
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let exports_info = exports_info_artifact
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+      let exports_info = exports_info_artifact.get_exports_info(module_identifier);
 
-      let relevant_exports = exports_info.get_relevant_exports(None);
+      let relevant_exports = exports_info.get_relevant_exports(exports_info_artifact, None);
       let unknown_exports = relevant_exports
         .iter()
         .filter(|export_info| {

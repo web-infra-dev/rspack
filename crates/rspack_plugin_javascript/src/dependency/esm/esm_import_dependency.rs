@@ -8,9 +8,8 @@ use rspack_core::{
   ExportProvided, ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo,
   ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  PrefetchExportsInfoMode, ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  ProvidedExports, ResourceIdentifier, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact,
+  SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use swc_core::ecma::atoms::Atom;
@@ -342,13 +341,10 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       return None;
     }
     let imported_module_identifier = imported_module.identifier();
-    let exports_info = exports_info_artifact.get_prefetched_exports_info(
-      &imported_module_identifier,
-      PrefetchExportsInfoMode::Nested(ids),
-    );
+    let exports_info = exports_info_artifact.get_exports_info(&imported_module_identifier);
     if (!matches!(exports_type, ExportsType::DefaultWithNamed) || ids[0] != "default")
       && matches!(
-        exports_info.is_export_provided(ids),
+        exports_info.is_export_provided(exports_info_artifact, ids),
         Some(ExportProvided::NotProvided)
       )
     {
@@ -372,11 +368,9 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         .is_some()
         && ids.len() == 1
         && matches!(
-          exports_info_artifact.get_prefetched_exports_info(
-            parent_module_identifier,
-            PrefetchExportsInfoMode::Default,
-          )
-            .is_export_provided(std::slice::from_ref(name)),
+          exports_info_artifact
+            .get_exports_info(parent_module_identifier)
+            .is_export_provided(exports_info_artifact, std::slice::from_ref(name)),
           Some(ExportProvided::Provided)
         )
       {
@@ -396,18 +390,16 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
         }
       }
       let mut pos = 0;
-      let mut maybe_exports_info = Some(exports_info_artifact.get_prefetched_exports_info(
-        &imported_module_identifier,
-        PrefetchExportsInfoMode::Nested(ids),
-      ));
+      let mut maybe_exports_info =
+        Some(exports_info_artifact.get_exports_info(&imported_module_identifier));
       while pos < ids.len()
         && let Some(exports_info) = &maybe_exports_info
       {
         let id = &ids[pos];
         pos += 1;
-        let export_info = exports_info.get_read_only_export_info(id);
+        let export_info = exports_info.get_read_only_export_info(exports_info_artifact, id);
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let provided_exports = exports_info.get_provided_exports();
+          let provided_exports = exports_info.get_provided_exports(exports_info_artifact);
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
@@ -441,7 +433,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           maybe_exports_info = None;
           continue;
         };
-        maybe_exports_info = Some(exports_info.redirect(nested_exports_info, true));
+        maybe_exports_info = Some(nested_exports_info);
       }
       let msg = format!(
         "export {} {} was not found in '{}'",

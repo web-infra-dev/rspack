@@ -5,7 +5,7 @@ use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BoxModule, ChunkGraph, Compilation, Context, DependencyId, DependencyType, ExportsInfoArtifact,
   Module, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdsArtifact, ModuleType,
-  OptimizationBailoutItem, PrefetchExportsInfoMode, SideEffectsStateArtifact, UsageState,
+  OptimizationBailoutItem, SideEffectsStateArtifact, UsageState,
   rspack_sources::{MapOptions, ObjectPool},
 };
 use rspack_paths::Utf8PathBuf;
@@ -34,17 +34,20 @@ pub fn collect_json_module_sizes(
       continue;
     };
 
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(module_id, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact.get_exports_info(module_id);
 
     let final_json = match json_data {
       json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
-        let needs_tree_shaking = exports_info.other_exports_info().get_used(None)
+        let needs_tree_shaking = exports_info
+          .other_exports_info(exports_info_artifact)
+          .get_used(None)
           == UsageState::Unused
-          || exports_info.exports().any(|(_, info)| {
-            let used = info.get_used(None);
-            used == UsageState::Unused || used == UsageState::OnlyPropertiesUsed
-          });
+          || exports_info
+            .exports(exports_info_artifact)
+            .any(|(_, info)| {
+              let used = info.get_used(None);
+              used == UsageState::Unused || used == UsageState::OnlyPropertiesUsed
+            });
 
         if needs_tree_shaking {
           create_object_for_exports_info(

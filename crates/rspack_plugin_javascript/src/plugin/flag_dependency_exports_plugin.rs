@@ -1,12 +1,12 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
-  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
-  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
-  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, Nullable, Plugin, PrefetchExportsInfoMode, SideEffectsStateArtifact,
-  get_target,
+  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
+  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
+  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
+  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
+  SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
@@ -731,16 +731,9 @@ fn find_target_exports_info(
   let mut target_exports_info = None;
   let mut target_module = None;
   if let Some(GetTargetResult::Target(target)) = target {
-    let target_module_exports_info = exports_info_artifact.get_prefetched_exports_info(
-      &target.module,
-      if let Some(names) = &target.export {
-        PrefetchExportsInfoMode::Nested(names)
-      } else {
-        PrefetchExportsInfoMode::Default
-      },
-    );
+    let target_module_exports_info = exports_info_artifact.get_exports_info(&target.module);
     target_exports_info = target_module_exports_info
-      .get_nested_exports_info(target.export.as_deref())
+      .get_nested_exports_info(exports_info_artifact, target.export.as_deref())
       .map(|data| data.id());
     target_module = Some(target.module);
   }

@@ -16,9 +16,9 @@ use crate::{
   DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsedExports,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsedExports, extract_url_and_global,
+  impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -507,14 +507,19 @@ impl ExternalModule {
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = compilation
               .exports_info_artifact
-              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
-            let used_exports = exports_info.get_used_exports(runtime);
+              .get_exports_info(&self.identifier());
+            let used_exports =
+              exports_info.get_used_exports(&compilation.exports_info_artifact, runtime);
             let namespace_used_by_named_exports = matches!(
               &used_exports,
               UsedExports::UsedNames(atoms)
                 if atoms
                   .iter()
-                  .any(|atom| exports_info.get_read_only_export_info(atom).ns_access())
+                  .any(|atom| {
+                    exports_info
+                      .get_read_only_export_info(&compilation.exports_info_artifact, atom)
+                      .ns_access()
+                  })
             );
             let meta = &self.dependency_meta.attributes;
             let attributes = meta.as_ref().map(|meta| {

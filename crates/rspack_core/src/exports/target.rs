@@ -5,7 +5,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   DependencyId, ExportInfo, ExportInfoData, ExportInfoHashKey, ExportsInfo, ExportsInfoArtifact,
-  ExportsInfoGetter, ModuleGraph, ModuleIdentifier, PrefetchExportsInfoMode,
+  ModuleGraph, ModuleIdentifier,
 };
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
@@ -77,13 +77,9 @@ pub fn get_terminal_binding(
   let Some(export) = target.export else {
     return Some(TerminalBinding::ExportsInfo(exports_info));
   };
-  ExportsInfoGetter::prefetch(
-    &exports_info,
-    exports_info_artifact,
-    PrefetchExportsInfoMode::Nested(&export),
-  )
-  .get_read_only_export_info_recursive(&export)
-  .map(|data| TerminalBinding::ExportInfo(data.id()))
+  exports_info
+    .get_read_only_export_info_recursive(exports_info_artifact, &export)
+    .map(|data| TerminalBinding::ExportInfo(data.id()))
 }
 
 pub fn find_target(
@@ -121,9 +117,9 @@ pub fn find_target(
       return FindTargetResult::ValidTarget(target);
     }
     let name = &target.export.as_ref().expect("should have export")[0];
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
-    let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let exports_info = exports_info_artifact.get_exports_info(&target.module);
+    let export_info =
+      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, name);
     let export_info_hash_key = export_info.as_hash_key();
     if !visited.insert(export_info_hash_key) {
       return FindTargetResult::NoTarget;
@@ -244,9 +240,9 @@ fn resolve_target(
       return Some(GetTargetResult::Target(target));
     };
 
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(&target.module, PrefetchExportsInfoMode::Default);
-    let maybe_export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let exports_info = exports_info_artifact.get_exports_info(&target.module);
+    let maybe_export_info =
+      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, name);
     let maybe_export_info_hash_key = maybe_export_info.as_hash_key();
     if already_visited.contains(&maybe_export_info_hash_key) {
       return Some(GetTargetResult::Circular);

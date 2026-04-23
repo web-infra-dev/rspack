@@ -7,9 +7,9 @@ use rspack_core::{
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
-  SideEffectsState, SideEffectsStateArtifact,
+  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
+  SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -208,9 +208,10 @@ async fn finish_modules(
           };
 
           let target_exports_info = exports_info_artifact
-            .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+            .get_exports_info(ref_module);
           let target_export_info =
-            target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
+            target_exports_info
+              .get_export_info_without_mut_module_graph(exports_info_artifact, &deferred_check.atom);
           let resolve_filter = |_: &ResolvedExportInfoTarget| true;
 
           let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
@@ -512,9 +513,9 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
-    let export_info = exports_info.get_export_info_without_mut_module_graph(name);
+    let exports_info = exports_info_artifact.get_exports_info(&original_module);
+    let export_info =
+      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, name);
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {
       side_effects_state_map[&target.module] == ConnectionState::Active(false)
@@ -558,11 +559,9 @@ fn can_optimize_connection(
     && let ids = dep.get_ids(module_graph)
     && !ids.is_empty()
   {
-    let exports_info = exports_info_artifact.get_prefetched_exports_info(
-      connection.module_identifier(),
-      PrefetchExportsInfoMode::Default,
-    );
-    let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
+    let exports_info = exports_info_artifact.get_exports_info(connection.module_identifier());
+    let export_info =
+      exports_info.get_export_info_without_mut_module_graph(exports_info_artifact, &ids[0]);
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {
       side_effects_state_map[&target.module] == ConnectionState::Active(false)

@@ -3,10 +3,9 @@ use std::{borrow::Cow, hash::Hash};
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfoArtifact, ExportsInfoGetter,
+  CompilerCompilation, ExportInfo, ExportProvided, ExportsInfo, ExportsInfoArtifact,
   GetTargetResult, Module, ModuleGraph, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeCodeTemplate, UsageState,
-  get_target,
+  RuntimeCodeTemplate, UsageState, get_target,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_comment_with_nl,
 };
@@ -31,7 +30,7 @@ pub struct ModuleInfoHeaderPlugin {
 fn print_exports_info_to_source<F>(
   source: &mut ConcatSource,
   ident: &str,
-  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  exports_info: &ExportsInfo,
   request_shortener: &F,
   already_printed: &mut FxHashSet<ExportInfo>,
   module_graph: &ModuleGraph,
@@ -39,13 +38,13 @@ fn print_exports_info_to_source<F>(
 ) where
   F: Fn(&ModuleIdentifier) -> String,
 {
-  let other_exports_info = exports_info.other_exports_info();
+  let other_exports_info = exports_info.other_exports_info(exports_info_artifact);
 
   let mut already_printed_exports = 0;
 
   let mut printed_exports = vec![];
 
-  for (_, export_info) in exports_info.exports() {
+  for (_, export_info) in exports_info.exports(exports_info_artifact) {
     let export_info_id = export_info.id();
     if !already_printed.contains(&export_info_id) {
       already_printed.insert(export_info_id);
@@ -97,11 +96,7 @@ fn print_exports_info_to_source<F>(
     source.add(RawStringSource::from(to_comment_with_nl(&export_str)));
 
     if let Some(exports_info) = &export_info.exports_info() {
-      let exports_info = ExportsInfoGetter::prefetch(
-        exports_info,
-        exports_info_artifact,
-        PrefetchExportsInfoMode::Default,
-      );
+      let exports_info = *exports_info;
       print_exports_info_to_source(
         source,
         &format!("{ident}  "),
@@ -263,7 +258,7 @@ async fn render_js_module_package(
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+      .get_exports_info(&module.identifier());
 
     if !matches!(export_type, BuildMetaExportsType::Unset) {
       let request_shortener = |id: &ModuleIdentifier| {

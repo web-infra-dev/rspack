@@ -10,8 +10,7 @@ use rspack_core::{
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
-  PrefetchExportsInfoMode, ProvidedExports, RuntimeCondition, RuntimeSpec,
-  SideEffectsStateArtifact, SourceType,
+  ProvidedExports, RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   concatenated_module::{
     ConcatenatedInnerModule, ConcatenatedModule, RootModuleContext, is_esm_dep_like,
   },
@@ -747,8 +746,9 @@ impl ModuleConcatenationPlugin {
 
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
-        let relevant_exports = exports_info.get_relevant_exports(None);
+          .get_exports_info(&module_id);
+        let relevant_exports =
+          exports_info.get_relevant_exports(&compilation.exports_info_artifact, None);
         let unknown_exports = relevant_exports
           .iter()
           .filter(|export_info| {
@@ -903,9 +903,9 @@ impl ModuleConcatenationPlugin {
       .map(|module_id| {
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module_id, PrefetchExportsInfoMode::Default);
+          .get_exports_info(&module_id);
         let provided_names = matches!(
-          exports_info.get_provided_exports(),
+          exports_info.get_provided_exports(&compilation.exports_info_artifact),
           ProvidedExports::ProvidedNames(_)
         );
         let module = module_graph
@@ -1043,8 +1043,10 @@ impl ModuleConcatenationPlugin {
       let module_graph_cache = &compilation.module_graph_cache_artifact;
       let exports_info = compilation
         .exports_info_artifact
-        .get_prefetched_exports_info(current_root, PrefetchExportsInfoMode::Default);
-      let filtered_runtime = filter_runtime(Some(runtime), |r| exports_info.is_module_used(r));
+        .get_exports_info(current_root);
+      let filtered_runtime = filter_runtime(Some(runtime), |r| {
+        exports_info.is_module_used(&compilation.exports_info_artifact, r)
+      });
       let active_runtime = match filtered_runtime {
         RuntimeCondition::Boolean(true) => Some(runtime.clone()),
         RuntimeCondition::Boolean(false) => None,

@@ -5,8 +5,7 @@ use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoArtifact, ExportsInfoGetter, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
+  ExportsInfo, ExportsInfoArtifact, Plugin, UsageState, UsedNameItem,
   build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
@@ -19,12 +18,16 @@ use crate::utils::mangle_exports::{
   NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS, number_to_identifier,
 };
 
-fn can_mangle(exports_info: &PrefetchedExportsInfoWrapper<'_>) -> bool {
-  if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
+fn can_mangle(exports_info_artifact: &ExportsInfoArtifact, exports_info: &ExportsInfo) -> bool {
+  if exports_info
+    .other_exports_info(exports_info_artifact)
+    .get_used(None)
+    != UsageState::Unused
+  {
     return false;
   }
   let mut has_something_to_mangle = false;
-  for (_, export_info) in exports_info.exports() {
+  for (_, export_info) in exports_info.exports(exports_info_artifact) {
     if export_info.can_mangle() == Some(true) {
       has_something_to_mangle = true;
     }
@@ -142,17 +145,13 @@ async fn optimize_code_generation(
       .filter_map(|(exports_info, is_namespace)| {
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
-        let exports_info_data = ExportsInfoGetter::prefetch(
-          exports_info,
-          exports_info_artifact,
-          PrefetchExportsInfoMode::Default,
-        );
+        let exports_info_data = *exports_info;
         let export_list = {
-          if !can_mangle(&exports_info_data) {
+          if !can_mangle(exports_info_artifact, &exports_info_data) {
             return None;
           }
           if !avoid_mangle_non_provided && deterministic {
-            for (_, export_info) in exports_info_data.exports() {
+            for (_, export_info) in exports_info_data.exports(exports_info_artifact) {
               if !matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
                 avoid_mangle_non_provided = true;
                 break;
@@ -160,7 +159,7 @@ async fn optimize_code_generation(
             }
           }
           exports_info_data
-            .exports()
+            .exports(exports_info_artifact)
             .map(|(_, export_info)| export_info)
             .collect::<Vec<_>>()
         };

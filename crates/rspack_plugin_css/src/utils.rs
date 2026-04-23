@@ -195,12 +195,10 @@ pub fn stringified_exports<'a>(
   let module_graph = compilation.get_module_graph();
   let exports_info = compilation
     .exports_info_artifact
-    .get_prefetched_exports_info(
-      &module.identifier(),
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
+    .get_exports_info(&module.identifier());
   for (key, elements) in exports {
-    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+    let export_info =
+      exports_info.get_read_only_export_info(&compilation.exports_info_artifact, &Atom::from(key));
     let used_name = export_info.get_used_name(None, runtime);
     let used_name = match used_name {
       Some(UsedNameItem::Str(name)) => name.to_string(),
@@ -239,12 +237,12 @@ pub fn stringified_exports<'a>(
 
             let from_exports_info = compilation
               .exports_info_artifact
-              .get_prefetched_exports_info(
-                &from.module_identifier,
-                rspack_core::PrefetchExportsInfoMode::Default,
-              );
+              .get_exports_info(&from.module_identifier);
             let from_used_name = match from_exports_info
-              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_read_only_export_info(
+                &compilation.exports_info_artifact,
+                &Atom::from(ident.as_str()),
+              )
               .get_used_name(None, runtime)
             {
               Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
@@ -301,12 +299,10 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   let mut used_identifiers = HashSet::default();
   let exports_info = compilation
     .exports_info_artifact
-    .get_prefetched_exports_info(
-      &module.identifier(),
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
+    .get_exports_info(&module.identifier());
   for (key, elements) in exports {
-    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+    let export_info =
+      exports_info.get_read_only_export_info(&compilation.exports_info_artifact, &Atom::from(key));
     let used_name = export_info.get_used_name(None, *runtime);
     let used_name = match used_name {
       Some(UsedNameItem::Str(name)) => name.to_string(),
@@ -345,12 +341,12 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
 
             let from_exports_info = compilation
               .exports_info_artifact
-              .get_prefetched_exports_info(
-                &from.module_identifier,
-                rspack_core::PrefetchExportsInfoMode::Default,
-              );
+              .get_exports_info(&from.module_identifier);
             let from_used_name = match from_exports_info
-              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_read_only_export_info(
+                &compilation.exports_info_artifact,
+                &Atom::from(ident.as_str()),
+              )
               .get_used_name(None, *runtime)
             {
               Some(UsedNameItem::Str(name)) => json_stringify_str(&name),

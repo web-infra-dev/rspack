@@ -5,9 +5,8 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access_with_optional,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
 };
 use swc_core::atoms::Atom;
 
@@ -154,16 +153,10 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     let used = if !dep.names.is_empty() {
       let exports_info = compilation
         .exports_info_artifact
-        .get_prefetched_exports_info(
-          &module.identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.names),
-        );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.names,
-      )
-      .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+        .get_exports_info(&module.identifier());
+      exports_info
+        .get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
+        .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
       UsedName::Normal(dep.names.clone())
     };

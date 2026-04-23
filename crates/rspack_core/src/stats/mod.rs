@@ -26,8 +26,7 @@ use crate::{
   ChunkGraph, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey, Compilation,
   CompilationAssets, CompilationLogging, CompilerOptions, ExportsInfoArtifact, LogType,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
-  OptimizationBailoutItem, PrefetchExportsInfoMode, ProvidedExports, RuntimeSpec, SourceType,
-  StealCell, UsedExports,
+  OptimizationBailoutItem, ProvidedExports, RuntimeSpec, SourceType, StealCell, UsedExports,
   compilation::build_module_graph::{ExecutedRuntimeModule, ModuleExecutor},
   rspack_sources::BoxSource,
 };
@@ -1438,9 +1437,8 @@ impl Stats<'_> {
 
     if options.used_exports {
       stats.used_exports = if !executed && self.options().optimization.used_exports.is_enable() {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
-        let used_exports = exports_info.get_used_exports(None);
+        let exports_info = exports_info_artifact.get_exports_info(&module.identifier());
+        let used_exports = exports_info.get_used_exports(exports_info_artifact, None);
         match used_exports {
           UsedExports::Unknown => Some(StatsUsedExports::Null),
           UsedExports::UsedNames(v) => Some(StatsUsedExports::Vec(v)),
@@ -1453,9 +1451,8 @@ impl Stats<'_> {
 
     if options.provided_exports {
       stats.provided_exports = if !executed && self.options().optimization.provided_exports {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
-        let provided_exports = exports_info.get_provided_exports();
+        let exports_info = exports_info_artifact.get_exports_info(&module.identifier());
+        let provided_exports = exports_info.get_provided_exports(exports_info_artifact);
         match provided_exports {
           ProvidedExports::ProvidedNames(v) => Some(v),
           _ => None,

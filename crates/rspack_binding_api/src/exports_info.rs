@@ -2,9 +2,7 @@ use std::ptr::NonNull;
 
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{
-  Compilation, ExportsInfo, ExportsInfoGetter, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec,
-};
+use rspack_core::{Compilation, ExportsInfo, ModuleGraph, RuntimeSpec};
 use rspack_util::atom::Atom;
 
 use crate::runtime::JsRuntimeSpec;
@@ -44,12 +42,11 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-      &self.exports_info,
-      &compilation.exports_info_artifact,
-      runtime.as_ref(),
-    );
-    Ok(exports_info.is_used())
+    Ok(
+      self
+        .exports_info
+        .is_used(&compilation.exports_info_artifact, runtime.as_ref()),
+    )
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
@@ -59,12 +56,11 @@ impl JsExportsInfo {
       Either::A(str) => std::iter::once(str).map(Into::into).collect(),
       Either::B(vec) => vec.into_iter().map(Into::into).collect(),
     });
-    let exports_info = ExportsInfoGetter::prefetch_used_info_without_name(
-      &self.exports_info,
-      &compilation.exports_info_artifact,
-      runtime.as_ref(),
-    );
-    Ok(exports_info.is_module_used())
+    Ok(
+      self
+        .exports_info
+        .is_module_used(&compilation.exports_info_artifact, runtime.as_ref()),
+    )
   }
 
   #[napi(ts_args_type = "runtime: string | string[] | undefined")]
@@ -100,12 +96,8 @@ impl JsExportsInfo {
       Either::A(s) => vec![Atom::from(s)],
       Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
     };
-    let exports_info = ExportsInfoGetter::prefetch(
-      &self.exports_info,
-      &compilation.exports_info_artifact,
-      PrefetchExportsInfoMode::Nested(&names),
-    );
-    let used = exports_info.get_used(&names, runtime.as_ref());
+    let exports_info = self.exports_info;
+    let used = exports_info.get_used(&compilation.exports_info_artifact, &names, runtime.as_ref());
     Ok(used as u32)
   }
 }

@@ -2,10 +2,9 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
   Compilation, CompilationOptimizeDependencies, Dependency, DependencyId, ExportMode,
-  ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoGetter, GetUsedNameParam,
-  ModuleGraph, ModuleGraphConnection, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeSpec, SideEffectsOptimizeArtifact, UsageState, UsedName, UsedNameItem,
-  build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
+  ExportProvided, ExportsInfo, ExportsInfoArtifact, ModuleGraph, ModuleGraphConnection,
+  ModuleIdentifier, Plugin, RuntimeSpec, SideEffectsOptimizeArtifact, UsageState, UsedName,
+  UsedNameItem, build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -43,10 +42,8 @@ pub fn is_export_inlined(
     );
   }
 
-  let exports_info =
-    exports_info_artifact.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Nested(ids));
-  let used_name =
-    ExportsInfoGetter::get_used_name(GetUsedNameParam::WithNames(&exports_info), runtime, ids);
+  let exports_info = exports_info_artifact.get_exports_info(module);
+  let used_name = exports_info.get_used_name(exports_info_artifact, runtime, ids);
   matches!(used_name, Some(UsedName::Inlined(_)))
 }
 
@@ -138,19 +135,19 @@ async fn optimize_dependencies(
     let batch = items
       .par_iter()
       .filter_map(|exports_info| {
-        let exports_info_data = ExportsInfoGetter::prefetch(
-          exports_info,
-          exports_info_artifact,
-          PrefetchExportsInfoMode::Default,
-        );
+        let exports_info_data = *exports_info;
         let export_list = {
           // If there are other usage (e.g. `import { Kind } from './enum'; Kind;`) in any runtime,
           // then we cannot inline this export.
-          if exports_info_data.other_exports_info().get_used(None) != UsageState::Unused {
+          if exports_info_data
+            .other_exports_info(exports_info_artifact)
+            .get_used(None)
+            != UsageState::Unused
+          {
             return None;
           }
           exports_info_data
-            .exports()
+            .exports(exports_info_artifact)
             .map(|(_, export_info_data)| {
               let do_inline = !export_info_data.has_used_name()
                 && export_info_data.can_inline() == Some(true)

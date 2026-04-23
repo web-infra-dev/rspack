@@ -12,7 +12,7 @@ use rspack_core::{
   CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
   GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
   ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -649,10 +649,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let exports_info = generate_context
             .compilation
             .exports_info_artifact
-            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+            .get_exports_info(&module.identifier());
           let (ns_obj, left, right) = if self.es_module
             && exports_info
-              .other_exports_info()
+              .other_exports_info(&generate_context.compilation.exports_info_artifact)
               .get_used(generate_context.runtime)
               != UsageState::Unused
           {
@@ -755,15 +755,14 @@ fn get_used_exports<'a>(
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> FxIndexMap<&'a str, &'a FxIndexSet<CssExport>> {
-  let exports_info = exports_info_artifact
-    .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+  let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
 
   exports
     .iter()
     .filter(|(name, _)| {
-      let export_info = exports_info
-        .as_ref()
-        .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
+      let export_info = exports_info.as_ref().map(|info| {
+        info.get_read_only_export_info(exports_info_artifact, &Atom::from(name.as_str()))
+      });
 
       if let Some(export_info) = export_info {
         export_info.get_used(runtime) != UsageState::Unused
@@ -804,8 +803,7 @@ fn get_unused_local_ident(
     },
   );
 
-  let exports_info = exports_info_artifact
-    .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+  let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names
@@ -814,7 +812,7 @@ fn get_unused_local_ident(
         export_names.iter().all(|export_name| {
           let export_info = exports_info
             .as_ref()
-            .map(|info| info.get_read_only_export_info(export_name));
+            .map(|info| info.get_read_only_export_info(exports_info_artifact, export_name));
 
           if let Some(export_info) = export_info {
             matches!(export_info.get_used(runtime), UsageState::Unused)
