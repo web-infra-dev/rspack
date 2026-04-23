@@ -1,7 +1,6 @@
 use std::sync::{Arc, LazyLock};
 
 use anymap::CloneAny;
-use regex::Regex;
 use rspack_collections::IdentifierIndexMap;
 use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -17,13 +16,7 @@ use crate::{
 pub static DEFAULT_EXPORT_ATOM: LazyLock<Atom> = LazyLock::new(|| "__rspack_default_export".into());
 pub const NAMESPACE_OBJECT_EXPORT: &str = "__rspack_ns_object";
 pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
-
-static MODULE_REFERENCE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(
-    r"^__rspack_module_ref(\d+)_([\da-f]+|ns)(_call)?(_directImport)?(_deferredImport)?(?:_asiSafe(\d))?__$",
-  )
-  .expect("should initialized regex")
-});
+const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 
 #[derive(Default, Debug, Clone)]
 pub struct ModuleReferenceOptions {
@@ -167,29 +160,62 @@ impl ConcatenationScope {
   }
 
   pub fn match_module_reference(name: &str) -> Option<ModuleReferenceOptions> {
-    if let Some(captures) = MODULE_REFERENCE_REGEXP.captures(name) {
-      let index: usize = captures[1].parse().expect("");
-      let ids: Vec<Atom> = if &captures[2] == "ns" {
-        vec![]
-      } else {
-        serde_json::from_slice(&hex::decode(&captures[2]).expect("should decode hex"))
-          .expect("should have deserialize")
-      };
-      let call = captures.get(3).is_some();
-      let direct_import = captures.get(4).is_some();
-      let deferred_import = captures.get(5).is_some();
-      let asi_safe = captures.get(6).map(|s| s.as_str() == "1");
-      Some(ModuleReferenceOptions {
-        ids,
-        call,
-        direct_import,
-        deferred_import,
-        asi_safe,
-        index,
-      })
+    let encoded = name
+      .strip_prefix(MODULE_REFERENCE_PREFIX)?
+      .strip_suffix("__")?;
+    let (index, encoded) = encoded.split_once('_')?;
+    let index = index.parse().ok()?;
+
+    let export_data_len = encoded.find('_').unwrap_or(encoded.len());
+    let (export_data, mut flags) = encoded.split_at(export_data_len);
+    let ids = if export_data == "ns" {
+      vec![]
+    } else {
+      serde_json::from_slice(&hex::decode(export_data).ok()?).ok()?
+    };
+
+    let call = if let Some(stripped) = flags.strip_prefix("_call") {
+      flags = stripped;
+      true
+    } else {
+      false
+    };
+    let direct_import = if let Some(stripped) = flags.strip_prefix("_directImport") {
+      flags = stripped;
+      true
+    } else {
+      false
+    };
+    let deferred_import = if let Some(stripped) = flags.strip_prefix("_deferredImport") {
+      flags = stripped;
+      true
+    } else {
+      false
+    };
+    let asi_safe = if let Some(stripped) = flags.strip_prefix("_asiSafe") {
+      let (flag, rest) = stripped.split_at(1);
+      flags = rest;
+      match flag {
+        "0" => Some(false),
+        "1" => Some(true),
+        _ => return None,
+      }
     } else {
       None
+    };
+
+    if !flags.is_empty() {
+      return None;
     }
+
+    Some(ModuleReferenceOptions {
+      ids,
+      call,
+      direct_import,
+      deferred_import,
+      asi_safe,
+      index,
+    })
   }
 
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
