@@ -732,10 +732,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     &mut self,
     all_modules: &Vec<ModuleIdentifier>,
     compilation: &mut Compilation,
-  ) -> Result<FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
-    let mut input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
-      FxIndexMap::default();
-
+  ) -> Result<Vec<(ChunkGroupUkey, Vec<ModuleIdentifier>)>> {
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
 
     let outgoings = {
@@ -767,10 +764,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .collect::<Vec<_>>();
 
-    for (entry_point, modules) in assign_tasks {
-      input_entrypoints_and_modules.insert(entry_point, modules);
-    }
-
     // Using this defer insertion strategies to workaround rustc borrow rules
     for assign_depths_map in assign_depths_maps {
       for (k, v) in assign_depths_map {
@@ -782,12 +775,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       self.set_entry_runtime_and_depend_on(name, compilation)?;
     }
 
-    Ok(input_entrypoints_and_modules)
+    Ok(assign_tasks)
   }
 
   pub fn prepare_entries(
     &mut self,
-    input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>,
+    input_entrypoints_and_modules: Vec<(ChunkGroupUkey, Vec<ModuleIdentifier>)>,
     compilation: &mut Compilation,
   ) -> Result<()> {
     let logger = compilation.get_logger("rspack.buildChunkGraph");
@@ -1093,7 +1086,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module_identifier: ModuleIdentifier,
     runtime: Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
-    ctx: &mut (u32, u32, FxIndexMap<ModuleIdentifier, (u32, u32)>),
+    ctx: &mut (u32, u32, IdentifierMap<(u32, u32)>),
     compilation: &Compilation,
   ) {
     if !visited.insert(module_identifier) {
