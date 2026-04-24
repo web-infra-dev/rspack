@@ -85,7 +85,7 @@ async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> 
 #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
 pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierSet) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compilation");
-  let mut codegen_cache_counter = match compilation.options.cache {
+  let codegen_cache_counter = match compilation.options.cache {
     CacheOptions::Disabled => None,
     _ => Some(logger.cache("module code generation cache")),
   };
@@ -106,13 +106,13 @@ pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierS
 
   code_generation_modules(
     compilation,
-    &mut codegen_cache_counter,
+    codegen_cache_counter.as_ref(),
     no_codegen_dependencies_modules,
   )
   .await?;
   code_generation_modules(
     compilation,
-    &mut codegen_cache_counter,
+    codegen_cache_counter.as_ref(),
     has_codegen_dependencies_modules,
   )
   .await?;
@@ -126,7 +126,7 @@ pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierS
 
 pub(crate) async fn code_generation_modules(
   compilation: &mut Compilation,
-  cache_counter: &mut Option<CacheCount>,
+  cache_counter: Option<&CacheCount>,
   modules: IdentifierSet,
 ) -> Result<()> {
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
@@ -168,15 +168,15 @@ pub(crate) async fn code_generation_modules(
   let results = rspack_parallel::scope::<_, _>(|token| {
     jobs.into_iter().for_each(|job| {
       // SAFETY: await immediately and trust caller to poll future entirely
-      let s = unsafe { token.used((compilation_ref, &module_graph, job)) };
+      let s = unsafe { token.used((compilation_ref, &module_graph, cache_counter, job)) };
 
-      s.spawn(|(this, module_graph, job)| async {
+      s.spawn(|(this, module_graph, cache_counter, job)| async move {
         let options = &this.options;
 
         let module = module_graph
           .module_by_identifier(&job.module)
           .expect("should have module");
-        let codegen_res = this
+        let (codegen_res, from_cache) = this
           .code_generate_cache_artifact
           .use_cache(&job, || async {
             let mut runtime_template = this.runtime_template.create_module_code_template();
@@ -215,6 +215,13 @@ pub(crate) async fn code_generation_modules(
               })
           })
           .await;
+        if let Some(counter) = cache_counter {
+          if from_cache {
+            counter.hit();
+          } else {
+            counter.miss();
+          }
+        }
 
         (job.module, job.runtimes, codegen_res)
       })
@@ -226,14 +233,7 @@ pub(crate) async fn code_generation_modules(
     .map(|res| res.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
-  for (module, runtimes, (codegen_res, from_cache)) in results {
-    if let Some(counter) = cache_counter {
-      if from_cache {
-        counter.hit();
-      } else {
-        counter.miss();
-      }
-    }
+  for (module, runtimes, codegen_res) in results {
     let codegen_res = match codegen_res {
       Ok(codegen_res) => codegen_res,
       Err(err) => {
