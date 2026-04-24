@@ -246,8 +246,26 @@ impl EsmLibraryPlugin {
 
     // only used for scope
     // we mutably modify data in `self.concatenated_modules_map`
+    let codegen_modules_map = modules_map
+      .iter()
+      .map(|(id, info)| {
+        let info = match info {
+          ModuleInfo::Concatenated(info) => {
+            ModuleInfo::Concatenated(Box::new(ConcatenatedModuleInfo {
+              index: info.index,
+              module: info.module,
+              ..Default::default()
+            }))
+          }
+          ModuleInfo::External(info) => {
+            ModuleInfo::External(ExternalModuleInfo::new(info.index, info.module))
+          }
+        };
+        (*id, info)
+      })
+      .collect::<IdentifierIndexMap<_>>();
     let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
-    *map = Arc::new(modules_map.clone());
+    *map = Arc::new(codegen_modules_map);
     drop(map);
 
     *self.concatenated_modules_map.write().await = modules_map;
@@ -421,8 +439,26 @@ async fn finish_modules(
 
   // only used for scope
   // we mutably modify data in `self.concatenated_modules_map`
+  let codegen_modules_map = modules_map
+    .iter()
+    .map(|(id, info)| {
+      let info = match info {
+        ModuleInfo::Concatenated(info) => {
+          ModuleInfo::Concatenated(Box::new(ConcatenatedModuleInfo {
+            index: info.index,
+            module: info.module,
+            ..Default::default()
+          }))
+        }
+        ModuleInfo::External(info) => {
+          ModuleInfo::External(ExternalModuleInfo::new(info.index, info.module))
+        }
+      };
+      (*id, info)
+    })
+    .collect::<IdentifierIndexMap<_>>();
   let mut map = self.concatenated_modules_map_for_codegen.borrow_mut();
-  *map = Arc::new(modules_map.clone());
+  *map = Arc::new(codegen_modules_map);
   drop(map);
 
   *self.concatenated_modules_map.write().await = modules_map;
