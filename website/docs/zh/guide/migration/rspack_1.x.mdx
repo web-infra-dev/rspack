@@ -500,12 +500,29 @@ class MyPlugin {
 
 ### 修改 `resolve.roots` 的默认值
 
-resolve 的 [roots](/zh/config/resolve#resolveroots) 配置默认值已从 `[ context ]` 变更为 `[]`。如果你依赖服务器相对 URL 解析，且期望路径相对于 `roots` 目录进行解析，可显式恢复原有行为：
+[resolve.roots](/zh/config/resolve#resolveroots) 配置默认值已从 `[context]` 变更为 `[]`。
+
+在 Rspack 1.x 中，`resolve.roots` 默认包含项目的 `context`，因此下面的 CSS 导入可能会被解析为 `<context>/node_modules/lib/style.css`：
+
+```css title="styles.css"
+@import '/node_modules/lib/style.css';
+```
+
+在 Rspack 2.0 中，这个隐式行为已被移除，以对齐标准模块解析。以 `/` 开头的请求会被视为文件系统绝对路径。
+
+建议改为包名导入或相对路径导入：
+
+```css title="styles.css"
+@import 'lib/style.css';
+@import '../node_modules/lib/style.css';
+```
+
+如果你确实依赖原有行为，可以添加如下配置：
 
 ```js title="rspack.config.mjs"
 export default {
   resolve: {
-    roots: [context], // rspack 配置文件的 context 路径
+    roots: [import.meta.dirname],
   },
 };
 ```
@@ -526,7 +543,7 @@ export default {
 
 ### 移除 experiments.css
 
-experiments.css 已被移除。CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
+`experiments.css` 选项已被移除，CSS 处理能力现在默认可用，但仍需要在 `module.rules` 中配置对应的 `type` 以启用：
 
 ```js title="rspack.config.mjs"
 export default {

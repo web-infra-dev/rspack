@@ -9,15 +9,14 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
+  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
+  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -2920,7 +2919,7 @@ var {} = {{}};
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<ExportInfoHashKey>,
+    already_visited: &mut FxHashSet<ExportInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Option<Ref> {
@@ -3075,8 +3074,7 @@ var {} = {{}};
       }
     }
 
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(info_id, PrefetchExportsInfoMode::Nested(&export_name));
+    let exports_info = exports_info_artifact.get_exports_info_data(info_id);
 
     if export_name.is_empty() {
       let info = module_to_info_map.get_mut_unwrap(info_id);
@@ -3114,15 +3112,15 @@ var {} = {{}};
     }
 
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
-    let export_info_hash_key = export_info.as_hash_key();
+    let export_info_id = export_info.id();
 
-    if already_visited.contains(&export_info_hash_key) {
+    if already_visited.contains(&export_info_id) {
       return Some(Ref::Inline(
         "/* circular reexport */ Object(function x() { x() }())".into(),
       ));
     }
 
-    already_visited.insert(export_info_hash_key);
+    already_visited.insert(export_info_id);
 
     let info = &module_to_info_map[info_id];
     match info {
@@ -3145,11 +3143,7 @@ var {} = {{}};
           )));
         }
 
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          &export_name,
-        );
+        let used_name = exports_info.get_used_name(exports_info_artifact, None, &export_name);
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
@@ -3209,15 +3203,10 @@ var {} = {{}};
           FindTargetResult::NoTarget => {}
           FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
-              let exports_info = exports_info_artifact.get_prefetched_exports_info(
-                &target.module,
-                PrefetchExportsInfoMode::Nested(&export),
-              );
-              if let Some(UsedName::Inlined(inlined)) = ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithNames(&exports_info),
-                None,
-                &export,
-              ) {
+              let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
+              if let Some(UsedName::Inlined(inlined)) =
+                exports_info.get_used_name(exports_info_artifact, None, &export)
+              {
                 return Some(Ref::Inline(inlined.inlined_value().render(
                   &to_normal_comment(&format!(
                     "inlined export {}",
@@ -3265,12 +3254,9 @@ var {} = {{}};
 
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
-          let used_name = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            None,
-            &export_name,
-          )
-          .expect("should have export name");
+          let used_name = exports_info
+            .get_used_name(exports_info_artifact, None, &export_name)
+            .expect("should have export name");
           return Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
@@ -3296,11 +3282,9 @@ var {} = {{}};
         None
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          &export_name,
-        ) {
+        if let Some(used_name) =
+          exports_info.get_used_name(exports_info_artifact, None, &export_name)
+        {
           Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,

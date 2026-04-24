@@ -1,6 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, fmt::Write, sync::Arc};
 
 use async_trait::async_trait;
+use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -11,13 +12,12 @@ use rspack_core::{
   ModuleIdentifier, ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType,
   contextify, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
-  to_comment,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -86,6 +86,67 @@ impl RscEntryModule {
       source_map_kind: SourceMapKind::empty(),
       layer,
     }
+  }
+
+  fn render_debug_comments(&self, compilation: &Compilation) -> String {
+    let module_graph = compilation.get_module_graph();
+    let referenced_exports_by_request = create_referenced_exports_by_request(&self.client_modules);
+    let mut source = String::new();
+
+    if self.is_server_side_rendering {
+      for dep_id in self.get_dependencies() {
+        let dependency = module_graph.dependency_by_id(dep_id);
+        let dep = dependency
+          .downcast_ref::<ImportEagerDependency>()
+          .unwrap_or_else(|| {
+            panic!(
+              "Expected dependency of eager RscEntryModule to be ImportEagerDependency, got {:?}",
+              dependency.dependency_type()
+            )
+          });
+        append_debug_comment_for_request(
+          &mut source,
+          referenced_exports_by_request
+            .get(dep.request())
+            .map(String::as_str),
+          compilation,
+          dep.request(),
+          "import() eager",
+        );
+      }
+
+      return source;
+    }
+
+    for block_id in self.get_blocks() {
+      let block = module_graph
+        .block_by_id(block_id)
+        .expect("should have block");
+
+      for dependency_id in block.get_dependencies() {
+        let dependency = module_graph.dependency_by_id(dependency_id);
+        let dep = dependency
+          .downcast_ref::<ClientReferenceDependency>()
+          .unwrap_or_else(|| {
+            panic!(
+              "Expected dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
+              dependency.dependency_type()
+            )
+          });
+
+        append_debug_comment_for_request(
+          &mut source,
+          referenced_exports_by_request
+            .get(dep.user_request())
+            .map(String::as_str),
+          compilation,
+          dep.user_request(),
+          "import()",
+        );
+      }
+    }
+
+    source
   }
 }
 
@@ -157,31 +218,16 @@ impl Module for RscEntryModule {
   ) -> Result<BuildResult> {
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
-      let mut dependencies: Vec<BoxDependency> = vec![];
-      let modules: Vec<(String, FxIndexSet<Atom>)> = self
-        .client_modules
-        .iter()
-        .map(|m| (m.request.clone(), m.ids.clone()))
-        .collect();
-      for (request, ids) in &modules {
-        let referenced_specifiers = if ids.is_empty() || ids.iter().any(|id| id == "*") {
-          None
-        } else {
-          Some(
-            ids
-              .iter()
-              .map(|id| ReferencedSpecifier::new(vec![Atom::from(id.as_str())]))
-              .collect::<Vec<_>>(),
-          )
-        };
+      let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(self.client_modules.len());
+      for client_module in &self.client_modules {
+        let referenced_specifiers = create_referenced_specifiers(&client_module.ids);
         let dep = ImportEagerDependency::new(
-          Atom::from(request.as_str()),
+          Atom::from(client_module.request.as_str()),
           DependencyRange { start: 0, end: 0 },
           referenced_specifiers,
           None,
           ImportPhase::Evaluation,
         );
-        self.add_dependency_id(*dep.id());
         dependencies.push(Box::new(dep));
       }
       Ok(BuildResult {
@@ -192,7 +238,7 @@ impl Module for RscEntryModule {
       })
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
-      let mut blocks = vec![];
+      let mut blocks = Vec::with_capacity(self.client_modules.len());
       let dependencies: Vec<BoxDependency> = vec![];
 
       for client_module in &self.client_modules {
@@ -220,64 +266,18 @@ impl Module for RscEntryModule {
     }
   }
 
+  // RscEntryModule is the bridge injected by the Server Compiler into the
+  // Client Compiler to connect Client Component and CSS module graphs.
+  // It never emits runtime code; code generation only writes debug comments to
+  // help diagnose RSC entry composition issues.
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
   ) -> Result<CodeGenerationResult> {
-    let ModuleCodeGenerationContext { compilation, .. } = code_generation_context;
+    let compilation = code_generation_context.compilation;
+    let source = self.render_debug_comments(compilation);
 
-    let mut code_generation_result = CodeGenerationResult::default();
-    let module_graph = compilation.get_module_graph();
-
-    if self.is_server_side_rendering {
-      let mut comments = Vec::new();
-      for dep_id in self.get_dependencies() {
-        let dependency = module_graph.dependency_by_id(dep_id);
-        let dep = dependency
-          .downcast_ref::<ImportEagerDependency>()
-          .unwrap_or_else(|| {
-            panic!(
-              "Expected dependency of eager RscEntryModule to be ImportEagerDependency, got {:?}",
-              dependency.dependency_type()
-            )
-          });
-        let comment = to_comment(&contextify(
-          compilation.options.context.as_path(),
-          dep.request(),
-        ));
-        comments.push(comment);
-      }
-      let source = comments.join("\n");
-      code_generation_result =
-        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
-    } else {
-      let mut comments = Vec::new();
-      for block_id in self.get_blocks() {
-        let block = module_graph
-          .block_by_id(block_id)
-          .expect("should have block");
-
-        for dependency_id in block.get_dependencies() {
-          let dependency = module_graph.dependency_by_id(dependency_id);
-          let request = dependency
-            .downcast_ref::<ClientReferenceDependency>()
-            .unwrap_or_else(|| {
-              panic!(
-                "Expected dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
-                dependency.dependency_type()
-              )
-            })
-            .user_request();
-
-          let comment = to_comment(&contextify(compilation.options.context.as_path(), request));
-          comments.push(comment);
-        }
-      }
-      let source = comments.join("\n");
-      code_generation_result =
-        code_generation_result.with_javascript(RawStringSource::from(source).boxed());
-    }
-    Ok(code_generation_result)
+    Ok(CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()))
   }
 
   async fn get_runtime_hash(
@@ -292,3 +292,81 @@ impl Module for RscEntryModule {
 }
 
 impl_empty_diagnosable_trait!(RscEntryModule);
+
+fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<ReferencedSpecifier>> {
+  if ids.is_empty() || ids.iter().any(|id| id == "*") {
+    return None;
+  }
+
+  Some(
+    ids
+      .iter()
+      .map(|id| ReferencedSpecifier::new(vec![Atom::from(id.as_str())]))
+      .collect(),
+  )
+}
+
+fn create_referenced_exports_by_request(
+  client_modules: &[ClientModuleImport],
+) -> FxHashMap<&str, String> {
+  client_modules
+    .iter()
+    .map(|client_module| {
+      let exports = format_referenced_exports(client_module);
+      (client_module.request.as_str(), exports)
+    })
+    .collect()
+}
+
+fn append_debug_comment_for_request(
+  source: &mut String,
+  exports: Option<&str>,
+  compilation: &Compilation,
+  request: &str,
+  entry_load: &str,
+) {
+  let request = contextify(compilation.options.context.as_path(), request);
+  append_debug_comment(source, &request, entry_load, exports.unwrap_or("unknown"));
+}
+
+fn sanitize_comment_part(value: &str) -> Cow<'_, str> {
+  if value.contains("*/") {
+    value.cow_replace("*/", "* /")
+  } else {
+    Cow::Borrowed(value)
+  }
+}
+
+fn append_debug_comment(source: &mut String, request: &str, entry_load: &str, exports: &str) {
+  if !source.is_empty() {
+    source.push('\n');
+  }
+
+  let request = sanitize_comment_part(request);
+  let entry_load = sanitize_comment_part(entry_load);
+  let exports = sanitize_comment_part(exports);
+  write!(
+    source,
+    "/*!\n * module: {request}\n * import: {entry_load}\n * exports: {exports}\n */"
+  )
+  .expect("writing debug comments to String should not fail");
+}
+
+fn format_referenced_exports(client_module: &ClientModuleImport) -> String {
+  if client_module.ids.is_empty() {
+    return "side-effect".to_string();
+  }
+
+  if client_module.ids.iter().any(|id| id == "*") {
+    return "*".to_string();
+  }
+
+  let mut exports = String::new();
+  for id in &client_module.ids {
+    if !exports.is_empty() {
+      exports.push_str(", ");
+    }
+    exports.push_str(id.as_str());
+  }
+  exports
+}

@@ -195,10 +195,7 @@ pub fn stringified_exports<'a>(
   let module_graph = compilation.get_module_graph();
   let exports_info = compilation
     .exports_info_artifact
-    .get_prefetched_exports_info(
-      &module.identifier(),
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
+    .get_exports_info_data(&module.identifier());
   for (key, elements) in exports {
     let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
     let used_name = export_info.get_used_name(None, runtime);
@@ -239,10 +236,7 @@ pub fn stringified_exports<'a>(
 
             let from_exports_info = compilation
               .exports_info_artifact
-              .get_prefetched_exports_info(
-                &from.module_identifier,
-                rspack_core::PrefetchExportsInfoMode::Default,
-              );
+              .get_exports_info_data(&from.module_identifier);
             let from_used_name = match from_exports_info
               .get_read_only_export_info(&Atom::from(ident.as_str()))
               .get_used_name(None, runtime)
@@ -301,10 +295,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
   let mut used_identifiers = HashSet::default();
   let exports_info = compilation
     .exports_info_artifact
-    .get_prefetched_exports_info(
-      &module.identifier(),
-      rspack_core::PrefetchExportsInfoMode::Default,
-    );
+    .get_exports_info_data(&module.identifier());
   for (key, elements) in exports {
     let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
     let used_name = export_info.get_used_name(None, *runtime);
@@ -345,10 +336,7 @@ pub fn css_modules_exports_to_concatenate_module_string<'a>(
 
             let from_exports_info = compilation
               .exports_info_artifact
-              .get_prefetched_exports_info(
-                &from.module_identifier,
-                rspack_core::PrefetchExportsInfoMode::Default,
-              );
+              .get_exports_info_data(&from.module_identifier);
             let from_used_name = match from_exports_info
               .get_read_only_export_info(&Atom::from(ident.as_str()))
               .get_used_name(None, *runtime)

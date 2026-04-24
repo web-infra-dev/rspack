@@ -10,7 +10,7 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkByUkey, ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleIdentifier,
-  PrefetchExportsInfoMode, RuntimeKeyMap, UsageKey, get_runtime_key,
+  RuntimeKeyMap, UsageKey, get_runtime_key,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{
@@ -128,8 +128,7 @@ impl Combinator {
     chunk_by_ukey: &ChunkByUkey,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) -> Vec<ChunkCombination> {
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
     let mut grouped_by_used_exports: FxHashMap<UsageKey, FxHashSet<ChunkUkey>> = Default::default();
     let mut runtime_key_map = RuntimeKeyMap::default();
     for chunk_ukey in module_chunks {

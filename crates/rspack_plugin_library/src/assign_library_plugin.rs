@@ -8,8 +8,8 @@ use rspack_core::{
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
   LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
-  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SideEffectsStateArtifact, SourceType, UsageState, get_entry_runtime, property_access,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -271,10 +271,10 @@ async fn render_startup(
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+      .get_exports_info_data(module);
     let mut provided = vec![];
     let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
-    for (_, export_info) in exports_info.exports() {
+    for export_info in exports_info.exports().values() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }

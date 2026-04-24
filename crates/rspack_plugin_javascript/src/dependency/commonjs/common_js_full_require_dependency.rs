@@ -5,10 +5,10 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo,
-  GetUsedNameParam, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  UsedName, create_exports_object_referenced, property_access, to_normal_comment,
+  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
+  to_normal_comment,
 };
 use swc_core::atoms::Atom;
 
@@ -187,32 +187,12 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
-      && let used = {
-        if dep.names.is_empty() {
-          let exports_info_used = compilation
-            .exports_info_artifact
-            .get_prefetched_exports_info_used(&imported_module.module_identifier, *runtime);
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info_used),
-            *runtime,
-            &dep.names,
-          )
-        } else {
-          let exports_info = compilation
-            .exports_info_artifact
-            .get_prefetched_exports_info(
-              &imported_module.module_identifier,
-              PrefetchExportsInfoMode::Nested(&dep.names),
-            );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            *runtime,
-            &dep.names,
-          )
-        }
-      }
-      && let Some(used) = used
-    {
+      && let Some(used) = {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(&imported_module.module_identifier);
+        exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
+      } {
       let mut require_expr = match used {
         UsedName::Normal(used) => {
           format!(

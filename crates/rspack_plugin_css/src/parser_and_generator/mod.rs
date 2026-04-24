@@ -12,7 +12,7 @@ use rspack_core::{
   CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
   GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
   ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -649,7 +649,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let exports_info = generate_context
             .compilation
             .exports_info_artifact
-            .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+            .get_exports_info_data(&module.identifier());
           let (ns_obj, left, right) = if self.es_module
             && exports_info
               .other_exports_info()
@@ -756,7 +756,8 @@ fn get_used_exports<'a>(
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> FxIndexMap<&'a str, &'a FxIndexSet<CssExport>> {
   let exports_info = exports_info_artifact
-    .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+    .get_exports_info_optional(&identifier)
+    .map(|info| info.as_data(exports_info_artifact));
 
   exports
     .iter()
@@ -805,7 +806,8 @@ fn get_unused_local_ident(
   );
 
   let exports_info = exports_info_artifact
-    .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
+    .get_exports_info_optional(&identifier)
+    .map(|info| info.as_data(exports_info_artifact));
 
   CodeGenerationDataUnusedLocalIdent {
     idents: exports_names
