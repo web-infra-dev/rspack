@@ -1,11 +1,7 @@
 use std::{
   hash::{Hash, Hasher},
   path::Path,
-  sync::{
-    LazyLock, Mutex,
-    atomic::{AtomicU32, Ordering},
-    mpsc,
-  },
+  sync::{LazyLock, Mutex, mpsc},
 };
 
 use cow_utils::CowUtils;
@@ -182,8 +178,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let minimize_persistent_cache = compilation.minimize_persistent_cache_artifact.take();
   let new_persistent_cache_entries: Mutex<Vec<(MinimizeCacheKey, CachedMinimizeEntry)>> =
     Mutex::new(Vec::new());
-  let cache_hits = AtomicU32::new(0);
-  let cache_misses = AtomicU32::new(0);
+  let logger = compilation.get_logger(PLUGIN_NAME);
+  let minimize_cache_counter = minimize_persistent_cache
+    .as_ref()
+    .map(|_| logger.cache("minimize persistent cache"));
 
   let (tx, rx) = mpsc::channel::<Vec<Diagnostic>>();
   // collect all extracted comments info
@@ -245,7 +243,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
           // Check persistent cache
           if let Some(cached) = cache.get(key) {
-            cache_hits.fetch_add(1, Ordering::Relaxed);
+            if let Some(counter) = &minimize_cache_counter {
+              counter.hit();
+            }
             original.set_source(Some(cached.source.clone()));
             original.get_info_mut().minimized.replace(true);
             if let Some(ec) = &cached.extracted_comments {
@@ -263,7 +263,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             return Ok(());
           }
 
-          cache_misses.fetch_add(1, Ordering::Relaxed);
+          if let Some(counter) = &minimize_cache_counter {
+            counter.miss();
+          }
           Some(key)
         } else {
           None
@@ -494,13 +496,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
     compilation.minimize_persistent_cache_artifact = Some(cache);
 
-    // Log cache statistics
-    let hits = cache_hits.load(Ordering::Relaxed);
-    let misses = cache_misses.load(Ordering::Relaxed);
-    let logger = compilation.get_logger(PLUGIN_NAME);
-    logger.log(format!(
-      "minimize persistent cache: {hits} hit, {misses} miss"
-    ));
+    if let Some(counter) = minimize_cache_counter {
+      logger.cache_end(counter);
+    }
   }
 
   compilation.extend_diagnostics(rx.into_iter().flatten().collect::<Vec<_>>());
