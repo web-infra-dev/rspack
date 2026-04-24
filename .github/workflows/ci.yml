@@ -210,6 +210,7 @@ jobs:
     name: Run ecosystem CI per commit
     needs: [check-changed, build-linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: write
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
