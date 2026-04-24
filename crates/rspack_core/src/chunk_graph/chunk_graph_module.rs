@@ -419,10 +419,8 @@ impl ChunkGraph {
 
           let exports_info = compilation
             .exports_info_artifact
-            .get_exports_info(&module_identifier);
-          exports_info
-            .as_data(&compilation.exports_info_artifact)
-            .update_hash(&compilation.exports_info_artifact, &mut hasher, runtime);
+            .get_exports_info_data(&module_identifier);
+          exports_info.update_hash(&compilation.exports_info_artifact, &mut hasher, runtime);
           hasher.finish()
         },
       )

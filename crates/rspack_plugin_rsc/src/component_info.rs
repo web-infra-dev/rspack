@@ -1,7 +1,7 @@
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, DependencyId, Module, PrefetchExportsInfoMode, RscMeta, RscModuleType, RuntimeSpec,
+  Compilation, DependencyId, Module, RscMeta, RscModuleType, RuntimeSpec,
   module_declared_side_effect_free,
 };
 use rspack_plugin_javascript::dependency::{
@@ -155,10 +155,10 @@ fn filter_client_components(
     let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
 
     if side_effect_free {
-      let prefetched_exports_info = compilation
+      let exports_info = compilation
         .exports_info_artifact
-        .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
-      let unused = !prefetched_exports_info.is_module_used(Some(runtime));
+        .get_exports_info_data(&module.identifier());
+      let unused = !exports_info.is_module_used(Some(runtime));
       if unused {
         return;
       }
