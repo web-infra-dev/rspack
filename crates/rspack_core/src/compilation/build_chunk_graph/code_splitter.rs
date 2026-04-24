@@ -2255,17 +2255,29 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           Vec<DependencyId>,
         >::default();
 
-        let mut deps = mg
+        let mut ordered_deps = Vec::new();
+        let mut unordered_deps = Vec::new();
+        for dep in mg
           .get_outgoing_deps_in_order(module)
           .map(|dep_id| mg.dependency_by_id(dep_id))
           .filter(|dep| {
             dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
           })
           .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
-          .collect::<Vec<_>>();
-        deps.sort_by_key(|a| (a.source_order().is_none(), a.source_order()));
+        {
+          if let Some(source_order) = dep.source_order() {
+            ordered_deps.push((source_order, dep));
+          } else {
+            unordered_deps.push(dep);
+          }
+        }
+        ordered_deps.sort_by_key(|(source_order, _)| *source_order);
 
-        for dep in deps {
+        for dep in ordered_deps
+          .into_iter()
+          .map(|(_, dep)| dep)
+          .chain(unordered_deps)
+        {
           let dep_id = dep.id();
 
           // Dependency created but no module is available.
