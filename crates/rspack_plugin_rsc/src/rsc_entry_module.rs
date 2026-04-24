@@ -1,6 +1,7 @@
 use std::{borrow::Cow, fmt::Write, sync::Arc};
 
 use async_trait::async_trait;
+use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
@@ -305,9 +306,9 @@ fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<Referenced
   )
 }
 
-fn create_referenced_exports_by_request<'a>(
-  client_modules: &'a [ClientModuleImport],
-) -> FxHashMap<&'a str, String> {
+fn create_referenced_exports_by_request(
+  client_modules: &[ClientModuleImport],
+) -> FxHashMap<&str, String> {
   client_modules
     .iter()
     .map(|client_module| {
@@ -330,7 +331,7 @@ fn append_debug_comment_for_request(
 
 fn sanitize_comment_part(value: &str) -> Cow<'_, str> {
   if value.contains("*/") {
-    Cow::Owned(value.replace("*/", "* /"))
+    value.cow_replace("*/", "* /")
   } else {
     Cow::Borrowed(value)
   }
