@@ -4897,6 +4897,7 @@ version = "0.100.0"
 dependencies = [
  "async-trait",
  "atomic_refcell",
+ "cow-utils",
  "dashmap 6.1.0",
  "derive_more",
  "form_urlencoded",
