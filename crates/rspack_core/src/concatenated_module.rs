@@ -2442,18 +2442,19 @@ impl ConcatenatedModule {
             to_reference(connection, module_id, self.runtime.as_ref(), mg, artifacts)
           }),
       );
-      references.sort_by(|a, b| {
-        if a.source_order != b.source_order {
-          return a.source_order.cmp(&b.source_order);
-        }
-        match (a.range_start, b.range_start) {
-          (None, None) => std::cmp::Ordering::Equal,
-          (None, Some(_)) => std::cmp::Ordering::Greater,
-          (Some(_), None) => std::cmp::Ordering::Less,
-          (Some(a), Some(b)) => a.cmp(&b),
-        }
-      });
     }
+
+    references.sort_by(|a, b| {
+      if a.source_order != b.source_order {
+        return a.source_order.cmp(&b.source_order);
+      }
+      match (a.range_start, b.range_start) {
+        (None, None) => std::cmp::Ordering::Equal,
+        (None, Some(_)) => std::cmp::Ordering::Greater,
+        (Some(_), None) => std::cmp::Ordering::Less,
+        (Some(a), Some(b)) => a.cmp(&b),
+      }
+    });
 
     let mut references_map: IdentifierIndexMap<ConcatenatedImport> = IdentifierIndexMap::default();
     for reference in references {

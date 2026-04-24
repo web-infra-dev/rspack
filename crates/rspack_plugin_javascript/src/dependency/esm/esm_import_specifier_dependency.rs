@@ -391,7 +391,7 @@ impl ESMImportSpecifierDependencyTemplate {
       if ids.is_empty() {
         scope.create_module_reference(
           con.module_identifier(),
-          &ModuleReferenceOptions {
+          ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
             deferred_import: dep.phase.is_defer(),
             ..Default::default()
@@ -406,7 +406,7 @@ impl ESMImportSpecifierDependencyTemplate {
           Some(UsedName::Normal(used_name)) => {
             scope.create_module_reference(
               con.module_identifier(),
-              &ModuleReferenceOptions {
+              ModuleReferenceOptions {
                 asi_safe: Some(dep.asi_safe),
                 deferred_import: dep.phase.is_defer(),
                 ..Default::default()
@@ -427,7 +427,7 @@ impl ESMImportSpecifierDependencyTemplate {
       } else {
         scope.create_module_reference(
           con.module_identifier(),
-          &ModuleReferenceOptions {
+          ModuleReferenceOptions {
             asi_safe: Some(dep.asi_safe),
             ids: ids.to_vec(),
             call: dep.call,

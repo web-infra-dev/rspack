@@ -4,7 +4,6 @@ use std::{
   sync::{Arc, atomic::AtomicU32},
 };
 
-use indexmap::{IndexMap as RawIndexMap, IndexSet as RawIndexSet};
 use itertools::Itertools;
 use num_bigint::BigUint;
 use rayon::prelude::*;
@@ -30,17 +29,16 @@ use crate::{
   merge_runtime,
 };
 
-type IndexMap<K, V, H = FxHasher> = RawIndexMap<K, V, BuildHasherDefault<H>>;
-type IndexSet<K, H = FxHasher> = RawIndexSet<K, BuildHasherDefault<H>>;
 pub(crate) type DependenciesBlockIdentifierMap<V> =
   std::collections::HashMap<DependenciesBlockIdentifier, V, BuildHasherDefault<FxHasher>>;
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
+type ConnectionIdList = Arc<Vec<DependencyId>>;
 type PreparedBlockConnectionMap =
-  IndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>;
+  FxIndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
 type BlockConnectionMap =
-  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>>>;
+  DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -55,7 +53,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: IndexSet<(ModuleIdentifier, Vec<DependencyId>)>,
+  pub skipped_module_connections: FxIndexSet<(ModuleIdentifier, ConnectionIdList)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -222,10 +220,10 @@ pub(crate) struct CodeSplitter {
   next_chunk_group_index: u32,
   queue: Vec<QueueAction>,
   queue_delayed: Vec<QueueAction>,
-  queue_connect: FxIndexMap<CgiUkey, IndexSet<(CgiUkey, Option<ProcessBlock>)>>,
+  queue_connect: FxIndexMap<CgiUkey, FxIndexSet<(CgiUkey, Option<ProcessBlock>)>>,
   chunk_groups_for_combining: FxIndexSet<CgiUkey>,
   pub(crate) outdated_chunk_group_info: FxIndexSet<CgiUkey>,
-  chunk_groups_for_merging: IndexSet<(CgiUkey, Option<ProcessBlock>)>,
+  chunk_groups_for_merging: FxIndexSet<(CgiUkey, Option<ProcessBlock>)>,
   pub(crate) block_to_chunk_group: DependenciesBlockIdentifierMap<CgiUkey>,
 
   // outgoing blocks for a chunk group
@@ -1095,7 +1093,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module_identifier: ModuleIdentifier,
     runtime: Arc<RuntimeSpec>,
     visited: &mut IdentifierSet,
-    ctx: &mut (u32, u32, IndexMap<ModuleIdentifier, (u32, u32)>),
+    ctx: &mut (u32, u32, FxIndexMap<ModuleIdentifier, (u32, u32)>),
     compilation: &Compilation,
   ) {
     if !visited.insert(module_identifier) {
@@ -1366,8 +1364,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let blocks = self
       .prepared_blocks_map
       .get(&item.block.into())
-      .expect("should have blocks")
-      .clone();
+      .cloned()
+      .unwrap_or_default();
 
     for block in blocks {
       self.make_chunk_group(
@@ -1447,8 +1445,8 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let blocks = self
       .prepared_blocks_map
       .get(&item.block)
-      .expect("should have blocks")
-      .clone();
+      .cloned()
+      .unwrap_or_default();
 
     for block in blocks {
       self.make_chunk_group(
@@ -1792,7 +1790,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     module: DependenciesBlockIdentifier,
     runtime: Option<Arc<RuntimeSpec>>,
     compilation: &Compilation,
-  ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>> {
+  ) -> Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>> {
     let runtime_map = self
       .block_modules_runtime_map
       .entry(runtime.clone())
@@ -2252,20 +2250,34 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
-        let mut connection_map =
-          IndexMap::<(DependenciesBlockIdentifier, ModuleIdentifier), Vec<DependencyId>>::default();
+        let mut connection_map = FxIndexMap::<
+          (DependenciesBlockIdentifier, ModuleIdentifier),
+          Vec<DependencyId>,
+        >::default();
 
-        let mut deps = mg
+        let mut ordered_deps = Vec::new();
+        let mut unordered_deps = Vec::new();
+        for dep in mg
           .get_outgoing_deps_in_order(module)
           .map(|dep_id| mg.dependency_by_id(dep_id))
           .filter(|dep| {
             dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
           })
           .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
-          .collect::<Vec<_>>();
-        deps.sort_by_key(|a| (a.source_order().is_none(), a.source_order()));
+        {
+          if let Some(source_order) = dep.source_order() {
+            ordered_deps.push((source_order, dep));
+          } else {
+            unordered_deps.push(dep);
+          }
+        }
+        ordered_deps.sort_by_key(|(source_order, _)| *source_order);
 
-        for dep in deps {
+        for dep in ordered_deps
+          .into_iter()
+          .map(|(_, dep)| dep)
+          .chain(unordered_deps)
+        {
           let dep_id = dep.id();
 
           // Dependency created but no module is available.
@@ -2285,7 +2297,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             .or_insert_with(|| vec![*dep_id]);
         }
 
-        (*module, connection_map)
+        (
+          *module,
+          connection_map
+            .into_iter()
+            .map(|(key, connections)| (key, Arc::new(connections)))
+            .collect(),
+        )
       })
       .collect::<IdentifierMap<_>>();
 
@@ -2301,6 +2319,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
         while let Some(module) = queue.pop_front() {
           let blocks = module.get_blocks(compilation);
+
+          if blocks.is_empty() {
+            continue;
+          }
 
           for block in blocks.iter() {
             queue.push_back((*block).into());
@@ -2440,23 +2462,22 @@ fn extract_block_modules(
   map: &mut BlockConnectionMap,
 ) {
   let block = module.into();
+  let blocks = prepared_blocks_map.get(&block).cloned().unwrap_or_default();
   let mut module_map: DependenciesBlockIdentifierMap<
-    Vec<(ModuleIdentifier, ConnectionState, Vec<DependencyId>)>,
-  > = DependenciesBlockIdentifierMap::default();
+    Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>,
+  > =
+    DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
-  for b in prepared_blocks_map
-    .get(&block)
-    .expect("should have blocks")
-    .clone()
-  {
-    module_map.insert(b.into(), Vec::new());
-  }
+  module_map.extend(blocks.into_iter().map(|block| (block.into(), Vec::new())));
 
   let connection_map = prepared_connection_map
     .get(&module)
     .expect("should have outgoing deps");
 
   for ((block_id, module_identifier), connections) in connection_map {
+    if map.contains_key(block_id) {
+      continue;
+    }
     let modules = module_map
       .get_mut(block_id)
       .expect("should have modules in block_modules_runtime_map");
