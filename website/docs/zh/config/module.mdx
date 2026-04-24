@@ -1598,11 +1598,9 @@ export default {
   module: {
     rules: [
       {
-        test: /mod\.js$/, // 仅为 index.js 模块中的导入语句启用 strictThisContextOnImports
+        test: /index\.js$/, // 仅为 index.js 模块中的导入语句启用 strictThisContextOnImports
         parser: {
-          javascript: {
-            strictThisContextOnImports: true,
-          },
+          strictThisContextOnImports: true,
         },
       },
     ],
