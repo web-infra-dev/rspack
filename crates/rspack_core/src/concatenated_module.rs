@@ -176,7 +176,7 @@ impl NameAllocator {
   }
 
   fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
-    let mut name = old_name.to_string();
+    let mut name = Cow::Borrowed(old_name);
 
     // try to prepend extra_info segments one by one (from most specific to least),
     // checking for an available escaped identifier at each step
@@ -192,26 +192,26 @@ impl NameAllocator {
           new_name.push_str(&name);
         }
       }
-      name = new_name;
+      name = Cow::Owned(new_name);
 
-      let escaped = to_identifier_with_escaped(name.clone());
-      if !self.used_strings.contains(&escaped) {
-        self.used_strings.insert(escaped.clone());
-        let candidate: Atom = escaped.into();
+      let escaped = to_identifier_with_escaped(&name);
+      if !self.used_strings.contains(escaped.as_ref()) {
+        let candidate = Atom::from(escaped.as_ref());
+        self.used_strings.insert(escaped.into_owned());
         self.used_names.insert(candidate.clone());
         return candidate;
       }
     }
 
-    let base_str = to_identifier_with_escaped(name);
-    if !base_str.is_empty() && !self.used_strings.contains(&base_str) {
-      self.used_strings.insert(base_str.clone());
-      let base: Atom = base_str.into();
+    let base_str = to_identifier_with_escaped(&name);
+    if !base_str.is_empty() && !self.used_strings.contains(base_str.as_ref()) {
+      let base = Atom::from(base_str.as_ref());
+      self.used_strings.insert(base_str.into_owned());
       self.used_names.insert(base.clone());
       return base;
     }
 
-    let base: Atom = base_str.into();
+    let base = Atom::from(base_str.as_ref());
     let counter = self.suffix_counters.entry(base.clone()).or_insert(0);
     let mut i = *counter;
     let mut i_buffer = itoa::Buffer::new();
@@ -227,8 +227,8 @@ impl NameAllocator {
       numbered.push_str(i_buffer.format(i));
 
       if !self.used_strings.contains(&numbered) {
-        self.used_strings.insert(numbered.clone());
         let candidate: Atom = Atom::from(numbered.as_str());
+        self.used_strings.insert(numbered);
         self.used_names.insert(candidate.clone());
         *counter = i + 1;
         return candidate;
@@ -3309,7 +3309,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
 }
 
 pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[Atom]) -> Atom {
-  let mut name = old_name.to_string();
+  let mut name = Cow::Borrowed(old_name);
 
   for info_part in extra_info {
     let info_str = info_part.as_ref();
@@ -3323,15 +3323,15 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[A
         new_name.push_str(&name);
       }
     }
-    name = new_name;
+    name = Cow::Owned(new_name);
 
-    let candidate: Atom = to_identifier_with_escaped(name.clone()).into();
+    let candidate: Atom = to_identifier_with_escaped(&name).into();
     if !used_names.contains(&candidate) {
       return candidate;
     }
   }
 
-  let base: Atom = to_identifier_with_escaped(name).into();
+  let base: Atom = to_identifier_with_escaped(&name).into();
   if !base.is_empty() && !used_names.contains(&base) {
     return base;
   }

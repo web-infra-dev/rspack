@@ -100,9 +100,9 @@ pub fn to_identifier(v: &str) -> Cow<'_, str> {
   }
 }
 
-pub fn to_identifier_with_escaped(v: String) -> String {
+pub fn to_identifier_with_escaped(v: &str) -> Cow<'_, str> {
   if v.is_empty() {
-    return v;
+    return Cow::Borrowed(v);
   }
 
   let bytes = v.as_bytes();
@@ -111,13 +111,13 @@ pub fn to_identifier_with_escaped(v: String) -> String {
   // `is_ident_safe` excludes it (it's the replacement sentinel for the escape
   // impl), so handle it inline here.
   if is_ident_first_safe(bytes[0]) && bytes.iter().all(|&b| is_ident_safe(b) || b == b'_') {
-    return v;
+    return Cow::Borrowed(v);
   }
 
   // Defensive path: invalid characters anywhere in the input (e.g. JSON keys
   // like "!top" or "with space") need the full escape so we never emit bare
   // invalid characters into a JS identifier position.
-  to_identifier(&v).into_owned()
+  to_identifier(v)
 }
 
 pub fn escape_identifier(v: &str) -> Cow<'_, str> {
@@ -209,22 +209,30 @@ fn test_to_identifier() {
 #[test]
 fn test_to_identifier_with_escaped() {
   // Already-valid identifiers pass through unchanged.
-  assert_eq!(to_identifier_with_escaped("ident0".into()), "ident0");
-  assert_eq!(to_identifier_with_escaped("_top".into()), "_top");
-  assert_eq!(to_identifier_with_escaped("$foo".into()), "$foo");
+  assert_eq!(to_identifier_with_escaped("ident0"), "ident0");
+  assert_eq!(to_identifier_with_escaped("_top"), "_top");
+  assert_eq!(to_identifier_with_escaped("$foo"), "$foo");
 
   // First-char-only fixups still work.
-  assert_eq!(to_identifier_with_escaped("0ident".into()), "_0ident");
+  assert_eq!(to_identifier_with_escaped("0ident"), "_0ident");
 
   // Invalid characters anywhere in the input are escaped — regression coverage
   // for JSON keys like "!top" / "with space" leaking into JS identifier positions.
-  assert_eq!(to_identifier_with_escaped("!top".into()), "_top");
-  assert_eq!(to_identifier_with_escaped("_!top".into()), "_top");
-  assert_eq!(
-    to_identifier_with_escaped("with space".into()),
-    "with_space"
-  );
-  assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
+  assert_eq!(to_identifier_with_escaped("!top"), "_top");
+  assert_eq!(to_identifier_with_escaped("_!top"), "_top");
+  assert_eq!(to_identifier_with_escaped("with space"), "with_space");
+  assert_eq!(to_identifier_with_escaped("a.b"), "a_b");
+}
+
+#[test]
+fn test_to_identifier_with_escaped_borrows_valid_identifiers() {
+  let valid = to_identifier_with_escaped("ident_0");
+  assert_eq!(valid, "ident_0");
+  assert!(matches!(valid, Cow::Borrowed("ident_0")));
+
+  let escaped = to_identifier_with_escaped("with space");
+  assert_eq!(escaped, "with_space");
+  assert!(matches!(escaped, Cow::Owned(_)));
 }
 
 #[test]
