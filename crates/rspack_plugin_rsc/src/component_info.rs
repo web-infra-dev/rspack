@@ -20,7 +20,7 @@ use crate::{
 
 // { [request to inject into client compilation]: [exported names] }
 // CSS requests are represented by an empty export set.
-pub type ClientComponentImports = FxHashMap<String, FxIndexSet<Atom>>;
+pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
 // { [server entry path]: [css imports] }
 // Used only to map emitted CSS files back to server entries in the manifest.
 pub type CssImportsPerServerEntry = FxHashMap<String, FxIndexSet<String>>;
