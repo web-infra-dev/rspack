@@ -23,7 +23,7 @@ use tracing::instrument;
 use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
-  common::{ChunkFilter, ModuleChunks, ModuleSizes},
+  common::{ChunkFilter, ModuleChunks, ModuleSizes, ModuleTypeFilter},
   min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
   options::{
@@ -34,6 +34,57 @@ use crate::{
 };
 
 type ChunksKey = u64;
+type ChunkFilterCacheKey = (u32, ChunksKey);
+
+struct TypeFilteredCacheGroups<'a> {
+  all: Vec<IndexedCacheGroup<'a>>,
+  regex: Vec<IndexedCacheGroup<'a>>,
+  exact: FxHashMap<String, Vec<IndexedCacheGroup<'a>>>,
+}
+
+impl<'a> TypeFilteredCacheGroups<'a> {
+  fn new(cache_groups: &[IndexedCacheGroup<'a>]) -> Self {
+    let mut all = Vec::new();
+    let mut regex = Vec::new();
+    let mut exact = FxHashMap::default();
+
+    for cache_group in cache_groups.iter().copied() {
+      match &cache_group.cache_group.r#type {
+        ModuleTypeFilter::All => all.push(cache_group),
+        ModuleTypeFilter::Regex(_) => regex.push(cache_group),
+        ModuleTypeFilter::String(module_type) => exact
+          .entry(module_type.clone())
+          .or_insert_with(Vec::new)
+          .push(cache_group),
+      }
+    }
+
+    Self { all, regex, exact }
+  }
+
+  fn candidates(&self, module_type: &str) -> Vec<IndexedCacheGroup<'a>> {
+    let mut candidates = Vec::with_capacity(
+      self.all.len() + self.regex.len() + self.exact.get(module_type).map_or(0, Vec::len),
+    );
+
+    candidates.extend(self.all.iter().copied());
+
+    if let Some(exact) = self.exact.get(module_type) {
+      candidates.extend(exact.iter().copied());
+    }
+
+    candidates.extend(
+      self
+        .regex
+        .iter()
+        .copied()
+        .filter(|cache_group| cache_group.cache_group.r#type.test_internal(module_type)),
+    );
+
+    candidates.sort_unstable_by(|a, b| a.compare_by_index(b));
+    candidates
+  }
+}
 
 #[derive(Clone)]
 struct ChunkCombination {
@@ -348,34 +399,85 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
+    let type_filtered_cache_groups = TypeFilteredCacheGroups::new(&cache_groups);
+    let sync_chunk_filter_result_cache: FxDashMap<ChunkFilterCacheKey, Arc<Vec<ChunkUkey>>> =
+      FxDashMap::default();
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().for_each(|mid| {
-        let s = unsafe { token.used((&cache_groups, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
-        s.spawn(|(cache_groups, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
+        let s = unsafe { token.used((&type_filtered_cache_groups, &sync_chunk_filter_result_cache, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
+        s.spawn(|(type_filtered_cache_groups, sync_chunk_filter_result_cache, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
           let belong_to_chunks = module_chunks.get(mid).expect("should have module chunks");
           if belong_to_chunks.is_empty() {
             return Ok(());
           }
 
-          if let Some(removed_chunks) = removed_module_chunks.get(mid) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
+          let removed_chunks = removed_module_chunks.get(mid);
+          let available_chunks_upper_bound = removed_chunks.map_or(belong_to_chunks.len(), |removed| {
+            belong_to_chunks.len() - belong_to_chunks.intersection(removed).count()
+          });
+
+          if available_chunks_upper_bound == 0 {
             return Ok(());
           }
+
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
+          let module_type = module.module_type().as_str();
+          let layer = module.get_layer().map(|layer| layer.as_str());
+          let mut name_for_condition: Option<Option<Box<str>>> = None;
+          let mut sync_chunk_filter_upper_bounds: FxHashMap<u32, usize> = FxHashMap::default();
           let mut filtered = vec![];
 
-          for cache_group in cache_groups.iter() {
-            let mut is_match = true;
-            // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
-            is_match &= (cache_group.cache_group.r#type)(module);
+          for cache_group in type_filtered_cache_groups.candidates(module_type) {
+            if available_chunks_upper_bound < cache_group.cache_group.min_chunks as usize {
+              continue;
+            }
+
+            if !cache_group.cache_group.chunk_filter.is_func() {
+              let selected_chunks_upper_bound = *sync_chunk_filter_upper_bounds
+                .entry(cache_group.cache_group_index)
+                .or_insert_with(|| match &cache_group.cache_group.chunk_filter {
+                  ChunkFilter::All => available_chunks_upper_bound,
+                  chunk_filter => belong_to_chunks
+                    .iter()
+                    .filter(|chunk| {
+                      !removed_chunks.is_some_and(|chunks| chunks.contains(chunk))
+                        && chunk_filter.test_internal(chunk, compilation)
+                    })
+                    .count(),
+                });
+
+              if selected_chunks_upper_bound < cache_group.cache_group.min_chunks as usize {
+                continue;
+              }
+            }
+
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            is_match &= (cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
+            let is_match = if cache_group.cache_group.layer.is_func() {
+              cache_group
+                .cache_group
+                .layer
+                .test_func(layer.map(str::to_owned))
+                .await?
+            } else {
+              cache_group
+                .cache_group
+                .layer
+                .test_internal(layer)
+            };
+            if !is_match {
+              continue;
+            }
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-            is_match &= match &cache_group.cache_group.test {
-              CacheGroupTest::String(str) => module
-                .name_for_condition().is_some_and(|name| name.starts_with(str)),
-              CacheGroupTest::RegExp(regexp) => module
-                .name_for_condition().is_some_and(|name| regexp.test(&name)),
+            let is_match = match &cache_group.cache_group.test {
+              CacheGroupTest::String(str) => name_for_condition
+                .get_or_insert_with(|| module.name_for_condition())
+                .as_deref()
+                .is_some_and(|name| name.starts_with(str)),
+              CacheGroupTest::RegExp(regexp) => name_for_condition
+                .get_or_insert_with(|| module.name_for_condition())
+                .as_deref()
+                .is_some_and(|name| regexp.test(name)),
               CacheGroupTest::Fn(f) => {
                 let ctx = CacheGroupTestFnCtx { compilation, module };
                 f(ctx).await?.unwrap_or_default()
@@ -383,10 +485,13 @@ impl SplitChunksPlugin {
               CacheGroupTest::Enabled => true,
             };
 
-            if is_match {
-              filtered.push(cache_group);
+            if !is_match {
+              continue;
             }
+
+            filtered.push(cache_group);
           }
+
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
 
@@ -454,9 +559,19 @@ impl SplitChunksPlugin {
                     }
                   ).copied().collect::<Vec<_>>()
               } else {
-                chunk_combination.iter().filter(|c| {
-                  cache_group.chunk_filter.test_internal(c, compilation)
-                }).copied().collect::<Vec<_>>()
+                let cache_key = (cache_group_index, chunk_combination.key);
+                if let Some(selected_chunks) = sync_chunk_filter_result_cache.get(&cache_key) {
+                  selected_chunks.value().as_ref().clone()
+                } else {
+                  let selected_chunks = chunk_combination.iter().filter(|c| {
+                    cache_group.chunk_filter.test_internal(c, compilation)
+                  }).copied().collect::<Vec<_>>();
+                  sync_chunk_filter_result_cache.insert(
+                    cache_key,
+                    Arc::new(selected_chunks.clone()),
+                  );
+                  selected_chunks
+                }
               };
 
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
@@ -471,7 +586,10 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              if selected_chunks.iter().any(|c| removed_module_chunks.get(mid).is_some_and(|chunks| chunks.contains(c))) {
+              if selected_chunks
+                .iter()
+                .any(|c| removed_chunks.is_some_and(|chunks| chunks.contains(c)))
+              {
                 continue;
               }
               let selected_chunks_key = matches!(&cache_group.chunk_filter, ChunkFilter::All)
@@ -480,7 +598,7 @@ impl SplitChunksPlugin {
                 MatchedItem {
                   module,
                   cache_group,
-                  cache_group_index: *cache_group_index,
+                  cache_group_index,
                   selected_chunks,
                   selected_chunks_key,
                 },

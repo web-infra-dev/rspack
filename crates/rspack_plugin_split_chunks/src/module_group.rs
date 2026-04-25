@@ -11,6 +11,7 @@ use crate::{
   common::{ModuleSizes, SplitChunkSizes},
 };
 
+#[derive(Clone, Copy)]
 pub(crate) struct IndexedCacheGroup<'a> {
   pub cache_group_index: u32,
   pub cache_group: &'a CacheGroup,
