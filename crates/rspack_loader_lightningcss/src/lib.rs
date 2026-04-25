@@ -175,11 +175,9 @@ impl LightningCssLoader {
       })
       .to_rspack_result()?;
 
-    let module_request = loader_context.context.module.request();
-
     let mut parcel_source_map = if loader_context.context.source_map_kind.enabled() {
       let mut sm = parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
-      sm.add_source(module_request);
+      sm.add_source(&filename);
       sm.set_source_content(0, &content_str).to_rspack_result()?;
       Some(sm)
     } else {
@@ -242,7 +240,7 @@ impl LightningCssLoader {
 
       let source_map_source = SourceMapSource::new(SourceMapSourceOptions {
         value: content.code.clone(),
-        name: module_request.to_string(),
+        name: filename,
         source_map: rspack_source_map,
         original_source: None,
         inner_source_map: loader_context.take_source_map(),

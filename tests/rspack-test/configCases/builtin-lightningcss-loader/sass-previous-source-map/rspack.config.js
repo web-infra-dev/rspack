@@ -25,6 +25,11 @@ class Plugin {
 
         expect(fooSource).toBeTruthy();
         expect(barSource).toBeTruthy();
+        expect(map.sources).not.toEqual(
+          expect.arrayContaining([
+            expect.stringContaining('builtin:lightningcss-loader'),
+          ]),
+        );
         expect(map.file).toEqual('bundle0.css');
         const normalizedBarSource = `webpack:///${path.basename(barSource)}`;
 
