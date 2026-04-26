@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
 import type {
@@ -70,6 +71,11 @@ function createAnsiFormatter(
     return open + result + string.substring(cursor) + close;
   };
 }
+
+const hasDefaultEntry = (context: string) =>
+  ['./src', './src.js', './src.json'].some((request) =>
+    fs.existsSync(path.resolve(context, request)),
+  );
 
 export class RspackCLI {
   colors: RspackCLIColors;
@@ -207,6 +213,7 @@ export class RspackCLI {
     const isServe = command === 'serve';
 
     const internalBuildConfig = async (item: RspackOptions) => {
+      const configPaths = pathMap.get(item);
       if (options.entry) {
         item.entry = {
           main: options.entry.map((x) => path.resolve(process.cwd(), x))[0], // Fix me when entry supports array
@@ -248,6 +255,17 @@ export class RspackCLI {
       }
 
       if (isServe) {
+        if (
+          !configPaths &&
+          !options.entry &&
+          !item.entry &&
+          !hasDefaultEntry(item.context ?? process.cwd())
+        ) {
+          this.getLogger().warn(
+            "No rspack config found and default entry './src' does not exist. `rspack serve` starts a development compilation. To serve production build output, use `rspack preview [dir]`.",
+          );
+        }
+
         const installed = (item.plugins ||= []).find(
           (item) => item instanceof rspack.ProgressPlugin,
         );
@@ -262,7 +280,6 @@ export class RspackCLI {
         typeof cacheOptions === 'object' &&
         cacheOptions.type === 'persistent'
       ) {
-        const configPaths = pathMap.get(item);
         if (configPaths) {
           // for persistent cache
           cacheOptions.buildDependencies = [
