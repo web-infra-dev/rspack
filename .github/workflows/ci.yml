@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: nscloud-ubuntu-24.04-amd64-1x2
+    runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"nscloud-ubuntu-24.04-amd64-4x16;container.privileged=true;container.host-pid-namespace=true"'
+      runner: '"namespace-profile-linux-am64-large2;container.privileged=true;container.host-pid-namespace=true"'
 
   test-windows:
     name: Test Windows

@@ -11,7 +11,7 @@ on:
 
 jobs:
   check-changed:
-    runs-on: nscloud-ubuntu-24.04-amd64-1x2
+    runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
