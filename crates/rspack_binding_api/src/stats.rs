@@ -20,6 +20,7 @@ use rspack_util::{atom::Atom, itoa};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
+  chunk::{JsChunkId, to_js_chunk_id},
   chunk_graph::{JsModuleId, to_js_module_id},
   compilation::JsCompilation,
   error::{RspackError, RspackResultToNapiResultExt},
@@ -381,10 +382,12 @@ pub struct JsStatsAsset<'a> {
   pub emitted: bool,
   pub chunk_names: Vec<&'a str>,
   pub chunk_id_hints: Vec<&'a str>,
-  pub chunks: Vec<Option<&'a str>>,
+  #[napi(ts_type = "Array<string | number | undefined | null>")]
+  pub chunks: Vec<Option<JsChunkId>>,
   pub auxiliary_chunk_names: Vec<&'a str>,
   pub auxiliary_chunk_id_hints: Vec<&'a str>,
-  pub auxiliary_chunks: Vec<Option<&'a str>>,
+  #[napi(ts_type = "Array<string | number | undefined | null>")]
+  pub auxiliary_chunks: Vec<Option<JsChunkId>>,
 }
 
 impl<'a> From<rspack_core::StatsAsset<'a>> for JsStatsAsset<'a> {
@@ -393,13 +396,21 @@ impl<'a> From<rspack_core::StatsAsset<'a>> for JsStatsAsset<'a> {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
-      chunks: stats.chunks,
+      chunks: stats
+        .chunks
+        .into_iter()
+        .map(|chunk| chunk.map(to_js_chunk_id))
+        .collect(),
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
       emitted: stats.emitted,
       chunk_id_hints: stats.chunk_id_hints,
       auxiliary_chunk_id_hints: stats.auxiliary_chunk_id_hints,
-      auxiliary_chunks: stats.auxiliary_chunks,
+      auxiliary_chunks: stats
+        .auxiliary_chunks
+        .into_iter()
+        .map(|chunk| chunk.map(to_js_chunk_id))
+        .collect(),
       auxiliary_chunk_names: stats.auxiliary_chunk_names,
     }
   }
@@ -769,17 +780,22 @@ pub struct JsStatsChunk<'a> {
   pub r#type: &'a str,
   pub files: Vec<&'a str>,
   pub auxiliary_files: Vec<&'a str>,
-  pub id: Option<&'a str>,
+  #[napi(ts_type = "string | number | undefined")]
+  pub id: Option<JsChunkId>,
   pub id_hints: Vec<&'a str>,
   pub hash: Option<&'a str>,
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<&'a str>,
   pub size: f64,
-  pub parents: Option<Vec<&'a str>>,
-  pub children: Option<Vec<&'a str>>,
-  pub siblings: Option<Vec<&'a str>>,
-  pub children_by_order: HashMap<String, Vec<String>>,
+  #[napi(ts_type = "Array<string | number> | undefined")]
+  pub parents: Option<Vec<JsChunkId>>,
+  #[napi(ts_type = "Array<string | number> | undefined")]
+  pub children: Option<Vec<JsChunkId>>,
+  #[napi(ts_type = "Array<string | number> | undefined")]
+  pub siblings: Option<Vec<JsChunkId>>,
+  #[napi(ts_type = "Record<string, Array<string | number>>")]
+  pub children_by_order: HashMap<String, Vec<JsChunkId>>,
   pub runtime: Vec<&'a str>,
   pub reason: Option<&'a str>,
   pub rendered: bool,
@@ -809,7 +825,7 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
       r#type: stats.r#type,
       files: stats.files,
       auxiliary_files: stats.auxiliary_files,
-      id: stats.id,
+      id: stats.id.map(to_js_chunk_id),
       entry: stats.entry,
       initial: stats.initial,
       names: stats.names,
@@ -822,13 +838,27 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
             .collect::<Result<_>>()
         })
         .transpose()?,
-      parents: stats.parents,
-      children: stats.children,
-      siblings: stats.siblings,
+      parents: stats
+        .parents
+        .map(|ids| ids.into_iter().map(to_js_chunk_id).collect()),
+      children: stats
+        .children
+        .map(|ids| ids.into_iter().map(to_js_chunk_id).collect()),
+      siblings: stats
+        .siblings
+        .map(|ids| ids.into_iter().map(to_js_chunk_id).collect()),
       children_by_order: stats
         .children_by_order
         .into_iter()
-        .map(|(order, children)| (order.to_string(), children))
+        .map(|(order, children)| {
+          (
+            order.to_string(),
+            children
+              .into_iter()
+              .map(|child| to_js_chunk_id(&child))
+              .collect(),
+          )
+        })
         .collect(),
       runtime,
       sizes,
@@ -874,7 +904,8 @@ impl<'a> From<rspack_core::StatsChunkGroupAsset<'a>> for JsStatsChunkGroupAsset<
 #[napi(object, object_from_js = false)]
 pub struct JsStatsChunkGroup<'a> {
   pub name: &'a str,
-  pub chunks: Vec<&'a str>,
+  #[napi(ts_type = "Array<string | number>")]
+  pub chunks: Vec<JsChunkId>,
   pub assets: Vec<JsStatsChunkGroupAsset<'a>>,
   pub assets_size: f64,
   pub auxiliary_assets: Option<Vec<JsStatsChunkGroupAsset<'a>>>,
@@ -888,7 +919,7 @@ impl<'a> From<rspack_core::StatsChunkGroup<'a>> for JsStatsChunkGroup<'a> {
   fn from(stats: rspack_core::StatsChunkGroup<'a>) -> Self {
     Self {
       name: stats.name,
-      chunks: stats.chunks,
+      chunks: stats.chunks.into_iter().map(to_js_chunk_id).collect(),
       assets: stats.assets.into_iter().map(Into::into).collect(),
       assets_size: stats.assets_size as f64,
       auxiliary_assets: stats

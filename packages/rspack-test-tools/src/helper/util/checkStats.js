@@ -28,7 +28,9 @@ exports.checkChunkModules = function checkChunkModules(
 };
 
 function getChunk(statsJson, id) {
-  const chunk = statsJson.chunks.find((chunk) => chunk.id.includes(id));
+  const chunk = statsJson.chunks.find((chunk) =>
+    String(chunk.id).includes(String(id)),
+  );
 
   if (!chunk) {
     throw new Error(`cannot find chunk with id: ${id}`);
