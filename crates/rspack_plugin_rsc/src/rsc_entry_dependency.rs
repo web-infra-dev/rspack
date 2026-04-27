@@ -9,7 +9,7 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::plugin_state::{ClientModuleImport, CssImportsPerServerEntry};
+use crate::plugin_state::{ClientModuleImport, CssImportsByServerEntry};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -18,7 +18,7 @@ pub struct RscEntryDependency {
   pub name: Arc<str>,
   pub client_modules: Vec<ClientModuleImport>,
   #[cacheable(with=AsMap<AsCacheable, AsVec>)]
-  pub css_imports_per_server_entry: CssImportsPerServerEntry,
+  pub css_imports_by_server_entry: CssImportsByServerEntry,
   /// When true, client modules are loaded eagerly (not as code-split points).
   /// When false, client modules are dynamic imports (code-split points).
   pub is_server_side_rendering: bool,
@@ -30,7 +30,7 @@ impl RscEntryDependency {
   pub fn new(
     name: Arc<str>,
     client_modules: Vec<ClientModuleImport>,
-    css_imports_per_server_entry: CssImportsPerServerEntry,
+    css_imports_by_server_entry: CssImportsByServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
     let resource_identifier = format!("rsc-client-entry-{}", &name).into();
@@ -38,7 +38,7 @@ impl RscEntryDependency {
       id: DependencyId::new(),
       name,
       client_modules,
-      css_imports_per_server_entry,
+      css_imports_by_server_entry,
       is_server_side_rendering,
       resource_identifier,
       factorize_info: Default::default(),

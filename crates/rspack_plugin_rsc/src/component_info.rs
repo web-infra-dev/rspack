@@ -13,7 +13,7 @@ use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
   constants::{IMAGE_REGEX, LAYERS_NAMES},
-  plugin_state::{ActionIdNamePair, CssImportsPerServerEntry, RootCssImports},
+  plugin_state::{ActionIdNamePair, CssImportsByServerEntry, RootCssImports},
   utils::{get_module_resource, is_css_mod},
 };
 
@@ -24,7 +24,7 @@ pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
 pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
   pub client_component_imports: ClientComponentImports,
-  pub css_imports_per_server_entry: CssImportsPerServerEntry,
+  pub css_imports_by_server_entry: CssImportsByServerEntry,
   pub root_css_imports: RootCssImports,
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
@@ -167,7 +167,7 @@ fn filter_client_components(
     } else {
       for server_entry in server_entries.iter() {
         component_info
-          .css_imports_per_server_entry
+          .css_imports_by_server_entry
           .entry(server_entry.clone())
           .or_default()
           .insert(resource.to_string());

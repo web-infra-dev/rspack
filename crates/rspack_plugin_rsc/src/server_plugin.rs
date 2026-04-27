@@ -25,7 +25,7 @@ use crate::{
   loaders::action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
   manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{
-    ActionIdNamePair, ClientModuleImport, CssImportsPerServerEntry, PLUGIN_STATES, PluginState,
+    ActionIdNamePair, ClientModuleImport, CssImportsByServerEntry, PLUGIN_STATES, PluginState,
     RootCssImports,
   },
   reference_manifest::{
@@ -40,7 +40,7 @@ struct ClientEntry {
   entry_name: Arc<str>,
   runtime: RuntimeSpec,
   client_imports: ClientComponentImports,
-  css_imports_per_server_entry: CssImportsPerServerEntry,
+  css_imports_by_server_entry: CssImportsByServerEntry,
   root_css_imports: RootCssImports,
 }
 
@@ -257,14 +257,14 @@ impl RscServerPlugin {
         action_entry_imports.insert(dep, actions);
       }
       if !component_info.client_component_imports.is_empty()
-        || !component_info.css_imports_per_server_entry.is_empty()
+        || !component_info.css_imports_by_server_entry.is_empty()
         || !component_info.root_css_imports.is_empty()
       {
         client_entries_to_inject.push(ClientEntry {
           entry_name: entry_name.clone(),
           runtime: runtime.clone(),
           client_imports: component_info.client_component_imports,
-          css_imports_per_server_entry: component_info.css_imports_per_server_entry,
+          css_imports_by_server_entry: component_info.css_imports_by_server_entry,
           root_css_imports: component_info.root_css_imports,
         });
       }
@@ -459,18 +459,19 @@ impl RscServerPlugin {
       entry_name,
       runtime,
       client_imports,
-      css_imports_per_server_entry,
+      css_imports_by_server_entry,
       root_css_imports,
     } = client_entry;
 
     let client_entries = {
       let mut modules = Vec::new();
       let entry_state = plugin_state.entries.entry(entry_name.clone()).or_default();
-      for (server_entry, css_imports) in css_imports_per_server_entry {
+      for (server_entry, css_imports) in css_imports_by_server_entry {
         entry_state
-          .css_imports_per_server_entry
+          .server_entries
           .entry(server_entry)
           .or_default()
+          .css_imports
           .extend(css_imports);
       }
       entry_state.root_css_imports.extend(root_css_imports);
@@ -613,8 +614,8 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
               .as_ref()
               .or(Some(&empty_consumer_map)),
             module_loading,
-            entry_css_files: &state.entry_css_files,
-            entry_js_files: &state.entry_js_files,
+            server_entries: &state.server_entries,
+            bootstrap_scripts: &state.bootstrap_scripts,
           },
         );
       }

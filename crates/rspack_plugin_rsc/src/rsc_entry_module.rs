@@ -26,7 +26,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
   constants::LAYERS_NAMES,
-  plugin_state::{ClientModuleImport, CssImportsPerServerEntry},
+  plugin_state::{ClientModuleImport, CssImportsByServerEntry},
 };
 
 #[impl_source_map_config]
@@ -39,7 +39,7 @@ pub struct RscEntryModule {
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
   #[cacheable(with=AsMap<AsCacheable, AsVec>)]
-  css_imports_per_server_entry: CssImportsPerServerEntry,
+  css_imports_by_server_entry: CssImportsByServerEntry,
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
@@ -53,7 +53,7 @@ impl RscEntryModule {
   pub fn new(
     name: Arc<str>,
     client_modules: Vec<ClientModuleImport>,
-    css_imports_per_server_entry: CssImportsPerServerEntry,
+    css_imports_by_server_entry: CssImportsByServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
@@ -70,7 +70,7 @@ impl RscEntryModule {
       identifier,
       lib_ident,
       client_modules,
-      css_imports_per_server_entry,
+      css_imports_by_server_entry,
       name,
       is_server_side_rendering,
       factory_meta: None,
@@ -111,7 +111,6 @@ impl RscEntryModule {
             .map(String::as_str),
           compilation,
           dep.request(),
-          "import() eager",
         );
       }
 
@@ -141,14 +140,13 @@ impl RscEntryModule {
             .map(String::as_str)
             .or_else(|| {
               self
-                .css_imports_per_server_entry
+                .css_imports_by_server_entry
                 .values()
                 .any(|imports| imports.contains(dep.user_request()))
                 .then_some("side-effect")
             }),
           compilation,
           dep.user_request(),
-          "import()",
         );
       }
     }
@@ -246,26 +244,10 @@ impl Module for RscEntryModule {
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
       let mut blocks =
-        Vec::with_capacity(self.client_modules.len() + self.css_imports_per_server_entry.len());
+        Vec::with_capacity(self.client_modules.len() + self.css_imports_by_server_entry.len());
       let dependencies: Vec<BoxDependency> = vec![];
 
-      for client_module in &self.client_modules {
-        let dep = ClientReferenceDependency::new(
-          client_module.request.clone(),
-          client_module.ids.clone(),
-          self.is_server_side_rendering,
-        );
-        let block = AsyncDependenciesBlock::new(
-          self.identifier,
-          None,
-          None,
-          vec![Box::new(dep) as Box<dyn Dependency>],
-          Some(client_module.request.clone()),
-        );
-        blocks.push(Box::new(block));
-      }
-
-      for (server_entry, css_imports) in &self.css_imports_per_server_entry {
+      for (server_entry, css_imports) in &self.css_imports_by_server_entry {
         if css_imports.is_empty() {
           continue;
         }
@@ -287,6 +269,22 @@ impl Module for RscEntryModule {
           None,
           dependencies,
           Some(server_entry.clone()),
+        );
+        blocks.push(Box::new(block));
+      }
+
+      for client_module in &self.client_modules {
+        let dep = ClientReferenceDependency::new(
+          client_module.request.clone(),
+          client_module.ids.clone(),
+          self.is_server_side_rendering,
+        );
+        let block = AsyncDependenciesBlock::new(
+          self.identifier,
+          None,
+          None,
+          vec![Box::new(dep) as Box<dyn Dependency>],
+          Some(client_module.request.clone()),
         );
         blocks.push(Box::new(block));
       }
@@ -357,10 +355,9 @@ fn append_debug_comment_for_request(
   exports: Option<&str>,
   compilation: &Compilation,
   request: &str,
-  entry_load: &str,
 ) {
   let request = contextify(compilation.options.context.as_path(), request);
-  append_debug_comment(source, &request, entry_load, exports.unwrap_or("unknown"));
+  append_debug_comment(source, &request, exports.unwrap_or("unknown"));
 }
 
 fn sanitize_comment_part(value: &str) -> Cow<'_, str> {
@@ -371,17 +368,16 @@ fn sanitize_comment_part(value: &str) -> Cow<'_, str> {
   }
 }
 
-fn append_debug_comment(source: &mut String, request: &str, entry_load: &str, exports: &str) {
+fn append_debug_comment(source: &mut String, request: &str, exports: &str) {
   if !source.is_empty() {
     source.push('\n');
   }
 
   let request = sanitize_comment_part(request);
-  let entry_load = sanitize_comment_part(entry_load);
   let exports = sanitize_comment_part(exports);
   write!(
     source,
-    "/*!\n * module: {request}\n * import: {entry_load}\n * exports: {exports}\n */"
+    "/*!\n * module: {request}\n * exports: {exports}\n */"
   )
   .expect("writing debug comments to String should not fail");
 }

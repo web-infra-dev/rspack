@@ -98,8 +98,8 @@ fn record_module(
 
   if is_css_mod(module.as_ref()) {
     let mut matched_server_entries = Vec::new();
-    for (server_entry, imports) in &entry_state.css_imports_per_server_entry {
-      if imports.contains(resource.as_ref()) {
+    for (server_entry, server_entry_state) in &entry_state.server_entries {
+      if server_entry_state.css_imports.contains(resource.as_ref()) {
         matched_server_entries.push(server_entry.clone());
       }
     }
@@ -128,9 +128,10 @@ fn record_module(
 
     for server_entry in matched_server_entries {
       entry_state
-        .entry_css_files
-        .entry(server_entry.clone())
+        .server_entries
+        .entry(server_entry)
         .or_default()
+        .css_files
         .extend(css_files.clone());
     }
 
@@ -261,7 +262,10 @@ fn record_chunk_group(
   }
 }
 
-fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginState) -> Result<()> {
+fn collect_bootstrap_scripts(
+  compilation: &Compilation,
+  plugin_state: &mut PluginState,
+) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
     let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
       continue;
@@ -281,7 +285,7 @@ fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginSt
       .expect("module_loading should be initialized in traverse_modules before recording modules")
       .prefix;
 
-    let entry_js_files = chunk_group
+    let bootstrap_scripts = chunk_group
       .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
@@ -297,7 +301,7 @@ fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginSt
       .map(|file| prefixed_asset_path(prefix, &file))
       .collect::<FxIndexSet<String>>();
 
-    entry_state.entry_js_files = entry_js_files;
+    entry_state.bootstrap_scripts = bootstrap_scripts;
   }
   Ok(())
 }
@@ -563,11 +567,11 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     }
 
     let mut include_dependencies = Vec::new();
-    if !client_modules.is_empty() || !entry_state.css_imports_per_server_entry.is_empty() {
+    if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
       let dependency = Box::new(RscEntryDependency::new(
         entry_name.clone(),
         client_modules.clone(),
-        entry_state.css_imports_per_server_entry.clone(),
+        entry_state.css_imports_by_server_entry(),
         false,
       ));
       self
@@ -631,8 +635,8 @@ async fn after_process_assets(
     self.traverse_modules(compilation, &mut plugin_state)?;
     logger.time_end(start);
 
-    let start = logger.time("record entry js files");
-    collect_entry_js_files(compilation, &mut plugin_state)?;
+    let start = logger.time("record bootstrap scripts");
+    collect_bootstrap_scripts(compilation, &mut plugin_state)?;
     logger.time_end(start);
 
     for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {

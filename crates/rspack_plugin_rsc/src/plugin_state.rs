@@ -15,7 +15,7 @@ use crate::reference_manifest::{
 };
 
 pub type ActionIdNamePair = (Atom, Atom);
-pub type CssImportsPerServerEntry = FxHashMap<String, FxIndexSet<String>>;
+pub type CssImportsByServerEntry = FxHashMap<String, FxIndexSet<String>>;
 pub type RootCssImports = FxIndexSet<String>;
 
 /// Structured info about a client module to inject into the client compiler.
@@ -27,25 +27,48 @@ pub struct ClientModuleImport {
   pub ids: FxIndexSet<Atom>,
 }
 
+#[derive(Debug, Default)]
+pub struct ServerEntryState {
+  /// CSS import paths referenced by this server entry.
+  pub css_imports: FxIndexSet<String>,
+  /// CSS chunk file paths emitted for this server entry.
+  pub css_files: FxIndexSet<String>,
+}
+
 /// State for one compilation entry.
 #[derive(Debug, Default)]
 pub struct EntryState {
+  pub server_entries: FxHashMap<String, ServerEntryState>,
   pub injected_client_entries: Vec<ClientModuleImport>,
   pub client_modules: FxHashMap<String, ManifestExport>,
-  /// Server entry resource -> CSS import paths.
-  pub css_imports_per_server_entry: CssImportsPerServerEntry,
   /// Root CSS import paths reached through a parent chain without `use server-entry`.
   /// These are attached directly to the matching client compiler entry.
   pub root_css_imports: RootCssImports,
   /// Dependency path -> action id/name pairs.
   pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
-  /// Server entry resource -> CSS chunk file paths.
-  pub entry_css_files: FxHashMap<String, FxIndexSet<String>>,
-  pub entry_js_files: FxIndexSet<String>,
+  pub bootstrap_scripts: FxIndexSet<String>,
   pub changed_server_components: IdentifierSet,
   /// Precomputed in chunk_ids hook.
   pub server_consumer_module_map: Option<FxHashMap<String, ManifestNode>>,
+}
+
+impl EntryState {
+  pub fn has_css_imports_by_server_entry(&self) -> bool {
+    self
+      .server_entries
+      .values()
+      .any(|server_entry| !server_entry.css_imports.is_empty())
+  }
+
+  pub fn css_imports_by_server_entry(&self) -> CssImportsByServerEntry {
+    self
+      .server_entries
+      .iter()
+      .filter(|(_, server_entry)| !server_entry.css_imports.is_empty())
+      .map(|(name, server_entry)| (name.clone(), server_entry.css_imports.clone()))
+      .collect()
+  }
 }
 
 #[derive(Debug, Default)]
