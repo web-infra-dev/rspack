@@ -2,7 +2,10 @@ use std::{borrow::Cow, fmt::Write, sync::Arc};
 
 use async_trait::async_trait;
 use cow_utils::CowUtils;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsMap, AsVec},
+};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
@@ -21,8 +24,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  client_reference_dependency::ClientReferenceDependency, constants::LAYERS_NAMES,
-  plugin_state::ClientModuleImport,
+  client_reference_dependency::ClientReferenceDependency,
+  constants::LAYERS_NAMES,
+  plugin_state::{ClientModuleImport, CssImportsPerServerEntry},
 };
 
 #[impl_source_map_config]
@@ -34,6 +38,8 @@ pub struct RscEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
+  #[cacheable(with=AsMap<AsCacheable, AsVec>)]
+  css_imports_per_server_entry: CssImportsPerServerEntry,
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
@@ -47,17 +53,28 @@ impl RscEntryModule {
   pub fn new(
     name: Arc<str>,
     client_modules: Vec<ClientModuleImport>,
+    css_imports_per_server_entry: CssImportsPerServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
+    let mut server_css_modules = css_imports_per_server_entry
+      .iter()
+      .flat_map(|(server_entry, imports)| {
+        imports
+          .iter()
+          .map(move |request| format!("{server_entry}: {request}"))
+      })
+      .collect::<Vec<_>>();
+    server_css_modules.sort();
     let identifier = ModuleIdentifier::from(format!(
-      "rsc entry ({}) [{}]",
+      "rsc entry ({}) [client: {}; server css: {}]",
       name,
       client_modules
         .iter()
         .map(|m| m.request.as_str())
         .collect::<Vec<_>>()
-        .join(", ")
+        .join(", "),
+      server_css_modules.join(", ")
     ));
     let layer = if is_server_side_rendering {
       Some(LAYERS_NAMES.server_side_rendering.to_string())
@@ -71,6 +88,7 @@ impl RscEntryModule {
       identifier,
       lib_ident,
       client_modules,
+      css_imports_per_server_entry,
       name,
       is_server_side_rendering,
       factory_meta: None,
@@ -138,7 +156,14 @@ impl RscEntryModule {
           &mut source,
           referenced_exports_by_request
             .get(dep.user_request())
-            .map(String::as_str),
+            .map(String::as_str)
+            .or_else(|| {
+              self
+                .css_imports_per_server_entry
+                .values()
+                .any(|imports| imports.contains(dep.user_request()))
+                .then_some("side-effect")
+            }),
           compilation,
           dep.user_request(),
           "import()",
@@ -238,7 +263,8 @@ impl Module for RscEntryModule {
       })
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
-      let mut blocks = Vec::with_capacity(self.client_modules.len());
+      let mut blocks =
+        Vec::with_capacity(self.client_modules.len() + self.css_imports_per_server_entry.len());
       let dependencies: Vec<BoxDependency> = vec![];
 
       for client_module in &self.client_modules {
@@ -253,6 +279,32 @@ impl Module for RscEntryModule {
           None,
           vec![Box::new(dep) as Box<dyn Dependency>],
           Some(client_module.request.clone()),
+        );
+        blocks.push(Box::new(block));
+      }
+
+      for (server_entry, css_imports) in &self.css_imports_per_server_entry {
+        if css_imports.is_empty() {
+          continue;
+        }
+
+        let dependencies = css_imports
+          .iter()
+          .map(|request| {
+            Box::new(ClientReferenceDependency::new(
+              request.clone(),
+              Default::default(),
+              self.is_server_side_rendering,
+            )) as Box<dyn Dependency>
+          })
+          .collect::<Vec<_>>();
+
+        let block = AsyncDependenciesBlock::new(
+          self.identifier,
+          None,
+          None,
+          dependencies,
+          Some(server_entry.clone()),
         );
         blocks.push(Box::new(block));
       }

@@ -15,6 +15,8 @@ use crate::reference_manifest::{
 };
 
 pub type ActionIdNamePair = (Atom, Atom);
+pub type CssImportsPerServerEntry = FxHashMap<String, FxIndexSet<String>>;
+pub type RootCssImports = FxIndexSet<String>;
 
 /// Structured info about a client module to inject into the client compiler.
 #[rspack_cacheable::cacheable]
@@ -31,7 +33,10 @@ pub struct EntryState {
   pub injected_client_entries: Vec<ClientModuleImport>,
   pub client_modules: FxHashMap<String, ManifestExport>,
   /// Server entry resource -> CSS import paths.
-  pub css_imports_per_server_entry: FxHashMap<String, FxIndexSet<String>>,
+  pub css_imports_per_server_entry: CssImportsPerServerEntry,
+  /// Root CSS import paths reached through a parent chain without `use server-entry`.
+  /// These are attached directly to the matching client compiler entry.
+  pub root_css_imports: RootCssImports,
   /// Dependency path -> action id/name pairs.
   pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,

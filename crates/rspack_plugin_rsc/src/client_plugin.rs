@@ -6,8 +6,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
-  ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, EntryDependency,
+  Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -520,6 +520,7 @@ async fn compilation(
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::RscEntry, Arc::new(RscEntryModuleFactory));
+  compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
   compilation.set_dependency_factory(
     DependencyType::RscClientReference,
     params.normal_module_factory.clone(),
@@ -543,29 +544,30 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     )
   })?;
 
-  let mut include_dependencies = vec![];
   for (entry_name, entry_state) in &plugin_state.entries {
     let client_modules = &entry_state.injected_client_entries;
-    {
-      if compilation.entries.get(entry_name.as_ref()).is_none() {
-        compilation.push_diagnostic(Diagnostic::error(
-          "RSC Client Entry Mismatch".to_string(),
-          format!(
-            "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
-            entry_name,
-            client_modules
-              .iter()
-              .map(|m| m.request.as_str())
-              .collect::<Vec<_>>()
-              .join(", ")
-          ),
-        ));
-        continue;
-      }
+    if compilation.entries.get(entry_name.as_ref()).is_none() {
+      compilation.push_diagnostic(Diagnostic::error(
+        "RSC Client Entry Mismatch".to_string(),
+        format!(
+          "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
+          entry_name,
+          client_modules
+            .iter()
+            .map(|m| m.request.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+        ),
+      ));
+      continue;
+    }
 
+    let mut include_dependencies = Vec::new();
+    if !client_modules.is_empty() || !entry_state.css_imports_per_server_entry.is_empty() {
       let dependency = Box::new(RscEntryDependency::new(
         entry_name.clone(),
         client_modules.clone(),
+        entry_state.css_imports_per_server_entry.clone(),
         false,
       ));
       self
@@ -580,8 +582,23 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .add_dependency(dependency);
     }
 
+    let mut entry_dependencies = Vec::new();
+    for request in &entry_state.root_css_imports {
+      let dependency = Box::new(EntryDependency::new(
+        request.clone(),
+        compilation.options.context.clone(),
+        None,
+        false,
+      ));
+      entry_dependencies.push(*dependency.id());
+      compilation
+        .get_module_graph_mut()
+        .add_dependency(dependency);
+    }
+
     #[allow(clippy::unwrap_used)]
     let entry_data = compilation.entries.get_mut(entry_name.as_ref()).unwrap();
+    entry_data.dependencies.append(&mut entry_dependencies);
     entry_data
       .include_dependencies
       .append(&mut include_dependencies);
