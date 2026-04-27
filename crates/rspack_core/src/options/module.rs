@@ -762,10 +762,53 @@ pub struct CssGeneratorOptions {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CssExportType {
+  Link,
+  Text,
+  CssStyleSheet,
+  Style,
+}
+
+impl fmt::Display for CssExportType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      CssExportType::Link => write!(f, "link"),
+      CssExportType::Text => write!(f, "text"),
+      CssExportType::CssStyleSheet => write!(f, "css-style-sheet"),
+      CssExportType::Style => write!(f, "style"),
+    }
+  }
+}
+
+impl From<String> for CssExportType {
+  fn from(s: String) -> Self {
+    match s.as_str() {
+      "link" => CssExportType::Link,
+      "text" => CssExportType::Text,
+      "css-style-sheet" => CssExportType::CssStyleSheet,
+      "style" => CssExportType::Style,
+      _ => unreachable!("css exportType error"),
+    }
+  }
+}
+
+impl MergeFrom for CssExportType {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[cacheable]
 #[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssAutoGeneratorOptions {
+  pub export_type: Option<CssExportType>,
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<String>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<String>,
+  pub local_ident_hash_salt: Option<String>,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
 }
@@ -783,8 +826,13 @@ impl From<CssGeneratorOptions> for CssAutoGeneratorOptions {
 #[cacheable]
 #[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssModuleGeneratorOptions {
+  pub export_type: Option<CssExportType>,
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<String>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<String>,
+  pub local_ident_hash_salt: Option<String>,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
 }

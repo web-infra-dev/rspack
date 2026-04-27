@@ -783,7 +783,12 @@ function getRawCssAutoOrModuleGeneratorOptions(
   options: CssAutoGeneratorOptions,
 ): RawCssAutoGeneratorOptions | RawCssModuleGeneratorOptions {
   return {
+    exportType: options.exportType,
     localIdentName: options.localIdentName,
+    localIdentHashDigest: options.localIdentHashDigest,
+    localIdentHashDigestLength: options.localIdentHashDigestLength,
+    localIdentHashFunction: options.localIdentHashFunction,
+    localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
     esModule: options.esModule,

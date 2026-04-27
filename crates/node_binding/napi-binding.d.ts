@@ -2086,8 +2086,13 @@ export interface RawCopyRspackPluginOptions {
 }
 
 export interface RawCssAutoGeneratorOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  localIdentHashDigest?: string
+  localIdentHashDigestLength?: number
+  localIdentHashFunction?: string
+  localIdentHashSalt?: string
   localIdentName?: string
   esModule?: boolean
 }
@@ -2131,8 +2136,13 @@ export interface RawCssImportContext {
 }
 
 export interface RawCssModuleGeneratorOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  localIdentHashDigest?: string
+  localIdentHashDigestLength?: number
+  localIdentHashFunction?: string
+  localIdentHashSalt?: string
   localIdentName?: string
   esModule?: boolean
 }

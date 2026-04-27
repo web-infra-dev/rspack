@@ -840,9 +840,15 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssAutoGeneratorOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<String>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<String>,
+  pub local_ident_hash_salt: Option<String>,
   pub local_ident_name: Option<String>,
   pub es_module: Option<bool>,
 }
@@ -850,8 +856,13 @@ pub struct RawCssAutoGeneratorOptions {
 impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
   fn from(value: RawCssAutoGeneratorOptions) -> Self {
     Self {
+      export_type: value.export_type.map(|n| n.into()),
       exports_convention: value.exports_convention.map(|n| n.into()),
       exports_only: value.exports_only,
+      local_ident_hash_digest: value.local_ident_hash_digest,
+      local_ident_hash_digest_length: value.local_ident_hash_digest_length,
+      local_ident_hash_function: value.local_ident_hash_function,
+      local_ident_hash_salt: value.local_ident_hash_salt,
       local_ident_name: value.local_ident_name.map(|n| n.into()),
       es_module: value.es_module,
     }
@@ -861,9 +872,15 @@ impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
 #[derive(Debug, Default)]
 #[napi(object)]
 pub struct RawCssModuleGeneratorOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<String>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<String>,
+  pub local_ident_hash_salt: Option<String>,
   pub local_ident_name: Option<String>,
   pub es_module: Option<bool>,
 }
@@ -871,8 +888,13 @@ pub struct RawCssModuleGeneratorOptions {
 impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: RawCssModuleGeneratorOptions) -> Self {
     Self {
+      export_type: value.export_type.map(|n| n.into()),
       exports_convention: value.exports_convention.map(|n| n.into()),
       exports_only: value.exports_only,
+      local_ident_hash_digest: value.local_ident_hash_digest,
+      local_ident_hash_digest_length: value.local_ident_hash_digest_length,
+      local_ident_hash_function: value.local_ident_hash_function,
+      local_ident_hash_salt: value.local_ident_hash_salt,
       local_ident_name: value.local_ident_name.map(|n| n.into()),
       es_module: value.es_module,
     }
