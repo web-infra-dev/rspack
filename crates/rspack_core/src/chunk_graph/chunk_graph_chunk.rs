@@ -41,14 +41,14 @@ pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<Iden
 pub struct ChunkId {
   #[cacheable(with=AsPreset)]
   value: Ustr,
-  numeric: bool,
+  numeric: Option<u32>,
 }
 
 impl From<String> for ChunkId {
   fn from(s: String) -> Self {
     Self {
       value: s.into(),
-      numeric: false,
+      numeric: None,
     }
   }
 }
@@ -57,7 +57,7 @@ impl From<&str> for ChunkId {
   fn from(s: &str) -> Self {
     Self {
       value: s.into(),
-      numeric: false,
+      numeric: None,
     }
   }
 }
@@ -99,7 +99,7 @@ impl Serialize for ChunkId {
   where
     S: Serializer,
   {
-    if let Some(n) = self.as_number() {
+    if let Some(n) = self.numeric {
       serializer.serialize_u32(n)
     } else {
       serializer.serialize_str(self.value.as_str())
@@ -111,16 +111,12 @@ impl ChunkId {
   pub fn from_number(id: u32) -> Self {
     Self {
       value: id.to_string().into(),
-      numeric: true,
+      numeric: Some(id),
     }
   }
 
   pub fn as_number(&self) -> Option<u32> {
-    if self.numeric {
-      rspack_util::numeric_id_value(self.value.as_str())
-    } else {
-      None
-    }
+    self.numeric
   }
 
   pub fn as_str(&self) -> &str {
@@ -1233,6 +1229,8 @@ mod tests {
 
   #[test]
   fn chunk_id_serialize_matches_runtime_numeric_rules() {
+    assert_eq!(ChunkId::from_number(903).as_number(), Some(903));
+    assert_eq!(ChunkId::from("903").as_number(), None);
     assert_eq!(
       serde_json::to_string(&ChunkId::from_number(903)).unwrap(),
       "903"
