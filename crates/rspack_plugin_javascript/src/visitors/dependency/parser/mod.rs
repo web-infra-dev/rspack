@@ -1346,6 +1346,21 @@ impl<'parser> JavascriptParser<'parser> {
 }
 
 impl JavascriptParser<'_> {
+  pub fn import_dynamic(&self) -> Option<bool> {
+    self.javascript_options.import_dynamic
+  }
+
+  pub fn import_function_name(&self) -> &str {
+    &self.compiler_options.output.import_function_name
+  }
+
+  /// Mirrors `ImportParserPlugin.import_call`'s first bailout: an `import()`
+  /// call sitting after a terminating statement (e.g. `return` / `throw`) in
+  /// non-top-level scope is unreachable and should not produce dependencies.
+  pub fn is_unreachable_dynamic_import(&self) -> bool {
+    self.terminated.is_some() && !self.is_top_level_scope()
+  }
+
   pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
     match self.evaluating(expr) {
       Some(evaluated) => evaluated.with_expression(Some(expr)),

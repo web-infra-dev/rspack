@@ -29,6 +29,7 @@ static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 use crate::{
+  dynamic_import_origin_dependency::RstestDynamicImportOriginDependencyTemplate,
   esm_import_dependency::{
     RstestESMImportSideEffectDependencyTemplate, RstestESMImportSpecifierDependencyTemplate,
   },
@@ -48,6 +49,7 @@ pub struct RstestPluginOptions {
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
+  pub inject_dynamic_import_origin: bool,
 }
 
 #[derive(Debug)]
@@ -240,6 +242,7 @@ async fn nmf_parser(
         import_meta_path_name: self.options.import_meta_path_name,
         manual_mock_root: self.options.manual_mock_root.clone(),
         globals: self.options.globals,
+        inject_dynamic_import_origin: self.options.inject_dynamic_import_origin,
       },
     )) as BoxJavascriptParserPlugin);
   }
@@ -266,6 +269,11 @@ async fn compilation(
   compilation.set_dependency_template(
     MockModuleIdDependencyTemplate::template_type(),
     Arc::new(MockModuleIdDependencyTemplate::default()),
+  );
+
+  compilation.set_dependency_template(
+    RstestDynamicImportOriginDependencyTemplate::template_type(),
+    Arc::new(RstestDynamicImportOriginDependencyTemplate::default()),
   );
 
   Ok(())
@@ -436,7 +444,7 @@ impl Plugin for RstestPlugin {
       .compilation
       .tap(compilation_stage_9999::new(self));
 
-    if self.options.module_path_name {
+    if self.options.module_path_name || self.options.inject_dynamic_import_origin {
       ctx
         .normal_module_factory_hooks
         .parser
