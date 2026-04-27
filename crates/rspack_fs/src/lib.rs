@@ -19,6 +19,9 @@ pub use native_fs::{NativeFileSystem, NativeReadStream, NativeWriteStream};
 mod memory_fs;
 pub use memory_fs::{MemoryFileSystem, MemoryReadStream, MemoryWriteStream};
 
+mod noop_fs;
+pub use noop_fs::NoopFileSystem;
+
 mod error;
 pub use error::{
   Error, FsResultToIoResultExt, IoResultToFsResultExt, Result, RspackResultToFsResultExt,
