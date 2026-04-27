@@ -1250,7 +1250,7 @@ mod tests {
       "\"main\""
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from_number(4294967295)).unwrap(),
+      serde_json::to_string(&ChunkId::from_number(4_294_967_295)).unwrap(),
       "4294967295"
     );
     assert_eq!(
