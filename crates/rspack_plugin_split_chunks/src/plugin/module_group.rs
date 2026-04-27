@@ -138,6 +138,48 @@ pub(crate) struct Combinator {
   grouped_by_exports: IdentifierMap<Vec<ChunksKey>>,
 }
 
+enum ChunkCombinations<'a> {
+  Slice(&'a [ChunkCombination]),
+  UsedExports(Vec<&'a ChunkCombination>),
+}
+
+enum ChunkCombinationsIter<'a> {
+  Slice(std::slice::Iter<'a, ChunkCombination>),
+  UsedExports(std::iter::Copied<std::slice::Iter<'a, &'a ChunkCombination>>),
+}
+
+impl<'a> Iterator for ChunkCombinationsIter<'a> {
+  type Item = &'a ChunkCombination;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::Slice(iter) => iter.next(),
+      Self::UsedExports(iter) => iter.next(),
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      Self::Slice(iter) => iter.size_hint(),
+      Self::UsedExports(iter) => iter.size_hint(),
+    }
+  }
+}
+
+impl<'a> IntoIterator for &'a ChunkCombinations<'a> {
+  type Item = &'a ChunkCombination;
+  type IntoIter = ChunkCombinationsIter<'a>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    match self {
+      ChunkCombinations::Slice(combs) => ChunkCombinationsIter::Slice(combs.iter()),
+      ChunkCombinations::UsedExports(combs) => {
+        ChunkCombinationsIter::UsedExports(combs.iter().copied())
+      }
+    }
+  }
+}
+
 impl Combinator {
   fn get_non_used_exports_combs(
     &self,
@@ -212,17 +254,15 @@ impl Combinator {
     used_exports: bool,
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
-  ) -> Vec<ChunkCombination> {
+  ) -> ChunkCombinations<'_> {
     if used_exports {
-      self
-        .get_used_exports_combs(module)
-        .into_iter()
-        .cloned()
-        .collect()
+      ChunkCombinations::UsedExports(self.get_used_exports_combs(module))
     } else {
-      self
-        .get_non_used_exports_combs(module, module_chunks, chunk_index_map)
-        .to_vec()
+      ChunkCombinations::Slice(self.get_non_used_exports_combs(
+        module,
+        module_chunks,
+        chunk_index_map,
+      ))
     }
   }
 

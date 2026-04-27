@@ -97,6 +97,8 @@ impl MatchGroup {
 }
 
 impl ModulesContainer for MatchGroup {
+  type Modules = IdentifierSet;
+
   fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
     MatchGroup::get_sizes(self, module_sizes)
   }

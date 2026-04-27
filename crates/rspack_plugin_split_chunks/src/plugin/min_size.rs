@@ -8,6 +8,8 @@ use crate::{
 };
 
 pub trait ModulesContainer {
+  type Modules;
+
   fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes;
   fn get_source_types_modules(
     &self,
@@ -15,10 +17,12 @@ pub trait ModulesContainer {
     module_sizes: &ModuleSizes,
   ) -> IdentifierSet;
   fn remove_module(&mut self, module: ModuleIdentifier);
-  fn modules(&self) -> &IdentifierIndexSet;
+  fn modules(&self) -> &Self::Modules;
 }
 
 impl ModulesContainer for ModuleGroup {
+  type Modules = IdentifierIndexSet;
+
   fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
     ModuleGroup::get_sizes(self, module_sizes)
   }
