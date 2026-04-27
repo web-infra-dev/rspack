@@ -322,7 +322,9 @@ impl Chunk {
       group.insert_chunk(new_chunk.ukey, self.ukey);
       new_chunk.add_group(group.ukey);
     }
-    new_chunk.id_name_hints.extend(self.id_name_hints.clone());
+    new_chunk
+      .id_name_hints
+      .extend(self.id_name_hints.iter().cloned());
     new_chunk.runtime.extend(&self.runtime);
   }
 
