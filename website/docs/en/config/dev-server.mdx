@@ -1,5 +1,5 @@
 ---
-description: 'describes the options that affect the behavior of @rspack/dev-server (short: dev-server), based on webpack-dev-server@5, which facilitates rapid application...'
+description: 'Configure @rspack/dev-server for local development and preview.'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -9,15 +9,17 @@ import { Tabs, Tab } from '@theme';
 
 # DevServer
 
-This page describes the options that affect the behavior of [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) (short: dev-server), based on `webpack-dev-server@5`, which facilitates rapid application development.
+This page describes the options used by [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) to run a local development server for Rspack projects.
 
 - **Type:** `object`
 
-:::tip
-If the current application does not depend on `@rspack/dev-server`, then the devServer config will have no effect.
+## When to use
 
-For example, Rspack CLI depends on `@rspack/dev-server` by default, so the devServer config can be used in Rspack CLI projects. Rsbuild has implemented its own dev server and provides a separate "server" config, so the devServer config cannot be used in Rsbuild projects.
-:::
+The `devServer` config only takes effect when using `@rspack/dev-server`. If the current application does not start `@rspack/dev-server`, this config will have no effect.
+
+For example, with Rspack CLI, install `@rspack/dev-server` and use `rspack dev` or `rspack serve` to apply the `devServer` config. Rsbuild implements its own dev server and provides a separate `server` config, so Rsbuild projects should configure that instead.
+
+When using `rspack preview`, the Rspack CLI also loads `@rspack/dev-server` and respects a subset of `devServer` options: [`port`](#devserverport), [`host`](#devserverhost), [`open`](#devserveropen), [`server`](#devserverserver), [`proxy`](#devserverproxy), and [`historyApiFallback`](#devserverhistoryapifallback).
 
 ## devServer.allowedHosts
 
@@ -333,7 +335,7 @@ export default {
 - **Type:** `object`
 - **Default:** `{}`
 
-Provide options to [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware) which handles Rspack assets.
+Provide options to [`@rspack/dev-middleware`](https://github.com/rstackjs/rspack-dev-middleware), which serves Rspack build assets from the dev server.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -550,7 +552,7 @@ export default {
 ```
 
 :::info
-When using `rspack dev` or `rspack serve`, you can override this option from the CLI with `--open`, `--open <value>`, or `--no-open`. The CLI flag takes precedence over `devServer.open` in the configuration.
+When using `rspack dev` or `rspack serve`, you can override this option from the CLI with `--open`, `--open <value>`, or `--no-open`. When using `rspack preview`, this option is also respected, and `--open` takes precedence over `devServer.open` in the configuration.
 :::
 
 To open a specified page in a browser:
