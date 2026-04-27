@@ -1,5 +1,4 @@
 use std::{
-  cmp::Ordering,
   hash::{Hash, Hasher},
   ops::Deref,
   sync::Arc,
@@ -402,26 +401,20 @@ impl SplitChunksPlugin {
   ) -> (ModuleGroupKey, ModuleGroup) {
     debug_assert!(!module_group_map.is_empty());
 
-    let best_entry_key = module_group_map
-      .keys()
-      .map(|key| (key, module_group_map.get(key).expect("should have item")))
-      .min_by(|a, b| {
-        let result = compare_entries((a.0, a.1), (b.0, b.1));
-        if result < 0f64 {
-          Ordering::Greater
-        } else if result > 0f64 {
-          Ordering::Less
-        } else {
-          Ordering::Equal
-        }
-      })
-      .map(|(key, _)| key.clone())
-      .expect("at least have one item");
+    let mut best_entry_index = 0;
+    for entry_index in 1..module_group_map.len() {
+      let [(entry_key, entry), (best_entry_key, best_entry)] = module_group_map
+        .get_disjoint_indices_mut([entry_index, best_entry_index])
+        .expect("entry indices should be valid and unique");
+      let result = compare_entries((entry_key, entry), (best_entry_key, best_entry));
+      if result > 0f64 {
+        best_entry_index = entry_index;
+      }
+    }
 
-    let best_module_group = module_group_map
-      .swap_remove(&best_entry_key)
-      .expect("This should never happen, please file an issue");
-    (best_entry_key, best_module_group)
+    module_group_map
+      .swap_remove_index(best_entry_index)
+      .expect("This should never happen, please file an issue")
   }
 
   #[allow(clippy::too_many_arguments)]
