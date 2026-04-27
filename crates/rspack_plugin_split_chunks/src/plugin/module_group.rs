@@ -596,9 +596,14 @@ impl SplitChunksPlugin {
     }
 
     // Sort the module_group_map by key to ensure deterministic iteration order
-    let mut result: Vec<_> = module_group_map.into_iter().collect();
+    let module_group_count = module_group_map.len();
+    let mut result = Vec::with_capacity(module_group_count);
+    result.extend(module_group_map);
     result.sort_by(|a, b| a.0.cmp(&b.0));
-    Ok(result.into_iter().collect())
+    let mut ordered_result =
+      ModuleGroupMap::with_capacity_and_hasher(module_group_count, Default::default());
+    ordered_result.extend(result);
+    Ok(ordered_result)
   }
 
   // #[tracing::instrument(skip_all)]
