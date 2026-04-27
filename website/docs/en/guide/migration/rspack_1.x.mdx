@@ -305,6 +305,33 @@ export default {
 };
 ```
 
+### Changed deterministic chunk IDs from strings to numbers
+
+When [optimization.chunkIds](/config/optimization#optimizationchunkids) is set to `'deterministic'` (including the default in production mode), chunk IDs are now emitted as numbers instead of strings.
+
+This affects both `compilation.chunks` and stats output such as `stats.toJson({ chunks: true }).chunks[i].id`.
+
+```js
+// Rspack 1.x
+stats.toJson({ chunks: true }).chunks[0].id; // "123"
+typeof stats.toJson({ chunks: true }).chunks[0].id; // "string"
+
+// Rspack 2.0
+stats.toJson({ chunks: true }).chunks[0].id; // 123
+typeof stats.toJson({ chunks: true }).chunks[0].id; // "number"
+```
+
+If your custom plugins or build scripts treat chunk IDs as strings, normalize them first:
+
+```js title="my-plugin.js"
+compiler.hooks.done.tap('MyPlugin', (stats) => {
+  for (const chunk of stats.toJson({ chunks: true }).chunks ?? []) {
+    const chunkId = String(chunk.id);
+    // chunkId.startsWith('1')
+  }
+});
+```
+
 ### Removed output.charset
 
 The `output.charset` configuration has been removed. It only added a `charset` attribute to generated `<script>` tags, and modern browsers already default to UTF-8.

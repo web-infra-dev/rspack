@@ -305,6 +305,33 @@ export default {
 };
 ```
 
+### deterministic chunk ID 从字符串变为数字
+
+当 [optimization.chunkIds](/config/optimization#optimizationchunkids) 设置为 `'deterministic'` 时（包括生产模式下的默认值），chunk ID 现在会产出为数字，而不是字符串。
+
+这会同时影响 `compilation.chunks` 和 `stats.toJson({ chunks: true }).chunks[i].id` 这类 stats 输出。
+
+```js
+// Rspack 1.x
+stats.toJson({ chunks: true }).chunks[0].id; // "123"
+typeof stats.toJson({ chunks: true }).chunks[0].id; // "string"
+
+// Rspack 2.0
+stats.toJson({ chunks: true }).chunks[0].id; // 123
+typeof stats.toJson({ chunks: true }).chunks[0].id; // "number"
+```
+
+如果你的自定义插件或构建脚本把 chunk id 当作字符串处理，建议先做归一化：
+
+```js title="my-plugin.js"
+compiler.hooks.done.tap('MyPlugin', (stats) => {
+  for (const chunk of stats.toJson({ chunks: true }).chunks ?? []) {
+    const chunkId = String(chunk.id);
+    // chunkId.startsWith('1')
+  }
+});
+```
+
 ### 移除 output.charset
 
 `output.charset` 配置已被移除。它只是在生成的 `<script>` 标签上添加 `charset` 属性，而现代浏览器已默认使用 UTF-8 编码。
