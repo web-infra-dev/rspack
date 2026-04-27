@@ -55,7 +55,7 @@
     "browserslist-to-es-version": "^1.4.1",
     "connect-next": "^4.0.1",
     "enhanced-resolve": "5.20.1",
-    "http-proxy-middleware": "^4.0.0-beta.4",
+    "http-proxy-middleware": "^4.0.0-beta.5",
     "memfs": "4.53.0",
     "open": "^11.0.0",
     "prebundle": "^1.6.4",
