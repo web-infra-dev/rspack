@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: nscloud-ubuntu-24.04-amd64-1x2
+    runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"nscloud-ubuntu-24.04-amd64-4x16;container.privileged=true;container.host-pid-namespace=true"'
+      runner: '"ubuntu-22.04"'
 
   test-windows:
     name: Test Windows
@@ -122,7 +122,7 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   test-wasm:
     name: Test WASM
@@ -131,7 +131,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-test.yml
     with:
       target: wasm32-wasip1-threads
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   check-cache:
     name: Check Cache Portable
