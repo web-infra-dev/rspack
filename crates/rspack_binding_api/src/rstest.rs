@@ -20,6 +20,13 @@ pub struct RawRstestPluginOptions {
   // Whether to handle global `rs` and `rstest` variables.
   // When false, only ESM imported variables are processed. Default is true.
   pub globals: Option<bool>,
+  // When `module.parser.javascript.importDynamic` is `false`, rewrite
+  // non-string-literal `import()` calls (template literals, variables) to the
+  // configured `output.importFunctionName` and append the source module's
+  // absolute path as an extra argument. The runtime uses it as the base for
+  // relative specifier resolution so paths inside bundled deps resolve to the
+  // source file's directory rather than the test entry's.
+  pub inject_dynamic_import_origin: Option<bool>,
 }
 
 impl From<RawRstestPluginOptions> for RstestPluginOptions {
@@ -31,6 +38,7 @@ impl From<RawRstestPluginOptions> for RstestPluginOptions {
       manual_mock_root: value.manual_mock_root,
       preserve_new_url: value.preserve_new_url.unwrap_or_default(),
       globals: value.globals.unwrap_or(true),
+      inject_dynamic_import_origin: value.inject_dynamic_import_origin.unwrap_or(false),
     }
   }
 }
