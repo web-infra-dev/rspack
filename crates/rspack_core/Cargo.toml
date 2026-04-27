@@ -57,6 +57,7 @@ rustc-hash                 = { workspace = true }
 scopeguard                 = { workspace = true }
 serde                      = { workspace = true }
 serde_json                 = { workspace = true }
+smallvec                   = { workspace = true }
 sugar_path                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "ecma_ast", "ecma_parser", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "swc_ecma_codegen", "swc_ecma_visit"] }
 tokio                      = { workspace = true, features = ["rt", "macros"] }

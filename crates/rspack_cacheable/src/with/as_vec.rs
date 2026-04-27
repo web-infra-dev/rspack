@@ -99,6 +99,23 @@ impl<T> AsVecConverter for Vec<T> {
   }
 }
 
+// for SmallVec
+impl<A> AsVecConverter for smallvec::SmallVec<A>
+where
+  A: smallvec::Array,
+{
+  type Item = A::Item;
+  fn len(&self) -> usize {
+    self.len()
+  }
+  fn iter(&self) -> impl Iterator<Item = &Self::Item> {
+    self.as_slice().iter()
+  }
+  fn from(data: impl Iterator<Item = Result<Self::Item>>) -> Result<Self> {
+    data.collect::<Result<smallvec::SmallVec<A>>>()
+  }
+}
+
 // for HashSet
 impl<T, S> AsVecConverter for std::collections::HashSet<T, S>
 where

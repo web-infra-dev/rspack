@@ -382,7 +382,7 @@ impl CommonJsImportsParserPlugin {
     param.is_string().then(|| {
       CommonJsFullRequireDependency::new(
         param.string().to_owned(),
-        members.to_vec(),
+        members.iter().cloned().collect(),
         member_expr.span().into(),
         loc,
         is_call,

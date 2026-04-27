@@ -1,4 +1,7 @@
-use rspack_core::{BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals};
+use rspack_core::{
+  BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, ReferencedExportName,
+  RuntimeGlobals,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
@@ -130,8 +133,8 @@ impl JavascriptParser<'_> {
 fn parse_require_call<'a>(
   parser: &mut JavascriptParser,
   mut expr: &'a Expr,
-) -> Option<(BasicEvaluatedExpression<'a>, Vec<Atom>)> {
-  let mut ids = Vec::new();
+) -> Option<(BasicEvaluatedExpression<'a>, ReferencedExportName)> {
+  let mut ids = ReferencedExportName::new();
   while let Some(member) = expr.as_member() {
     if let Some(prop) = member.prop.as_ident() {
       ids.push(prop.sym.clone());
@@ -245,7 +248,7 @@ fn handle_access_export(
   parser.add_dependency(Box::new(CommonJsSelfReferenceDependency::new(
     expr_span.into(),
     base,
-    remaining.to_vec(),
+    remaining.iter().cloned().collect(),
     remaining_optionals.to_vec(),
     call_args.is_some(),
   )));

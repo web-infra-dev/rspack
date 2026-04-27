@@ -6,9 +6,9 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
+  ReferencedExportName, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  property_access_with_optional,
 };
-use swc_core::atoms::Atom;
 
 use super::ExportsBase;
 
@@ -19,7 +19,7 @@ pub struct CommonJsSelfReferenceDependency {
   range: DependencyRange,
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
-  names: Vec<Atom>,
+  names: ReferencedExportName,
   names_optionals: Vec<bool>,
   is_call: bool,
   factorize_info: FactorizeInfo,
@@ -29,7 +29,7 @@ impl CommonJsSelfReferenceDependency {
   pub fn new(
     range: DependencyRange,
     base: ExportsBase,
-    names: Vec<Atom>,
+    names: ReferencedExportName,
     names_optionals: Vec<bool>,
     is_call: bool,
   ) -> Self {
@@ -76,11 +76,11 @@ impl Dependency for CommonJsSelfReferenceDependency {
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call {
       if self.names.is_empty() {
-        vec![ExtendedReferencedExport::Array(vec![])]
+        vec![ExtendedReferencedExport::Array(ReferencedExportName::new())]
       } else {
-        vec![ExtendedReferencedExport::Array(
-          self.names[0..self.names.len() - 1].to_vec(),
-        )]
+        let mut names = self.names.clone();
+        names.truncate(names.len() - 1);
+        vec![ExtendedReferencedExport::Array(names)]
       }
     } else {
       vec![ExtendedReferencedExport::Array(self.names.clone())]
@@ -156,9 +156,9 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         .get_exports_info_data(&module.identifier());
       exports_info
         .get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
-        .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+        .unwrap_or_else(|| UsedName::Normal(dep.names.to_vec()))
     } else {
-      UsedName::Normal(dep.names.clone())
+      UsedName::Normal(dep.names.to_vec())
     };
 
     let exports_argument = module.get_exports_argument();

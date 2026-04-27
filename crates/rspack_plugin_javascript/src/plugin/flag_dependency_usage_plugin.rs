@@ -8,8 +8,9 @@ use rspack_core::{
   ExportsInfoArtifact, ExportsInfoData, ExtendedReferencedExport, GroupOptions, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport, RuntimeSpec,
   SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
-  is_exports_object_referenced, is_no_exports_referenced, module_declared_side_effect_free,
+  build_module_graph::BuildModuleGraphArtifact, create_exports_object_referenced,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced, module_declared_side_effect_free,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -777,7 +778,7 @@ fn get_dependency_referenced_exports(
       runtime,
     ))
   } else if dep.as_context_dependency().is_some() {
-    Some(vec![ExtendedReferencedExport::Array(vec![])])
+    Some(create_exports_object_referenced())
   } else {
     None
   }

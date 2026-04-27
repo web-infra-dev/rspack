@@ -6,11 +6,10 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
-  to_normal_comment,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedExportName, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  property_access, to_normal_comment,
 };
-use swc_core::atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -18,7 +17,7 @@ pub struct CommonJsFullRequireDependency {
   id: DependencyId,
   request: String,
   #[cacheable(with=AsVec<AsPreset>)]
-  names: Vec<Atom>,
+  names: ReferencedExportName,
   range: DependencyRange,
   is_call: bool,
   namespace_object_as_context: bool,
@@ -33,7 +32,7 @@ impl CommonJsFullRequireDependency {
   #[allow(clippy::fn_params_excessive_bools)]
   pub fn new(
     request: String,
-    names: Vec<Atom>,
+    names: ReferencedExportName,
     range: DependencyRange,
     loc: Option<DependencyLocation>,
     is_call: bool,
@@ -111,9 +110,9 @@ impl Dependency for CommonJsFullRequireDependency {
       if self.names.is_empty() {
         return create_exports_object_referenced();
       }
-      return vec![ExtendedReferencedExport::Array(
-        self.names[0..self.names.len().saturating_sub(1)].to_vec(),
-      )];
+      let mut names = self.names.clone();
+      names.truncate(names.len().saturating_sub(1));
+      return vec![ExtendedReferencedExport::Array(names)];
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
   }

@@ -8,7 +8,8 @@ use rspack_core::{
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  ReferencedExportName, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
+  create_exports_object_referenced,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -21,7 +22,7 @@ pub struct ProvideDependency {
   request: Atom,
   identifier: String,
   #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  ids: ReferencedExportName,
   range: DependencyRange,
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
@@ -32,7 +33,7 @@ impl ProvideDependency {
     range: DependencyRange,
     request: Atom,
     identifier: String,
-    ids: Vec<Atom>,
+    ids: ReferencedExportName,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
