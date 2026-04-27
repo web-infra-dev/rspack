@@ -49,14 +49,64 @@ impl Deref for ChunkCombination {
   }
 }
 
+enum SelectedChunks<'a> {
+  All(&'a ChunkCombination),
+  Filtered(Vec<ChunkUkey>),
+}
+
+enum SelectedChunksIter<'a> {
+  All(std::collections::hash_set::Iter<'a, ChunkUkey>),
+  Filtered(std::slice::Iter<'a, ChunkUkey>),
+}
+
+impl<'a> Iterator for SelectedChunksIter<'a> {
+  type Item = &'a ChunkUkey;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    match self {
+      Self::All(iter) => iter.next(),
+      Self::Filtered(iter) => iter.next(),
+    }
+  }
+
+  fn size_hint(&self) -> (usize, Option<usize>) {
+    match self {
+      Self::All(iter) => iter.size_hint(),
+      Self::Filtered(iter) => iter.size_hint(),
+    }
+  }
+}
+
+impl SelectedChunks<'_> {
+  fn len(&self) -> usize {
+    match self {
+      Self::All(chunks) => chunks.len(),
+      Self::Filtered(chunks) => chunks.len(),
+    }
+  }
+
+  fn iter(&self) -> SelectedChunksIter<'_> {
+    match self {
+      Self::All(chunks) => SelectedChunksIter::All(chunks.iter()),
+      Self::Filtered(chunks) => SelectedChunksIter::Filtered(chunks.iter()),
+    }
+  }
+
+  fn key(&self) -> Option<ChunksKey> {
+    match self {
+      Self::All(chunks) => Some(chunks.key),
+      Self::Filtered(_) => None,
+    }
+  }
+}
+
 /// If a module meets requirements of a `ModuleGroup`. We consider the `Module` and the `CacheGroup`
 /// to be a `MatchedItem`, which are consumed later to calculate `ModuleGroup`.
 struct MatchedItem<'a> {
   module: &'a dyn Module,
   cache_group_index: u32,
   cache_group: &'a CacheGroup,
-  selected_chunks: Vec<ChunkUkey>,
-  selected_chunks_key: Option<ChunksKey>,
+  selected_chunks: SelectedChunks<'a>,
 }
 
 fn get_key<I: Iterator<Item = ChunkUkey>>(
@@ -435,28 +485,34 @@ impl SplitChunksPlugin {
               }
 
 
-              let selected_chunks = if cache_group.chunk_filter.is_func() {
-                join_all(chunk_combination.iter().map(|c| async move {
-                  // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
-                  cache_group.chunk_filter.test_func(c, compilation).await.map(|filtered|  (c, filtered))
-                }))
-                  .await
-                  .into_iter()
-                  .collect::<Result<Vec<_>>>()?
-                  .into_iter()
-                  .filter_map(
-                    |(chunk, filtered)| {
-                      if filtered {
-                        Some(chunk)
-                      } else {
-                        None
+              let selected_chunks = if matches!(&cache_group.chunk_filter, ChunkFilter::All) {
+                SelectedChunks::All(chunk_combination)
+              } else if cache_group.chunk_filter.is_func() {
+                SelectedChunks::Filtered(
+                  join_all(chunk_combination.iter().map(|c| async move {
+                    // Filter by `splitChunks.cacheGroups.{cacheGroup}.chunks`
+                    cache_group.chunk_filter.test_func(c, compilation).await.map(|filtered|  (c, filtered))
+                  }))
+                    .await
+                    .into_iter()
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .filter_map(
+                      |(chunk, filtered)| {
+                        if filtered {
+                          Some(chunk)
+                        } else {
+                          None
+                        }
                       }
-                    }
-                  ).copied().collect::<Vec<_>>()
+                    ).copied().collect::<Vec<_>>(),
+                )
               } else {
-                chunk_combination.iter().filter(|c| {
-                  cache_group.chunk_filter.test_internal(c, compilation)
-                }).copied().collect::<Vec<_>>()
+                SelectedChunks::Filtered(
+                  chunk_combination.iter().filter(|c| {
+                    cache_group.chunk_filter.test_internal(c, compilation)
+                  }).copied().collect::<Vec<_>>(),
+                )
               };
 
               // Filter by `splitChunks.cacheGroups.{cacheGroup}.minChunks`
@@ -474,15 +530,12 @@ impl SplitChunksPlugin {
               if selected_chunks.iter().any(|c| removed_module_chunks.get(mid).is_some_and(|chunks| chunks.contains(c))) {
                 continue;
               }
-              let selected_chunks_key = matches!(&cache_group.chunk_filter, ChunkFilter::All)
-                .then_some(chunk_combination.key);
               merge_matched_item_into_module_group_map(
                 MatchedItem {
                   module,
                   cache_group,
                   cache_group_index: *cache_group_index,
                   selected_chunks,
-                  selected_chunks_key,
                 },
                 module_group_map,
                 compilation,
@@ -605,18 +658,19 @@ async fn merge_matched_item_into_module_group_map(
     cache_group_index,
     cache_group,
     selected_chunks,
-    selected_chunks_key,
   } = matched_item;
 
   // `Module`s with the same chunk_name would be merged togother.
   // `Module`s could be in different `ModuleGroup`s.
+  let selected_chunks_for_name;
   let chunk_name = match &cache_group.name {
     ChunkNameGetter::String(name) => Some(name.clone()),
     ChunkNameGetter::Disabled => None,
     ChunkNameGetter::Fn(f) => {
+      selected_chunks_for_name = selected_chunks.iter().copied().collect::<Vec<_>>();
       let ctx = ChunkNameGetterFnCtx {
         module,
-        chunks: &selected_chunks,
+        chunks: &selected_chunks_for_name,
         cache_group_key: &cache_group.key,
         compilation,
       };
@@ -631,7 +685,8 @@ async fn merge_matched_item_into_module_group_map(
   } else {
     ModuleGroupKey::Anonymous {
       cache_group_index,
-      chunks_key: selected_chunks_key
+      chunks_key: selected_chunks
+        .key()
         .unwrap_or_else(|| get_key(selected_chunks.iter().copied(), chunk_index_map)),
     }
   };
