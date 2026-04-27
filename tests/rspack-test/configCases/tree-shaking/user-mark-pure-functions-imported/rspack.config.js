@@ -12,9 +12,9 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /decl\.js/,
+        test: /consumer\.js$/,
         parser: {
-          pureFunctions: ['notExistFunction'],
+          pureFunctions: ['libFn'],
         },
       },
     ],

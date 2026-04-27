@@ -197,7 +197,7 @@ Enables cross-module side-effect-free function call optimization, including the 
 
 For more background, see [pureFunctions](/guide/optimization/tree-shaking#purefunctions) and [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation).
 
-Use this option to turn on the capability itself. To manually mark exported functions in matched third-party modules, configure [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
+Use this option to turn on the capability itself. To manually mark identifiers in matched modules — exported functions in a third-party module, or imports/locals in your own files — configure [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
 
 ```js title="rspack.config.mjs"
 export default {
