@@ -57,25 +57,7 @@ impl RscEntryModule {
     is_server_side_rendering: bool,
   ) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
-    let mut server_css_modules = css_imports_per_server_entry
-      .iter()
-      .flat_map(|(server_entry, imports)| {
-        imports
-          .iter()
-          .map(move |request| format!("{server_entry}: {request}"))
-      })
-      .collect::<Vec<_>>();
-    server_css_modules.sort();
-    let identifier = ModuleIdentifier::from(format!(
-      "rsc entry ({}) [client: {}; server css: {}]",
-      name,
-      client_modules
-        .iter()
-        .map(|m| m.request.as_str())
-        .collect::<Vec<_>>()
-        .join(", "),
-      server_css_modules.join(", ")
-    ));
+    let identifier = ModuleIdentifier::from(format!("rsc entry ({})", &name));
     let layer = if is_server_side_rendering {
       Some(LAYERS_NAMES.server_side_rendering.to_string())
     } else {
