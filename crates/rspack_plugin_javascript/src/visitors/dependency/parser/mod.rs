@@ -410,10 +410,10 @@ impl<'parser> JavascriptParser<'parser> {
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
-    let warning_diagnostics: Vec<Diagnostic> = Vec::with_capacity(4);
-    let errors = Vec::with_capacity(4);
+    let warning_diagnostics: Vec<Diagnostic> = Vec::new();
+    let errors = Vec::new();
     let dependencies = Vec::with_capacity(64);
-    let blocks = Vec::with_capacity(64);
+    let blocks = Vec::new();
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 

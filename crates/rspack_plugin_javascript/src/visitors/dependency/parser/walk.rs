@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -1024,12 +1025,11 @@ impl JavascriptParser<'_> {
     }
 
     let rename_this = current_this.and_then(|this| get_var_name(self, this));
-    let variable_info_for_args = args
-      .map(|param| get_var_name(self, param))
-      .collect::<Vec<_>>();
+    let variable_info_for_args: SmallVec<[_; 4]> =
+      args.map(|param| get_var_name(self, param)).collect();
 
-    let mut params = Vec::new();
-    let mut scope_params = Vec::new();
+    let mut params = SmallVec::<[_; 4]>::new();
+    let mut scope_params = SmallVec::<[_; 4]>::new();
     if let Some(fn_expr) = expr.as_fn_expr() {
       let param_len = fn_expr.function.params.len();
       params.reserve(param_len);
@@ -1652,16 +1652,15 @@ impl JavascriptParser<'_> {
     }
 
     // TODO: define variable for class expression in block pre walk
-    let scope_params = if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
+    let mut scope_params = SmallVec::<[_; 1]>::new();
+    if let ClassDeclOrExpr::Expr(class_expr) = class_decl_or_expr
       && let Some(pat) = class_expr
         .ident
         .as_ref()
         .map(|ident| warp_ident_to_pat(ident.clone()))
     {
-      vec![Cow::Owned(pat)]
-    } else {
-      vec![]
-    };
+      scope_params.push(Cow::Owned(pat));
+    }
 
     self.in_class_scope(true, scope_params.into_iter(), |this| {
       for class_element in &classy.body {
