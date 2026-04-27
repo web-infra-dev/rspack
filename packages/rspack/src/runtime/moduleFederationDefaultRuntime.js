@@ -4,6 +4,7 @@ var __module_federation_bundler_runtime__,
   __module_federation_remote_infos__,
   __module_federation_container_name__,
   __module_federation_share_strategy__,
+  __module_federation_security_options__,
   __module_federation_share_fallbacks__,
   __module_federation_library_type__;
 export default function () {
@@ -118,6 +119,13 @@ export default function () {
       'shareStrategy',
       () => __module_federation_share_strategy__,
     );
+    if (__module_federation_security_options__) {
+      early(
+        __webpack_require__.federation.initOptions,
+        'security',
+        () => __module_federation_security_options__,
+      );
+    }
     early(__webpack_require__.federation.initOptions, 'shared', () => {
       const shared = {};
       for (let [scope, stages] of Object.entries(

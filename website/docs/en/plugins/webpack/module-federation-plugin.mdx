@@ -266,6 +266,45 @@ export default {
 };
 ```
 
+### security
+
+- Type:
+  ```ts
+  interface SecurityOptions {
+    allowedRemoteOrigins?: string[];
+  }
+  ```
+
+Restrict which remote entry origins can be loaded at runtime.
+
+If this option is not set, the existing loading behavior stays the same. Once `allowedRemoteOrigins` is configured, only matching network remote entry URLs can be loaded.
+
+`allowedRemoteOrigins` supports:
+
+- `'*'` to allow all origins
+- hostnames such as `localhost` or `cdn.example.com`
+- host + port values such as `cdn.example.com:8080`
+- exact origins such as `https://cdn.example.com`
+- regex literals such as `/^https:\\/\\/.*\\.example\\.com$/`
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      name: 'host',
+      remotes: {
+        remote: 'remote@https://cdn.example.com/remoteEntry.js',
+      },
+      security: {
+        allowedRemoteOrigins: ['cdn.example.com'],
+      },
+    }),
+  ],
+};
+```
+
 ## FAQ
 
 - Found non-downgraded syntax in the build output?

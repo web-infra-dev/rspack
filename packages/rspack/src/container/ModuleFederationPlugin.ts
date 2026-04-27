@@ -20,6 +20,11 @@ const require = createRequire(import.meta.url);
 
 declare const MF_RUNTIME_CODE: string;
 
+export interface ModuleFederationSecurityOptions {
+  allowedRemoteOrigins?: string[];
+  [key: string]: unknown;
+}
+
 export interface ModuleFederationPluginOptions extends Omit<
   ModuleFederationPluginV1Options,
   'enhanced'
@@ -33,6 +38,7 @@ export interface ModuleFederationPluginOptions extends Omit<
   treeShakingSharedExcludePlugins?: string[];
   treeShakingSharedPlugins?: string[];
   experiments?: ModuleFederationRuntimeExperimentsOptions;
+  security?: ModuleFederationSecurityOptions;
 }
 export type RuntimePlugins = string[] | [string, Record<string, unknown>][];
 
@@ -335,6 +341,11 @@ function getDefaultEntryRuntime(
     )}`,
     `const __module_federation_share_strategy__ = ${JSON.stringify(
       options.shareStrategy ?? 'version-first',
+    )}`,
+    `const __module_federation_security_options__ = ${JSON.stringify(
+      options.security
+        ? JSON.parse(JSON.stringify(options.security))
+        : undefined,
     )}`,
     `const __module_federation_share_fallbacks__ = ${JSON.stringify(
       treeShakingShareFallbacks,
