@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_collections::{IdentifierIndexSet, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{ModuleIdentifier, SourceType};
 
 use super::ModuleGroupMap;
@@ -8,22 +8,18 @@ use crate::{
 };
 
 pub trait ModulesContainer {
-  type Modules;
-
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes;
+  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes;
   fn get_source_types_modules(
     &self,
     source_types: &[SourceType],
     module_sizes: &ModuleSizes,
   ) -> IdentifierSet;
   fn remove_module(&mut self, module: ModuleIdentifier);
-  fn modules(&self) -> &Self::Modules;
+  fn modules(&self) -> &IdentifierSet;
 }
 
 impl ModulesContainer for ModuleGroup {
-  type Modules = IdentifierIndexSet;
-
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     ModuleGroup::get_sizes(self, module_sizes)
   }
 
@@ -39,7 +35,7 @@ impl ModulesContainer for ModuleGroup {
     ModuleGroup::remove_module(self, module);
   }
 
-  fn modules(&self) -> &IdentifierIndexSet {
+  fn modules(&self) -> &IdentifierSet {
     &self.modules
   }
 }
@@ -147,14 +143,19 @@ impl SplitChunksPlugin {
           module_group,
           cache_group,
           module_sizes,
-        ) || !Self::check_min_size_reduction(
-          &module_group.get_sizes(module_sizes),
-          &cache_group.min_size_reduction,
-          module_group.chunks.len(),
         ) {
           Some(module_group_key.clone())
         } else {
-          None
+          let chunks_len = module_group.chunks.len();
+          if !Self::check_min_size_reduction(
+            module_group.get_sizes(module_sizes),
+            &cache_group.min_size_reduction,
+            chunks_len,
+          ) {
+            Some(module_group_key.clone())
+          } else {
+            None
+          }
         }
       })
       .collect::<Vec<_>>();
