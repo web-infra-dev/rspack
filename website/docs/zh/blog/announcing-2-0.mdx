@@ -451,18 +451,6 @@ npm create rsbuild@latest
 
 Rspack 2.0 包含一些不兼容变更。对于现有项目，我们提供了 [升级指南](/guide/migration/rspack_1.x)，其中包含从 v1 升级到 v2 的所有不兼容变更，以及对应的迁移方式。
 
-还有一个容易忽略的不兼容变更：当 [`optimization.chunkIds`](/config/optimization#optimizationchunkids) 使用 `'deterministic'` 时（生产模式默认如此），`chunk.id` 现在会产出为数字而不是字符串。`stats.toJson({ chunks: true }).chunks[].id` 也有相同变化。
-
-```js
-// Rspack 1.x
-stats.toJson({ chunks: true }).chunks[0].id; // "123"
-
-// Rspack 2.0
-stats.toJson({ chunks: true }).chunks[0].id; // 123
-```
-
-如果你的自定义工具把 chunk id 当作字符串处理，建议先用 `String(chunk.id)` 做归一化。
-
 如果你正在使用支持 Skills 的 Coding Agent，可以安装下面的 Skill，让 Agent 协助完成迁移；这种方式通常比手动升级更高效。
 
 ```bash

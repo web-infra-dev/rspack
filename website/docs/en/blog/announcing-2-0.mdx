@@ -451,18 +451,6 @@ npm create rsbuild@latest
 
 Rspack 2.0 includes some breaking changes. For existing projects, we provide an [Upgrade Guide](/guide/migration/rspack_1.x) that covers all breaking changes from v1 to v2 and how to migrate them.
 
-One subtle breaking change to watch for is that when [`optimization.chunkIds`](/config/optimization#optimizationchunkids) uses `'deterministic'` (the default in production mode), `chunk.id` is now emitted as a number instead of a string. The same change also applies to `stats.toJson({ chunks: true }).chunks[].id`.
-
-```js
-// Rspack 1.x
-stats.toJson({ chunks: true }).chunks[0].id; // "123"
-
-// Rspack 2.0
-stats.toJson({ chunks: true }).chunks[0].id; // 123
-```
-
-If you have custom tooling that treats chunk IDs as strings, normalize them first with `String(chunk.id)`.
-
 If you use a coding agent that supports Skills, you can install the following Skill and let the agent help with the migration. In most cases, this is more efficient than upgrading manually.
 
 ```bash
