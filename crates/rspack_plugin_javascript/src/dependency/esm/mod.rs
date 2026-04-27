@@ -10,6 +10,7 @@ mod import_dependency;
 mod import_eager_dependency;
 mod import_meta_resolve_dependency;
 mod import_meta_resolve_header_dependency;
+mod import_weak_dependency;
 mod provide_dependency;
 
 use rspack_core::{DependencyCategory, ImportAttributes, ResourceIdentifier};
@@ -44,6 +45,7 @@ pub use self::{
   import_meta_resolve_header_dependency::{
     ImportMetaResolveHeaderDependency, ImportMetaResolveHeaderDependencyTemplate,
   },
+  import_weak_dependency::{ImportWeakDependency, ImportWeakDependencyTemplate},
   provide_dependency::{ProvideDependency, ProvideDependencyTemplate},
 };
 

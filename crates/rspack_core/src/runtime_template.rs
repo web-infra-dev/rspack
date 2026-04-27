@@ -846,7 +846,7 @@ impl ModuleCodeTemplate {
         self.module_id_expr(request, module_id)
       )
     } else if weak {
-      self.weak_error(request)
+      self.weak_error_expression(request)
     } else {
       self.missing_module(request)
     }
@@ -866,6 +866,27 @@ impl ModuleCodeTemplate {
   pub fn weak_error(&self, request: &str) -> String {
     format!(
       "var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;"
+    )
+  }
+
+  // Weak errors are embedded as statements, expressions, or promises depending on the
+  // runtime template position, aligned with webpack RuntimeTemplate.weakError:
+  // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/RuntimeTemplate.js#L461-L486
+  pub fn weak_error_expression(&self, request: &str) -> String {
+    format!("Object({}())", self.weak_error_function(request))
+  }
+
+  pub fn weak_error_promise(&self, request: &str) -> String {
+    format!(
+      "Promise.resolve().then({})",
+      self.weak_error_function(request)
+    )
+  }
+
+  pub fn weak_error_function(&self, request: &str) -> String {
+    format!(
+      "function __rspack_weak_module_error__() {{ {} }}",
+      self.weak_error(request)
     )
   }
 
@@ -1214,6 +1235,14 @@ impl ModuleCodeTemplate {
     let Some(target_module) = mg.get_module_by_dependency_id(dep_id) else {
       return self.missing_module_promise(request);
     };
+    // Match webpack's weak module without-id path in moduleNamespacePromise:
+    // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/RuntimeTemplate.js#L682-L692
+    if weak
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
+        .is_none()
+    {
+      return self.weak_error_promise(request);
+    }
 
     let promise = self.block_promise(block, compilation, message);
     let exports_type = get_exports_type(
