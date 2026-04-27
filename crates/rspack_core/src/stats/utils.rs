@@ -13,7 +13,8 @@ use super::{
 use crate::{
   BoxModule, BoxRuntimeModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey,
   ChunkGroupOrderKey, ChunkGroupUkey, CompilationAssets, Context, ModuleGraph, ModuleId,
-  ModuleIdsArtifact, SourceType, compare_chunks_iterables, rspack_sources::BoxSource,
+  ModuleIdsArtifact, SourceType, chunk_graph_chunk::ChunkId, compare_chunks_iterables,
+  rspack_sources::BoxSource,
 };
 
 pub fn get_asset_size(file: &str, assets: &CompilationAssets) -> usize {
@@ -164,14 +165,14 @@ pub fn get_chunk_group_children_by_orders(
   children_by_orders
 }
 
-pub fn get_chunk_child_ids_by_order(
+pub fn get_chunk_child_ids_by_order<'a>(
   chunk: &Chunk,
   order_key: &ChunkGroupOrderKey,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-  chunk_by_ukey: &ChunkByUkey,
+  chunk_by_ukey: &'a ChunkByUkey,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
-) -> Option<Vec<String>> {
+) -> Option<Vec<&'a ChunkId>> {
   let mut list = vec![];
   for group_ukey in chunk.get_sorted_groups_iter(chunk_group_by_ukey) {
     let group = chunk_group_by_ukey.expect_get(group_ukey);
@@ -210,8 +211,8 @@ pub fn get_chunk_child_ids_by_order(
   for (_, child_group_ukey) in list {
     let child_group = chunk_group_by_ukey.expect_get(&child_group_ukey);
     for chunk_ukey in child_group.chunks.iter() {
-      if let Some(chunk_id) = chunk_by_ukey.expect_get(chunk_ukey).id().cloned() {
-        chunk_ids.push(chunk_id.to_string());
+      if let Some(chunk_id) = chunk_by_ukey.expect_get(chunk_ukey).id() {
+        chunk_ids.push(chunk_id);
       }
     }
   }
@@ -227,7 +228,7 @@ pub fn get_chunk_relations<'a>(
   chunk: &Chunk,
   chunk_group_by_ukey: &'a ChunkGroupByUkey,
   chunk_by_ukey: &'a ChunkByUkey,
-) -> (Vec<&'a str>, Vec<&'a str>, Vec<&'a str>) {
+) -> (Vec<&'a ChunkId>, Vec<&'a ChunkId>, Vec<&'a ChunkId>) {
   let mut parents = HashSet::default();
   let mut children = HashSet::default();
   let mut siblings = HashSet::default();
@@ -240,7 +241,7 @@ pub fn get_chunk_relations<'a>(
             if let Some(c) = chunk_by_ukey.get(c)
               && let Some(id) = c.id()
             {
-              parents.insert(id.as_str());
+              parents.insert(id);
             }
           }
         }
@@ -252,7 +253,7 @@ pub fn get_chunk_relations<'a>(
             if let Some(c) = chunk_by_ukey.get(c)
               && let Some(id) = c.id()
             {
-              children.insert(id.as_str());
+              children.insert(id);
             }
           }
         }
@@ -263,7 +264,7 @@ pub fn get_chunk_relations<'a>(
           && c.id() != chunk.id()
           && let Some(id) = c.id()
         {
-          siblings.insert(id.as_str());
+          siblings.insert(id);
         }
       }
     }

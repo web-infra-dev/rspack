@@ -3,7 +3,7 @@
 use std::{
   collections::VecDeque,
   fmt,
-  hash::{BuildHasherDefault, Hash},
+  hash::{BuildHasherDefault, Hash, Hasher},
 };
 
 use hashlink::LinkedHashMap;
@@ -37,24 +37,60 @@ pub type IndexChunkIdMap<V> = IndexMap<ChunkId, V, BuildHasherDefault<Identifier
 pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<IdentifierHasher>>;
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChunkId(#[cacheable(with=AsPreset)] Ustr);
+#[derive(Debug, Clone)]
+pub struct ChunkId {
+  #[cacheable(with=AsPreset)]
+  value: Ustr,
+  numeric: bool,
+}
 
 impl From<String> for ChunkId {
   fn from(s: String) -> Self {
-    Self(s.into())
+    Self {
+      value: s.into(),
+      numeric: false,
+    }
   }
 }
 
 impl From<&str> for ChunkId {
   fn from(s: &str) -> Self {
-    Self(s.into())
+    Self {
+      value: s.into(),
+      numeric: false,
+    }
+  }
+}
+
+impl PartialEq for ChunkId {
+  fn eq(&self, other: &Self) -> bool {
+    self.value == other.value
+  }
+}
+
+impl Eq for ChunkId {}
+
+impl PartialOrd for ChunkId {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl Ord for ChunkId {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    self.value.cmp(&other.value)
+  }
+}
+
+impl Hash for ChunkId {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.value.hash(state);
   }
 }
 
 impl fmt::Display for ChunkId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.0)
+    write!(f, "{}", self.value)
   }
 }
 
@@ -66,18 +102,29 @@ impl Serialize for ChunkId {
     if let Some(n) = self.as_number() {
       serializer.serialize_u32(n)
     } else {
-      serializer.serialize_str(self.0.as_str())
+      serializer.serialize_str(self.value.as_str())
     }
   }
 }
 
 impl ChunkId {
+  pub fn from_number(id: u32) -> Self {
+    Self {
+      value: id.to_string().into(),
+      numeric: true,
+    }
+  }
+
   pub fn as_number(&self) -> Option<u32> {
-    rspack_util::numeric_id_value(self.0.as_str())
+    if self.numeric {
+      rspack_util::numeric_id_value(self.value.as_str())
+    } else {
+      None
+    }
   }
 
   pub fn as_str(&self) -> &str {
-    self.0.as_str()
+    self.value.as_str()
   }
 }
 

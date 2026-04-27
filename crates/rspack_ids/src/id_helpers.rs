@@ -13,7 +13,7 @@ use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkNamedIdArtifact, ChunkUkey, Compilation, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, SideEffectsStateArtifact,
-  compare_runtime,
+  chunk_graph_chunk::ChunkId, compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -469,7 +469,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], chunk_by_ukey: &mut Chun
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.set_id(next_id.to_string());
+        chunk.set_id(ChunkId::from_number(next_id));
         next_id += 1;
       }
     }

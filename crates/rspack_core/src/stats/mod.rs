@@ -387,10 +387,7 @@ impl Stats<'_> {
     }
     assets.par_iter_mut().for_each(|(name, asset)| {
       if let Some(chunks) = compilation_file_to_chunks.get(name) {
-        asset.chunks = chunks
-          .par_iter()
-          .map(|chunk| chunk.id().map(|id| id.as_str()))
-          .collect();
+        asset.chunks = chunks.par_iter().map(|chunk| chunk.id()).collect();
         asset.chunks.sort_unstable();
         asset.chunk_names = chunks
           .par_iter()
@@ -413,7 +410,7 @@ impl Stats<'_> {
       if let Some(auxiliary_chunks) = compilation_file_to_auxiliary_chunks.get(name) {
         asset.auxiliary_chunks = auxiliary_chunks
           .par_iter()
-          .map(|chunk| chunk.id().map(|id| id.as_str()))
+          .map(|chunk| chunk.id())
           .collect();
         asset.auxiliary_chunks.sort_unstable();
         asset.auxiliary_chunk_names = auxiliary_chunks
@@ -674,7 +671,7 @@ impl Stats<'_> {
             (Some(parents), Some(children), Some(siblings))
           });
 
-        let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<String>>::default();
+        let mut children_by_order = HashMap::<ChunkGroupOrderKey, Vec<_>>::default();
         for order in &orders {
           if let Some(order_children) = get_chunk_child_ids_by_order(
             c,
@@ -734,7 +731,7 @@ impl Stats<'_> {
           r#type: "chunk",
           files,
           auxiliary_files,
-          id: c.id().map(|id| id.as_str()),
+          id: c.id(),
           id_hints,
           names: c.name().map(|n| vec![n]).unwrap_or_default(),
           entry: c.has_entry_module(chunk_graph),
@@ -790,7 +787,7 @@ impl Stats<'_> {
       .build_chunk_graph_artifact()
       .chunk_group_by_ukey
       .expect_get(ukey);
-    let chunks: Vec<&'a str> = cg
+    let chunks: Vec<_> = cg
       .chunks
       .iter()
       .filter_map(|c| {
@@ -799,7 +796,6 @@ impl Stats<'_> {
           .chunk_by_ukey
           .expect_get(c)
           .id()
-          .map(|id| id.as_str())
       })
       .collect();
 
@@ -1305,7 +1301,7 @@ impl Stats<'_> {
       };
       stats.issuer_id = issuer_id.flatten();
 
-      let mut chunks: Vec<&str> = if executed {
+      let mut chunks: Vec<_> = if executed {
         vec![]
       } else {
         self
@@ -1322,7 +1318,6 @@ impl Stats<'_> {
                   .chunk_by_ukey
                   .expect_get(k)
                   .id()
-                  .map(|id| id.as_str())
               })
               .collect::<Vec<_>>()
           })
@@ -1617,7 +1612,7 @@ impl Stats<'_> {
     module: &'a BoxRuntimeModule,
     options: &ExtendedStatsOptions,
   ) -> Result<StatsModule<'a>> {
-    let mut chunks: Vec<&str> = self
+    let mut chunks: Vec<_> = self
       .build_chunk_graph_artifact()
       .chunk_graph
       .get_module_chunks(*identifier)
@@ -1628,7 +1623,6 @@ impl Stats<'_> {
           .chunk_by_ukey
           .expect_get(k)
           .id()
-          .map(|id| id.as_str())
       })
       .collect();
     chunks.sort_unstable();

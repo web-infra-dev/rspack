@@ -116,7 +116,7 @@ export type KnownStatsModule = {
   orphan?: boolean;
   id?: string | number | null;
   issuerId?: string | number | null;
-  chunks?: string[];
+  chunks?: (string | number)[];
   assets?: string[];
   dependent?: boolean;
   issuer?: string;

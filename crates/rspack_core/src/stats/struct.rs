@@ -5,7 +5,10 @@ use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{ChunkGroupOrderKey, ModuleId, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType};
+use crate::{
+  ChunkGroupOrderKey, ModuleId, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
+  chunk_graph_chunk::ChunkId,
+};
 
 pub enum EntrypointsStatsOption {
   Bool(bool),
@@ -111,14 +114,14 @@ pub struct StatsAsset<'a> {
   pub r#type: &'static str,
   pub name: &'a str,
   pub size: f64,
-  pub chunks: Vec<Option<&'a str>>,
+  pub chunks: Vec<Option<&'a ChunkId>>,
   pub chunk_names: Vec<&'a str>,
   pub chunk_id_hints: Vec<&'a str>,
   pub info: StatsAssetInfo<'a>,
   pub emitted: bool,
   pub auxiliary_chunk_names: Vec<&'a str>,
   pub auxiliary_chunk_id_hints: Vec<&'a str>,
-  pub auxiliary_chunks: Vec<Option<&'a str>>,
+  pub auxiliary_chunks: Vec<Option<&'a ChunkId>>,
 }
 
 #[derive(Debug)]
@@ -158,7 +161,7 @@ pub struct StatsModule<'a> {
   pub name: Option<Cow<'a, str>>,
   pub name_for_condition: Option<String>,
   pub id: Option<ModuleId>,
-  pub chunks: Option<Vec<&'a str>>, // has id after the call of chunkIds hook
+  pub chunks: Option<Vec<&'a ChunkId>>, // has id after the call of chunkIds hook
   pub size: f64,
   pub sizes: Vec<StatsSourceTypeSize>,
   pub dependent: Option<bool>,
@@ -216,16 +219,16 @@ pub struct StatsChunk<'a> {
   pub r#type: &'static str,
   pub files: Vec<&'a str>,
   pub auxiliary_files: Vec<&'a str>,
-  pub id: Option<&'a str>,
+  pub id: Option<&'a ChunkId>,
   pub entry: bool,
   pub initial: bool,
   pub names: Vec<&'a str>,
   pub size: f64,
   pub modules: Option<Vec<StatsModule<'a>>>,
-  pub parents: Option<Vec<&'a str>>,
-  pub children: Option<Vec<&'a str>>,
-  pub siblings: Option<Vec<&'a str>>,
-  pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<String>>,
+  pub parents: Option<Vec<&'a ChunkId>>,
+  pub children: Option<Vec<&'a ChunkId>>,
+  pub siblings: Option<Vec<&'a ChunkId>>,
+  pub children_by_order: HashMap<ChunkGroupOrderKey, Vec<&'a ChunkId>>,
   pub runtime: &'a RuntimeSpec,
   pub sizes: HashMap<SourceType, f64>,
   pub reason: Option<&'a str>,
@@ -244,7 +247,7 @@ pub struct StatsChunkGroupAsset<'a> {
 #[derive(Debug)]
 pub struct StatsChunkGroup<'a> {
   pub name: &'a str,
-  pub chunks: Vec<&'a str>,
+  pub chunks: Vec<&'a ChunkId>,
   pub assets: Vec<StatsChunkGroupAsset<'a>>,
   pub assets_size: usize,
   pub auxiliary_assets: Option<Vec<StatsChunkGroupAsset<'a>>>,

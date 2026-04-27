@@ -1471,7 +1471,7 @@ export interface JsStatsModuleCommonAttributes {
   failed?: boolean
   errors?: number
   warnings?: number
-  chunks?: Array<string>
+  chunks?: Array<string | number> | undefined
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
   providedExports?: Array<string>

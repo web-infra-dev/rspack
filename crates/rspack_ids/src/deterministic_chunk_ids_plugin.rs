@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
+  ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, chunk_graph_chunk::ChunkId,
+  incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -125,7 +126,9 @@ async fn chunk_ids(
 
   for (chunk_ukey, id) in chunk_key_to_id {
     let chunk = chunk_by_ukey.expect_get_mut(&chunk_ukey);
-    chunk.set_id(id.to_string());
+    chunk.set_id(ChunkId::from_number(
+      u32::try_from(id).expect("deterministic chunk id should fit in u32"),
+    ));
   }
 
   Ok(())

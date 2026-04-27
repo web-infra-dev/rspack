@@ -553,7 +553,12 @@ const SORTERS: Record<
 > = {
   'compilation.chunks': {
     _: (comparators) => {
-      comparators.push(compareSelect((c: StatsChunk) => c.id, compareIds));
+      comparators.push(
+        compareSelect(
+          (c: StatsChunk) => (c.id === undefined ? undefined : String(c.id)),
+          compareIds,
+        ),
+      );
     },
   },
   'compilation.modules': MODULES_SORTER,
