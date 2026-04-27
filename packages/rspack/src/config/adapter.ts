@@ -542,6 +542,12 @@ function getRawParserOptions(
       cssModule: getRawCssParserOptions(parser),
     };
   }
+  if (type === 'css/global') {
+    return {
+      type: 'css/global',
+      cssGlobal: getRawCssParserOptions(parser),
+    };
+  }
 
   if (type === 'json') {
     return {
@@ -694,6 +700,12 @@ function getRawGeneratorOptions(
     return {
       type: 'css/module',
       cssModule: getRawCssAutoOrModuleGeneratorOptions(generator),
+    };
+  }
+  if (type === 'css/global') {
+    return {
+      type: 'css/global',
+      cssGlobal: getRawCssGeneratorOptions(generator),
     };
   }
   if (type === 'json') {

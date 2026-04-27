@@ -191,12 +191,13 @@ pub struct RawModuleRule {
 #[napi(object, object_to_js = false)]
 pub struct RawParserOptions {
   #[napi(
-    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json""#
+    ts_type = r#""asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json""#
   )]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
   pub css: Option<RawCssParserOptions>,
   pub css_auto: Option<RawCssAutoParserOptions>,
+  pub css_global: Option<RawCssParserOptions>,
   pub css_module: Option<RawCssModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
   pub json: Option<RawJsonParserOptions>,
@@ -247,6 +248,12 @@ impl From<RawParserOptions> for ParserOptions {
         value
           .css_auto
           .expect("should have an \"css_auto\" when RawParserOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/global" => Self::Css(
+        value
+          .css_global
+          .expect("should have an \"css_global\" when RawParserOptions.type is \"css/global\"")
           .into(),
       ),
       "css/module" => Self::CssModule(
@@ -606,7 +613,7 @@ impl From<RawJsonParserOptions> for JsonParserOptions {
 #[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
   #[napi(
-    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json""#
+    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/global" | "css/module" | "json""#
   )]
   pub r#type: String,
   pub asset: Option<RawAssetGeneratorOptions>,
@@ -614,6 +621,7 @@ pub struct RawGeneratorOptions {
   pub asset_resource: Option<RawAssetResourceGeneratorOptions>,
   pub css: Option<RawCssGeneratorOptions>,
   pub css_auto: Option<RawCssAutoGeneratorOptions>,
+  pub css_global: Option<RawCssGeneratorOptions>,
   pub css_module: Option<RawCssModuleGeneratorOptions>,
   pub json: Option<RawJsonGeneratorOptions>,
 }
@@ -653,6 +661,12 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
         value
           .css_auto
           .expect("should have an \"css_auto\" when RawGeneratorOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/global" => Self::Css(
+        value
+          .css_global
+          .expect("should have an \"css_global\" when RawGeneratorOptions.type is \"css/global\"")
           .into(),
       ),
       "css/module" => Self::CssModule(
