@@ -18,7 +18,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  component_info::{ClientComponentImports, collect_component_info_from_entry_dependency},
+  component_info::{
+    ClientComponentImports, ImportMetaRscImporters, collect_component_info_from_entry_dependency,
+  },
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
   hot_reloader::track_server_component_changes,
@@ -42,6 +44,7 @@ struct ClientEntry {
   client_imports: ClientComponentImports,
   css_imports_by_server_entry: CssImportsByServerEntry,
   root_css_imports: RootCssImports,
+  import_meta_rsc_importers: ImportMetaRscImporters,
 }
 
 #[derive(Debug)]
@@ -259,6 +262,7 @@ impl RscServerPlugin {
       if !component_info.client_component_imports.is_empty()
         || !component_info.css_imports_by_server_entry.is_empty()
         || !component_info.root_css_imports.is_empty()
+        || !component_info.import_meta_rsc_importers.is_empty()
       {
         client_entries_to_inject.push(ClientEntry {
           entry_name: entry_name.clone(),
@@ -266,6 +270,7 @@ impl RscServerPlugin {
           client_imports: component_info.client_component_imports,
           css_imports_by_server_entry: component_info.css_imports_by_server_entry,
           root_css_imports: component_info.root_css_imports,
+          import_meta_rsc_importers: component_info.import_meta_rsc_importers,
         });
       }
 
@@ -461,6 +466,7 @@ impl RscServerPlugin {
       client_imports,
       css_imports_by_server_entry,
       root_css_imports,
+      import_meta_rsc_importers,
     } = client_entry;
 
     let client_entries = {
@@ -473,6 +479,14 @@ impl RscServerPlugin {
           .or_default()
           .css_imports
           .extend(css_imports);
+      }
+      for (server_entry, importers) in import_meta_rsc_importers {
+        entry_state
+          .server_entries
+          .entry(server_entry)
+          .or_default()
+          .import_meta_rsc_importers
+          .extend(importers);
       }
       entry_state.root_css_imports.extend(root_css_imports);
 
