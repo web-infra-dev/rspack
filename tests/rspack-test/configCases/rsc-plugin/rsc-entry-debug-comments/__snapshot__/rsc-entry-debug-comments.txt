@@ -10,7 +10,7 @@ client
 "use strict";
 /*!
  * module: ./src/App.css
- * import: import()
+ * import: server-entry css (./src/App.js)
  * exports: side-effect
  */
 /*!
