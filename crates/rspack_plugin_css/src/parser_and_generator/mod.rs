@@ -8,7 +8,7 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, CssParserImport,
+  ChunkGraph, Compilation, ConstDependency, CssExportType, CssExportsConvention, CssParserImport,
   CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
   GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
   ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
@@ -75,12 +75,18 @@ pub struct CssParserAndGenerator {
   pub url: bool,
   pub resolve_import: CssParserImport,
   pub hot: bool,
+  pub export_type: Option<CssExportType>,
 }
 
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+    // 如果 export_type 是 style，我们只返回 JavaScript
+    if matches!(self.export_type, Some(CssExportType::Style)) {
+      return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
+    }
+
     if self.exports_only {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
@@ -615,105 +621,278 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::JavaScript => {
         let with_hmr = self.hot;
         let build_info = module.build_info();
-        let exports = if generate_context.concatenation_scope.is_some() {
-          // currently this is dead branch, as css module will never be concatenated expect exportsOnly
-          let mut concate_source = ConcatSource::default();
-          if let Some(ref exports) = build_info.css_exports {
-            let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
-            if let Some(local_names) = &build_info.css_local_names {
-              let unused_exports = get_unused_local_ident(
+
+        // 首先检查是否是 style export_type
+        if matches!(self.export_type, Some(CssExportType::Style)) {
+          let mut concat_source = ConcatSource::default();
+
+          // 处理 CSS 依赖并获取最终的 CSS 内容
+          let mut source = ReplaceSource::new(source.clone());
+          let compilation = generate_context.compilation;
+          let mut init_fragments = ModuleInitFragments::default();
+          let mut context = TemplateContext {
+            compilation,
+            module,
+            runtime: generate_context.runtime,
+            init_fragments: &mut init_fragments,
+            concatenation_scope: generate_context.concatenation_scope.take(),
+            data: generate_context.data,
+            runtime_template: generate_context.runtime_template,
+          };
+
+          let module_graph = compilation.get_module_graph();
+          module.get_dependencies().iter().for_each(|id| {
+            let dep = module_graph.dependency_by_id(id);
+
+            if let Some(dependency) = dep.as_dependency_code_generation() {
+              if let Some(template) = dependency
+                .dependency_template()
+                .and_then(|template_type| compilation.get_dependency_template(template_type))
+              {
+                template.render(dependency, &mut source, &mut context)
+              }
+            }
+          });
+
+          generate_context.concatenation_scope = context.concatenation_scope.take();
+
+          // 获取处理后的 CSS 文本
+          let css_source = source.boxed();
+          let css_text = css_source.source().into_string_lossy();
+
+          // 转义 CSS 用于 JavaScript 字符串
+          let css_js_string =
+            serde_json::to_string(&css_text).map_err(|e| rspack_error::error!("{}", e))?;
+
+          // 添加 CSS_INJECT_STYLE 运行时要求
+          generate_context
+            .runtime_template
+            .runtime_requirements_mut()
+            .insert(RuntimeGlobals::CSS_INJECT_STYLE);
+
+          // 获取模块 ID
+          let module_id = ChunkGraph::get_module_id(
+            &generate_context.compilation.module_ids_artifact,
+            module.identifier(),
+          )
+          .map(|id| id.to_string())
+          .unwrap_or_default();
+
+          // 生成注入调用
+          let css_inject_call = format!(
+            "{}({}, {});\n",
+            generate_context
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE),
+            serde_json::to_string(&module_id).map_err(|e| rspack_error::error!("{}", e))?,
+            css_js_string
+          );
+          concat_source.add(RawStringSource::from(css_inject_call));
+
+          // 处理常规导出
+          let exports_str = if generate_context.concatenation_scope.is_some() {
+            // currently this is dead branch, as css module will never be concatenated expect exportsOnly
+            let mut concate_source = ConcatSource::default();
+            if let Some(ref exports) = build_info.css_exports {
+              let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
+              if let Some(local_names) = &build_info.css_local_names {
+                let unused_exports = get_unused_local_ident(
+                  exports,
+                  local_names,
+                  module.identifier(),
+                  generate_context.runtime,
+                  exports_info_artifact,
+                );
+                generate_context.data.insert(unused_exports);
+              }
+              let exports = get_used_exports(
                 exports,
-                local_names,
                 module.identifier(),
                 generate_context.runtime,
                 exports_info_artifact,
               );
-              generate_context.data.insert(unused_exports);
-            }
-            let exports = get_used_exports(
-              exports,
-              module.identifier(),
-              generate_context.runtime,
-              exports_info_artifact,
-            );
 
-            css_modules_exports_to_concatenate_module_string(
-              exports,
-              module,
-              generate_context,
-              &mut concate_source,
-            )?;
-          }
-          return Ok(concate_source.boxed());
-        } else {
-          let exports_info = generate_context
-            .compilation
-            .exports_info_artifact
-            .get_exports_info_data(&module.identifier());
-          let (ns_obj, left, right) = if self.es_module
-            && exports_info
-              .other_exports_info()
-              .get_used(generate_context.runtime)
-              != UsageState::Unused
-          {
-            (
-              generate_context
-                .runtime_template
-                .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-              "(".to_string(),
-              ")".to_string(),
-            )
-          } else {
-            (String::new(), String::new(), String::new())
-          };
-          if let Some(exports) = &build_info.css_exports {
-            if let Some(local_names) = &build_info.css_local_names {
-              let unused_exports = get_unused_local_ident(
+              css_modules_exports_to_concatenate_module_string(
                 exports,
-                local_names,
+                module,
+                generate_context,
+                &mut concate_source,
+              )?;
+            }
+            concate_source.boxed()
+          } else {
+            let exports_info = generate_context
+              .compilation
+              .exports_info_artifact
+              .get_exports_info_data(&module.identifier());
+            let (ns_obj, left, right) = if self.es_module
+              && exports_info
+                .other_exports_info()
+                .get_used(generate_context.runtime)
+                != UsageState::Unused
+            {
+              (
+                generate_context
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+                "(".to_string(),
+                ")".to_string(),
+              )
+            } else {
+              (String::new(), String::new(), String::new())
+            };
+            let exports = if let Some(exports) = &build_info.css_exports {
+              if let Some(local_names) = &build_info.css_local_names {
+                let unused_exports = get_unused_local_ident(
+                  exports,
+                  local_names,
+                  module.identifier(),
+                  generate_context.runtime,
+                  &generate_context.compilation.exports_info_artifact,
+                );
+                generate_context.data.insert(unused_exports);
+              }
+
+              let exports = get_used_exports(
+                exports,
                 module.identifier(),
                 generate_context.runtime,
                 &generate_context.compilation.exports_info_artifact,
               );
-              generate_context.data.insert(unused_exports);
-            }
 
-            let exports = get_used_exports(
-              exports,
-              module.identifier(),
-              generate_context.runtime,
-              &generate_context.compilation.exports_info_artifact,
-            );
-
-            css_modules_exports_to_string(
-              exports,
-              module,
-              generate_context.compilation,
-              generate_context.runtime,
-              generate_context.runtime_template,
-              &ns_obj,
-              &left,
-              &right,
-              with_hmr,
-            )?
-          } else {
-            let module_argument = generate_context
-              .runtime_template
-              .render_module_argument(ModuleArgument::Module);
-            format!(
-              "{}{}{module_argument}.exports = {{}}{};\n{}",
-              &ns_obj,
-              &left,
-              &right,
-              if with_hmr {
-                format!("{module_argument}.hot.accept();\n")
-              } else {
-                Default::default()
+              css_modules_exports_to_string(
+                exports,
+                module,
+                generate_context.compilation,
+                generate_context.runtime,
+                generate_context.runtime_template,
+                &ns_obj,
+                &left,
+                &right,
+                with_hmr,
+              )?
+            } else {
+              let module_argument = generate_context
+                .runtime_template
+                .render_module_argument(ModuleArgument::Module);
+              format!(
+                "{}{}{module_argument}.exports = {{}}{};\n{}",
+                &ns_obj,
+                &left,
+                &right,
+                if with_hmr {
+                  format!("{module_argument}.hot.accept();\n")
+                } else {
+                  Default::default()
+                }
+              )
+            };
+            RawStringSource::from(exports).boxed()
+          };
+          concat_source.add(exports_str);
+          Ok(concat_source.boxed())
+        } else {
+          // 原有的常规处理逻辑
+          let exports = if generate_context.concatenation_scope.is_some() {
+            let mut concate_source = ConcatSource::default();
+            if let Some(ref exports) = build_info.css_exports {
+              let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
+              if let Some(local_names) = &build_info.css_local_names {
+                let unused_exports = get_unused_local_ident(
+                  exports,
+                  local_names,
+                  module.identifier(),
+                  generate_context.runtime,
+                  exports_info_artifact,
+                );
+                generate_context.data.insert(unused_exports);
               }
-            )
-          }
-        };
-        Ok(RawStringSource::from(exports).boxed())
+              let exports = get_used_exports(
+                exports,
+                module.identifier(),
+                generate_context.runtime,
+                exports_info_artifact,
+              );
+
+              css_modules_exports_to_concatenate_module_string(
+                exports,
+                module,
+                generate_context,
+                &mut concate_source,
+              )?;
+            }
+            concate_source.boxed()
+          } else {
+            let exports_info = generate_context
+              .compilation
+              .exports_info_artifact
+              .get_exports_info_data(&module.identifier());
+            let (ns_obj, left, right) = if self.es_module
+              && exports_info
+                .other_exports_info()
+                .get_used(generate_context.runtime)
+                != UsageState::Unused
+            {
+              (
+                generate_context
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+                "(".to_string(),
+                ")".to_string(),
+              )
+            } else {
+              (String::new(), String::new(), String::new())
+            };
+            let exports_str = if let Some(exports) = &build_info.css_exports {
+              if let Some(local_names) = &build_info.css_local_names {
+                let unused_exports = get_unused_local_ident(
+                  exports,
+                  local_names,
+                  module.identifier(),
+                  generate_context.runtime,
+                  &generate_context.compilation.exports_info_artifact,
+                );
+                generate_context.data.insert(unused_exports);
+              }
+
+              let exports = get_used_exports(
+                exports,
+                module.identifier(),
+                generate_context.runtime,
+                &generate_context.compilation.exports_info_artifact,
+              );
+
+              css_modules_exports_to_string(
+                exports,
+                module,
+                generate_context.compilation,
+                generate_context.runtime,
+                generate_context.runtime_template,
+                &ns_obj,
+                &left,
+                &right,
+                with_hmr,
+              )?
+            } else {
+              let module_argument = generate_context
+                .runtime_template
+                .render_module_argument(ModuleArgument::Module);
+              format!(
+                "{}{}{module_argument}.exports = {{}}{};\n{}",
+                &ns_obj,
+                &left,
+                &right,
+                if with_hmr {
+                  format!("{module_argument}.hot.accept();\n")
+                } else {
+                  Default::default()
+                }
+              )
+            };
+            RawStringSource::from(exports_str).boxed()
+          };
+          Ok(exports)
+        }
       }
       _ => panic!(
         "Unsupported source type: {:?}",

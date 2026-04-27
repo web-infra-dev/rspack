@@ -277,6 +277,8 @@ define_runtime_globals! {
 
   const HAS_CSS_MODULES;
 
+  const CSS_INJECT_STYLE;
+
   // rspack only
   const RSPACK_UNIQUE_ID;
 
@@ -469,6 +471,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::RSPACK_VERSION => "rv",
     RuntimeGlobals::RSPACK_UNIQUE_ID => "ruid",
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules",
+    RuntimeGlobals::CSS_INJECT_STYLE => "is",
     RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
 

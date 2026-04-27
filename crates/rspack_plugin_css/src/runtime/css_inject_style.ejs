@@ -1,0 +1,63 @@
+var dataWebpackPrefix = <%- _unique_name ? JSON.stringify(_unique_name + ":") : '"rspack:"' %>;
+
+function getDataWebpackId(identifier) {
+	return dataWebpackPrefix + identifier;
+}
+
+function applyStyle(styleElement, css) {
+	styleElement.textContent = css;
+}
+
+function removeStyleElement(styleElement) {
+	if (styleElement.parentNode) {
+		styleElement.parentNode.removeChild(styleElement);
+	}
+}
+
+function findStyleElement(identifier) {
+	var elements = document.getElementsByTagName("style");
+	for (var i = 0; i < elements.length; i++) {
+		var el = elements[i];
+		if (el.getAttribute("data-rspack") == getDataWebpackId(identifier)) {
+			return el;
+		}
+	}
+	return null;
+}
+
+function insertStyleElement(key) {
+	<%- _create_style %>
+	document.head.appendChild(style);
+	return style;
+}
+
+<%- _css_inject_style %> = <%- basicFunction("identifier, css") %> {
+	var element = findStyleElement(identifier);
+	if (element) {
+		applyStyle(element, css);
+	} else {
+		var element = insertStyleElement(identifier);
+		applyStyle(element, css);
+	}
+};
+
+<%- _css_inject_style %>.removeModules = <%- basicFunction("removedModules") %> {
+	if (!removedModules) return;
+	var identifiers = Array.isArray(removedModules) ? removedModules : [removedModules];
+	for (var i = 0; i < identifiers.length; i++) {
+		var identifier = identifiers[i];
+		var element = findStyleElement(identifier);
+		if (element) {
+			removeStyleElement(element);
+		}
+	}
+};
+<% if (_with_hmr) { -%>
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.cssInjectStyle = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
+	if (removedModules) {
+		<%- _css_inject_style %>.removeModules(removedModules);
+	}
+};
+<% } else { -%>
+// no css inject style HMR download handler
+<% } %>

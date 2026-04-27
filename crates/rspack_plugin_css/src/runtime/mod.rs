@@ -21,6 +21,7 @@ static CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE: &str =
 static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str = include_str!("./css_loading_with_preload.ejs");
 static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("./css_loading_with_preload_link.ejs");
+static CSS_INJECT_STYLE_TEMPLATE: &str = include_str!("./css_inject_style.ejs");
 
 static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_TEMPLATE));
@@ -38,6 +39,8 @@ static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
     extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_TEMPLATE)
       | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
   });
+static CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_INJECT_STYLE_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -391,4 +394,96 @@ installedChunks[chunkId] = 0;
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
+}
+
+#[impl_runtime_module]
+#[derive(Debug)]
+pub struct CssInjectStyleRuntimeModule {}
+
+impl CssInjectStyleRuntimeModule {
+  pub fn get_runtime_requirements() -> RuntimeGlobals {
+    *CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
+  }
+
+  fn template_id(&self, id: CssInjectStyleTemplateId) -> String {
+    let base_id = self.id.to_string();
+    match id {
+      CssInjectStyleTemplateId::Raw => base_id,
+    }
+  }
+}
+
+enum CssInjectStyleTemplateId {
+  Raw,
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for CssInjectStyleRuntimeModule {
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.template_id(CssInjectStyleTemplateId::Raw),
+      CSS_INJECT_STYLE_TEMPLATE.to_string(),
+    )]
+  }
+
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
+    let chunk_ukey = self
+      .chunk
+      .expect("should attach chunk for css_inject_style");
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    let unique_name = &compilation.options.output.unique_name;
+    let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+    let create_style_element_code = {
+      let mut code = String::new();
+      code.push_str("var style = document.createElement(\"style\");\n");
+      if runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE) {
+        code.push_str(&format!(
+          "if ({}) {{\n  style.setAttribute(\"nonce\", {});\n}}\n",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
+        ));
+      }
+      code.push_str("style.setAttribute(\"data-rspack\", getDataWebpackId(key));");
+      code
+    };
+
+    let css_inject_style =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE);
+    let hmr_download_update_handlers =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+
+    let source = context.runtime_template.render(
+      &self.template_id(CssInjectStyleTemplateId::Raw),
+      Some(serde_json::json!({
+        "_unique_name": unique_name,
+        "_create_style": &create_style_element_code,
+        "_css_inject_style": &css_inject_style,
+        "_with_hmr": with_hmr,
+        "HMR_DOWNLOAD_UPDATE_HANDLERS": &hmr_download_update_handlers,
+      })),
+    )?;
+
+    Ok(source)
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+}
+
+pub mod css_inject_style {
+  pub use super::CssInjectStyleRuntimeModule;
+}
+pub mod css_loading {
+  pub use super::CssLoadingRuntimeModule;
 }

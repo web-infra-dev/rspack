@@ -33,7 +33,7 @@ use crate::{
   },
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
-  runtime::CssLoadingRuntimeModule,
+  runtime::{CssInjectStyleRuntimeModule, CssLoadingRuntimeModule},
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
 };
 
@@ -362,6 +362,15 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_with_hmr());
   }
 
+  // 处理 CSS_INJECT_STYLE 运行时需求
+  if runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      CssInjectStyleRuntimeModule::new(&compilation.runtime_template).boxed(),
+    ));
+    runtime_requirements_mut.extend(CssInjectStyleRuntimeModule::get_runtime_requirements());
+  }
+
   Ok(None)
 }
 
@@ -534,6 +543,7 @@ impl Plugin for CssPlugin {
           hot: false,
           url: p.url.expect("should have url"),
           resolve_import: p.resolve_import.clone().unwrap_or_default(),
+          export_type: None,
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -555,6 +565,7 @@ impl Plugin for CssPlugin {
           hot: false,
           url: p.url.expect("should have url"),
           resolve_import: p.resolve_import.clone().unwrap_or_default(),
+          export_type: None,
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -583,6 +594,7 @@ impl Plugin for CssPlugin {
           hot: false,
           url: p.url.expect("should have url"),
           resolve_import: p.resolve_import.clone().unwrap_or_default(),
+          export_type: g.export_type,
         }) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -611,6 +623,7 @@ impl Plugin for CssPlugin {
           hot: false,
           url: p.url.expect("should have url"),
           resolve_import: p.resolve_import.clone().unwrap_or_default(),
+          export_type: g.export_type,
         }) as Box<dyn ParserAndGenerator>
       }),
     );
