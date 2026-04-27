@@ -280,8 +280,8 @@ pub fn to_static(
   stylesheet: StyleSheet,
   options: ParserOptions<'static, 'static>,
 ) -> StyleSheet<'static, 'static> {
-  let sources = stylesheet.sources.clone();
-  let rules = stylesheet.rules.clone().into_owned();
+  let StyleSheet { sources, rules, .. } = stylesheet;
+  let rules = rules.into_owned();
 
   StyleSheet::new(sources, rules, options)
 }

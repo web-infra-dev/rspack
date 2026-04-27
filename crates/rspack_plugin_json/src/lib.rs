@@ -8,7 +8,6 @@ use json::{
   JsonValue,
   number::Number,
   object::Object,
-  stringify,
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -45,7 +44,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .build_info()
       .json_data
       .as_ref()
-      .map_or(0.0, |data| stringify(data.clone()).len() as f64)
+      .map_or(0.0, |data| data.dump().len() as f64)
   }
 
   async fn parse<'a>(
@@ -191,24 +190,29 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .exports_info_artifact
           .get_exports_info_data(&module.identifier());
 
-        let final_json = match json_data {
+        let (is_js_object, final_json_string) = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
             if matches!(
               exports_info.other_exports_info().get_used(*runtime),
               UsageState::Unused
             ) =>
           {
-            create_object_for_exports_info(
+            let final_json = create_object_for_exports_info(
               json_data.clone(),
               exports_info,
               *runtime,
               &compilation.exports_info_artifact,
+            );
+            (
+              final_json.is_object() || final_json.is_array(),
+              final_json.dump(),
             )
           }
-          _ => json_data.clone(),
+          _ => (
+            json_data.is_object() || json_data.is_array(),
+            json_data.dump(),
+          ),
         };
-        let is_js_object = final_json.is_object() || final_json.is_array();
-        let final_json_string = stringify(final_json);
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(

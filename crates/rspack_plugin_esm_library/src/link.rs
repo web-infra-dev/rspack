@@ -1500,12 +1500,16 @@ var {} = {{}};
                     runtime_template,
                   )
                   .await?;
-                *concate_info = codegen_res
+                let current_module = &codegen_res
                   .concatenation_scope
                   .as_ref()
                   .expect("should have concatenation scope")
-                  .current_module
-                  .clone();
+                  .current_module;
+                concate_info.namespace_export_symbol =
+                  current_module.namespace_export_symbol.clone();
+                concate_info.export_map = current_module.export_map.clone();
+                concate_info.raw_export_map = current_module.raw_export_map.clone();
+                concate_info.import_map = current_module.import_map.clone();
 
                 let m = module_graph
                   .module_by_identifier(&id)
