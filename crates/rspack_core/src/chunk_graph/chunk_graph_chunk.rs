@@ -1233,7 +1233,14 @@ mod tests {
 
   #[test]
   fn chunk_id_serialize_matches_runtime_numeric_rules() {
-    assert_eq!(serde_json::to_string(&ChunkId::from("903")).unwrap(), "903");
+    assert_eq!(
+      serde_json::to_string(&ChunkId::from_number(903)).unwrap(),
+      "903"
+    );
+    assert_eq!(
+      serde_json::to_string(&ChunkId::from("903")).unwrap(),
+      "\"903\""
+    );
     assert_eq!(
       serde_json::to_string(&ChunkId::from("01")).unwrap(),
       "\"01\""
@@ -1243,7 +1250,7 @@ mod tests {
       "\"main\""
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from("4294967295")).unwrap(),
+      serde_json::to_string(&ChunkId::from_number(4294967295)).unwrap(),
       "4294967295"
     );
     assert_eq!(
@@ -1251,7 +1258,7 @@ mod tests {
       "\"4294967296\""
     );
     assert_eq!(
-      serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from("903")]).unwrap(),
+      serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from_number(903)]).unwrap(),
       "[\"01\",903]"
     );
   }
