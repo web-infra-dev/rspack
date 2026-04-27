@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierIndexSet, IdentifierSet};
 use rspack_core::{ModuleIdentifier, SourceType};
 
 use super::ModuleGroupMap;
@@ -15,7 +15,7 @@ pub trait ModulesContainer {
     module_sizes: &ModuleSizes,
   ) -> IdentifierSet;
   fn remove_module(&mut self, module: ModuleIdentifier);
-  fn modules(&self) -> &IdentifierSet;
+  fn modules(&self) -> &IdentifierIndexSet;
 }
 
 impl ModulesContainer for ModuleGroup {
@@ -35,7 +35,7 @@ impl ModulesContainer for ModuleGroup {
     ModuleGroup::remove_module(self, module);
   }
 
-  fn modules(&self) -> &IdentifierSet {
+  fn modules(&self) -> &IdentifierIndexSet {
     &self.modules
   }
 }

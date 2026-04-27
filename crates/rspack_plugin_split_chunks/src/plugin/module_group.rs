@@ -1,5 +1,4 @@
 use std::{
-  cmp::Ordering,
   hash::{Hash, Hasher},
   ops::Deref,
   sync::Arc,
@@ -25,7 +24,10 @@ use crate::{
   SplitChunksPlugin,
   common::{ChunkFilter, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
-  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
+  module_group::{
+    IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries,
+    compare_entries_without_modules,
+  },
   options::{
     cache_group::CacheGroup,
     cache_group_test::{CacheGroupTest, CacheGroupTestFnCtx},
@@ -362,21 +364,42 @@ impl SplitChunksPlugin {
   ) -> (ModuleGroupKey, ModuleGroup) {
     debug_assert!(!module_group_map.is_empty());
 
-    let best_entry_key = module_group_map
-      .keys()
-      .map(|key| (key, module_group_map.get(key).expect("should have item")))
-      .min_by(|a, b| {
-        let result = compare_entries((a.0, a.1), (b.0, b.1));
-        if result < 0f64 {
-          Ordering::Greater
-        } else if result > 0f64 {
-          Ordering::Less
-        } else {
-          Ordering::Equal
-        }
-      })
-      .map(|(key, _)| key.clone())
-      .expect("at least have one item");
+    let mut keys = module_group_map.keys();
+    let mut best_entry_key = keys.next().cloned().expect("at least have one item");
+
+    let keys = keys.cloned().collect::<Vec<_>>();
+    for key in keys {
+      let result = {
+        let best_module_group = module_group_map
+          .get(&best_entry_key)
+          .expect("should have best item");
+        let module_group = module_group_map.get(&key).expect("should have item");
+        compare_entries_without_modules((&key, module_group), (&best_entry_key, best_module_group))
+      };
+
+      let result = if let Some(result) = result {
+        result
+      } else {
+        module_group_map
+          .get_mut(&best_entry_key)
+          .expect("should have best item")
+          .sort_modules_for_compare();
+        module_group_map
+          .get_mut(&key)
+          .expect("should have item")
+          .sort_modules_for_compare();
+
+        let best_module_group = module_group_map
+          .get(&best_entry_key)
+          .expect("should have best item");
+        let module_group = module_group_map.get(&key).expect("should have item");
+        compare_entries((&key, module_group), (&best_entry_key, best_module_group))
+      };
+
+      if result > 0f64 {
+        best_entry_key = key;
+      }
+    }
 
     let best_module_group = module_group_map
       .swap_remove(&best_entry_key)
