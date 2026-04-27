@@ -12,10 +12,22 @@ use super::{
   snapshot::{Snapshot, SnapshotScope},
   storage::Storage,
 };
+use crate::CompilationLogger;
 
 pub const SCOPE: &str = "build_dependencies";
 
 pub type BuildDepsOptions = Vec<PathBuf>;
+
+#[derive(Debug)]
+pub enum BuildDepsValidationResult {
+  Valid {
+    tracked_files: usize,
+  },
+  Invalid {
+    modified_files: ArcPathSet,
+    removed_files: ArcPathSet,
+  },
+}
 
 /// Build dependencies manager
 #[derive(Debug)]
@@ -59,8 +71,9 @@ impl BuildDeps {
     &mut self,
     storage: &mut dyn Storage,
     data: impl Iterator<Item = ArcPath>,
-  ) -> Vec<String> {
-    let mut helper = Helper::new(self.fs.clone());
+    logger: CompilationLogger,
+  ) {
+    let mut helper = Helper::new(self.fs.clone(), logger);
     let mut new_deps = HashSet::default();
     let mut queue = VecDeque::new();
     queue.extend(std::mem::take(&mut self.pending));
@@ -83,26 +96,26 @@ impl BuildDeps {
       .snapshot
       .add(storage, SnapshotScope::BUILD, new_deps.into_iter())
       .await;
-    helper.into_warnings()
   }
 
   /// Validate build dependencies
   ///
-  /// If any build dependencies have changed, this method will return false.
-  pub async fn validate(&mut self, storage: &dyn Storage) -> Result<bool> {
+  /// If any build dependencies have changed, this method will return an invalid result.
+  pub async fn validate(&mut self, storage: &dyn Storage) -> Result<BuildDepsValidationResult> {
     let (_, modified_files, removed_files, no_changed_files) = self
       .snapshot
       .calc_modified_paths(storage, SnapshotScope::BUILD)
       .await?;
 
     if !modified_files.is_empty() || !removed_files.is_empty() {
-      tracing::info!(
-        "BuildDependencies: cache invalidate by modified_files {modified_files:?} and removed_files {removed_files:?}"
-      );
-      return Ok(false);
+      return Ok(BuildDepsValidationResult::Invalid {
+        modified_files,
+        removed_files,
+      });
     }
+    let tracked_files = no_changed_files.len();
     self.added = no_changed_files;
-    Ok(true)
+    Ok(BuildDepsValidationResult::Valid { tracked_files })
   }
 }
 
@@ -118,8 +131,30 @@ mod test {
       snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
       storage::{MemoryStorage, Storage},
     },
-    BuildDeps,
+    BuildDeps, BuildDepsValidationResult,
   };
+  use crate::{CompilationLogger, CompilationLogging, LogType};
+
+  fn test_logger(name: &str) -> (CompilationLogger, CompilationLogging) {
+    let logging = CompilationLogging::default();
+    (
+      CompilationLogger::new(name.to_string(), logging.clone()),
+      logging,
+    )
+  }
+
+  fn warn_count(logging: &CompilationLogging, name: &str) -> usize {
+    logging
+      .get(name)
+      .map(|entries| {
+        entries
+          .iter()
+          .filter(|entry| matches!(entry, LogType::Warn { .. }))
+          .count()
+      })
+      .unwrap_or_default()
+  }
+
   #[tokio::test]
   async fn build_dependencies_test() {
     let scope = SnapshotScope::BUILD.name();
@@ -163,8 +198,11 @@ mod test {
 
     let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
 
-    let warnings = build_deps.add(&mut storage, vec![].into_iter()).await;
-    assert_eq!(warnings.len(), 1);
+    let (logger, logging) = test_logger("test");
+    build_deps
+      .add(&mut storage, vec![].into_iter(), logger)
+      .await;
+    assert_eq!(warn_count(&logging, "test"), 1);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
 
@@ -177,13 +215,19 @@ mod test {
       .validate(&storage)
       .await
       .expect("should validate success");
-    assert!(!validate_result);
+    assert!(matches!(
+      validate_result,
+      BuildDepsValidationResult::Invalid { .. }
+    ));
     storage.reset(scope);
 
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 0);
-    let warnings = build_deps.add(&mut storage, vec![].into_iter()).await;
-    assert_eq!(warnings.len(), 0);
+    let (logger, logging) = test_logger("test");
+    build_deps
+      .add(&mut storage, vec![].into_iter(), logger)
+      .await;
+    assert_eq!(warn_count(&logging, "test"), 0);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 10);
   }

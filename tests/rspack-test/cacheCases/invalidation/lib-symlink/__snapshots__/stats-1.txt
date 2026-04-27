@@ -1,0 +1,11 @@
+LOG from rspack.persistentCache
+<i> persistent cache enabled
+<i> build dependencies are valid (0 tracked)
+<i> meta persistent cache recovery succeeded
+<i> snapshot restored with detected changed dependencies:
+<i> modified paths (3):
+<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/invalidation/lib-symlink/node_modules/tools
+<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/invalidation/lib-symlink/node_modules/tools/index.js
+<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/invalidation/lib-symlink/node_modules/tools/package.json
+<i> make persistent cache recovery succeeded
+<i> minimize persistent cache recovery succeeded
