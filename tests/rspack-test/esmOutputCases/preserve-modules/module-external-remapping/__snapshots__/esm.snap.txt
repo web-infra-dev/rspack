@@ -38,7 +38,7 @@ __webpack_require__.d(x, y);
 return x;
 };
 var __rspack_wrap_module_external_namespace_node_events_0a6aefe7 = (x) => (() => (x));
-module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7({a: () => (__rspack_external_node_events_0a6aefe7.EventEmitter), b: () => (__rspack_external_node_events_0a6aefe7.once)});
+module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7({["a"]: () => (__rspack_external_node_events_0a6aefe7.EventEmitter), ["b"]: () => (__rspack_external_node_events_0a6aefe7.once)});
 
 },
 });

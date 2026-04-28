@@ -19,7 +19,6 @@ use crate::{
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
-  property_name,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -263,13 +262,17 @@ fn render_module_external_remapping(
 
       format!(
         "{}: {getter}",
-        property_name(&remapping.exposed_name).expect("should convert to property_name")
+        module_external_remapping_property_key(&remapping.exposed_name)
       )
     })
     .collect::<Vec<_>>()
     .join(", ");
 
   format!("{create_namespace_object_name}({{{properties}}})")
+}
+
+fn module_external_remapping_property_key(exposed_name: &str) -> String {
+  format!("[{}]", json_stringify_str(exposed_name))
 }
 
 fn get_source_for_module_external(
@@ -1302,6 +1305,14 @@ mod tests {
         raw_export_name: "pkg".to_string(),
         nested: None,
       }])
+    );
+  }
+
+  #[test]
+  fn module_external_remapping_uses_computed_property_keys() {
+    assert_eq!(
+      super::module_external_remapping_property_key("__proto__"),
+      "[\"__proto__\"]"
     );
   }
 }
