@@ -4,6 +4,7 @@ use std::{
 };
 
 use config::Config;
+use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
@@ -219,12 +220,33 @@ impl LightningCssLoader {
           }),
         }
       }));
+
+      let mut posix_context = loader_context
+        .context
+        .options
+        .context
+        .cow_replace("\\", "/");
+      if !posix_context.ends_with('/') {
+        posix_context.to_mut().push('/');
+      }
+      let posix_context = posix_context.into_owned();
+
       let rspack_source_map = SourceMap::new(
         mappings,
+        // Parcel stores sources relative to project_root, while Rspack source maps
+        // use absolute module paths for downstream loader/plugin handling.
         parcel_source_map
           .get_sources()
           .iter()
-          .map(ToString::to_string)
+          .map(|source| {
+            if source.starts_with('/') || source.contains(':') {
+              source.to_string()
+            } else {
+              let mut absolute_source = posix_context.clone();
+              absolute_source.push_str(source);
+              absolute_source
+            }
+          })
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_sources_content()
@@ -238,9 +260,10 @@ impl LightningCssLoader {
           .collect::<Vec<_>>(),
       );
 
+      let posix_name = filename.cow_replace("\\", "/");
       let source_map_source = SourceMapSource::new(SourceMapSourceOptions {
         value: content.code.clone(),
-        name: filename,
+        name: posix_name,
         source_map: rspack_source_map,
         original_source: None,
         inner_source_map: loader_context.take_source_map(),
