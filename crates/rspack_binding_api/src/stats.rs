@@ -9,7 +9,6 @@ use napi_derive::napi;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   EntrypointsStatsOption, ExtendedStatsOptions, Stats, StatsChunk, StatsModule, StatsUsedExports,
-  chunk_graph_chunk::ChunkId,
   rspack_sources::{RawBufferSource, Source, SourceValue},
 };
 use rspack_error::Severity;
@@ -104,14 +103,6 @@ impl ToNapiValue for AtomVecWrapper {
       ToNapiValue::to_napi_value(env, array)
     }
   }
-}
-
-fn chunk_id_as_str(id: &ChunkId) -> &str {
-  id.as_str()
-}
-
-fn optional_chunk_id_as_str(id: Option<&ChunkId>) -> Option<&str> {
-  id.map(ChunkId::as_str)
 }
 
 #[napi(object, object_from_js = false)]
@@ -404,21 +395,13 @@ impl<'a> From<rspack_core::StatsAsset<'a>> for JsStatsAsset<'a> {
       r#type: stats.r#type,
       name: stats.name,
       size: stats.size,
-      chunks: stats
-        .chunks
-        .into_iter()
-        .map(optional_chunk_id_as_str)
-        .collect(),
+      chunks: stats.chunks,
       chunk_names: stats.chunk_names,
       info: stats.info.into(),
       emitted: stats.emitted,
       chunk_id_hints: stats.chunk_id_hints,
       auxiliary_chunk_id_hints: stats.auxiliary_chunk_id_hints,
-      auxiliary_chunks: stats
-        .auxiliary_chunks
-        .into_iter()
-        .map(optional_chunk_id_as_str)
-        .collect(),
+      auxiliary_chunks: stats.auxiliary_chunks,
       auxiliary_chunk_names: stats.auxiliary_chunk_names,
     }
   }
@@ -644,9 +627,7 @@ impl<'a> TryFrom<StatsModule<'a>> for JsStatsModule<'a> {
       build_time_executed: stats.build_time_executed,
       module_descriptor,
       depth: stats.depth.map(|d| d as u32),
-      chunks: stats
-        .chunks
-        .map(|chunks| chunks.into_iter().map(chunk_id_as_str).collect()),
+      chunks: stats.chunks,
       name_for_condition: stats.name_for_condition,
       reasons,
       assets: stats.assets,
@@ -806,7 +787,7 @@ pub struct JsStatsChunk<'a> {
   #[napi(ts_type = "Array<string | number> | undefined")]
   pub siblings: Option<Vec<&'a str>>,
   #[napi(ts_type = "Record<string, Array<string | number>>")]
-  pub children_by_order: HashMap<String, Vec<&'a str>>,
+  pub children_by_order: HashMap<String, Vec<String>>,
   pub runtime: Vec<&'a str>,
   pub reason: Option<&'a str>,
   pub rendered: bool,
@@ -836,7 +817,7 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
       r#type: stats.r#type,
       files: stats.files,
       auxiliary_files: stats.auxiliary_files,
-      id: optional_chunk_id_as_str(stats.id),
+      id: stats.id,
       entry: stats.entry,
       initial: stats.initial,
       names: stats.names,
@@ -849,24 +830,13 @@ impl<'a> TryFrom<StatsChunk<'a>> for JsStatsChunk<'a> {
             .collect::<Result<_>>()
         })
         .transpose()?,
-      parents: stats
-        .parents
-        .map(|parents| parents.into_iter().map(chunk_id_as_str).collect()),
-      children: stats
-        .children
-        .map(|children| children.into_iter().map(chunk_id_as_str).collect()),
-      siblings: stats
-        .siblings
-        .map(|siblings| siblings.into_iter().map(chunk_id_as_str).collect()),
+      parents: stats.parents,
+      children: stats.children,
+      siblings: stats.siblings,
       children_by_order: stats
         .children_by_order
         .into_iter()
-        .map(|(order, children)| {
-          (
-            order.to_string(),
-            children.into_iter().map(chunk_id_as_str).collect(),
-          )
-        })
+        .map(|(order, children)| (order.to_string(), children))
         .collect(),
       runtime,
       sizes,
@@ -927,7 +897,7 @@ impl<'a> From<rspack_core::StatsChunkGroup<'a>> for JsStatsChunkGroup<'a> {
   fn from(stats: rspack_core::StatsChunkGroup<'a>) -> Self {
     Self {
       name: stats.name,
-      chunks: stats.chunks.into_iter().map(chunk_id_as_str).collect(),
+      chunks: stats.chunks,
       assets: stats.assets.into_iter().map(Into::into).collect(),
       assets_size: stats.assets_size as f64,
       auxiliary_assets: stats
