@@ -18,7 +18,9 @@ use swc_core::{
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
+  dependency::{
+    ImportContextDependency, ImportDependency, ImportEagerDependency, ImportWeakDependency,
+  },
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
@@ -397,6 +399,22 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           dep_idx,
           dep_type: DependencyType::DynamicImportEager,
         }
+      } else if matches!(mode, DynamicImportMode::Weak) {
+        let dep = ImportWeakDependency::new(
+          param.string().as_str().into(),
+          import_call_span.into(),
+          exports,
+          attributes,
+          phase,
+          parser.in_try,
+        );
+        let dep_idx = parser.next_dependency_idx();
+        parser.add_dependency(Box::new(dep));
+        ImportDependencyLocator {
+          block_idx: None,
+          dep_idx,
+          dep_type: DependencyType::DynamicImportWeak,
+        }
       } else {
         let dep = Box::new(ImportDependency::new(
           param.string().as_str().into(),
@@ -544,6 +562,12 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           let dep = dep
             .downcast_mut::<ImportEagerDependency>()
             .expect("Failed to downcast to ImportEagerDependency");
+          dep.set_referenced_specifiers(references);
+        }
+        DependencyType::DynamicImportWeak => {
+          let dep = dep
+            .downcast_mut::<ImportWeakDependency>()
+            .expect("Failed to downcast to ImportWeakDependency");
           dep.set_referenced_specifiers(references);
         }
         DependencyType::ImportContext => {
