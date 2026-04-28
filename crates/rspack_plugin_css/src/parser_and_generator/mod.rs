@@ -9,11 +9,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, CompilerOptions, ConstDependency, CssExportType, CssExportsConvention,
-  CssParserImport, CssParserImportContext, Dependency, DependencyRange, DependencyType,
-  ExportsInfoArtifact, GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
-  ParserAndGenerator, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
-  UsageState,
+  CssModuleGeneratorOptionsNormalized, CssParserImport, CssParserImportContext, Dependency,
+  DependencyRange, DependencyType, ExportsInfoArtifact, GenerateContext, LocalIdentName, Module,
+  ModuleArgument, ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, ResourceData, RuntimeGlobals, RuntimeSpec,
+  SourceType, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -68,15 +68,56 @@ fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExp
 #[cacheable]
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
-  pub convention: Option<CssExportsConvention>,
-  pub local_ident_name: Option<LocalIdentName>,
-  pub exports_only: bool,
+  pub generator_options: CssModuleGeneratorOptionsNormalized,
   pub named_exports: bool,
-  pub es_module: bool,
   pub url: bool,
   pub resolve_import: CssParserImport,
   pub hot: bool,
-  pub export_type: Option<CssExportType>,
+}
+
+impl CssParserAndGenerator {
+  pub fn new(
+    generator_options: CssModuleGeneratorOptionsNormalized,
+    named_exports: bool,
+    url: bool,
+    resolve_import: CssParserImport,
+  ) -> Self {
+    Self {
+      generator_options,
+      named_exports,
+      url,
+      resolve_import,
+      hot: false,
+    }
+  }
+
+  pub fn convention(&self) -> &CssExportsConvention {
+    self.generator_options.convention()
+  }
+
+  pub fn local_ident_name(&self) -> &LocalIdentName {
+    self.generator_options.local_ident_name()
+  }
+
+  pub fn exports_only(&self) -> bool {
+    self.generator_options.exports_only()
+  }
+
+  pub fn named_exports(&self) -> bool {
+    self.named_exports
+  }
+
+  pub fn es_module(&self) -> bool {
+    self.generator_options.es_module()
+  }
+
+  pub fn resolve_import(&self) -> &CssParserImport {
+    &self.resolve_import
+  }
+
+  pub fn export_type(&self) -> &Option<CssExportType> {
+    self.generator_options.export_type()
+  }
 }
 
 #[cacheable_dyn]
@@ -84,11 +125,11 @@ pub struct CssParserAndGenerator {
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     // 如果 export_type 是 style，我们只返回 JavaScript
-    if matches!(self.export_type, Some(CssExportType::Style)) {
+    if matches!(self.export_type(), Some(CssExportType::Style)) {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
-    if self.exports_only {
+    if self.exports_only() {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
@@ -134,12 +175,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     } = parse_context;
 
     build_info.strict = true;
-    build_meta.exports_type = if self.named_exports {
+    build_meta.exports_type = if self.named_exports() {
       BuildMetaExportsType::Namespace
     } else {
       BuildMetaExportsType::Default
     };
-    build_meta.default_object = if self.named_exports {
+    build_meta.default_object = if self.named_exports() {
       BuildMetaDefaultObject::False
     } else {
       BuildMetaDefaultObject::Redirect
@@ -224,7 +265,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             continue;
           }
           // Check the import option
-          let should_import = match &self.resolve_import {
+          let should_import = match self.resolve_import() {
             CssParserImport::Bool(b) => *b,
             CssParserImport::Func(f) => {
               // Call the filter function with the import arguments
@@ -366,10 +407,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
             )));
           }
 
-          let convention = self
-            .convention
-            .as_ref()
-            .expect("should have convention for module_type css/auto or css/module");
+          let convention = self.convention();
           let exports = css_exports.get_or_insert_default();
           for name in names {
             for local_class in local_classes.iter() {
@@ -406,10 +444,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
           let exports = css_exports.get_or_insert_default();
-          let convention = self
-            .convention
-            .as_ref()
-            .expect("should have convention for module_type css/auto or css/module");
+          let convention = self.convention();
           let convention_names = export_locals_convention(prop, convention);
           let value = REGEX_IS_COMMENTS.replace_all(value, "");
           for name in convention_names.iter() {
@@ -562,7 +597,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       SourceType::JavaScript => {
         let with_hmr = self.hot;
 
-        if matches!(self.export_type, Some(CssExportType::Style)) {
+        if matches!(self.export_type(), Some(CssExportType::Style)) {
           let mut concat_source = ConcatSource::default();
 
           // 处理 CSS 依赖并获取最终的 CSS 内容
@@ -648,7 +683,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    if self.exports_only {
+    if self.exports_only() {
       None
     } else {
       // CSS Module cannot be concatenated as it must appear in css chunk, if it's
@@ -664,7 +699,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.es_module.dyn_hash(&mut hasher);
+    self.es_module().dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
@@ -677,20 +712,11 @@ impl CssParserAndGenerator {
     name: &str,
     css_exports: &mut Option<CssExports>,
   ) -> Result<(String, Vec<String>)> {
-    let local_ident = LocalIdentOptions::new(
-      resource_data,
-      self
-        .local_ident_name
-        .as_ref()
-        .expect("should have local_ident_name for module_type css/auto or css/module"),
-      compiler_options,
-    )
-    .get_local_ident(name)
-    .await?;
-    let convention = self
-      .convention
-      .as_ref()
-      .expect("should have convention for module_type css/auto or css/module");
+    let local_ident =
+      LocalIdentOptions::new(resource_data, self.local_ident_name(), compiler_options)
+        .get_local_ident(name)
+        .await?;
+    let convention = self.convention();
     let exports = css_exports.get_or_insert_default();
     let convention_names = export_locals_convention(name, convention);
     for convention_name in convention_names.iter() {
@@ -749,7 +775,7 @@ impl CssParserAndGenerator {
         .compilation
         .exports_info_artifact
         .get_exports_info_data(&module.identifier());
-      let (ns_obj, left, right) = if self.es_module
+      let (ns_obj, left, right) = if self.es_module()
         && exports_info
           .other_exports_info()
           .get_used(generate_context.runtime)

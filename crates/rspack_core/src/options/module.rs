@@ -53,6 +53,7 @@ pub enum ParserOptions {
   Asset(AssetParserOptions),
   Css(CssParserOptions),
   CssAuto(CssAutoParserOptions),
+  CssGlobal(CssGlobalParserOptions),
   CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
   JavascriptAuto(JavascriptParserOptions),
@@ -77,6 +78,7 @@ impl ParserOptions {
   get_variant!(get_asset, Asset, AssetParserOptions);
   get_variant!(get_css, Css, CssParserOptions);
   get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
+  get_variant!(get_css_global, CssGlobal, CssGlobalParserOptions);
   get_variant!(get_css_module, CssModule, CssModuleParserOptions);
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
   get_variant!(get_javascript_auto, JavascriptAuto, JavascriptParserOptions);
@@ -434,6 +436,24 @@ pub struct CssModuleParserOptions {
 }
 
 impl From<CssParserOptions> for CssModuleParserOptions {
+  fn from(value: CssParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+      url: value.url,
+      resolve_import: value.resolve_import,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssGlobalParserOptions {
+  pub named_exports: Option<bool>,
+  pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
+}
+
+impl From<CssParserOptions> for CssGlobalParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
@@ -822,6 +842,68 @@ impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
       es_module: value.es_module,
       ..Default::default()
     }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct CssModuleGeneratorOptionsNormalized {
+  pub convention: Option<CssExportsConvention>,
+  pub local_ident_name: Option<LocalIdentName>,
+  pub exports_only: bool,
+  pub es_module: bool,
+  pub export_type: Option<CssExportType>,
+}
+
+impl CssModuleGeneratorOptionsNormalized {
+  pub fn from_css(generator_opts: &CssGeneratorOptions) -> Self {
+    Self {
+      convention: None,
+      local_ident_name: None,
+      exports_only: generator_opts
+        .exports_only
+        .expect("should have exports_only"),
+      es_module: generator_opts.es_module.expect("should have es_module"),
+      export_type: None,
+    }
+  }
+
+  pub fn from_css_module(generator_opts: &CssModuleGeneratorOptions) -> Self {
+    Self {
+      convention: generator_opts.exports_convention,
+      local_ident_name: generator_opts.local_ident_name.clone(),
+      exports_only: generator_opts
+        .exports_only
+        .expect("should have exports_only"),
+      es_module: generator_opts.es_module.expect("should have es_module"),
+      export_type: generator_opts.export_type,
+    }
+  }
+
+  pub fn convention(&self) -> &CssExportsConvention {
+    self
+      .convention
+      .as_ref()
+      .expect("should have convention for module_type css/auto or css/module")
+  }
+
+  pub fn local_ident_name(&self) -> &LocalIdentName {
+    self
+      .local_ident_name
+      .as_ref()
+      .expect("should have local_ident_name for module_type css/auto or css/module")
+  }
+
+  pub fn exports_only(&self) -> bool {
+    self.exports_only
+  }
+
+  pub fn es_module(&self) -> bool {
+    self.es_module
+  }
+
+  pub fn export_type(&self) -> &Option<CssExportType> {
+    &self.export_type
   }
 }
 
