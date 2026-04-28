@@ -200,6 +200,21 @@ fn resolve_external_type<'a>(
         match external_type {
           ExternalTypeEnum::Import => "import",
           ExternalTypeEnum::Module => "module",
+          ExternalTypeEnum::CommonJs => "module",
+        }
+      } else {
+        "module"
+      }
+    }
+    "modern-module" => {
+      if let Some(external_type) = dependency_meta.external_type.as_ref() {
+        match external_type {
+          ExternalTypeEnum::Import => "import",
+          ExternalTypeEnum::Module => "module",
+          // Keep a distinct module identifier for `modern-module` require()
+          // externals. Code generation resolves it to `commonjs` or
+          // `node-commonjs` with access to the compilation platform.
+          ExternalTypeEnum::CommonJs => "modern-module",
         }
       } else {
         "module"
@@ -233,6 +248,7 @@ pub struct ExternalModule {
 pub enum ExternalTypeEnum {
   Import,
   Module,
+  CommonJs,
 }
 
 pub type MetaExternalType = Option<ExternalTypeEnum>;
@@ -336,6 +352,15 @@ impl ExternalModule {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
     let resolved_external_type = self.resolve_external_type();
+    let resolved_external_type = if resolved_external_type == "modern-module" {
+      if compilation.platform.is_node() {
+        "node-commonjs"
+      } else {
+        "commonjs"
+      }
+    } else {
+      resolved_external_type
+    };
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
 
@@ -845,7 +870,7 @@ impl Module for ExternalModule {
   }
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    match self.external_type.as_str() {
+    match self.resolve_external_type() {
       "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
       _ => Some(
         compilation

@@ -323,6 +323,7 @@ export default {
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - 使用 `import()` 加载一个原生的 ECMAScript 模块（异步模块）
 - [`'module-import'`](#externalstypemodule-import)
+- [`'modern-module'`](#externalstypemodern-module)
 - [`'commonjs-import'`](#externalstypecommonjs-import)
 - `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
@@ -543,6 +544,14 @@ export default {
     },
   ]
 ```
+
+### externalsType['modern-module']
+
+将 externals 的默认类型指定为 `'modern-module'`。当 `output.library.type` 为 `'modern-module'` 时，这是默认值。
+
+对于静态 ESM import，Rspack 会像 [`'module'`](#externalstypemodule) 一样渲染 external，生成静态 `import` 语句。对于动态 `import()`，Rspack 会像 [`'module-import'`](#externalstypemodule-import) 一样渲染 external，生成 `import()`。
+
+对于 CommonJS `require()`，Rspack 会保留 require 形式的 external。当 target 为 Node.js 时，生成的 ESM 产物会使用 [`'node-commonjs'`](#externalstypenode-commonjs)，通过 `createRequire` 构造 `require` 函数；其他 target 会使用 [`'commonjs'`](#externalstypecommonjs)，生成 `require()`。
 
 ### externalsType['commonjs-import']
 

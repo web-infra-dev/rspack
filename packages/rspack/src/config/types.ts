@@ -1570,6 +1570,7 @@ export type ExternalsType =
   | 'promise'
   | 'import'
   | 'module-import'
+  | 'modern-module'
   | 'script'
   | 'node-commonjs'
   | 'commonjs-import';
