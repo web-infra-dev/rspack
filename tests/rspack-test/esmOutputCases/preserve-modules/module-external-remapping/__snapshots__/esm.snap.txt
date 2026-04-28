@@ -1,23 +1,40 @@
+```mjs title=hoisted.mjs
+import { __rspack_module_external_namespace_node_events_0a6aefe7 } from "./node_events-node_events.mjs";
+
+// ./src/hoisted.js
+
+
+const EventEmitterHoisted = __rspack_module_external_namespace_node_events_0a6aefe7.a;
+const onceHoisted = __rspack_module_external_namespace_node_events_0a6aefe7.b;
+
+export { EventEmitterHoisted, onceHoisted };
+
+```
+
 ```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import "./wrapped.mjs";
-import { __rspack_module_external_namespace_node_events_0a6aefe7 } from "./node_events-node_events.mjs";
+import { EventEmitterHoisted, onceHoisted } from "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");
 
 
 
-it('should remap mangled module external namespace properties to real exports', async () => {
+it('should remap mangled module external namespace properties to real exports for hoisted and wrapped modules', async () => {
   const events = await import(/* webpackIgnore: true */ 'node:events');
 
-  expect(__rspack_module_external_namespace_node_events_0a6aefe7.a).toBe(events.EventEmitter);
-  expect(__rspack_module_external_namespace_node_events_0a6aefe7.b).toBe(events.once);
+  expect(EventEmitterHoisted).toBe(events.EventEmitter);
+  expect(onceHoisted).toBe(events.once);
 
   expect(wrapped_0.a).toBe(events.EventEmitter);
   expect(wrapped_0.b).toBe(events.once);
 
+  const hoisted = await import(/* webpackIgnore: true */ './hoisted.mjs');
   const wrapped = await import(/* webpackIgnore: true */ './wrapped.mjs');
+
+  expect(hoisted.EventEmitterHoisted).toBe(events.EventEmitter);
+  expect(hoisted.onceHoisted).toBe(events.once);
 
   expect(wrapped.EventEmitter).toBe(events.EventEmitter);
   expect(wrapped.once).toBe(events.once);
@@ -47,7 +64,7 @@ module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7(
 
 },
 });
-// node:events?33ba
+// node:events?41dc
 var __rspack_create_module_external_namespace_node_events_0a6aefe7 = (y) => {
 var x = {};
 __webpack_require__.d(x, y);
