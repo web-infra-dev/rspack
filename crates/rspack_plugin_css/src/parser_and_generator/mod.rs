@@ -13,7 +13,7 @@ use rspack_core::{
   DependencyRange, DependencyType, ExportsInfoArtifact, GenerateContext, LocalIdentName, Module,
   ModuleArgument, ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule,
   ParseContext, ParseResult, ParserAndGenerator, ResourceData, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  SourceType, StaticExportsDependency, StaticExportsSpec, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -489,6 +489,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
       diagnostics.push(error.into());
     }
 
+    if matches!(
+      self.export_type(),
+      Some(CssExportType::Text) | Some(CssExportType::CssStyleSheet)
+    ) {
+      dependencies.push(Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::Array(vec!["default".into()]),
+        false,
+      )));
+    }
+
     build_info.css_exports = css_exports;
     build_info.css_local_names = css_local_names;
 
@@ -643,7 +653,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
           // 获取处理后的 CSS 文本
           let css_source = source.boxed();
-          let css_text = css_source.source().into_string_lossy();
+          let mut css_text = css_source.source().into_string_lossy().to_string();
+
+          if matches!(
+            self.export_type(),
+            Some(CssExportType::Style)
+              | Some(CssExportType::CssStyleSheet)
+              | Some(CssExportType::Text)
+          ) {
+            css_text = css_text.replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "");
+          }
 
           // 转义 CSS 用于 JavaScript 字符串
           let css_js_string =
@@ -697,7 +716,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
             let css_style_sheet_code = format!(
               "var __css_text = {};\n\
                var __css_style_sheet = new CSSStyleSheet();\n\
-               __css_style_sheet.replaceSync(__css_text);\n",
+               if (typeof __css_style_sheet.replaceSync === \"function\") {{\n\
+               \t__css_style_sheet.replaceSync(__css_text);\n\
+               }} else if (typeof document !== \"undefined\" && typeof __css_style_sheet.insertRule === \"function\") {{\n\
+               \tvar __css_style_element = document.createElement(\"style\");\n\
+               \t__css_style_element.textContent = __css_text;\n\
+               \tdocument.head.appendChild(__css_style_element);\n\
+               \tvar __parsed_sheet = __css_style_element.sheet;\n\
+               \tif (__parsed_sheet) {{\n\
+               \t\tfor (var __css_rule_index = 0; __css_rule_index < __parsed_sheet.cssRules.length; __css_rule_index++) {{\n\
+               \t\t\t__css_style_sheet.insertRule(__parsed_sheet.cssRules[__css_rule_index].cssText, __css_style_sheet.cssRules.length);\n\
+               \t\t}}\n\
+               \t}}\n\
+               \t__css_style_element.parentNode.removeChild(__css_style_element);\n\
+               }}\n",
               css_js_string
             );
 
@@ -750,14 +782,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
               code += ";\n";
               code
             } else {
-              format!(
-                "{css_style_sheet_code}{ns_obj}{left}{module_argument}.exports = __css_style_sheet{right};\n{}",
-                if with_hmr {
-                  format!("{module_argument}.hot.accept();\n")
-                } else {
-                  String::new()
-                }
-              )
+              let mut code = String::new();
+              code.push_str(&css_style_sheet_code);
+              if self.es_module() {
+                code.push_str(&format!("{ns_obj}({module_argument}.exports = {{}});\n"));
+                code.push_str(&format!(
+                  "{module_argument}.exports.default = __css_style_sheet;\n"
+                ));
+              } else {
+                code.push_str(&format!("{module_argument}.exports = __css_style_sheet;\n"));
+              }
+              if with_hmr {
+                code.push_str(&format!("{module_argument}.hot.accept();\n"));
+              }
+              code
             };
 
             RawStringSource::from(exports_str).boxed()
@@ -841,14 +879,23 @@ impl ParserAndGenerator for CssParserAndGenerator {
               code.push_str(";\n");
               code
             } else {
-              format!(
-                "{ns_obj}{left}{module_argument}.exports = {css_js_string}{right};\n{}",
-                if with_hmr {
-                  format!("{module_argument}.hot.accept();\n")
-                } else {
-                  String::new()
-                }
-              )
+              let mut code = String::new();
+              if self.es_module() {
+                code.push_str(&format!("{ns_obj}({module_argument}.exports = {{}});\n"));
+                code.push_str(&module_argument);
+                code.push_str(".exports.default = ");
+                code.push_str(&css_js_string);
+                code.push_str(";\n");
+              } else {
+                code.push_str(&module_argument);
+                code.push_str(".exports = ");
+                code.push_str(&css_js_string);
+                code.push_str(";\n");
+              }
+              if with_hmr {
+                code.push_str(&format!("{module_argument}.hot.accept();\n"));
+              }
+              code
             };
 
             RawStringSource::from(exports_str).boxed()

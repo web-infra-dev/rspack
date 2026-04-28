@@ -1,4 +1,4 @@
-var dataWebpackPrefix = <%- _unique_name ? JSON.stringify(_unique_name + ":") : '"rspack:"' %>;
+var dataWebpackPrefix = <%- _data_webpack_prefix %>;
 
 function getDataWebpackId(identifier) {
 	return dataWebpackPrefix + identifier;
@@ -52,12 +52,12 @@ function insertStyleElement(key) {
 		}
 	}
 };
-<% if (_with_hmr) { -%>
+<% if (_with_hmr) { %>
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.cssInjectStyle = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (removedModules) {
 		<%- _css_inject_style %>.removeModules(removedModules);
 	}
 };
-<% } else { -%>
+<% } else { %>
 // no css inject style HMR download handler
 <% } %>

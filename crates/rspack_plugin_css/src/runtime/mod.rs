@@ -10,6 +10,7 @@ use rspack_plugin_runtime::{
   chunk_has_css, extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   stringify_chunks,
 };
+use rspack_util::json_stringify;
 
 static CSS_LOADING_TEMPLATE: &str = include_str!("./css_loading.ejs");
 static CSS_LOADING_CREATE_LINK_TEMPLATE: &str = include_str!("./css_loading_create_link.ejs");
@@ -39,8 +40,13 @@ static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
     extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_TEMPLATE)
       | extract_runtime_globals_from_ejs(CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
   });
-static CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_INJECT_STYLE_TEMPLATE));
+static CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  let mut res = extract_runtime_globals_from_ejs(CSS_INJECT_STYLE_TEMPLATE);
+  // `HMR_DOWNLOAD_UPDATE_HANDLERS` is referenced only inside a conditional template branch.
+  // Keep the base runtime requirements HMR-agnostic so non-HMR builds don't require `hmrC`.
+  res.remove(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+  res
+});
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -442,6 +448,11 @@ impl RuntimeModule for CssInjectStyleRuntimeModule {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let unique_name = &compilation.options.output.unique_name;
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
+    let data_webpack_prefix = if unique_name.is_empty() {
+      json_stringify("rspack:")
+    } else {
+      json_stringify(&format!("{unique_name}:"))
+    };
 
     let create_style_element_code = {
       let mut code = String::new();
@@ -465,7 +476,7 @@ impl RuntimeModule for CssInjectStyleRuntimeModule {
     let source = context.runtime_template.render(
       &self.template_id(CssInjectStyleTemplateId::Raw),
       Some(serde_json::json!({
-        "_unique_name": unique_name,
+        "_data_webpack_prefix": data_webpack_prefix,
         "_create_style": &create_style_element_code,
         "_css_inject_style": &css_inject_style,
         "_with_hmr": with_hmr,
