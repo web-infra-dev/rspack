@@ -190,9 +190,13 @@ impl From<&ModuleType> for SourceType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ModuleType {
   Json,
+  /// Pure CSS, no CSS modules features
   Css,
+  /// CSS modules mode, local by default, can add :global
   CssModule,
+  /// CSS auto mode, determines whether to use CSS modules based on the filename
   CssAuto,
+  /// CSS global mode, global by default, can add :local
   CssGlobal,
   JsAuto,
   JsDynamic,

@@ -1419,8 +1419,8 @@ export type CssGeneratorOptions = {
   esModule?: CssGeneratorEsModule;
 };
 
-/** Generator options for css/auto modules. */
-export type CssAutoGeneratorOptions = {
+/** Generator options for css/global modules. */
+export type CssModuleGeneratorOptions = {
   /**
    * Configure how CSS content is exported as default.
    */
@@ -1465,9 +1465,6 @@ export type CssAutoGeneratorOptions = {
   esModule?: CssGeneratorEsModule;
 };
 
-/** Generator options for css/module modules. */
-export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
-
 /** Generator options for json modules. */
 export type JsonGeneratorOptions = {
   /**
@@ -1491,10 +1488,10 @@ export type GeneratorOptionsByModuleTypeKnown = {
   css?: CssGeneratorOptions;
 
   /** Generator options for css/auto modules. */
-  'css/auto'?: CssAutoGeneratorOptions;
+  'css/auto'?: CssModuleGeneratorOptions;
 
   /** Generator options for css/global modules. */
-  'css/global'?: CssGeneratorOptions;
+  'css/global'?: CssModuleGeneratorOptions;
 
   /** Generator options for css/module modules. */
   'css/module'?: CssModuleGeneratorOptions;

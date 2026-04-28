@@ -518,7 +518,8 @@ pub enum GeneratorOptions {
   AssetInline(AssetInlineGeneratorOptions),
   AssetResource(AssetResourceGeneratorOptions),
   Css(CssGeneratorOptions),
-  CssAuto(CssAutoGeneratorOptions),
+  CssAuto(CssModuleGeneratorOptions),
+  CssGlobal(CssModuleGeneratorOptions),
   CssModule(CssModuleGeneratorOptions),
   Json(JsonGeneratorOptions),
   Unknown,
@@ -533,7 +534,8 @@ impl GeneratorOptions {
     AssetResourceGeneratorOptions
   );
   get_variant!(get_css, Css, CssGeneratorOptions);
-  get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
+  get_variant!(get_css_auto, CssAuto, CssModuleGeneratorOptions);
+  get_variant!(get_css_global, CssGlobal, CssModuleGeneratorOptions);
   get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
   get_variant!(get_json, Json, JsonGeneratorOptions);
 
@@ -796,30 +798,6 @@ impl From<String> for CssExportType {
 impl MergeFrom for CssExportType {
   fn merge_from(self, other: &Self) -> Self {
     *other
-  }
-}
-
-#[cacheable]
-#[derive(Default, Debug, Clone, MergeFrom)]
-pub struct CssAutoGeneratorOptions {
-  pub export_type: Option<CssExportType>,
-  pub exports_convention: Option<CssExportsConvention>,
-  pub exports_only: Option<bool>,
-  pub local_ident_hash_digest: Option<String>,
-  pub local_ident_hash_digest_length: Option<u32>,
-  pub local_ident_hash_function: Option<String>,
-  pub local_ident_hash_salt: Option<String>,
-  pub local_ident_name: Option<LocalIdentName>,
-  pub es_module: Option<bool>,
-}
-
-impl From<CssGeneratorOptions> for CssAutoGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
-    Self {
-      exports_only: value.exports_only,
-      es_module: value.es_module,
-      ..Default::default()
-    }
   }
 }
 

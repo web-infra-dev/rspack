@@ -16,10 +16,10 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
-  CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
-  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
+  CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssParserImport, CssParserImportContext, CssParserOptions, DescriptionData,
+  DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions,
+  GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
   ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
@@ -620,8 +620,8 @@ pub struct RawGeneratorOptions {
   pub asset_inline: Option<RawAssetInlineGeneratorOptions>,
   pub asset_resource: Option<RawAssetResourceGeneratorOptions>,
   pub css: Option<RawCssGeneratorOptions>,
-  pub css_auto: Option<RawCssAutoGeneratorOptions>,
-  pub css_global: Option<RawCssGeneratorOptions>,
+  pub css_auto: Option<RawCssModuleGeneratorOptions>,
+  pub css_global: Option<RawCssModuleGeneratorOptions>,
   pub css_module: Option<RawCssModuleGeneratorOptions>,
   pub json: Option<RawJsonGeneratorOptions>,
 }
@@ -663,7 +663,7 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
           .expect("should have an \"css_auto\" when RawGeneratorOptions.type is \"css/auto\"")
           .into(),
       ),
-      "css/global" => Self::Css(
+      "css/global" => Self::CssGlobal(
         value
           .css_global
           .expect("should have an \"css_global\" when RawGeneratorOptions.type is \"css/global\"")
@@ -846,38 +846,6 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
   fn from(value: RawCssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
-      es_module: value.es_module,
-    }
-  }
-}
-
-#[derive(Debug, Default)]
-#[napi(object)]
-pub struct RawCssAutoGeneratorOptions {
-  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
-  pub export_type: Option<String>,
-  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
-  pub exports_convention: Option<String>,
-  pub exports_only: Option<bool>,
-  pub local_ident_hash_digest: Option<String>,
-  pub local_ident_hash_digest_length: Option<u32>,
-  pub local_ident_hash_function: Option<String>,
-  pub local_ident_hash_salt: Option<String>,
-  pub local_ident_name: Option<String>,
-  pub es_module: Option<bool>,
-}
-
-impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
-  fn from(value: RawCssAutoGeneratorOptions) -> Self {
-    Self {
-      export_type: value.export_type.map(|n| n.into()),
-      exports_convention: value.exports_convention.map(|n| n.into()),
-      exports_only: value.exports_only,
-      local_ident_hash_digest: value.local_ident_hash_digest,
-      local_ident_hash_digest_length: value.local_ident_hash_digest_length,
-      local_ident_hash_function: value.local_ident_hash_function,
-      local_ident_hash_salt: value.local_ident_hash_salt,
-      local_ident_name: value.local_ident_name.map(|n| n.into()),
       es_module: value.es_module,
     }
   }

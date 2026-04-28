@@ -5,7 +5,6 @@ import {
   type RawAssetParserDataUrl,
   type RawAssetParserOptions,
   type RawAssetResourceGeneratorOptions,
-  type RawCssAutoGeneratorOptions,
   type RawCssAutoParserOptions,
   type RawCssGeneratorOptions,
   type RawCssModuleGeneratorOptions,
@@ -53,8 +52,8 @@ import type {
   AssetParserDataUrl,
   AssetParserOptions,
   AssetResourceGeneratorOptions,
-  CssAutoGeneratorOptions,
   CssGeneratorOptions,
+  CssModuleGeneratorOptions,
   CssParserOptions,
   GeneratorOptionsByModuleType,
   JavascriptParserOptions,
@@ -705,7 +704,7 @@ function getRawGeneratorOptions(
   if (type === 'css/global') {
     return {
       type: 'css/global',
-      cssGlobal: getRawCssGeneratorOptions(generator),
+      cssGlobal: getRawCssAutoOrModuleGeneratorOptions(generator),
     };
   }
   if (type === 'json') {
@@ -792,8 +791,8 @@ function getRawCssGeneratorOptions(
 }
 
 function getRawCssAutoOrModuleGeneratorOptions(
-  options: CssAutoGeneratorOptions,
-): RawCssAutoGeneratorOptions | RawCssModuleGeneratorOptions {
+  options: CssModuleGeneratorOptions,
+): RawCssModuleGeneratorOptions {
   return {
     exportType: options.exportType,
     localIdentName: options.localIdentName,

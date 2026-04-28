@@ -44,19 +44,18 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
-  EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
-  ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
-  SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
-  incremental::IncrementalOptions,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoParserOptions, CssExportsConvention,
+  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport,
+  CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment,
+  Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap,
+  ImportMeta, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
+  MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleType, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption, Optimization,
+  OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PublicPath, Resolve,
+  RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, StatsOptions, TrustedTypes,
+  UsedExportsOption, WasmLoading, WasmLoadingType, incremental::IncrementalOptions,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1793,7 +1792,7 @@ impl ModuleOptionsBuilder {
 
       generator.insert(
         "css/auto".to_string(),
-        GeneratorOptions::CssAuto(CssAutoGeneratorOptions {
+        GeneratorOptions::CssAuto(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
