@@ -33,7 +33,7 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependencyTemplate, BoxLoader, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildResult, ChunkGraph,
   CodeGenerationResult, Compilation, ConnectionState, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
+  FactoryMeta, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
@@ -161,8 +161,16 @@ impl NormalModule {
     module_type: &ModuleType,
     layer: Option<&ModuleLayer>,
     request: &'request str,
+    phase: ImportPhase,
   ) -> Cow<'request, str> {
-    if let Some(layer) = layer {
+    if matches!(module_type, ModuleType::WasmAsync) {
+      let mut id = format!("{module_type}|{request}|{}", phase.as_str());
+      if let Some(layer) = layer {
+        id.push('|');
+        id.push_str(layer);
+      }
+      id.into()
+    } else if let Some(layer) = layer {
       format!("{module_type}|{request}|{layer}").into()
     } else if *module_type == ModuleType::JsAuto {
       request.into()
@@ -187,9 +195,14 @@ impl NormalModule {
     loaders: Vec<BoxLoader>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
+    import_phase: ImportPhase,
   ) -> Self {
     let module_type = module_type.into();
-    let id = Self::create_id(&module_type, layer.as_ref(), &request);
+    let id = Self::create_id(&module_type, layer.as_ref(), &request, import_phase);
+    let build_info = BuildInfo {
+      import_phase,
+      ..Default::default()
+    };
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -216,7 +229,7 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info,
       build_meta: Default::default(),
       parsed: false,
       source_map_kind: SourceMapKind::empty(),

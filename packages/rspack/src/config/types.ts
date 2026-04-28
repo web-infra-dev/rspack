@@ -934,6 +934,9 @@ export type RuleSetRule = RuleSetRuleUseAndLoader & {
   /** Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module */
   dependency?: RuleSetCondition;
 
+  /** Matches all modules by the import phase that introduced the current module. */
+  phase?: RuleSetCondition;
+
   /** Matches all modules that match this resource, and will match against Resource */
   resource?: RuleSetCondition;
 
@@ -1240,6 +1243,13 @@ export type JavascriptParserOptions = {
    * @default false
    */
   deferImport?: boolean;
+
+  /**
+   * Whether to enable source phase import.
+   * This option is controlled by `experiments.sourceImport` and should not be set directly.
+   * @default false
+   */
+  sourceImport?: boolean;
 
   /**
    * Whether to enable import.meta.resolve().
@@ -2912,6 +2922,11 @@ export type Experiments = {
    */
   futureDefaults?: boolean;
   /**
+   * Enable ECMAScript module output.
+   * @default false
+   */
+  outputModule?: boolean;
+  /**
    * Enable loading of modules via HTTP/HTTPS requests.
    * @default false
    */
@@ -2931,6 +2946,11 @@ export type Experiments = {
    * @default false
    */
   deferImport?: boolean;
+  /**
+   * Enable source phase import feature
+   * @default false
+   */
+  sourceImport?: boolean;
   /**
    * Enable pure-function-based side-effects analysis.
    * @default false

@@ -41,7 +41,7 @@ impl ImportDependency {
     comments: Vec<(bool, String)>,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(request.as_str(), phase, attributes.as_ref());
     Self {
       request,
       range,
@@ -186,22 +186,26 @@ impl DependencyTemplate for ImportDependencyTemplate {
     let range = dep.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(dep.id());
-    source.replace(
-      range.start,
-      range.end,
-      code_generatable_context
-        .runtime_template
-        .module_namespace_promise(
-          code_generatable_context.compilation,
-          code_generatable_context.module.identifier(),
-          dep.id(),
-          block,
-          dep.request(),
-          dep.dependency_type().as_str(),
-          false,
-          dep.get_phase(),
-        ),
-      None,
-    );
+    let mut content = code_generatable_context
+      .runtime_template
+      .module_namespace_promise(
+        code_generatable_context.compilation,
+        code_generatable_context.module.identifier(),
+        dep.id(),
+        block,
+        dep.request(),
+        dep.dependency_type().as_str(),
+        false,
+        dep.get_phase(),
+      );
+    if dep.get_phase().is_source() {
+      content = format!(
+        "{content}.then({})",
+        code_generatable_context
+          .runtime_template
+          .returning_function("m[\"default\"]", "m")
+      );
+    }
+    source.replace(range.start, range.end, content, None);
   }
 }

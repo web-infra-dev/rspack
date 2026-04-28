@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase, ReferencedSpecifier,
+  DynamicImportMode, GroupOptions, ImportAttributes, ReferencedSpecifier,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -16,7 +16,7 @@ use swc_core::{
   },
 };
 
-use super::JavascriptParserPlugin;
+use super::{JavascriptParserPlugin, import_phase::get_import_phase};
 use crate::{
   dependency::{
     ImportContextDependency, ImportDependency, ImportEagerDependency, ImportWeakDependency,
@@ -370,14 +370,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser.add_warning(error.into());
     }
 
-    let phase: ImportPhase = node
-      .callee
-      .as_import()
-      .expect("should be import")
-      .phase
-      .into();
+    let syntax_phase = node.callee.as_import().expect("should be import").phase;
+    let phase = get_import_phase(
+      parser,
+      syntax_phase,
+      magic_comment_options.get_defer(),
+      magic_comment_options.get_source(),
+    );
     if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
       parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
+    }
+    if phase.is_source() && !parser.compiler_options.experiments.source_import {
+      parser.add_error(rspack_error::error!("sourceImport is still an experimental feature. To continue using it, please enable 'experiments.sourceImport'.").into());
     }
 
     let attributes = get_attributes_from_call_expr(node);

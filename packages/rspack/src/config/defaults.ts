@@ -110,6 +110,7 @@ export const applyRspackOptionsDefaults = (
     mode: options.mode,
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
+    sourceImport: options.experiments.sourceImport,
     outputModule: options.output.module,
   });
 
@@ -122,6 +123,7 @@ export const applyRspackOptionsDefaults = (
       (Array.isArray(target) &&
         target.some((target) => target.startsWith('browserslist'))),
     entry: options.entry,
+    outputModule: options.experiments.outputModule,
   });
 
   applyExternalsPresetsDefaults(options.externalsPresets, {
@@ -211,7 +213,9 @@ const applyInfrastructureLoggingDefaults = (
 const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
+  D(experiments, 'outputModule', false);
   D(experiments, 'deferImport', false);
+  D(experiments, 'sourceImport', false);
 
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {
@@ -256,9 +260,11 @@ const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
   {
     deferImport,
+    sourceImport,
     outputModule,
   }: {
     deferImport?: boolean;
+    sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
   },
 ) => {
@@ -283,6 +289,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
+  D(parserOptions, 'sourceImport', sourceImport);
   D(parserOptions, 'importMetaResolve', false);
 };
 
@@ -312,6 +319,7 @@ const applyModuleDefaults = (
     mode,
     uniqueName,
     deferImport,
+    sourceImport,
     outputModule,
   }: {
     asyncWebAssembly: boolean;
@@ -319,6 +327,7 @@ const applyModuleDefaults = (
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
+    sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
   },
 ) => {
@@ -336,6 +345,7 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.javascript);
   applyJavascriptParserOptionsDefaults(module.parser.javascript, {
     deferImport,
+    sourceImport,
     outputModule,
   });
 
@@ -512,11 +522,13 @@ const applyOutputDefaults = (
     targetProperties: tp,
     isAffectedByBrowserslist,
     entry,
+    outputModule,
   }: {
     context: Context;
     targetProperties: false | TargetProperties;
     isAffectedByBrowserslist: boolean;
     entry: EntryNormalized;
+    outputModule?: boolean;
   },
 ) => {
   const { output } = options;
@@ -590,9 +602,10 @@ const applyOutputDefaults = (
   D(
     output,
     'module',
-    ['modern-module', 'module'].some((ty) =>
-      output.enabledLibraryTypes!.includes(ty),
-    ),
+    Boolean(outputModule) ||
+      ['modern-module', 'module'].some((ty) =>
+        output.enabledLibraryTypes!.includes(ty),
+      ),
   );
 
   const environment = output.environment!;

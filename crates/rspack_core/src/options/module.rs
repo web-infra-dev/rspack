@@ -328,6 +328,7 @@ pub struct JavascriptParserOptions {
   pub commonjs_magic_comments: Option<bool>,
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
+  pub source_import: Option<bool>,
   pub import_meta_resolve: Option<bool>,
   pub side_effects_free: Option<Vec<String>>,
 }
@@ -1092,6 +1093,7 @@ pub struct ModuleRule {
   pub resource_query: Option<RuleSetConditionWithEmpty>,
   pub resource_fragment: Option<RuleSetConditionWithEmpty>,
   pub dependency: Option<RuleSetCondition>,
+  pub phase: Option<RuleSetCondition>,
   pub issuer: Option<RuleSetConditionWithEmpty>,
   pub issuer_layer: Option<RuleSetConditionWithEmpty>,
   pub scheme: Option<RuleSetConditionWithEmpty>,

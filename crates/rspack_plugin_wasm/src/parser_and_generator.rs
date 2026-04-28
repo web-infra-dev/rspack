@@ -21,6 +21,7 @@ use crate::dependency::WasmImportDependency;
 pub struct AsyncWasmParserAndGenerator;
 
 pub(crate) static WASM_SOURCE_TYPE: &[SourceType; 2] = &[SourceType::Wasm, SourceType::JavaScript];
+const WASM_MAGIC_HEADER: &[u8; 4] = b"\0asm";
 
 #[derive(Debug)]
 struct DepModule<'a> {
@@ -49,6 +50,32 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let mut exports = Vec::with_capacity(1);
     let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(1);
     let mut diagnostic = Vec::with_capacity(1);
+
+    if parse_context.build_info.import_phase.is_source() {
+      let bytes = source.buffer();
+      if !bytes.starts_with(WASM_MAGIC_HEADER) {
+        diagnostic.push(Diagnostic::error(
+          "Wasm Parse Error".into(),
+          "Source phase imports require valid WebAssembly modules. Invalid magic header (expected \\0asm).".into(),
+        ));
+      }
+      dependencies.push(Box::new(StaticExportsDependency::new(
+        StaticExportsSpec::Array(vec![Atom::from("default")]),
+        false,
+      )));
+
+      return Ok(
+        ParseResult {
+          dependencies,
+          blocks: vec![],
+          presentational_dependencies: vec![],
+          code_generation_dependencies: vec![],
+          source,
+          side_effects_bailout: None,
+        }
+        .with_diagnostic(diagnostic),
+      );
+    }
 
     for payload in Parser::new(0).parse_all(&source.buffer()) {
       match payload {
@@ -144,6 +171,30 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
+        if module.build_info().import_phase.is_source() {
+          let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
+          let exports_argument = runtime_template.render_exports_argument(ExportsArgument::Exports);
+          let compile_call = format!(
+            r#"{}({}, "{}")"#,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::COMPILE_WASM),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_ID),
+            &hash,
+          );
+          let source = RawStringSource::from(format!(
+            r#"{}({module_argument}, async function (__rspack_handle_async_dependencies__, __rspack_async_done) {{
+  try {{
+    var __rspack_wasm_module__ = await {compile_call};
+    {}({exports_argument}, {{ "default": {} }});
+    __rspack_async_done();
+  }} catch(e) {{ __rspack_async_done(e); }}
+}}, 1);"#,
+            runtime_template.render_runtime_globals(&RuntimeGlobals::ASYNC_MODULE),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+            runtime_template.returning_function("__rspack_wasm_module__", ""),
+          ));
+          return Ok(source.boxed());
+        }
+
         let mut dep_modules = IdentifierIndexMap::<DepModule>::default();
         let mut promises: Vec<String> = vec![];
 

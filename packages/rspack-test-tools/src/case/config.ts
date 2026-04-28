@@ -125,7 +125,10 @@ export function overrideOptions(
       options.optimization?.runtimeChunk === undefined &&
       enableEsmLibraryPlugin(options);
     const outputModule =
-      options.output?.module || enableEsmLibraryPlugin(options);
+      options.output?.module ||
+      options.experiments?.outputModule ||
+      enableEsmLibraryPlugin(options);
+
     options.output ??= {};
     options.output.filename = `${runtimeChunkForModernModule ? `[name]${outputModule ? '.mjs' : '.js'}` : `bundle${index}${outputModule ? '.mjs' : '.js'}`}`;
   }

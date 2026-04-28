@@ -14,6 +14,7 @@ mod exports_info_api_plugin;
 mod import_meta_context_dependency_parser_plugin;
 mod import_meta_plugin;
 mod import_parser_plugin;
+mod import_phase;
 mod initialize_evaluating;
 mod inline_const;
 pub(crate) mod inner_graph;
