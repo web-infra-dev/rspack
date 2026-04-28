@@ -1,0 +1,142 @@
+```mjs title=index.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./wrapped.mjs";
+
+// ./src/index.js
+const wrapped_0 = __webpack_require__("./src/wrapped.js");
+
+
+it('should keep real module external export names after remapping wrapped module exports', async () => {
+  const events = await import(/* webpackIgnore: true */ 'node:events');
+
+  expect(wrapped_0.a).toBe(events.EventEmitter);
+  expect(wrapped_0.b).toBe(events.once);
+
+  const wrapped = await import(/* webpackIgnore: true */ './wrapped.mjs');
+
+  expect(wrapped.a).toBe(events.EventEmitter);
+  expect(wrapped.b).toBe(events.once);
+});
+
+export {};
+
+```
+
+```mjs title=node_events.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import * as __rspack_external_node_events_0a6aefe7 from "node:events";
+__webpack_require__.add({
+"node:events"
+/*!******************************!*\
+  !*** external "node:events" ***!
+  \******************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+var __rspack_create_module_external_namespace_node_events_0a6aefe7 = (y) => {
+var x = {};
+__webpack_require__.d(x, y);
+return x;
+};
+var __rspack_wrap_module_external_namespace_node_events_0a6aefe7 = (x) => (() => (x));
+module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7({a: () => (__rspack_external_node_events_0a6aefe7.EventEmitter), b: () => (__rspack_external_node_events_0a6aefe7.once)});
+
+},
+});
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/esm_module_decorator
+(() => {
+__webpack_require__.hmd = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=wrapped.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./node_events.mjs";
+
+__webpack_require__.add({
+"./src/wrapped.js"
+/*!************************!*\
+  !*** ./src/wrapped.js ***!
+  \************************/
+(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (/* reexport safe */ node_events__rspack_import_0.a),
+  b: () => (/* reexport safe */ node_events__rspack_import_0.b)
+});
+/* import */ var node_events__rspack_import_0 = __webpack_require__(/*! node:events */ "node:events");
+/* module decorator */ module = __webpack_require__.hmd(module);
+
+
+console.log.bind(module);
+
+
+},
+});
+const wrapped = __webpack_require__("./src/wrapped.js");
+var a = wrapped.a;
+var b = wrapped.b;
+
+export { a, b };
+
+```
