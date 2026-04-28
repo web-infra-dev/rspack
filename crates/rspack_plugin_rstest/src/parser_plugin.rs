@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
   dependency::{CommonJsRequireDependency, ImportDependency, RequireHeaderDependency},
-  magic_comment::try_extract_magic_comment,
+  try_extract_magic_comment,
   utils::{
     self,
     eval::{self},
