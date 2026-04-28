@@ -144,12 +144,23 @@ module.exports = [
             'root-server-css',
           );
 
+          const sharedCssFile = findCssAsset(compilation, 'shared-server-css');
+          expect(entryCssFiles).toContain(sharedCssFile);
+          expect(readAsset(compilation, sharedCssFile)).toContain(
+            'shared-server-css',
+          );
+          expect(readAsset(compilation, sharedCssFile)).toContain(
+            'shared-nested-server-css',
+          );
+
           const page1CssFile = findCssAsset(compilation, 'page-one-css');
           const page1Css = readAsset(compilation, page1CssFile);
           expect(page1CssFile).not.toBe(rootCssFile);
           expect(entryCssFiles).not.toContain(page1CssFile);
           expect(page1Css).toContain('page-one-css');
           expect(page1Css).toContain('page-one-child-css');
+          expect(page1Css).not.toContain('shared-server-css');
+          expect(page1Css).not.toContain('shared-nested-server-css');
           expect(page1Css).not.toContain('page-two-css');
           expect(page1Css).not.toContain('page-two-child-css');
 
@@ -160,6 +171,8 @@ module.exports = [
           expect(entryCssFiles).not.toContain(page2CssFile);
           expect(page2Css).toContain('page-two-css');
           expect(page2Css).toContain('page-two-child-css');
+          expect(page2Css).not.toContain('shared-server-css');
+          expect(page2Css).not.toContain('shared-nested-server-css');
           expect(page2Css).not.toContain('page-one-css');
           expect(page2Css).not.toContain('page-one-child-css');
         });

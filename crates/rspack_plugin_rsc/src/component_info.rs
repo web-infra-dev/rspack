@@ -110,6 +110,40 @@ fn filter_client_components(
     return;
   }
 
+  // CSS ownership depends on the current parent chain, so record it before the
+  // `visited` short-circuit. A stylesheet may be seen first through a
+  // `use server-entry` component and later through the root RSC tree; the later
+  // root visit still needs to update `root_css_imports` and remove any earlier
+  // server-entry ownership.
+  if is_css_mod(module) {
+    let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
+
+    if side_effect_free {
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module.identifier());
+      let unused = !exports_info.is_module_used(Some(runtime));
+      if unused {
+        return;
+      }
+    }
+
+    if server_entries.is_empty() {
+      // CSS with no `use server-entry` in its parent chain should load with
+      // the client entry rather than through RSC server-entry CSS metadata.
+      component_info.root_css_imports.insert(resource.to_string());
+    } else {
+      for server_entry in server_entries.iter() {
+        component_info
+          .css_imports_by_server_entry
+          .entry(server_entry.clone())
+          .or_default()
+          .insert(resource.to_string());
+      }
+    }
+    return;
+  }
+
   if visited.contains(&module.identifier()) {
     if component_info
       .client_component_imports
@@ -147,33 +181,7 @@ fn filter_client_components(
   }
 
   let module_graph = compilation.get_module_graph();
-  if is_css_mod(module) {
-    let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
-
-    if side_effect_free {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_exports_info_data(&module.identifier());
-      let unused = !exports_info.is_module_used(Some(runtime));
-      if unused {
-        return;
-      }
-    }
-
-    if server_entries.is_empty() {
-      // CSS with no `use server-entry` in its parent chain should load with
-      // the client entry rather than through RSC server-entry CSS metadata.
-      component_info.root_css_imports.insert(resource.to_string());
-    } else {
-      for server_entry in server_entries.iter() {
-        component_info
-          .css_imports_by_server_entry
-          .entry(server_entry.clone())
-          .or_default()
-          .insert(resource.to_string());
-      }
-    }
-  } else if is_client_component_entry_module(module) {
+  if is_client_component_entry_module(module) {
     if !component_info
       .client_component_imports
       .contains_key(resource.as_ref())
