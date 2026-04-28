@@ -1,0 +1,8 @@
+LOG from rspack.persistentCache
+<i> persistent cache enabled
+<w> persistent cache invalidated because build dependencies changed:
+<w> modified paths (4):
+<w>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-dir/test
+<w>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-dir/test/test1.log
+<w>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-dir/test/test2
+<w>   - ...

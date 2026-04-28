@@ -225,7 +225,7 @@ If a function is marked as side-effect-free and its return value is unused, Rspa
 
 ## pureFunctions
 
-`pureFunctions` lets you manually mark top-level exported functions in matched modules as side-effect-free for pure-function-based tree shaking. This is useful for third-party libraries where source code cannot be modified, such as packages in `node_modules`.
+`pureFunctions` lets you manually mark top-level identifiers in matched modules as side-effect-free for pure-function-based tree shaking. Each name must resolve to a top-level binding in the module — a function/class/variable declaration, an `import` specifier, or an export alias of one. This is useful for third-party libraries where source code cannot be modified, such as packages in `node_modules`, and for asserting that a particular import is pure on the consumer side.
 
 For configuration details, see [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions).
 
@@ -234,7 +234,7 @@ This option is experimental and only takes effect when `experiments.pureFunction
 :::
 
 :::note
-Only top-level exported function definitions are supported. For default exports, use `default` as the exported name.
+For default exports configured on the source module, use `default` as the name.
 :::
 
 For business source code where modification is possible, it is recommended to use the `/*#__NO_SIDE_EFFECTS__*/` annotation.
@@ -250,10 +250,18 @@ export default {
   },
   module: {
     rules: [
+      // Mark exports of a third-party library as pure.
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
           pureFunctions: ['isString', 'default'],
+        },
+      },
+      // Or mark the import on the consumer side.
+      {
+        test: /src\/styles\.js$/,
+        parser: {
+          pureFunctions: ['cva'],
         },
       },
     ],
@@ -261,4 +269,4 @@ export default {
 };
 ```
 
-Rspack validates each configured name against the matched module. If a configured exported function name cannot be found, Rspack emits a warning.
+Rspack validates each configured name against the matched module. If a configured name does not appear as a top-level binding in the module, Rspack emits a warning.

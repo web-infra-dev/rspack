@@ -15,8 +15,8 @@ importers:
   .:
     devDependencies:
       '@rslint/core':
-        specifier: 0.5.0
-        version: 0.5.0(jiti@2.6.1)
+        specifier: 0.5.1
+        version: 0.5.1(jiti@2.6.1)
       '@rstest/core':
         specifier: ^0.9.9
         version: 0.9.9(core-js@3.49.0)(jsdom@26.1.0)
@@ -142,8 +142,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.0
-        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.1
+        version: 2.0.1(@rspack/core@packages+rspack)(selfsigned@5.5.0)
 
   examples/react:
     dependencies:
@@ -161,8 +161,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.0
-        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.1
+        version: 2.0.1(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.0
         version: 2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -188,8 +188,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.0
-        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.1
+        version: 2.0.1(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -283,11 +283,11 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       enhanced-resolve:
-        specifier: 5.20.1
-        version: 5.20.1
+        specifier: 5.21.0
+        version: 5.21.0
       http-proxy-middleware:
-        specifier: ^4.0.0-beta.4
-        version: 4.0.0-beta.4
+        specifier: ^4.0.0-beta.5
+        version: 4.0.0-beta.5
       memfs:
         specifier: 4.53.0
         version: 4.53.0
@@ -355,8 +355,8 @@ importers:
         specifier: workspace:*
         version: link:../rspack
       '@rspack/dev-server':
-        specifier: ^2.0.0
-        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.1
+        version: 2.0.1(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
@@ -555,8 +555,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.0
-        version: 2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)
+        specifier: ^2.0.1
+        version: 2.0.1(@rspack/core@packages+rspack)(selfsigned@5.5.0)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.0
         version: 2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -579,11 +579,11 @@ importers:
         specifier: ^11.3.4
         version: 11.3.4
       postcss:
-        specifier: ^8.5.10
-        version: 8.5.10
+        specifier: ^8.5.12
+        version: 8.5.12
       postcss-loader:
         specifier: ^8.2.1
-        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.10)(typescript@6.0.3)(webpack@5.104.1)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.12)(typescript@6.0.3)(webpack@5.104.1)
       react:
         specifier: ^19.2.5
         version: 19.2.5
@@ -660,8 +660,8 @@ importers:
         specifier: 0.5.21
         version: 0.5.21
       '@swc/plugin-remove-console':
-        specifier: ^12.7.0
-        version: 12.7.0
+        specifier: ^12.9.0
+        version: 12.9.0
       '@types/babel__generator':
         specifier: 7.27.0
         version: 7.27.0
@@ -682,7 +682,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.20.1)(pug@3.0.3)(webpack@5.104.1)
+        version: 2.11.1(enhanced-resolve@5.21.0)(pug@3.0.3)(webpack@5.104.1)
       acorn:
         specifier: ^8.16.0
         version: 8.16.0
@@ -760,10 +760,10 @@ importers:
         version: 4.1.0(webpack@5.104.1)
       postcss-loader:
         specifier: ^8.2.1
-        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.10)(typescript@6.0.3)(webpack@5.104.1)
+        version: 8.2.1(@rspack/core@packages+rspack)(postcss@8.5.12)(typescript@6.0.3)(webpack@5.104.1)
       postcss-pxtorem:
         specifier: ^6.1.0
-        version: 6.1.0(postcss@8.5.10)
+        version: 6.1.0(postcss@8.5.12)
       preact:
         specifier: ^10.29.1
         version: 10.29.1
@@ -2999,8 +2999,8 @@ packages:
       typescript:
         optional: true
 
-  '@rslint/core@0.5.0':
-    resolution: {integrity: sha512-RkP/xqWx+Nvj7awvALIpbGnc5ECv8/AjPXqQDixhms4bu4dW5UbNNZ9XbrvJ4JoToUC/Ac5CrwW+nOj7JItSFQ==}
+  '@rslint/core@0.5.1':
+    resolution: {integrity: sha512-UGcalhkpNvm4zN7E2DiQsuwM10LMi3CazOiANVevf5hn+NB7WKEMWYKn3bFySptg7Ll042IKMUlIXaFQjWs9lQ==}
     hasBin: true
     peerDependencies:
       jiti: ^2.0.0
@@ -3008,33 +3008,33 @@ packages:
       jiti:
         optional: true
 
-  '@rslint/darwin-arm64@0.5.0':
-    resolution: {integrity: sha512-AgsyJBnmXBuTnXAB5YUr6fhgfxvCl+iNRFlCjNN4WiClKEQyRLkU8KAmqVoZWOMyNszDUl9k/KT5P5KrBEJCJQ==}
+  '@rslint/darwin-arm64@0.5.1':
+    resolution: {integrity: sha512-grbPKhrRv0BTKvdByIIlS5avc4ttF9vylaStJh/TTYS96cTkjCcTv7RAUv/ZI3VSaSZdRBcW4f6wW9pPWpt41w==}
     cpu: [arm64]
     os: [darwin]
 
-  '@rslint/darwin-x64@0.5.0':
-    resolution: {integrity: sha512-4vxDu0DFzJVsGGxmmGmtSqKOPPfVcJvqxZP7XXDf9isFPg3L9jF+2DW3QL3KL7LO3Q+3zVG9eL+MQslMUf9NSw==}
+  '@rslint/darwin-x64@0.5.1':
+    resolution: {integrity: sha512-v7P5AYWzm4Xrly5nl5yXSAyHn6j9pwZyFFUTD9UCOodZMEVmBxW3WxdL9iq8PfnG5n8GXHqTqBSYwWfG1WWD0g==}
     cpu: [x64]
     os: [darwin]
 
-  '@rslint/linux-arm64@0.5.0':
-    resolution: {integrity: sha512-sNdDT7Omf6GttaJOql1915t/6txHlo0mEulLNhuDK4KVD9EnSltQ1uIDeqhNVvsKSnqIuTp3qCWmo1qYv5xKTA==}
+  '@rslint/linux-arm64@0.5.1':
+    resolution: {integrity: sha512-czDNVvgea0LpTlqaRvZHulJn8RmmDso2DufIWedxIA9yfK+nEK4H0tANNVQL4NBTHiv/6cqQw8NveP3KD5I93g==}
     cpu: [arm64]
     os: [linux]
 
-  '@rslint/linux-x64@0.5.0':
-    resolution: {integrity: sha512-Er/feorEUqOjee1ueE02fHIaPB1haxoGdh3uNqNrm3CUyrBp+Amjb8HL3MRzIYQuYoZWBAw9fU67YG8FxcWUsA==}
+  '@rslint/linux-x64@0.5.1':
+    resolution: {integrity: sha512-D0isbtok26OSjSQkWDDfTWPLQDqrufbTbiihMFxkDlIRKDGcU9HvnfTlEmgnwzkxt6Jm7CBZZiXdFtyhPgnWEg==}
     cpu: [x64]
     os: [linux]
 
-  '@rslint/win32-arm64@0.5.0':
-    resolution: {integrity: sha512-Y895KBuDVfoprZqr1BKX4YwP4kA2cqUuQr1B50+W8yjSRznyotNa09pRqUi+FrgJ5z6x07JjmW3Ggv8t5z9wwg==}
+  '@rslint/win32-arm64@0.5.1':
+    resolution: {integrity: sha512-XnU369fuTR9EqFhRMmbg+rHO3T/gwC+VV2AC1HAvZ62/pgNjFQmlK6IEsU293sgXHOUnRIQ6IsC9J0imyrCMXQ==}
     cpu: [arm64]
     os: [win32]
 
-  '@rslint/win32-x64@0.5.0':
-    resolution: {integrity: sha512-pTvCNr99DQg+22XQ5QkHySOLD4ap3wJ6yuwoW2r/4dW4MbmyDF9FfQGfhH1ZsQA3h20H8/3ANGdKuCbZnjkSrg==}
+  '@rslint/win32-x64@0.5.1':
+    resolution: {integrity: sha512-7++ELodvfVPFDSYEMVWb7OA+BD2JeONXtwXP/vmbrcawBTff7E/6VREB8dGPYCNh/ypBuSQ2WYXUtYAxQxwSiQ==}
     cpu: [x64]
     os: [win32]
 
@@ -3183,8 +3183,8 @@ packages:
       '@rspack/core':
         optional: true
 
-  '@rspack/dev-server@2.0.0':
-    resolution: {integrity: sha512-bSdIlt8Nq1Q2K0Gv+AMmETMKsLjEgTtL8DNlDtSe14cdtBrF0Z8kfpKUpgUKb5i0O7CZ5pmPzVwHZIEqMrCJNQ==}
+  '@rspack/dev-server@2.0.1':
+    resolution: {integrity: sha512-N5sIdU9v6WhwPH6Ek8QCj4IMvGd8jA3ZW1NMAyHP1ezzKIr2/idcNV2zX5vbC6FJvOLRLww0rFjfKA+z4tshDA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
       '@rspack/core': ^2.0.0-0
@@ -3358,8 +3358,8 @@ packages:
   '@swc/helpers@0.5.21':
     resolution: {integrity: sha512-jI/VAmtdjB/RnI8GTnokyX7Ug8c+g+ffD6QRLa6XQewtnGyukKkKSk3wLTM3b5cjt1jNh9x0jfVlagdN2gDKQg==}
 
-  '@swc/plugin-remove-console@12.7.0':
-    resolution: {integrity: sha512-gdzoBtQSKvIoZDT/FJN9vmqC2ip+/ehmFcwNr/MVENXmk29eHjeWVTvhPJX5yOp87NBzpnkuOyR53SOt7vfzmA==}
+  '@swc/plugin-remove-console@12.9.0':
+    resolution: {integrity: sha512-Ve64fWHghdhMHMYAmKlIdyV0aIbj8PX6mlUwXyf1dJXsBirkDm3HYtGw+XIpyNtIUfg1Rojyqc+TXATrqgRdhg==}
 
   '@swc/types@0.1.26':
     resolution: {integrity: sha512-lyMwd7WGgG79RS7EERZV3T8wMdmPq3xwyg+1nmAM64kIhx5yl+juO2PYIHb7vTiPgPCj8LYjsNV2T5wiQHUEaw==}
@@ -4698,8 +4698,8 @@ packages:
     resolution: {integrity: sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==}
     engines: {node: '>= 4'}
 
-  enhanced-resolve@5.20.1:
-    resolution: {integrity: sha512-Qohcme7V1inbAfvjItgw0EaxVX5q2rdVEZHRBrEQdRZTssLDGsL8Lwrznl8oQ/6kuTJONLaDcGjkNP247XEhcA==}
+  enhanced-resolve@5.21.0:
+    resolution: {integrity: sha512-otxSQPw4lkOZWkHpB3zaEQs6gWYEsmX4xQF68ElXC/TWvGxGMSGOvoNbaLXm6/cS/fSfHtsEdw90y20PCd+sCA==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -5217,8 +5217,8 @@ packages:
     resolution: {integrity: sha512-T1gkAiYYDWYx3V5Bmyu7HcfcvL7mUrTWiM6yOfa3PIphViJ/gFPbvidQ+veqSOHci/PxBcDabeUNCzpOODJZig==}
     engines: {node: '>= 14'}
 
-  http-proxy-middleware@4.0.0-beta.4:
-    resolution: {integrity: sha512-QBTpuRxJ5gJ5wUfsQG7mm6XOL6rKbwdqvJz6a+XRCK1jpJXKp5Zq+VdLBfFenihfHAhPSJ9l8ZdLv890x8mnog==}
+  http-proxy-middleware@4.0.0-beta.5:
+    resolution: {integrity: sha512-MfX/V4s3KClxqrkNlNifS9xCgfsFZ051pzCbmHkC/8QIigCXCtTv2W8jgsbIxnmWl8gP3bszZdAuDQe9yuPHOQ==}
     engines: {node: ^22.12.0 || >=24.0.0}
 
   https-browserify@1.0.0:
@@ -6431,8 +6431,8 @@ packages:
   postcss-value-parser@4.2.0:
     resolution: {integrity: sha512-1NNCs6uurfkVbeXG4S8JFT9t19m45ICnif8zWLd5oPSZ50QnwMfK+H3jv408d4jw/7Bttv5axS5IiHoLaVNHeQ==}
 
-  postcss@8.5.10:
-    resolution: {integrity: sha512-pMMHxBOZKFU6HgAZ4eyGnwXF/EvPGGqUr0MnZ5+99485wwW41kW91A4LOGxSHhgugZmSChL5AlElNdwlNgcnLQ==}
+  postcss@8.5.12:
+    resolution: {integrity: sha512-W62t/Se6rA0Az3DfCL0AqJwXuKwBeYg6nOaIgzP+xZ7N5BFCI7DYi1qs6ygUYT6rvfi6t9k65UMLJC+PHZpDAA==}
     engines: {node: ^10 || ^12 || >=14}
 
   powershell-utils@0.1.0:
@@ -7282,6 +7282,10 @@ packages:
 
   tapable@2.3.0:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
+    engines: {node: '>=6'}
+
+  tapable@2.3.3:
+    resolution: {integrity: sha512-uxc/zpqFg6x7C8vOE7lh6Lbda8eEL9zmVm/PLeTPBRhh1xCgdWaQ+J1CUieGpIfm2HdtsUpRv+HshiasBMcc6A==}
     engines: {node: '>=6'}
 
   terser-webpack-plugin@5.4.0:
@@ -9881,7 +9885,7 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
       loader-utils: 2.0.4
-      postcss: 8.5.10
+      postcss: 8.5.12
       reduce-configs: 1.1.1
       sass-embedded: 1.97.3
     optionalDependencies:
@@ -9911,34 +9915,35 @@ snapshots:
       - '@typescript/native-preview'
       - core-js
 
-  '@rslint/core@0.5.0(jiti@2.6.1)':
+  '@rslint/core@0.5.1(jiti@2.6.1)':
     dependencies:
       picomatch: 4.0.4
+      tinyglobby: 0.2.15
     optionalDependencies:
-      '@rslint/darwin-arm64': 0.5.0
-      '@rslint/darwin-x64': 0.5.0
-      '@rslint/linux-arm64': 0.5.0
-      '@rslint/linux-x64': 0.5.0
-      '@rslint/win32-arm64': 0.5.0
-      '@rslint/win32-x64': 0.5.0
+      '@rslint/darwin-arm64': 0.5.1
+      '@rslint/darwin-x64': 0.5.1
+      '@rslint/linux-arm64': 0.5.1
+      '@rslint/linux-x64': 0.5.1
+      '@rslint/win32-arm64': 0.5.1
+      '@rslint/win32-x64': 0.5.1
       jiti: 2.6.1
 
-  '@rslint/darwin-arm64@0.5.0':
+  '@rslint/darwin-arm64@0.5.1':
     optional: true
 
-  '@rslint/darwin-x64@0.5.0':
+  '@rslint/darwin-x64@0.5.1':
     optional: true
 
-  '@rslint/linux-arm64@0.5.0':
+  '@rslint/linux-arm64@0.5.1':
     optional: true
 
-  '@rslint/linux-x64@0.5.0':
+  '@rslint/linux-x64@0.5.1':
     optional: true
 
-  '@rslint/win32-arm64@0.5.0':
+  '@rslint/win32-arm64@0.5.1':
     optional: true
 
-  '@rslint/win32-x64@0.5.0':
+  '@rslint/win32-x64@0.5.1':
     optional: true
 
   '@rspack/binding-darwin-arm64@2.0.0':
@@ -10073,7 +10078,7 @@ snapshots:
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspack/dev-server@2.0.0(@rspack/core@packages+rspack)(selfsigned@5.5.0)':
+  '@rspack/dev-server@2.0.1(@rspack/core@packages+rspack)(selfsigned@5.5.0)':
     dependencies:
       '@rspack/core': link:packages/rspack
       '@rspack/dev-middleware': 2.0.1(@rspack/core@packages+rspack)
@@ -10329,7 +10334,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@swc/plugin-remove-console@12.7.0':
+  '@swc/plugin-remove-console@12.9.0':
     dependencies:
       '@swc/counter': 0.1.3
 
@@ -10656,7 +10661,7 @@ snapshots:
       '@vue/shared': 3.5.33
       estree-walker: 2.0.2
       magic-string: 0.30.21
-      postcss: 8.5.10
+      postcss: 8.5.12
       source-map-js: 1.2.1
 
   '@vue/compiler-ssr@3.5.33':
@@ -10764,10 +10769,10 @@ snapshots:
       '@webassemblyjs/ast': 1.14.1
       '@xtuc/long': 4.2.2
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.20.1)(pug@3.0.3)(webpack@5.104.1)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.21.0)(pug@3.0.3)(webpack@5.104.1)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.20.1
+      enhanced-resolve: 5.21.0
       parse5: 7.3.0
       pug: 3.0.3
       webpack: 5.104.1
@@ -11515,12 +11520,12 @@ snapshots:
 
   css-loader@7.1.4(@rspack/core@packages+rspack)(webpack@5.104.1):
     dependencies:
-      icss-utils: 5.1.0(postcss@8.5.10)
-      postcss: 8.5.10
-      postcss-modules-extract-imports: 3.1.0(postcss@8.5.10)
-      postcss-modules-local-by-default: 4.2.0(postcss@8.5.10)
-      postcss-modules-scope: 3.2.1(postcss@8.5.10)
-      postcss-modules-values: 4.0.0(postcss@8.5.10)
+      icss-utils: 5.1.0(postcss@8.5.12)
+      postcss: 8.5.12
+      postcss-modules-extract-imports: 3.1.0(postcss@8.5.12)
+      postcss-modules-local-by-default: 4.2.0(postcss@8.5.12)
+      postcss-modules-scope: 3.2.1(postcss@8.5.12)
+      postcss-modules-values: 4.0.0(postcss@8.5.12)
       postcss-value-parser: 4.2.0
       semver: 7.7.4
     optionalDependencies:
@@ -11860,10 +11865,10 @@ snapshots:
 
   emojis-list@3.0.0: {}
 
-  enhanced-resolve@5.20.1:
+  enhanced-resolve@5.21.0:
     dependencies:
       graceful-fs: 4.2.11
-      tapable: 2.3.0
+      tapable: 2.3.3
 
   entities@4.5.0: {}
 
@@ -12500,7 +12505,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  http-proxy-middleware@4.0.0-beta.4:
+  http-proxy-middleware@4.0.0-beta.5:
     dependencies:
       debug: 4.4.3
       httpxy: 0.5.1
@@ -12535,9 +12540,9 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
-  icss-utils@5.1.0(postcss@8.5.10):
+  icss-utils@5.1.0(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.10
+      postcss: 8.5.12
 
   ieee754@1.2.1: {}
 
@@ -13945,31 +13950,31 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-import@15.1.0(postcss@8.5.10):
+  postcss-import@15.1.0(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.10
+      postcss: 8.5.12
       postcss-value-parser: 4.2.0
       read-cache: 1.0.0
       resolve: 1.22.11
 
-  postcss-js@4.1.0(postcss@8.5.10):
+  postcss-js@4.1.0(postcss@8.5.12):
     dependencies:
       camelcase-css: 2.0.1
-      postcss: 8.5.10
+      postcss: 8.5.12
 
-  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.10)(yaml@2.8.3):
+  postcss-load-config@6.0.1(jiti@1.21.7)(postcss@8.5.12)(yaml@2.8.3):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 1.21.7
-      postcss: 8.5.10
+      postcss: 8.5.12
       yaml: 2.8.3
 
-  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.10)(typescript@6.0.3)(webpack@5.104.1):
+  postcss-loader@8.2.1(@rspack/core@packages+rspack)(postcss@8.5.12)(typescript@6.0.3)(webpack@5.104.1):
     dependencies:
       cosmiconfig: 9.0.1(typescript@6.0.3)
       jiti: 2.6.1
-      postcss: 8.5.10
+      postcss: 8.5.12
       semver: 7.7.4
     optionalDependencies:
       '@rspack/core': link:packages/rspack
@@ -13977,35 +13982,35 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  postcss-modules-extract-imports@3.1.0(postcss@8.5.10):
+  postcss-modules-extract-imports@3.1.0(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.10
+      postcss: 8.5.12
 
-  postcss-modules-local-by-default@4.2.0(postcss@8.5.10):
+  postcss-modules-local-by-default@4.2.0(postcss@8.5.12):
     dependencies:
-      icss-utils: 5.1.0(postcss@8.5.10)
-      postcss: 8.5.10
+      icss-utils: 5.1.0(postcss@8.5.12)
+      postcss: 8.5.12
       postcss-selector-parser: 7.1.1
       postcss-value-parser: 4.2.0
 
-  postcss-modules-scope@3.2.1(postcss@8.5.10):
+  postcss-modules-scope@3.2.1(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.10
+      postcss: 8.5.12
       postcss-selector-parser: 7.1.1
 
-  postcss-modules-values@4.0.0(postcss@8.5.10):
+  postcss-modules-values@4.0.0(postcss@8.5.12):
     dependencies:
-      icss-utils: 5.1.0(postcss@8.5.10)
-      postcss: 8.5.10
+      icss-utils: 5.1.0(postcss@8.5.12)
+      postcss: 8.5.12
 
-  postcss-nested@6.2.0(postcss@8.5.10):
+  postcss-nested@6.2.0(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.10
+      postcss: 8.5.12
       postcss-selector-parser: 6.1.2
 
-  postcss-pxtorem@6.1.0(postcss@8.5.10):
+  postcss-pxtorem@6.1.0(postcss@8.5.12):
     dependencies:
-      postcss: 8.5.10
+      postcss: 8.5.12
 
   postcss-selector-parser@6.1.2:
     dependencies:
@@ -14019,7 +14024,7 @@ snapshots:
 
   postcss-value-parser@4.2.0: {}
 
-  postcss@8.5.10:
+  postcss@8.5.12:
     dependencies:
       nanoid: 3.3.11
       picocolors: 1.1.1
@@ -14951,11 +14956,11 @@ snapshots:
       normalize-path: 3.0.0
       object-hash: 3.0.0
       picocolors: 1.1.1
-      postcss: 8.5.10
-      postcss-import: 15.1.0(postcss@8.5.10)
-      postcss-js: 4.1.0(postcss@8.5.10)
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.10)(yaml@2.8.3)
-      postcss-nested: 6.2.0(postcss@8.5.10)
+      postcss: 8.5.12
+      postcss-import: 15.1.0(postcss@8.5.12)
+      postcss-js: 4.1.0(postcss@8.5.12)
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.12)(yaml@2.8.3)
+      postcss-nested: 6.2.0(postcss@8.5.12)
       postcss-selector-parser: 6.1.2
       resolve: 1.22.11
       sucrase: 3.35.1
@@ -14964,6 +14969,8 @@ snapshots:
       - yaml
 
   tapable@2.3.0: {}
+
+  tapable@2.3.3: {}
 
   terser-webpack-plugin@5.4.0(webpack@5.104.1):
     dependencies:
@@ -15091,7 +15098,7 @@ snapshots:
   ts-loader@9.5.7(typescript@6.0.3)(webpack@5.104.1):
     dependencies:
       chalk: 4.1.2
-      enhanced-resolve: 5.20.1
+      enhanced-resolve: 5.21.0
       micromatch: 4.0.8
       semver: 7.7.4
       source-map: 0.7.6
@@ -15276,7 +15283,7 @@ snapshots:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
-      postcss: 8.5.10
+      postcss: 8.5.12
       rollup: 4.59.0
       tinyglobby: 0.2.15
     optionalDependencies:
@@ -15410,7 +15417,7 @@ snapshots:
       acorn-import-phases: 1.0.4(acorn@8.16.0)
       browserslist: 4.28.1
       chrome-trace-event: 1.0.4
-      enhanced-resolve: 5.20.1
+      enhanced-resolve: 5.21.0
       es-module-lexer: 2.0.0
       eslint-scope: 5.1.1
       events: 3.3.0

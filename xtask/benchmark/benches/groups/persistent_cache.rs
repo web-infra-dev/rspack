@@ -13,7 +13,7 @@ use rspack_core::{
   CacheOptions, Mode,
   cache::persistent::{PersistentCacheOptions, snapshot::SnapshotOptions, storage::StorageOptions},
 };
-use rspack_fs::{MemoryFileSystem, NativeFileSystem};
+use rspack_fs::{NativeFileSystem, NoopFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
 use super::bundle::basic_react;
@@ -188,7 +188,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       readonly: false,
     }))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
-    .output_filesystem(Arc::new(MemoryFileSystem::default()));
+    .output_filesystem(Arc::new(NoopFileSystem));
   builder
 }
 

@@ -7,7 +7,7 @@ mod module_group;
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_collections::IdentifierMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
@@ -170,6 +170,9 @@ impl SplitChunksPlugin {
         .await?;
       tracing::trace!("prepared module_group_map {:#?}", module_group_map);
 
+      module_group_map
+        .par_iter_mut()
+        .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
       while !module_group_map.is_empty() {

@@ -13,9 +13,10 @@ use swc_core::{
   },
   ecma::{
     ast::{
-      ArrowExpr, BlockStmt, BlockStmtOrExpr, Class, ClassMember, Decl, Expr, ExprOrSpread,
-      Function, ImportSpecifier, ModuleDecl, ModuleItem, Pat, Program, PropName, Stmt, VarDecl,
-      VarDeclKind, VarDeclOrExpr,
+      ArrayPat, ArrowExpr, AssignPat, AssignPatProp, BlockStmt, BlockStmtOrExpr, Class,
+      ClassMember, Decl, ExportSpecifier, Expr, ExprOrSpread, Function, ImportSpecifier,
+      KeyValuePatProp, ModuleDecl, ModuleExportName, ModuleItem, ObjectPat, ObjectPatProp, Pat,
+      Program, PropName, RestPat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr,
     },
     utils::{ExprCtx, ExprExt},
     visit::{Visit, VisitWith},
@@ -158,180 +159,126 @@ impl<'a> Visit for PureAnnotation<'a> {
   }
 }
 
-fn insert_module_export_name(
-  name: &swc_core::ecma::ast::ModuleExportName,
-  refs: &mut FxHashSet<Atom>,
-) {
-  match name {
-    swc_core::ecma::ast::ModuleExportName::Ident(ident) => {
-      refs.insert(ident.sym.clone());
-    }
-    swc_core::ecma::ast::ModuleExportName::Str(str) => {
-      if let Some(atom) = str.value.as_atom() {
-        refs.insert(atom.clone());
-      }
-    }
-  }
-}
-
-fn function_like_var_decl_names(var_decl: &VarDecl, refs: &mut FxHashSet<Atom>) {
-  if !matches!(var_decl.kind, VarDeclKind::Const) {
-    return;
-  }
-
-  for declarator in &var_decl.decls {
-    let Some(ident) = declarator.name.as_ident() else {
-      continue;
-    };
-
-    if matches!(
-      declarator.init.as_deref(),
-      Some(Expr::Fn(_) | Expr::Arrow(_))
-    ) {
-      refs.insert(ident.sym.clone());
-    }
-  }
-}
-
-fn collect_top_level_function_like_local_refs(program: &Program) -> FxHashSet<Atom> {
-  let mut refs = FxHashSet::default();
+fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<Atom> {
+  // Names a user can list in `pureFunctions` and have actually take effect:
+  //   - any top-level binding (function/class/var decl or import) — so calls
+  //     to local helpers and imported identifiers can be marked pure;
+  //   - export aliases of local bindings (`export { foo as bar }`) and the
+  //     `default` keyword for default-exported functions/arrows — preserves
+  //     the original "configure on the source module" workflow.
+  let mut names = FxHashSet::default();
+  let mut insert = |name: &Atom| {
+    names.insert(name.clone());
+  };
 
   match program {
     Program::Module(module) => {
+      // First pass: collect every actual top-level binding name.
       for item in &module.body {
         match item {
-          ModuleItem::Stmt(stmt) => {
-            if let Stmt::Decl(decl) = stmt {
-              match decl {
-                Decl::Fn(fn_decl) => {
-                  refs.insert(fn_decl.ident.sym.clone());
-                }
-                Decl::Var(var_decl) => {
-                  function_like_var_decl_names(var_decl, &mut refs);
-                }
-                _ => {}
-              }
-            }
-          }
+          ModuleItem::Stmt(Stmt::Decl(decl)) => visit_decl_binding_names(decl, &mut insert),
           ModuleItem::ModuleDecl(decl) => {
-            if let ModuleDecl::ExportDecl(export_decl) = decl {
-              match &export_decl.decl {
-                Decl::Fn(fn_decl) => {
-                  refs.insert(fn_decl.ident.sym.clone());
+            visit_module_decl_defined_binding_names(decl, &mut insert)
+          }
+          _ => {}
+        }
+      }
+
+      // Second pass: re-export aliases and `default` for default-exported fns.
+      let local_bindings = names.clone();
+      for item in &module.body {
+        let ModuleItem::ModuleDecl(decl) = item else {
+          continue;
+        };
+        match decl {
+          ModuleDecl::ExportNamed(named_export) if named_export.src.is_none() => {
+            for specifier in &named_export.specifiers {
+              let ExportSpecifier::Named(named) = specifier else {
+                continue;
+              };
+              let orig_atom = match &named.orig {
+                ModuleExportName::Ident(ident) => &ident.sym,
+                ModuleExportName::Str(_) => continue,
+              };
+              if !local_bindings.contains(orig_atom) {
+                continue;
+              }
+              match named.exported.as_ref().unwrap_or(&named.orig) {
+                ModuleExportName::Ident(ident) => {
+                  names.insert(ident.sym.clone());
                 }
-                Decl::Var(var_decl) => {
-                  function_like_var_decl_names(var_decl, &mut refs);
+                ModuleExportName::Str(s) => {
+                  if let Some(atom) = s.value.as_atom() {
+                    names.insert(atom.clone());
+                  }
                 }
-                _ => {}
               }
             }
           }
+          ModuleDecl::ExportDefaultDecl(default_decl)
+            if matches!(default_decl.decl, swc_core::ecma::ast::DefaultDecl::Fn(_)) =>
+          {
+            names.insert(Atom::from("default"));
+          }
+          ModuleDecl::ExportDefaultExpr(default_expr)
+            if default_expr.expr.is_fn_expr() || default_expr.expr.is_arrow() =>
+          {
+            names.insert(Atom::from("default"));
+          }
+          _ => {}
         }
       }
     }
     Program::Script(script) => {
       for stmt in &script.body {
         if let Stmt::Decl(decl) = stmt {
-          match decl {
-            Decl::Fn(fn_decl) => {
-              refs.insert(fn_decl.ident.sym.clone());
-            }
-            Decl::Var(var_decl) => {
-              function_like_var_decl_names(var_decl, &mut refs);
-            }
-            _ => {}
-          }
+          visit_decl_binding_names(decl, &mut insert);
         }
       }
     }
   }
 
-  refs
-}
-
-fn collect_exported_side_effects_free_refs(program: &Program) -> FxHashSet<Atom> {
-  let mut refs = FxHashSet::default();
-  let local_function_like_refs = collect_top_level_function_like_local_refs(program);
-
-  let Program::Module(module) = program else {
-    return refs;
-  };
-
-  for item in &module.body {
-    let ModuleItem::ModuleDecl(decl) = item else {
-      continue;
-    };
-
-    #[allow(clippy::collapsible_match)]
-    match decl {
-      ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
-        Decl::Fn(fn_decl) => {
-          refs.insert(fn_decl.ident.sym.clone());
-        }
-        Decl::Var(var_decl) => {
-          function_like_var_decl_names(var_decl, &mut refs);
-        }
-        _ => {}
-      },
-      ModuleDecl::ExportDefaultDecl(default_decl) => match &default_decl.decl {
-        swc_core::ecma::ast::DefaultDecl::Fn(fn_expr) => {
-          refs.insert(Atom::from("default"));
-          if let Some(ident) = &fn_expr.ident {
-            refs.insert(ident.sym.clone());
-          }
-        }
-        swc_core::ecma::ast::DefaultDecl::Class(_)
-        | swc_core::ecma::ast::DefaultDecl::TsInterfaceDecl(_) => {}
-      },
-      ModuleDecl::ExportDefaultExpr(default_expr) => {
-        if default_expr.expr.is_fn_expr() || default_expr.expr.is_arrow() {
-          refs.insert(Atom::from("default"));
-        }
-      }
-      ModuleDecl::ExportNamed(named_export) => {
-        if named_export.src.is_none() {
-          for specifier in &named_export.specifiers {
-            let swc_core::ecma::ast::ExportSpecifier::Named(named) = specifier else {
-              continue;
-            };
-
-            let orig = match &named.orig {
-              swc_core::ecma::ast::ModuleExportName::Ident(ident) => &ident.sym,
-              swc_core::ecma::ast::ModuleExportName::Str(_) => continue,
-            };
-
-            if !local_function_like_refs.contains(orig) {
-              continue;
-            }
-
-            if let Some(exported) = &named.exported {
-              insert_module_export_name(exported, &mut refs);
-            } else {
-              refs.insert(orig.clone());
-            }
-          }
-        }
-      }
-      _ => {}
-    }
-  }
-
-  refs
+  names
 }
 
 fn collect_defined_configured_side_effects_free(
   program: &Program,
   configured_side_effects_free: &[String],
 ) -> FxHashSet<Atom> {
-  let exported_refs = collect_exported_side_effects_free_refs(program);
+  let acceptable = collect_pure_function_acceptable_names(program);
 
   configured_side_effects_free
     .iter()
     .filter_map(|name| {
       let atom = Atom::from(name.clone());
-      exported_refs.contains(&atom).then_some(atom)
+      acceptable.contains(&atom).then_some(atom)
     })
     .collect()
+}
+
+fn visit_pat_binding_names(pat: &Pat, f: &mut impl FnMut(&Atom)) {
+  match pat {
+    Pat::Ident(ident) => f(&ident.id.sym),
+    Pat::Array(ArrayPat { elems, .. }) => {
+      for elem in elems.iter().flatten() {
+        visit_pat_binding_names(elem, f);
+      }
+    }
+    Pat::Object(ObjectPat { props, .. }) => {
+      for prop in props {
+        match prop {
+          ObjectPatProp::KeyValue(KeyValuePatProp { value, .. }) => {
+            visit_pat_binding_names(value, f);
+          }
+          ObjectPatProp::Assign(AssignPatProp { key, .. }) => f(&key.id.sym),
+          ObjectPatProp::Rest(RestPat { arg, .. }) => visit_pat_binding_names(arg, f),
+        }
+      }
+    }
+    Pat::Assign(AssignPat { left, .. }) => visit_pat_binding_names(left, f),
+    Pat::Rest(RestPat { arg, .. }) => visit_pat_binding_names(arg, f),
+    Pat::Expr(_) | Pat::Invalid(_) => {}
+  }
 }
 
 fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(&Atom)) {
@@ -339,12 +286,8 @@ fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(&Atom)) {
     Decl::Fn(fn_decl) => f(&fn_decl.ident.sym),
     Decl::Class(class_decl) => f(&class_decl.ident.sym),
     Decl::Var(var_decl) => {
-      for ident in var_decl
-        .decls
-        .iter()
-        .filter_map(|declarator| declarator.name.as_ident())
-      {
-        f(&ident.sym);
+      for declarator in &var_decl.decls {
+        visit_pat_binding_names(&declarator.name, f);
       }
     }
     _ => {}
@@ -989,8 +932,21 @@ fn resolve_explicit_side_effects_free_callee(
     return ExplicitSideEffectsFreeCallee::NotMarked;
   }
 
+  // For non-imports the deferred path doesn't apply at all, so we skip the
+  // user-config lookup and fall straight through to Direct/Invalid.
   if try_extract_deferred_check(parser, ident.clone(), span).is_some() {
-    return ExplicitSideEffectsFreeCallee::Deferred;
+    // When the user explicitly listed this name in `pureFunctions`, trust the
+    // assertion at the call site instead of deferring to the import target.
+    // This lets users mark imported helpers (e.g. `import { cva } from 'cva'`)
+    // as pure on the consumer side without also configuring the source module.
+    let is_user_configured = parser
+      .javascript_options
+      .side_effects_free
+      .as_ref()
+      .is_some_and(|names| names.iter().any(|name| name.as_str() == ident.as_str()));
+    if !is_user_configured {
+      return ExplicitSideEffectsFreeCallee::Deferred;
+    }
   }
 
   if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {

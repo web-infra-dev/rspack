@@ -25,6 +25,8 @@ pub enum DependencyType {
   DynamicImport,
   // import() eager
   DynamicImportEager,
+  // import() weak
+  DynamicImportWeak,
   // cjs require
   CjsRequire,
   // cjs full require
@@ -150,6 +152,8 @@ impl DependencyType {
       DependencyType::EsmExportExpression => "esm export expression",
       DependencyType::EsmExportHeader => "esm export header",
       DependencyType::DynamicImport => "import()",
+      DependencyType::DynamicImportEager => "import() eager",
+      DependencyType::DynamicImportWeak => "import() weak",
       DependencyType::CjsRequire => "cjs require",
       DependencyType::CjsFullRequire => "cjs full require",
       DependencyType::CjsExports => "cjs exports",
@@ -180,7 +184,6 @@ impl DependencyType {
       },
       // TODO: mode
       DependencyType::ImportContext => "import context",
-      DependencyType::DynamicImportEager => "import() eager",
       DependencyType::CommonJSRequireContext => "commonjs require context",
       DependencyType::RequireContext => "require.context",
       DependencyType::RequireResolve => "require.resolve",

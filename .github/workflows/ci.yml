@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: ubuntu-latest
+    runs-on: rspack-ubuntu-22.04-mini
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}

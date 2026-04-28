@@ -1,0 +1,210 @@
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsOption, AsPreset, AsVec},
+};
+use rspack_core::{
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
+  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+};
+use swc_core::ecma::atoms::Atom;
+
+use super::create_resource_identifier_for_esm_dependency;
+
+// Align with webpack's ImportWeakDependency:
+// https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/dependencies/ImportWeakDependency.js
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ImportWeakDependency {
+  id: DependencyId,
+  #[cacheable(with=AsPreset)]
+  request: Atom,
+  range: DependencyRange,
+  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
+  referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  attributes: Option<ImportAttributes>,
+  phase: ImportPhase,
+  resource_identifier: ResourceIdentifier,
+  factorize_info: FactorizeInfo,
+  optional: bool,
+}
+
+impl ImportWeakDependency {
+  pub fn new(
+    request: Atom,
+    range: DependencyRange,
+    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+    attributes: Option<ImportAttributes>,
+    phase: ImportPhase,
+    optional: bool,
+  ) -> Self {
+    let resource_identifier =
+      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+    Self {
+      request,
+      range,
+      id: DependencyId::new(),
+      referenced_specifiers,
+      attributes,
+      phase,
+      resource_identifier,
+      factorize_info: Default::default(),
+      optional,
+    }
+  }
+
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.referenced_specifiers = Some(referenced_specifiers);
+  }
+}
+
+#[cacheable_dyn]
+impl Dependency for ImportWeakDependency {
+  fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::Esm
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::DynamicImportWeak
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.attributes.as_ref()
+  }
+
+  fn get_phase(&self) -> ImportPhase {
+    self.phase
+  }
+
+  fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
+  fn get_referenced_exports(
+    &self,
+    module_graph: &rspack_core::ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    _runtime: Option<&rspack_core::RuntimeSpec>,
+  ) -> Vec<rspack_core::ExtendedReferencedExport> {
+    if let Some(referenced_specifiers) = &self.referenced_specifiers {
+      let module = module_graph
+        .get_module_by_dependency_id(&self.id)
+        .expect("should have module");
+      let parent_module = module_graph
+        .get_parent_module(&self.id)
+        .expect("should have parent module");
+      let strict = module_graph
+        .module_by_identifier(parent_module)
+        .expect("should have parent module")
+        .get_strict_esm_module();
+      let exports_type = module.get_exports_type(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        strict,
+      );
+      create_referenced_exports_by_referenced_specifiers(
+        referenced_specifiers,
+        exports_type,
+        module.build_info().json_data.is_some(),
+      )
+    } else {
+      create_exports_object_referenced()
+    }
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
+}
+
+#[cacheable_dyn]
+impl ModuleDependency for ImportWeakDependency {
+  fn request(&self) -> &str {
+    &self.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.request
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.factorize_info
+  }
+
+  fn get_optional(&self) -> bool {
+    self.optional
+  }
+
+  fn weak(&self) -> bool {
+    true
+  }
+}
+
+#[cacheable_dyn]
+impl DependencyCodeGeneration for ImportWeakDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(ImportWeakDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ImportWeakDependency {}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ImportWeakDependencyTemplate;
+
+impl ImportWeakDependencyTemplate {
+  pub fn template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Custom("ImportWeakDependency")
+  }
+}
+
+impl DependencyTemplate for ImportWeakDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportWeakDependency>()
+      .expect("ImportWeakDependencyTemplate should only be used for ImportWeakDependency");
+
+    let module_graph = code_generatable_context.compilation.get_module_graph();
+    let block = module_graph.get_parent_block(&dep.id);
+    source.replace(
+      dep.range.start,
+      dep.range.end,
+      code_generatable_context
+        .runtime_template
+        .module_namespace_promise(
+          code_generatable_context.compilation,
+          code_generatable_context.module.identifier(),
+          &dep.id,
+          block,
+          &dep.request,
+          dep.dependency_type().as_str(),
+          true,
+          dep.get_phase(),
+        ),
+      None,
+    );
+  }
+}

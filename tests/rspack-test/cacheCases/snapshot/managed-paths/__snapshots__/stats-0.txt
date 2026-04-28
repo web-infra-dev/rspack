@@ -1,0 +1,6 @@
+LOG from rspack.persistentCache
+<i> persistent cache enabled
+<i> build dependencies are valid (0 tracked)
+<i> meta persistent cache recovery succeeded
+<i> make persistent cache recovery succeeded
+<i> minimize persistent cache recovery succeeded

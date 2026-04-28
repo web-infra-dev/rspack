@@ -82,6 +82,7 @@ impl TaskContext {
       None,
       Default::default(),
       Default::default(),
+      Default::default(),
       self.fs.clone(),
       self.intermediate_fs.clone(),
       self.output_fs.clone(),
