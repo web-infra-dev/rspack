@@ -6,9 +6,9 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
 
@@ -174,28 +174,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = if dep.names.is_empty() {
-      let exports_info_used = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info_used(&module.identifier(), *runtime);
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info_used),
-        *runtime,
-        &dep.names,
-      )
-    } else {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(
-          &module.identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.names),
-        );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.names,
-      )
-    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();

@@ -160,7 +160,7 @@ impl ModuleGroup {
     self.total_size
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -195,7 +195,7 @@ impl ModuleGroup {
       }
     }
 
-    self.sizes.clone()
+    &self.sizes
   }
 }
 

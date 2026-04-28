@@ -39,6 +39,20 @@ jobs:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
 
+      - name: Disable CPU hogs (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          Set-MpPreference -DisableRealtimeMonitoring $true -Force
+          Add-MpPreference -ExclusionPath "C:\" -Force
+          Add-MpPreference -ExclusionPath "D:\" -Force
+          sc.exe config wuauserv start= disabled
+          Stop-Service wuauserv
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\CompatTelRunner.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+
       - name: Download and install zstd
         if: ${{ runner.os == 'Windows' }}
         shell: bash # Use bash for curl and unzip commands
@@ -74,7 +88,7 @@ jobs:
 
       - name: Install cargo-zigbuild for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2
+        uses: taiki-e/install-action@787505cde8a44ea468a00478fe52baf23b15bccd # v2
         with:
           tool: cargo-zigbuild
 

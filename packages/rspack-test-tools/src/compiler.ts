@@ -247,7 +247,11 @@ export class TestCompilerManager implements ITestCompilerManager {
       if (this.compilerInstance) {
         this.compilerInstance.close((e) => {
           this.emitter.emit(ECompilerEvent.Close, e);
-          e ? reject(e) : resolve();
+          if (e) {
+            reject(e);
+          } else {
+            resolve();
+          }
         });
       } else {
         resolve();

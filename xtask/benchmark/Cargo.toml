@@ -7,12 +7,9 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
-[features]
-codspeed = []
-default  = []
-
 [dependencies]
 criterion = { workspace = true }
+tokio     = { workspace = true }
 
 [dev-dependencies]
 # Make rust analyzer happy
@@ -20,7 +17,7 @@ async-trait                = { workspace = true }
 rspack                     = { workspace = true, features = ["full"] }
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
-rspack_core                = { workspace = true, features = ["benchmark-passes"] }
+rspack_core                = { workspace = true, features = ["codspeed"] }
 rspack_error               = { workspace = true }
 rspack_fs                  = { workspace = true }
 rspack_hash                = { workspace = true }
@@ -32,7 +29,6 @@ rspack_tasks               = { workspace = true }
 rustc-hash                 = { workspace = true }
 serde_json                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__parser", "base"] }
-tokio                      = { workspace = true }
 
 [[bench]]
 harness = false

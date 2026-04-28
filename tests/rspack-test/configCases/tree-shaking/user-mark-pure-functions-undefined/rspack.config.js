@@ -14,7 +14,7 @@ module.exports = {
       {
         test: /decl\.js/,
         parser: {
-          pureFunctions: ['notExistFunction', 'localOnly', 'importedOnly'],
+          pureFunctions: ['notExistFunction'],
         },
       },
     ],

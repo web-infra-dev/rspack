@@ -1,6 +1,7 @@
 'use client';
 
 import { add, del, get, update } from './actions';
+import './Client.css';
 
 export const Client = () => {
     async function onClick() {
@@ -11,7 +12,7 @@ export const Client = () => {
     }
 
     return (
-        <button type="button" onClick={onClick}>
+        <button className="client-action" type="button" onClick={onClick}>
             Run actions
         </button>
     );

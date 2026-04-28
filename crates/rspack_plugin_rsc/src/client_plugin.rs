@@ -73,6 +73,10 @@ fn extend_required_chunks(
   }
 }
 
+fn prefixed_asset_path(prefix: &str, file: &str) -> String {
+  format!("{prefix}{}", encode_uri_path(file))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn record_module(
   module_loading: &ModuleLoading,
@@ -116,7 +120,7 @@ fn record_module(
       .files()
       .iter()
       .filter(|file| file.ends_with(".css"))
-      .map(|file| format!("{prefix}{file}"))
+      .map(|file| prefixed_asset_path(prefix, file))
       .collect();
     if css_files.is_empty() {
       return;
@@ -134,12 +138,27 @@ fn record_module(
   }
 
   let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
+  let css_files: Vec<String> = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .map(|chunk| {
+      let prefix = &module_loading.prefix;
+      chunk
+        .files()
+        .iter()
+        .filter(|file| file.ends_with(".css"))
+        .map(|file| prefixed_asset_path(prefix, file))
+        .collect()
+    })
+    .unwrap_or_default();
   entry_state.client_modules.insert(
     resource.to_string(),
     ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
       chunks: required_chunks.to_vec(),
+      css_files,
       r#async: Some(is_async),
     },
   );
@@ -275,7 +294,7 @@ fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginSt
         !(asset_info.hot_module_replacement.unwrap_or(false)
           || asset_info.development.unwrap_or(false))
       })
-      .map(|file| format!("{prefix}{file}"))
+      .map(|file| prefixed_asset_path(prefix, &file))
       .collect::<FxIndexSet<String>>();
 
     entry_state.entry_js_files = entry_js_files;

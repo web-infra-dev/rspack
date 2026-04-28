@@ -53,7 +53,7 @@ console.log(dayjs().format('YYYY-MM-DD'));
 
 In the configuration above, the key `dayjs` under `externals` matches the module specifier in `import dayjs from 'dayjs'`, meaning that module should not be bundled.
 
-The value `dayjs` is then used to access the global variable at runtime. By default, [externalsType](#externalstype) is `var`, which means Rspack reads it from the global scope. In a browser, this usually means accessing `window.dayjs`.
+The value `dayjs` is then used to access the global variable at runtime. In this basic configuration, the default [externalsType](#externalstype) is `var`, which means Rspack reads it from the global scope. In a browser, this usually means accessing `window.dayjs`.
 
 ### String
 
@@ -308,9 +308,17 @@ export default {
 ## externalsType
 
 - **Type:** `string`
-- **Default:** `'var'`
+- **Default:** Depends on [`output.library.type`](/config/output#outputlibrarytype) and [`output.module`](/config/output#outputmodule)
+
+The default value is inferred as follows:
+
+- When [`output.library`](/config/output#outputlibrary) is configured, it matches [`output.library.type`](/config/output#outputlibrarytype).
+- Otherwise, when [`output.module`](/config/output#outputmodule) is `true`, it is `'module-import'`.
+- Otherwise, it is `'var'`.
 
 Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.library.type`](/config/output#outputlibrarytype)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+
+Set `externalsType` explicitly when the external dependency should use a different loading format from the inferred default.
 
 Supported types:
 

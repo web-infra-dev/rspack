@@ -257,7 +257,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       // module's namespace object (e.g., `Promise.resolve(dynamic_namespaceObject)`).
       let ns_ref = concatenation_scope.create_module_reference(
         &ref_module.identifier(),
-        &ModuleReferenceOptions {
+        ModuleReferenceOptions {
           ids: vec![],
           call: false,
           direct_import: true,

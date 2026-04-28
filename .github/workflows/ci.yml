@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: nscloud-ubuntu-24.04-amd64-1x2
+    runs-on: ubuntu-latest
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"nscloud-ubuntu-24.04-amd64-4x16;container.privileged=true;container.host-pid-namespace=true"'
+      runner: '"ubuntu-22.04"'
 
   test-windows:
     name: Test Windows
@@ -122,7 +122,7 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   test-wasm:
     name: Test WASM
@@ -131,24 +131,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-test.yml
     with:
       target: wasm32-wasip1-threads
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
-
-  check-codspeed:
-    name: Check Bench Result
-    needs: [bench-binding, bench-rust]
-    runs-on: ubuntu-24.04
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Polling Comment
-        if: ${{ github.event_name == 'pull_request' }}
-        run: bash .github/actions/codspeed/check-comment.sh
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   check-cache:
     name: Check Cache Portable
@@ -187,7 +170,6 @@ jobs:
     name: Test Required Check
     needs:
       [
-        check-codspeed,
         build-linux,
         test-linux,
         test-windows,
@@ -206,13 +188,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
         run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
         run: echo "Test Failed" && exit 1
 
       - name: No check to Run test
@@ -228,6 +210,7 @@ jobs:
     name: Run ecosystem CI per commit
     needs: [check-changed, build-linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: write
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}

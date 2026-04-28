@@ -65,16 +65,6 @@ pub struct RstestParserPlugin {
   options: RstestParserPluginOptions,
 }
 
-trait JavascriptParserExt<'a> {
-  fn handle_top_level_await(&mut self);
-}
-
-impl<'a> JavascriptParserExt<'a> for JavascriptParser<'a> {
-  fn handle_top_level_await(&mut self) {
-    self.build_meta.has_top_level_await = true;
-  }
-}
-
 impl RstestParserPlugin {
   pub fn new(options: RstestParserPluginOptions) -> Self {
     Self { options }
@@ -271,10 +261,6 @@ impl RstestParserPlugin {
         let first_arg_lit_str = self.handle_mock_first_arg(parser, call_expr);
 
         if let Some(lit_str) = first_arg_lit_str {
-          if hoist && method != MockMethod::Unmock && method != MockMethod::DoMock {
-            parser.handle_top_level_await();
-          }
-
           let dep = MockModuleIdDependency::new(
             lit_str.clone(),
             first_arg.span().into(),
@@ -290,8 +276,8 @@ impl RstestParserPlugin {
           parser.add_dependency(Box::new(dep));
 
           parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
             lit_str.clone(),
             hoist,
             method,
@@ -329,10 +315,6 @@ impl RstestParserPlugin {
         let lit_str = self.handle_mock_first_arg(parser, call_expr);
 
         if let Some(lit_str) = lit_str {
-          if hoist {
-            parser.handle_top_level_await();
-          }
-
           let module_dep = MockModuleIdDependency::new(
             lit_str.clone(),
             first_arg.span().into(),
@@ -347,8 +329,8 @@ impl RstestParserPlugin {
           );
 
           parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
             lit_str,
             hoist,
             method,
@@ -389,18 +371,18 @@ impl RstestParserPlugin {
     match call_expr.args.len() {
       1 => {
         let dep = if let Some(stmt_span) = statement_span {
-          MockMethodDependency::new_with_statement_span(
-            call_expr.span(),
-            call_expr.callee.span(),
-            stmt_span,
+          MockMethodDependency::new_with_statement_range(
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
+            stmt_span.into(),
             call_expr.span().real_lo().to_string(),
             true,
             MockMethod::Hoisted,
           )
         } else {
           MockMethodDependency::new(
-            call_expr.span(),
-            call_expr.callee.span(),
+            call_expr.span().into(),
+            call_expr.callee.span().into(),
             call_expr.span().real_lo().to_string(),
             true,
             MockMethod::Hoisted,

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.0.0-rc.3",
+  "version": "2.0.0",
   "license": "MIT",
   "description": "Test tools for rspack",
   "main": "dist/index.js",
@@ -45,6 +45,7 @@
     "@babel/parser": "7.29.2",
     "@babel/traverse": "7.29.0",
     "@babel/types": "7.29.0",
+    "chalk": "^4.1.2",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
     "fs-extra": "^11.3.4",
@@ -59,10 +60,10 @@
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",
     "terser-webpack-plugin": "^5.4.0",
+    "wast-loader": "^1.14.1",
     "webpack": "5.104.1",
     "webpack-merge": "6.0.1",
-    "webpack-sources": "3.3.4",
-    "chalk": "^4.1.2"
+    "webpack-sources": "3.3.4"
   },
   "devDependencies": {
     "@rspack/core": "workspace:*",
@@ -70,8 +71,7 @@
     "@types/babel__traverse": "7.28.0",
     "@types/fs-extra": "11.0.4",
     "@types/jsdom": "^21.1.7",
-    "typescript": "^6.0.3",
-    "wast-loader": "^1.14.1"
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "@rspack/core": ">=1.0.0"

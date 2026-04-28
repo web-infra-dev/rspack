@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsageState,
+  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -55,7 +55,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
     let name = Atom::from("__esModule");
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+      .get_exports_info_data(&module.identifier());
     let used = exports_info
       .get_read_only_export_info(&name)
       .get_used(*runtime);

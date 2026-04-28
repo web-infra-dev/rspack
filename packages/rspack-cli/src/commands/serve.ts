@@ -22,6 +22,7 @@ type ServerOptions = CommonOptionsForBuildAndServe & {
   hot?: boolean | 'only';
   port?: number | string;
   host?: string;
+  open?: boolean | string;
 };
 
 function normalizeHotOption(
@@ -47,7 +48,11 @@ export class ServeCommand implements RspackCommand {
     commonOptionsForBuildAndServe(commonOptions(command))
       .option('--hot [mode]', 'enables hot module replacement')
       .option('--port <port>', 'allows to specify a port to use')
-      .option('--host <host>', 'allows to specify a hostname to use');
+      .option('--host <host>', 'allows to specify a hostname to use')
+      .option(
+        '--open [value]',
+        'open browser on server start; pass --no-open to disable, or --open <url> to open a specific URL',
+      );
 
     command.action(
       cli.wrapAction(async (cliOptions: ServerOptions) => {
@@ -184,6 +189,9 @@ export class ServeCommand implements RspackCommand {
           cliOptions.hot ?? devServerOptions.hot ?? DEFAULT_SERVER_HOT;
         devServerOptions.host = cliOptions.host || devServerOptions.host;
         devServerOptions.port = cliOptions.port ?? devServerOptions.port;
+        if (cliOptions.open !== undefined) {
+          devServerOptions.open = cliOptions.open;
+        }
         if (devServerOptions.client !== false) {
           if (
             devServerOptions.client === true ||

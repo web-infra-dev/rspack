@@ -1,8 +1,12 @@
 #![allow(clippy::unwrap_used)]
 
-use std::alloc::{GlobalAlloc, Layout, System};
+use std::{
+  alloc::{GlobalAlloc, Layout, System},
+  thread,
+};
 
 pub use criterion::*;
+use tokio::runtime::{Builder, Runtime};
 
 #[global_allocator]
 static GLOBAL: NeverGrowInPlaceAllocator = NeverGrowInPlaceAllocator;
@@ -39,4 +43,15 @@ unsafe impl GlobalAlloc for NeverGrowInPlaceAllocator {
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
     unsafe { System.dealloc(ptr, layout) }
   }
+}
+
+pub fn build_tokio_rt() -> Runtime {
+  let cpu_num = thread::available_parallelism()
+    .expect("failed to get cpu num")
+    .get();
+  Builder::new_multi_thread()
+    .worker_threads(cpu_num.min(4))
+    .max_blocking_threads(8)
+    .build()
+    .expect("should not fail to build tokio runtime")
 }

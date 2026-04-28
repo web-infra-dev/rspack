@@ -49,7 +49,7 @@ jobs:
           key: rust-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2
+        uses: taiki-e/install-action@787505cde8a44ea468a00478fe52baf23b15bccd # v2
         with:
           tool: cargo-codspeed@4.4.1
 
@@ -60,7 +60,7 @@ jobs:
         run: cargo codegen
 
       - name: Build benchmark (simulation,memory)
-        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features codspeed
+        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark
 
       - name: Run benchmark (simulation,memory)
         uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2

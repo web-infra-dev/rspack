@@ -13,7 +13,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
+  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo,
   ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
   UsedNameItem,
 };
@@ -327,7 +327,7 @@ impl ModuleGraph {
     {
       mgm.remove_outgoing_connection(dep_id);
       if force {
-        mgm.all_dependencies.retain(|id| id != dep_id);
+        mgm.all_dependencies_mut().retain(|id| id != dep_id);
       }
     }
     // remove incoming from module graph module
@@ -351,7 +351,7 @@ impl ModuleGraph {
       .map(|mgm| {
         (
           mgm.incoming_connections().clone(),
-          mgm.all_dependencies.clone(),
+          mgm.all_dependencies().to_vec(),
         )
       })
       .unwrap_or_default();
@@ -798,7 +798,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies
+        m.all_dependencies()
           .iter()
           .filter_map(|dep_id| self.connection_by_dependency_id(dep_id))
       })
@@ -813,7 +813,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies
+        m.all_dependencies()
           .iter()
           .filter(|dep_id| self.connection_by_dependency_id(dep_id).is_some())
       })
@@ -1177,26 +1177,9 @@ impl ModuleGraph {
     tasks: Vec<(ExportInfo, UsedNameItem)>,
   ) {
     for (export_info, used_name) in tasks {
-      let ExportInfo {
-        exports_info,
-        export_name,
-      } = export_info;
-
-      let data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
-      match export_name {
-        ExportName::Named(name) => {
-          data
-            .named_exports_mut(&name)
-            .expect("should have named export")
-            .set_used_name(used_name);
-        }
-        ExportName::Other => {
-          data.other_exports_info_mut().set_used_name(used_name);
-        }
-        ExportName::SideEffects => {
-          data.side_effects_only_info_mut().set_used_name(used_name);
-        }
-      }
+      export_info
+        .as_data_mut(exports_info_artifact)
+        .set_used_name(used_name);
     }
   }
 }

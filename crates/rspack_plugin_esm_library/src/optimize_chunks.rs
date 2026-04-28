@@ -570,9 +570,7 @@ pub(crate) fn analyze_dyn_import_targets(
         continue;
       }
 
-      let exports_info = exports_info_artifact
-        .get_exports_info(target)
-        .as_data(exports_info_artifact);
+      let exports_info = exports_info_artifact.get_exports_info_data(target);
 
       if exports_info.other_exports_info().is_used(None) {
         namespace_targets.insert(*target);
@@ -668,9 +666,7 @@ pub(crate) fn analyze_dyn_import_targets(
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
-      let exports_info = exports_info_artifact
-        .get_exports_info(module_id)
-        .as_data(exports_info_artifact);
+      let exports_info = exports_info_artifact.get_exports_info_data(module_id);
       let export_names: FxHashSet<Atom> = exports_info
         .exports()
         .iter()

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::absolute_to_request;
+use rspack_util::identifier::push_absolute_to_request;
 use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
@@ -15,12 +15,20 @@ pub fn to_module_export_name(name: &str) -> String {
 }
 
 pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
-  let context = context.as_ref();
-  request
-    .split('!')
-    .map(|r| absolute_to_request(context.as_str(), r))
-    .collect::<Vec<Cow<str>>>()
-    .join("!")
+  let context = context.as_ref().as_str();
+  let mut result = String::with_capacity(request.len());
+  let mut last = 0;
+
+  for (index, byte) in request.bytes().enumerate() {
+    if byte == b'!' {
+      push_absolute_to_request(context, &request[last..index], &mut result);
+      result.push('!');
+      last = index + 1;
+    }
+  }
+
+  push_absolute_to_request(context, &request[last..], &mut result);
+  result
 }
 
 macro_rules! ident_table {
@@ -217,4 +225,23 @@ fn test_to_identifier_with_escaped() {
     "with_space"
   );
   assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
+}
+
+#[test]
+fn test_contextify_preserves_loader_segments_and_queries() {
+  assert_eq!(
+    contextify(
+      "/workspace/app",
+      "/workspace/app/loaders/a.js!/workspace/app/src/index.js?foo=1"
+    ),
+    "./loaders/a.js!./src/index.js?foo=1"
+  );
+}
+
+#[test]
+fn test_contextify_preserves_empty_segments_and_regex_segments() {
+  assert_eq!(
+    contextify("/workspace/app", "!!/regexp/!/workspace/app/src/index.js"),
+    "!!/regexp/!./src/index.js"
+  );
 }

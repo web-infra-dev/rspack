@@ -1,12 +1,11 @@
-use std::sync::LazyLock;
+use std::{borrow::Cow, sync::LazyLock};
 
 use itertools::Itertools;
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   BuildMetaExportsType, Compilation, CompilationOptimizeCodeGeneration, ExportInfo, ExportProvided,
-  ExportsInfo, ExportsInfoArtifact, ExportsInfoGetter, Plugin, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, UsageState, UsedNameItem,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, Plugin, UsageState, UsedNameItem,
   build_module_graph::BuildModuleGraphArtifact, incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
@@ -19,12 +18,12 @@ use crate::utils::mangle_exports::{
   NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS, number_to_identifier,
 };
 
-fn can_mangle(exports_info: &PrefetchedExportsInfoWrapper<'_>) -> bool {
+fn can_mangle(exports_info: &ExportsInfoData) -> bool {
   if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
     return false;
   }
   let mut has_something_to_mangle = false;
-  for (_, export_info) in exports_info.exports() {
+  for export_info in exports_info.exports().values() {
     if export_info.can_mangle() == Some(true) {
       has_something_to_mangle = true;
     }
@@ -57,6 +56,50 @@ struct ExportInfoCache {
   id: ExportInfo,
   exports_info: Option<ExportsInfo>,
   can_mangle: Manglable,
+}
+
+struct PreparedMangleableExports<'a> {
+  changes: Vec<(ExportInfo, UsedNameItem)>,
+  nested_exports: Vec<ExportsInfo>,
+  used_names: FxHashSet<Cow<'a, str>>,
+  mangleable_exports: Vec<ExportInfo>,
+  mangleable_export_names: FxHashMap<ExportInfo, &'a Atom>,
+}
+
+fn prepare_mangleable_exports<'a>(
+  export_list: &'a [ExportInfoCache],
+) -> PreparedMangleableExports<'a> {
+  let mut changes = vec![];
+  let mut nested_exports = vec![];
+  let mut used_names = FxHashSet::default();
+  let mut mangleable_exports = Vec::new();
+  let mut mangleable_export_names = FxHashMap::default();
+
+  for export_info in export_list {
+    match &export_info.can_mangle {
+      Manglable::CanNotMangle(name) => {
+        changes.push((export_info.id.clone(), UsedNameItem::Str(name.clone())));
+        used_names.insert(Cow::Borrowed(name.as_str()));
+      }
+      Manglable::CanMangle(name) => {
+        mangleable_export_names.insert(export_info.id.clone(), name);
+        mangleable_exports.push(export_info.id.clone());
+      }
+      Manglable::Mangled => {}
+    }
+
+    if let Some(nested_exports_info) = export_info.exports_info {
+      nested_exports.push(nested_exports_info);
+    }
+  }
+
+  PreparedMangleableExports {
+    changes,
+    nested_exports,
+    used_names,
+    mangleable_exports,
+    mangleable_export_names,
+  }
 }
 
 #[plugin_hook(CompilationOptimizeCodeGeneration for MangleExportsPlugin)]
@@ -98,27 +141,20 @@ async fn optimize_code_generation(
       .filter_map(|(exports_info, is_namespace)| {
         let mut avoid_mangle_non_provided = !is_namespace;
         let deterministic = self.deterministic;
-        let exports_info_data = ExportsInfoGetter::prefetch(
-          exports_info,
-          exports_info_artifact,
-          PrefetchExportsInfoMode::Default,
-        );
+        let exports_info_data = exports_info.as_data(exports_info_artifact);
         let export_list = {
-          if !can_mangle(&exports_info_data) {
+          if !can_mangle(exports_info_data) {
             return None;
           }
           if !avoid_mangle_non_provided && deterministic {
-            for (_, export_info) in exports_info_data.exports() {
+            for export_info in exports_info_data.exports().values() {
               if !matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
                 avoid_mangle_non_provided = true;
                 break;
               }
             }
           }
-          exports_info_data
-            .exports()
-            .map(|(_, export_info)| export_info)
-            .collect::<Vec<_>>()
+          exports_info_data.exports().values().collect::<Vec<_>>()
         };
 
         Some((
@@ -239,33 +275,17 @@ fn mangle_exports_info(
   exports_info: ExportsInfo,
   exports_info_cache: &FxHashMap<ExportsInfo, Vec<ExportInfoCache>>,
 ) -> (Vec<(ExportInfo, UsedNameItem)>, Vec<ExportsInfo>) {
-  let mut changes = vec![];
-  let mut nested_exports = vec![];
-  let mut used_names = FxHashSet::default();
-  let mut mangleable_exports = Vec::new();
   let Some(export_list) = exports_info_cache.get(&exports_info) else {
-    return (changes, nested_exports);
+    return (vec![], vec![]);
   };
 
-  let mut mangleable_export_names = FxHashMap::default();
-
-  for export_info in export_list {
-    match &export_info.can_mangle {
-      Manglable::CanNotMangle(name) => {
-        changes.push((export_info.id.clone(), UsedNameItem::Str(name.clone())));
-        used_names.insert(name.to_string());
-      }
-      Manglable::CanMangle(name) => {
-        mangleable_export_names.insert(export_info.id.clone(), name.clone());
-        mangleable_exports.push(export_info.id.clone());
-      }
-      Manglable::Mangled => {}
-    }
-
-    if let Some(nested_exports_info) = export_info.exports_info {
-      nested_exports.push(nested_exports_info);
-    }
-  }
+  let PreparedMangleableExports {
+    mut changes,
+    nested_exports,
+    mut used_names,
+    mangleable_exports,
+    mangleable_export_names,
+  } = prepare_mangleable_exports(export_list);
 
   if deterministic {
     let used_names_len = used_names.len();
@@ -273,21 +293,23 @@ fn mangle_exports_info(
     assign_deterministic_ids(
       mangleable_exports,
       |e| {
-        mangleable_export_names
-          .get(e)
-          .expect("should have name")
-          .to_string()
+        Cow::Borrowed(
+          mangleable_export_names
+            .get(e)
+            .expect("should have name")
+            .as_str(),
+        )
       },
       |a, b| {
         compare_strings_numeric(
-          Some(mangleable_export_names.get(a).expect("should have name")),
-          Some(mangleable_export_names.get(b).expect("should have name")),
+          mangleable_export_names.get(a).copied(),
+          mangleable_export_names.get(b).copied(),
         )
       },
       |e, id| {
         let name = number_to_identifier(id as u32);
         let size = used_names.len();
-        used_names.insert(name.clone());
+        used_names.insert(Cow::Owned(name.clone()));
         if size == used_names.len() {
           false
         } else {
@@ -321,14 +343,14 @@ fn mangle_exports_info(
 
     used_exports.sort_by(|a, b| {
       compare_strings_numeric(
-        Some(mangleable_export_names.get(a).expect("should have name")),
-        Some(mangleable_export_names.get(b).expect("should have name")),
+        mangleable_export_names.get(a).copied(),
+        mangleable_export_names.get(b).copied(),
       )
     });
     unused_exports.sort_by(|a, b| {
       compare_strings_numeric(
-        Some(mangleable_export_names.get(a).expect("should have name")),
-        Some(mangleable_export_names.get(b).expect("should have name")),
+        mangleable_export_names.get(a).copied(),
+        mangleable_export_names.get(b).copied(),
       )
     });
 
@@ -339,7 +361,7 @@ fn mangle_exports_info(
         loop {
           name = number_to_identifier(i);
           i += 1;
-          if !used_names.contains(&name) {
+          if !used_names.contains(name.as_str()) {
             break;
           }
         }

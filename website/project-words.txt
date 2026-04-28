@@ -93,6 +93,7 @@ memfs
 mimalloc
 minifiers
 miro
+MPHF
 modulegeneratorassetdataurl
 modulegeneratorassetdataurlencoding
 modulegeneratorassetdataurlmimetype
@@ -206,11 +207,13 @@ valorkin
 vant
 verkada
 viktoriialurie
+vize
 weapp
 webpack
 xcode
 xcrun
 xctrace
+xmcp
 Xeon
 XKKCNZZNJD
 xstyled

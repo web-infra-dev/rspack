@@ -417,7 +417,7 @@ impl<'parser> JavascriptParser<'parser> {
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
-    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32);
+    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
 
     plugins.append(parser_plugins);
 

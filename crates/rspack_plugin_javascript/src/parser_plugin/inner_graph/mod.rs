@@ -1,7 +1,7 @@
 use rspack_core::{
   Compilation, ExportsInfoArtifact, GetTargetResult, ModuleGraph, ModuleGraphConnection,
-  ModuleIdentifier, PrefetchExportsInfoMode, ResolvedExportInfoTarget, RuntimeCondition,
-  RuntimeSpec, UsageState, UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
+  ModuleIdentifier, ResolvedExportInfoTarget, RuntimeCondition, RuntimeSpec, UsageState,
+  UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
 };
 
 pub mod plugin;
@@ -22,8 +22,7 @@ pub(crate) fn has_impure_deferred_pure_checks(
         return true;
       };
 
-      let target_exports_info = exports_info_artifact
-        .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+      let target_exports_info = exports_info_artifact.get_exports_info_data(ref_module);
       let target_export_info =
         target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
       let resolve_filter = |_: &ResolvedExportInfoTarget| true;
@@ -83,10 +82,14 @@ pub(crate) fn runtime_condition_used_by_exports(
     UsedByExportsCondition::Set(used_by_exports) => {
       let exports_info = compilation
         .exports_info_artifact
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+        .get_exports_info_data(module_identifier);
       filter_runtime(runtime, |cur_runtime| {
         used_by_exports.iter().any(|name| {
-          exports_info.get_used(std::slice::from_ref(name), cur_runtime) != UsageState::Unused
+          exports_info.get_used(
+            &compilation.exports_info_artifact,
+            std::slice::from_ref(name),
+            cur_runtime,
+          ) != UsageState::Unused
         })
       })
     }

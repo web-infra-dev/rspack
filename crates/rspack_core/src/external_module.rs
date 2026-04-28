@@ -16,10 +16,10 @@ use crate::{
   DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, PrefetchExportsInfoMode,
-  PrefetchedExportsInfoWrapper, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, UsageState, UsedExports, UsedNameItem, extract_url_and_global,
-  impl_module_meta_info, module_update_hash, property_access, property_name,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  property_name,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -188,7 +188,8 @@ struct ModuleExternalRemapping {
 }
 
 fn collect_module_external_remapping(
-  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  exports_info_artifact: &crate::ExportsInfoArtifact,
+  exports_info: &crate::ExportsInfoData,
   runtime: Option<&RuntimeSpec>,
 ) -> Option<Vec<ModuleExternalRemapping>> {
   if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
@@ -197,6 +198,7 @@ fn collect_module_external_remapping(
 
   let remapping: Vec<_> = exports_info
     .exports()
+    .iter()
     .filter(|(_, export_info)| !matches!(export_info.provided(), Some(ExportProvided::NotProvided)))
     .filter_map(|(export_name, export_info)| {
       let UsedNameItem::Str(used_name) = export_info.get_used_name(Some(export_name), runtime)?
@@ -207,7 +209,8 @@ fn collect_module_external_remapping(
       let nested = if export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed {
         export_info.exports_info().and_then(|nested_exports_info| {
           collect_module_external_remapping(
-            &exports_info.redirect(nested_exports_info, false),
+            exports_info_artifact,
+            nested_exports_info.as_data(exports_info_artifact),
             runtime,
           )
         })
@@ -273,7 +276,8 @@ fn get_source_for_module_external(
   module_and_specifiers: &ExternalRequestValue,
   ident: &str,
   attributes: &Option<ImportAttributes>,
-  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  exports_info_artifact: &crate::ExportsInfoArtifact,
+  exports_info: &crate::ExportsInfoData,
   runtime: Option<&RuntimeSpec>,
   runtime_template: &mut ModuleCodeTemplate,
 ) -> (Option<String>, String, ChunkInitFragments) {
@@ -309,7 +313,7 @@ fn get_source_for_module_external(
     "__rspack_external_{ident}{}",
     property_access(module_and_specifiers.iter(), 1)
   );
-  let remapping = collect_module_external_remapping(exports_info, runtime);
+  let remapping = collect_module_external_remapping(exports_info_artifact, exports_info, runtime);
   let create_namespace_object_name = format!("__rspack_create_module_external_namespace_{ident}");
   let wrap_namespace_getter_name = format!("__rspack_wrap_module_external_namespace_{ident}");
   let expression = if let Some(remapping) = remapping.as_ref() {
@@ -667,14 +671,18 @@ impl ExternalModule {
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = compilation
               .exports_info_artifact
-              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
+              .get_exports_info_data(&self.identifier());
             let used_exports = exports_info.get_used_exports(runtime);
             let namespace_used_by_named_exports = matches!(
               &used_exports,
               UsedExports::UsedNames(atoms)
                 if atoms
                   .iter()
-                  .any(|atom| exports_info.get_read_only_export_info(atom).ns_access())
+                  .any(|atom| {
+                    exports_info
+                      .get_read_only_export_info(atom)
+                      .ns_access()
+                  })
             );
             let attributes = self.dependency_meta.attributes.as_ref().map(|meta| {
               format!(
@@ -814,14 +822,13 @@ impl ExternalModule {
           } else {
             let exports_info = compilation
               .exports_info_artifact
-              // Namespace remapping may traverse nested exports metadata. Keep the
-              // wider prefetch on the non-concatenated module-rendering path only.
-              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Full);
+              .get_exports_info_data(&self.identifier());
             let (init, expression, module_external_fragments) = get_source_for_module_external(
               request,
               id.as_ref(),
               &self.dependency_meta.attributes,
-              &exports_info,
+              &compilation.exports_info_artifact,
+              exports_info,
               runtime,
               runtime_template,
             );
@@ -1150,10 +1157,7 @@ mod tests {
   use rspack_util::atom::Atom;
 
   use super::collect_module_external_remapping;
-  use crate::{
-    ExportProvided, ExportsInfoArtifact, ExportsInfoData, ExportsInfoGetter,
-    PrefetchExportsInfoMode, UsageState, UsedNameItem,
-  };
+  use crate::{ExportProvided, ExportsInfoArtifact, ExportsInfoData, UsageState, UsedNameItem};
 
   #[test]
   fn module_external_remapping_keeps_real_external_property_name() {
@@ -1173,14 +1177,10 @@ mod tests {
     export_info.set_provided(Some(ExportProvided::Provided));
     export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
 
-    let exports_info = ExportsInfoGetter::prefetch(
-      &exports_info,
-      &exports_info_artifact,
-      PrefetchExportsInfoMode::Full,
-    );
+    let exports_info = exports_info_artifact.get_exports_info_by_id(&exports_info);
 
     assert_eq!(
-      collect_module_external_remapping(&exports_info, None),
+      collect_module_external_remapping(&exports_info_artifact, exports_info, None),
       Some(vec![super::ModuleExternalRemapping {
         exposed_name: "a".to_string(),
         raw_export_name: "EventEmitter".to_string(),
@@ -1231,14 +1231,10 @@ mod tests {
       export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
     }
 
-    let exports_info = ExportsInfoGetter::prefetch(
-      &root_exports_info,
-      &exports_info_artifact,
-      PrefetchExportsInfoMode::Full,
-    );
+    let exports_info = exports_info_artifact.get_exports_info_by_id(&root_exports_info);
 
     assert_eq!(
-      collect_module_external_remapping(&exports_info, None),
+      collect_module_external_remapping(&exports_info_artifact, exports_info, None),
       Some(vec![super::ModuleExternalRemapping {
         exposed_name: "b".to_string(),
         raw_export_name: "pkg".to_string(),
@@ -1293,14 +1289,10 @@ mod tests {
       export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
     }
 
-    let exports_info = ExportsInfoGetter::prefetch(
-      &root_exports_info,
-      &exports_info_artifact,
-      PrefetchExportsInfoMode::Full,
-    );
+    let exports_info = exports_info_artifact.get_exports_info_by_id(&root_exports_info);
 
     assert_eq!(
-      collect_module_external_remapping(&exports_info, None),
+      collect_module_external_remapping(&exports_info_artifact, exports_info, None),
       Some(vec![super::ModuleExternalRemapping {
         exposed_name: "b".to_string(),
         raw_export_name: "pkg".to_string(),
