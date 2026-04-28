@@ -8,11 +8,12 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, Compilation, ConstDependency, CssExportType, CssExportsConvention, CssParserImport,
-  CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
-  GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
-  ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  ChunkGraph, Compilation, CompilerOptions, ConstDependency, CssExportType, CssExportsConvention,
+  CssParserImport, CssParserImportContext, Dependency, DependencyRange, DependencyType,
+  ExportsInfoArtifact, GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph,
+  ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult,
+  ParserAndGenerator, ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -273,34 +274,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let (_prefix, name) = name.split_at(1); // split '#' or '.'
           let name = unescape(name);
 
-          let local_ident = LocalIdentOptions::new(
-            resource_data,
-            self
-              .local_ident_name
-              .as_ref()
-              .expect("should have local_ident_name for module_type css/auto or css/module"),
-            compiler_options,
-          )
-          .get_local_ident(&name)
-          .await?;
-          let convention = self
-            .convention
-            .as_ref()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
-          let exports = css_exports.get_or_insert_default();
-          let convention_names = export_locals_convention(&name, convention);
-          for convention_name in convention_names.iter() {
-            update_css_exports(
-              exports,
-              convention_name.to_owned(),
-              CssExport {
-                ident: local_ident.clone(),
-                orig_name: name.clone().into_owned(),
-                from: None,
-                id: None,
-              },
-            );
-          }
+          let (local_ident, convention_names) = self
+            .resolve_local_ident_and_update_exports(
+              resource_data,
+              compiler_options,
+              &name,
+              &mut css_exports,
+            )
+            .await?;
 
           let local_names = css_local_names.get_or_insert_default();
           local_names.insert(name.into_owned(), local_ident.clone());
@@ -314,34 +295,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
           let name = unescape(name);
-          let local_ident = LocalIdentOptions::new(
-            resource_data,
-            self
-              .local_ident_name
-              .as_ref()
-              .expect("should have local_ident_name for module_type css/auto or css/module"),
-            compiler_options,
-          )
-          .get_local_ident(&name)
-          .await?;
-          let exports = css_exports.get_or_insert_default();
-          let convention = self
-            .convention
-            .as_ref()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
-          let convention_names = export_locals_convention(&name, convention);
-          for convention_name in convention_names.iter() {
-            update_css_exports(
-              exports,
-              convention_name.to_owned(),
-              CssExport {
-                ident: local_ident.clone(),
-                from: None,
-                orig_name: name.clone().into_owned(),
-                id: None,
-              },
-            );
-          }
+          let (local_ident, convention_names) = self
+            .resolve_local_ident_and_update_exports(
+              resource_data,
+              compiler_options,
+              &name,
+              &mut css_exports,
+            )
+            .await?;
           dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
             convention_names,
             vec![CssSelfReferenceLocalIdentReplacement {
@@ -352,34 +313,14 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
           let name = unescape(name);
-          let local_ident = LocalIdentOptions::new(
-            resource_data,
-            self
-              .local_ident_name
-              .as_ref()
-              .expect("should have local_ident_name for module_type css/auto or css/module"),
-            compiler_options,
-          )
-          .get_local_ident(&name)
-          .await?;
-          let exports = css_exports.get_or_insert_default();
-          let convention = self
-            .convention
-            .as_ref()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
-          let convention_names = export_locals_convention(&name, convention);
-          for convention_name in convention_names.iter() {
-            update_css_exports(
-              exports,
-              convention_name.to_owned(),
-              CssExport {
-                ident: local_ident.clone(),
-                from: None,
-                id: None,
-                orig_name: name.clone().into_owned(),
-              },
-            );
-          }
+          let (local_ident, convention_names) = self
+            .resolve_local_ident_and_update_exports(
+              resource_data,
+              compiler_options,
+              &name,
+              &mut css_exports,
+            )
+            .await?;
 
           let local_names = css_local_names.get_or_insert_default();
           local_names.insert(name.into_owned(), local_ident.clone());
@@ -428,7 +369,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let convention = self
             .convention
             .as_ref()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
+            .expect("should have convention for module_type css/auto or css/module");
           let exports = css_exports.get_or_insert_default();
           for name in names {
             for local_class in local_classes.iter() {
@@ -468,7 +409,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           let convention = self
             .convention
             .as_ref()
-            .expect("should have local_ident_name for module_type css/auto or css/module");
+            .expect("should have convention for module_type css/auto or css/module");
           let convention_names = export_locals_convention(prop, convention);
           let value = REGEX_IS_COMMENTS.replace_all(value, "");
           for name in convention_names.iter() {
@@ -620,9 +561,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       SourceType::JavaScript => {
         let with_hmr = self.hot;
-        let build_info = module.build_info();
 
-        // 首先检查是否是 style export_type
         if matches!(self.export_type, Some(CssExportType::Style)) {
           let mut concat_source = ConcatSource::default();
 
@@ -689,209 +628,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
           );
           concat_source.add(RawStringSource::from(css_inject_call));
 
-          // 处理常规导出
-          let exports_str = if generate_context.concatenation_scope.is_some() {
-            // currently this is dead branch, as css module will never be concatenated expect exportsOnly
-            let mut concate_source = ConcatSource::default();
-            if let Some(ref exports) = build_info.css_exports {
-              let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
-              if let Some(local_names) = &build_info.css_local_names {
-                let unused_exports = get_unused_local_ident(
-                  exports,
-                  local_names,
-                  module.identifier(),
-                  generate_context.runtime,
-                  exports_info_artifact,
-                );
-                generate_context.data.insert(unused_exports);
-              }
-              let exports = get_used_exports(
-                exports,
-                module.identifier(),
-                generate_context.runtime,
-                exports_info_artifact,
-              );
-
-              css_modules_exports_to_concatenate_module_string(
-                exports,
-                module,
-                generate_context,
-                &mut concate_source,
-              )?;
-            }
-            concate_source.boxed()
-          } else {
-            let exports_info = generate_context
-              .compilation
-              .exports_info_artifact
-              .get_exports_info_data(&module.identifier());
-            let (ns_obj, left, right) = if self.es_module
-              && exports_info
-                .other_exports_info()
-                .get_used(generate_context.runtime)
-                != UsageState::Unused
-            {
-              (
-                generate_context
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-                "(".to_string(),
-                ")".to_string(),
-              )
-            } else {
-              (String::new(), String::new(), String::new())
-            };
-            let exports = if let Some(exports) = &build_info.css_exports {
-              if let Some(local_names) = &build_info.css_local_names {
-                let unused_exports = get_unused_local_ident(
-                  exports,
-                  local_names,
-                  module.identifier(),
-                  generate_context.runtime,
-                  &generate_context.compilation.exports_info_artifact,
-                );
-                generate_context.data.insert(unused_exports);
-              }
-
-              let exports = get_used_exports(
-                exports,
-                module.identifier(),
-                generate_context.runtime,
-                &generate_context.compilation.exports_info_artifact,
-              );
-
-              css_modules_exports_to_string(
-                exports,
-                module,
-                generate_context.compilation,
-                generate_context.runtime,
-                generate_context.runtime_template,
-                &ns_obj,
-                &left,
-                &right,
-                with_hmr,
-              )?
-            } else {
-              let module_argument = generate_context
-                .runtime_template
-                .render_module_argument(ModuleArgument::Module);
-              format!(
-                "{}{}{module_argument}.exports = {{}}{};\n{}",
-                &ns_obj,
-                &left,
-                &right,
-                if with_hmr {
-                  format!("{module_argument}.hot.accept();\n")
-                } else {
-                  Default::default()
-                }
-              )
-            };
-            RawStringSource::from(exports).boxed()
-          };
+          let exports_str = self.generate_js_exports(module, generate_context, with_hmr)?;
           concat_source.add(exports_str);
           Ok(concat_source.boxed())
         } else {
-          // 原有的常规处理逻辑
-          let exports = if generate_context.concatenation_scope.is_some() {
-            let mut concate_source = ConcatSource::default();
-            if let Some(ref exports) = build_info.css_exports {
-              let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
-              if let Some(local_names) = &build_info.css_local_names {
-                let unused_exports = get_unused_local_ident(
-                  exports,
-                  local_names,
-                  module.identifier(),
-                  generate_context.runtime,
-                  exports_info_artifact,
-                );
-                generate_context.data.insert(unused_exports);
-              }
-              let exports = get_used_exports(
-                exports,
-                module.identifier(),
-                generate_context.runtime,
-                exports_info_artifact,
-              );
-
-              css_modules_exports_to_concatenate_module_string(
-                exports,
-                module,
-                generate_context,
-                &mut concate_source,
-              )?;
-            }
-            concate_source.boxed()
-          } else {
-            let exports_info = generate_context
-              .compilation
-              .exports_info_artifact
-              .get_exports_info_data(&module.identifier());
-            let (ns_obj, left, right) = if self.es_module
-              && exports_info
-                .other_exports_info()
-                .get_used(generate_context.runtime)
-                != UsageState::Unused
-            {
-              (
-                generate_context
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-                "(".to_string(),
-                ")".to_string(),
-              )
-            } else {
-              (String::new(), String::new(), String::new())
-            };
-            let exports_str = if let Some(exports) = &build_info.css_exports {
-              if let Some(local_names) = &build_info.css_local_names {
-                let unused_exports = get_unused_local_ident(
-                  exports,
-                  local_names,
-                  module.identifier(),
-                  generate_context.runtime,
-                  &generate_context.compilation.exports_info_artifact,
-                );
-                generate_context.data.insert(unused_exports);
-              }
-
-              let exports = get_used_exports(
-                exports,
-                module.identifier(),
-                generate_context.runtime,
-                &generate_context.compilation.exports_info_artifact,
-              );
-
-              css_modules_exports_to_string(
-                exports,
-                module,
-                generate_context.compilation,
-                generate_context.runtime,
-                generate_context.runtime_template,
-                &ns_obj,
-                &left,
-                &right,
-                with_hmr,
-              )?
-            } else {
-              let module_argument = generate_context
-                .runtime_template
-                .render_module_argument(ModuleArgument::Module);
-              format!(
-                "{}{}{module_argument}.exports = {{}}{};\n{}",
-                &ns_obj,
-                &left,
-                &right,
-                if with_hmr {
-                  format!("{module_argument}.hot.accept();\n")
-                } else {
-                  Default::default()
-                }
-              )
-            };
-            RawStringSource::from(exports_str).boxed()
-          };
-          Ok(exports)
+          self.generate_js_exports(module, generate_context, with_hmr)
         }
       }
       _ => panic!(
@@ -925,6 +666,153 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.es_module.dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
+  }
+}
+
+impl CssParserAndGenerator {
+  async fn resolve_local_ident_and_update_exports(
+    &self,
+    resource_data: &ResourceData,
+    compiler_options: &CompilerOptions,
+    name: &str,
+    css_exports: &mut Option<CssExports>,
+  ) -> Result<(String, Vec<String>)> {
+    let local_ident = LocalIdentOptions::new(
+      resource_data,
+      self
+        .local_ident_name
+        .as_ref()
+        .expect("should have local_ident_name for module_type css/auto or css/module"),
+      compiler_options,
+    )
+    .get_local_ident(name)
+    .await?;
+    let convention = self
+      .convention
+      .as_ref()
+      .expect("should have convention for module_type css/auto or css/module");
+    let exports = css_exports.get_or_insert_default();
+    let convention_names = export_locals_convention(name, convention);
+    for convention_name in convention_names.iter() {
+      update_css_exports(
+        exports,
+        convention_name.to_owned(),
+        CssExport {
+          ident: local_ident.clone(),
+          orig_name: name.to_owned(),
+          from: None,
+          id: None,
+        },
+      );
+    }
+    Ok((local_ident, convention_names))
+  }
+
+  fn generate_js_exports(
+    &self,
+    module: &dyn Module,
+    generate_context: &mut GenerateContext,
+    with_hmr: bool,
+  ) -> Result<BoxSource> {
+    let build_info = module.build_info();
+    if generate_context.concatenation_scope.is_some() {
+      let mut concate_source = ConcatSource::default();
+      if let Some(ref exports) = build_info.css_exports {
+        let exports_info_artifact = &generate_context.compilation.exports_info_artifact;
+        if let Some(local_names) = &build_info.css_local_names {
+          let unused_exports = get_unused_local_ident(
+            exports,
+            local_names,
+            module.identifier(),
+            generate_context.runtime,
+            exports_info_artifact,
+          );
+          generate_context.data.insert(unused_exports);
+        }
+        let exports = get_used_exports(
+          exports,
+          module.identifier(),
+          generate_context.runtime,
+          exports_info_artifact,
+        );
+
+        css_modules_exports_to_concatenate_module_string(
+          exports,
+          module,
+          generate_context,
+          &mut concate_source,
+        )?;
+      }
+      Ok(concate_source.boxed())
+    } else {
+      let exports_info = generate_context
+        .compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module.identifier());
+      let (ns_obj, left, right) = if self.es_module
+        && exports_info
+          .other_exports_info()
+          .get_used(generate_context.runtime)
+          != UsageState::Unused
+      {
+        (
+          generate_context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+          "(".to_string(),
+          ")".to_string(),
+        )
+      } else {
+        (String::new(), String::new(), String::new())
+      };
+      let exports_str = if let Some(exports) = &build_info.css_exports {
+        if let Some(local_names) = &build_info.css_local_names {
+          let unused_exports = get_unused_local_ident(
+            exports,
+            local_names,
+            module.identifier(),
+            generate_context.runtime,
+            &generate_context.compilation.exports_info_artifact,
+          );
+          generate_context.data.insert(unused_exports);
+        }
+
+        let exports = get_used_exports(
+          exports,
+          module.identifier(),
+          generate_context.runtime,
+          &generate_context.compilation.exports_info_artifact,
+        );
+
+        css_modules_exports_to_string(
+          exports,
+          module,
+          generate_context.compilation,
+          generate_context.runtime,
+          generate_context.runtime_template,
+          &ns_obj,
+          &left,
+          &right,
+          with_hmr,
+        )?
+      } else {
+        let module_argument = generate_context
+          .runtime_template
+          .render_module_argument(ModuleArgument::Module);
+        format!(
+          "{}{}{module_argument}.exports = {{}}{};\n{}",
+          &ns_obj,
+          &left,
+          &right,
+          if with_hmr {
+            format!("{module_argument}.hot.accept();\n")
+          } else {
+            Default::default()
+          }
+        )
+      };
+      Ok(RawStringSource::from(exports_str).boxed())
+    }
   }
 }
 
