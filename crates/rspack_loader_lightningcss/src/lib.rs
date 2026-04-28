@@ -240,9 +240,10 @@ impl LightningCssLoader {
           .iter()
           .map(|source| {
             if source.starts_with('/') || source.contains(':') {
-              source.to_string()
+              source.clone()
             } else {
-              let mut absolute_source = posix_context.clone();
+              let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
+              absolute_source.push_str(&posix_context);
               absolute_source.push_str(source);
               absolute_source
             }
