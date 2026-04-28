@@ -341,3 +341,24 @@ pub struct JsChunkAssetArgs {
   pub chunk: ChunkWrapper,
   pub filename: String,
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn to_js_chunk_id_preserves_chunk_id_kind() {
+    let numeric_zero = ChunkId::from_number(0);
+    let numeric_id = ChunkId::from_number(903);
+    let named_numeric_id = ChunkId::from("903");
+    let leading_zero_id = ChunkId::from("01");
+
+    assert!(matches!(to_js_chunk_id(&numeric_zero), Either::B(0)));
+    assert!(matches!(to_js_chunk_id(&numeric_id), Either::B(903)));
+    assert!(matches!(
+      to_js_chunk_id(&named_numeric_id),
+      Either::A("903")
+    ));
+    assert!(matches!(to_js_chunk_id(&leading_zero_id), Either::A("01")));
+  }
+}
