@@ -712,10 +712,17 @@ impl CssParserAndGenerator {
     name: &str,
     css_exports: &mut Option<CssExports>,
   ) -> Result<(String, Vec<String>)> {
-    let local_ident =
-      LocalIdentOptions::new(resource_data, self.local_ident_name(), compiler_options)
-        .get_local_ident(name)
-        .await?;
+    let local_ident = LocalIdentOptions::new(
+      resource_data,
+      self.local_ident_name(),
+      compiler_options,
+      self.generator_options.local_ident_hash_digest.as_ref(),
+      self.generator_options.local_ident_hash_digest_length,
+      self.generator_options.local_ident_hash_function.as_ref(),
+      self.generator_options.local_ident_hash_salt.as_ref(),
+    )
+    .get_local_ident(name)
+    .await?;
     let convention = self.convention();
     let exports = css_exports.get_or_insert_default();
     let convention_names = export_locals_convention(name, convention);

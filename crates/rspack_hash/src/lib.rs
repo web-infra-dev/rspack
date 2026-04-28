@@ -8,6 +8,7 @@ use rspack_cacheable::{cacheable, with::AsPreset};
 use smol_str::SmolStr;
 use xxhash_rust::xxh64::Xxh64;
 
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum HashFunction {
   Xxhash64,
@@ -26,6 +27,7 @@ impl From<&str> for HashFunction {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum HashDigest {
   Hex,
@@ -60,6 +62,7 @@ impl From<&str> for HashDigest {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub enum HashSalt {
   None,

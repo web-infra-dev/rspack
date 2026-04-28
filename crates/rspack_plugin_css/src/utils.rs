@@ -17,7 +17,7 @@ use rspack_core::{
   to_identifier,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
-use rspack_hash::RspackHash;
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -35,6 +35,10 @@ pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   local_name_ident: &'a LocalIdentName,
   compiler_options: &'a CompilerOptions,
+  local_ident_hash_digest: Option<&'a HashDigest>,
+  local_ident_hash_digest_length: Option<usize>,
+  local_ident_hash_function: Option<&'a HashFunction>,
+  local_ident_hash_salt: Option<&'a HashSalt>,
 }
 
 impl<'a> LocalIdentOptions<'a> {
@@ -42,6 +46,10 @@ impl<'a> LocalIdentOptions<'a> {
     resource_data: &ResourceData,
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
+    local_ident_hash_digest: Option<&'a HashDigest>,
+    local_ident_hash_digest_length: Option<usize>,
+    local_ident_hash_function: Option<&'a HashFunction>,
+    local_ident_hash_salt: Option<&'a HashSalt>,
   ) -> Self {
     let relative_resource =
       make_paths_relative(&compiler_options.context, resource_data.resource());
@@ -49,13 +57,25 @@ impl<'a> LocalIdentOptions<'a> {
       relative_resource,
       local_name_ident,
       compiler_options,
+      local_ident_hash_digest,
+      local_ident_hash_digest_length,
+      local_ident_hash_function,
+      local_ident_hash_salt,
     }
   }
 
   pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
+    let hash_function = self
+      .local_ident_hash_function
+      .unwrap_or(&output.hash_function);
+    let hash_salt = self.local_ident_hash_salt.unwrap_or(&output.hash_salt);
+    let hash_digest = self.local_ident_hash_digest.unwrap_or(&output.hash_digest);
+    let hash_digest_length = self
+      .local_ident_hash_digest_length
+      .unwrap_or(output.hash_digest_length);
     let hash = {
-      let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
+      let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
       hasher.write(self.relative_resource.as_bytes());
       let contains_local = self
         .local_name_ident
@@ -66,9 +86,9 @@ impl<'a> LocalIdentOptions<'a> {
       if !contains_local {
         hasher.write(local.as_bytes());
       }
-      let hash = hasher.digest(&output.hash_digest);
+      let hash = hasher.digest(hash_digest);
       LEADING_DIGIT_REGEX
-        .replace(hash.rendered(output.hash_digest_length), "_${1}")
+        .replace(hash.rendered(hash_digest_length), "_${1}")
         .into_owned()
     };
     LocalIdentNameRenderOptions {

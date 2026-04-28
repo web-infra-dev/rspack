@@ -10,6 +10,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
+pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
@@ -853,6 +854,10 @@ pub struct CssModuleGeneratorOptionsNormalized {
   pub exports_only: bool,
   pub es_module: bool,
   pub export_type: Option<CssExportType>,
+  pub local_ident_hash_digest: Option<HashDigest>,
+  pub local_ident_hash_digest_length: Option<usize>,
+  pub local_ident_hash_function: Option<HashFunction>,
+  pub local_ident_hash_salt: Option<HashSalt>,
 }
 
 impl CssModuleGeneratorOptionsNormalized {
@@ -865,10 +870,31 @@ impl CssModuleGeneratorOptionsNormalized {
         .expect("should have exports_only"),
       es_module: generator_opts.es_module.expect("should have es_module"),
       export_type: None,
+      local_ident_hash_digest: None,
+      local_ident_hash_digest_length: None,
+      local_ident_hash_function: None,
+      local_ident_hash_salt: None,
     }
   }
 
   pub fn from_css_module(generator_opts: &CssModuleGeneratorOptions) -> Self {
+    let local_ident_hash_digest = generator_opts
+      .local_ident_hash_digest
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_digest_length = generator_opts
+      .local_ident_hash_digest_length
+      .map(|len| len as usize);
+    let local_ident_hash_function = generator_opts
+      .local_ident_hash_function
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_salt = generator_opts
+      .local_ident_hash_salt
+      .clone()
+      .map(Some)
+      .map(Into::into);
+
     Self {
       convention: generator_opts.exports_convention,
       local_ident_name: generator_opts.local_ident_name.clone(),
@@ -877,6 +903,10 @@ impl CssModuleGeneratorOptionsNormalized {
         .expect("should have exports_only"),
       es_module: generator_opts.es_module.expect("should have es_module"),
       export_type: generator_opts.export_type,
+      local_ident_hash_digest,
+      local_ident_hash_digest_length,
+      local_ident_hash_function,
+      local_ident_hash_salt,
     }
   }
 
