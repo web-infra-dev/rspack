@@ -1036,6 +1036,11 @@ export type CssParserResolveImport =
 /** Options object for `css` modules. */
 export type CssParserOptions = {
   /**
+   * Configure how CSS content is exported as default.
+   */
+  exportType?: CssGeneratorExportType;
+
+  /**
    * Use ES modules named export for CSS exports.
    * @default true
    * */
@@ -1057,6 +1062,11 @@ export type CssParserOptions = {
 /** Options object for `css/auto` modules. */
 export type CssAutoParserOptions = {
   /**
+   * Configure how CSS content is exported as default.
+   */
+  exportType?: CssGeneratorExportType;
+
+  /**
    * Use ES modules named export for CSS exports.
    * @default true
    * */
@@ -1077,6 +1087,11 @@ export type CssAutoParserOptions = {
 
 /** Options object for `css/module` modules. */
 export type CssModuleParserOptions = {
+  /**
+   * Configure how CSS content is exported as default.
+   */
+  exportType?: CssGeneratorExportType;
+
   /**
    * Use ES modules named export for CSS exports.
    * @default true
@@ -1421,11 +1436,6 @@ export type CssGeneratorOptions = {
 
 /** Generator options for css/global modules. */
 export type CssModuleGeneratorOptions = {
-  /**
-   * Configure how CSS content is exported as default.
-   */
-  exportType?: CssGeneratorExportType;
-
   /**
    * Customize how CSS export names are exported to javascript modules
    * @default 'as-is'

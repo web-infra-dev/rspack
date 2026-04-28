@@ -2086,6 +2086,7 @@ export interface RawCopyRspackPluginOptions {
 }
 
 export interface RawCssAutoParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
@@ -2124,7 +2125,6 @@ export interface RawCssImportContext {
 }
 
 export interface RawCssModuleGeneratorOptions {
-  exportType?: "link" | "text" | "css-style-sheet" | "style"
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
   localIdentHashDigest?: string
@@ -2136,12 +2136,14 @@ export interface RawCssModuleGeneratorOptions {
 }
 
 export interface RawCssModuleParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawCssParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)

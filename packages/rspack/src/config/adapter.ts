@@ -639,6 +639,7 @@ function getRawCssParserOptions(
   parser: CssParserOptions,
 ): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
   return {
+    exportType: parser.exportType,
     namedExports: parser.namedExports,
     url: parser.url,
     resolveImport: parser.resolveImport as any,
@@ -794,7 +795,6 @@ function getRawCssAutoOrModuleGeneratorOptions(
   options: CssModuleGeneratorOptions,
 ): RawCssModuleGeneratorOptions {
   return {
-    exportType: options.exportType,
     localIdentName: options.localIdentName,
     localIdentHashDigest: options.localIdentHashDigest,
     localIdentHashDigestLength: options.localIdentHashDigestLength,

@@ -537,6 +537,7 @@ impl Plugin for CssPlugin {
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css(g);
         Box::new(CssParserAndGenerator::new(
           generator_options,
+          p.export_type,
           p.named_exports.expect("should have named_exports"),
           p.url.expect("should have url"),
           p.resolve_import.clone().unwrap_or_default(),
@@ -555,6 +556,7 @@ impl Plugin for CssPlugin {
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css_module(g);
         Box::new(CssParserAndGenerator::new(
           generator_options,
+          p.export_type,
           p.named_exports.expect("should have named_exports"),
           p.url.expect("should have url"),
           p.resolve_import.clone().unwrap_or_default(),
@@ -573,6 +575,7 @@ impl Plugin for CssPlugin {
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css_module(g);
         Box::new(CssParserAndGenerator::new(
           generator_options,
+          p.export_type,
           p.named_exports.expect("should have named_exports"),
           p.url.expect("should have url"),
           p.resolve_import.clone().unwrap_or_default(),
@@ -591,6 +594,7 @@ impl Plugin for CssPlugin {
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css_module(g);
         Box::new(CssParserAndGenerator::new(
           generator_options,
+          p.export_type,
           p.named_exports.expect("should have named_exports"),
           p.url.expect("should have url"),
           p.resolve_import.clone().unwrap_or_default(),

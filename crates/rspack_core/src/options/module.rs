@@ -405,6 +405,7 @@ impl MergeFrom for CssParserImport {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
@@ -413,6 +414,7 @@ pub struct CssParserOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssAutoParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
@@ -421,6 +423,7 @@ pub struct CssAutoParserOptions {
 impl From<CssParserOptions> for CssAutoParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       resolve_import: value.resolve_import,
@@ -431,6 +434,7 @@ impl From<CssParserOptions> for CssAutoParserOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
@@ -439,6 +443,7 @@ pub struct CssModuleParserOptions {
 impl From<CssParserOptions> for CssModuleParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       resolve_import: value.resolve_import,
@@ -449,6 +454,7 @@ impl From<CssParserOptions> for CssModuleParserOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssGlobalParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
@@ -457,6 +463,7 @@ pub struct CssGlobalParserOptions {
 impl From<CssParserOptions> for CssGlobalParserOptions {
   fn from(value: CssParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       resolve_import: value.resolve_import,
@@ -825,7 +832,6 @@ impl MergeFrom for CssExportType {
 #[cacheable]
 #[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssModuleGeneratorOptions {
-  pub export_type: Option<CssExportType>,
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
   pub local_ident_hash_digest: Option<String>,
@@ -853,7 +859,6 @@ pub struct CssModuleGeneratorOptionsNormalized {
   pub local_ident_name: Option<LocalIdentName>,
   pub exports_only: bool,
   pub es_module: bool,
-  pub export_type: Option<CssExportType>,
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<usize>,
   pub local_ident_hash_function: Option<HashFunction>,
@@ -869,7 +874,6 @@ impl CssModuleGeneratorOptionsNormalized {
         .exports_only
         .expect("should have exports_only"),
       es_module: generator_opts.es_module.expect("should have es_module"),
-      export_type: None,
       local_ident_hash_digest: None,
       local_ident_hash_digest_length: None,
       local_ident_hash_function: None,
@@ -902,7 +906,6 @@ impl CssModuleGeneratorOptionsNormalized {
         .exports_only
         .expect("should have exports_only"),
       es_module: generator_opts.es_module.expect("should have es_module"),
-      export_type: generator_opts.export_type,
       local_ident_hash_digest,
       local_ident_hash_digest_length,
       local_ident_hash_function,
@@ -930,10 +933,6 @@ impl CssModuleGeneratorOptionsNormalized {
 
   pub fn es_module(&self) -> bool {
     self.es_module
-  }
-
-  pub fn export_type(&self) -> &Option<CssExportType> {
-    &self.export_type
   }
 }
 

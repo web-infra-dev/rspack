@@ -69,6 +69,7 @@ fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExp
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub generator_options: CssModuleGeneratorOptionsNormalized,
+  pub export_type: Option<CssExportType>,
   pub named_exports: bool,
   pub url: bool,
   pub resolve_import: CssParserImport,
@@ -78,12 +79,14 @@ pub struct CssParserAndGenerator {
 impl CssParserAndGenerator {
   pub fn new(
     generator_options: CssModuleGeneratorOptionsNormalized,
+    export_type: Option<CssExportType>,
     named_exports: bool,
     url: bool,
     resolve_import: CssParserImport,
   ) -> Self {
     Self {
       generator_options,
+      export_type,
       named_exports,
       url,
       resolve_import,
@@ -116,7 +119,7 @@ impl CssParserAndGenerator {
   }
 
   pub fn export_type(&self) -> &Option<CssExportType> {
-    self.generator_options.export_type()
+    &self.export_type
   }
 }
 
