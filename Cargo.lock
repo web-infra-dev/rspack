@@ -4091,6 +4091,7 @@ name = "rspack_loader_lightningcss"
 version = "0.100.1"
 dependencies = [
  "async-trait",
+ "cow-utils",
  "derive_more",
  "lightningcss",
  "parcel_sourcemap",
