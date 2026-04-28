@@ -45,7 +45,7 @@ use swc_core::{
 
 use crate::{
   BoxJavascriptParserPlugin,
-  dependency::local_module::LocalModule,
+  dependency::{DependencyBranchGuard, local_module::LocalModule, set_dependency_branch_guards},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
@@ -388,6 +388,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) is_renaming: Option<Atom>,
   pub(crate) location_advancer: DependencyLocationAdvancer,
   pub(crate) collecting_dependencies_for_block: Option<usize>,
+  pub(crate) dependency_branch_guards: Vec<DependencyBranchGuard>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -575,6 +576,7 @@ impl<'parser> JavascriptParser<'parser> {
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
       collecting_dependencies_for_block: None,
+      dependency_branch_guards: Vec::new(),
     }
   }
 
@@ -596,12 +598,23 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn add_dependency(&mut self, dep: BoxDependency) {
+  pub fn add_dependency(&mut self, mut dep: BoxDependency) {
+    if !self.dependency_branch_guards.is_empty() {
+      set_dependency_branch_guards(dep.as_mut(), &self.dependency_branch_guards);
+    }
     self.dependencies.push(dep);
   }
 
   pub fn add_dependencies(&mut self, deps: impl IntoIterator<Item = BoxDependency>) {
-    self.dependencies.extend(deps);
+    if self.dependency_branch_guards.is_empty() {
+      self.dependencies.extend(deps);
+    } else {
+      let branch_guards = self.dependency_branch_guards.clone();
+      self.dependencies.extend(deps.into_iter().map(|mut dep| {
+        set_dependency_branch_guards(dep.as_mut(), &branch_guards);
+        dep
+      }));
+    }
   }
 
   pub fn pop_dependency(&mut self) -> Option<BoxDependency> {
