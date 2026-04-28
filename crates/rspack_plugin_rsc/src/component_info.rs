@@ -132,7 +132,13 @@ fn filter_client_components(
       // CSS with no `use server-entry` in its parent chain should load with
       // the client entry rather than through RSC server-entry CSS metadata.
       component_info.root_css_imports.insert(resource.to_string());
-    } else {
+      component_info
+        .css_imports_by_server_entry
+        .retain(|_, css_imports| {
+          css_imports.shift_remove(resource.as_ref());
+          !css_imports.is_empty()
+        });
+    } else if !component_info.root_css_imports.contains(resource.as_ref()) {
       for server_entry in server_entries.iter() {
         component_info
           .css_imports_by_server_entry

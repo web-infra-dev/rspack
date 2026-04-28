@@ -57,7 +57,12 @@ impl RscEntryModule {
     is_server_side_rendering: bool,
   ) -> Self {
     let lib_ident = format!("rspack/rsc-entry?name={}", &name);
-    let identifier = ModuleIdentifier::from(format!("rsc entry ({})", &name));
+    let identifier = create_identifier(
+      name.as_ref(),
+      &client_modules,
+      &css_imports_by_server_entry,
+      is_server_side_rendering,
+    );
     let layer = if is_server_side_rendering {
       Some(LAYERS_NAMES.server_side_rendering.to_string())
     } else {
@@ -324,6 +329,60 @@ impl Module for RscEntryModule {
 }
 
 impl_empty_diagnosable_trait!(RscEntryModule);
+
+fn create_identifier(
+  name: &str,
+  client_modules: &[ClientModuleImport],
+  css_imports_by_server_entry: &CssImportsByServerEntry,
+  is_server_side_rendering: bool,
+) -> ModuleIdentifier {
+  let mut identifier = String::from("rsc entry|");
+  push_value(&mut identifier, name);
+  identifier.push('|');
+  identifier.push(if is_server_side_rendering { '1' } else { '0' });
+  identifier.push('|');
+
+  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
+  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
+  for client_module in client_modules {
+    push_value(&mut identifier, &client_module.request);
+    identifier.push('[');
+
+    let ids = sorted_strs(client_module.ids.iter().map(|id| id.as_str()));
+    for id in ids {
+      push_value(&mut identifier, id);
+    }
+    identifier.push(']');
+  }
+
+  identifier.push('|');
+  let mut css_imports_by_server_entry = css_imports_by_server_entry.iter().collect::<Vec<_>>();
+  css_imports_by_server_entry.sort_unstable_by_key(|(a, _)| *a);
+  for (server_entry, css_imports) in css_imports_by_server_entry {
+    push_value(&mut identifier, server_entry);
+    identifier.push('[');
+
+    let css_imports = sorted_strs(css_imports.iter().map(String::as_str));
+    for css_import in css_imports {
+      push_value(&mut identifier, css_import);
+    }
+    identifier.push(']');
+  }
+
+  ModuleIdentifier::from(identifier)
+}
+
+fn sorted_strs<'a>(values: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+  let mut values = values.collect::<Vec<_>>();
+  values.sort_unstable();
+  values
+}
+
+fn push_value(identifier: &mut String, value: &str) {
+  write!(identifier, "{}:", value.len())
+    .expect("writing RSC entry module identifier should not fail");
+  identifier.push_str(value);
+}
 
 fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<ReferencedSpecifier>> {
   if ids.is_empty() || ids.iter().any(|id| id == "*") {
