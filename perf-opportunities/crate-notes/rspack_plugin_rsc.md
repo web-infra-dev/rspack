@@ -1,0 +1,32 @@
+# rspack_plugin_rsc
+
+## Role
+React Server Components integration.
+
+## Profiling relevance
+- Not visible in react-10k; hot when RSC enabled.
+- Costs scale with number of server/client component boundaries.
+
+## Perf opportunities
+- Cache RSC manifest generation for unchanged modules.
+- Avoid repeated traversal of the same component graph.
+- Gate RSC-specific work behind option checks to avoid overhead in non-RSC builds.
+
+## Key functions/structs to inspect
+- `make` hook in `client_plugin.rs` (client entry injection).
+- `record_module` and `extend_required_chunks` (client_plugin.rs).
+- `finish_make` / `process_assets` hooks in `server_plugin.rs`.
+- Loader hooks in `loaders/*_loader_plugin.rs` (resolve loader injection).
+
+## Suggested experiments
+- Profile RSC builds and measure manifest generation time.
+- Validate cache hits for unchanged component graphs.
+
+## Code pointers
+- `crates/rspack_plugin_rsc/Cargo.toml`
+- `crates/rspack_plugin_rsc/src/lib.rs`
+- `crates/rspack_plugin_rsc/src/client_plugin.rs`
+- `crates/rspack_plugin_rsc/src/server_plugin.rs`
+- `crates/rspack_plugin_rsc/src/manifest_runtime_module.rs`
+- `crates/rspack_plugin_rsc/src/loaders/mod.rs`
+- `crates/rspack_plugin_rsc/**`

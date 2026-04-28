@@ -1,0 +1,25 @@
+# rspack
+
+## Role
+Top-level crate entrypoint for Rspack.
+
+## Profiling relevance
+- Not directly visible in perf samples; acts as a thin wrapper.
+- Overhead should be minimal and mostly initialization.
+
+## Perf opportunities
+- Keep entrypoint thin to avoid pulling extra dependencies.
+- Avoid unnecessary initialization work in the common path.
+- Use lazy initialization for global state.
+
+## Key functions/structs to inspect
+- Builder entrypoints in `builder` module (e.g., `CompilerBuilder::build`).
+- Example usage in docs mirrors builder APIs; ensure minimal overhead.
+
+## Suggested experiments
+- Measure startup time impact of entrypoint initialization.
+
+## Code pointers
+- `crates/rspack/Cargo.toml`
+- `crates/rspack/src/lib.rs`
+- `crates/rspack/**`

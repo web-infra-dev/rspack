@@ -1,0 +1,30 @@
+# rspack_plugin_html
+
+## Role
+HTML generation plugin (template rendering and asset injection).
+
+## Profiling relevance
+- Not visible in react-10k samples; can be significant when many HTML pages are generated.
+- Costs scale with template size and asset list length.
+
+## Perf opportunities
+- Cache rendered templates by configuration.
+- Avoid repeated asset list string building when unchanged.
+- Use streaming template rendering for large HTML outputs.
+
+## Key functions/structs to inspect
+- `HtmlPlugin` hooks (plugin.rs).
+- Template parsing/rendering in `template.rs`.
+- Asset injection logic in `injector.rs`.
+
+## Suggested experiments
+- Profile multi-page HTML builds and measure render time.
+- Compare cached vs non-cached template rendering.
+
+## Code pointers
+- `crates/rspack_plugin_html/Cargo.toml`
+- `crates/rspack_plugin_html/src/lib.rs`
+- `crates/rspack_plugin_html/src/plugin.rs`
+- `crates/rspack_plugin_html/src/template.rs`
+- `crates/rspack_plugin_html/src/injector.rs`
+- `crates/rspack_plugin_html/**`
