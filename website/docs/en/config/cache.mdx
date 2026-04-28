@@ -238,6 +238,37 @@ Rspack will generate a cache folder in the `storage.directory` based on [config.
 Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
 :::
 
+### Inspect persistent cache logs
+
+Persistent cache logs are emitted through the `rspack.persistentCache` logger. To display them in the build stats, enable `stats.logging`:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: 'info',
+  },
+};
+```
+
+The logs include key persistent cache events, such as whether persistent cache is enabled, whether build dependencies are valid, whether cache recovery succeeded, and why the persistent cache was invalidated. They may also include logs from other loggers.
+
+If you only want to print logs from `rspack.persistentCache`, set `stats.logging` to `false` to disable logs from other loggers, and use `stats.loggingDebug` to include this logger:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: false,
+    loggingDebug: /^rspack\.persistentCache$/,
+  },
+};
+```
+
 ## Migrating from webpack config
 
 The Rspack cache configuration is different from the webpack cache configuration. You can refer to the following steps to migrate the webpack cache configuration.

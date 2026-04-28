@@ -16,7 +16,7 @@ import type {
   JsStatsModule,
 } from '@rspack/binding';
 import type { Chunk } from '../Chunk';
-import type { NormalizedStatsOptions } from '../Compilation';
+import type { LogEntry, NormalizedStatsOptions } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { StatsOptions } from '../config';
 import {
@@ -769,12 +769,15 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
           acceptedTypes = getLogTypesBitFlag([]);
         }
         object.logging = {};
-        const compilationLogging = compilation.logging;
+        const compilationLogging = new Map<string, LogEntry[]>();
+        for (const [origin, logEntries] of compilation.logging) {
+          compilationLogging.set(origin, [...logEntries]);
+        }
         for (const { name, ...rest } of context
           .getInner(compilation)
           .getLogging(acceptedTypes)) {
           const value = compilationLogging.get(name);
-          const entry = {
+          const entry: LogEntry = {
             type: rest.type,
             trace: rest.trace,
             args: rest.args ?? [],
