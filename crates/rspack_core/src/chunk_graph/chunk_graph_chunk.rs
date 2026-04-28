@@ -3,7 +3,7 @@
 use std::{
   collections::VecDeque,
   fmt,
-  hash::{BuildHasherDefault, Hash, Hasher},
+  hash::{BuildHasherDefault, Hash},
 };
 
 use hashlink::LinkedHashMap;
@@ -37,60 +37,24 @@ pub type IndexChunkIdMap<V> = IndexMap<ChunkId, V, BuildHasherDefault<Identifier
 pub type ChunkIdSet = std::collections::HashSet<ChunkId, BuildHasherDefault<IdentifierHasher>>;
 
 #[cacheable]
-#[derive(Debug, Clone)]
-pub struct ChunkId {
-  #[cacheable(with=AsPreset)]
-  value: Ustr,
-  numeric: Option<u32>,
-}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ChunkId(#[cacheable(with=AsPreset)] Ustr);
 
 impl From<String> for ChunkId {
   fn from(s: String) -> Self {
-    Self {
-      value: s.into(),
-      numeric: None,
-    }
+    Self(s.into())
   }
 }
 
 impl From<&str> for ChunkId {
   fn from(s: &str) -> Self {
-    Self {
-      value: s.into(),
-      numeric: None,
-    }
-  }
-}
-
-impl PartialEq for ChunkId {
-  fn eq(&self, other: &Self) -> bool {
-    self.value == other.value
-  }
-}
-
-impl Eq for ChunkId {}
-
-impl PartialOrd for ChunkId {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    Some(self.cmp(other))
-  }
-}
-
-impl Ord for ChunkId {
-  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-    self.value.cmp(&other.value)
-  }
-}
-
-impl Hash for ChunkId {
-  fn hash<H: Hasher>(&self, state: &mut H) {
-    self.value.hash(state);
+    Self(s.into())
   }
 }
 
 impl fmt::Display for ChunkId {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    write!(f, "{}", self.value)
+    write!(f, "{}", self.0)
   }
 }
 
@@ -99,28 +63,21 @@ impl Serialize for ChunkId {
   where
     S: Serializer,
   {
-    if let Some(n) = self.numeric {
+    if let Some(n) = self.as_number() {
       serializer.serialize_u32(n)
     } else {
-      serializer.serialize_str(self.value.as_str())
+      serializer.serialize_str(self.0.as_str())
     }
   }
 }
 
 impl ChunkId {
-  pub fn from_number(id: u32) -> Self {
-    Self {
-      value: id.to_string().into(),
-      numeric: Some(id),
-    }
-  }
-
   pub fn as_number(&self) -> Option<u32> {
-    self.numeric
+    rspack_util::numeric_id_value(self.0.as_str())
   }
 
   pub fn as_str(&self) -> &str {
-    self.value.as_str()
+    self.0.as_str()
   }
 }
 
@@ -1229,16 +1186,7 @@ mod tests {
 
   #[test]
   fn chunk_id_serialize_matches_runtime_numeric_rules() {
-    assert_eq!(ChunkId::from_number(903).as_number(), Some(903));
-    assert_eq!(ChunkId::from("903").as_number(), None);
-    assert_eq!(
-      serde_json::to_string(&ChunkId::from_number(903)).unwrap(),
-      "903"
-    );
-    assert_eq!(
-      serde_json::to_string(&ChunkId::from("903")).unwrap(),
-      "\"903\""
-    );
+    assert_eq!(serde_json::to_string(&ChunkId::from("903")).unwrap(), "903");
     assert_eq!(
       serde_json::to_string(&ChunkId::from("01")).unwrap(),
       "\"01\""
@@ -1248,7 +1196,7 @@ mod tests {
       "\"main\""
     );
     assert_eq!(
-      serde_json::to_string(&ChunkId::from_number(4_294_967_295)).unwrap(),
+      serde_json::to_string(&ChunkId::from("4294967295")).unwrap(),
       "4294967295"
     );
     assert_eq!(
@@ -1256,7 +1204,7 @@ mod tests {
       "\"4294967296\""
     );
     assert_eq!(
-      serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from_number(903)]).unwrap(),
+      serde_json::to_string(&vec![ChunkId::from("01"), ChunkId::from("903")]).unwrap(),
       "[\"01\",903]"
     );
   }

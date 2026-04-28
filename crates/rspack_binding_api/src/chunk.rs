@@ -2,23 +2,14 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
   Either, Env, JsString,
-  bindgen_prelude::{Either3, Object, ToNapiValue},
+  bindgen_prelude::{Object, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
+use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
 use crate::{chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO};
-
-pub type JsChunkId<'a> = Either<&'a str, u32>;
-
-pub fn to_js_chunk_id(chunk_id: &ChunkId) -> JsChunkId<'_> {
-  match chunk_id.as_number() {
-    Some(id) => Either::B(id),
-    None => Either::A(chunk_id.as_str()),
-  }
-}
 
 #[napi]
 pub struct Chunk {
@@ -56,26 +47,18 @@ impl Chunk {
   }
 
   #[napi(getter, ts_return_type = "string | number | undefined")]
-  pub fn id(&self) -> napi::Result<Either3<&str, u32, ()>> {
+  pub fn id(&self) -> napi::Result<Either<&str, ()>> {
     let (_, chunk) = self.as_ref()?;
     Ok(match chunk.id() {
-      Some(id) => match to_js_chunk_id(id) {
-        Either::A(id) => Either3::A(id),
-        Either::B(id) => Either3::B(id),
-      },
-      None => Either3::C(()),
+      Some(id) => Either::A(id.as_str()),
+      None => Either::B(()),
     })
   }
 
   #[napi(getter, ts_return_type = "Array<string | number>")]
-  pub fn ids(&self) -> napi::Result<Vec<JsChunkId<'_>>> {
+  pub fn ids(&self) -> napi::Result<Vec<&str>> {
     let (_, chunk) = self.as_ref()?;
-    Ok(
-      chunk
-        .id()
-        .map(|id| vec![to_js_chunk_id(id)])
-        .unwrap_or_default(),
-    )
+    Ok(chunk.id().map(|id| vec![id.as_str()]).unwrap_or_default())
   }
 
   #[napi(getter)]
@@ -340,25 +323,4 @@ pub struct JsChunkAssetArgs {
   #[napi(ts_type = "Chunk")]
   pub chunk: ChunkWrapper,
   pub filename: String,
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn to_js_chunk_id_preserves_chunk_id_kind() {
-    let numeric_zero = ChunkId::from_number(0);
-    let numeric_id = ChunkId::from_number(903);
-    let named_numeric_id = ChunkId::from("903");
-    let leading_zero_id = ChunkId::from("01");
-
-    assert!(matches!(to_js_chunk_id(&numeric_zero), Either::B(0)));
-    assert!(matches!(to_js_chunk_id(&numeric_id), Either::B(903)));
-    assert!(matches!(
-      to_js_chunk_id(&named_numeric_id),
-      Either::A("903")
-    ));
-    assert!(matches!(to_js_chunk_id(&leading_zero_id), Either::A("01")));
-  }
 }

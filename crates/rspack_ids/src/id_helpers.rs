@@ -13,7 +13,7 @@ use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkNamedIdArtifact, ChunkUkey, Compilation, ExportsInfoArtifact, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, SideEffectsStateArtifact,
-  chunk_graph_chunk::ChunkId, compare_runtime,
+  compare_runtime,
 };
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
@@ -206,15 +206,11 @@ mod tests {
   use std::cmp::Ordering;
 
   use rspack_core::{
-    Chunk, ChunkByUkey, ChunkGraph, ChunkGroup, ChunkGroupByUkey, ChunkKind, ModuleIdentifier,
-    ModuleIdsArtifact,
+    Chunk, ChunkGraph, ChunkGroup, ChunkGroupByUkey, ChunkKind, ModuleIdentifier, ModuleIdsArtifact,
   };
   use rustc_hash::FxHashMap;
 
-  use super::{
-    NaturalChunkCompareCache, assign_ascending_chunk_ids, assign_deterministic_ids,
-    compare_chunks_natural,
-  };
+  use super::{NaturalChunkCompareCache, assign_deterministic_ids, compare_chunks_natural};
 
   #[test]
   fn assign_deterministic_ids_accepts_borrowed_names() {
@@ -241,33 +237,6 @@ mod tests {
     );
 
     assert_eq!(assigned.len(), 3);
-  }
-
-  #[test]
-  fn assign_ascending_chunk_ids_uses_numeric_ids_when_no_ids_are_used() {
-    let chunk_a = Chunk::new(None, ChunkKind::Normal);
-    let chunk_b = Chunk::new(None, ChunkKind::Normal);
-    let chunks = vec![chunk_a.ukey(), chunk_b.ukey()];
-    let mut chunk_by_ukey = ChunkByUkey::default();
-    chunk_by_ukey.add(chunk_a);
-    chunk_by_ukey.add(chunk_b);
-
-    assign_ascending_chunk_ids(&chunks, &mut chunk_by_ukey);
-
-    assert_eq!(
-      chunk_by_ukey
-        .expect_get(&chunks[0])
-        .id()
-        .and_then(|id| id.as_number()),
-      Some(0)
-    );
-    assert_eq!(
-      chunk_by_ukey
-        .expect_get(&chunks[1])
-        .id()
-        .and_then(|id| id.as_number()),
-      Some(1)
-    );
   }
 
   #[test]
@@ -500,7 +469,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], chunk_by_ukey: &mut Chun
         while used_ids.contains(&next_id.to_string()) {
           next_id += 1;
         }
-        chunk.set_id(ChunkId::from_number(next_id));
+        chunk.set_id(next_id.to_string());
         next_id += 1;
       }
     }
@@ -508,7 +477,7 @@ pub fn assign_ascending_chunk_ids(chunks: &[ChunkUkey], chunk_by_ukey: &mut Chun
     for chunk in chunks {
       let chunk = chunk_by_ukey.expect_get_mut(chunk);
       if chunk.id().is_none() {
-        chunk.set_id(ChunkId::from_number(next_id));
+        chunk.set_id(next_id.to_string());
         next_id += 1;
       }
     }

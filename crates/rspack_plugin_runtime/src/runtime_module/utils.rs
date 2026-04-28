@@ -250,19 +250,10 @@ mod tests {
   use super::{stringify_chunks, stringify_map, stringify_static_chunk_map};
 
   #[test]
-  fn stringify_chunks_keeps_sorted_string_ids() {
+  fn stringify_chunks_keeps_sorted_numeric_ids() {
     let mut chunks = ChunkIdSet::default();
     chunks.insert(ChunkId::from("2"));
     chunks.insert(ChunkId::from("10"));
-
-    assert_eq!(stringify_chunks(&chunks, 1), r#"{"10": 1,"2": 1,}"#);
-  }
-
-  #[test]
-  fn stringify_chunks_keeps_sorted_numeric_ids() {
-    let mut chunks = ChunkIdSet::default();
-    chunks.insert(ChunkId::from_number(2));
-    chunks.insert(ChunkId::from_number(10));
 
     assert_eq!(stringify_chunks(&chunks, 1), "{10: 1,2: 1,}");
   }

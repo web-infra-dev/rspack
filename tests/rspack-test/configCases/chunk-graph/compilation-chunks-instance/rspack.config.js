@@ -11,8 +11,6 @@ class Plugin {
         expect(chunks.size).toBe(1);
 
         const chunk = Array.from(chunks)[0];
-        expect(typeof chunk.id).toBe('number');
-        expect(chunk.ids).toStrictEqual([chunk.id]);
         const mockFn = rstest.fn((value, value2, set) => {
           expect(value).toBe(chunk);
           expect(value2).toBe(chunk);
@@ -36,9 +34,6 @@ class Plugin {
 module.exports = {
   entry: {
     main: './index.js',
-  },
-  optimization: {
-    chunkIds: 'deterministic',
   },
   plugins: [new Plugin()],
 };

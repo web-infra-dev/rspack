@@ -429,16 +429,17 @@ pub fn stringify_array(vec: &[String]) -> String {
 
 #[cfg(test)]
 mod tests {
-  use rspack_core::chunk_graph_chunk::{ChunkId, ChunkIdSet};
+  use rspack_core::chunk_graph_chunk::ChunkIdSet;
 
   use super::stringify_chunks_to_array;
 
   #[test]
   fn stringify_chunks_to_array_uses_chunk_id_serialize() {
-    let chunks = ChunkIdSet::from_iter([ChunkId::from("681"), ChunkId::from("main")]);
-    let numeric_chunks = ChunkIdSet::from_iter([ChunkId::from_number(681), ChunkId::from("main")]);
+    let chunks = ChunkIdSet::from_iter([
+      rspack_core::chunk_graph_chunk::ChunkId::from("681"),
+      rspack_core::chunk_graph_chunk::ChunkId::from("main"),
+    ]);
 
-    assert_eq!(stringify_chunks_to_array(&chunks), "[\"681\",\"main\"]");
-    assert_eq!(stringify_chunks_to_array(&numeric_chunks), "[681,\"main\"]");
+    assert_eq!(stringify_chunks_to_array(&chunks), "[681,\"main\"]");
   }
 }
