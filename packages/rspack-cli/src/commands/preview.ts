@@ -127,7 +127,7 @@ async function getPreviewConfig(
         publicPath: options.publicPath ?? '/',
       },
       hot: false,
-      port: options.port ?? 8080,
+      port: options.port ?? devServer?.port ?? 8080,
       proxy: devServer?.proxy,
       host: options.host ?? devServer?.host,
       open: options.open ?? devServer?.open,

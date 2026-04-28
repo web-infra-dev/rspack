@@ -197,7 +197,7 @@ export default {
 
 更多背景可参考 [pureFunctions](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
 
-这个选项用于开启能力本身。若要手动为命中的第三方模块标记导出函数，推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)，这样规则只会作用于目标模块。
+这个选项用于开启能力本身。若要手动为命中的模块标记标识符 —— 既可以是第三方库中的导出函数，也可以是你自己代码中的 import 或本地声明 —— 推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)，这样规则只会作用于目标模块。
 
 ```js title="rspack.config.mjs"
 export default {
