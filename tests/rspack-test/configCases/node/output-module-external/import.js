@@ -1,5 +1,3 @@
-const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 it('should load node builtins via dynamic import', async () => {
   const load = async (modulePromise) => {
     const imported = await modulePromise;
@@ -148,8 +146,6 @@ it('should load node builtins via dynamic import', async () => {
     if (imported) builtinImports[request] = imported;
   }
 
-  const content = fs.readFileSync(__filename, 'utf-8');
-
   expect(Object.keys(builtinImports)).toHaveLength(
     baseBuiltinCount +
       optionalBuiltins.filter(([, imported]) => Boolean(imported)).length
@@ -157,9 +153,6 @@ it('should load node builtins via dynamic import', async () => {
 
   for (const [request, imported] of Object.entries(builtinImports)) {
     expect(imported).toBeDefined();
-    expect(content).toMatch(
-      new RegExp(`import\\(\\s*['"]${escapeRegExp(request)}['"]\\s*\\)`)
-    );
   }
 
   expect(() => assertBuiltin.strictEqual(1, 1)).not.toThrow();

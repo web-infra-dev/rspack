@@ -793,14 +793,6 @@ impl EsmLibraryPlugin {
             &mut namespace_re_export_star_cache,
           )
           .and_then(|target_module| {
-            if module_graph
-              .module_by_identifier(&target_module)
-              .and_then(|m| m.as_external_module())
-              .is_some_and(|ext| ext.get_external_type().as_str().starts_with("module"))
-            {
-              return None;
-            }
-
             let target_strict_esm_module = module_graph
               .module_by_identifier(&target_module)
               .expect("should have target module")
@@ -3134,19 +3126,7 @@ var {} = {{}};
     match info {
       ModuleInfo::Concatenated(info) => {
         let export_id = export_name.first().cloned();
-        let has_direct_or_raw_export = export_id.as_ref().is_some_and(|export_id| {
-          info
-            .export_map
-            .as_ref()
-            .is_some_and(|map| map.contains_key(export_id))
-            || info
-              .raw_export_map
-              .as_ref()
-              .is_some_and(|map| map.contains_key(export_id))
-        });
-        if !has_direct_or_raw_export
-          && matches!(export_info.provided(), Some(ExportProvided::NotProvided))
-        {
+        if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
           let info = module_to_info_map
             .get_mut_unwrap(info_id)
             .as_concatenated_mut();
@@ -3306,7 +3286,7 @@ var {} = {{}};
           exports_info.get_used_name(exports_info_artifact, None, &export_name)
         {
           Some(match used_name {
-            UsedName::Normal(_used_name) => Ref::Symbol(SymbolRef::new(
+            UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
               Self::add_require(
                 *info_id,
@@ -3318,7 +3298,7 @@ var {} = {{}};
               .required_symbol
               .clone()
               .expect("should have symbol"),
-              export_name.clone(),
+              used_name,
               Arc::new(move |binding| normal_render(binding, as_call, call_context, asi_safe)),
             )),
             UsedName::Inlined(inlined) => Ref::Inline(inlined.render(&to_normal_comment(

@@ -838,7 +838,11 @@ impl ExternalModule {
             if let Some(init) = init {
               format!("{init}\n{export} = {expression};")
             } else {
-              format!("{export} = {expression};")
+              format!(
+                r#"
+{export} = {expression};
+"#
+              )
             }
           }
         } else {
