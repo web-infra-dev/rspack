@@ -1,13 +1,18 @@
 ```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 import "./wrapped.mjs";
+import { __rspack_module_external_namespace_node_events_0a6aefe7 } from "./node_events-node_events.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");
 
 
-it('should keep real external properties when mangleExports shortens module external exports', async () => {
+
+it('should remap mangled module external namespace properties to real exports', async () => {
   const events = await import(/* webpackIgnore: true */ 'node:events');
+
+  expect(__rspack_module_external_namespace_node_events_0a6aefe7.a).toBe(events.EventEmitter);
+  expect(__rspack_module_external_namespace_node_events_0a6aefe7.b).toBe(events.once);
 
   expect(wrapped_0.a).toBe(events.EventEmitter);
   expect(wrapped_0.b).toBe(events.once);
@@ -22,12 +27,12 @@ export {};
 
 ```
 
-```mjs title=node_events.mjs
+```mjs title=node_events-node_events.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
 import * as __rspack_external_node_events_0a6aefe7 from "node:events";
 __webpack_require__.add({
-"node:events"
+"node:events?df85"
 /*!******************************!*\
   !*** external "node:events" ***!
   \******************************/
@@ -42,7 +47,15 @@ module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7(
 
 },
 });
-export {};
+// node:events?33ba
+var __rspack_create_module_external_namespace_node_events_0a6aefe7 = (y) => {
+var x = {};
+__webpack_require__.d(x, y);
+return x;
+};
+var __rspack_wrap_module_external_namespace_node_events_0a6aefe7 = (x) => (() => (x));
+var __rspack_module_external_namespace_node_events_0a6aefe7 = __rspack_create_module_external_namespace_node_events_0a6aefe7({["a"]: () => (__rspack_external_node_events_0a6aefe7.EventEmitter), ["b"]: () => (__rspack_external_node_events_0a6aefe7.once)});
+export { __rspack_module_external_namespace_node_events_0a6aefe7 };
 
 ```
 
@@ -112,7 +125,7 @@ export { __webpack_require__ };
 
 ```mjs title=wrapped.mjs
 import { __webpack_require__ } from "./runtime.mjs";
-import "./node_events.mjs";
+import "./node_events-node_events.mjs";
 
 __webpack_require__.add({
 "./src/wrapped.js"
@@ -124,7 +137,7 @@ __webpack_require__.d(__webpack_exports__, {
   a: () => (/* reexport safe */ node_events__rspack_import_0.a),
   b: () => (/* reexport safe */ node_events__rspack_import_0.b)
 });
-/* import */ var node_events__rspack_import_0 = __webpack_require__(/*! node:events */ "node:events");
+/* import */ var node_events__rspack_import_0 = __webpack_require__(/*! node:events */ "node:events?df85");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 

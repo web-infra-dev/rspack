@@ -765,6 +765,7 @@ impl ExternalModule {
                   format!("__rspack_external_{id}").into(),
                 );
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                String::new()
               }
               UsedExports::UsedNamespace(false) => {
                 concatenation_scope.register_import(
@@ -772,37 +773,67 @@ impl ExternalModule {
                   attributes,
                   None,
                 );
+                String::new()
               }
               UsedExports::UsedNames(atoms) => {
                 if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
-                  chunk_init_fragments.push(
-                    NormalInitFragment::new(
-                      format!(
-                        "import * as __rspack_external_{} from {}{};\n",
+                  if collect_module_external_remapping(
+                    &compilation.exports_info_artifact,
+                    exports_info,
+                    runtime,
+                  )
+                  .is_some()
+                  {
+                    let (init, expression, module_external_fragments) =
+                      get_source_for_module_external(
+                        request,
                         id.as_ref(),
-                        json_stringify_str(request.primary()),
-                        attributes.unwrap_or_default()
-                      ),
-                      InitFragmentStage::StageESMImports,
-                      module_graph
-                        .get_pre_order_index(&self.identifier())
-                        .map_or(0, |num| num as i32),
-                      InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                        request.primary(),
                         &self.dependency_meta.attributes,
-                      )),
-                      None,
+                        &compilation.exports_info_artifact,
+                        exports_info,
+                        runtime,
+                        runtime_template,
+                      );
+                    chunk_init_fragments.extend(module_external_fragments);
+                    let external_module_id = format!("__rspack_module_external_namespace_{id}");
+                    let namespace_export_with_name =
+                      format!("{NAMESPACE_OBJECT_EXPORT}{external_module_id}");
+                    concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                    format!(
+                      "{}\nvar {external_module_id} = {expression};",
+                      init.expect("remapped module external should render init fragments")
                     )
-                    .boxed(),
-                  );
-                  let external_module_id = format!("__rspack_external_{id}");
-                  let namespace_export_with_name = format!(
-                    "{}{}{}",
-                    NAMESPACE_OBJECT_EXPORT,
-                    &external_module_id,
-                    &property_access(request.iter(), 1)
-                  );
-                  concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                  } else {
+                    chunk_init_fragments.push(
+                      NormalInitFragment::new(
+                        format!(
+                          "import * as __rspack_external_{} from {}{};\n",
+                          id.as_ref(),
+                          json_stringify_str(request.primary()),
+                          attributes.unwrap_or_default()
+                        ),
+                        InitFragmentStage::StageESMImports,
+                        module_graph
+                          .get_pre_order_index(&self.identifier())
+                          .map_or(0, |num| num as i32),
+                        InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                          request.primary(),
+                          &self.dependency_meta.attributes,
+                        )),
+                        None,
+                      )
+                      .boxed(),
+                    );
+                    let external_module_id = format!("__rspack_external_{id}");
+                    let namespace_export_with_name = format!(
+                      "{}{}{}",
+                      NAMESPACE_OBJECT_EXPORT,
+                      &external_module_id,
+                      &property_access(request.iter(), 1)
+                    );
+                    concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                    String::new()
+                  }
                 } else {
                   concatenation_scope.register_import(
                     request.primary().to_string(),
@@ -817,11 +848,10 @@ impl ExternalModule {
                     );
                     concatenation_scope.register_raw_export(atom.clone(), atom.to_string());
                   }
+                  String::new()
                 }
               }
             }
-
-            String::new()
           } else {
             let exports_info = compilation
               .exports_info_artifact
