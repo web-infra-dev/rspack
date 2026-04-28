@@ -1,7 +1,7 @@
 import { EventEmitterHoisted, onceHoisted } from './hoisted';
 import { EventEmitter as EventEmitterWrapped, once as onceWrapped } from './wrapped';
 
-it('should remap mangled module external namespace properties to real exports for hoisted and wrapped modules', async () => {
+it('should keep module external exports correct for hoisted named imports and wrapped remapping', async () => {
   const events = await import(/* webpackIgnore: true */ 'node:events');
 
   expect(EventEmitterHoisted).toBe(events.EventEmitter);

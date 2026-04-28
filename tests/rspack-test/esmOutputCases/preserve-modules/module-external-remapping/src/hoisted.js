@@ -1,4 +1,4 @@
-import * as eventsNamespace from 'node:events';
+import { EventEmitter, once } from 'node:events';
 
-export const EventEmitterHoisted = eventsNamespace.EventEmitter;
-export const onceHoisted = eventsNamespace.once;
+export const EventEmitterHoisted = EventEmitter;
+export const onceHoisted = once;
