@@ -1,3 +1,3 @@
-export { EventEmitter as a, once as b } from 'node:events';
+export { EventEmitter, once } from 'node:events';
 
 console.log.bind(module);

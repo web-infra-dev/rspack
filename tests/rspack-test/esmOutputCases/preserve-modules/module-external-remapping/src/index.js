@@ -1,6 +1,6 @@
-import { a as EventEmitterWrapped, b as onceWrapped } from './wrapped';
+import { EventEmitter as EventEmitterWrapped, once as onceWrapped } from './wrapped';
 
-it('should keep real module external export names after remapping wrapped module exports', async () => {
+it('should keep real external properties when mangleExports shortens module external exports', async () => {
   const events = await import(/* webpackIgnore: true */ 'node:events');
 
   expect(EventEmitterWrapped).toBe(events.EventEmitter);
@@ -8,6 +8,6 @@ it('should keep real module external export names after remapping wrapped module
 
   const wrapped = await import(/* webpackIgnore: true */ './wrapped.mjs');
 
-  expect(wrapped.a).toBe(events.EventEmitter);
-  expect(wrapped.b).toBe(events.once);
+  expect(wrapped.EventEmitter).toBe(events.EventEmitter);
+  expect(wrapped.once).toBe(events.once);
 });
