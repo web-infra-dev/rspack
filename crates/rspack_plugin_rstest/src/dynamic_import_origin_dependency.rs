@@ -12,7 +12,7 @@ pub struct RstestDynamicImportOriginDependency {
   callee_range: DependencyRange,
   args_end: u32,
   /// Whether the original `import()` call had a 2nd argument (importAttributes).
-  /// When false, an `undefined` placeholder is emitted so `origin` always lands
+  /// When false, a `void 0` placeholder is emitted so `origin` always lands
   /// at the 3rd argument position the runtime expects.
   has_attributes: bool,
   origin_path: String,
