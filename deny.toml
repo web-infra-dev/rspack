@@ -242,6 +242,7 @@ skip = [
     { crate = "windows-sys", reason = "external dependency"},
     { crate = "bitflags", reason = "external dependency"},
     { crate = "foldhash", reason = "external dependency" },
+    { crate = "swc_core@64.0.0", reason = "swc_experimental_ecma_* 0.6.4 has not upgraded to swc_core 65 yet" },
     { crate = "wasmparser", reason = "external dependency"},
     { crate = "windows_i686_gnullvm", reason = "external dependency"},
     { crate = "hermit-abi", reason = "external dependency"},

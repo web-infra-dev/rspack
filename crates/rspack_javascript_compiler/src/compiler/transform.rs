@@ -223,14 +223,16 @@ impl<'a> JavaScriptTransformer<'a> {
           &self.cm.clone(),
           &self.fm.name,
           move |syntax, target, is_module| {
-            self.parse_js(
-              self.fm.clone(),
-              handler,
-              target,
-              syntax,
-              is_module,
-              Some(&self.comments).map(|c| c as &dyn Comments),
-            )
+            self
+              .parse_js(
+                self.fm.clone(),
+                handler,
+                target,
+                syntax,
+                is_module,
+                Some(&self.comments).map(|c| c as &dyn Comments),
+              )
+              .map(|program| (program, false))
           },
           self.options.output_path.as_deref(),
           self.options.source_root.clone(),
