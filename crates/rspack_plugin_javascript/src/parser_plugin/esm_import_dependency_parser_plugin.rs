@@ -9,7 +9,8 @@ use swc_core::{
 };
 
 use super::{
-  InnerGraphParserPlugin, JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation,
+  InnerGraphParserPlugin, JavascriptParserPlugin, import_phase::get_import_phase,
+  inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
@@ -24,6 +25,15 @@ use crate::{
 pub struct ESMImportDependencyParserPlugin;
 
 pub const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";
+
+fn check_import_phase(parser: &mut JavascriptParser, phase: ImportPhase) {
+  if !parser.compiler_options.experiments.defer_import && phase == ImportPhase::Defer {
+    parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
+  }
+  if !parser.compiler_options.experiments.source_import && phase == ImportPhase::Source {
+    parser.add_error(rspack_error::error!("sourceImport is still an experimental feature. To continue using it, please enable 'experiments.sourceImport'.").into());
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct ESMSpecifierData {
@@ -46,18 +56,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
-    let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
-      import_decl.phase.into()
-    } else {
-      ImportPhase::Evaluation
-    };
-    if !parser.compiler_options.experiments.defer_import && phase == ImportPhase::Defer {
-      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
-    }
-    if phase == ImportPhase::Source {
-      parser
-        .add_error(rspack_error::error!("Source phase imports is not supported in Rspack.").into());
-    }
+    let phase = get_import_phase(parser, import_decl.phase, None, None);
+    check_import_phase(parser, phase);
     let dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
@@ -91,11 +91,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     id: Option<&Atom>,
     name: &Atom,
   ) -> Option<bool> {
-    let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
-      statement.phase.into()
-    } else {
-      ImportPhase::Evaluation
-    };
+    let phase = get_import_phase(parser, statement.phase, None, None);
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,

@@ -86,7 +86,7 @@ impl ESMImportSideEffectDependency {
     star_export: bool,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(&request, phase, attributes.as_ref());
     Self {
       id: DependencyId::new(),
       source_order,

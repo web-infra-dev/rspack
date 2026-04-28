@@ -31,6 +31,8 @@ pub enum RspackComment {
   ExcludeRegexp,
   Mode,
   Exports,
+  Defer,
+  Source,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -137,6 +139,20 @@ impl RspackCommentMap {
     match self.0.get(&RspackComment::Exports) {
       Some(MagicCommentValue::String(value)) => Some(vec![value.clone()]),
       Some(MagicCommentValue::Array(value)) => Some(value.clone()),
+      _ => None,
+    }
+  }
+
+  pub fn get_defer(&self) -> Option<bool> {
+    match self.0.get(&RspackComment::Defer) {
+      Some(MagicCommentValue::Bool(value)) => Some(*value),
+      _ => None,
+    }
+  }
+
+  pub fn get_source(&self) -> Option<bool> {
+    match self.0.get(&RspackComment::Source) {
+      Some(MagicCommentValue::Bool(value)) => Some(*value),
       _ => None,
     }
   }
@@ -484,6 +500,34 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               "a string",
+              received,
+              warning_diagnostics,
+              error_span(),
+            );
+          }
+          "webpackDefer" => {
+            if let Some(value) = expr_to_bool(value) {
+              result.insert(RspackComment::Defer, MagicCommentValue::Bool(value));
+              continue;
+            }
+            add_magic_comment_warning(
+              source,
+              item_name.as_ref(),
+              "a boolean",
+              received,
+              warning_diagnostics,
+              error_span(),
+            );
+          }
+          "webpackSource" => {
+            if let Some(value) = expr_to_bool(value) {
+              result.insert(RspackComment::Source, MagicCommentValue::Bool(value));
+              continue;
+            }
+            add_magic_comment_warning(
+              source,
+              item_name.as_ref(),
+              "a boolean",
               received,
               warning_diagnostics,
               error_span(),

@@ -3735,6 +3735,7 @@ impl ExperimentsBuilder {
     Ok(Experiments {
       css: d!(self.css, false),
       defer_import: false,
+      source_import: false,
       pure_functions: d!(self.pure_functions, false),
     })
   }

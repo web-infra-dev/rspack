@@ -75,6 +75,10 @@ impl Dependency for ImportContextDependency {
     &DependencyType::ImportContext
   }
 
+  fn get_phase(&self) -> rspack_core::ImportPhase {
+    self.options.phase.unwrap_or_default()
+  }
+
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
   }
