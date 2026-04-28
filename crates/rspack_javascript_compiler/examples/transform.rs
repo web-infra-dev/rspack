@@ -16,6 +16,7 @@ fn main() {
     comments,
     Default::default(),
     None,
+    None,
     |_, _| {},
     |_| noop_pass(),
   );

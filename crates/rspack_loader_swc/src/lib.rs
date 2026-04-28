@@ -14,7 +14,9 @@ pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
-use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
+use rspack_javascript_compiler::{
+  JavaScriptCompiler, TransformOutput, transform::rspack_source_map_to_swc_source_map,
+};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -66,6 +68,7 @@ impl SwcLoader {
       return Ok(());
     };
 
+    let mut input_source_map = None;
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
       if let Some(resource_specific_jsc) = self
@@ -91,8 +94,9 @@ impl SwcLoader {
       }
 
       if loader_context.context.source_map_kind.enabled() {
-        if let Some(pre_source_map) = loader_context.source_map().cloned() {
-          swc_options.config.input_source_map = Some(InputSourceMap::Str(pre_source_map.to_json()))
+        if let Some(pre_source_map) = loader_context.source_map() {
+          input_source_map = Some(rspack_source_map_to_swc_source_map(pre_source_map));
+          swc_options.config.input_source_map = Some(InputSourceMap::Bool(false));
         }
       } else {
         swc_options.config.input_source_map = Some(InputSourceMap::Bool(false));
@@ -140,6 +144,7 @@ impl SwcLoader {
       comments.clone(),
       swc_options,
       Some(loader_context.context.source_map_kind),
+      input_source_map,
       |program, unresolved_mark| {
         if !is_typescript {
           return;

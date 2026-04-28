@@ -82,7 +82,7 @@ impl JavaScriptCompiler {
     } = options;
     let mut src_map_buf = vec![];
 
-    if source_map_config.enable {
+    if source_map_config.enable && source_map_config.emit_columns {
       let mut v = IdentCollector {
         names: Default::default(),
       };

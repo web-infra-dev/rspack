@@ -28,7 +28,7 @@ use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash
 use rspack_regex::RspackRegex;
 use rspack_util::{
   asset_condition::AssetConditions,
-  fx_hash::{FxHashMap, FxHasher},
+  fx_hash::{FxHashMap, FxHashSet, FxHasher},
 };
 use swc_config::types::BoolOrDataConfig;
 use swc_core::{
@@ -308,6 +308,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let comments_op = |comments: &SingleThreadedComments| {
           if let Some(ref extract_comments) = extract_comments_option {
             let mut extracted_comments = vec![];
+            let mut seen_comments = FxHashSet::default();
             // add all matched comments to source
 
             let (leading_trivial, trailing_trivial) = comments.borrow_all();
@@ -323,7 +324,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
+                  if seen_comments.insert(comment.clone()) {
                     extracted_comments.push(comment);
                   }
                 }
@@ -340,7 +341,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                       format!("/*{}*/", c.text)
                     }
                   };
-                  if !extracted_comments.contains(&comment) {
+                  if seen_comments.insert(comment.clone()) {
                     extracted_comments.push(comment);
                   }
                 }

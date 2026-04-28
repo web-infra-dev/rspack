@@ -66,6 +66,7 @@ fn _transform(source: String, options: String) -> napi::Result<TransformOutput> 
       comments,
       options,
       Some(module_source_map_kind),
+      None,
       |_, _| {},
       |_| noop_pass(),
     )
