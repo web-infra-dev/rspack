@@ -15,7 +15,6 @@ const REACT_CREATE_ELEMENT: &str = "createElement";
 const CSS_RESOURCES_BINDING: &str = "resources";
 const CLIENT_REF_BINDING_PREFIX: &str = "Ref";
 const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
-const DATA_RSC_CSS_HREF: &str = "data-rsc-css-href";
 
 /// Replaces a `"use client"` module on the RSC server layer with client
 /// reference proxy exports.
@@ -32,7 +31,6 @@ const DATA_RSC_CSS_HREF: &str = "data-rsc-css-href";
 ///     key: href,
 ///     rel: "stylesheet",
 ///     href,
-///     "data-rsc-css-href": href,
 ///     precedence: "default"
 ///   }));
 ///
@@ -59,7 +57,6 @@ const DATA_RSC_CSS_HREF: &str = "data-rsc-css-href";
 ///     key: href,
 ///     rel: "stylesheet",
 ///     href,
-///     "data-rsc-css-href": href,
 ///     precedence: "default"
 ///   }));
 ///
@@ -401,9 +398,6 @@ fn react_fragment_with_resources(ref_name: &str, resources_name: &str, react_nam
 }
 
 fn react_link_element(react_name: &str) -> Expr {
-  // Mark these stylesheet links as RSC-managed CSS dependencies. Consumers can
-  // collect this marker and preinit only bundler-emitted RSC CSS, without
-  // treating arbitrary user-authored stylesheet links as RSC assets.
   react_create_element_call(
     react_name,
     str_expr("link"),
@@ -411,7 +405,6 @@ fn react_link_element(react_name: &str) -> Expr {
       key_value_prop("key", ident_expr("href")),
       key_value_prop("rel", str_expr("stylesheet")),
       key_value_prop("href", ident_expr("href")),
-      key_value_str_prop(DATA_RSC_CSS_HREF, ident_expr("href")),
       key_value_prop("precedence", str_expr("default")),
     ]),
     vec![],
@@ -443,17 +436,6 @@ fn object_expr(props: Vec<PropOrSpread>) -> Expr {
 fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
   PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
     key: PropName::Ident(ident_name(name)),
-    value: Box::new(value),
-  })))
-}
-
-fn key_value_str_prop(name: &str, value: Expr) -> PropOrSpread {
-  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-    key: PropName::Str(Str {
-      span: DUMMY_SP,
-      value: Wtf8Atom::from(name),
-      raw: None,
-    }),
     value: Box::new(value),
   })))
 }
