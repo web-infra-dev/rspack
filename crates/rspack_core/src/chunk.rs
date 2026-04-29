@@ -352,7 +352,7 @@ impl Chunk {
   }
 
   pub fn split_collect_new_chunk_data(
-    &mut self,
+    &self,
     new_chunk_ukey: ChunkUkey,
     chunk_group_by_ukey: &mut ChunkGroupByUkey,
     split_data: &mut ChunkSplitData,

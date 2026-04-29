@@ -253,7 +253,7 @@ impl SplitChunksPlugin {
       for original_chunk_ukey in original_chunks {
         debug_assert!(&new_chunk_ukey != original_chunk_ukey);
         let original_chunk = chunk_by_ukey
-          .get_mut(original_chunk_ukey)
+          .get(original_chunk_ukey)
           .expect("split_from_original_chunks failed");
         original_chunk.split_collect_new_chunk_data(
           new_chunk_ukey,
