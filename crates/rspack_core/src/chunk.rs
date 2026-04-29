@@ -7,6 +7,7 @@ use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use ustr::Ustr;
 
 use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupOrderKey, ChunkGroupUkey, ChunkHashesArtifact, ChunkUkey,
@@ -47,6 +48,45 @@ impl ChunkHashesResult {
 pub struct ChunkRenderResult {
   pub manifests: Vec<RenderManifestEntry>,
   pub diagnostics: Vec<Diagnostic>,
+}
+
+#[derive(Debug, Default)]
+pub struct ChunkSplitData {
+  groups: HashSet<ChunkGroupUkey>,
+  id_name_hints: HashSet<String>,
+  runtimes: Vec<Ustr>,
+}
+
+impl ChunkSplitData {
+  pub fn with_capacity(groups: usize, id_name_hints: usize) -> Self {
+    Self {
+      groups: HashSet::with_capacity_and_hasher(groups, Default::default()),
+      id_name_hints: HashSet::with_capacity_and_hasher(id_name_hints, Default::default()),
+      runtimes: Vec::new(),
+    }
+  }
+
+  fn add_runtime(&mut self, runtime: &RuntimeSpec) {
+    self.runtimes.extend(runtime.iter().copied());
+  }
+
+  pub fn apply_to(self, chunk: &mut Chunk) {
+    chunk.groups.extend(self.groups);
+    chunk.id_name_hints.extend(self.id_name_hints);
+    if !self.runtimes.is_empty() {
+      let runtime = if chunk.runtime.is_empty() {
+        self.runtimes.into_iter().collect::<RuntimeSpec>()
+      } else {
+        chunk
+          .runtime
+          .iter()
+          .copied()
+          .chain(self.runtimes)
+          .collect::<RuntimeSpec>()
+      };
+      chunk.runtime = runtime;
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -311,21 +351,35 @@ impl Chunk {
     None
   }
 
-  pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
+  pub fn split_collect_new_chunk_data(
+    &self,
+    new_chunk_ukey: ChunkUkey,
+    chunk_group_by_ukey: &mut ChunkGroupByUkey,
+    split_data: &mut ChunkSplitData,
+  ) {
     let group_keys: Vec<_> = {
       let temp_ref = chunk_group_by_ukey as &ChunkGroupByUkey;
       self.get_sorted_groups_iter(temp_ref).copied().collect()
     };
 
+    split_data.groups.reserve(group_keys.len());
     for group_key in group_keys {
       let group = chunk_group_by_ukey.expect_get_mut(&group_key);
-      group.insert_chunk(new_chunk.ukey, self.ukey);
-      new_chunk.add_group(group.ukey);
+      group.insert_chunk(new_chunk_ukey, self.ukey);
+      split_data.groups.insert(group.ukey);
     }
-    new_chunk
+
+    split_data.id_name_hints.reserve(self.id_name_hints.len());
+    split_data
       .id_name_hints
       .extend(self.id_name_hints.iter().cloned());
-    new_chunk.runtime.extend(&self.runtime);
+    split_data.add_runtime(&self.runtime);
+  }
+
+  pub fn split(&mut self, new_chunk: &mut Chunk, chunk_group_by_ukey: &mut ChunkGroupByUkey) {
+    let mut split_data = ChunkSplitData::with_capacity(self.groups.len(), self.id_name_hints.len());
+    self.split_collect_new_chunk_data(new_chunk.ukey, chunk_group_by_ukey, &mut split_data);
+    split_data.apply_to(new_chunk);
   }
 
   pub fn can_be_initial(&self, chunk_group_by_ukey: &ChunkGroupByUkey) -> bool {

@@ -1,6 +1,8 @@
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
-use rspack_core::{Chunk, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation};
+use rspack_core::{
+  Chunk, ChunkSplitData, ChunkUkey, Compilation, ModuleIdentifier, incremental::Mutation,
+};
 use rustc_hash::FxHashSet;
 
 use crate::{SplitChunksPlugin, common::ModuleChunks, module_group::ModuleGroup};
@@ -240,20 +242,34 @@ impl SplitChunksPlugin {
     compilation: &mut Compilation,
   ) {
     let new_chunk_ukey = new_chunk;
-    for original_chunk_ukey in original_chunks {
-      debug_assert!(&new_chunk_ukey != original_chunk_ukey);
-      let [Some(new_chunk), Some(original_chunk)] = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .get_many_mut([&new_chunk_ukey, original_chunk_ukey])
-      else {
-        panic!("split_from_original_chunks failed")
-      };
-      original_chunk.split(
-        new_chunk,
-        &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      );
-      if let Some(mut mutations) = compilation.incremental.mutations_write() {
+    if original_chunks.is_empty() {
+      return;
+    }
+
+    {
+      let chunk_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_by_ukey;
+      let chunk_group_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+      let mut split_data = ChunkSplitData::default();
+      for original_chunk_ukey in original_chunks {
+        debug_assert!(&new_chunk_ukey != original_chunk_ukey);
+        let original_chunk = chunk_by_ukey
+          .get(original_chunk_ukey)
+          .expect("split_from_original_chunks failed");
+        original_chunk.split_collect_new_chunk_data(
+          new_chunk_ukey,
+          chunk_group_by_ukey,
+          &mut split_data,
+        );
+      }
+
+      let new_chunk = chunk_by_ukey
+        .get_mut(&new_chunk_ukey)
+        .expect("split_from_original_chunks failed");
+      split_data.apply_to(new_chunk);
+    }
+
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
+      for original_chunk_ukey in original_chunks {
         mutations.add(Mutation::ChunkSplit {
           from: *original_chunk_ukey,
           to: new_chunk_ukey,
