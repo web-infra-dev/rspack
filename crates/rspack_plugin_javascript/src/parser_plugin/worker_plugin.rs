@@ -280,7 +280,7 @@ impl WorkerPlugin {
     let mut this = Self::empty();
     for syntax in syntax_list {
       if syntax == "..." {
-        this.merge(DEFAULT_WORKER_PLUGIN.clone());
+        this.extend_from(&DEFAULT_WORKER_PLUGIN);
       } else {
         this.handle_syntax(syntax);
       }
@@ -288,17 +288,21 @@ impl WorkerPlugin {
     this
   }
 
-  fn merge(&mut self, other: Self) {
-    self.new_syntax.extend(other.new_syntax);
-    self.call_syntax.extend(other.call_syntax);
-    self.from_new_syntax.extend(other.from_new_syntax);
-    self.from_call_syntax.extend(other.from_call_syntax);
-    for (pattern, members) in other.pattern_syntax {
+  fn extend_from(&mut self, other: &Self) {
+    self.new_syntax.extend(other.new_syntax.iter().cloned());
+    self.call_syntax.extend(other.call_syntax.iter().cloned());
+    self
+      .from_new_syntax
+      .extend(other.from_new_syntax.iter().cloned());
+    self
+      .from_call_syntax
+      .extend(other.from_call_syntax.iter().cloned());
+    for (pattern, members) in &other.pattern_syntax {
       self
         .pattern_syntax
-        .entry(pattern)
+        .entry(pattern.clone())
         .or_default()
-        .extend(members);
+        .extend(members.iter().cloned());
     }
   }
 
