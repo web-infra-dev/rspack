@@ -1,6 +1,7 @@
 "use server-entry";
 
 import { Page2Child } from './Page2Child';
+import { SharedServerComponent } from '../SharedServerComponent';
 import './Page2.css';
 
 export const Page2 = async () => {
@@ -11,6 +12,7 @@ export const Page2 = async () => {
 			<p className="shared-nested-server-css">
 				Shared nested stylesheet from Page 2
 			</p>
+			<SharedServerComponent page="Page 2" />
 			<Page2Child />
 		</section>
 	);
