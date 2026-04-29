@@ -97,44 +97,6 @@ fn record_module(
   }
 
   if is_css_mod(module.as_ref()) {
-    let mut matched_server_entries = Vec::new();
-    for (server_entry, server_entry_state) in &entry_state.server_entries {
-      if server_entry_state.css_imports.contains(resource.as_ref()) {
-        matched_server_entries.push(server_entry.clone());
-      }
-    }
-    if matched_server_entries.is_empty() {
-      return;
-    }
-
-    let Some(chunk) = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get(chunk_ukey)
-    else {
-      return;
-    };
-
-    let prefix = &module_loading.prefix;
-    let css_files: Vec<String> = chunk
-      .files()
-      .iter()
-      .filter(|file| file.ends_with(".css"))
-      .map(|file| prefixed_asset_path(prefix, file))
-      .collect();
-    if css_files.is_empty() {
-      return;
-    }
-
-    for server_entry in matched_server_entries {
-      entry_state
-        .server_entries
-        .entry(server_entry)
-        .or_default()
-        .css_files
-        .extend(css_files.clone());
-    }
-
     return;
   }
 
@@ -163,6 +125,65 @@ fn record_module(
       r#async: Some(is_async),
     },
   );
+}
+
+fn collect_css_files_from_chunk_group(
+  module_loading: &ModuleLoading,
+  chunk_group: &ChunkGroup,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let prefix = &module_loading.prefix;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  chunk_group
+    .chunks
+    .iter()
+    .filter_map(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
+    .flat_map(|chunk| chunk.files().iter())
+    .filter(|file| file.ends_with(".css"))
+    .map(|file| prefixed_asset_path(prefix, file))
+    .collect()
+}
+
+fn collect_server_entry_css_files(
+  module_loading: &ModuleLoading,
+  rsc_entry_module: &RscEntryModule,
+  compilation: &Compilation,
+  entry_state: &mut EntryState,
+) {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  for block_id in rsc_entry_module.get_blocks() {
+    let Some(block) = module_graph.block_by_id(block_id) else {
+      continue;
+    };
+    let Some(server_entry) = block.request().as_deref() else {
+      continue;
+    };
+
+    // Server-entry CSS blocks use the server entry resource as their request.
+    // Client component blocks use the client module request, so this lookup
+    // also filters out non-CSS blocks without walking dependencies again.
+    if entry_state
+      .server_entries
+      .get(server_entry)
+      .is_none_or(|state| state.css_imports.is_empty())
+    {
+      continue;
+    }
+
+    let Some(chunk_group) = chunk_graph.get_block_chunk_group(block_id, chunk_group_by_ukey) else {
+      continue;
+    };
+    let css_files = collect_css_files_from_chunk_group(module_loading, chunk_group, compilation);
+    if css_files.is_empty() {
+      continue;
+    }
+
+    if let Some(server_entry_state) = entry_state.server_entries.get_mut(server_entry) {
+      server_entry_state.css_files.extend(css_files);
+    }
+  }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -424,8 +445,10 @@ impl RscClientPlugin {
     });
 
     let mut client_entry_modules: IdentifierSet = Default::default();
+    let mut rsc_entry_modules_per_entry: FxHashMap<String, Vec<ModuleIdentifier>> =
+      Default::default();
     let module_graph = compilation.get_module_graph();
-    for entry_data in compilation.entries.values() {
+    for (entry_name, entry_data) in &compilation.entries {
       for dependency_id in &entry_data.include_dependencies {
         let Some(module_identifier) =
           module_graph.module_identifier_by_dependency_id(dependency_id)
@@ -441,6 +464,10 @@ impl RscClientPlugin {
         if !is_rsc_entry_module {
           continue;
         }
+        rsc_entry_modules_per_entry
+          .entry(entry_name.to_string())
+          .or_default()
+          .push(*module_identifier);
         // Traverse the blocks of the RscEntryModule to find the actual client modules
         for block_id in module.get_blocks() {
           let Some(block) = module_graph.block_by_id(block_id) else {
@@ -479,6 +506,23 @@ impl RscClientPlugin {
       required_chunks.clear();
       checked_chunk_groups.clear();
       checked_chunks.clear();
+
+      if let Some(rsc_entry_modules) = rsc_entry_modules_per_entry.get(entry_name.as_str()) {
+        for rsc_entry_module_identifier in rsc_entry_modules {
+          let Some(module) = module_graph.module_by_identifier(rsc_entry_module_identifier) else {
+            continue;
+          };
+          let Some(rsc_entry_module) = module.downcast_ref::<RscEntryModule>() else {
+            continue;
+          };
+          collect_server_entry_css_files(
+            module_loading,
+            rsc_entry_module,
+            compilation,
+            entry_state,
+          );
+        }
+      }
 
       record_chunk_group(
         module_loading,

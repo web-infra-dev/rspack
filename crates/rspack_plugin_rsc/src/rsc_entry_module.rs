@@ -271,7 +271,7 @@ impl Module for RscEntryModule {
         let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
-          None,
+          Some(server_entry.as_str()),
           dependencies,
           Some(server_entry.clone()),
         );
