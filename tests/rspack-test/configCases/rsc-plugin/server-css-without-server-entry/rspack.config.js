@@ -105,13 +105,18 @@ module.exports = [
       new ClientPlugin(),
       (compiler) => {
         compiler.hooks.done.tap('AssertServerCssInClientOutput', (stats) => {
-          const cssAssets = stats.compilation
-            .getAssets()
-            .filter((asset) => asset.name.endsWith('.css'));
-          expect(cssAssets.length).toBeGreaterThan(0);
+          const entrypoint = stats.compilation.entrypoints.get('main');
+          const entryCssFiles = entrypoint
+            .getFiles()
+            .filter((file) => file.endsWith('.css'));
+          expect(entryCssFiles.length).toBeGreaterThan(0);
 
-          const hasServerCss = cssAssets.some((asset) =>
-            asset.source.source().toString().includes('seagreen'),
+          const hasServerCss = entryCssFiles.some((file) =>
+            stats.compilation
+              .getAsset(file)
+              .source.source()
+              .toString()
+              .includes('seagreen'),
           );
           expect(hasServerCss).toBe(true);
         });

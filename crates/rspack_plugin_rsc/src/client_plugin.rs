@@ -6,8 +6,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
   CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, Logger,
-  ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, EntryDependency,
+  Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -98,8 +98,8 @@ fn record_module(
 
   if is_css_mod(module.as_ref()) {
     let mut matched_server_entries = Vec::new();
-    for (server_entry, imports) in &entry_state.css_imports_per_server_entry {
-      if imports.contains(resource.as_ref()) {
+    for (server_entry, server_entry_state) in &entry_state.server_entries {
+      if server_entry_state.css_imports.contains(resource.as_ref()) {
         matched_server_entries.push(server_entry.clone());
       }
     }
@@ -128,9 +128,10 @@ fn record_module(
 
     for server_entry in matched_server_entries {
       entry_state
-        .entry_css_files
-        .entry(server_entry.clone())
+        .server_entries
+        .entry(server_entry)
         .or_default()
+        .css_files
         .extend(css_files.clone());
     }
 
@@ -261,7 +262,10 @@ fn record_chunk_group(
   }
 }
 
-fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginState) -> Result<()> {
+fn collect_bootstrap_scripts(
+  compilation: &Compilation,
+  plugin_state: &mut PluginState,
+) -> Result<()> {
   for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
     let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
       continue;
@@ -281,7 +285,7 @@ fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginSt
       .expect("module_loading should be initialized in traverse_modules before recording modules")
       .prefix;
 
-    let entry_js_files = chunk_group
+    let bootstrap_scripts = chunk_group
       .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
@@ -297,7 +301,7 @@ fn collect_entry_js_files(compilation: &Compilation, plugin_state: &mut PluginSt
       .map(|file| prefixed_asset_path(prefix, &file))
       .collect::<FxIndexSet<String>>();
 
-    entry_state.entry_js_files = entry_js_files;
+    entry_state.bootstrap_scripts = bootstrap_scripts;
   }
   Ok(())
 }
@@ -520,6 +524,7 @@ async fn compilation(
   params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.set_dependency_factory(DependencyType::RscEntry, Arc::new(RscEntryModuleFactory));
+  compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
   compilation.set_dependency_factory(
     DependencyType::RscClientReference,
     params.normal_module_factory.clone(),
@@ -543,29 +548,30 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     )
   })?;
 
-  let mut include_dependencies = vec![];
   for (entry_name, entry_state) in &plugin_state.entries {
     let client_modules = &entry_state.injected_client_entries;
-    {
-      if compilation.entries.get(entry_name.as_ref()).is_none() {
-        compilation.push_diagnostic(Diagnostic::error(
-          "RSC Client Entry Mismatch".to_string(),
-          format!(
-            "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
-            entry_name,
-            client_modules
-              .iter()
-              .map(|m| m.request.as_str())
-              .collect::<Vec<_>>()
-              .join(", ")
-          ),
-        ));
-        continue;
-      }
+    if compilation.entries.get(entry_name.as_ref()).is_none() {
+      compilation.push_diagnostic(Diagnostic::error(
+        "RSC Client Entry Mismatch".to_string(),
+        format!(
+          "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
+          entry_name,
+          client_modules
+            .iter()
+            .map(|m| m.request.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+        ),
+      ));
+      continue;
+    }
 
+    let mut include_dependencies = Vec::new();
+    if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
       let dependency = Box::new(RscEntryDependency::new(
         entry_name.clone(),
         client_modules.clone(),
+        entry_state.css_imports_by_server_entry(),
         false,
       ));
       self
@@ -580,8 +586,23 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .add_dependency(dependency);
     }
 
+    let mut entry_dependencies = Vec::new();
+    for request in &entry_state.root_css_imports {
+      let dependency = Box::new(EntryDependency::new(
+        request.clone(),
+        compilation.options.context.clone(),
+        None,
+        false,
+      ));
+      entry_dependencies.push(*dependency.id());
+      compilation
+        .get_module_graph_mut()
+        .add_dependency(dependency);
+    }
+
     #[allow(clippy::unwrap_used)]
     let entry_data = compilation.entries.get_mut(entry_name.as_ref()).unwrap();
+    entry_data.dependencies.append(&mut entry_dependencies);
     entry_data
       .include_dependencies
       .append(&mut include_dependencies);
@@ -614,8 +635,8 @@ async fn after_process_assets(
     self.traverse_modules(compilation, &mut plugin_state)?;
     logger.time_end(start);
 
-    let start = logger.time("record entry js files");
-    collect_entry_js_files(compilation, &mut plugin_state)?;
+    let start = logger.time("record bootstrap scripts");
+    collect_bootstrap_scripts(compilation, &mut plugin_state)?;
     logger.time_end(start);
 
     for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {

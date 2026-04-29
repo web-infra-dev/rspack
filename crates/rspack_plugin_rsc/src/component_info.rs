@@ -9,27 +9,23 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::FxHashMap;
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
   constants::{IMAGE_REGEX, LAYERS_NAMES},
-  plugin_state::ActionIdNamePair,
+  plugin_state::{ActionIdNamePair, CssImportsByServerEntry, RootCssImports},
   utils::{get_module_resource, is_css_mod},
 };
 
 // { [request to inject into client compilation]: [exported names] }
-// CSS requests are represented by an empty export set.
 pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
-// { [server entry path]: [css imports] }
-// Used only to map emitted CSS files back to server entries in the manifest.
-pub type CssImportsPerServerEntry = FxHashMap<String, FxIndexSet<String>>;
 
 #[derive(Debug, Default)]
 pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
   pub client_component_imports: ClientComponentImports,
-  pub css_imports_per_server_entry: CssImportsPerServerEntry,
+  pub css_imports_by_server_entry: CssImportsByServerEntry,
+  pub root_css_imports: RootCssImports,
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
@@ -114,6 +110,46 @@ fn filter_client_components(
     return;
   }
 
+  // CSS ownership depends on the current parent chain, so record it before the
+  // `visited` short-circuit. A stylesheet may be seen first through a
+  // `use server-entry` component and later through the root RSC tree; the later
+  // root visit still needs to update `root_css_imports` and remove any earlier
+  // server-entry ownership.
+  if is_css_mod(module) {
+    let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
+
+    if side_effect_free {
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module.identifier());
+      let unused = !exports_info.is_module_used(Some(runtime));
+      if unused {
+        return;
+      }
+    }
+
+    if server_entries.is_empty() {
+      // CSS with no `use server-entry` in its parent chain should load with
+      // the client entry rather than through RSC server-entry CSS metadata.
+      component_info.root_css_imports.insert(resource.to_string());
+      component_info
+        .css_imports_by_server_entry
+        .retain(|_, css_imports| {
+          css_imports.shift_remove(resource.as_ref());
+          !css_imports.is_empty()
+        });
+    } else if !component_info.root_css_imports.contains(resource.as_ref()) {
+      for server_entry in server_entries.iter() {
+        component_info
+          .css_imports_by_server_entry
+          .entry(server_entry.clone())
+          .or_default()
+          .insert(resource.to_string());
+      }
+    }
+    return;
+  }
+
   if visited.contains(&module.identifier()) {
     if component_info
       .client_component_imports
@@ -151,32 +187,7 @@ fn filter_client_components(
   }
 
   let module_graph = compilation.get_module_graph();
-  if is_css_mod(module) {
-    let side_effect_free = module_declared_side_effect_free(module).unwrap_or(false);
-
-    if side_effect_free {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_exports_info_data(&module.identifier());
-      let unused = !exports_info.is_module_used(Some(runtime));
-      if unused {
-        return;
-      }
-    }
-
-    component_info
-      .client_component_imports
-      .entry(resource.to_string())
-      .or_default();
-
-    for server_entry in server_entries.iter() {
-      component_info
-        .css_imports_per_server_entry
-        .entry(server_entry.clone())
-        .or_default()
-        .insert(resource.to_string());
-    }
-  } else if is_client_component_entry_module(module) {
+  if is_client_component_entry_module(module) {
     if !component_info
       .client_component_imports
       .contains_key(resource.as_ref())
