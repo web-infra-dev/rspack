@@ -5,13 +5,13 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{fs::File, path::PathBuf, sync::Arc};
+use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
 use rspack_error::Result;
-use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
+use rspack_util::{SpanExt, source_map::SourceMapKind, swc::minify_file_comments};
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
@@ -37,10 +37,11 @@ use swc_core::{
   },
 };
 use swc_error_reporters::handler::try_with_handler;
+use swc_typescript::fast_dts::FastDts;
 use url::Url;
 
 use super::{
-  JavaScriptCompiler, TransformOutput,
+  IsolatedDtsDiagnostic, IsolatedDtsTransformOutput, JavaScriptCompiler, TransformOutput,
   stringify::{PrintOptions, SourceMapConfig},
 };
 
@@ -69,6 +70,58 @@ impl JavaScriptCompiler {
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
+  }
+
+  pub fn emit_isolated_dts(
+    &self,
+    program: &Program,
+    filename: Arc<FileName>,
+    unresolved_mark: Mark,
+    source_len: u32,
+    target: EsVersion,
+    comments: &SingleThreadedComments,
+  ) -> Result<IsolatedDtsTransformOutput> {
+    self.run(|| {
+      let (leading, trailing) = comments.borrow_all();
+      let comments = SingleThreadedComments::from_leading_and_trailing(
+        Rc::new(RefCell::new(leading.clone())),
+        Rc::new(RefCell::new(trailing.clone())),
+      );
+
+      // FastDts mutates the cloned program into declaration form. Re-print it with
+      // declaration-safe codegen settings instead of reusing the JS output pipeline.
+      let mut program = program.clone();
+      let mut checker = FastDts::new(filename, unresolved_mark, Default::default());
+      let diagnostics = checker
+        .transform(&mut program)
+        .into_iter()
+        .map(|issue| IsolatedDtsDiagnostic {
+          message: issue.message.to_string(),
+          start: issue.range.span.real_lo(),
+          end: issue.range.span.real_hi(),
+        })
+        .collect();
+
+      let code = self
+        .print(
+          &program,
+          PrintOptions {
+            source_len,
+            source_map: self.cm.clone(),
+            target,
+            source_map_config: SourceMapConfig::default(),
+            input_source_map: None,
+            minify: false,
+            comments: Some(&comments as &dyn Comments),
+            preamble: "",
+            ascii_only: false,
+            inline_script: false,
+          },
+        )?
+        .code;
+
+      Ok(IsolatedDtsTransformOutput { code, diagnostics })
+    })
   }
 }
 
