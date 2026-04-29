@@ -667,9 +667,20 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
+    // ensure module executor is running so loaders can call `importModule`
+    let started_executor = match &self.module_executor {
+      Some(me) if !me.is_running() => {
+        let mut module_executor = self.module_executor.take().expect("checked above");
+        module_executor.before_build_module_graph(self).await?;
+        self.module_executor = Some(module_executor);
+        true
+      }
+      _ => false,
+    };
+
     let make_artifact = self.build_module_graph_artifact.steal();
     let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
+    let build_result = update_module_graph(
       self,
       make_artifact,
       exports_info_artifact,
@@ -683,11 +694,29 @@ impl Compilation {
           .collect(),
       )],
     )
-    .await?;
-    self.build_module_graph_artifact = make_artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
+    .await;
 
-    Ok(())
+    // restore artifacts before teardown — after_build_module_graph reads them
+    let build_result = match build_result {
+      Ok((make_artifact, exports_info_artifact)) => {
+        self.build_module_graph_artifact = make_artifact.into();
+        self.exports_info_artifact = exports_info_artifact.into();
+        Ok(())
+      }
+      Err(e) => {
+        self.build_module_graph_artifact = StealCell::new(BuildModuleGraphArtifact::new());
+        self.exports_info_artifact = StealCell::new(ExportsInfoArtifact::default());
+        Err(e)
+      }
+    };
+
+    // tear down the executor so build_module_graph_pass can set it up fresh
+    if started_executor && let Some(mut module_executor) = self.module_executor.take() {
+      module_executor.after_build_module_graph(self).await?;
+      self.module_executor = Some(module_executor);
+    }
+
+    build_result
   }
 
   pub async fn add_include(&mut self, args: Vec<(BoxDependency, EntryOptions)>) -> Result<()> {
