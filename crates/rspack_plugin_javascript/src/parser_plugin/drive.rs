@@ -7,7 +7,10 @@ use swc_core::{
   },
 };
 
-use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
+use super::{
+  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin, JavascriptParserPlugin,
+  JavascriptParserPluginHook,
+};
 use crate::{
   parser_plugin::r#const::is_logic_op,
   utils::eval::BasicEvaluatedExpression,
@@ -20,26 +23,41 @@ use crate::{
 
 const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 
+pub(crate) enum JavaScriptParserPluginItem {
+  Shared(ArcJavascriptParserPlugin),
+  Owned(BoxJavascriptParserPlugin),
+}
+
+impl JavaScriptParserPluginItem {
+  #[inline]
+  fn as_plugin(&self) -> &(dyn JavascriptParserPlugin + Send + Sync) {
+    match self {
+      Self::Shared(plugin) => plugin.as_ref(),
+      Self::Owned(plugin) => plugin.as_ref(),
+    }
+  }
+}
+
 pub struct JavaScriptParserPluginDrive {
-  plugins: Vec<BoxJavascriptParserPlugin>,
+  plugins: Vec<JavaScriptParserPluginItem>,
   // Each bit stores whether the plugin at the same index implements the hook.
   // This keeps hook dispatch allocation-free for the common case while preserving plugin order.
   plugins_by_hook: [u64; JavascriptParserPluginHook::COUNT],
 }
 
 struct PluginBitmaskIter<'a> {
-  plugins: &'a [BoxJavascriptParserPlugin],
+  plugins: &'a [JavaScriptParserPluginItem],
   plugin_bitmask: u64,
 }
 
 impl<'a> Iterator for PluginBitmaskIter<'a> {
-  type Item = &'a BoxJavascriptParserPlugin;
+  type Item = &'a (dyn JavascriptParserPlugin + Send + Sync);
 
   fn next(&mut self) -> Option<Self::Item> {
     if self.plugin_bitmask != 0 {
       let idx = self.plugin_bitmask.trailing_zeros() as usize;
       self.plugin_bitmask &= self.plugin_bitmask - 1;
-      return Some(unsafe { self.plugins.get_unchecked(idx) });
+      return Some(unsafe { self.plugins.get_unchecked(idx) }.as_plugin());
     }
 
     None
@@ -47,7 +65,7 @@ impl<'a> Iterator for PluginBitmaskIter<'a> {
 }
 
 impl JavaScriptParserPluginDrive {
-  pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
+  pub fn new(plugins: Vec<JavaScriptParserPluginItem>) -> Self {
     assert!(
       plugins.len() <= PLUGIN_BITMASK_BITS,
       "JavaScript parser plugin bitmask supports at most {PLUGIN_BITMASK_BITS} parser plugins"
@@ -57,7 +75,7 @@ impl JavaScriptParserPluginDrive {
 
     for (idx, plugin) in plugins.iter().enumerate() {
       let plugin_bit = 1u64 << idx;
-      let mut implemented_hooks = plugin.implemented_hooks().bits();
+      let mut implemented_hooks = plugin.as_plugin().implemented_hooks().bits();
 
       while implemented_hooks != 0 {
         let hook_idx = implemented_hooks.trailing_zeros() as usize;

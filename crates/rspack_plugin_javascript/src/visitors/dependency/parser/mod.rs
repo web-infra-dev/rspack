@@ -44,12 +44,13 @@ use swc_core::{
 };
 
 use crate::{
-  BoxJavascriptParserPlugin,
+  ArcJavascriptParserPlugin,
   dependency::local_module::LocalModule,
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
+    JavaScriptParserPluginItem, JavascriptParserPlugin, RequireReferencesState,
+    inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -406,7 +407,7 @@ impl<'parser> JavascriptParser<'parser> {
     build_info: &'parser mut BuildInfo,
     semicolons: &'parser mut FxHashSet<BytePos>,
     unresolved_mark: Mark,
-    parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
+    parser_plugins: &'parser [ArcJavascriptParserPlugin],
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
   ) -> Self {
@@ -417,57 +418,91 @@ impl<'parser> JavascriptParser<'parser> {
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
 
-    let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
-
-    plugins.append(parser_plugins);
-
-    plugins.push(Box::new(parser_plugin::InitializeEvaluating));
-    plugins.push(Box::new(parser_plugin::JavascriptMetaInfoPlugin));
-    plugins.push(Box::new(parser_plugin::ConstPlugin));
-    plugins.push(Box::new(parser_plugin::UseStrictPlugin));
+    let mut plugins: Vec<JavaScriptParserPluginItem> =
+      Vec::with_capacity(32 + parser_plugins.len());
+    plugins.extend(
+      parser_plugins
+        .iter()
+        .cloned()
+        .map(JavaScriptParserPluginItem::Shared),
+    );
+    plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+      parser_plugin::InitializeEvaluating,
+    )));
+    plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+      parser_plugin::JavascriptMetaInfoPlugin,
+    )));
+    plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+      parser_plugin::ConstPlugin,
+    )));
+    plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+      parser_plugin::UseStrictPlugin,
+    )));
 
     if matches!(module_type, ModuleType::JsAuto | ModuleType::JsDynamic) {
-      plugins.push(Box::new(
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
         parser_plugin::RequireContextDependencyParserPlugin,
-      ));
-      plugins.push(Box::new(
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
         parser_plugin::RequireEnsureDependenciesBlockParserPlugin,
-      ));
+      )));
     }
-    plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
+    plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+      parser_plugin::CompatibilityPlugin,
+    )));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
-      plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
-      plugins.push(Box::new(
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::ESMTopLevelThisParserPlugin,
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::<
+        parser_plugin::ESMDetectionParserPlugin,
+      >::default()));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
-      ));
+      )));
       if matches!(
         javascript_options.import_meta,
         Some(ImportMeta::Enabled | ImportMeta::PreserveUnknown)
       ) {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(
-          javascript_options.import_meta.expect("should have value"),
+        plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+          parser_plugin::ImportMetaPlugin(
+            javascript_options.import_meta.expect("should have value"),
+          ),
         )));
       } else {
-        plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
+        plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+          parser_plugin::ImportMetaDisabledPlugin,
+        )));
       }
 
-      plugins.push(Box::new(parser_plugin::ESMImportDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::ESMExportDependencyParserPlugin));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::ESMImportDependencyParserPlugin,
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::ESMExportDependencyParserPlugin,
+      )));
     }
 
     if compiler_options.amd.is_some() && (module_type.is_js_auto() || module_type.is_js_dynamic()) {
-      plugins.push(Box::new(
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
         parser_plugin::AMDRequireDependenciesBlockParserPlugin,
-      ));
-      plugins.push(Box::new(parser_plugin::AMDDefineDependencyParserPlugin));
-      plugins.push(Box::new(parser_plugin::AMDParserPlugin));
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::AMDDefineDependencyParserPlugin,
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::AMDParserPlugin,
+      )));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() {
-      plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
-      plugins.push(Box::new(parser_plugin::CommonJsPlugin));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::CommonJsImportsParserPlugin,
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::CommonJsPlugin,
+      )));
       let commonjs_exports = javascript_options
         .commonjs
         .as_ref()
@@ -475,8 +510,10 @@ impl<'parser> JavascriptParser<'parser> {
           commonjs.exports
         });
       if commonjs_exports != JavascriptParserCommonjsExportsOption::Disable {
-        plugins.push(Box::new(parser_plugin::CommonJsExportsParserPlugin::new(
-          commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
+        plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+          parser_plugin::CommonJsExportsParserPlugin::new(
+            commonjs_exports == JavascriptParserCommonjsExportsOption::SkipInEsm,
+          ),
         )));
       }
     }
@@ -487,42 +524,58 @@ impl<'parser> JavascriptParser<'parser> {
       (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
     let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
     if handle_cjs || handle_esm {
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
-        handle_cjs, handle_esm,
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::NodeStuffPlugin::new(handle_cjs, handle_esm),
       )));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
-      plugins.push(Box::new(parser_plugin::IsIncludedPlugin));
-      plugins.push(Box::new(parser_plugin::ExportsInfoApiPlugin));
-      plugins.push(Box::new(parser_plugin::APIPlugin::new(
-        compiler_options.output.module,
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::IsIncludedPlugin,
       )));
-      plugins.push(Box::new(parser_plugin::ImportParserPlugin));
-      plugins.push(Box::new(parser_plugin::WorkerPlugin::new(
-        javascript_options
-          .worker
-          .as_ref()
-          .expect("should have worker"),
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::ExportsInfoApiPlugin,
       )));
-      plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::APIPlugin::new(compiler_options.output.module),
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::ImportParserPlugin,
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::WorkerPlugin::new(
+          javascript_options
+            .worker
+            .as_ref()
+            .expect("should have worker"),
+        ),
+      )));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::OverrideStrictPlugin,
+      )));
     }
 
     if compiler_options.optimization.inline_exports {
       build_info.inline_exports = true;
-      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::InlineConstPlugin,
+      )));
     }
     if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::InnerGraphParserPlugin::new(
+          unresolved_mark,
+          compiler_options.experiments.pure_functions,
+        ),
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
-      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
+      plugins.push(JavaScriptParserPluginItem::Owned(Box::new(
+        parser_plugin::SideEffectsParserPlugin::new(
+          unresolved_mark,
+          compiler_options.experiments.pure_functions,
+        ),
       )));
     }
 

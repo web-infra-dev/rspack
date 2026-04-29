@@ -655,19 +655,13 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
-      Box::new(move |_, _| {
-        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-      })
+      Box::new(|_, _| Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>)
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
-      Box::new(move |_, _| {
-        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-      })
+      Box::new(|_, _| Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>)
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
-      Box::new(move |_, _| {
-        Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
-      })
+      Box::new(|_, _| Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>)
     });
 
     Ok(())

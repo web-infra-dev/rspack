@@ -49,7 +49,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   }
 
   async fn parse<'a>(
-    &mut self,
+    &self,
     parse_context: rspack_core::ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
     let rspack_core::ParseContext {

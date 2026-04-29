@@ -34,8 +34,8 @@ pub mod provide_plugin;
 pub mod side_effects_parser_plugin;
 
 pub use self::r#trait::{
-  BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,
-  JavascriptParserPluginHooks,
+  ArcJavascriptParserPlugin, BoxJavascriptParserPlugin, JavascriptParserPlugin,
+  JavascriptParserPluginHook, JavascriptParserPluginHooks,
 };
 pub(crate) use self::{
   amd::{
@@ -47,7 +47,7 @@ pub(crate) use self::{
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
   r#const::{ConstPlugin, is_logic_op},
-  drive::JavaScriptParserPluginDrive,
+  drive::{JavaScriptParserPluginDrive, JavaScriptParserPluginItem},
   esm_detection_parser_plugin::ESMDetectionParserPlugin,
   esm_export_dependency_parser_plugin::ESMExportDependencyParserPlugin,
   esm_import_dependency_parser_plugin::ESMImportDependencyParserPlugin,

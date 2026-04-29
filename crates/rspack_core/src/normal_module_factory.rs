@@ -1,9 +1,13 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{
+  borrow::Cow,
+  hash::{Hash, Hasher},
+  sync::Arc,
+};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
-use rspack_util::MergeFrom;
+use rspack_util::{MergeFrom, fx_hash::FxDashMap};
 use sugar_path::SugarPath;
 use winnow::prelude::*;
 
@@ -62,6 +66,7 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
+  parser_and_generator_cache: FxDashMap<ParserAndGeneratorCacheKey, Arc<dyn ParserAndGenerator>>,
 }
 
 #[async_trait::async_trait]
@@ -101,6 +106,7 @@ impl NormalModuleFactory {
       options,
       loader_resolver_factory,
       plugin_driver,
+      parser_and_generator_cache: Default::default(),
     }
   }
 
@@ -131,6 +137,42 @@ impl NormalModuleFactory {
         resolve_to_context: false,
         dependency_category: DependencyCategory::CommonJS,
       })
+  }
+
+  async fn get_parser_and_generator(
+    &self,
+    module_type: &ModuleType,
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
+  ) -> Result<Arc<dyn ParserAndGenerator>> {
+    let cache_key = parser_and_generator_cache_key(module_type, parser_options, generator_options);
+    if let Some(parser_and_generator) = self.parser_and_generator_cache.get(&cache_key) {
+      return Ok(parser_and_generator.clone());
+    }
+
+    let mut parser_and_generator = self
+      .plugin_driver
+      .registered_parser_and_generator_builder
+      .get(module_type)
+      .ok_or_else(|| error!("No parser registered for '{}'", module_type.as_str()))?(
+      parser_options,
+      generator_options,
+    );
+    self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .parser
+      .call(module_type, &mut parser_and_generator, parser_options)
+      .await?;
+
+    let parser_and_generator: Arc<dyn ParserAndGenerator> = parser_and_generator.into();
+    match self.parser_and_generator_cache.entry(cache_key) {
+      dashmap::mapref::entry::Entry::Occupied(entry) => Ok(entry.get().clone()),
+      dashmap::mapref::entry::Entry::Vacant(entry) => {
+        entry.insert(parser_and_generator.clone());
+        Ok(parser_and_generator)
+      }
+    }
   }
 
   async fn resolve_normal_module(
@@ -523,27 +565,11 @@ module.exports = "data:,";
       );
     let resolved_side_effects = self.calculate_side_effects(&resolved_module_rules);
     let resolved_extract_source_map = self.calculate_extract_source_map(&resolved_module_rules);
-    let mut resolved_parser_and_generator = self
-      .plugin_driver
-      .registered_parser_and_generator_builder
-      .get(&resolved_module_type)
-      .ok_or_else(|| {
-        error!(
-          "No parser registered for '{}'",
-          resolved_module_type.as_str()
-        )
-      })?(
-      resolved_parser_options.as_ref(),
-      resolved_generator_options.as_ref(),
-    );
-    self
-      .plugin_driver
-      .normal_module_factory_hooks
-      .parser
-      .call(
+    let resolved_parser_and_generator = self
+      .get_parser_and_generator(
         &resolved_module_type,
-        &mut resolved_parser_and_generator,
         resolved_parser_options.as_ref(),
+        resolved_generator_options.as_ref(),
       )
       .await?;
 
@@ -894,6 +920,31 @@ module.exports = "data:,";
     Err(error!(
       "Failed to factorize module, neither hook nor factorize method returns"
     ))
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ParserAndGeneratorCacheKey {
+  module_type: ModuleType,
+  parser_options: Option<ParserOptions>,
+  generator_options: Option<GeneratorOptions>,
+}
+
+impl Hash for ParserAndGeneratorCacheKey {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    self.module_type.hash(state);
+  }
+}
+
+fn parser_and_generator_cache_key(
+  module_type: &ModuleType,
+  parser_options: Option<&ParserOptions>,
+  generator_options: Option<&GeneratorOptions>,
+) -> ParserAndGeneratorCacheKey {
+  ParserAndGeneratorCacheKey {
+    module_type: *module_type,
+    parser_options: parser_options.cloned(),
+    generator_options: generator_options.cloned(),
   }
 }
 
