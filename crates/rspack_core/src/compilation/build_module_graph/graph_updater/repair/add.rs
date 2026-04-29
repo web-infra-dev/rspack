@@ -51,6 +51,14 @@ impl Task<TaskContext> for AddTask {
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
     {
+      if let Some(new_normal_module) = self.module.as_normal_module()
+        && let Some(old_normal_module) = module_graph
+          .module_by_identifier_mut(&module_identifier)
+          .and_then(|module| module.as_normal_module_mut())
+      {
+        old_normal_module.set_loaders(new_normal_module.loaders().to_vec());
+      }
+
       set_resolved_module(
         module_graph,
         self.original_module_identifier,
