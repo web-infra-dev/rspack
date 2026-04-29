@@ -4,10 +4,10 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, EntryDependency,
-  Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+  CompilationAfterProcessAssets, CompilationParams, CompilerCompilation, CompilerFailed,
+  CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, Dependency, DependencyId,
+  DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -132,15 +132,42 @@ fn collect_css_files_from_chunk_group(
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
 ) -> Vec<String> {
+  collect_css_files_from_chunks(module_loading, &chunk_group.chunks, compilation)
+}
+
+fn collect_css_files_from_chunks<'a>(
+  module_loading: &ModuleLoading,
+  chunk_ukeys: impl IntoIterator<Item = &'a ChunkUkey>,
+  compilation: &Compilation,
+) -> Vec<String> {
   let prefix = &module_loading.prefix;
   let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
-  chunk_group
-    .chunks
-    .iter()
+  chunk_ukeys
+    .into_iter()
     .filter_map(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
     .flat_map(|chunk| chunk.files().iter())
     .filter(|file| file.ends_with(".css"))
     .map(|file| prefixed_asset_path(prefix, file))
+    .collect()
+}
+
+fn collect_css_files_from_block_modules(
+  module_loading: &ModuleLoading,
+  block_id: &AsyncDependenciesBlockIdentifier,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let Some(block) = module_graph.block_by_id(block_id) else {
+    return Vec::new();
+  };
+
+  block
+    .get_dependencies()
+    .iter()
+    .filter_map(|dependency_id| module_graph.connection_by_dependency_id(dependency_id))
+    .filter_map(|connection| chunk_graph.try_get_module_chunks(connection.module_identifier()))
+    .flat_map(|chunk_ukeys| collect_css_files_from_chunks(module_loading, chunk_ukeys, compilation))
     .collect()
 }
 
@@ -172,10 +199,15 @@ fn collect_server_entry_css_files(
       continue;
     }
 
-    let Some(chunk_group) = chunk_graph.get_block_chunk_group(block_id, chunk_group_by_ukey) else {
-      continue;
-    };
-    let css_files = collect_css_files_from_chunk_group(module_loading, chunk_group, compilation);
+    let css_files =
+      if let Some(chunk_group) = chunk_graph.get_block_chunk_group(block_id, chunk_group_by_ukey) {
+        collect_css_files_from_chunk_group(module_loading, chunk_group, compilation)
+      } else {
+        // Async CSS blocks can be inlined when async chunks or chunk loading are
+        // disabled. In that case no block chunk group is created, but the CSS
+        // modules still belong to regular entry chunks.
+        collect_css_files_from_block_modules(module_loading, block_id, compilation)
+      };
     if css_files.is_empty() {
       continue;
     }
