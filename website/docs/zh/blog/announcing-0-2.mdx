@@ -164,17 +164,15 @@ Rspack 适配的 webpack 的 plugin 和 loader 远不仅此，我们在 [loader-
 
 ### Modern.js 框架
 
-得益于 [Modern.js 框架](https://modernjs.dev) 与 Rspack 的紧密合作与并行迭代，**Modern.js Rspack 模式已经覆盖了 85% 的框架能力**，支持 SSR、BFF、微前端等场景，并对齐了 TypeScript 类型检查、代码兼容性检测等功能。
+得益于 [Modern.js 框架](https://modernjs.dev/zh/) 与 Rspack 的紧密合作与并行迭代，**Modern.js Rspack 模式已经覆盖了 85% 的框架能力**，支持 SSR、BFF、微前端等场景，并对齐了 TypeScript 类型检查、代码兼容性检测等功能。
 
 在字节跳动内部，已有 80+ 个业务项目在使用 Modern.js Rspack 模式。其中一部分项目已经上线至生产环境，获得 10 倍左右的构建性能提升。
 
 ### Modern.js Doc
 
-除了 Modern.js 框架，Modern.js 体系下的文档站开发方案 —— [Modern.js Doc](https://modernjs.dev/doc-tools/zh/) 也将构建工具从 webpack 切换到了 Rspack，并将 MDX 编译流程基于 Rust 重写。
+除了 Modern.js 框架，Modern.js 体系下的文档站开发方案 —— Modern.js Doc 也将构建工具从 webpack 切换到了 Rspack，并将 MDX 编译流程基于 Rust 重写。
 
 相较于早期使用 webpack 的版本，当前版本的文档构建速度可以缩短至秒级。以 Modern.js 官网文档为例，项目的启动和构建时间从 30s 缩短到 2s 以内。未来，我们计划将 Modern.js Doc 更名为 **Rspress**，作为 Rspack 官方的文档站方案，并通过单独的仓库进行维护。
-
-> 欢迎访问 [Modern.js 代码仓库](https://github.com/web-infra-dev/modern.js) 并体验上述内容。
 
 ### Vue
 
