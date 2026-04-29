@@ -4,13 +4,14 @@ use async_trait::async_trait;
 use napi::bindgen_prelude::{Buffer, Either, FnArgs, Promise};
 use napi_derive::napi;
 use rspack_fs::WritableFileSystem;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
 use rspack_regex::RspackRegex;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 type HttpClientRequest =
   ThreadsafeFunction<FnArgs<(String, HashMap<String, String>)>, Promise<JsHttpResponseRaw>>;

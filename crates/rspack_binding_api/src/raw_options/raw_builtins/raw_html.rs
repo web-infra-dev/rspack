@@ -2,12 +2,13 @@ use std::str::FromStr;
 
 use napi::bindgen_prelude::{Either3, Promise};
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_html::config::{
   HtmlChunkSortMode, HtmlInject, HtmlRspackPluginBaseOptions, HtmlRspackPluginOptions,
   HtmlScriptLoading, TemplateParameterFn, TemplateParameters, TemplateRenderFn,
 };
 use rustc_hash::FxHashMap as HashMap;
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 pub type RawHtmlScriptLoading = String;
 pub type RawHtmlInject = String;

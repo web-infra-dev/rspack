@@ -1,12 +1,13 @@
 use derive_more::Debug;
 use napi::{Either, bindgen_prelude::FnArgs};
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_circular_dependencies::{
   CircularDependencyIgnoredConnection, CircularDependencyIgnoredConnectionEntry,
   CircularDependencyRspackPluginOptions, CompilationHookFn, CycleHandlerFn,
 };
 use rspack_regex::RspackRegex;
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 fn ignore_pattern_to_entry(
   pattern: Either<String, RspackRegex>,

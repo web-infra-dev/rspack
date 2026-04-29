@@ -20,6 +20,7 @@ tracy-client  = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }
+atomic_refcell            = { workspace = true }
 rspack_allocator          = { workspace = true }
 rspack_browserslist       = { workspace = true }
 rspack_collections        = { workspace = true }

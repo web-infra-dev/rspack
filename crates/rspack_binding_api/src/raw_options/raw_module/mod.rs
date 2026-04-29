@@ -27,11 +27,13 @@ use rspack_core::{
   ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{filename::JsFilename, module::ModuleObject, options::raw_resolve::RawResolveOptions};
+use crate::{
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
+  module::ModuleObject, options::raw_resolve::RawResolveOptions,
+};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is

@@ -1,8 +1,9 @@
 use napi::bindgen_prelude::FnArgs;
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_ignore::{CheckResourceContent, IgnorePluginOptions};
 use rspack_regex::RspackRegex;
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 type RawCheckResource = ThreadsafeFunction<FnArgs<(String, String)>, bool>;
 

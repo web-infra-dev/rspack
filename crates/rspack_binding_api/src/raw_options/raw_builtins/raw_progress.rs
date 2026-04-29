@@ -3,10 +3,11 @@ use std::sync::Arc;
 use derive_more::Debug;
 use napi::{Either, bindgen_prelude::FnArgs};
 use napi_derive::napi;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_progress::{
   ProgressPluginDisplayOptions, ProgressPluginHandlerInfo, ProgressPluginOptions,
 };
+
+use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
 
 #[derive(Debug)]
 #[napi(object)]
