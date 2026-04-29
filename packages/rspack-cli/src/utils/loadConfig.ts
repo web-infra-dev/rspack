@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
-import { rspack } from '@rspack/core';
+import merge from 'webpack-merge';
 import findConfig from './findConfig';
 import type { CommonOptions } from './options';
 
@@ -337,7 +337,7 @@ export async function loadExtendedConfig(
       ...(extendedPathMap.get(extendedConfig) || []),
     ];
     // Merge the configurations
-    resultConfig = rspack.util.cleverMerge(extendedConfig, resultConfig);
+    resultConfig = merge(extendedConfig, resultConfig);
     // Set config paths
     pathMap.set(resultConfig, configPaths);
   }
