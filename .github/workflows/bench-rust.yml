@@ -62,10 +62,14 @@ jobs:
       - name: Build benchmark (simulation,memory)
         run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark
 
+      - name: Prepare Valgrind temporary directory
+        run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
+
       - name: Run benchmark (simulation,memory)
         uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
         timeout-minutes: 30
         env:
+          TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           RAYON_NUM_THREADS: 1
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
         with:
@@ -73,3 +77,23 @@ jobs:
           run: pnpm run bench:rust
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.13.0
+
+      - name: Prepare Valgrind temporary files artifact
+        if: ${{ always() }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
+          {
+            echo "TMPDIR=${RUNNER_TEMP}/codspeed-valgrind-tmp"
+            echo
+            find "${RUNNER_TEMP}/codspeed-valgrind-tmp" -mindepth 1 -maxdepth 2 -printf '%M %s %p\n' | sort
+          } > "${RUNNER_TEMP}/codspeed-valgrind-tmp/MANIFEST.txt"
+
+      - name: Upload Valgrind temporary files
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: codspeed-valgrind-tmp-${{ inputs.target }}
+          path: ${{ runner.temp }}/codspeed-valgrind-tmp
+          include-hidden-files: true
+          if-no-files-found: ignore
+          overwrite: true
