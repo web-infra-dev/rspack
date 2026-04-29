@@ -61,6 +61,11 @@ export class RscServerPlugin extends RspackBuiltinPlugin {
     this.#options.coordinator.applyServerCompiler(compiler);
 
     const { coordinator, onServerComponentChanges } = this.#options;
+    let normalizedOnServerComponentChanges: (() => Promise<void>) | undefined;
+    if (onServerComponentChanges) {
+      normalizedOnServerComponentChanges = () =>
+        Promise.resolve(onServerComponentChanges());
+    }
     let onManifest: ((json: string) => void | Promise<void>) | undefined;
     if (this.#options.onManifest) {
       onManifest = (json: string) =>
@@ -71,7 +76,7 @@ export class RscServerPlugin extends RspackBuiltinPlugin {
       // @ts-expect-error we use a special API to get the underlying binding instance.
       coordinator: coordinator[GET_OR_INIT_BINDING](),
       cssLink: this.#options.cssLink,
-      onServerComponentChanges,
+      onServerComponentChanges: normalizedOnServerComponentChanges,
       onManifest,
     });
   }

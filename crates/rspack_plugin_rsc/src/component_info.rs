@@ -20,6 +20,7 @@ use crate::{
 
 // { [request to inject into client compilation]: [exported names] }
 pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
+pub type ClientComponentImportsByServerEntry = FxIndexMap<String, ClientComponentImports>;
 // { [server entry path]: [`import.meta.rspackRsc` importer paths] }
 // Used only to let `loadCss()` importers inherit their nearest server entry CSS files.
 pub type ImportMetaRscImporters = FxHashMap<String, FxIndexSet<String>>;
@@ -32,7 +33,12 @@ type VisitedServerComponents = FxHashSet<(rspack_core::ModuleIdentifier, Option<
 #[derive(Debug, Default)]
 pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
+  /// All client component imports reached from this RSC entry.
   pub client_component_imports: ClientComponentImports,
+  /// Client component imports reached without a `use server-entry` owner.
+  pub root_client_component_imports: ClientComponentImports,
+  /// Client component imports reached under each `use server-entry` owner.
+  pub client_component_imports_by_server_entry: ClientComponentImportsByServerEntry,
   pub css_imports_by_server_entry: CssImportsByServerEntry,
   pub root_css_imports: RootCssImports,
   pub import_meta_rsc_importers: ImportMetaRscImporters,
@@ -119,6 +125,7 @@ fn traverse_module(
       module,
       resource.as_ref(),
       imported_identifiers,
+      current_server_entry,
       is_first_visit_client_module,
       component_info,
     );
@@ -203,31 +210,21 @@ fn record_client_component_import(
   module: &dyn Module,
   resource: &str,
   imported_identifiers: &[Atom],
+  current_server_entry: Option<&str>,
   is_first_visit_client_module: bool,
   component_info: &mut ComponentInfo,
 ) {
-  if is_first_visit_client_module {
-    component_info
+  if is_first_visit_client_module
+    || component_info
       .client_component_imports
-      .entry(resource.to_string())
-      .or_default();
-    add_client_import(
-      module,
-      resource,
-      imported_identifiers,
-      true,
-      &mut component_info.client_component_imports,
-    );
-  } else if component_info
-    .client_component_imports
-    .contains_key(resource)
+      .contains_key(resource)
   {
-    add_client_import(
+    add_client_import_for_owner(
       module,
       resource,
       imported_identifiers,
-      false,
-      &mut component_info.client_component_imports,
+      current_server_entry,
+      component_info,
     );
   }
 }
@@ -275,6 +272,61 @@ fn get_imported_ids(module_graph: &ModuleGraph, dependency_id: &DependencyId) ->
   } else {
     vec!["*".into()]
   }
+}
+
+fn add_client_import_for_owner(
+  module: &dyn Module,
+  resource: &str,
+  imported_identifiers: &[Atom],
+  current_server_entry: Option<&str>,
+  component_info: &mut ComponentInfo,
+) {
+  add_client_import_to_map(
+    module,
+    resource,
+    imported_identifiers,
+    &mut component_info.client_component_imports,
+  );
+
+  let Some(server_entry) = current_server_entry else {
+    add_client_import_to_map(
+      module,
+      resource,
+      imported_identifiers,
+      &mut component_info.root_client_component_imports,
+    );
+    return;
+  };
+
+  let client_component_imports = component_info
+    .client_component_imports_by_server_entry
+    .entry(server_entry.to_string())
+    .or_default();
+  add_client_import_to_map(
+    module,
+    resource,
+    imported_identifiers,
+    client_component_imports,
+  );
+}
+
+fn add_client_import_to_map(
+  module: &dyn Module,
+  mod_request: &str,
+  imported_identifiers: &[Atom],
+  client_component_imports: &mut ClientComponentImports,
+) {
+  let is_first_visit_module = !client_component_imports.contains_key(mod_request);
+  if is_first_visit_module {
+    client_component_imports.insert(mod_request.to_string(), Default::default());
+  }
+  add_client_import(
+    module,
+    mod_request,
+    imported_identifiers,
+    is_first_visit_module,
+    client_component_imports,
+  );
 }
 
 fn add_client_import(
