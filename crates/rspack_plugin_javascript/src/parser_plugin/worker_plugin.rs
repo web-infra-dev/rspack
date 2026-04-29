@@ -1,4 +1,4 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
@@ -231,6 +231,7 @@ fn handle_worker<'a>(
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkerPlugin {
   new_syntax: FxHashSet<String>,
   call_syntax: FxHashSet<String>,
@@ -247,26 +248,38 @@ const DEFAULT_SYNTAX: [&str; 4] = [
   "Worker from worker_threads",
 ];
 
+static DEFAULT_WORKER_PLUGIN: LazyLock<WorkerPlugin> = LazyLock::new(|| {
+  let mut worker_plugin = WorkerPlugin::empty();
+  for syntax in DEFAULT_SYNTAX {
+    worker_plugin.handle_syntax(syntax);
+  }
+  worker_plugin
+});
+
 #[derive(Debug, Clone)]
 struct WorkerSpecifierData {
   key: Atom,
 }
 
 impl WorkerPlugin {
-  pub fn new(syntax_list: &[String]) -> Self {
-    let mut this = Self {
+  fn empty() -> Self {
+    Self {
       new_syntax: FxHashSet::default(),
       call_syntax: FxHashSet::default(),
       from_new_syntax: FxHashSet::default(),
       from_call_syntax: FxHashSet::default(),
       pattern_syntax: FxHashMap::default(),
+    }
+  }
+
+  pub fn new(syntax_list: &[String]) -> Self {
+    let mut this = if syntax_list.iter().any(|syntax| syntax == "...") {
+      DEFAULT_WORKER_PLUGIN.clone()
+    } else {
+      Self::empty()
     };
     for syntax in syntax_list {
-      if syntax == "..." {
-        for syntax in DEFAULT_SYNTAX {
-          this.handle_syntax(syntax);
-        }
-      } else {
+      if syntax != "..." {
         this.handle_syntax(syntax);
       }
     }
@@ -547,5 +560,18 @@ fn test_worker_from() {
   assert_eq!(
     worker_from("()() from worker_threads").ok(),
     Some((("()", true), "worker_threads"))
+  );
+}
+
+#[test]
+fn test_default_worker_syntax_matches_explicit_syntax() {
+  let explicit_syntax = DEFAULT_SYNTAX
+    .iter()
+    .map(|syntax| syntax.to_string())
+    .collect::<Vec<_>>();
+
+  assert_eq!(
+    WorkerPlugin::new(&["...".to_string()]),
+    WorkerPlugin::new(&explicit_syntax)
   );
 }
