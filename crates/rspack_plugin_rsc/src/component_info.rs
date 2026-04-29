@@ -19,11 +19,17 @@ use crate::{
 
 // { [request to inject into client compilation]: [exported names] }
 pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
+pub type ClientComponentImportsByServerEntry = FxIndexMap<String, ClientComponentImports>;
 
 #[derive(Debug, Default)]
 pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
+  /// All client component imports reached from this RSC entry.
   pub client_component_imports: ClientComponentImports,
+  /// Client component imports reached without a `use server-entry` owner.
+  pub root_client_component_imports: ClientComponentImports,
+  /// Client component imports reached under each `use server-entry` owner.
+  pub client_component_imports_by_server_entry: ClientComponentImportsByServerEntry,
   pub css_imports_by_server_entry: CssImportsByServerEntry,
   pub root_css_imports: RootCssImports,
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
@@ -155,12 +161,12 @@ fn filter_client_components(
       .client_component_imports
       .contains_key(resource.as_ref())
     {
-      add_client_import(
+      add_client_import_for_owners(
         module,
-        &resource,
+        resource.as_ref(),
         imported_identifiers,
-        false,
-        &mut component_info.client_component_imports,
+        server_entries,
+        component_info,
       );
     }
     return;
@@ -188,20 +194,12 @@ fn filter_client_components(
 
   let module_graph = compilation.get_module_graph();
   if is_client_component_entry_module(module) {
-    if !component_info
-      .client_component_imports
-      .contains_key(resource.as_ref())
-    {
-      component_info
-        .client_component_imports
-        .insert(resource.to_string(), Default::default());
-    }
-    add_client_import(
+    add_client_import_for_owners(
       module,
       resource.as_ref(),
       imported_identifiers,
-      true,
-      &mut component_info.client_component_imports,
+      server_entries,
+      component_info,
     );
     return;
   }
@@ -249,6 +247,63 @@ fn filter_client_components(
       component_info,
     );
   }
+}
+
+fn add_client_import_for_owners(
+  module: &dyn Module,
+  resource: &str,
+  imported_identifiers: &[Atom],
+  server_entries: &[String],
+  component_info: &mut ComponentInfo,
+) {
+  add_client_import_to_map(
+    module,
+    resource,
+    imported_identifiers,
+    &mut component_info.client_component_imports,
+  );
+
+  if server_entries.is_empty() {
+    add_client_import_to_map(
+      module,
+      resource,
+      imported_identifiers,
+      &mut component_info.root_client_component_imports,
+    );
+    return;
+  }
+
+  for server_entry in server_entries {
+    let client_component_imports = component_info
+      .client_component_imports_by_server_entry
+      .entry(server_entry.clone())
+      .or_default();
+    add_client_import_to_map(
+      module,
+      resource,
+      imported_identifiers,
+      client_component_imports,
+    );
+  }
+}
+
+fn add_client_import_to_map(
+  module: &dyn Module,
+  mod_request: &str,
+  imported_identifiers: &[Atom],
+  client_component_imports: &mut ClientComponentImports,
+) {
+  let is_first_visit_module = !client_component_imports.contains_key(mod_request);
+  if is_first_visit_module {
+    client_component_imports.insert(mod_request.to_string(), Default::default());
+  }
+  add_client_import(
+    module,
+    mod_request,
+    imported_identifiers,
+    is_first_visit_module,
+    client_component_imports,
+  );
 }
 
 fn add_client_import(

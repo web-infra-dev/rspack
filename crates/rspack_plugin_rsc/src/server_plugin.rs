@@ -18,15 +18,18 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  component_info::{ClientComponentImports, collect_component_info_from_entry_dependency},
+  component_info::{
+    ClientComponentImports, ClientComponentImportsByServerEntry,
+    collect_component_info_from_entry_dependency,
+  },
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
   hot_reloader::track_server_component_changes,
   loaders::action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
   manifest_runtime_module::RscManifestRuntimeModule,
   plugin_state::{
-    ActionIdNamePair, ClientModuleImport, CssImportsByServerEntry, PLUGIN_STATES, PluginState,
-    RootCssImports,
+    ActionIdNamePair, ClientModuleImport, ClientModulesByServerEntry, CssImportsByServerEntry,
+    PLUGIN_STATES, PluginState, RootCssImports,
   },
   reference_manifest::{
     RscEntryManifest, RscManifest, build_server_consumer_module_map, build_server_manifest,
@@ -40,6 +43,8 @@ struct ClientEntry {
   entry_name: Arc<str>,
   runtime: RuntimeSpec,
   client_imports: ClientComponentImports,
+  root_client_imports: ClientComponentImports,
+  client_imports_by_server_entry: ClientComponentImportsByServerEntry,
   css_imports_by_server_entry: CssImportsByServerEntry,
   root_css_imports: RootCssImports,
 }
@@ -72,6 +77,75 @@ pub struct RscServerPluginOptions {
   pub coordinator: Arc<Coordinator>,
   pub on_server_component_changes: Option<OnServerComponentChanges>,
   pub on_manifest: Option<OnManifest>,
+}
+
+fn client_imports_to_modules(client_imports: &ClientComponentImports) -> Vec<ClientModuleImport> {
+  client_imports
+    .iter()
+    .map(|(request, ids)| ClientModuleImport {
+      request: request.clone(),
+      ids: ids.iter().cloned().collect(),
+    })
+    .collect()
+}
+
+fn classify_client_entries(
+  client_imports: &ClientComponentImports,
+  root_client_imports: &ClientComponentImports,
+  client_imports_by_server_entry: &ClientComponentImportsByServerEntry,
+) -> (
+  Vec<ClientModuleImport>,
+  Vec<ClientModuleImport>,
+  ClientModulesByServerEntry,
+) {
+  let mut isolated_client_entries = Vec::new();
+  let mut root_client_entries = Vec::new();
+  let mut client_entries_by_server_entry: ClientModulesByServerEntry = Default::default();
+
+  for (request, ids) in client_imports {
+    let mut owner_count = 0usize;
+    let is_root_owned = root_client_imports.contains_key(request.as_str());
+    let mut owned_server_entry = None;
+
+    if is_root_owned {
+      owner_count += 1;
+    }
+
+    for (server_entry, client_imports) in client_imports_by_server_entry {
+      if client_imports.contains_key(request.as_str()) {
+        owner_count += 1;
+        if owned_server_entry.is_none() {
+          owned_server_entry = Some(server_entry);
+        }
+      }
+    }
+
+    let client_module = ClientModuleImport {
+      request: request.clone(),
+      ids: ids.iter().cloned().collect(),
+    };
+
+    if owner_count == 1 {
+      if is_root_owned {
+        root_client_entries.push(client_module);
+      } else if let Some(server_entry) = owned_server_entry {
+        client_entries_by_server_entry
+          .entry(server_entry.clone())
+          .or_default()
+          .push(client_module);
+      } else {
+        isolated_client_entries.push(client_module);
+      }
+    } else {
+      isolated_client_entries.push(client_module);
+    }
+  }
+
+  (
+    isolated_client_entries,
+    root_client_entries,
+    client_entries_by_server_entry,
+  )
 }
 
 #[plugin]
@@ -264,6 +338,8 @@ impl RscServerPlugin {
           entry_name: entry_name.clone(),
           runtime: runtime.clone(),
           client_imports: component_info.client_component_imports,
+          root_client_imports: component_info.root_client_component_imports,
+          client_imports_by_server_entry: component_info.client_component_imports_by_server_entry,
           css_imports_by_server_entry: component_info.css_imports_by_server_entry,
           root_css_imports: component_info.root_css_imports,
         });
@@ -459,12 +535,21 @@ impl RscServerPlugin {
       entry_name,
       runtime,
       client_imports,
+      root_client_imports,
+      client_imports_by_server_entry,
       css_imports_by_server_entry,
       root_css_imports,
     } = client_entry;
 
-    let client_entries = {
-      let mut modules = Vec::new();
+    let client_entries = client_imports_to_modules(&client_imports);
+    let (isolated_client_entries, root_client_entries, client_entries_by_server_entry) =
+      classify_client_entries(
+        &client_imports,
+        &root_client_imports,
+        &client_imports_by_server_entry,
+      );
+
+    {
       let entry_state = plugin_state.entries.entry(entry_name.clone()).or_default();
       for (server_entry, css_imports) in css_imports_by_server_entry {
         entry_state
@@ -475,24 +560,14 @@ impl RscServerPlugin {
           .extend(css_imports);
       }
       entry_state.root_css_imports.extend(root_css_imports);
-
-      for (request, ids) in &client_imports {
-        modules.push(ClientModuleImport {
-          request: request.clone(),
-          ids: ids.iter().cloned().collect(),
-        });
-      }
-      modules
-    };
+      entry_state.injected_client_entries = client_entries.clone();
+      entry_state.isolated_client_entries = isolated_client_entries.clone();
+      entry_state.root_client_entries = root_client_entries.clone();
+      entry_state.client_entries_by_server_entry = client_entries_by_server_entry.clone();
+    }
 
     // Add for the client compilation
     // Inject the entry to the client compiler.
-    plugin_state
-      .entries
-      .entry(entry_name.clone())
-      .or_default()
-      .injected_client_entries = client_entries.clone();
-
     if !should_inject_ssr_modules {
       return None;
     }
@@ -509,6 +584,8 @@ impl RscServerPlugin {
     let ssr_entry_dependency = RscEntryDependency::new(
       entry_name.clone(),
       client_entries_for_ssr,
+      Default::default(),
+      Default::default(),
       Default::default(),
       true,
     );

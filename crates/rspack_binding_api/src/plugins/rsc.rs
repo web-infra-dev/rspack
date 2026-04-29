@@ -77,7 +77,8 @@ impl From<&JsRscClientPluginOptions<'_>> for RscClientPluginOptions {
 #[napi(object, object_to_js = false)]
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
-  pub on_server_component_changes: Option<Either3<Function<'static, (), ()>, Undefined, Null>>,
+  pub on_server_component_changes:
+    Option<Either3<Function<'static, (), Promise<()>>, Undefined, Null>>,
   pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
 }
 
@@ -100,7 +101,14 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
         Some(Box::new(
           move || -> BoxFuture<'static, rspack_error::Result<()>> {
             let ts_fn = ts_fn.clone();
-            Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
+            Box::pin(async move {
+              ts_fn
+                .call_async(())
+                .await
+                .to_rspack_result()?
+                .await
+                .to_rspack_result()
+            })
           },
         ))
       }
