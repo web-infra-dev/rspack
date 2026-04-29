@@ -53,7 +53,8 @@ use crate::{
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  subtract_runtime_condition, to_identifier_from_escaped, to_identifier_with_escaped,
+  to_normal_comment,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -146,21 +147,13 @@ static REGEX: LazyLock<Regex> = LazyLock::new(|| {
 #[derive(Default)]
 struct NameAllocator {
   used_names: HashSet<Atom>,
-  used_strings: HashSet<String>,
   suffix_counters: HashMap<Atom, u32>,
 }
 
 impl NameAllocator {
   fn new(used_names: HashSet<Atom>) -> Self {
-    let mut used_strings: HashSet<String> = HashSet::default();
-    used_strings.reserve(used_names.len());
-    for name in &used_names {
-      used_strings.insert(name.as_ref().to_string());
-    }
-
     Self {
       used_names,
-      used_strings,
       suffix_counters: HashMap::default(),
     }
   }
@@ -170,12 +163,12 @@ impl NameAllocator {
   }
 
   fn insert(&mut self, name: Atom) {
-    self.used_strings.insert(name.as_ref().to_string());
     self.used_names.insert(name);
   }
 
   fn find_new_name(&mut self, old_name: &str, extra_info: &[Atom]) -> Atom {
     let mut name = old_name.to_string();
+    let mut base_candidate = None;
 
     // try to prepend extra_info segments one by one (from most specific to least),
     // checking for an available escaped identifier at each step
@@ -191,28 +184,35 @@ impl NameAllocator {
           new_name.push_str(&name);
         }
       }
-      name = new_name;
+      name = to_identifier_from_escaped(new_name);
 
-      let escaped = to_identifier_with_escaped(name.clone());
-      if !self.used_strings.contains(&escaped) {
-        self.used_strings.insert(escaped.clone());
-        let candidate: Atom = escaped.into();
-        self.used_names.insert(candidate.clone());
+      let candidate: Atom = Atom::from(name.as_str());
+      if self.used_names.insert(candidate.clone()) {
         return candidate;
       }
+      base_candidate = Some(candidate);
     }
 
-    let base_str = to_identifier_with_escaped(name);
-    if !base_str.is_empty() && !self.used_strings.contains(&base_str) {
-      self.used_strings.insert(base_str.clone());
-      let base: Atom = base_str.into();
-      self.used_names.insert(base.clone());
-      return base;
-    }
+    let base: Atom = if let Some(base) = base_candidate {
+      base
+    } else {
+      let base: Atom = to_identifier_from_escaped(name).into();
+      if !base.is_empty() && self.used_names.insert(base.clone()) {
+        return base;
+      }
+      base
+    };
 
-    let base: Atom = base_str.into();
+    self.find_numbered_name(base, 0)
+  }
+
+  fn find_numbered_name(&mut self, base: Atom, start: u32) -> Atom {
     let counter = self.suffix_counters.entry(base.clone()).or_insert(0);
-    let mut i = *counter;
+    let mut i = if start == 0 {
+      *counter
+    } else {
+      start.max(*counter)
+    };
     let mut i_buffer = itoa::Buffer::new();
 
     let mut base_with_underscore = String::with_capacity(base.len() + 1);
@@ -225,10 +225,8 @@ impl NameAllocator {
       numbered.push_str(&base_with_underscore);
       numbered.push_str(i_buffer.format(i));
 
-      if !self.used_strings.contains(&numbered) {
-        self.used_strings.insert(numbered.clone());
-        let candidate: Atom = Atom::from(numbered.as_str());
-        self.used_names.insert(candidate.clone());
+      let candidate: Atom = Atom::from(numbered.as_str());
+      if self.used_names.insert(candidate.clone()) {
         *counter = i + 1;
         return candidate;
       }
@@ -1340,31 +1338,20 @@ impl Module for ConcatenatedModule {
 
         // Handle external type
         ModuleInfo::External(info) => {
-          let external_name: Atom = name_allocator.find_new_name(
-            "",
-            escaped_identifiers
-              .get(&readable_identifier)
-              .expect("should have escaped identifier"),
-          );
+          let extra_info = escaped_identifiers
+            .get(&readable_identifier)
+            .expect("should have escaped identifier");
+          let external_name: Atom = name_allocator.find_new_name("", extra_info);
           info.name = Some(external_name.clone());
           top_level_declarations.insert(external_name.clone());
 
           if info.deferred {
-            let external_name = name_allocator.find_new_name(
-              "deferred",
-              escaped_identifiers
-                .get(&readable_identifier)
-                .expect("should have escaped identifier"),
-            );
+            let external_name = name_allocator.find_new_name("deferred", extra_info);
             info.deferred_name = Some(external_name.clone());
             top_level_declarations.insert(external_name.clone());
 
-            let external_name_interop = name_allocator.find_new_name(
-              "deferredNamespaceObject",
-              escaped_identifiers
-                .get(&readable_identifier)
-                .expect("should have escaped identifier"),
-            );
+            let external_name_interop =
+              name_allocator.find_new_name("deferredNamespaceObject", extra_info);
             info.deferred_namespace_object_name = Some(external_name_interop.clone());
             top_level_declarations.insert(external_name_interop.clone());
           }
@@ -3301,6 +3288,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
 
 pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[Atom]) -> Atom {
   let mut name = old_name.to_string();
+  let mut base_candidate = None;
 
   for info_part in extra_info {
     let info_str = info_part.as_ref();
@@ -3320,12 +3308,18 @@ pub fn find_new_name(old_name: &str, used_names: &HashSet<Atom>, extra_info: &[A
     if !used_names.contains(&candidate) {
       return candidate;
     }
+    base_candidate = Some(candidate);
   }
 
-  let base: Atom = to_identifier_with_escaped(name).into();
-  if !base.is_empty() && !used_names.contains(&base) {
-    return base;
-  }
+  let base: Atom = if let Some(base) = base_candidate {
+    base
+  } else {
+    let base: Atom = to_identifier_with_escaped(name).into();
+    if !base.is_empty() && !used_names.contains(&base) {
+      return base;
+    }
+    base
+  };
 
   let mut i = 0;
   let mut i_buffer = itoa::Buffer::new();

@@ -120,6 +120,18 @@ pub fn to_identifier_with_escaped(v: String) -> String {
   to_identifier(&v).into_owned()
 }
 
+#[inline]
+pub fn to_identifier_from_escaped(mut v: String) -> String {
+  if v
+    .as_bytes()
+    .first()
+    .is_some_and(|&b| !is_ident_first_safe(b))
+  {
+    v.insert(0, '_');
+  }
+  v
+}
+
 pub fn escape_identifier(v: &str) -> Cow<'_, str> {
   let mut buf = String::new();
   if escape_identifier_impl(v, &mut buf) {
