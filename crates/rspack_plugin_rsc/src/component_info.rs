@@ -257,7 +257,7 @@ fn get_imported_ids(module_graph: &ModuleGraph, dependency_id: &DependencyId) ->
   };
 
   if let Some(ids) = ids {
-    ids.into_iter().cloned().collect()
+    ids.to_vec()
   } else {
     vec!["*".into()]
   }
