@@ -308,6 +308,7 @@ const getRawModuleRule = (
     dependency: rule.dependency
       ? getRawRuleSetCondition(rule.dependency)
       : undefined,
+    phase: rule.phase ? getRawRuleSetCondition(rule.phase) : undefined,
     descriptionData: rule.descriptionData
       ? Object.fromEntries(
           Object.entries(rule.descriptionData).map(([k, v]) => [
@@ -599,6 +600,7 @@ function getRawJavascriptParserOptions(
     typeReexportsPresence: parser.typeReexportsPresence,
     jsx: parser.jsx,
     deferImport: parser.deferImport,
+    sourceImport: parser.sourceImport,
     importMetaResolve: parser.importMetaResolve,
     pureFunctions: parser.pureFunctions,
   };

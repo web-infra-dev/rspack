@@ -11,10 +11,10 @@ use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
   CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, MatchContext, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  NormalModule, ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
   ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
@@ -144,6 +144,7 @@ impl NormalModuleFactory {
     let dependency_category = *dependency.category();
     let dependency_range = dependency.range();
     let dependency_optional = dependency.get_optional();
+    let dependency_phase = dependency.get_phase();
 
     let importer = data.issuer_identifier;
     let raw_request = data.request.clone();
@@ -227,7 +228,7 @@ impl NormalModuleFactory {
         let second_char = request.next();
 
         if first_char.is_none() {
-          return Err(EmptyDependency::new(dependency.range()).into());
+          return Err(EmptyDependency::new(dependency_range).into());
         }
 
         // See: https://webpack.js.org/concepts/loaders/#inline
@@ -599,6 +600,7 @@ module.exports = "data:,";
         loaders,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
+        dependency_phase,
       )
       .boxed()
     };
@@ -624,16 +626,15 @@ module.exports = "data:,";
     issuer_layer: Option<&'a str>,
   ) -> Result<Vec<&'a ModuleRuleEffect>> {
     let mut rules = Vec::new();
-    module_rules_matcher(
-      &self.options.module.rules,
+    let match_ctx = MatchContext {
       resource_data,
       issuer,
       issuer_layer,
-      dependency.category(),
-      dependency.get_attributes(),
-      &mut rules,
-    )
-    .await?;
+      dependency: *dependency.category(),
+      phase: dependency.get_phase(),
+      attributes: dependency.get_attributes(),
+    };
+    module_rules_matcher(&self.options.module.rules, &match_ctx, &mut rules).await?;
     Ok(rules)
   }
 

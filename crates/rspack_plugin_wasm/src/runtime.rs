@@ -46,6 +46,83 @@ impl AsyncWasmLoadingRuntimeModule {
   }
 }
 
+#[impl_runtime_module]
+#[derive(Debug)]
+pub struct AsyncWasmCompileRuntimeModule {
+  generate_load_binary_code: String,
+  generate_before_load_binary_code: String,
+  generate_before_compile_streaming: String,
+  supports_streaming: bool,
+}
+
+impl AsyncWasmCompileRuntimeModule {
+  pub fn new(
+    runtime_template: &RuntimeTemplate,
+    generate_load_binary_code: String,
+    supports_streaming: bool,
+  ) -> Self {
+    Self::with_default(
+      runtime_template,
+      generate_load_binary_code,
+      Default::default(),
+      Default::default(),
+      supports_streaming,
+    )
+  }
+
+  pub fn new_with_before_streaming(
+    runtime_template: &RuntimeTemplate,
+    generate_load_binary_code: String,
+    generate_before_load_binary_code: String,
+    generate_before_compile_streaming: String,
+    supports_streaming: bool,
+  ) -> Self {
+    Self::with_default(
+      runtime_template,
+      generate_load_binary_code,
+      generate_before_load_binary_code,
+      generate_before_compile_streaming,
+      supports_streaming,
+    )
+  }
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for AsyncWasmCompileRuntimeModule {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
+    let path = render_wasm_module_path(
+      compilation,
+      self.chunk.as_ref().expect("should attached chunk"),
+    )
+    .await?;
+
+    Ok(get_async_wasm_compile(
+      &self
+        .generate_load_binary_code
+        .cow_replace(
+          "$IMPORT_META_NAME",
+          compilation.options.output.import_meta_name.as_str(),
+        )
+        .cow_replace("$PATH", &format!("\"{path}\"")),
+      &self
+        .generate_before_load_binary_code
+        .cow_replace("$PATH", &format!("\"{path}\"")),
+      &self.generate_before_compile_streaming,
+      self.supports_streaming,
+      runtime_template,
+    ))
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
+}
+
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   async fn generate(
@@ -54,36 +131,11 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let (fake_filename, hash_len_map) =
-      get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
-
-    // Even use content hash when [hash] in webpack
-    let hash = match hash_len_map
-      .get("[contenthash]")
-      .or(hash_len_map.get("[hash]"))
-    {
-      Some(hash_len) => {
-        let mut hash_len_buffer = itoa::Buffer::new();
-        let hash_len_str = hash_len_buffer.format(*hash_len);
-        format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
-      }
-      None => "\" + wasmModuleHash + \"".to_string(),
-    };
-
-    let chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(self.chunk.as_ref().expect("should attached chunk"));
-    let path = compilation
-      .get_path(
-        &fake_filename,
-        PathData::default()
-          .hash(&hash)
-          .content_hash(&hash)
-          .id(&PathData::prepare_id("\" + wasmModuleId + \""))
-          .runtime(chunk.runtime().as_str()),
-      )
-      .await?;
+    let path = render_wasm_module_path(
+      compilation,
+      self.chunk.as_ref().expect("should attached chunk"),
+    )
+    .await?;
 
     Ok(get_async_wasm_loading(
       &self
@@ -105,6 +157,42 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
+}
+
+async fn render_wasm_module_path(
+  compilation: &rspack_core::Compilation,
+  chunk_ukey: &rspack_core::ChunkUkey,
+) -> rspack_error::Result<String> {
+  let (fake_filename, hash_len_map) =
+    get_filename_without_hash_length(&compilation.options.output.webassembly_module_filename);
+
+  // Even use content hash when [hash] in webpack
+  let hash = match hash_len_map
+    .get("[contenthash]")
+    .or(hash_len_map.get("[hash]"))
+  {
+    Some(hash_len) => {
+      let mut hash_len_buffer = itoa::Buffer::new();
+      let hash_len_str = hash_len_buffer.format(*hash_len);
+      format!("\" + wasmModuleHash.slice(0, {hash_len_str}) + \"")
+    }
+    None => "\" + wasmModuleHash + \"".to_string(),
+  };
+
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  compilation
+    .get_path(
+      &fake_filename,
+      PathData::default()
+        .hash(&hash)
+        .content_hash(&hash)
+        .id(&PathData::prepare_id("\" + wasmModuleId + \""))
+        .runtime(chunk.runtime().as_str()),
+    )
+    .await
 }
 
 fn get_async_wasm_loading(
@@ -160,6 +248,66 @@ fn get_async_wasm_loading(
     format!(
       r#"
     {instantiate_wasm} = function(exports, wasmModuleId, wasmModuleHash, importsObj) {{
+      return {req}{fallback_code}
+    }};
+      "#
+    )
+  }
+}
+
+fn get_async_wasm_compile(
+  req: &str,
+  generate_before_load_binary_code: &str,
+  generate_before_compile_streaming: &str,
+  supports_streaming: bool,
+  runtime_template: &RuntimeCodeTemplate,
+) -> String {
+  let fallback_code = format!(
+    r#"
+          .then({})
+          .then({});
+"#,
+    runtime_template.basic_function("x", "return x.arrayBuffer();"),
+    runtime_template.basic_function("bytes", "return WebAssembly.compile(bytes);")
+  );
+
+  let streaming_code = format!(
+    r#"
+      return req.then(function(res) {{
+        if (typeof WebAssembly.compileStreaming === "function") {{
+{generate_before_compile_streaming}          return WebAssembly.compileStreaming(res)
+            .catch(function(e) {{
+              if(res.headers.get("Content-Type") !== "application/wasm") {{
+                console.warn("`WebAssembly.compileStreaming` failed because your server does not serve wasm with `application/wasm` MIME type. Falling back to `WebAssembly.compile` which is slower. Original error:\n", e);
+                return fallback();
+              }}
+              throw e;
+            }});
+        }}
+        return fallback();
+      }});
+"#
+  );
+  let compile_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::COMPILE_WASM);
+
+  if supports_streaming {
+    format!(
+      r#"
+    {compile_wasm} = function(wasmModuleId, wasmModuleHash) {{
+      {generate_before_load_binary_code}
+      var req = {req};
+      var fallback = function() {{
+        return req{fallback_code}
+      }}
+      {streaming_code}
+    }};
+"#
+    )
+  } else {
+    let req = req.trim_end_matches(';');
+    format!(
+      r#"
+    {compile_wasm} = function(wasmModuleId, wasmModuleHash) {{
       return {req}{fallback_code}
     }};
       "#

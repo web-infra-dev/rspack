@@ -3,43 +3,37 @@ use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
 
-use crate::{DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect};
+use crate::{DependencyCategory, ImportAttributes, ImportPhase, ModuleRule, ModuleRuleEffect};
 
-pub async fn module_rules_matcher<'a>(
-  rules: &'a [ModuleRule],
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+pub struct MatchContext<'ctx> {
+  pub(crate) resource_data: &'ctx ResourceData,
+  pub(crate) issuer: Option<&'ctx str>,
+  pub(crate) issuer_layer: Option<&'ctx str>,
+  pub(crate) dependency: DependencyCategory,
+  pub(crate) phase: ImportPhase,
+  pub(crate) attributes: Option<&'ctx ImportAttributes>,
+}
+
+pub async fn module_rules_matcher<'rule, 'ctx>(
+  rules: &'rule [ModuleRule],
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
   for rule in rules {
-    module_rule_matcher(
-      rule,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    )
-    .await?;
+    module_rule_matcher(rule, ctx, matched_rules).await?;
   }
   Ok(())
 }
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
 #[async_recursion]
-pub async fn module_rule_matcher<'a>(
-  module_rule: &'a ModuleRule,
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+pub async fn module_rule_matcher<'rule, 'ctx>(
+  module_rule: &'rule ModuleRule,
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
+  let resource_data = ctx.resource_data;
+
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(resource_data.resource().into()).await?
   {
@@ -119,7 +113,7 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(issuer_rule) = &module_rule.issuer {
-    match issuer {
+    match ctx.issuer {
       Some(issuer) => {
         if !issuer_rule.try_match(issuer.into()).await? {
           return Ok(false);
@@ -134,7 +128,7 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
-    match issuer_layer {
+    match ctx.issuer_layer {
       Some(issuer_layer) => {
         if !issuer_layer_rule.try_match(issuer_layer.into()).await? {
           return Ok(false);
@@ -150,8 +144,14 @@ pub async fn module_rule_matcher<'a>(
 
   if let Some(dependency_rule) = &module_rule.dependency
     && !dependency_rule
-      .try_match(dependency.as_str().into())
+      .try_match(ctx.dependency.as_str().into())
       .await?
+  {
+    return Ok(false);
+  }
+
+  if let Some(phase_rule) = &module_rule.phase
+    && !phase_rule.try_match(ctx.phase.as_str().into()).await?
   {
     return Ok(false);
   }
@@ -180,7 +180,7 @@ pub async fn module_rule_matcher<'a>(
   }
 
   if let Some(with) = &module_rule.with {
-    if let Some(attributes) = attributes {
+    if let Some(attributes) = ctx.attributes {
       for (k, matcher) in with {
         if let Some(v) = attributes.get(k) {
           if !matcher.try_match(v.into()).await? {
@@ -202,32 +202,13 @@ pub async fn module_rule_matcher<'a>(
   matched_rules.push(&module_rule.effect);
 
   if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(
-      rules,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    )
-    .await?;
+    module_rules_matcher(rules, ctx, matched_rules).await?;
   }
 
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      if module_rule_matcher(
-        rule,
-        resource_data,
-        issuer,
-        issuer_layer,
-        dependency,
-        attributes,
-        matched_rules,
-      )
-      .await?
-      {
+      if module_rule_matcher(rule, ctx, matched_rules).await? {
         matched_once = true;
         break;
       }

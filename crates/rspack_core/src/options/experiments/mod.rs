@@ -5,5 +5,6 @@
 pub struct Experiments {
   pub css: bool,
   pub defer_import: bool,
+  pub source_import: bool,
   pub pure_functions: bool,
 }

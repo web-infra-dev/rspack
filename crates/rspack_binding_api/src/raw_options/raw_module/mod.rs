@@ -176,6 +176,7 @@ pub struct RawModuleRule {
   pub issuer: Option<RawRuleSetCondition>,
   pub issuer_layer: Option<RawRuleSetCondition>,
   pub dependency: Option<RawRuleSetCondition>,
+  pub phase: Option<RawRuleSetCondition>,
   pub scheme: Option<RawRuleSetCondition>,
   pub mimetype: Option<RawRuleSetCondition>,
   pub one_of: Option<Vec<RawModuleRule>>,
@@ -293,6 +294,7 @@ pub struct RawJavascriptParserOptions {
   #[napi(ts_type = "boolean | { exports?: boolean | 'skipInEsm' }")]
   pub commonjs: Option<Either<bool, RawJavascriptParserCommonjsOptions>>,
   pub defer_import: Option<bool>,
+  pub source_import: Option<bool>,
 
   /// This option is experimental in Rspack only and subject to change or be removed anytime.
   /// @experimental
@@ -405,6 +407,7 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       jsx: value.jsx,
       defer_import: value.defer_import,
+      source_import: value.source_import,
       import_meta_resolve: value.import_meta_resolve,
       side_effects_free: value
         .pure_functions
@@ -1022,6 +1025,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       issuer: value.issuer.map(|raw| raw.try_into()).transpose()?,
       issuer_layer: value.issuer_layer.map(|raw| raw.try_into()).transpose()?,
       dependency: value.dependency.map(|raw| raw.try_into()).transpose()?,
+      phase: value.phase.map(|raw| raw.try_into()).transpose()?,
       scheme: value.scheme.map(|raw| raw.try_into()).transpose()?,
       mimetype: value.mimetype.map(|raw| raw.try_into()).transpose()?,
       one_of,

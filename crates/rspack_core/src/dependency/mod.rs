@@ -251,6 +251,10 @@ impl ImportPhase {
     matches!(self, ImportPhase::Defer)
   }
 
+  pub fn is_source(&self) -> bool {
+    matches!(self, ImportPhase::Source)
+  }
+
   pub fn as_str(&self) -> &'static str {
     match self {
       ImportPhase::Evaluation => "evaluation",

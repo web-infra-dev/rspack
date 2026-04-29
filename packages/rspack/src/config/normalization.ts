@@ -615,10 +615,12 @@ export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
+  outputModule?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
   deferImport?: boolean;
+  sourceImport?: boolean;
   pureFunctions?: boolean;
 }
 

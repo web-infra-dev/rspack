@@ -27,6 +27,8 @@ pub enum RspackComment {
   ExcludeFlags,
   Mode,
   Exports,
+  Defer,
+  Source,
 }
 
 #[derive(Debug)]
@@ -115,6 +117,30 @@ impl RspackCommentMap {
           }
         })
         .collect_vec()
+    })
+  }
+
+  pub fn get_defer(&self) -> Option<bool> {
+    self.0.get(&RspackComment::Defer).and_then(|item| {
+      if item == "true" {
+        Some(true)
+      } else if item == "false" {
+        Some(false)
+      } else {
+        None
+      }
+    })
+  }
+
+  pub fn get_source(&self) -> Option<bool> {
+    self.0.get(&RspackComment::Source).and_then(|item| {
+      if item == "true" {
+        Some(true)
+      } else if item == "false" {
+        Some(false)
+      } else {
+        None
+      }
     })
   }
 }
@@ -319,6 +345,34 @@ fn analyze_comments(
               source,
               item_name,
               "a string",
+              &captures,
+              warning_diagnostics,
+              error_span(),
+            );
+          }
+          "webpackDefer" => {
+            if let Some(item_value_match) = captures.name("_5") {
+              result.insert(RspackComment::Defer, item_value_match.as_str().to_string());
+              continue;
+            }
+            add_magic_comment_warning(
+              source,
+              item_name,
+              "a boolean",
+              &captures,
+              warning_diagnostics,
+              error_span(),
+            );
+          }
+          "webpackSource" => {
+            if let Some(item_value_match) = captures.name("_5") {
+              result.insert(RspackComment::Source, item_value_match.as_str().to_string());
+              continue;
+            }
+            add_magic_comment_warning(
+              source,
+              item_name,
+              "a boolean",
               &captures,
               warning_diagnostics,
               error_span(),
