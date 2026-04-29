@@ -10,7 +10,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ForwardId,
   ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
-  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  ReferencedExportName, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedByExportsCondition, UsedName,
   create_exports_object_referenced, property_access, to_normal_comment,
 };
@@ -121,32 +121,26 @@ impl ESMImportSpecifierDependency {
     ids: Option<&[Atom]>,
   ) -> Vec<ExtendedReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
+      let prefix_len = ids.map_or(0, <[Atom]>::len);
       let mut refs = Vec::new();
       referenced_properties.traverse_on_leaf(&mut |stack| {
-        let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
+        let mut name = ReferencedExportName::with_capacity(prefix_len + stack.len());
         if let Some(ids) = ids {
-          let mut ids = ids.to_vec();
-          ids.extend(ids_in_destructuring);
-          refs.push(ids);
-        } else {
-          refs.push(ids_in_destructuring.collect::<Vec<_>>());
+          name.extend(ids.iter().cloned());
         }
+        name.extend(stack.iter().map(|p| p.id.clone()));
+
+        refs.push(ExtendedReferencedExport::Export(ReferencedExport {
+          name,
+          can_mangle: true,
+          can_inline: false,
+          ns_access: self.ns_access,
+        }));
       });
       refs
-        .into_iter()
-        // Do not inline if there are any places where used as destructuring
-        .map(|name| {
-          ExtendedReferencedExport::Export(ReferencedExport {
-            name,
-            can_mangle: true,
-            can_inline: false,
-            ns_access: self.ns_access,
-          })
-        })
-        .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![ExtendedReferencedExport::Export(ReferencedExport {
-        name: v.to_vec(),
+        name: v.iter().cloned().collect(),
         can_mangle: true,
         // Need access the export value to trigger side effects for deferred module
         can_inline: !self.phase.is_defer(),

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use cow_utils::CowUtils;
-use itertools::Itertools;
 use rspack_core::DependencyRange;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
@@ -44,7 +43,7 @@ impl ProvideParserPlugin {
         requests[1..]
           .iter()
           .map(|s| Atom::from(s.as_str()))
-          .collect_vec(),
+          .collect(),
         loc,
       );
       parser.add_dependency(Box::new(dep));

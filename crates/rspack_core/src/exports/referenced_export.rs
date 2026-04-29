@@ -1,12 +1,15 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
+use smallvec::SmallVec;
 
 use crate::{ExportInfo, ExportInfoData, ExportsInfoArtifact, RuntimeSpec, UsageState};
+
+pub type ReferencedExportName = SmallVec<[Atom; 2]>;
 
 /// refer https://github.com/webpack/webpack/blob/d15c73469fd71cf98734685225250148b68ddc79/lib/FlagDependencyUsagePlugin.js#L64
 #[derive(Clone, Debug)]
 pub enum ExtendedReferencedExport {
-  Array(Vec<Atom>),
+  Array(ReferencedExportName),
   Export(ReferencedExport),
 }
 
@@ -23,12 +26,12 @@ pub fn create_no_exports_referenced() -> Vec<ExtendedReferencedExport> {
 }
 
 pub fn create_exports_object_referenced() -> Vec<ExtendedReferencedExport> {
-  vec![ExtendedReferencedExport::Array(vec![])]
+  vec![ExtendedReferencedExport::Array(ReferencedExportName::new())]
 }
 
 impl From<Vec<Atom>> for ExtendedReferencedExport {
   fn from(value: Vec<Atom>) -> Self {
-    ExtendedReferencedExport::Array(value)
+    ExtendedReferencedExport::Array(value.into_iter().collect())
   }
 }
 impl From<ReferencedExport> for ExtendedReferencedExport {
@@ -39,14 +42,14 @@ impl From<ReferencedExport> for ExtendedReferencedExport {
 
 #[derive(Clone, Debug)]
 pub struct ReferencedExport {
-  pub name: Vec<Atom>,
+  pub name: ReferencedExportName,
   pub can_mangle: bool,
   pub can_inline: bool,
   pub ns_access: bool,
 }
 
 impl ReferencedExport {
-  pub fn new(name: Vec<Atom>, can_mangle: bool, can_inline: bool) -> Self {
+  pub fn new(name: ReferencedExportName, can_mangle: bool, can_inline: bool) -> Self {
     Self {
       name,
       can_mangle,
@@ -59,7 +62,7 @@ impl ReferencedExport {
 impl Default for ReferencedExport {
   fn default() -> Self {
     Self {
-      name: vec![],
+      name: ReferencedExportName::new(),
       can_mangle: true,
       can_inline: true,
       ns_access: false,

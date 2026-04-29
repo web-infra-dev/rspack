@@ -46,7 +46,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
   ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
+  ModuleIdentifier, ReferencedExport, ReferencedExportName, RuntimeSpec, SideEffectsStateArtifact,
   create_exports_object_referenced,
 };
 
@@ -346,10 +346,10 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       // remove last one
       names = &names[..names.len().saturating_sub(1)];
     }
+    let mut name = ReferencedExportName::with_capacity(names.len());
+    name.extend(names.iter().cloned());
     refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
-      names.to_vec(),
-      false,
-      false,
+      name, false, false,
     )));
   }
   refs

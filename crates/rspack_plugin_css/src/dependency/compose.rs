@@ -64,7 +64,7 @@ impl Dependency for CssComposeDependency {
     self
       .names
       .iter()
-      .map(|n| ExtendedReferencedExport::Array(vec![n.clone()]))
+      .map(|n| ExtendedReferencedExport::Array(std::iter::once(n.clone()).collect()))
       .collect()
   }
 }

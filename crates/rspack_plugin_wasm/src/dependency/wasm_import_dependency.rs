@@ -57,7 +57,9 @@ impl Dependency for WasmImportDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    vec![ExtendedReferencedExport::Array(vec![self.name.clone()])]
+    vec![ExtendedReferencedExport::Array(
+      std::iter::once(self.name.clone()).collect(),
+    )]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

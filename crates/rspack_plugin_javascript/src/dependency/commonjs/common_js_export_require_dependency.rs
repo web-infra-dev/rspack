@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
@@ -8,7 +7,7 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
   ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Nullable, ReferencedExport, RuntimeSpec, TemplateContext,
+  ModuleIdentifier, Nullable, ReferencedExport, ReferencedExportName, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
   create_exports_object_referenced, create_no_exports_referenced, property_access,
   to_normal_comment,
@@ -31,7 +30,7 @@ pub struct CommonJsExportRequireDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   #[cacheable(with=AsVec<AsPreset>)]
-  ids: Vec<Atom>,
+  ids: ReferencedExportName,
   result_used: bool,
   factorize_info: FactorizeInfo,
 }
@@ -43,7 +42,7 @@ impl CommonJsExportRequireDependency {
     range: DependencyRange,
     base: ExportsBase,
     names: Vec<Atom>,
-    ids: Vec<Atom>,
+    ids: ReferencedExportName,
     result_used: bool,
   ) -> Self {
     Self {
@@ -231,7 +230,9 @@ impl Dependency for CommonJsExportRequireDependency {
           export: Some(if ids.is_empty() {
             Nullable::Null
           } else {
-            Nullable::Value(ids.to_vec())
+            let mut export = Vec::with_capacity(ids.len());
+            export.extend_from_slice(ids);
+            Nullable::Value(export)
           }),
           ..Default::default()
         })]),
@@ -252,8 +253,9 @@ impl Dependency for CommonJsExportRequireDependency {
             reexport_info
               .iter()
               .map(|name| {
-                let mut export = ids.to_vec();
-                export.extend(vec![name.to_owned()]);
+                let mut export = Vec::with_capacity(ids.len() + 1);
+                export.extend_from_slice(ids);
+                export.push(name.to_owned());
                 ExportNameOrSpec::ExportSpec(ExportSpec {
                   name: name.to_owned(),
                   from: Some(from.to_owned()),
@@ -263,7 +265,7 @@ impl Dependency for CommonJsExportRequireDependency {
                   ..Default::default()
                 })
               })
-              .collect_vec(),
+              .collect(),
           ),
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
@@ -311,7 +313,7 @@ impl Dependency for CommonJsExportRequireDependency {
         create_exports_object_referenced()
       } else {
         vec![ExtendedReferencedExport::Export(ReferencedExport {
-          name: ids.to_vec(),
+          name: ids.iter().cloned().collect(),
           // `module.exports = require("./m")` can't be mangled
           can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
@@ -352,14 +354,12 @@ impl Dependency for CommonJsExportRequireDependency {
 
     let mut referenced_exports = vec![];
     for export_info in exports_info.exports().values() {
-      let prefix = ids
-        .iter()
-        .chain(if let Some(name) = export_info.name() {
-          vec![name]
-        } else {
-          vec![]
-        })
-        .collect_vec();
+      let export_info_name = export_info.name();
+      let mut prefix = Vec::with_capacity(ids.len() + usize::from(export_info_name.is_some()));
+      prefix.extend(ids.iter());
+      if let Some(name) = export_info_name {
+        prefix.push(name);
+      }
       collect_referenced_export_items(
         exports_info_artifact,
         runtime,
@@ -375,14 +375,17 @@ impl Dependency for CommonJsExportRequireDependency {
       .into_iter()
       .map(|name| {
         ExtendedReferencedExport::Export(ReferencedExport {
-          name: name.into_iter().map(|i| i.to_owned()).collect_vec(),
+          name: name
+            .into_iter()
+            .map(|i| i.to_owned())
+            .collect::<ReferencedExportName>(),
           // `module.exports = require("./m")` can't be mangled
           can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
           ns_access: false,
         })
       })
-      .collect_vec()
+      .collect()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
