@@ -548,8 +548,8 @@ impl Plugin for CssPlugin {
       ModuleType::CssGlobal,
       Box::new(|p, g| {
         let p = p
-          .and_then(|p| p.get_css_global())
-          .expect("should have CssGlobalParserOptions");
+          .and_then(|p| p.get_css_module())
+          .expect("should have CssModuleParserOptions");
         let g = g
           .and_then(|g| g.get_css_global())
           .expect("should have CssModuleGeneratorOptions");
@@ -586,8 +586,8 @@ impl Plugin for CssPlugin {
       ModuleType::CssAuto,
       Box::new(|p, g| {
         let p = p
-          .and_then(|p| p.get_css_auto())
-          .expect("should have CssAutoParserOptions");
+          .and_then(|p| p.get_css_module())
+          .expect("should have CssModuleParserOptions");
         let g = g
           .and_then(|g| g.get_css_auto())
           .expect("should have CssModuleGeneratorOptions");

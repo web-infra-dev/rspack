@@ -9,12 +9,11 @@ use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
-  CompilerOptions, Context, CssAutoParserOptions, CssGlobalParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  CompilerOptions, Context, CssModuleGeneratorOptions, CssModuleParserOptions, Dependency,
+  DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  NormalModule, ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
   ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
@@ -718,12 +717,6 @@ module.exports = "data:,";
             p.get("css").cloned(),
             options,
             |css_options, options| match (css_options, options) {
-              (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
-                ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
-              }
-              (ParserOptions::Css(a), ParserOptions::CssGlobal(b)) => {
-                ParserOptions::CssGlobal(Into::<CssGlobalParserOptions>::into(a).merge_from(b))
-              }
               (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
                 ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
               }
@@ -762,14 +755,6 @@ module.exports = "data:,";
             g.get("css").cloned(),
             options,
             |css_options, options| match (css_options, options) {
-              (GeneratorOptions::Css(a), GeneratorOptions::CssAuto(b)) => {
-                GeneratorOptions::CssAuto(Into::<CssModuleGeneratorOptions>::into(a).merge_from(b))
-              }
-              (GeneratorOptions::Css(a), GeneratorOptions::CssGlobal(b)) => {
-                GeneratorOptions::CssGlobal(
-                  Into::<CssModuleGeneratorOptions>::into(a).merge_from(b),
-                )
-              }
               (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
                 GeneratorOptions::CssModule(
                   Into::<CssModuleGeneratorOptions>::into(a).merge_from(b),
@@ -798,9 +783,6 @@ module.exports = "data:,";
       |global, local| match (global, local) {
         (ParserOptions::Asset(a), ParserOptions::Asset(b)) => ParserOptions::Asset(a.merge_from(b)),
         (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.merge_from(b)),
-        (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
-          ParserOptions::CssAuto(a.merge_from(b))
-        }
         (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
           ParserOptions::CssModule(a.merge_from(b))
         }
@@ -822,7 +804,6 @@ module.exports = "data:,";
         | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
         | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
         | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
-        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
         | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
         | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
         _ => global,

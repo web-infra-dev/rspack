@@ -2085,13 +2085,6 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
-export interface RawCssAutoParserOptions {
-  exportType?: "link" | "text" | "css-style-sheet" | "style"
-  namedExports?: boolean
-  url?: boolean
-  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
-}
-
 export interface RawCssChunkingPluginOptions {
   strict?: boolean
   minSize?: number
@@ -2776,8 +2769,8 @@ export interface RawParserOptions {
   type: "asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
-  cssAuto?: RawCssAutoParserOptions
-  cssGlobal?: RawCssParserOptions
+  cssAuto?: RawCssModuleParserOptions
+  cssGlobal?: RawCssModuleParserOptions
   cssModule?: RawCssModuleParserOptions
   javascript?: RawJavascriptParserOptions
   json?: RawJsonParserOptions

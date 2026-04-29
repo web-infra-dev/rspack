@@ -1059,33 +1059,7 @@ export type CssParserOptions = {
   resolveImport?: CssParserResolveImport;
 };
 
-/** Options object for `css/auto` modules. */
-export type CssAutoParserOptions = {
-  /**
-   * Configure how CSS content is exported as default.
-   */
-  exportType?: CssGeneratorExportType;
-
-  /**
-   * Use ES modules named export for CSS exports.
-   * @default true
-   * */
-  namedExports?: CssParserNamedExports;
-
-  /**
-   * Allow to enable/disables handling the CSS functions url.
-   * @default true
-   * */
-  url?: CssParserUrl;
-
-  /**
-   * Allow to enable/disables `@import` at-rules handling.
-   * @default true
-   * */
-  resolveImport?: CssParserResolveImport;
-};
-
-/** Options object for `css/module` modules. */
+/** Options object for `css/auto` and `css/module` modules. */
 export type CssModuleParserOptions = {
   /**
    * Configure how CSS content is exported as default.
@@ -1288,10 +1262,10 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssAutoParserOptions;
+  'css/auto'?: CssModuleParserOptions;
 
   /** Parser options for `css/global` modules. */
-  'css/global'?: CssParserOptions;
+  'css/global'?: CssModuleParserOptions;
 
   /** Parser options for `css/module` modules. */
   'css/module'?: CssModuleParserOptions;

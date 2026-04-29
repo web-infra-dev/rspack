@@ -16,15 +16,14 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
-  CssAutoParserOptions, CssGeneratorOptions, CssGlobalParserOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
-  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
-  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport,
+  CssParserImportContext, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
+  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
+  ImportMeta, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
+  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
@@ -196,8 +195,8 @@ pub struct RawParserOptions {
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
   pub css: Option<RawCssParserOptions>,
-  pub css_auto: Option<RawCssAutoParserOptions>,
-  pub css_global: Option<RawCssParserOptions>,
+  pub css_auto: Option<RawCssModuleParserOptions>,
+  pub css_global: Option<RawCssModuleParserOptions>,
   pub css_module: Option<RawCssModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
   pub json: Option<RawJsonParserOptions>,
@@ -244,13 +243,13 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"css\" when RawParserOptions.type is \"css\"")
           .into(),
       ),
-      "css/auto" => Self::CssAuto(
+      "css/auto" => Self::CssModule(
         value
           .css_auto
           .expect("should have an \"css_auto\" when RawParserOptions.type is \"css/auto\"")
           .into(),
       ),
-      "css/global" => Self::CssGlobal(
+      "css/global" => Self::CssModule(
         value
           .css_global
           .expect("should have an \"css_global\" when RawParserOptions.type is \"css/global\"")
@@ -536,36 +535,6 @@ pub struct RawCssParserOptions {
 
 impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
-    Self {
-      export_type: value.export_type.map(Into::into),
-      named_exports: value.named_exports,
-      url: value.url,
-      resolve_import: convert_import_option(value.resolve_import),
-    }
-  }
-}
-
-impl From<RawCssParserOptions> for CssGlobalParserOptions {
-  fn from(value: RawCssParserOptions) -> Self {
-    CssParserOptions::from(value).into()
-  }
-}
-
-#[derive(Debug, Default)]
-#[napi(object, object_to_js = false)]
-pub struct RawCssAutoParserOptions {
-  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
-  pub export_type: Option<String>,
-  pub named_exports: Option<bool>,
-  pub url: Option<bool>,
-  #[napi(
-    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
-  )]
-  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
-}
-
-impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
-  fn from(value: RawCssAutoParserOptions) -> Self {
     Self {
       export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
