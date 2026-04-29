@@ -11,7 +11,7 @@ use anyhow::{Context, bail};
 use base64::prelude::*;
 use indoc::formatdoc;
 use rspack_error::Result;
-use rspack_util::{SpanExt, source_map::SourceMapKind, swc::minify_file_comments};
+use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
@@ -29,6 +29,10 @@ use swc_core::{
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
+    codegen::{
+      self, Emitter, Node,
+      text_writer::{self, WriteJs},
+    },
     parser::{
       Syntax, TsSyntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
       parse_file_as_script,
@@ -41,7 +45,7 @@ use swc_typescript::fast_dts::FastDts;
 use url::Url;
 
 use super::{
-  IsolatedDtsDiagnostic, IsolatedDtsTransformOutput, JavaScriptCompiler, TransformOutput,
+  IsolatedDtsTransformOutput, JavaScriptCompiler, TransformOutput,
   stringify::{PrintOptions, SourceMapConfig},
 };
 
@@ -77,7 +81,6 @@ impl JavaScriptCompiler {
     program: &Program,
     filename: Arc<FileName>,
     unresolved_mark: Mark,
-    source_len: u32,
     target: EsVersion,
     comments: &SingleThreadedComments,
   ) -> Result<IsolatedDtsTransformOutput> {
@@ -92,33 +95,46 @@ impl JavaScriptCompiler {
       // declaration-safe codegen settings instead of reusing the JS output pipeline.
       let mut program = program.clone();
       let mut checker = FastDts::new(filename, unresolved_mark, Default::default());
-      let diagnostics = checker
-        .transform(&mut program)
-        .into_iter()
-        .map(|issue| IsolatedDtsDiagnostic {
-          message: issue.message.to_string(),
-          start: issue.range.span.real_lo(),
-          end: issue.range.span.real_hi(),
-        })
-        .collect();
+      let diagnostics = match checker.transform(&mut program) {
+        issues if issues.is_empty() => Vec::new(),
+        issues => {
+          let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+            for issue in issues {
+              handler
+                .struct_span_err(issue.range.span, &issue.message)
+                .emit();
+            }
 
-      let code = self
-        .print(
-          &program,
-          PrintOptions {
-            source_len,
-            source_map: self.cm.clone(),
-            target,
-            source_map_config: SourceMapConfig::default(),
-            input_source_map: None,
-            minify: false,
+            Ok(())
+          });
+
+          match result {
+            Ok(()) => Vec::new(),
+            Err(error) => vec![error.to_pretty_string()],
+          }
+        }
+      };
+
+      let code = {
+        let mut buf = Vec::new();
+        {
+          let wr = Box::new(text_writer::JsWriter::new(
+            self.cm.clone(),
+            "\n",
+            &mut buf,
+            None,
+          )) as Box<dyn WriteJs>;
+          let mut emitter = Emitter {
+            cfg: codegen::Config::default().with_target(target),
             comments: Some(&comments as &dyn Comments),
-            preamble: "",
-            ascii_only: false,
-            inline_script: false,
-          },
-        )?
-        .code;
+            cm: self.cm.clone(),
+            wr,
+          };
+          program.emit_with(&mut emitter)?;
+        }
+        // SAFETY: SWC will emit valid utf8 for sure
+        unsafe { String::from_utf8_unchecked(buf) }
+      };
 
       Ok(IsolatedDtsTransformOutput { code, diagnostics })
     })

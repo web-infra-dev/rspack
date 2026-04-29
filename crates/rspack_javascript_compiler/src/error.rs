@@ -1,20 +1,14 @@
 use std::{
   fmt::Debug,
-  path::Path,
   sync::{Arc, mpsc},
 };
 
-use rspack_error::{BatchErrors, Error, Severity, error};
+use rspack_error::{BatchErrors, Error, error};
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::common::{
-  BytePos, FileName, SourceMap, Span, Spanned,
-  errors::{ColorConfig, Emitter, HANDLER, Handler},
-  sync::Lrc,
-};
-use swc_error_reporters::{
-  ErrorEmitter,
-  handler::{HandlerOpts, ThreadSafetyDiagnostics},
+  SourceMap, Span, Spanned,
+  errors::{Emitter, HANDLER, Handler},
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -67,46 +61,6 @@ pub fn ecma_parse_error_deduped_to_rspack_error(
     "JavaScript parse error".into(),
     message,
   )
-}
-
-pub fn render_pretty_span_diagnostic(
-  source_code: &str,
-  file_path: &Path,
-  start: u32,
-  end: u32,
-  message: &str,
-  severity: Severity,
-) -> String {
-  let cm: Lrc<SourceMap> = Default::default();
-  let file = cm.new_source_file(
-    Arc::new(FileName::Real(file_path.to_path_buf())),
-    source_code.to_string(),
-  );
-
-  let span = Span::new(
-    file.start_pos + BytePos(start),
-    file.start_pos + BytePos(end.max(start.saturating_add(1))),
-  );
-
-  let diagnostics = ThreadSafetyDiagnostics::default();
-  let emitter = Box::new(ErrorEmitter {
-    diagnostics: diagnostics.clone(),
-    cm: cm.clone(),
-    opts: HandlerOpts {
-      color: ColorConfig::Auto,
-      skip_filename: false,
-    },
-  });
-  let handler = Handler::with_emitter(true, false, emitter);
-
-  HANDLER.set(&handler, || match severity {
-    Severity::Error => handler.struct_span_err(span, message).emit(),
-    Severity::Warning => handler.struct_span_warn(span, message).emit(),
-  });
-
-  diagnostics
-    .to_pretty_string(&cm, false, ColorConfig::Auto)
-    .join("")
 }
 
 // keep this private to make sure with_rspack_error_handler is safety

@@ -1,5 +1,4 @@
 use std::{
-  path::{Component, PathBuf},
   sync::Arc,
   time::{Duration, Instant},
 };
@@ -7,11 +6,11 @@ use std::{
 use cow_utils::CowUtils;
 use pathdiff::diff_paths;
 use rspack_core::{
-  AssetEmittedInfo, AssetInfo, BuildInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation,
-  CompilationAsset, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
-  SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
+  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAsset,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, IsolatedDts,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, error};
@@ -49,27 +48,12 @@ pub struct SwcEmitDtsPluginOptions {
   pub declaration_dir: String,
 }
 
-#[derive(Debug, Clone)]
-struct SwcEmitDtsBuildInfo {
-  resource_path: String,
-  code: String,
-}
-
-fn get_build_info(build_info: &BuildInfo) -> Option<SwcEmitDtsBuildInfo> {
-  let value = build_info.extras.get("rspack-swc-isolated-dts-emit")?;
-  let value = value.as_object()?;
-  Some(SwcEmitDtsBuildInfo {
-    resource_path: value.get("resource_path")?.as_str()?.to_string(),
-    code: value.get("code")?.as_str()?.to_string(),
-  })
-}
-
 fn emit_isolated_dts_asset(
   compilation: &mut Compilation,
   emit_dts_options: &SwcEmitDtsPluginOptions,
-  dts: SwcEmitDtsBuildInfo,
+  dts: IsolatedDts,
 ) -> Result<()> {
-  let SwcEmitDtsBuildInfo {
+  let IsolatedDts {
     resource_path,
     code,
   } = dts;
@@ -90,20 +74,19 @@ fn emit_isolated_dts_asset(
   let declaration_file_path = resolved_declaration_dir
     .join(output_relative_path)
     .with_extension("d.ts");
-  let filename = if let Ok(relative_path) = declaration_file_path.strip_prefix(&output_path) {
-    relative_path.to_string()
-  } else {
-    diff_paths(&declaration_file_path, &output_path)
-      .ok_or_else(|| {
-        error!(
-          "Failed to emit declaration files for {} because declarationDir {} can not be relativized against output.path {}",
-          resource_path, resolved_declaration_dir, output_path
-        )
-      })?
-      .to_string_lossy()
-      .cow_replace('\\', "/")
-      .into_owned()
-  };
+  let filename = diff_paths(
+    declaration_file_path.as_std_path(),
+    output_path.as_std_path(),
+  )
+    .ok_or_else(|| {
+      error!(
+        "Failed to emit declaration files for {} because declarationDir {} can not be relativized against output.path {}",
+        resource_path, resolved_declaration_dir, output_path
+      )
+    })?
+    .to_string_lossy()
+    .cow_replace('\\', "/")
+    .into_owned();
 
   compilation.emit_asset(
     filename,
@@ -124,29 +107,8 @@ fn resolve_emit_dts_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
   if path.is_absolute() {
     path.to_path_buf()
   } else {
-    normalize_joined_path(base.as_std_path().join(path.as_std_path()))
-      .to_string_lossy()
-      .to_string()
-      .into()
+    base.join(path)
   }
-}
-
-fn normalize_joined_path(path: PathBuf) -> PathBuf {
-  let mut normalized = PathBuf::new();
-
-  for component in path.components() {
-    match component {
-      Component::Prefix(prefix) => normalized.push(prefix.as_os_str()),
-      Component::RootDir => normalized.push(component.as_os_str()),
-      Component::CurDir => {}
-      Component::ParentDir => {
-        normalized.pop();
-      }
-      Component::Normal(part) => normalized.push(part),
-    }
-  }
-
-  normalized
 }
 
 #[derive(Debug)]
@@ -349,7 +311,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let dts_outputs = compilation
     .get_module_graph()
     .modules()
-    .filter_map(|(_, module)| get_build_info(module.build_info()))
+    .filter_map(|(_, module)| module.build_info().isolated_dts.clone())
     .collect::<Vec<_>>();
 
   for dts in dts_outputs {

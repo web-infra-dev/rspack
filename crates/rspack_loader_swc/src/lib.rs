@@ -126,19 +126,22 @@ impl SwcLoader {
     let comments = Rc::new(SingleThreadedComments::default());
 
     let source = content.into_string_lossy();
-    let source_code = source.clone();
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
-    let should_emit_isolated_dts = swc_options
-      .config
-      .jsc
-      .experimental
-      .emit_isolated_dts
-      .into_bool();
-    let isolated_dts_target = swc_options.config.jsc.target.unwrap_or(EsVersion::EsNext);
-    let source_len = source.len() as u32;
-    let dts_filename = filename.clone();
-    let dts_comments = comments.clone();
+    let isolated_dts_context = (is_typescript
+      && swc_options
+        .config
+        .jsc
+        .experimental
+        .emit_isolated_dts
+        .into_bool())
+    .then(|| {
+      (
+        swc_options.config.jsc.target.unwrap_or(EsVersion::EsNext),
+        filename.clone(),
+        comments.clone(),
+      )
+    });
     let mut isolated_dts = Ok(None);
     let mut collected_ts_info = None;
     let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
@@ -158,15 +161,14 @@ impl SwcLoader {
           return;
         }
 
-        if should_emit_isolated_dts {
+        if let Some((target, dts_filename, dts_comments)) = &isolated_dts_context {
           isolated_dts = javascript_compiler
             .emit_isolated_dts(
               program,
               dts_filename.clone(),
               unresolved_mark,
-              source_len,
-              isolated_dts_target,
-              &dts_comments,
+              *target,
+              dts_comments,
             )
             .map(Some);
         }
@@ -216,12 +218,7 @@ impl SwcLoader {
     }
 
     if let Some(isolated_dts) = isolated_dts? {
-      handle_isolated_dts_diagnostics(
-        loader_context,
-        &resource_path,
-        &source_code,
-        isolated_dts.diagnostics,
-      )?;
+      handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
 
       set_build_info(
         loader_context.context.module.build_info_mut(),
