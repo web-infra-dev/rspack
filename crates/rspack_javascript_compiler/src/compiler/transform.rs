@@ -20,7 +20,7 @@ use swc_core::{
     config::{
       BuiltInput, Config, InputSourceMap, JsMinifyCommentOption, OutputCharset, SourceMapsConfig,
     },
-    sourcemap,
+    sourcemap::{self, RawToken},
   },
   common::{
     FileName, GLOBALS, Mark, SourceFile, SourceMap,
@@ -54,6 +54,7 @@ impl JavaScriptCompiler {
     comments: std::rc::Rc<SingleThreadedComments>,
     options: SwcOptions,
     module_source_map_kind: Option<SourceMapKind>,
+    input_source_map: Option<sourcemap::SourceMap>,
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
   ) -> Result<TransformOutput>
@@ -68,8 +69,82 @@ impl JavaScriptCompiler {
     let javascript_transformer =
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
-    javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
+    javascript_transformer.transform(
+      inspect_parsed_ast,
+      before_pass,
+      module_source_map_kind,
+      input_source_map,
+    )
   }
+}
+
+pub fn rspack_source_map_to_swc_source_map(
+  source_map: &rspack_sources::SourceMap,
+) -> sourcemap::SourceMap {
+  let sources = source_map
+    .sources()
+    .iter()
+    .map(|source| source.clone().into())
+    .collect::<Vec<_>>();
+  let names = source_map
+    .names()
+    .iter()
+    .map(|name| name.clone().into())
+    .collect::<Vec<_>>();
+  let sources_content = source_map.sources().iter().enumerate().fold(
+    None,
+    |mut sources_content: Option<Vec<_>>, (source_index, _)| {
+      let source_content = source_map
+        .get_source_content(source_index)
+        .map(|source_content| source_content.to_string().into());
+      if source_content.is_some() || sources_content.is_some() {
+        sources_content
+          .get_or_insert_with(|| vec![None; source_index])
+          .push(source_content);
+      }
+      sources_content
+    },
+  );
+  let tokens = source_map
+    .decoded_mappings()
+    .map(|mapping| {
+      let (src_line, src_col, src_id, name_id) = if let Some(original) = mapping.original {
+        (
+          original.original_line.saturating_sub(1),
+          original.original_column,
+          original.source_index,
+          original.name_index.unwrap_or(!0),
+        )
+      } else {
+        (0, 0, !0, !0)
+      };
+      RawToken {
+        dst_line: mapping.generated_line.saturating_sub(1),
+        dst_col: mapping.generated_column,
+        src_line,
+        src_col,
+        src_id,
+        name_id,
+        is_range: false,
+      }
+    })
+    .collect();
+
+  let mut swc_source_map = sourcemap::SourceMap::new(
+    source_map.file().map(ToString::to_string).map(Into::into),
+    tokens,
+    names,
+    sources,
+    sources_content,
+  );
+  swc_source_map.set_source_root(source_map.source_root().map(ToString::to_string));
+  if let Some(ignore_list) = source_map.ignore_list() {
+    for &source_index in ignore_list {
+      swc_source_map.add_to_ignore_list(source_index);
+    }
+  }
+
+  swc_source_map
 }
 
 struct JavaScriptTransformer<'a> {
@@ -122,6 +197,7 @@ impl<'a> JavaScriptTransformer<'a> {
     inspect_parsed_ast: impl FnOnce(&Program, Mark),
     before_pass: impl FnOnce(&Program) -> P + 'a,
     module_source_map_kind: Option<SourceMapKind>,
+    prebuilt_input_source_map: Option<sourcemap::SourceMap>,
   ) -> Result<TransformOutput>
   where
     P: Pass + 'a,
@@ -141,7 +217,11 @@ impl<'a> JavaScriptTransformer<'a> {
       names: Default::default(),
     };
 
-    let input_source_map = self.input_source_map(&built_input.input_source_map)?;
+    let input_source_map = if let Some(input_source_map) = prebuilt_input_source_map {
+      Some(input_source_map)
+    } else {
+      self.input_source_map(&built_input.input_source_map)?
+    };
 
     let diagnostics = self.transform_with_built_input(&mut built_input, inspect_parsed_ast)?;
     let ascii_only = built_input
