@@ -10,6 +10,7 @@ use rspack_util::{ext::DynHash, json_stringify_str};
 use swc_core::atoms::Atom;
 
 const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
+const DATA_RSC_CSS_HREF: &str = "data-rsc-css-href";
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -153,6 +154,10 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
     let react =
       runtime_template.module_raw(compilation, dependency.id(), dependency.request(), false);
     let importer = json_stringify_str(&dependency.importer);
+    // Mark these stylesheet links as RSC-managed CSS dependencies. Consumers can
+    // collect this marker and preinit only bundler-emitted RSC CSS, without
+    // treating arbitrary user-authored stylesheet links as RSC assets.
+    let data_rsc_css_href = json_stringify_str(DATA_RSC_CSS_HREF);
 
     init_fragments.push(Box::new(
       NormalInitFragment::new(
@@ -164,6 +169,7 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
         key: href,
         rel: "stylesheet",
         href: href,
+        {data_rsc_css_href}: href,
         precedence: "default"
       }});
     }}));
