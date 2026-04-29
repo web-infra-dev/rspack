@@ -385,6 +385,15 @@ opt-level = "s"
 [profile.release.package.oneshot]
 opt-level = "s"
 
+[profile.release.package."cranelift-codegen"]
+opt-level = "s"
+
+[profile.release.package.wasmtime]
+opt-level = "s"
+
+[profile.release.package."wasi-common"]
+opt-level = "s"
+
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256
