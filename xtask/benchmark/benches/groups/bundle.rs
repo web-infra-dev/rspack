@@ -23,7 +23,7 @@ fn bundle_benchmark(c: &mut Criterion) {
   let rt = rspack_benchmark::build_tokio_rt();
   for (id, get_compiler) in derive_projects(projects) {
     group.bench_function(format!("bundle@{id}"), |b| {
-      b.to_async(&rt).iter_batched(
+      b.iter_batched(
         || {
           let compiler_context = Arc::new(CompilerContext::new());
           (
@@ -32,10 +32,10 @@ fn bundle_benchmark(c: &mut Criterion) {
           )
         },
         |(compiler_context, mut compiler)| {
-          within_compiler_context(compiler_context, async move {
+          rt.block_on(within_compiler_context(compiler_context, async move {
             compiler.run().await.unwrap();
             assert!(compiler.compilation.get_errors().next().is_none());
-          })
+          }))
         },
         criterion::BatchSize::PerIteration,
       );
