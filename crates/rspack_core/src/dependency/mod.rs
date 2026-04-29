@@ -232,6 +232,10 @@ impl ImportAttributes {
     self.0.get(k).map(|v| v.as_str())
   }
 
+  pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+    self.0.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+  }
+
   pub fn insert(&mut self, k: String, v: String) -> Option<String> {
     self.0.insert(k, v)
   }
