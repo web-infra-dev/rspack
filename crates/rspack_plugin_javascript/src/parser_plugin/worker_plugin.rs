@@ -273,17 +273,33 @@ impl WorkerPlugin {
   }
 
   pub fn new(syntax_list: &[String]) -> Self {
-    let mut this = if syntax_list.iter().any(|syntax| syntax == "...") {
-      DEFAULT_WORKER_PLUGIN.clone()
-    } else {
-      Self::empty()
-    };
+    if syntax_list.len() == 1 && syntax_list[0] == "..." {
+      return DEFAULT_WORKER_PLUGIN.clone();
+    }
+
+    let mut this = Self::empty();
     for syntax in syntax_list {
-      if syntax != "..." {
+      if syntax == "..." {
+        this.merge(DEFAULT_WORKER_PLUGIN.clone());
+      } else {
         this.handle_syntax(syntax);
       }
     }
     this
+  }
+
+  fn merge(&mut self, other: Self) {
+    self.new_syntax.extend(other.new_syntax);
+    self.call_syntax.extend(other.call_syntax);
+    self.from_new_syntax.extend(other.from_new_syntax);
+    self.from_call_syntax.extend(other.from_call_syntax);
+    for (pattern, members) in other.pattern_syntax {
+      self
+        .pattern_syntax
+        .entry(pattern)
+        .or_default()
+        .extend(members);
+    }
   }
 
   fn handle_syntax(&mut self, syntax: &str) {
