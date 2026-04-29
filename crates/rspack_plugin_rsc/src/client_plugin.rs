@@ -34,7 +34,7 @@ pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_per_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
+  client_entries_by_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
 }
 
 fn extend_required_chunks(
@@ -575,7 +575,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         false,
       ));
       self
-        .client_entries_per_entry
+        .client_entries_by_entry
         .borrow_mut()
         .entry(entry_name.clone())
         .or_default()
@@ -639,7 +639,7 @@ async fn after_process_assets(
     collect_bootstrap_scripts(compilation, &mut plugin_state)?;
     logger.time_end(start);
 
-    for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
+    for (entry_name, client_entries) in self.client_entries_by_entry.borrow().iter() {
       let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
       plugin_state
         .entries
