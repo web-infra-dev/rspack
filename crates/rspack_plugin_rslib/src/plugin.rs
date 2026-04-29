@@ -3,16 +3,19 @@ use std::{
   time::{Duration, Instant},
 };
 
+use cow_utils::CowUtils;
+use pathdiff::diff_paths;
 use rspack_core::{
-  AssetEmittedInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation,
-  CompilationOptimizeDependencies, CompilationParams, CompilerAssetEmitted, CompilerCompilation,
-  DependencyType, ExportsInfoArtifact, ModuleType, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives,
-  get_module_hashbang,
+  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAsset,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, IsolatedDts,
+  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
+  RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_plugin_asset::AssetParserAndGenerator;
 use rspack_plugin_externals::EsmNodeTargetPlugin;
 use rspack_plugin_javascript::{
@@ -31,11 +34,81 @@ use crate::{
   react_directives_parser_plugin::ReactDirectivesParserPlugin,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
   pub force_node_shims: bool,
   pub auto_cjs_node_builtin: bool,
+  pub emit_dts: Option<SwcEmitDtsPluginOptions>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SwcEmitDtsPluginOptions {
+  pub root_dir: String,
+  pub declaration_dir: String,
+}
+
+fn emit_isolated_dts_asset(
+  compilation: &mut Compilation,
+  emit_dts_options: &SwcEmitDtsPluginOptions,
+  dts: IsolatedDts,
+) -> Result<()> {
+  let IsolatedDts {
+    resource_path,
+    code,
+  } = dts;
+  let resource_path = Utf8PathBuf::from(resource_path);
+  let compiler_root = compilation.options.context.as_path();
+  let resolved_root_dir = resolve_emit_dts_path(compiler_root, &emit_dts_options.root_dir);
+  let resolved_declaration_dir =
+    resolve_emit_dts_path(compiler_root, &emit_dts_options.declaration_dir);
+  let output_path = compilation.options.output.path.clone();
+  let output_relative_path = resource_path
+    .strip_prefix(&resolved_root_dir)
+    .map_err(|_| {
+      error!(
+        "Failed to emit declaration files for {} because it is outside rootDir {}",
+        resource_path, resolved_root_dir
+      )
+    })?;
+  let declaration_file_path = resolved_declaration_dir
+    .join(output_relative_path)
+    .with_extension("d.ts");
+  let filename = diff_paths(
+    declaration_file_path.as_std_path(),
+    output_path.as_std_path(),
+  )
+    .ok_or_else(|| {
+      error!(
+        "Failed to emit declaration files for {} because declarationDir {} can not be relativized against output.path {}",
+        resource_path, resolved_declaration_dir, output_path
+      )
+    })?
+    .to_string_lossy()
+    .cow_replace('\\', "/")
+    .into_owned();
+
+  compilation.emit_asset(
+    filename,
+    CompilationAsset::new(
+      Some(RawStringSource::from(code).boxed()),
+      AssetInfo {
+        source_filename: Some(resource_path.as_str().to_string()),
+        ..Default::default()
+      },
+    ),
+  );
+
+  Ok(())
+}
+
+fn resolve_emit_dts_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
+  let path = Utf8Path::new(value);
+  if path.is_absolute() {
+    path.to_path_buf()
+  } else {
+    base.join(path)
+  }
 }
 
 #[derive(Debug)]
@@ -230,6 +303,24 @@ async fn asset_emitted(
   Ok(())
 }
 
+#[plugin_hook(CompilationProcessAssets for RslibPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let Some(options) = &self.options.emit_dts else {
+    return Ok(());
+  };
+  let dts_outputs = compilation
+    .get_module_graph()
+    .modules()
+    .filter_map(|(_, module)| module.build_info().isolated_dts.clone())
+    .collect::<Vec<_>>();
+
+  for dts in dts_outputs {
+    emit_isolated_dts_asset(compilation, options, dts)?;
+  }
+
+  Ok(())
+}
+
 impl Plugin for RslibPlugin {
   fn name(&self) -> &'static str {
     "rslib"
@@ -251,6 +342,10 @@ impl Plugin for RslibPlugin {
       .compiler_hooks
       .asset_emitted
       .tap(asset_emitted::new(self));
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
 
     if self.options.auto_cjs_node_builtin {
       EsmNodeTargetPlugin::new().apply(ctx)?;

@@ -5,7 +5,7 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{fs::File, path::PathBuf, sync::Arc};
+use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
 use base64::prelude::*;
@@ -29,6 +29,10 @@ use swc_core::{
   },
   ecma::{
     ast::{EsVersion, Pass, Program},
+    codegen::{
+      self, Emitter, Node,
+      text_writer::{self, WriteJs},
+    },
     parser::{
       Syntax, TsSyntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
       parse_file_as_script,
@@ -37,10 +41,11 @@ use swc_core::{
   },
 };
 use swc_error_reporters::handler::try_with_handler;
+use swc_typescript::fast_dts::FastDts;
 use url::Url;
 
 use super::{
-  JavaScriptCompiler, TransformOutput,
+  IsolatedDtsTransformOutput, JavaScriptCompiler, TransformOutput,
   stringify::{PrintOptions, SourceMapConfig},
 };
 
@@ -69,6 +74,70 @@ impl JavaScriptCompiler {
       JavaScriptTransformer::new(self.cm.clone(), fm, comments, self, options)?;
 
     javascript_transformer.transform(inspect_parsed_ast, before_pass, module_source_map_kind)
+  }
+
+  pub fn emit_isolated_dts(
+    &self,
+    program: &Program,
+    filename: Arc<FileName>,
+    unresolved_mark: Mark,
+    target: EsVersion,
+    comments: &SingleThreadedComments,
+  ) -> Result<IsolatedDtsTransformOutput> {
+    self.run(|| {
+      let (leading, trailing) = comments.borrow_all();
+      let comments = SingleThreadedComments::from_leading_and_trailing(
+        Rc::new(RefCell::new(leading.clone())),
+        Rc::new(RefCell::new(trailing.clone())),
+      );
+
+      // FastDts mutates the cloned program into declaration form. Re-print it with
+      // declaration-safe codegen settings instead of reusing the JS output pipeline.
+      let mut program = program.clone();
+      let mut checker = FastDts::new(filename, unresolved_mark, Default::default());
+      let diagnostics = match checker.transform(&mut program) {
+        issues if issues.is_empty() => Vec::new(),
+        issues => {
+          let result = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+            for issue in issues {
+              handler
+                .struct_span_err(issue.range.span, &issue.message)
+                .emit();
+            }
+
+            Ok(())
+          });
+
+          match result {
+            Ok(()) => Vec::new(),
+            Err(error) => vec![error.to_pretty_string()],
+          }
+        }
+      };
+
+      let code = {
+        let mut buf = Vec::new();
+        {
+          let wr = Box::new(text_writer::JsWriter::new(
+            self.cm.clone(),
+            "\n",
+            &mut buf,
+            None,
+          )) as Box<dyn WriteJs>;
+          let mut emitter = Emitter {
+            cfg: codegen::Config::default().with_target(target),
+            comments: Some(&comments as &dyn Comments),
+            cm: self.cm.clone(),
+            wr,
+          };
+          program.emit_with(&mut emitter)?;
+        }
+        // SAFETY: SWC will emit valid utf8 for sure
+        unsafe { String::from_utf8_unchecked(buf) }
+      };
+
+      Ok(IsolatedDtsTransformOutput { code, diagnostics })
+    })
   }
 }
 
