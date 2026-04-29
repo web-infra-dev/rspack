@@ -445,9 +445,12 @@ impl RscClientPlugin {
     });
 
     let mut client_entry_modules: IdentifierSet = Default::default();
-    let mut rsc_entry_modules_per_entry: FxHashMap<String, Vec<ModuleIdentifier>> =
-      Default::default();
     let module_graph = compilation.get_module_graph();
+    let module_loading = plugin_state
+      .module_loading
+      .as_ref()
+      .expect("module_loading should be initialized before recording modules")
+      .clone();
     for (entry_name, entry_data) in &compilation.entries {
       for dependency_id in &entry_data.include_dependencies {
         let Some(module_identifier) =
@@ -460,14 +463,19 @@ impl RscClientPlugin {
         };
 
         // Check if the module is a RscEntryModule (our custom virtual module)
-        let is_rsc_entry_module = module.downcast_ref::<RscEntryModule>().is_some();
-        if !is_rsc_entry_module {
+        let Some(rsc_entry_module) = module.downcast_ref::<RscEntryModule>() else {
           continue;
+        };
+
+        if let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) {
+          collect_server_entry_css_files(
+            &module_loading,
+            rsc_entry_module,
+            compilation,
+            entry_state,
+          );
         }
-        rsc_entry_modules_per_entry
-          .entry(entry_name.to_string())
-          .or_default()
-          .push(*module_identifier);
+
         // Traverse the blocks of the RscEntryModule to find the actual client modules
         for block_id in module.get_blocks() {
           let Some(block) = module_graph.block_by_id(block_id) else {
@@ -506,23 +514,6 @@ impl RscClientPlugin {
       required_chunks.clear();
       checked_chunk_groups.clear();
       checked_chunks.clear();
-
-      if let Some(rsc_entry_modules) = rsc_entry_modules_per_entry.get(entry_name.as_str()) {
-        for rsc_entry_module_identifier in rsc_entry_modules {
-          let Some(module) = module_graph.module_by_identifier(rsc_entry_module_identifier) else {
-            continue;
-          };
-          let Some(rsc_entry_module) = module.downcast_ref::<RscEntryModule>() else {
-            continue;
-          };
-          collect_server_entry_css_files(
-            module_loading,
-            rsc_entry_module,
-            compilation,
-            entry_state,
-          );
-        }
-      }
 
       record_chunk_group(
         module_loading,
