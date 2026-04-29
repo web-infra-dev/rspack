@@ -5,6 +5,7 @@ use rspack_core::{
 use rspack_plugin_javascript::{
   JavascriptParserPlugin,
   dependency::{CommonJsRequireDependency, ImportDependency, RequireHeaderDependency},
+  try_extract_magic_comment,
   utils::{
     self,
     eval::{self},
@@ -20,6 +21,7 @@ use swc_core::{
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
 
 use crate::{
+  dynamic_import_origin_dependency::RstestDynamicImportOriginDependency,
   mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
@@ -46,6 +48,19 @@ pub struct RstestParserPluginOptions {
   /// Whether to handle global `rs` and `rstest` variables.
   /// When false, only ESM imported variables are processed.
   pub globals: bool,
+  /// When `module.parser.javascript.importDynamic` is `false` and the dynamic
+  /// import specifier is not a plain string literal, rewrite the callee to the
+  /// configured `output.importFunctionName` and append the source module's
+  /// absolute path as an extra argument so the runtime can resolve relative
+  /// specifiers against it.
+  pub inject_dynamic_import_origin: bool,
+  /// Snapshot of `module.parser.javascript*.importDynamic` for this module
+  /// type. Used by the dynamic-import-origin rewrite to gate behavior on
+  /// `Some(false)`.
+  pub import_dynamic: Option<bool>,
+  /// Snapshot of `output.importFunctionName`. Used by the
+  /// dynamic-import-origin rewrite to substitute the `import` callee.
+  pub import_function_name: String,
 }
 
 impl Default for RstestParserPluginOptions {
@@ -56,6 +71,9 @@ impl Default for RstestParserPluginOptions {
       import_meta_path_name: false,
       manual_mock_root: String::new(),
       globals: true,
+      inject_dynamic_import_origin: false,
+      import_dynamic: None,
+      import_function_name: String::new(),
     }
   }
 }
@@ -706,7 +724,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
-    _import_then: Option<&CallExpr>,
+    import_then: Option<&CallExpr>,
     _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
@@ -719,6 +737,76 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       if tag_data.is_some() {
         return Some(true);
       }
+    }
+
+    if self.options.inject_dynamic_import_origin
+      && matches!(self.options.import_dynamic, Some(false))
+    {
+      // Only handle the regular evaluation phase. `import.defer(...)` and
+      // `import.source(...)` carry phase semantics that rstest's runtime
+      // does not implement, and the default `ImportParserPlugin` enforces
+      // the `experiments.deferImport` gate which we must not bypass.
+      let import_node = call_expr.callee.as_import()?;
+      if !matches!(
+        import_node.phase,
+        swc_core::ecma::ast::ImportPhase::Evaluation
+      ) {
+        return None;
+      }
+
+      // Native `import()` only accepts 1-2 args; appending a third argument
+      // would produce a SyntaxError at parse time. Skip injection when no
+      // custom `importFunctionName` is configured and let the default
+      // `ImportParserPlugin` handle the call as before.
+      if self.options.import_function_name == "import" {
+        return None;
+      }
+
+      // Mirror `ImportParserPlugin.import_call`'s `/* webpackIgnore: true */`
+      // bailout so authors can opt out of rewriting on a per-call basis.
+      let arg = call_expr.args.first()?;
+      if arg.spread.is_some() {
+        return None;
+      }
+
+      let magic = try_extract_magic_comment(parser, call_expr.span, arg.span());
+      if magic.get_ignore().unwrap_or_default() {
+        return None;
+      }
+
+      let param = parser.evaluate_expression(arg.expr.as_ref());
+      if param.is_string() {
+        return None;
+      }
+
+      let resource_path = parser.resource_data.path()?;
+      let origin_path = resource_path.as_str().to_string();
+
+      let last_arg = call_expr
+        .args
+        .last()
+        .expect("call_expr.args has at least one element");
+      let args_end = last_arg.span().real_hi();
+      let has_attributes = call_expr.args.len() >= 2;
+
+      parser.add_presentational_dependency(Box::new(RstestDynamicImportOriginDependency::new(
+        call_expr.callee.span().into(),
+        args_end,
+        has_attributes,
+        origin_path,
+      )));
+
+      // Returning `Some(true)` short-circuits the parser's walk of this
+      // `import()` node (see `walk.rs` `Callee::Import` branch), so we must
+      // walk nested expressions ourselves — otherwise `require(...)` or
+      // `import()` calls inside the specifier or the `.then` callback get
+      // dropped from the dependency graph.
+      parser.walk_expr_or_spread(&call_expr.args);
+      if let Some(import_then) = import_then {
+        parser.walk_expr_or_spread(&import_then.args);
+      }
+
+      return Some(true);
     }
 
     None

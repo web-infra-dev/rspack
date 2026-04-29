@@ -1,5 +1,5 @@
 use std::{
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
   time::{Duration, Instant},
 };
 
@@ -29,6 +29,7 @@ static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 use crate::{
+  dynamic_import_origin_dependency::RstestDynamicImportOriginDependencyTemplate,
   esm_import_dependency::{
     RstestESMImportSideEffectDependencyTemplate, RstestESMImportSpecifierDependencyTemplate,
   },
@@ -48,6 +49,7 @@ pub struct RstestPluginOptions {
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
+  pub inject_dynamic_import_origin: bool,
 }
 
 #[derive(Debug)]
@@ -61,11 +63,15 @@ pub struct ProgressPluginStateInfo {
 #[derive(Debug)]
 pub struct RstestPlugin {
   options: RstestPluginOptions,
+  /// Captured from `compilation.options.output.import_function_name` in the
+  /// `compilation` hook so the parser plugin (constructed later in
+  /// `nmf_parser`) can read it without reaching into `JavascriptParser`.
+  import_function_name: OnceLock<String>,
 }
 
 impl RstestPlugin {
   pub fn new(options: RstestPluginOptions) -> Self {
-    Self::new_inner(options)
+    Self::new_inner(options, OnceLock::new())
   }
 
   fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
@@ -228,11 +234,24 @@ async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut Box<dyn ParserAndGenerator>,
-  _parser_options: Option<&ParserOptions>,
+  parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
+    // Read the merged `module.parser.javascript*.importDynamic` for this
+    // module type so the parser plugin can short-circuit when dynamic imports
+    // are disabled, without reaching into `JavascriptParser`.
+    let import_dynamic = parser_options
+      .and_then(|opts| {
+        opts
+          .get_javascript()
+          .or_else(|| opts.get_javascript_auto())
+          .or_else(|| opts.get_javascript_esm())
+          .or_else(|| opts.get_javascript_dynamic())
+      })
+      .and_then(|js| js.import_dynamic);
+
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
       crate::parser_plugin::RstestParserPluginOptions {
         module_path_name: self.options.module_path_name,
@@ -240,6 +259,9 @@ async fn nmf_parser(
         import_meta_path_name: self.options.import_meta_path_name,
         manual_mock_root: self.options.manual_mock_root.clone(),
         globals: self.options.globals,
+        inject_dynamic_import_origin: self.options.inject_dynamic_import_origin,
+        import_dynamic,
+        import_function_name: self.import_function_name.get().cloned().unwrap_or_default(),
       },
     )) as BoxJavascriptParserPlugin);
   }
@@ -253,6 +275,13 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  // Capture the configured `output.importFunctionName` so the parser plugin
+  // can read it without reaching into `JavascriptParser`. Set runs before
+  // `nmf_parser` so the value is observable when the parser plugin is built.
+  let _ = self
+    .import_function_name
+    .set(compilation.options.output.import_function_name.clone());
+
   compilation.set_dependency_template(
     ModulePathNameDependencyTemplate::template_type(),
     Arc::new(ModulePathNameDependencyTemplate::default()),
@@ -266,6 +295,11 @@ async fn compilation(
   compilation.set_dependency_template(
     MockModuleIdDependencyTemplate::template_type(),
     Arc::new(MockModuleIdDependencyTemplate::default()),
+  );
+
+  compilation.set_dependency_template(
+    RstestDynamicImportOriginDependencyTemplate::template_type(),
+    Arc::new(RstestDynamicImportOriginDependencyTemplate::default()),
   );
 
   Ok(())
@@ -436,7 +470,7 @@ impl Plugin for RstestPlugin {
       .compilation
       .tap(compilation_stage_9999::new(self));
 
-    if self.options.module_path_name {
+    if self.options.module_path_name || self.options.inject_dynamic_import_origin {
       ctx
         .normal_module_factory_hooks
         .parser

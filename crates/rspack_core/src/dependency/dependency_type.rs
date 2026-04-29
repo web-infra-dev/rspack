@@ -133,6 +133,7 @@ pub enum DependencyType {
   RstestModulePath,
   RstestMockModuleId,
   RstestHoistMock,
+  RstestDynamicImportOrigin,
   /// RSC entry that aggregates all "use client" and CSS modules for one Rspack entry
   RscEntry,
   /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
@@ -220,6 +221,7 @@ impl DependencyType {
       DependencyType::RstestModulePath => "rstest module path",
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
+      DependencyType::RstestDynamicImportOrigin => "rstest dynamic import origin",
       DependencyType::RscEntry => "rsc entry",
       DependencyType::RscClientReference => "rsc client reference",
     }
