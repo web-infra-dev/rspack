@@ -15,6 +15,7 @@ const REACT_CREATE_ELEMENT: &str = "createElement";
 const CSS_RESOURCES_BINDING: &str = "resources";
 const CLIENT_REF_BINDING_PREFIX: &str = "Ref";
 const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
+const DATA_RSC_CSS_HREF: &str = "data-rsc-css-href";
 
 /// Replaces a `"use client"` module on the RSC server layer with client
 /// reference proxy exports.
@@ -31,7 +32,9 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
-///     href
+///     href,
+///     "data-rsc-css-href": href,
+///     precedence: "default"
 ///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
@@ -57,7 +60,9 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
-///     href
+///     href,
+///     "data-rsc-css-href": href,
+///     precedence: "default"
 ///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
@@ -402,11 +407,16 @@ fn react_link_element(react_name: &str) -> Expr {
 }
 
 fn link_props_expr() -> Expr {
+  // Mark these stylesheet links as RSC-managed CSS dependencies. Consumers can
+  // collect this marker and preinit only bundler-emitted RSC CSS, without
+  // treating arbitrary user-authored stylesheet links as RSC assets.
   object_expr(vec![
     spread_prop(member_expr(ident_expr(API_RSC_MANIFEST), "cssLinkProps")),
     key_value_prop("key", ident_expr("href")),
     key_value_prop("rel", str_expr("stylesheet")),
     key_value_prop("href", ident_expr("href")),
+    key_value_str_prop(DATA_RSC_CSS_HREF, ident_expr("href")),
+    key_value_prop("precedence", str_expr("default")),
   ])
 }
 
@@ -444,6 +454,17 @@ fn react_create_element_call(
     args,
     DUMMY_SP,
   )
+}
+
+fn key_value_str_prop(name: &str, value: Expr) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+    key: PropName::Str(Str {
+      span: DUMMY_SP,
+      value: Wtf8Atom::from(name),
+      raw: None,
+    }),
+    value: Box::new(value),
+  })))
 }
 
 fn null_expr() -> Expr {
