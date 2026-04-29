@@ -4083,6 +4083,7 @@ dependencies = [
  "swc_core",
  "swc_ecma_minifier",
  "swc_error_reporters",
+ "swc_typescript",
  "url",
 ]
 
@@ -4952,6 +4953,8 @@ name = "rspack_plugin_rslib"
 version = "0.100.1"
 dependencies = [
  "async-trait",
+ "cow-utils",
+ "pathdiff",
  "rspack_cacheable",
  "rspack_collections",
  "rspack_core",
@@ -4959,6 +4962,7 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_hook",
+ "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_externals",
  "rspack_plugin_javascript",
@@ -7020,6 +7024,22 @@ dependencies = [
  "rustc-hash",
  "serde",
  "swc_common",
+]
+
+[[package]]
+name = "swc_typescript"
+version = "28.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38cea40da0e283592ce48623bd52032565c13fcb5362410b1919414830214450"
+dependencies = [
+ "bitflags 2.11.1",
+ "petgraph",
+ "rustc-hash",
+ "swc_atoms",
+ "swc_common",
+ "swc_ecma_ast",
+ "swc_ecma_utils",
+ "swc_ecma_visit",
 ]
 
 [[package]]

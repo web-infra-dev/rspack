@@ -1,6 +1,7 @@
 #![feature(box_patterns)]
 
 mod collect_ts_info;
+mod isolated_dts;
 mod options;
 mod plugin;
 mod rsc_transforms;
@@ -8,6 +9,7 @@ mod transformer;
 
 use std::{cell::RefCell, default::Default, path::Path, rc::Rc, sync::Arc};
 
+use isolated_dts::{handle_isolated_dts_diagnostics, set_build_info};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
@@ -24,7 +26,7 @@ use swc_config::{merge::Merge, types::MergingOption};
 use swc_core::{
   base::config::{InputSourceMap, TransformConfig},
   common::{FileName, SyntaxContext, comments::SingleThreadedComments},
-  ecma::ast::noop_pass,
+  ecma::ast::{EsVersion, noop_pass},
 };
 
 use crate::{
@@ -65,7 +67,6 @@ impl SwcLoader {
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
-
     let swc_options = {
       let mut swc_options = self.options_with_additional.swc_options.clone();
       if let Some(resource_specific_jsc) = self
@@ -127,6 +128,21 @@ impl SwcLoader {
     let source = content.into_string_lossy();
     let is_typescript =
       matches!(swc_options.config.jsc.syntax, Some(syntax) if syntax.typescript());
+    let isolated_dts_context = (is_typescript
+      && swc_options
+        .config
+        .jsc
+        .experimental
+        .emit_isolated_dts
+        .into_bool())
+    .then(|| {
+      (
+        swc_options.config.jsc.target.unwrap_or(EsVersion::EsNext),
+        filename.clone(),
+        comments.clone(),
+      )
+    });
+    let mut isolated_dts = Ok(None);
     let mut collected_ts_info = None;
     let rsc_meta: RefCell<Option<RscMeta>> = Default::default();
 
@@ -144,6 +160,19 @@ impl SwcLoader {
         if !is_typescript {
           return;
         }
+
+        if let Some((target, dts_filename, dts_comments)) = &isolated_dts_context {
+          isolated_dts = javascript_compiler
+            .emit_isolated_dts(
+              program,
+              dts_filename.clone(),
+              unresolved_mark,
+              *target,
+              dts_comments,
+            )
+            .map(Some);
+        }
+
         let Some(options) = &self.options_with_additional.collect_typescript_info else {
           return;
         };
@@ -186,6 +215,16 @@ impl SwcLoader {
 
     for diagnostic in diagnostics {
       loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+    }
+
+    if let Some(isolated_dts) = isolated_dts? {
+      handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
+
+      set_build_info(
+        loader_context.context.module.build_info_mut(),
+        resource_path.as_str().to_string(),
+        isolated_dts.code,
+      );
     }
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
