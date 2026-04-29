@@ -90,8 +90,7 @@ impl InnerGraphParserPlugin {
   pub fn infer_dependency_usage(
     state: &mut InnerGraphState,
     deferred_pure_checks_by_symbol: &HashMap<TopLevelSymbol, Vec<UsedByExportsDeferredPureCheck>>,
-    mut on_usage: impl FnMut(InnerGraphUsageOperation, UsedByExports),
-  ) {
+  ) -> Vec<(InnerGraphUsageOperation, UsedByExports)> {
     let mut non_terminal = state.inner_graph.keys().copied().collect::<HashSet<_>>();
     let mut processed: HashMap<TopLevelSymbol, HashSet<InnerGraphMapSetValue>> = HashMap::default();
 
@@ -187,6 +186,7 @@ impl InnerGraphParserPlugin {
       }
     }
 
+    let mut finalized = vec![];
     for (symbol, cbs) in state.usage_map.drain() {
       let deferred_pure_checks = deferred_pure_checks_by_symbol
         .get(&symbol)
@@ -210,9 +210,11 @@ impl InnerGraphParserPlugin {
       }
       .with_deferred_pure_checks(deferred_pure_checks);
       for cb in cbs {
-        on_usage(cb, used_by_exports.clone());
+        finalized.push((cb, used_by_exports.clone()));
       }
     }
+
+    finalized
   }
 
   pub fn finalize_dependency_usage(
@@ -223,100 +225,84 @@ impl InnerGraphParserPlugin {
       return;
     }
 
+    let dep_by_span: HashMap<(BytePos, BytePos), (DependencyId, Atom)> = dependencies
+      .iter()
+      .filter_map(|dep| {
+        let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
+        let range = specifier_dep.range()?;
+        Some((
+          (BytePos(range.start), BytePos(range.end)),
+          (*dep.id(), specifier_dep.imported_name().clone()),
+        ))
+      })
+      .collect();
+
     let mut deferred_pure_checks_by_symbol = HashMap::default();
-    if state
-      .symbol_map
-      .values()
-      .any(|symbol_data| !symbol_data.depend_on_pure.is_empty())
-    {
-      let dep_by_span: HashMap<(BytePos, BytePos), (DependencyId, Atom)> = dependencies
-        .iter()
-        .filter_map(|dep| {
-          let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
-          let range = specifier_dep.range()?;
-          Some((
-            (BytePos(range.start), BytePos(range.end)),
-            (*dep.id(), specifier_dep.imported_name().clone()),
-          ))
-        })
-        .collect();
+    let mut always_used_symbols = Vec::new();
 
-      let mut always_used_symbols = Vec::new();
-
-      for (symbol, symbol_data) in &state.symbol_map {
-        let mut deferred_pure_checks = Vec::new();
-        for (_name, span) in &symbol_data.depend_on_pure {
-          if let Some((dep_id, import_name)) =
-            dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi())))
-          {
-            deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
-              dep_id: *dep_id,
-              atom: import_name.clone(),
-            });
-          } else {
-            always_used_symbols.push(*symbol);
-            deferred_pure_checks.clear();
-            break;
-          }
-        }
-
-        if !deferred_pure_checks.is_empty() {
-          deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
+    for (symbol, symbol_data) in &state.symbol_map {
+      let mut deferred_pure_checks = Vec::new();
+      for (_name, span) in &symbol_data.depend_on_pure {
+        if let Some((dep_id, import_name)) =
+          dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi())))
+        {
+          deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
+            dep_id: *dep_id,
+            atom: import_name.clone(),
+          });
+        } else {
+          always_used_symbols.push(*symbol);
+          deferred_pure_checks.clear();
+          break;
         }
       }
 
-      for symbol in always_used_symbols {
-        state.inner_graph.insert(symbol, InnerGraphMapValue::True);
+      if !deferred_pure_checks.is_empty() {
+        deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
       }
     }
 
-    let required_dep_ids = state
-      .usage_map
-      .values()
-      .flat_map(|operations| operations.iter().map(InnerGraphUsageOperation::dep_id))
-      .collect::<HashSet<_>>();
-    if required_dep_ids.is_empty() {
-      return;
+    for symbol in always_used_symbols {
+      state.inner_graph.insert(symbol, InnerGraphMapValue::True);
+      deferred_pure_checks_by_symbol.remove(&symbol);
     }
 
     let dep_by_id: HashMap<DependencyId, usize> = dependencies
       .iter()
       .enumerate()
-      .filter_map(|(idx, dep)| {
-        required_dep_ids
-          .contains(dep.id())
-          .then_some((*dep.id(), idx))
-      })
+      .map(|(idx, dep)| (*dep.id(), idx))
       .collect();
 
-    Self::infer_dependency_usage(
-      state,
-      &deferred_pure_checks_by_symbol,
-      |operation, used_by_exports| {
-        let dep_id = operation.dep_id();
-        let Some(dep_idx) = dep_by_id.get(&dep_id).copied() else {
-          return;
-        };
-        let dep = &mut dependencies[dep_idx];
-        match operation {
-          InnerGraphUsageOperation::PureExpression(_) => {
-            if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
-              dep.set_used_by_exports(Some(used_by_exports));
-            }
-          }
-          InnerGraphUsageOperation::ESMImportSpecifier(_) => {
-            if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
-              dep.set_used_by_exports(Some(used_by_exports));
-            }
-          }
-          InnerGraphUsageOperation::URLDependency(_) => {
-            if let Some(dep) = dep.downcast_mut::<URLDependency>() {
-              dep.set_used_by_exports(Some(used_by_exports));
-            }
+    for (operation, used_by_exports) in
+      Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
+    {
+      let dep_id = match operation {
+        InnerGraphUsageOperation::PureExpression(dep_id)
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_id)
+        | InnerGraphUsageOperation::URLDependency(dep_id) => dep_id,
+      };
+      let Some(dep_idx) = dep_by_id.get(&dep_id).copied() else {
+        continue;
+      };
+      let dep = &mut dependencies[dep_idx];
+      match operation {
+        InnerGraphUsageOperation::PureExpression(_) => {
+          if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
           }
         }
-      },
-    );
+        InnerGraphUsageOperation::ESMImportSpecifier(_) => {
+          if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+        InnerGraphUsageOperation::URLDependency(_) => {
+          if let Some(dep) = dep.downcast_mut::<URLDependency>() {
+            dep.set_used_by_exports(Some(used_by_exports));
+          }
+        }
+      }
+    }
   }
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {

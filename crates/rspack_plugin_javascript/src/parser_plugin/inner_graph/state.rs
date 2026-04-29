@@ -194,13 +194,3 @@ pub(crate) enum InnerGraphUsageOperation {
   ESMImportSpecifier(DependencyId),
   URLDependency(DependencyId),
 }
-
-impl InnerGraphUsageOperation {
-  pub(crate) fn dep_id(&self) -> DependencyId {
-    match self {
-      InnerGraphUsageOperation::PureExpression(dep_id)
-      | InnerGraphUsageOperation::ESMImportSpecifier(dep_id)
-      | InnerGraphUsageOperation::URLDependency(dep_id) => *dep_id,
-    }
-  }
-}
