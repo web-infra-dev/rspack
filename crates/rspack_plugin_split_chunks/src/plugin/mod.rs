@@ -58,8 +58,9 @@ impl SplitChunksPlugin {
       .modules_keys()
       .copied()
       .collect::<Vec<_>>();
-    // Sort modules to ensure deterministic processing order
-    all_modules.sort_unstable();
+    // Sort modules to ensure deterministic processing order.
+    // Use the precomputed identifier hash first to avoid repeated long string comparisons.
+    all_modules.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
 
     let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
