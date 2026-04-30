@@ -49,6 +49,8 @@ pub struct ModuleLoading {
   pub cross_origin: Option<CrossOriginMode>,
 }
 
+pub type RscCssLink = Vec<(String, String)>;
+
 pub type ServerReferenceManifest = FxHashMap<String, ManifestExport>;
 
 fn serialize_none_as_empty_object<S, T>(val: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
@@ -87,6 +89,17 @@ where
   map.end()
 }
 
+fn serialize_css_link<S>(css_link: &RscCssLink, serializer: S) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  let mut map = serializer.serialize_map(Some(css_link.len()))?;
+  for (key, value) in css_link {
+    map.serialize_entry(key, value)?;
+  }
+  map.end()
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RscEntryManifest<'a> {
@@ -102,6 +115,15 @@ pub struct RscEntryManifest<'a> {
   pub server_entries: &'a FxHashMap<String, ServerEntryState>,
   #[serde(rename = "entryJsFiles")]
   pub bootstrap_scripts: &'a FxIndexSet<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RscEntryRuntimeManifest<'a> {
+  #[serde(flatten)]
+  pub manifest: RscEntryManifest<'a>,
+  #[serde(rename = "cssLink", serialize_with = "serialize_css_link")]
+  pub css_link: &'a RscCssLink,
 }
 
 /// Full manifest (all entries) for the onManifest callback. Map from entry name to per-entry manifest.

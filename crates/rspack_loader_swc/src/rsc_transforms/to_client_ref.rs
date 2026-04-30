@@ -27,12 +27,11 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 /// import * as React from "react";
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => React.createElement("link", {
+///   .map(href => React.createElement("link", Object.assign({}, __rspack_rsc_manifest__.cssLink, {
 ///     key: href,
 ///     rel: "stylesheet",
-///     href,
-///     precedence: "default"
-///   }));
+///     href
+///   })));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
 /// export default resources.length
@@ -53,12 +52,11 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 /// const React = require("react");
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => React.createElement("link", {
+///   .map(href => React.createElement("link", Object.assign({}, __rspack_rsc_manifest__.cssLink, {
 ///     key: href,
 ///     rel: "stylesheet",
-///     href,
-///     precedence: "default"
-///   }));
+///     href
+///   })));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
 /// module.exports = resources.length
@@ -398,30 +396,21 @@ fn react_fragment_with_resources(ref_name: &str, resources_name: &str, react_nam
 }
 
 fn react_link_element(react_name: &str) -> Expr {
-  react_create_element_call(
-    react_name,
-    str_expr("link"),
-    object_expr(vec![
-      key_value_prop("key", ident_expr("href")),
-      key_value_prop("rel", str_expr("stylesheet")),
-      key_value_prop("href", ident_expr("href")),
-      key_value_prop("precedence", str_expr("default")),
-    ]),
-    vec![],
-  )
+  react_create_element_call(react_name, str_expr("link"), link_props_expr(), vec![])
 }
 
-fn react_create_element_call(
-  react_name: &str,
-  element: Expr,
-  props: Expr,
-  children: Vec<Expr>,
-) -> Expr {
-  let mut args = vec![element, props];
-  args.extend(children);
+fn link_props_expr() -> Expr {
   call_expr(
-    member_expr(ident_expr(react_name), REACT_CREATE_ELEMENT),
-    args,
+    member_expr(ident_expr("Object"), "assign"),
+    vec![
+      object_expr(vec![]),
+      member_expr(ident_expr(API_RSC_MANIFEST), "cssLink"),
+      object_expr(vec![
+        key_value_prop("key", ident_expr("href")),
+        key_value_prop("rel", str_expr("stylesheet")),
+        key_value_prop("href", ident_expr("href")),
+      ]),
+    ],
     DUMMY_SP,
   )
 }
@@ -438,6 +427,21 @@ fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
     key: PropName::Ident(ident_name(name)),
     value: Box::new(value),
   })))
+}
+
+fn react_create_element_call(
+  react_name: &str,
+  element: Expr,
+  props: Expr,
+  children: Vec<Expr>,
+) -> Expr {
+  let mut args = vec![element, props];
+  args.extend(children);
+  call_expr(
+    member_expr(ident_expr(react_name), REACT_CREATE_ELEMENT),
+    args,
+    DUMMY_SP,
+  )
 }
 
 fn null_expr() -> Expr {

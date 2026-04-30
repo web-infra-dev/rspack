@@ -33,9 +33,43 @@ export interface RscManifestPerEntry {
 /** Full RSC manifest (all entries) passed to onManifest. Map from entry name to per-entry manifest. */
 export type RscManifest = Record<string, RscManifestPerEntry>;
 
+export type RscCssLinkProps = Record<string, string>;
+
+export type RscCssLinkOptions =
+  | false
+  | {
+      precedence?: string | false;
+      attributes?: RscCssLinkProps;
+    };
+
+function toEntries(props: RscCssLinkProps): Array<[string, string]> {
+  return Object.keys(props).map((key) => [key, props[key]]);
+}
+
+function normalizeCssLink(
+  cssLink: RscCssLinkOptions | undefined,
+): Array<[string, string]> {
+  if (cssLink === false) {
+    return [];
+  }
+
+  const normalizedProps: RscCssLinkProps = {
+    ...(cssLink?.attributes ?? {}),
+  };
+
+  if (cssLink?.precedence === false) {
+    delete normalizedProps.precedence;
+  } else {
+    normalizedProps.precedence = cssLink?.precedence ?? 'default';
+  }
+
+  return toEntries(normalizedProps);
+}
+
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
-  onServerComponentChanges?: () => Promise<void>;
+  cssLink?: RscCssLinkOptions;
+  onServerComponentChanges?: () => void | Promise<void>;
   onManifest?: (manifest: RscManifest) => void | Promise<void>;
 };
 
@@ -61,6 +95,7 @@ export class RscServerPlugin extends RspackBuiltinPlugin {
     return createBuiltinPlugin(this.name, {
       // @ts-ignore
       coordinator: coordinator[GET_OR_INIT_BINDING](),
+      cssLink: normalizeCssLink(this.#options.cssLink),
       onServerComponentChanges,
       onManifest,
     });

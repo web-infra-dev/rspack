@@ -160,12 +160,11 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
           r#"var {IMPORT_META_RSC_BINDING} = {{
   loadCss: function() {{
     return (({rsc_manifest}.entryCssFiles[{importer}] || []).map(function(href) {{
-      return {react}.createElement("link", {{
+      return {react}.createElement("link", Object.assign({{}}, {rsc_manifest}.cssLink, {{
         key: href,
         rel: "stylesheet",
-        href: href,
-        precedence: "default"
-      }});
+        href: href
+      }}));
     }}));
   }}
 }};

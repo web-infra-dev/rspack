@@ -11,7 +11,7 @@ use rspack_util::{
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
-  ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest,
+  ManifestExport, ManifestNode, ModuleLoading, RscCssLink, ServerReferenceManifest,
 };
 
 pub type ActionIdNamePair = (Atom, Atom);
@@ -76,12 +76,14 @@ impl EntryState {
 #[derive(Debug, Default)]
 pub struct PluginState {
   pub module_loading: Option<ModuleLoading>,
+  pub css_link: RscCssLink,
   pub entries: FxHashMap<Arc<str>, EntryState>,
 }
 
 impl PluginState {
   pub fn clear(&mut self) {
     self.module_loading = None;
+    self.css_link.clear();
     self.entries.clear();
   }
 }
