@@ -381,9 +381,11 @@ pub struct JsStatsAsset<'a> {
   pub emitted: bool,
   pub chunk_names: Vec<&'a str>,
   pub chunk_id_hints: Vec<&'a str>,
+  #[napi(ts_type = "Array<string | number | undefined | null>")]
   pub chunks: Vec<Option<&'a str>>,
   pub auxiliary_chunk_names: Vec<&'a str>,
   pub auxiliary_chunk_id_hints: Vec<&'a str>,
+  #[napi(ts_type = "Array<string | number | undefined | null>")]
   pub auxiliary_chunks: Vec<Option<&'a str>>,
 }
 
@@ -489,6 +491,7 @@ pub struct JsStatsModuleCommonAttributes<'a> {
   pub warnings: Option<u32>,
 
   // ids
+  #[napi(ts_type = "Array<string | number> | undefined")]
   pub chunks: Option<Vec<&'a str>>,
 
   // moduleAssets
@@ -769,6 +772,7 @@ pub struct JsStatsChunk<'a> {
   pub r#type: &'a str,
   pub files: Vec<&'a str>,
   pub auxiliary_files: Vec<&'a str>,
+  #[napi(ts_type = "string | number | undefined")]
   pub id: Option<&'a str>,
   pub id_hints: Vec<&'a str>,
   pub hash: Option<&'a str>,
@@ -776,9 +780,13 @@ pub struct JsStatsChunk<'a> {
   pub initial: bool,
   pub names: Vec<&'a str>,
   pub size: f64,
+  #[napi(ts_type = "Array<string | number> | undefined")]
   pub parents: Option<Vec<&'a str>>,
+  #[napi(ts_type = "Array<string | number> | undefined")]
   pub children: Option<Vec<&'a str>>,
+  #[napi(ts_type = "Array<string | number> | undefined")]
   pub siblings: Option<Vec<&'a str>>,
+  #[napi(ts_type = "Record<string, Array<string | number>>")]
   pub children_by_order: HashMap<String, Vec<String>>,
   pub runtime: Vec<&'a str>,
   pub reason: Option<&'a str>,
@@ -874,6 +882,7 @@ impl<'a> From<rspack_core::StatsChunkGroupAsset<'a>> for JsStatsChunkGroupAsset<
 #[napi(object, object_from_js = false)]
 pub struct JsStatsChunkGroup<'a> {
   pub name: &'a str,
+  #[napi(ts_type = "Array<string | number>")]
   pub chunks: Vec<&'a str>,
   pub assets: Vec<JsStatsChunkGroupAsset<'a>>,
   pub assets_size: f64,

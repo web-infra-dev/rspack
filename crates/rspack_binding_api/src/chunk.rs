@@ -46,18 +46,18 @@ impl Chunk {
     })
   }
 
-  #[napi(getter)]
+  #[napi(getter, ts_return_type = "string | number | undefined")]
   pub fn id(&self) -> napi::Result<Either<&str, ()>> {
-    let (compilation, chunk) = self.as_ref()?;
+    let (_, chunk) = self.as_ref()?;
     Ok(match chunk.id() {
       Some(id) => Either::A(id.as_str()),
       None => Either::B(()),
     })
   }
 
-  #[napi(getter)]
+  #[napi(getter, ts_return_type = "Array<string | number>")]
   pub fn ids(&self) -> napi::Result<Vec<&str>> {
-    let (compilation, chunk) = self.as_ref()?;
+    let (_, chunk) = self.as_ref()?;
     Ok(chunk.id().map(|id| vec![id.as_str()]).unwrap_or_default())
   }
 

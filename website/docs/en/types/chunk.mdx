@@ -16,9 +16,9 @@ type Chunk = {
   get groupsIterable(): Iterable<ChunkGroup>;
   hash?: Readonly<string>;
   hasRuntime(): boolean;
-  id?: Readonly<string>;
+  id?: Readonly<string | number>;
   idNameHints: ReadonlyArray<string>;
-  ids: ReadonlyArray<string>;
+  ids: ReadonlyArray<string | number>;
   isOnlyInitial(): boolean;
   name?: Readonly<string>;
   renderedHash?: Readonly<string>;

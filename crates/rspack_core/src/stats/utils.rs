@@ -210,7 +210,7 @@ pub fn get_chunk_child_ids_by_order(
   for (_, child_group_ukey) in list {
     let child_group = chunk_group_by_ukey.expect_get(&child_group_ukey);
     for chunk_ukey in child_group.chunks.iter() {
-      if let Some(chunk_id) = chunk_by_ukey.expect_get(chunk_ukey).id().cloned() {
+      if let Some(chunk_id) = chunk_by_ukey.expect_get(chunk_ukey).id() {
         chunk_ids.push(chunk_id.to_string());
       }
     }
