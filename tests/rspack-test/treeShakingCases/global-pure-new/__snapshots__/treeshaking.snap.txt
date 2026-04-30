@@ -1,0 +1,113 @@
+```js title=main.js
+(self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
+"./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.d(__webpack_exports__, {
+  marker: () => (marker)
+});
+/* import */ var _shadow__rspack_import_0 = __webpack_require__("./shadow.js");
+/* import */ var _shadow__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shadow__rspack_import_0);
+
+
+const marker = 1;
+
+// === Should be tree-shaken (truly pure) ===
+
+// Collections with no args.
+let unusedSet = (/* unused pure expression or super */ null && (new Set()));
+let unusedMap = (/* unused pure expression or super */ null && (new Map()));
+let unusedWeakMap = (/* unused pure expression or super */ null && (new WeakMap()));
+let unusedWeakSet = (/* unused pure expression or super */ null && (new WeakSet()));
+
+// Collections with explicit nullish are also fine (return empty collection).
+let unusedNullSet = (/* unused pure expression or super */ null && (new Set(null)));
+let unusedUndefMap = (/* unused pure expression or super */ null && (new Map(undefined)));
+
+// TypedArrays with non-negative integer literal length.
+let unusedTyped = (/* unused pure expression or super */ null && (new Uint8Array(16)));
+let unusedBuf = (/* unused pure expression or super */ null && (new ArrayBuffer(0)));
+
+// Pure type/identity checks (AnyPureArgs — args themselves must be pure too).
+let unusedArrIsArray = (/* unused pure expression or super */ null && (Array.isArray([1, 2, 3])));
+let unusedObjectIs = (/* unused pure expression or super */ null && (Object.is(1, 2)));
+
+// String/Object with literal args — no coercion since literals don't have
+// custom @@toPrimitive.
+let unusedString = (/* unused pure expression or super */ null && (String("hello")));
+let unusedObject = (/* unused pure expression or super */ null && (Object("y")));
+
+// Boolean is pure regardless of arg shape (ToBoolean never throws).
+let unusedBool = (/* unused pure expression or super */ null && (Boolean({})));
+let unusedBoolVar = (/* unused pure expression or super */ null && (Boolean(marker)));
+
+// Symbol() with primitive description.
+let unusedSymbol = (/* unused pure expression or super */ null && (Symbol("desc")));
+
+// === MUST be kept (throw or have side effects at runtime) ===
+
+// `new Set(1)` throws TypeError (1 is not iterable).
+let throwsTypeErrorSet = new Set(1);
+
+// `new Map("foo")` actually throws (string iterates to chars, not [k,v] pairs).
+// Even though it's a literal, the gate (NullishOrNoArgs) correctly rejects.
+let throwsMap = new Map("foo");
+
+// `new Array(-1)` throws RangeError.
+let throwsRangeErrorArr = new Array(-1);
+
+// `new Array(1.5)` throws RangeError.
+let throwsArrFractional = new Array(1.5);
+
+// `new Uint8Array(-1)` throws RangeError.
+let throwsTypedNeg = new Uint8Array(-1);
+
+// `new Uint8Array(1.5)` throws RangeError.
+let throwsTypedFractional = new Uint8Array(1.5);
+
+// `new Date(1n)` throws TypeError (BigInt → Number coercion fails).
+let throwsDateBigInt = new Date(1n);
+
+// `new Number(1n)` throws TypeError.
+let throwsNumberBigInt = new Number(1n);
+
+// Impure argument — `Boolean(sideEffect())` is pure, but the argument call
+// has side effects, so the whole expression must stay.
+function impureArg() { console.log("keep"); return 1; }
+let unusedWithImpureArg = new Set([impureArg()]);
+let unusedBoolImpure = Boolean(impureArg());
+
+// Non-literal arg for typed array — could trigger valueOf coercion.
+let dynamic = { length: 16 };
+let unusedWithDynamic = new Uint8Array(dynamic);
+
+
+},
+"./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+"use strict";
+/* import */ var _app__rspack_import_0 = __webpack_require__("./app.js");
+
+
+_app__rspack_import_0.marker;
+
+
+},
+"./shadow.js"() {
+// Shadowing: `Set`/`Map` below are LOCAL bindings, not the real globals.
+// The unresolved-context check must keep these calls despite matching names.
+function impureSet() { console.log("keep"); return class {} }
+const Set = impureSet();
+let shadowedSet = new Set();
+
+const Map = impureSet();
+let shadowedMap = new Map();
+
+
+},
+
+},function(__webpack_require__) {
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId) }
+var __webpack_exports__ = (__webpack_exec__("./index.js"));
+
+}
+]);
+```
