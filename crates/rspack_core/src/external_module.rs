@@ -13,12 +13,12 @@ use crate::{
   AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedExports, extract_url_and_global,
-  impl_module_meta_info, module_update_hash, property_access,
+  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -177,6 +177,174 @@ fn module_external_fragment_key(base: &str, attributes: &Option<ImportAttributes
   } else {
     base.to_string()
   }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ModuleExternalRemapping {
+  exposed_name: String,
+  raw_export_name: String,
+  nested: Option<Vec<ModuleExternalRemapping>>,
+}
+
+fn collect_module_external_remapping(
+  exports_info_artifact: &crate::ExportsInfoArtifact,
+  exports_info: &crate::ExportsInfoData,
+  runtime: Option<&RuntimeSpec>,
+) -> Option<Vec<ModuleExternalRemapping>> {
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return None;
+  }
+
+  let remapping: Vec<_> = exports_info
+    .exports()
+    .iter()
+    .filter(|(_, export_info)| !matches!(export_info.provided(), Some(ExportProvided::NotProvided)))
+    .filter_map(|(export_name, export_info)| {
+      let UsedNameItem::Str(used_name) = export_info.get_used_name(Some(export_name), runtime)?
+      else {
+        return None;
+      };
+
+      let nested = if export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed {
+        export_info.exports_info().and_then(|nested_exports_info| {
+          collect_module_external_remapping(
+            exports_info_artifact,
+            nested_exports_info.as_data(exports_info_artifact),
+            runtime,
+          )
+        })
+      } else {
+        None
+      };
+
+      Some(ModuleExternalRemapping {
+        exposed_name: used_name.to_string(),
+        raw_export_name: export_name.to_string(),
+        nested,
+      })
+    })
+    .collect();
+
+  (!remapping
+    .iter()
+    .all(|item| item.exposed_name == item.raw_export_name && item.nested.is_none()))
+  .then_some(remapping)
+}
+
+fn render_module_external_remapping(
+  input: &str,
+  remapping: &[ModuleExternalRemapping],
+  runtime_template: &mut ModuleCodeTemplate,
+  create_namespace_object_name: &str,
+  wrap_namespace_getter_name: &str,
+) -> String {
+  let properties = remapping
+    .iter()
+    .map(|remapping| {
+      let access = format!(
+        "{input}{}",
+        property_access([remapping.raw_export_name.as_str()], 0)
+      );
+      let getter = if let Some(nested) = &remapping.nested {
+        format!(
+          "{wrap_namespace_getter_name}({})",
+          render_module_external_remapping(
+            &access,
+            nested,
+            runtime_template,
+            create_namespace_object_name,
+            wrap_namespace_getter_name,
+          )
+        )
+      } else {
+        runtime_template.returning_function(&access, "")
+      };
+
+      format!(
+        "{}: {getter}",
+        module_external_remapping_property_key(&remapping.exposed_name)
+      )
+    })
+    .collect::<Vec<_>>()
+    .join(", ");
+
+  format!("{create_namespace_object_name}({{{properties}}})")
+}
+
+fn module_external_remapping_property_key(exposed_name: &str) -> String {
+  format!("[{}]", json_stringify_str(exposed_name))
+}
+
+fn get_source_for_module_external(
+  module_and_specifiers: &ExternalRequestValue,
+  ident: &str,
+  attributes: &Option<ImportAttributes>,
+  exports_info_artifact: &crate::ExportsInfoArtifact,
+  exports_info: &crate::ExportsInfoData,
+  runtime: Option<&RuntimeSpec>,
+  runtime_template: &mut ModuleCodeTemplate,
+) -> (Option<String>, String, ChunkInitFragments) {
+  let mut chunk_init_fragments: ChunkInitFragments = Default::default();
+  let attributes_str = if let Some(attributes) = attributes {
+    format!(
+      " with {}",
+      serde_json::to_string(attributes).expect("json stringify failed"),
+    )
+  } else {
+    String::new()
+  };
+
+  chunk_init_fragments.push(
+    NormalInitFragment::new(
+      format!(
+        "import * as __rspack_external_{ident} from {}{};\n",
+        json_stringify_str(module_and_specifiers.primary()),
+        attributes_str
+      ),
+      InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal(module_external_fragment_key(
+        module_and_specifiers.primary(),
+        attributes,
+      )),
+      None,
+    )
+    .boxed(),
+  );
+
+  let base_access = format!(
+    "__rspack_external_{ident}{}",
+    property_access(module_and_specifiers.iter(), 1)
+  );
+  let remapping = collect_module_external_remapping(exports_info_artifact, exports_info, runtime);
+  let create_namespace_object_name = format!("__rspack_create_module_external_namespace_{ident}");
+  let wrap_namespace_getter_name = format!("__rspack_wrap_module_external_namespace_{ident}");
+  let expression = if let Some(remapping) = remapping.as_ref() {
+    render_module_external_remapping(
+      &base_access,
+      remapping,
+      runtime_template,
+      &create_namespace_object_name,
+      &wrap_namespace_getter_name,
+    )
+  } else {
+    base_access
+  };
+  let init = remapping.map(|_| {
+    let define_property_getters =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let create_namespace_object = runtime_template.basic_function(
+      "y",
+      &format!("var x = {{}};\n{define_property_getters}(x, y);\nreturn x;"),
+    );
+    let return_x = runtime_template.returning_function("x", "");
+    format!(
+      "var {create_namespace_object_name} = {create_namespace_object};\nvar {wrap_namespace_getter_name} = {};",
+      runtime_template.returning_function(&return_x, "x")
+    )
+  });
+
+  (init, expression, chunk_init_fragments)
 }
 
 /**
@@ -503,7 +671,6 @@ impl ExternalModule {
           } else {
             to_identifier(&request.primary)
           };
-
           if let Some(concatenation_scope) = concatenation_scope {
             let exports_info = compilation
               .exports_info_artifact
@@ -520,8 +687,7 @@ impl ExternalModule {
                       .ns_access()
                   })
             );
-            let meta = &self.dependency_meta.attributes;
-            let attributes = meta.as_ref().map(|meta| {
+            let attributes = self.dependency_meta.attributes.as_ref().map(|meta| {
               format!(
                 " with {}",
                 serde_json::to_string(meta).expect("json stringify failed"),
@@ -547,16 +713,6 @@ impl ExternalModule {
                     .iter()
                     .next()
                     .expect("concate module have only 1 chunk");
-
-                  // chunk: [extern_1, extern_2],
-                  // they are placed in 2 different concate modules
-                  // They may have conflict symbols, but we can't know during codegen,
-                  // and even if we know we can't determine which one to rename, as they
-                  // render in parallel.
-                  // This will be improved in incoming esm format.
-                  //
-                  // We must ensure that there is no other external modules in different
-                  // concate modules of the same chunk
                   let module_graph = compilation.get_module_graph();
                   let mut safe_to_optimize = true;
                   'outer: for m in compilation
@@ -565,7 +721,6 @@ impl ExternalModule {
                     .get_chunk_modules(chunk, module_graph)
                   {
                     if m.identifier() == concatenation_scope.concat_module_id {
-                      // skip self
                       continue;
                     }
 
@@ -592,9 +747,6 @@ impl ExternalModule {
                 safe_to_optimize
               };
 
-            // When the external request includes additional specifiers (e.g. ["module fs", "promises"]),
-            // force namespace import so we can apply property access on the namespace object.
-            // This matches webpack's: if (moduleAndSpecifiers.length > 1) imported = true;
             let force_namespace = request.has_rest();
 
             match used_exports {
@@ -613,6 +765,7 @@ impl ExternalModule {
                   format!("__rspack_external_{id}").into(),
                 );
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                String::new()
               }
               UsedExports::UsedNamespace(false) => {
                 concatenation_scope.register_import(
@@ -620,37 +773,67 @@ impl ExternalModule {
                   attributes,
                   None,
                 );
+                String::new()
               }
               UsedExports::UsedNames(atoms) => {
                 if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
-                  chunk_init_fragments.push(
-                    NormalInitFragment::new(
-                      format!(
-                        "import * as __rspack_external_{} from {}{};\n",
+                  if collect_module_external_remapping(
+                    &compilation.exports_info_artifact,
+                    exports_info,
+                    runtime,
+                  )
+                  .is_some()
+                  {
+                    let (init, expression, module_external_fragments) =
+                      get_source_for_module_external(
+                        request,
                         id.as_ref(),
-                        json_stringify_str(request.primary()),
-                        attributes.unwrap_or_default()
-                      ),
-                      InitFragmentStage::StageESMImports,
-                      module_graph
-                        .get_pre_order_index(&self.identifier())
-                        .map_or(0, |num| num as i32),
-                      InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                        request.primary(),
                         &self.dependency_meta.attributes,
-                      )),
-                      None,
+                        &compilation.exports_info_artifact,
+                        exports_info,
+                        runtime,
+                        runtime_template,
+                      );
+                    chunk_init_fragments.extend(module_external_fragments);
+                    let external_module_id = format!("__rspack_module_external_namespace_{id}");
+                    let namespace_export_with_name =
+                      format!("{NAMESPACE_OBJECT_EXPORT}{external_module_id}");
+                    concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                    format!(
+                      "{}\nvar {external_module_id} = {expression};",
+                      init.expect("remapped module external should render init fragments")
                     )
-                    .boxed(),
-                  );
-                  let external_module_id = format!("__rspack_external_{id}");
-                  let namespace_export_with_name = format!(
-                    "{}{}{}",
-                    NAMESPACE_OBJECT_EXPORT,
-                    &external_module_id,
-                    &property_access(request.iter(), 1)
-                  );
-                  concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                  } else {
+                    chunk_init_fragments.push(
+                      NormalInitFragment::new(
+                        format!(
+                          "import * as __rspack_external_{} from {}{};\n",
+                          id.as_ref(),
+                          json_stringify_str(request.primary()),
+                          attributes.unwrap_or_default()
+                        ),
+                        InitFragmentStage::StageESMImports,
+                        module_graph
+                          .get_pre_order_index(&self.identifier())
+                          .map_or(0, |num| num as i32),
+                        InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                          request.primary(),
+                          &self.dependency_meta.attributes,
+                        )),
+                        None,
+                      )
+                      .boxed(),
+                    );
+                    let external_module_id = format!("__rspack_external_{id}");
+                    let namespace_export_with_name = format!(
+                      "{}{}{}",
+                      NAMESPACE_OBJECT_EXPORT,
+                      &external_module_id,
+                      &property_access(request.iter(), 1)
+                    );
+                    concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                    String::new()
+                  }
                 } else {
                   concatenation_scope.register_import(
                     request.primary().to_string(),
@@ -665,48 +848,35 @@ impl ExternalModule {
                     );
                     concatenation_scope.register_raw_export(atom.clone(), atom.to_string());
                   }
+                  String::new()
                 }
               }
             }
-
-            String::new()
           } else {
-            chunk_init_fragments.push(
-              NormalInitFragment::new(
-                format!(
-                  "import * as __rspack_external_{} from {}{};\n",
-                  id.clone(),
-                  json_stringify_str(request.primary()),
-                  {
-                    let meta = &self.dependency_meta.attributes;
-                    if let Some(meta) = meta {
-                      format!(
-                        " with {}",
-                        serde_json::to_string(meta).expect("json stringify failed"),
-                      )
-                    } else {
-                      String::new()
-                    }
-                  },
-                ),
-                InitFragmentStage::StageESMImports,
-                0,
-                InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                  request.primary(),
-                  &self.dependency_meta.attributes,
-                )),
-                None,
-              )
-              .boxed(),
+            let exports_info = compilation
+              .exports_info_artifact
+              .get_exports_info_data(&self.identifier());
+            let (init, expression, module_external_fragments) = get_source_for_module_external(
+              request,
+              id.as_ref(),
+              &self.dependency_meta.attributes,
+              &compilation.exports_info_artifact,
+              exports_info,
+              runtime,
+              runtime_template,
             );
-            format!(
-              r#"
-{} = __rspack_external_{}{};
-"#,
-              get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-              id.clone(),
-              property_access(request.iter(), 1)
-            )
+            chunk_init_fragments.extend(module_external_fragments);
+            let export =
+              get_namespace_object_export(concatenation_scope, supports_const, runtime_template);
+            if let Some(init) = init {
+              format!("{init}\n{export} = {expression};")
+            } else {
+              format!(
+                r#"
+{export} = {expression};
+"#
+              )
+            }
           }
         } else {
           format!(
@@ -1018,3 +1188,161 @@ impl Module for ExternalModule {
 }
 
 impl_empty_diagnosable_trait!(ExternalModule);
+
+#[cfg(test)]
+mod tests {
+  use rspack_util::atom::Atom;
+
+  use super::collect_module_external_remapping;
+  use crate::{ExportProvided, ExportsInfoArtifact, ExportsInfoData, UsageState, UsedNameItem};
+
+  #[test]
+  fn module_external_remapping_keeps_real_external_property_name() {
+    let mut exports_info_artifact = ExportsInfoArtifact::default();
+    let exports_info_data = ExportsInfoData::default();
+    let exports_info = exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(exports_info, exports_info_data);
+
+    let exports_info_data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
+    exports_info_data
+      .other_exports_info_mut()
+      .set_has_use_info();
+
+    let export_info = exports_info_data.ensure_owned_export_info(&Atom::from("EventEmitter"));
+    export_info.set_has_use_info();
+    export_info.set_used(UsageState::Used, None);
+    export_info.set_provided(Some(ExportProvided::Provided));
+    export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
+
+    let exports_info = exports_info_artifact.get_exports_info_by_id(&exports_info);
+
+    assert_eq!(
+      collect_module_external_remapping(&exports_info_artifact, exports_info, None),
+      Some(vec![super::ModuleExternalRemapping {
+        exposed_name: "a".to_string(),
+        raw_export_name: "EventEmitter".to_string(),
+        nested: None,
+      }])
+    );
+  }
+
+  #[test]
+  fn module_external_remapping_recurses_nested_exports() {
+    let mut exports_info_artifact = ExportsInfoArtifact::default();
+    let root_exports_info_data = ExportsInfoData::default();
+    let root_exports_info = root_exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(root_exports_info, root_exports_info_data);
+
+    let nested_exports_info_data = ExportsInfoData::default();
+    let nested_exports_info = nested_exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(nested_exports_info, nested_exports_info_data);
+
+    {
+      let root_exports_info_data =
+        exports_info_artifact.get_exports_info_mut_by_id(&root_exports_info);
+      root_exports_info_data
+        .other_exports_info_mut()
+        .set_has_use_info();
+
+      let export_info = root_exports_info_data.ensure_owned_export_info(&Atom::from("pkg"));
+      export_info.set_has_use_info();
+      export_info.set_used(UsageState::OnlyPropertiesUsed, None);
+      export_info.set_provided(Some(ExportProvided::Provided));
+      export_info.set_used_name(UsedNameItem::Str(Atom::from("b")));
+      export_info.set_exports_info(Some(nested_exports_info));
+      export_info.set_exports_info_owned(true);
+    }
+
+    {
+      let nested_exports_info_data =
+        exports_info_artifact.get_exports_info_mut_by_id(&nested_exports_info);
+      nested_exports_info_data
+        .other_exports_info_mut()
+        .set_has_use_info();
+
+      let export_info =
+        nested_exports_info_data.ensure_owned_export_info(&Atom::from("EventEmitter"));
+      export_info.set_has_use_info();
+      export_info.set_used(UsageState::Used, None);
+      export_info.set_provided(Some(ExportProvided::Provided));
+      export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
+    }
+
+    let exports_info = exports_info_artifact.get_exports_info_by_id(&root_exports_info);
+
+    assert_eq!(
+      collect_module_external_remapping(&exports_info_artifact, exports_info, None),
+      Some(vec![super::ModuleExternalRemapping {
+        exposed_name: "b".to_string(),
+        raw_export_name: "pkg".to_string(),
+        nested: Some(vec![super::ModuleExternalRemapping {
+          exposed_name: "a".to_string(),
+          raw_export_name: "EventEmitter".to_string(),
+          nested: None,
+        }]),
+      }])
+    );
+  }
+
+  #[test]
+  fn module_external_remapping_does_not_recurse_when_export_is_directly_used() {
+    let mut exports_info_artifact = ExportsInfoArtifact::default();
+    let root_exports_info_data = ExportsInfoData::default();
+    let root_exports_info = root_exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(root_exports_info, root_exports_info_data);
+
+    let nested_exports_info_data = ExportsInfoData::default();
+    let nested_exports_info = nested_exports_info_data.id();
+    exports_info_artifact.set_exports_info_by_id(nested_exports_info, nested_exports_info_data);
+
+    {
+      let root_exports_info_data =
+        exports_info_artifact.get_exports_info_mut_by_id(&root_exports_info);
+      root_exports_info_data
+        .other_exports_info_mut()
+        .set_has_use_info();
+
+      let export_info = root_exports_info_data.ensure_owned_export_info(&Atom::from("pkg"));
+      export_info.set_has_use_info();
+      export_info.set_used(UsageState::Used, None);
+      export_info.set_provided(Some(ExportProvided::Provided));
+      export_info.set_used_name(UsedNameItem::Str(Atom::from("b")));
+      export_info.set_exports_info(Some(nested_exports_info));
+      export_info.set_exports_info_owned(true);
+    }
+
+    {
+      let nested_exports_info_data =
+        exports_info_artifact.get_exports_info_mut_by_id(&nested_exports_info);
+      nested_exports_info_data
+        .other_exports_info_mut()
+        .set_has_use_info();
+
+      let export_info =
+        nested_exports_info_data.ensure_owned_export_info(&Atom::from("EventEmitter"));
+      export_info.set_has_use_info();
+      export_info.set_used(UsageState::Used, None);
+      export_info.set_provided(Some(ExportProvided::Provided));
+      export_info.set_used_name(UsedNameItem::Str(Atom::from("a")));
+    }
+
+    let exports_info = exports_info_artifact.get_exports_info_by_id(&root_exports_info);
+
+    assert_eq!(
+      collect_module_external_remapping(&exports_info_artifact, exports_info, None),
+      Some(vec![super::ModuleExternalRemapping {
+        exposed_name: "b".to_string(),
+        raw_export_name: "pkg".to_string(),
+        nested: None,
+      }])
+    );
+  }
+
+  #[test]
+  fn module_external_remapping_uses_computed_property_keys() {
+    assert_eq!(
+      super::module_external_remapping_property_key("__proto__"),
+      "[\"__proto__\"]"
+    );
+  }
+}
