@@ -15,7 +15,7 @@
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.0.1",
     "@rspack/plugin-react-refresh": "^2.0.0",
-    "@module-federation/runtime-tools": "2.3.3",
+    "@module-federation/runtime-tools": "2.4.0",
     "@swc/helpers": "0.5.21",
     "@types/fs-extra": "11.0.4",
     "babel-loader": "^10.1.1",
