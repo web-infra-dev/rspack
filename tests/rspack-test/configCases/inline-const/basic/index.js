@@ -7,6 +7,7 @@ import * as reexportedBarrelSideEffects from "./re-export.barrel-side-effects.js
 import * as reexportedDestructingBarrelSideEffects from "./re-export.destructing-barrel-side-effects.js";
 import * as constantsCjs from "./constants.cjs";
 import * as constantsNoInline from "./constants.no-inline.js";
+import { REMOVE_b as BRANCH_TRUE, REMOVE_FALSE as BRANCH_FALSE } from "./constants.js";
 
 const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
 
@@ -179,4 +180,81 @@ it("should keep the module if part of the exports is inlined and side effects fr
 
 it("should not inline no-inlinable constants", () => {
   expect(constantsNoInline.INLINE_1).toEqual({});
+})
+
+it("should drop branch dependencies guarded by inlined imported constants", () => {
+  if (BRANCH_TRUE) {
+    expect(BRANCH_TRUE).toBe(true);
+  } else {
+    require("./branch-unused.js");
+  }
+  if (!BRANCH_TRUE) {
+    require("./branch-unused.js");
+  } else {
+    expect(BRANCH_TRUE).toBe(true);
+  }
+  if (BRANCH_FALSE) {
+    require("./branch-unused.js");
+  } else {
+    expect(require("./branch-used.js")).toBe("used");
+  }
+  if (!BRANCH_FALSE) {
+    expect(BRANCH_FALSE).toBe(false);
+  } else {
+    require("./branch-unused.js");
+  }
+  if (BRANCH_TRUE && BRANCH_FALSE) {
+    require("./branch-unused.js");
+  } else {
+    expect(require("./branch-logical-used.js")).toBe("logical-used");
+  }
+  if (BRANCH_TRUE || BRANCH_FALSE) {
+    expect(require("./branch-logical-used.js")).toBe("logical-used");
+  } else {
+    require("./branch-unused.js");
+  }
+  if (BRANCH_TRUE && false) {
+    require("./branch-unused.js");
+  } else {
+    expect(require("./branch-logical-used.js")).toBe("logical-used");
+  }
+  if (false || BRANCH_FALSE) {
+    require("./branch-unused.js");
+  } else {
+    expect(BRANCH_FALSE).toBe(false);
+  }
+  if (false && BRANCH_TRUE) {
+    require("./branch-unused.js");
+  } else {
+    expect(require("./branch-logical-used.js")).toBe("logical-used");
+  }
+  if (true || BRANCH_FALSE) {
+    expect(require("./branch-logical-used.js")).toBe("logical-used");
+  } else {
+    require("./branch-unused.js");
+  }
+  if ((BRANCH_TRUE || BRANCH_FALSE) && (BRANCH_FALSE || true) && (BRANCH_TRUE || false)) {
+    expect(require("./branch-logical-used.js")).toBe("logical-used");
+  } else {
+    require("./branch-unused.js");
+  }
+
+  const unusedModule = "./branch-" + "unused.js";
+  const usedModule = "./branch-" + "used.js";
+  const logicalUsedModule = "./branch-" + "logical-used.js";
+  const unusedFactory = `"${unusedModule}"(`;
+  const usedFactory = `"${usedModule}"(`;
+  const logicalUsedFactory = `"${logicalUsedModule}"(`;
+  const unusedMarker = "__branchCondition" + "Unused";
+  const usedMarker = "__branchCondition" + "Used";
+  const logicalUsedMarker = "__branchCondition" + "LogicalUsed";
+  expect(globalThis[unusedMarker]).toBe(undefined);
+  expect(globalThis[usedMarker]).toBe(true);
+  expect(globalThis[logicalUsedMarker]).toBe(true);
+  expect(generated.includes(unusedFactory)).toBe(false);
+  expect(generated.includes(usedFactory)).toBe(true);
+  expect(generated.includes(logicalUsedFactory)).toBe(true);
+  expect(generated.includes(unusedMarker)).toBe(false);
+  expect(generated.includes(usedMarker)).toBe(true);
+  expect(generated.includes(logicalUsedMarker)).toBe(true);
 })

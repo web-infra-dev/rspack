@@ -3,12 +3,16 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedSpecifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
+};
+
+use crate::dependency::{
+  DependencyActiveCondition, DependencyActiveConditions, compose_dependency_condition,
 };
 
 #[cacheable]
@@ -22,6 +26,7 @@ pub struct CommonJsRequireDependency {
   loc: Option<DependencyLocation>,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  active_conditions: Option<DependencyActiveConditions>,
   factorize_info: FactorizeInfo,
 }
 
@@ -42,12 +47,23 @@ impl CommonJsRequireDependency {
       range_expr,
       loc,
       referenced_specifiers,
+      active_conditions: None,
       factorize_info: Default::default(),
     }
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn add_active_conditions(
+    &mut self,
+    conditions: impl IntoIterator<Item = DependencyActiveCondition>,
+  ) {
+    self
+      .active_conditions
+      .get_or_insert_default()
+      .extend(conditions);
   }
 }
 
@@ -117,6 +133,10 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    compose_dependency_condition(None, self.active_conditions.as_ref())
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

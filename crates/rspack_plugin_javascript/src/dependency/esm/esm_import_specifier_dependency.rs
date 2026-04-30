@@ -24,7 +24,11 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  is_export_inlined, visitors::DestructuringAssignmentProperties,
+  dependency::{
+    DependencyActiveCondition, DependencyActiveConditions, compose_dependency_condition,
+  },
+  is_export_inlined,
+  visitors::DestructuringAssignmentProperties,
 };
 
 #[cacheable]
@@ -44,6 +48,7 @@ pub struct ESMImportSpecifierDependency {
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
+  active_conditions: Option<DependencyActiveConditions>,
   #[cacheable(with=AsOption<AsCacheable>)]
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: ResourceIdentifier,
@@ -91,6 +96,7 @@ impl ESMImportSpecifierDependency {
       direct_import,
       export_presence_mode,
       used_by_exports: None,
+      active_conditions: None,
       evaluated_in_operator: false,
       namespace_object_as_context: false,
       ns_access,
@@ -166,6 +172,16 @@ impl ESMImportSpecifierDependency {
 
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
+  }
+
+  pub fn add_active_conditions(
+    &mut self,
+    conditions: impl IntoIterator<Item = DependencyActiveCondition>,
+  ) {
+    self
+      .active_conditions
+      .get_or_insert_default()
+      .extend(conditions);
   }
 }
 
@@ -339,9 +355,12 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::new(
-      ESMImportSpecifierDependencyCondition,
-    ))
+    compose_dependency_condition(
+      Some(DependencyCondition::new(
+        ESMImportSpecifierDependencyCondition,
+      )),
+      self.active_conditions.as_ref(),
+    )
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
