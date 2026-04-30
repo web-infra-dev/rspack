@@ -35,7 +35,7 @@ export type RscManifest = Record<string, RscManifestPerEntry>;
 
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
-  onServerComponentChanges?: () => Promise<void>;
+  onServerComponentChanges?: () => void | Promise<void>;
   onManifest?: (manifest: RscManifest) => void | Promise<void>;
 };
 
