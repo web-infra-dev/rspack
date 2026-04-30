@@ -7,34 +7,40 @@ use swc_core::{
 
 use crate::{
   JavascriptParserPlugin,
+  parser_plugin::JS_DEFAULT_KEYWORD,
   visitors::{ExportAllDeclaration, ExportImport, ExportNamedDeclaration, JavascriptParser},
 };
 
 impl JavascriptParser<'_> {
   pub fn module_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
-      self.statement_path.push(statement.span().into());
       match statement {
-        ModuleItem::ModuleDecl(module_decl) => match module_decl {
-          ModuleDecl::Import(decl) => self.module_pre_walk_import_declaration(decl),
-          ModuleDecl::ExportAll(decl) => {
-            self.module_pre_walk_export_all_declaration(ExportAllDeclaration::All(decl))
-          }
-          ModuleDecl::ExportNamed(decl) => {
-            let is_named_namespace_export = decl.specifiers.len() == 1
-              && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)));
-            if is_named_namespace_export {
-              self.module_pre_walk_export_all_declaration(ExportAllDeclaration::NamedAll(decl))
-            } else {
-              self
-                .module_pre_walk_export_named_declaration(ExportNamedDeclaration::Specifiers(decl))
+        ModuleItem::ModuleDecl(module_decl) => {
+          self.statement_path.push(statement.span().into());
+          match module_decl {
+            ModuleDecl::Import(decl) => self.module_pre_walk_import_declaration(decl),
+            ModuleDecl::ExportAll(decl) => {
+              self.module_pre_walk_export_all_declaration(ExportAllDeclaration::All(decl))
             }
+            ModuleDecl::ExportNamed(decl) => {
+              let is_named_namespace_export = decl.specifiers.len() == 1
+                && matches!(decl.specifiers.first(), Some(ExportSpecifier::Namespace(_)));
+              if is_named_namespace_export {
+                self.module_pre_walk_export_all_declaration(ExportAllDeclaration::NamedAll(decl))
+              } else {
+                self.module_pre_walk_export_named_declaration(ExportNamedDeclaration::Specifiers(
+                  decl,
+                ))
+              }
+            }
+            _ => {}
           }
-          _ => {}
-        },
-        ModuleItem::Stmt(_) => {}
+          self.prev_statement = self.statement_path.pop();
+        }
+        ModuleItem::Stmt(_) => {
+          self.prev_statement = Some(statement.span().into());
+        }
       }
-      self.prev_statement = self.statement_path.pop();
     }
   }
 
@@ -58,30 +64,21 @@ impl JavascriptParser<'_> {
                 .as_atom()
                 .expect("ModuleExportName should be a valid utf8"),
             });
-          if drive
-            .import_specifier(self, decl, source, Some(export_name), identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.clone())
-          }
+          drive.import_specifier(self, decl, source, Some(export_name), identifier_name);
         }
         ImportSpecifier::Default(default) => {
           let identifier_name = &default.local.sym;
-          if drive
-            .import_specifier(self, decl, source, Some(&"default".into()), identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.clone())
-          }
+          drive.import_specifier(
+            self,
+            decl,
+            source,
+            Some(&JS_DEFAULT_KEYWORD),
+            identifier_name,
+          );
         }
         ImportSpecifier::Namespace(namespace) => {
           let identifier_name = &namespace.local.sym;
-          if drive
-            .import_specifier(self, decl, source, None, identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.clone())
-          }
+          drive.import_specifier(self, decl, source, None, identifier_name);
         }
       }
     }
@@ -120,8 +117,8 @@ impl JavascriptParser<'_> {
             self,
             ExportImport::Named(export),
             source,
-            Some(&local_id),
-            Some(&exported_name),
+            Some(local_id),
+            Some(exported_name),
             Some(exported_name_span),
           );
         }

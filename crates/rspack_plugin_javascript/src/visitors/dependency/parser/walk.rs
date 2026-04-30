@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -865,6 +866,10 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_member_expression(&mut self, expr: &MemberExpr) {
+    if self.try_walk_normal_local_member_expression(expr) {
+      return;
+    }
+
     let drive = self.plugin_drive.clone();
     if let Some(expr_info) =
       self.get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::all())
@@ -977,6 +982,37 @@ impl JavascriptParser<'_> {
     if let MemberProp::Computed(computed) = &expr.prop {
       self.walk_expression(&computed.expr)
     }
+  }
+
+  fn try_walk_normal_local_member_expression(&mut self, expr: &MemberExpr) -> bool {
+    let mut current = expr;
+    let mut computed_props = SmallVec::<[&Expr; 2]>::new();
+    let root = loop {
+      if let MemberProp::Computed(computed) = &current.prop {
+        computed_props.push(&computed.expr);
+      }
+      match &*current.obj {
+        Expr::Member(member) => {
+          current = member;
+        }
+        Expr::Ident(ident) => break ident,
+        _ => return false,
+      }
+    };
+
+    let Some(info) = self.get_variable_info(&root.sym) else {
+      return false;
+    };
+    if info.is_free() || info.is_tagged() {
+      return false;
+    }
+
+    self.walk_identifier(root);
+    for computed in computed_props.iter().rev() {
+      self.walk_expression(computed);
+    }
+
+    true
   }
 
   fn walk_opt_call(&mut self, expr: &OptCall) {

@@ -106,21 +106,22 @@ impl Task<TaskContext> for BuildResultTask {
       .await?;
 
     let build_info = module.build_info();
+    let module_identifier = module.identifier();
 
     if !module.diagnostics().is_empty() {
       context
         .artifact
         .make_failed_module
-        .insert(module.identifier());
+        .insert(module_identifier);
     }
 
-    tracing::trace!("Module built: {}", module.identifier());
+    tracing::trace!("Module built: {}", module_identifier);
     context
       .artifact
       .module_graph
-      .get_optimization_bailout_mut(&module.identifier())
+      .get_optimization_bailout_mut(&module_identifier)
       .extend(build_result.optimization_bailouts);
-    let resource_id = ResourceId::from(module.identifier());
+    let resource_id = ResourceId::from(module_identifier);
     context
       .artifact
       .file_dependencies
@@ -140,12 +141,13 @@ impl Task<TaskContext> for BuildResultTask {
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
-    let mut queue = VecDeque::new();
-    let mut all_dependencies = vec![];
+    let mut queue = VecDeque::with_capacity(build_result.blocks.len());
+    let mut all_dependencies = Vec::with_capacity(build_result.dependencies.len());
     let mut handle_block = |dependencies: Vec<BoxDependency>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
      -> Vec<Box<AsyncDependenciesBlock>> {
+      all_dependencies.reserve(dependencies.len());
       for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
@@ -159,7 +161,7 @@ impl Task<TaskContext> for BuildResultTask {
           dependency_id,
           DependencyParents {
             block: current_block.as_ref().map(|block| block.identifier()),
-            module: module.identifier(),
+            module: module_identifier,
             index_in_block,
           },
         );
@@ -181,11 +183,9 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     {
-      let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
+      let mgm = module_graph.module_graph_module_by_identifier_mut(&module_identifier);
       mgm.all_dependencies_mut().clone_from(&all_dependencies);
     }
-
-    let module_identifier = module.identifier();
 
     module_graph.add_module(module);
 

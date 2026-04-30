@@ -11,7 +11,7 @@ use serde_json::{Map, Value, json};
 use swc_core::common::Span;
 
 use super::{
-  ConflictingValuesError, DefineValue,
+  ConflictingValuesError, DefineValue, VALUE_DEP_PREFIX,
   utils::{code_to_string, gen_const_dep},
 };
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
@@ -185,7 +185,7 @@ impl ObjectDefineRecord {
 
 #[derive(Debug, Default)]
 pub struct WalkData {
-  pub tiling_definitions: FxHashMap<String, String>,
+  pub tiling_definitions: FxHashMap<String, (String, String)>,
   pub diagnostics: Vec<Diagnostic>,
   pub can_rename: FxHashMap<Arc<str>, Option<Arc<str>>>,
   pub define_record: FxHashMap<Arc<str>, DefineRecord>,
@@ -209,15 +209,17 @@ impl WalkData {
     definitions.for_each(|(key, value)| {
       let name = format!("{prefix}{key}");
       let value_str = value.to_string();
-      if let Some(prev) = self.tiling_definitions.get(&name)
+      if let Some((_, prev)) = self.tiling_definitions.get(&name)
         && !prev.eq(&value_str)
       {
-        self.diagnostics.push(
-          ConflictingValuesError(format!("{prefix}{key}"), prev.clone(), value_str)
-            .into_diagnostic(),
-        );
+        self
+          .diagnostics
+          .push(ConflictingValuesError(name, prev.clone(), value_str).into_diagnostic());
       } else {
-        self.tiling_definitions.insert(name, value_str);
+        let mut cache_key = String::with_capacity(VALUE_DEP_PREFIX.len() + name.len());
+        cache_key.push_str(VALUE_DEP_PREFIX);
+        cache_key.push_str(&name);
+        self.tiling_definitions.insert(name, (cache_key, value_str));
       }
       if let Some(value) = value.as_object() {
         self.setup_value_cache(value.iter(), Cow::Owned(format!("{prefix}{key}.")))

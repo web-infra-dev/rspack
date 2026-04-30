@@ -1,8 +1,6 @@
 use std::sync::LazyLock;
 
-use rspack_core::{
-  DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
-};
+use rspack_core::{DeferredPureCheck, DependencyRange, SideEffectsBailoutItemWithSpan};
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_core::{
@@ -25,7 +23,6 @@ use swc_core::{
 
 use crate::{
   ClassExt, JavascriptParserPlugin,
-  dependency::ESMImportSideEffectDependency,
   parser_plugin::esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
   visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration},
 };
@@ -971,30 +968,20 @@ fn try_extract_deferred_check(
   }
 
   let data = ESMSpecifierData::downcast(tag_info.data.clone()?);
+  let dep_id = *parser
+    .esm_import_side_effect_dependencies
+    .get(&data.resource_identifier)?;
 
-  parser
-    .get_dependencies()
-    .iter()
-    .find(|dep| {
-      let Some(dep) = dep.downcast_ref::<ESMImportSideEffectDependency>() else {
-        return false;
-      };
-
-      let request_eq = dep.request() == &data.source;
-      let attributes: Option<&rspack_core::ImportAttributes> = data.attributes.as_ref();
-      let attributes_eq = attributes == dep.get_attributes();
-      request_eq && attributes_eq
-    })
-    .map(|dep| DeferredPureCheck {
-      atom: data
-        .ids
-        .first()
-        .cloned()
-        .unwrap_or_else(|| data.name.clone()),
-      dep_id: *dep.id(),
-      start: span.real_lo(),
-      end: span.real_hi(),
-    })
+  Some(DeferredPureCheck {
+    atom: data
+      .ids
+      .first()
+      .cloned()
+      .unwrap_or_else(|| data.name.clone()),
+    dep_id,
+    start: span.real_lo(),
+    end: span.real_hi(),
+  })
 }
 
 fn is_pure_new_expr(

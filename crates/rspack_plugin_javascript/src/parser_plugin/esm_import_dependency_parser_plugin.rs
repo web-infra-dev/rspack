@@ -1,6 +1,6 @@
 use rspack_core::{
   ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
-  ImportAttributes, ImportPhase,
+  ImportAttributes, ImportPhase, ResourceIdentifier,
 };
 use swc_core::{
   atoms::Atom,
@@ -12,7 +12,10 @@ use super::{
   InnerGraphParserPlugin, JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{
-  dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
+  dependency::{
+    ESMImportSideEffectDependency, ESMImportSpecifierDependency,
+    create_resource_identifier_for_esm_dependency,
+  },
   utils::object_properties::get_attributes,
   visitors::{
     AllowedMemberTypes, AtomMembers, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
@@ -34,6 +37,38 @@ pub struct ESMSpecifierData {
   pub source_order: i32,
   pub phase: ImportPhase,
   pub attributes: Option<ImportAttributes>,
+  pub resource_identifier: ResourceIdentifier,
+}
+
+fn get_import_attributes(
+  parser: &mut JavascriptParser,
+  import_decl: &ImportDecl,
+) -> Option<ImportAttributes> {
+  import_decl.with.as_ref()?;
+  if let Some((span, attributes)) = &parser.last_esm_import_attributes
+    && *span == import_decl.span
+  {
+    return Some(attributes.clone());
+  }
+  let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
+  parser.last_esm_import_attributes = attributes
+    .as_ref()
+    .map(|attributes| (import_decl.span, attributes.clone()));
+  attributes
+}
+
+fn get_import_resource_identifier(
+  parser: &JavascriptParser,
+  import_decl: &ImportDecl,
+  source: &Atom,
+  attributes: Option<&ImportAttributes>,
+) -> ResourceIdentifier {
+  if let Some((span, resource_identifier)) = parser.last_esm_import_resource_identifier
+    && span == import_decl.span
+  {
+    return resource_identifier;
+  }
+  create_resource_identifier_for_esm_dependency(source, attributes)
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -45,7 +80,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     source: &str,
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
-    let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
+    let attributes = get_import_attributes(parser, import_decl);
     let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
       import_decl.phase.into()
     } else {
@@ -68,6 +103,11 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       parser.to_dependency_location(DependencyRange::from(import_decl.span)),
       false,
     );
+    parser.last_esm_import_resource_identifier =
+      Some((import_decl.span, dependency.resource_identifier()));
+    parser
+      .esm_import_side_effect_dependencies
+      .insert(dependency.resource_identifier(), *dependency.id());
 
     parser.add_dependency(Box::new(dependency));
 
@@ -96,6 +136,9 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     } else {
       ImportPhase::Evaluation
     };
+    let attributes = get_import_attributes(parser, statement);
+    let resource_identifier =
+      get_import_resource_identifier(parser, statement, source, attributes.as_ref());
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,
@@ -106,7 +149,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
         namespace_import: id.is_none(),
         source_order: parser.last_esm_import_order,
         phase,
-        attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
+        attributes,
+        resource_identifier,
       }),
     );
     Some(true)
@@ -122,8 +166,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     }
     let root_info = right.root_info();
     let settings = if let ExportedVariableInfo::VariableInfo(variable) = root_info
-      && let Some(variable_name) = &parser.definitions_db.expect_get_variable(*variable).name
-      && let Some(data) = parser.get_tag_data(&variable_name.clone(), ESM_SPECIFIER_TAG)
+      && let Some(data) = parser.get_tag_data_by_variable_info(*variable, ESM_SPECIFIER_TAG)
     {
       ESMSpecifierData::downcast(data)
     } else {
@@ -142,7 +185,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
 
     let range = DependencyRange::from(expr.span);
     let loc = parser.to_dependency_location(range);
-    let mut dep = ESMImportSpecifierDependency::new(
+    let mut dep = ESMImportSpecifierDependency::new_with_resource_identifier(
       settings.source,
       settings.name,
       settings.source_order,
@@ -158,6 +201,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.phase,
       settings.attributes,
       loc,
+      settings.resource_identifier,
     );
     dep.evaluated_in_operator = true;
 
@@ -177,10 +221,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
       && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
-      && parser
-        .get_tag_data(&name.clone(), ESM_SPECIFIER_TAG)
-        .is_some()
+      && parser.has_tag_by_variable_info(*id, ESM_SPECIFIER_TAG)
     {
       return Some(true);
     }
@@ -206,7 +247,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .cloned();
     let range = DependencyRange::from(ident.span);
     let loc = parser.to_dependency_location(range);
-    let dep = ESMImportSpecifierDependency::new(
+    let dep = ESMImportSpecifierDependency::new_with_resource_identifier(
       settings.source,
       settings.name,
       settings.source_order,
@@ -222,6 +263,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.phase,
       settings.attributes,
       loc,
+      settings.resource_identifier,
     );
     let dep_id = *dep.id();
     parser.add_dependency(Box::new(dep));
@@ -265,7 +307,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
     let ns_access = settings.namespace_import && !ids.is_empty();
-    let mut dep = ESMImportSpecifierDependency::new(
+    let mut dep = ESMImportSpecifierDependency::new_with_resource_identifier(
       settings.source,
       settings.name,
       settings.source_order,
@@ -283,6 +325,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.phase,
       settings.attributes,
       parser.to_dependency_location(DependencyRange::from(call_expr.callee.span())),
+      settings.resource_identifier,
     );
     dep.namespace_object_as_context = parser
       .javascript_options
@@ -332,7 +375,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .destructuring_assignment_properties
       .get(&member_expr.span())
       .cloned();
-    let dep = ESMImportSpecifierDependency::new(
+    let dep = ESMImportSpecifierDependency::new_with_resource_identifier(
       settings.source,
       settings.name,
       settings.source_order,
@@ -348,6 +391,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.phase,
       settings.attributes,
       parser.to_dependency_location(DependencyRange::from(span)),
+      settings.resource_identifier,
     );
     let dep_id = *dep.id();
     parser.add_dependency(Box::new(dep));

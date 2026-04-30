@@ -133,8 +133,8 @@ impl JavascriptParser<'_> {
             drive.export_specifier(
               self,
               ExportLocal::Named(export),
-              &local_id,
-              &exported_name,
+              local_id,
+              exported_name,
               exported_name_span,
             );
           }

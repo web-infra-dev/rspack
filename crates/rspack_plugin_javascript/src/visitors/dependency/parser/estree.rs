@@ -1,8 +1,7 @@
 //! The compat estree helpers for swc ecma ast
 
-use rspack_util::atom::ModuleExportNameExt;
+use rspack_util::atom::{Atom, ModuleExportNameExt};
 use swc_core::{
-  atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
     BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
@@ -173,16 +172,16 @@ impl ExportNamedDeclaration<'_> {
 
   pub fn named_export_specifiers(
     named: &NamedExport,
-  ) -> impl Iterator<Item = (Atom, Atom, Span)> + use<'_> {
+  ) -> impl Iterator<Item = (&Atom, &Atom, Span)> + use<'_> {
     named.specifiers.iter().map(|spec| {
       match spec {
         ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
         ExportSpecifier::Default(s) => {
-          (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone(), s.exported.span())
+          (&*JS_DEFAULT_KEYWORD, &s.exported.sym, s.exported.span())
         },
         ExportSpecifier::Named(n) => {
           let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
-          (n.orig.atom().into_owned(), exported_name.atom().into_owned(), exported_name.span())
+          (n.orig.atom_ref(), exported_name.atom_ref(), exported_name.span())
         },
       }
     })

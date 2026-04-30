@@ -78,6 +78,45 @@ impl ESMImportSpecifierDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+    Self::new_with_resource_identifier(
+      request,
+      name,
+      source_order,
+      shorthand,
+      asi_safe,
+      range,
+      ids,
+      call,
+      direct_import,
+      ns_access,
+      export_presence_mode,
+      referenced_properties_in_destructuring,
+      phase,
+      attributes,
+      loc,
+      resource_identifier,
+    )
+  }
+
+  #[allow(clippy::too_many_arguments, clippy::fn_params_excessive_bools)]
+  pub fn new_with_resource_identifier(
+    request: Atom,
+    name: Atom,
+    source_order: i32,
+    shorthand: bool,
+    asi_safe: bool,
+    range: DependencyRange,
+    ids: Vec<Atom>,
+    call: bool,
+    direct_import: bool,
+    ns_access: bool,
+    export_presence_mode: ExportPresenceMode,
+    referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
+    phase: ImportPhase,
+    attributes: Option<ImportAttributes>,
+    loc: Option<DependencyLocation>,
+    resource_identifier: ResourceIdentifier,
+  ) -> Self {
     Self {
       id: DependencyId::new(),
       request,

@@ -9,7 +9,7 @@ use std::{
 use rspack_util::SpanExt;
 use swc_core::ecma::ast::Expr;
 
-use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
+use super::{utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   define_plugin::walk_data::DefineRecord,
@@ -33,12 +33,11 @@ impl DefineParserPlugin {
   }
 
   fn add_value_dependency(&self, parser: &mut JavascriptParser, key: &str) {
-    if let Some(value) = self.walk_data.tiling_definitions.get(key) {
-      let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
+    if let Some((cache_key, value)) = self.walk_data.tiling_definitions.get(key) {
       parser
         .build_info
         .value_dependencies
-        .insert(cache_key, value.clone());
+        .insert(cache_key.clone(), value.clone());
     }
   }
 

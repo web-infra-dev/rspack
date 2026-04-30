@@ -78,6 +78,35 @@ impl ESMExportImportedSpecifierDependency {
   ) -> Self {
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(&request, attributes.as_ref());
+    Self::new_with_resource_identifier(
+      request,
+      source_order,
+      ids,
+      name,
+      other_star_exports,
+      range,
+      export_presence_mode,
+      phase,
+      attributes,
+      loc,
+      resource_identifier,
+    )
+  }
+
+  #[allow(clippy::too_many_arguments)]
+  pub fn new_with_resource_identifier(
+    request: Atom,
+    source_order: i32,
+    ids: Vec<Atom>,
+    name: Option<Atom>,
+    other_star_exports: Option<Vec<DependencyId>>,
+    range: DependencyRange,
+    export_presence_mode: ExportPresenceMode,
+    phase: ImportPhase,
+    attributes: Option<ImportAttributes>,
+    loc: Option<DependencyLocation>,
+    resource_identifier: ResourceIdentifier,
+  ) -> Self {
     Self {
       id: DependencyId::new(),
       source_order,
