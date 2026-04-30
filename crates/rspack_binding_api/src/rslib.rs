@@ -1,5 +1,5 @@
 use derive_more::Debug;
-use rspack_plugin_rslib::{RslibPluginOptions, SwcEmitDtsPluginOptions};
+use rspack_plugin_rslib::{RslibPluginOptions, SwcEmitDtsOptions};
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -35,7 +35,7 @@ impl From<RawRslibPluginOptions> for RslibPluginOptions {
   }
 }
 
-impl From<RawSwcEmitDtsOptions> for SwcEmitDtsPluginOptions {
+impl From<RawSwcEmitDtsOptions> for SwcEmitDtsOptions {
   fn from(value: RawSwcEmitDtsOptions) -> Self {
     Self {
       root_dir: value.root_dir,

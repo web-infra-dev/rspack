@@ -64,6 +64,7 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
+    loader_context.context.module.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
@@ -222,7 +223,8 @@ impl SwcLoader {
 
       set_build_info(
         loader_context.context.module.build_info_mut(),
-        resource_path.as_str().to_string(),
+        resource_path.as_path(),
+        loader_context.context.options.context.as_path(),
         isolated_dts.code,
       );
     }
