@@ -2133,6 +2133,12 @@ export interface RawCssModuleParserOptions {
   namedExports?: boolean
   url?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  animation?: boolean
+  container?: boolean
+  customIdents?: boolean
+  dashedIdents?: boolean
+  function?: boolean
+  grid?: boolean
 }
 
 export interface RawCssParserOptions {

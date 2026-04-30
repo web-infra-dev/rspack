@@ -33,7 +33,7 @@ use crate::{
   },
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
-  runtime::{CssInjectStyleRuntimeModule, CssLoadingRuntimeModule},
+  runtime::{CssInjectStyleRuntimeModule, CssLoadingRuntimeModule, CssStyleSheetRuntimeModule},
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
 };
 
@@ -369,6 +369,14 @@ async fn runtime_requirements_in_tree(
       CssInjectStyleRuntimeModule::new(&compilation.runtime_template).boxed(),
     ));
     runtime_requirements_mut.extend(CssInjectStyleRuntimeModule::get_runtime_requirements());
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      CssStyleSheetRuntimeModule::new(&compilation.runtime_template).boxed(),
+    ));
+    runtime_requirements_mut.extend(CssStyleSheetRuntimeModule::get_runtime_requirements());
   }
 
   Ok(None)

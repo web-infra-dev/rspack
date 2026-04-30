@@ -23,6 +23,7 @@ static CSS_LOADING_WITH_PRELOAD_TEMPLATE: &str = include_str!("./css_loading_wit
 static CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE: &str =
   include_str!("./css_loading_with_preload_link.ejs");
 static CSS_INJECT_STYLE_TEMPLATE: &str = include_str!("./css_inject_style.ejs");
+static CSS_STYLE_SHEET_TEMPLATE: &str = include_str!("./css_style_sheet.ejs");
 
 static CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_LOADING_TEMPLATE));
@@ -42,11 +43,11 @@ static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
   });
 static CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   let mut res = extract_runtime_globals_from_ejs(CSS_INJECT_STYLE_TEMPLATE);
-  // `HMR_DOWNLOAD_UPDATE_HANDLERS` is referenced only inside a conditional template branch.
-  // Keep the base runtime requirements HMR-agnostic so non-HMR builds don't require `hmrC`.
   res.remove(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
   res
 });
+static CSS_STYLE_SHEET_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CSS_STYLE_SHEET_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -497,4 +498,63 @@ pub mod css_inject_style {
 }
 pub mod css_loading {
   pub use super::CssLoadingRuntimeModule;
+}
+pub mod css_style_sheet {
+  pub use super::CssStyleSheetRuntimeModule;
+}
+
+#[impl_runtime_module]
+#[derive(Debug)]
+pub struct CssStyleSheetRuntimeModule {}
+
+impl CssStyleSheetRuntimeModule {
+  pub fn get_runtime_requirements() -> RuntimeGlobals {
+    *CSS_STYLE_SHEET_RUNTIME_REQUIREMENTS
+  }
+
+  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
+  }
+
+  fn template_id(&self, id: CssStyleSheetTemplateId) -> String {
+    let base_id = self.id.to_string();
+    match id {
+      CssStyleSheetTemplateId::Raw => base_id,
+    }
+  }
+}
+
+enum CssStyleSheetTemplateId {
+  Raw,
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for CssStyleSheetRuntimeModule {
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.template_id(CssStyleSheetTemplateId::Raw),
+      CSS_STYLE_SHEET_TEMPLATE.to_string(),
+    )]
+  }
+
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let runtime_template = context.runtime_template;
+    let css_style_sheet = runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET);
+
+    let source = context.runtime_template.render(
+      &self.template_id(CssStyleSheetTemplateId::Raw),
+      Some(serde_json::json!({
+        "CSS_STYLE_SHEET": &css_style_sheet,
+      })),
+    )?;
+
+    Ok(source)
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
+  }
 }

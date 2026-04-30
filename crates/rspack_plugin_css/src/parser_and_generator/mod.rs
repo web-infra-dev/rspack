@@ -757,6 +757,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
           // 生成导出代码，对于 CssStyleSheet、Text，我们直接在这里处理
           let exports_str = if matches!(self.export_type(), Some(CssExportType::CssStyleSheet)) {
+            generate_context
+              .runtime_template
+              .runtime_requirements_mut()
+              .insert(RuntimeGlobals::CSS_STYLE_SHEET);
+
             let build_info = module.build_info();
             let module_argument = generate_context
               .runtime_template
@@ -774,22 +779,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
             };
 
             let css_style_sheet_code = format!(
-              "var __css_text = {};\n\
-               var __css_style_sheet = new CSSStyleSheet();\n\
-               if (typeof __css_style_sheet.replaceSync === \"function\") {{\n\
-               \t__css_style_sheet.replaceSync(__css_text);\n\
-               }} else if (typeof document !== \"undefined\" && typeof __css_style_sheet.insertRule === \"function\") {{\n\
-               \tvar __css_style_element = document.createElement(\"style\");\n\
-               \t__css_style_element.textContent = __css_text;\n\
-               \tdocument.head.appendChild(__css_style_element);\n\
-               \tvar __parsed_sheet = __css_style_element.sheet;\n\
-               \tif (__parsed_sheet) {{\n\
-               \t\tfor (var __css_rule_index = 0; __css_rule_index < __parsed_sheet.cssRules.length; __css_rule_index++) {{\n\
-               \t\t\t__css_style_sheet.insertRule(__parsed_sheet.cssRules[__css_rule_index].cssText, __css_style_sheet.cssRules.length);\n\
-               \t\t}}\n\
-               \t}}\n\
-               \t__css_style_element.parentNode.removeChild(__css_style_element);\n\
-               }}\n",
+              "var __css_style_sheet = {}({});\n",
+              generate_context
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET),
               css_js_string
             );
 
