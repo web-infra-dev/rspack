@@ -11,9 +11,9 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssModuleGeneratorOptionsNormalized,
-  DependencyType, ManifestAssetType, Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData,
-  Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
-  SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  CssModuleParserOptions, DependencyType, ManifestAssetType, Module, ModuleGraph, ModuleType,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -535,12 +535,10 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css())
           .expect("should have CssGeneratorOptions");
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css(g);
+        let parser_options = CssModuleParserOptions::from(p);
         Box::new(CssParserAndGenerator::new(
           generator_options,
-          p.export_type,
-          p.named_exports.expect("should have named_exports"),
-          p.url.expect("should have url"),
-          p.resolve_import.clone().unwrap_or_default(),
+          parser_options,
         )) as Box<dyn ParserAndGenerator>
       }),
     );
@@ -554,13 +552,8 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css_global())
           .expect("should have CssModuleGeneratorOptions");
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css_module(g);
-        Box::new(CssParserAndGenerator::new(
-          generator_options,
-          p.export_type,
-          p.named_exports.expect("should have named_exports"),
-          p.url.expect("should have url"),
-          p.resolve_import.clone().unwrap_or_default(),
-        )) as Box<dyn ParserAndGenerator>
+        Box::new(CssParserAndGenerator::new(generator_options, (*p).clone()))
+          as Box<dyn ParserAndGenerator>
       }),
     );
     ctx.register_parser_and_generator_builder(
@@ -573,13 +566,8 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css_module())
           .expect("should have CssModuleGeneratorOptions");
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css_module(g);
-        Box::new(CssParserAndGenerator::new(
-          generator_options,
-          p.export_type,
-          p.named_exports.expect("should have named_exports"),
-          p.url.expect("should have url"),
-          p.resolve_import.clone().unwrap_or_default(),
-        )) as Box<dyn ParserAndGenerator>
+        Box::new(CssParserAndGenerator::new(generator_options, (*p).clone()))
+          as Box<dyn ParserAndGenerator>
       }),
     );
     ctx.register_parser_and_generator_builder(
@@ -592,13 +580,8 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css_auto())
           .expect("should have CssModuleGeneratorOptions");
         let generator_options = CssModuleGeneratorOptionsNormalized::from_css_module(g);
-        Box::new(CssParserAndGenerator::new(
-          generator_options,
-          p.export_type,
-          p.named_exports.expect("should have named_exports"),
-          p.url.expect("should have url"),
-          p.resolve_import.clone().unwrap_or_default(),
-        )) as Box<dyn ParserAndGenerator>
+        Box::new(CssParserAndGenerator::new(generator_options, (*p).clone()))
+          as Box<dyn ParserAndGenerator>
       }),
     );
 

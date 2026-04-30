@@ -9,11 +9,12 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, CompilerOptions, ConstDependency, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptionsNormalized, CssParserImport, CssParserImportContext, Dependency,
-  DependencyRange, DependencyType, ExportsInfoArtifact, GenerateContext, LocalIdentName, Module,
-  ModuleArgument, ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, ResourceData, RuntimeGlobals, RuntimeSpec,
-  SourceType, StaticExportsDependency, StaticExportsSpec, TemplateContext, UsageState,
+  CssModuleGeneratorOptionsNormalized, CssModuleParserOptions, CssParserImport,
+  CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
+  GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
+  ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
+  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -69,27 +70,18 @@ fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExp
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
   pub generator_options: CssModuleGeneratorOptionsNormalized,
-  pub export_type: Option<CssExportType>,
-  pub named_exports: bool,
-  pub url: bool,
-  pub resolve_import: CssParserImport,
+  pub parser_options: CssModuleParserOptions,
   pub hot: bool,
 }
 
 impl CssParserAndGenerator {
   pub fn new(
     generator_options: CssModuleGeneratorOptionsNormalized,
-    export_type: Option<CssExportType>,
-    named_exports: bool,
-    url: bool,
-    resolve_import: CssParserImport,
+    parser_options: CssModuleParserOptions,
   ) -> Self {
     Self {
       generator_options,
-      export_type,
-      named_exports,
-      url,
-      resolve_import,
+      parser_options,
       hot: false,
     }
   }
@@ -107,7 +99,7 @@ impl CssParserAndGenerator {
   }
 
   pub fn named_exports(&self) -> bool {
-    self.named_exports
+    self.parser_options.named_exports.unwrap_or(true)
   }
 
   pub fn es_module(&self) -> bool {
@@ -115,11 +107,43 @@ impl CssParserAndGenerator {
   }
 
   pub fn resolve_import(&self) -> &CssParserImport {
-    &self.resolve_import
+    self
+      .parser_options
+      .resolve_import
+      .as_ref()
+      .unwrap_or(&CssParserImport::Bool(true))
+  }
+
+  pub fn url(&self) -> bool {
+    self.parser_options.url.unwrap_or(true)
+  }
+
+  pub fn animation(&self) -> Option<bool> {
+    self.parser_options.animation
+  }
+
+  pub fn container(&self) -> Option<bool> {
+    self.parser_options.container
+  }
+
+  pub fn custom_idents(&self) -> Option<bool> {
+    self.parser_options.custom_idents
+  }
+
+  pub fn dashed_idents(&self) -> Option<bool> {
+    self.parser_options.dashed_idents
+  }
+
+  pub fn function(&self) -> Option<bool> {
+    self.parser_options.function
+  }
+
+  pub fn grid(&self) -> Option<bool> {
+    self.parser_options.grid
   }
 
   pub fn export_type(&self) -> &Option<CssExportType> {
-    &self.export_type
+    &self.parser_options.export_type
   }
 }
 
@@ -226,6 +250,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut css_local_names: Option<FxHashMap<String, String>> = None;
 
     let (deps, warnings) = css_module_lexer::collect_dependencies(&source_code, mode);
+
+    // TODO: Implement knownProperties-based identifier renaming
+    // These options (animation, container, customIdents, dashedIdents, function, grid)
+    // control renaming of CSS identifiers. Currently, css-module-lexer does not
+    // provide dependency types for these identifiers, so we cannot implement
+    // renaming until css-module-lexer is extended or we switch to a different
+    // CSS parser that supports these features.
+    //
+    // When implemented, these should follow the webpack CssParser knownProperties logic:
+    // - animation: Enable/disable renaming of @keyframes names
+    // - container: Enable/disable renaming of @container names
+    // - customIdents: Enable/disable renaming of custom identifiers (e.g., list-style-type)
+    // - dashedIdents: Enable/disable renaming of dashed identifiers (e.g., custom properties)
+    // - function: Enable/disable renaming of @function names
+    // - grid: Enable/disable renaming of grid identifiers
+    let _ = self.animation();
+    let _ = self.container();
+    let _ = self.custom_idents();
+    let _ = self.dashed_idents();
+    let _ = self.function();
+    let _ = self.grid();
+
     for dependency in deps {
       match dependency {
         css_module_lexer::Dependency::Url {
@@ -236,7 +282,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           if request.trim().is_empty() {
             continue;
           }
-          if !self.url {
+          if !self.url() {
             continue;
           }
 

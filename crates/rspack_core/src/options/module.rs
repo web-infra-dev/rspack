@@ -422,13 +422,13 @@ pub struct CssModuleParserOptions {
   pub grid: Option<bool>,
 }
 
-impl From<CssParserOptions> for CssModuleParserOptions {
-  fn from(value: CssParserOptions) -> Self {
+impl From<&CssParserOptions> for CssModuleParserOptions {
+  fn from(value: &CssParserOptions) -> Self {
     Self {
-      export_type: value.export_type,
+      export_type: value.export_type.clone(),
       named_exports: value.named_exports,
       url: value.url,
-      resolve_import: value.resolve_import,
+      resolve_import: value.resolve_import.clone(),
       animation: None,
       container: None,
       custom_idents: None,
