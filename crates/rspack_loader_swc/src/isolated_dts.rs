@@ -1,9 +1,27 @@
 use rspack_core::{BuildInfo, IsolatedDts};
 use rspack_error::{Error, Result};
+use rspack_paths::Utf8Path;
+use sugar_path::SugarPath;
 
 use crate::SWC_LOADER_IDENTIFIER;
 
-pub(crate) fn set_build_info(build_info: &mut BuildInfo, resource_path: String, code: String) {
+pub(crate) fn set_build_info(
+  build_info: &mut BuildInfo,
+  resource_path: &Utf8Path,
+  compiler_context: &Utf8Path,
+  code: String,
+) {
+  // BuildInfo is persisted in cache, so avoid storing checkout-specific absolute paths.
+  let relative_resource_path = resource_path
+    .as_std_path()
+    .relative(compiler_context.as_std_path());
+  let resource_path = if relative_resource_path.is_relative() {
+    relative_resource_path
+  } else {
+    resource_path.as_std_path().normalize().into_owned()
+  }
+  .to_slash_lossy()
+  .into_owned();
   build_info.isolated_dts = Some(IsolatedDts {
     resource_path,
     code,

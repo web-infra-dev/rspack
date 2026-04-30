@@ -22,6 +22,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, JavascriptModulesRender, JsPlugin, RenderSource,
   parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_util::node_path::NodePath;
 
 use crate::{
   asset::RslibAssetParserAndGenerator,
@@ -39,26 +40,40 @@ pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
   pub force_node_shims: bool,
   pub auto_cjs_node_builtin: bool,
-  pub emit_dts: Option<SwcEmitDtsPluginOptions>,
+  pub emit_dts: Option<SwcEmitDtsOptions>,
 }
 
 #[derive(Debug, Clone)]
-pub struct SwcEmitDtsPluginOptions {
+pub struct SwcEmitDtsOptions {
   pub root_dir: String,
   pub declaration_dir: String,
 }
 
 fn emit_isolated_dts_asset(
   compilation: &mut Compilation,
-  emit_dts_options: &SwcEmitDtsPluginOptions,
+  emit_dts_options: &SwcEmitDtsOptions,
   dts: IsolatedDts,
 ) -> Result<()> {
   let IsolatedDts {
     resource_path,
     code,
   } = dts;
-  let resource_path = Utf8PathBuf::from(resource_path);
   let compiler_root = compilation.options.context.as_path();
+  let raw_resource_path = Utf8PathBuf::from(&resource_path);
+  // Cached isolated dts metadata stores resource paths relative to the compiler context.
+  let resource_path = resolve_emit_dts_path(compiler_root, &resource_path);
+  // AssetInfo.source_filename is expected to be relative to the compilation context.
+  let source_filename = if raw_resource_path.is_relative() {
+    Some(
+      raw_resource_path
+        .as_str()
+        .cow_replace('\\', "/")
+        .into_owned(),
+    )
+  } else {
+    diff_paths(resource_path.as_std_path(), compiler_root.as_std_path())
+      .map(|path| path.to_string_lossy().cow_replace('\\', "/").into_owned())
+  };
   let resolved_root_dir = resolve_emit_dts_path(compiler_root, &emit_dts_options.root_dir);
   let resolved_declaration_dir =
     resolve_emit_dts_path(compiler_root, &emit_dts_options.declaration_dir);
@@ -93,7 +108,7 @@ fn emit_isolated_dts_asset(
     CompilationAsset::new(
       Some(RawStringSource::from(code).boxed()),
       AssetInfo {
-        source_filename: Some(resource_path.as_str().to_string()),
+        source_filename,
         ..Default::default()
       },
     ),
@@ -105,9 +120,9 @@ fn emit_isolated_dts_asset(
 fn resolve_emit_dts_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
   let path = Utf8Path::new(value);
   if path.is_absolute() {
-    path.to_path_buf()
+    path.to_path_buf().node_normalize()
   } else {
-    base.join(path)
+    base.node_join(path).node_normalize()
   }
 }
 
