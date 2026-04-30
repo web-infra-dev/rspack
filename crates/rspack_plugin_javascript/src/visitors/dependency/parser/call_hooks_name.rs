@@ -36,11 +36,7 @@ impl CallHooksName for &str {
   where
     F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
-    if let Some(id) = parser.get_variable_info_by_str(self).map(|info| info.id()) {
-      call_hooks_info(id, parser, hook_call)
-    } else {
-      hook_call(parser, self)
-    }
+    Atom::from(*self).call_hooks_name(parser, hook_call)
   }
 }
 #[allow(unused_lifetimes)]

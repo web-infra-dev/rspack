@@ -746,11 +746,6 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
-  pub fn get_variable_info_by_str(&mut self, name: &str) -> Option<&VariableInfo> {
-    let id = self.definitions_db.get_by_str(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_variable(id))
-  }
-
   pub fn get_tag_data(
     &mut self,
     name: &Atom,
