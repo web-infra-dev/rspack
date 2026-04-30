@@ -10,6 +10,7 @@ packages:
   - 'tests/e2e'
   - 'tests/e2e-browser'
   - 'tests/rspack-test'
+  - 'tests/type-tests'
   - 'tests/bench'
   # this following is used to test resolve in monorepo
   - 'tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*'

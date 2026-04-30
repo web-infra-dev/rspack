@@ -29,13 +29,21 @@ export default {
     {
       name: 'http-proxy-middleware',
       dtsOnly: true,
-      beforeBundle(task) {
-        replaceFileContent(join(task.depPath, 'dist/types.d.ts'), (content) =>
-          content.replace(
-            "import type * as httpProxy from 'http-proxy'",
-            "import type httpProxy from 'http-proxy'",
-          ),
-        );
+      afterBundle(task) {
+        // Suppress missing-module errors for optional Hono peer type imports in generated d.ts files.
+        replaceFileContent(join(task.distPath, 'index.d.ts'), (content) => {
+          return content
+            .replace(
+              `import { HttpBindings } from '@hono/node-server';`,
+              `// @ts-ignore
+import { HttpBindings } from '@hono/node-server';`,
+            )
+            .replace(
+              `import { MiddlewareHandler } from 'hono';`,
+              `// @ts-ignore
+import { MiddlewareHandler } from 'hono';`,
+            );
+        });
       },
     },
     {
