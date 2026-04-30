@@ -182,7 +182,7 @@ impl ExportNamedDeclaration<'_> {
         },
         ExportSpecifier::Named(n) => {
           let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
-          (n.orig.atom().into_owned(), exported_name.atom().into_owned(), exported_name.span())
+          (n.orig.atom_ref().clone(), exported_name.atom_ref().clone(), exported_name.span())
         },
       }
     })
