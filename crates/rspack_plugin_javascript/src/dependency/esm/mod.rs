@@ -53,13 +53,16 @@ pub fn create_resource_identifier_for_esm_dependency(
   attributes: Option<&ImportAttributes>,
 ) -> ResourceIdentifier {
   let category = DependencyCategory::Esm.as_str();
-  let attrs = attributes
-    .map(|attributes| {
-      let mut attrs = attributes.iter().collect::<Vec<_>>();
-      attrs.sort_unstable_by(|a, b| a.0.cmp(b.0));
-      attrs
-    })
-    .unwrap_or_default();
+  let Some(attributes) = attributes else {
+    let mut ident = String::with_capacity(category.len() + 1 + request.len());
+    ident.push_str(category);
+    ident.push('|');
+    ident.push_str(request);
+    return ident.into();
+  };
+
+  let mut attrs = attributes.iter().collect::<Vec<_>>();
+  attrs.sort_unstable_by(|a, b| a.0.cmp(b.0));
   let attributes_len = attrs
     .iter()
     .map(|(key, value)| 2 + key.len() + value.len())
@@ -69,13 +72,11 @@ pub fn create_resource_identifier_for_esm_dependency(
   ident.push_str(category);
   ident.push('|');
   ident.push_str(request);
-  if attributes.is_some() {
-    for (key, value) in attrs {
-      ident.push('|');
-      ident.push_str(key);
-      ident.push('=');
-      ident.push_str(value);
-    }
+  for (key, value) in attrs {
+    ident.push('|');
+    ident.push_str(key);
+    ident.push('=');
+    ident.push_str(value);
   }
   ident.into()
 }

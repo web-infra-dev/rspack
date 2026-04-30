@@ -44,14 +44,31 @@ fn get_import_attributes(
   parser: &mut JavascriptParser,
   import_decl: &ImportDecl,
 ) -> Option<ImportAttributes> {
-  if let Some(attributes) = parser.esm_import_attributes.get(&import_decl.span) {
-    return attributes.clone();
+  import_decl.with.as_ref()?;
+  if let Some((span, attributes)) = &parser.last_esm_import_attributes
+    && *span == import_decl.span
+  {
+    return Some(attributes.clone());
   }
   let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
-  parser
-    .esm_import_attributes
-    .insert(import_decl.span, attributes.clone());
+  parser.last_esm_import_attributes = attributes
+    .as_ref()
+    .map(|attributes| (import_decl.span, attributes.clone()));
   attributes
+}
+
+fn get_import_resource_identifier(
+  parser: &JavascriptParser,
+  import_decl: &ImportDecl,
+  source: &Atom,
+  attributes: Option<&ImportAttributes>,
+) -> ResourceIdentifier {
+  if let Some((span, resource_identifier)) = parser.last_esm_import_resource_identifier
+    && span == import_decl.span
+  {
+    return resource_identifier;
+  }
+  create_resource_identifier_for_esm_dependency(source, attributes)
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -86,6 +103,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       parser.to_dependency_location(DependencyRange::from(import_decl.span)),
       false,
     );
+    parser.last_esm_import_resource_identifier =
+      Some((import_decl.span, dependency.resource_identifier()));
     parser
       .esm_import_side_effect_dependencies
       .insert(dependency.resource_identifier(), *dependency.id());
@@ -119,7 +138,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     };
     let attributes = get_import_attributes(parser, statement);
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(source, attributes.as_ref());
+      get_import_resource_identifier(parser, statement, source, attributes.as_ref());
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,
