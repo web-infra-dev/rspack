@@ -4,10 +4,10 @@ use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilationParams, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, Dependency, DependencyId, DependencyType, EntryDependency,
-  Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+  CompilationAfterProcessAssets, CompilationParams, CompilerCompilation, CompilerFailed,
+  CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, Dependency, DependencyId,
+  DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -34,7 +34,7 @@ pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_per_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
+  client_entries_by_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
 }
 
 fn extend_required_chunks(
@@ -97,44 +97,6 @@ fn record_module(
   }
 
   if is_css_mod(module.as_ref()) {
-    let mut matched_server_entries = Vec::new();
-    for (server_entry, server_entry_state) in &entry_state.server_entries {
-      if server_entry_state.css_imports.contains(resource.as_ref()) {
-        matched_server_entries.push(server_entry.clone());
-      }
-    }
-    if matched_server_entries.is_empty() {
-      return;
-    }
-
-    let Some(chunk) = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .get(chunk_ukey)
-    else {
-      return;
-    };
-
-    let prefix = &module_loading.prefix;
-    let css_files: Vec<String> = chunk
-      .files()
-      .iter()
-      .filter(|file| file.ends_with(".css"))
-      .map(|file| prefixed_asset_path(prefix, file))
-      .collect();
-    if css_files.is_empty() {
-      return;
-    }
-
-    for server_entry in matched_server_entries {
-      entry_state
-        .server_entries
-        .entry(server_entry)
-        .or_default()
-        .css_files
-        .extend(css_files.clone());
-    }
-
     return;
   }
 
@@ -163,6 +125,97 @@ fn record_module(
       r#async: Some(is_async),
     },
   );
+}
+
+fn collect_css_files_from_chunk_group(
+  module_loading: &ModuleLoading,
+  chunk_group: &ChunkGroup,
+  compilation: &Compilation,
+) -> Vec<String> {
+  collect_css_files_from_chunks(module_loading, &chunk_group.chunks, compilation)
+}
+
+fn collect_css_files_from_chunks<'a>(
+  module_loading: &ModuleLoading,
+  chunk_ukeys: impl IntoIterator<Item = &'a ChunkUkey>,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let prefix = &module_loading.prefix;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  chunk_ukeys
+    .into_iter()
+    .filter_map(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
+    .flat_map(|chunk| chunk.files().iter())
+    .filter(|file| file.ends_with(".css"))
+    .map(|file| prefixed_asset_path(prefix, file))
+    .collect()
+}
+
+fn collect_css_files_from_block_modules(
+  module_loading: &ModuleLoading,
+  block_id: &AsyncDependenciesBlockIdentifier,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let Some(block) = module_graph.block_by_id(block_id) else {
+    return Vec::new();
+  };
+
+  block
+    .get_dependencies()
+    .iter()
+    .filter_map(|dependency_id| module_graph.connection_by_dependency_id(dependency_id))
+    .filter_map(|connection| chunk_graph.try_get_module_chunks(connection.module_identifier()))
+    .flat_map(|chunk_ukeys| collect_css_files_from_chunks(module_loading, chunk_ukeys, compilation))
+    .collect()
+}
+
+fn collect_server_entry_css_files(
+  module_loading: &ModuleLoading,
+  rsc_entry_module: &RscEntryModule,
+  compilation: &Compilation,
+  entry_state: &mut EntryState,
+) {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  for block_id in rsc_entry_module.get_blocks() {
+    let Some(block) = module_graph.block_by_id(block_id) else {
+      continue;
+    };
+    let Some(server_entry) = block.request().as_deref() else {
+      continue;
+    };
+
+    // Server-entry CSS blocks use the server entry resource as their request.
+    // Client component blocks use the client module request, so this lookup
+    // also filters out non-CSS blocks without walking dependencies again.
+    if entry_state
+      .server_entries
+      .get(server_entry)
+      .is_none_or(|state| state.css_imports.is_empty())
+    {
+      continue;
+    }
+
+    let css_files =
+      if let Some(chunk_group) = chunk_graph.get_block_chunk_group(block_id, chunk_group_by_ukey) {
+        collect_css_files_from_chunk_group(module_loading, chunk_group, compilation)
+      } else {
+        // Async CSS blocks can be inlined when async chunks or chunk loading are
+        // disabled. In that case no block chunk group is created, but the CSS
+        // modules still belong to regular entry chunks.
+        collect_css_files_from_block_modules(module_loading, block_id, compilation)
+      };
+    if css_files.is_empty() {
+      continue;
+    }
+
+    if let Some(server_entry_state) = entry_state.server_entries.get_mut(server_entry) {
+      server_entry_state.css_files.extend(css_files);
+    }
+  }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -425,7 +478,12 @@ impl RscClientPlugin {
 
     let mut client_entry_modules: IdentifierSet = Default::default();
     let module_graph = compilation.get_module_graph();
-    for entry_data in compilation.entries.values() {
+    let module_loading = plugin_state
+      .module_loading
+      .as_ref()
+      .expect("module_loading should be initialized before recording modules")
+      .clone();
+    for (entry_name, entry_data) in &compilation.entries {
       for dependency_id in &entry_data.include_dependencies {
         let Some(module_identifier) =
           module_graph.module_identifier_by_dependency_id(dependency_id)
@@ -437,10 +495,19 @@ impl RscClientPlugin {
         };
 
         // Check if the module is a RscEntryModule (our custom virtual module)
-        let is_rsc_entry_module = module.downcast_ref::<RscEntryModule>().is_some();
-        if !is_rsc_entry_module {
+        let Some(rsc_entry_module) = module.downcast_ref::<RscEntryModule>() else {
           continue;
+        };
+
+        if let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) {
+          collect_server_entry_css_files(
+            &module_loading,
+            rsc_entry_module,
+            compilation,
+            entry_state,
+          );
         }
+
         // Traverse the blocks of the RscEntryModule to find the actual client modules
         for block_id in module.get_blocks() {
           let Some(block) = module_graph.block_by_id(block_id) else {
@@ -575,7 +642,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         false,
       ));
       self
-        .client_entries_per_entry
+        .client_entries_by_entry
         .borrow_mut()
         .entry(entry_name.clone())
         .or_default()
@@ -639,7 +706,7 @@ async fn after_process_assets(
     collect_bootstrap_scripts(compilation, &mut plugin_state)?;
     logger.time_end(start);
 
-    for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
+    for (entry_name, client_entries) in self.client_entries_by_entry.borrow().iter() {
       let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
       plugin_state
         .entries
