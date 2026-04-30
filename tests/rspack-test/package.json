@@ -46,7 +46,7 @@
     "file-loader": "^6.2.0",
     "html-loader": "^5.1.0",
     "html-rspack-plugin": "^6.1.8",
-    "image-minimizer-webpack-plugin": "^4.1.4",
+    "image-minimizer-webpack-plugin": "^5.0.0",
     "json-loader": "^0.5.7",
     "json5": "^2.2.3",
     "less": "4.6.4",

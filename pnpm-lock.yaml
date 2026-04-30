@@ -726,8 +726,8 @@ importers:
         specifier: ^6.1.8
         version: 6.1.8(@rspack/core@packages+rspack)
       image-minimizer-webpack-plugin:
-        specifier: ^4.1.4
-        version: 4.1.4(webpack@5.104.1)
+        specifier: ^5.0.0
+        version: 5.0.0(webpack@5.104.1)
       json-loader:
         specifier: ^0.5.7
         version: 0.5.7
@@ -5274,9 +5274,9 @@ packages:
     resolution: {integrity: sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg==}
     engines: {node: '>= 4'}
 
-  image-minimizer-webpack-plugin@4.1.4:
-    resolution: {integrity: sha512-A2DLYuCyu7icbGdv8OMGFQKPXvsztWAueBkT3yQ7KVW1YGnAJKtgLYELkN7/aUday05DzEdKRaLE5Bnh/9S2UQ==}
-    engines: {node: '>= 18.12.0'}
+  image-minimizer-webpack-plugin@5.0.0:
+    resolution: {integrity: sha512-TSeES2mTBY1smDnQRIaTGR9EdS1xGvWsaMu+XJRlh6z7VAWHmyYR6P5AynvVHMcmK4NdvmSlRJTNWgvpeNSPuA==}
+    engines: {node: '>= 20.9.0'}
     peerDependencies:
       '@squoosh/lib': '*'
       imagemin: '*'
@@ -7051,8 +7051,9 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  serialize-javascript@6.0.2:
-    resolution: {integrity: sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==}
+  serialize-javascript@7.0.5:
+    resolution: {integrity: sha512-F4LcB0UqUl1zErq+1nYEEzSHJnIwb3AF2XWB94b+afhrekOUijwooAYqFyRbjYkm2PAKBabx6oYv/xDxNi8IBw==}
+    engines: {node: '>=20.0.0'}
 
   set-cookie-parser@2.7.2:
     resolution: {integrity: sha512-oeM1lpU/UvhTxw+g3cIfxXHyJRc/uidd3yK1P242gzHds0udQBYzs3y8j4gCCW+ZJ7ad0yctld8RYO+bdurlvw==}
@@ -12557,10 +12558,10 @@ snapshots:
 
   ignore@7.0.5: {}
 
-  image-minimizer-webpack-plugin@4.1.4(webpack@5.104.1):
+  image-minimizer-webpack-plugin@5.0.0(webpack@5.104.1):
     dependencies:
       schema-utils: 4.3.3
-      serialize-javascript: 6.0.2
+      serialize-javascript: 7.0.5
       webpack: 5.104.1
 
   image-size@0.5.5:
@@ -14693,9 +14694,7 @@ snapshots:
 
   semver@7.7.4: {}
 
-  serialize-javascript@6.0.2:
-    dependencies:
-      randombytes: 2.1.0
+  serialize-javascript@7.0.5: {}
 
   set-cookie-parser@2.7.2: {}
 
