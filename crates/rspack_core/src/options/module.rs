@@ -10,7 +10,6 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
-pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
@@ -810,97 +809,13 @@ pub struct CssModuleGeneratorOptions {
   pub es_module: Option<bool>,
 }
 
-impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
+impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
       es_module: value.es_module,
       ..Default::default()
     }
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub struct CssModuleGeneratorOptionsNormalized {
-  pub convention: Option<CssExportsConvention>,
-  pub local_ident_name: Option<LocalIdentName>,
-  pub exports_only: bool,
-  pub es_module: bool,
-  pub local_ident_hash_digest: Option<HashDigest>,
-  pub local_ident_hash_digest_length: Option<usize>,
-  pub local_ident_hash_function: Option<HashFunction>,
-  pub local_ident_hash_salt: Option<HashSalt>,
-}
-
-impl CssModuleGeneratorOptionsNormalized {
-  pub fn from_css(generator_opts: &CssGeneratorOptions) -> Self {
-    Self {
-      convention: None,
-      local_ident_name: None,
-      exports_only: generator_opts
-        .exports_only
-        .expect("should have exports_only"),
-      es_module: generator_opts.es_module.expect("should have es_module"),
-      local_ident_hash_digest: None,
-      local_ident_hash_digest_length: None,
-      local_ident_hash_function: None,
-      local_ident_hash_salt: None,
-    }
-  }
-
-  pub fn from_css_module(generator_opts: &CssModuleGeneratorOptions) -> Self {
-    let local_ident_hash_digest = generator_opts
-      .local_ident_hash_digest
-      .as_deref()
-      .map(Into::into);
-    let local_ident_hash_digest_length = generator_opts
-      .local_ident_hash_digest_length
-      .map(|len| len as usize);
-    let local_ident_hash_function = generator_opts
-      .local_ident_hash_function
-      .as_deref()
-      .map(Into::into);
-    let local_ident_hash_salt = generator_opts
-      .local_ident_hash_salt
-      .clone()
-      .map(Some)
-      .map(Into::into);
-
-    Self {
-      convention: generator_opts.exports_convention,
-      local_ident_name: generator_opts.local_ident_name.clone(),
-      exports_only: generator_opts
-        .exports_only
-        .expect("should have exports_only"),
-      es_module: generator_opts.es_module.expect("should have es_module"),
-      local_ident_hash_digest,
-      local_ident_hash_digest_length,
-      local_ident_hash_function,
-      local_ident_hash_salt,
-    }
-  }
-
-  pub fn convention(&self) -> &CssExportsConvention {
-    self
-      .convention
-      .as_ref()
-      .expect("should have convention for module_type css/auto or css/module")
-  }
-
-  pub fn local_ident_name(&self) -> &LocalIdentName {
-    self
-      .local_ident_name
-      .as_ref()
-      .expect("should have local_ident_name for module_type css/auto or css/module")
-  }
-
-  pub fn exports_only(&self) -> bool {
-    self.exports_only
-  }
-
-  pub fn es_module(&self) -> bool {
-    self.es_module
   }
 }
 

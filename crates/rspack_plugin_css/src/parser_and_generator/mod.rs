@@ -9,12 +9,12 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
   ChunkGraph, Compilation, CompilerOptions, ConstDependency, CssExportType, CssExportsConvention,
-  CssModuleGeneratorOptionsNormalized, CssModuleParserOptions, CssParserImport,
-  CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
-  GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
-  ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  ResourceData, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, TemplateContext, UsageState,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserImportContext,
+  Dependency, DependencyRange, DependencyType, ExportsInfoArtifact, GenerateContext,
+  LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
+  ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ResourceData,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  TemplateContext, UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -69,14 +69,14 @@ fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExp
 #[cacheable]
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
-  pub generator_options: CssModuleGeneratorOptionsNormalized,
+  pub generator_options: CssModuleGeneratorOptions,
   pub parser_options: CssModuleParserOptions,
   pub hot: bool,
 }
 
 impl CssParserAndGenerator {
   pub fn new(
-    generator_options: CssModuleGeneratorOptionsNormalized,
+    generator_options: CssModuleGeneratorOptions,
     parser_options: CssModuleParserOptions,
   ) -> Self {
     Self {
@@ -87,15 +87,26 @@ impl CssParserAndGenerator {
   }
 
   pub fn convention(&self) -> &CssExportsConvention {
-    self.generator_options.convention()
+    self
+      .generator_options
+      .exports_convention
+      .as_ref()
+      .expect("should have convention for module_type css/auto or css/module")
   }
 
   pub fn local_ident_name(&self) -> &LocalIdentName {
-    self.generator_options.local_ident_name()
+    self
+      .generator_options
+      .local_ident_name
+      .as_ref()
+      .expect("should have local_ident_name for module_type css/auto or css/module")
   }
 
   pub fn exports_only(&self) -> bool {
-    self.generator_options.exports_only()
+    self
+      .generator_options
+      .exports_only
+      .expect("should have exports_only")
   }
 
   pub fn named_exports(&self) -> bool {
@@ -103,7 +114,10 @@ impl CssParserAndGenerator {
   }
 
   pub fn es_module(&self) -> bool {
-    self.generator_options.es_module()
+    self
+      .generator_options
+      .es_module
+      .expect("should have es_module")
   }
 
   pub fn resolve_import(&self) -> &CssParserImport {
@@ -996,14 +1010,35 @@ impl CssParserAndGenerator {
     name: &str,
     css_exports: &mut Option<CssExports>,
   ) -> Result<(String, Vec<String>)> {
+    let local_ident_hash_digest = self
+      .generator_options
+      .local_ident_hash_digest
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_digest_length = self
+      .generator_options
+      .local_ident_hash_digest_length
+      .map(|len| len as usize);
+    let local_ident_hash_function = self
+      .generator_options
+      .local_ident_hash_function
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_salt = self
+      .generator_options
+      .local_ident_hash_salt
+      .clone()
+      .map(Some)
+      .map(Into::into);
+
     let local_ident = LocalIdentOptions::new(
       resource_data,
       self.local_ident_name(),
       compiler_options,
-      self.generator_options.local_ident_hash_digest.as_ref(),
-      self.generator_options.local_ident_hash_digest_length,
-      self.generator_options.local_ident_hash_function.as_ref(),
-      self.generator_options.local_ident_hash_salt.as_ref(),
+      local_ident_hash_digest.as_ref(),
+      local_ident_hash_digest_length,
+      local_ident_hash_function.as_ref(),
+      local_ident_hash_salt.as_ref(),
     )
     .get_local_ident(name)
     .await?;

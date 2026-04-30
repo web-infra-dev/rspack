@@ -757,7 +757,7 @@ module.exports = "data:,";
             |css_options, options| match (css_options, options) {
               (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
                 GeneratorOptions::CssModule(
-                  Into::<CssModuleGeneratorOptions>::into(a).merge_from(b),
+                  Into::<CssModuleGeneratorOptions>::into(&a).merge_from(b),
                 )
               }
               _ => unreachable!(),
