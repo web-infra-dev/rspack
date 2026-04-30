@@ -8,7 +8,9 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
 use crate::{
-  plugin_state::PLUGIN_STATES, reference_manifest::RscEntryManifest, utils::to_json_string_literal,
+  plugin_state::PLUGIN_STATES,
+  reference_manifest::{RscEntryManifest, RscEntryRuntimeManifest},
+  utils::to_json_string_literal,
 };
 
 #[impl_runtime_module]
@@ -75,13 +77,16 @@ impl RuntimeModule for RscManifestRuntimeModule {
       )
     })?;
 
-    let rsc_manifest = RscEntryManifest {
-      server_manifest,
-      client_manifest,
-      server_consumer_module_map,
-      module_loading,
-      server_entries: &entry_state.server_entries,
-      bootstrap_scripts: &entry_state.bootstrap_scripts,
+    let rsc_manifest = RscEntryRuntimeManifest {
+      manifest: RscEntryManifest {
+        server_manifest,
+        client_manifest,
+        server_consumer_module_map,
+        module_loading,
+        server_entries: &entry_state.server_entries,
+        bootstrap_scripts: &entry_state.bootstrap_scripts,
+      },
+      css_link: &plugin_state.css_link,
     };
 
     Ok(formatdoc! {

@@ -781,6 +781,7 @@ impl<'a, C: Comments> ServerActions<'a, C> {
           module_type: RscModuleType::Server,
           server_refs: Default::default(),
           client_refs: Default::default(),
+          import_meta_rsc: false,
           is_cjs: false,
           action_ids,
         });

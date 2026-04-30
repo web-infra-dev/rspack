@@ -219,6 +219,9 @@ declare namespace Rspack {
 
 interface ImportMeta {
   url: string;
+  rspackRsc: {
+    loadCss(...args: unknown[]): any;
+  };
   webpackHot?: Rspack.Hot;
   webpackContext: (
     request: string,

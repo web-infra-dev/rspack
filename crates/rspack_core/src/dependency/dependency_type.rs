@@ -137,6 +137,8 @@ pub enum DependencyType {
   RscEntry,
   /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
   RscClientReference,
+  /// `import.meta.rspackRsc` helper API for RSC.
+  ImportMetaRsc,
 }
 
 impl DependencyType {
@@ -222,6 +224,7 @@ impl DependencyType {
       DependencyType::RstestHoistMock => "rstest hoist mock",
       DependencyType::RscEntry => "rsc entry",
       DependencyType::RscClientReference => "rsc client reference",
+      DependencyType::ImportMetaRsc => "import.meta.rspackRsc",
     }
   }
 }

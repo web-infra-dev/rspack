@@ -17,4 +17,5 @@ mod utils;
 pub use client_plugin::{RscClientPlugin, RscClientPluginOptions};
 pub use coordinator::Coordinator;
 pub use loaders::action_entry_loader_plugin::ActionEntryLoaderPlugin;
+pub use reference_manifest::RscCssLink;
 pub use server_plugin::{OnManifest, RscServerPlugin, RscServerPluginOptions};

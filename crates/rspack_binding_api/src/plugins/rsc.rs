@@ -77,8 +77,12 @@ impl From<&JsRscClientPluginOptions<'_>> for RscClientPluginOptions {
 #[napi(object, object_to_js = false)]
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
-  pub on_server_component_changes: Option<Either3<Function<'static, (), ()>, Undefined, Null>>,
+  #[napi(ts_type = "(() => void | Promise<void>) | undefined | null")]
+  pub on_server_component_changes:
+    Option<Either3<Function<'static, (), Option<Promise<()>>>, Undefined, Null>>,
   pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
+  #[napi(ts_type = "Array<[string, string]>")]
+  pub css_link: Option<Vec<(String, String)>>,
 }
 
 impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
@@ -87,7 +91,7 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
   fn try_from(value: &JsRscServerPluginOptions) -> napi::Result<Self> {
     let on_server_component_changes: Option<
       Box<dyn Fn() -> BoxFuture<'static, rspack_error::Result<()>> + Sync + Send>,
-    > = match value.on_server_component_changes {
+    > = match &value.on_server_component_changes {
       Some(Either3::A(js_fn)) => {
         let ts_fn = Arc::new(
           js_fn
@@ -100,7 +104,13 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
         Some(Box::new(
           move || -> BoxFuture<'static, rspack_error::Result<()>> {
             let ts_fn = ts_fn.clone();
-            Box::pin(async move { ts_fn.call_async(()).await.to_rspack_result() })
+            Box::pin(async move {
+              if let Some(promise) = ts_fn.call_async(()).await.to_rspack_result()? {
+                promise.await.to_rspack_result()?;
+              }
+
+              Ok(())
+            })
           },
         ))
       }
@@ -136,6 +146,11 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
       coordinator: value.coordinator.i.clone(),
       on_server_component_changes,
       on_manifest,
+      css_link: value
+        .css_link
+        .as_ref()
+        .map(|attributes| attributes.to_vec())
+        .unwrap_or_default(),
     })
   }
 }

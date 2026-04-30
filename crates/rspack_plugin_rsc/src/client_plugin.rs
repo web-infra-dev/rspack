@@ -213,7 +213,23 @@ fn collect_server_entry_css_files(
     }
 
     if let Some(server_entry_state) = entry_state.server_entries.get_mut(server_entry) {
-      server_entry_state.css_files.extend(css_files);
+      let import_meta_rsc_importers = server_entry_state
+        .import_meta_rsc_importers
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+      server_entry_state
+        .css_files
+        .extend(css_files.iter().cloned());
+
+      for importer in import_meta_rsc_importers {
+        entry_state
+          .server_entries
+          .entry(importer)
+          .or_default()
+          .css_files
+          .extend(css_files.iter().cloned());
+      }
     }
   }
 }

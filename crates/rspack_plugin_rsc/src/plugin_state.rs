@@ -11,7 +11,7 @@ use rspack_util::{
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
-  ManifestExport, ManifestNode, ModuleLoading, ServerReferenceManifest,
+  ManifestExport, ManifestNode, ModuleLoading, RscCssLink, ServerReferenceManifest,
 };
 
 pub type ActionIdNamePair = (Atom, Atom);
@@ -31,6 +31,8 @@ pub struct ClientModuleImport {
 pub struct ServerEntryState {
   /// CSS import paths referenced by this server entry.
   pub css_imports: FxIndexSet<String>,
+  /// `import.meta.rspackRsc` importer resources that inherit this entry's CSS files.
+  pub import_meta_rsc_importers: FxIndexSet<String>,
   /// CSS chunk file paths emitted for this server entry.
   pub css_files: FxIndexSet<String>,
 }
@@ -74,12 +76,14 @@ impl EntryState {
 #[derive(Debug, Default)]
 pub struct PluginState {
   pub module_loading: Option<ModuleLoading>,
+  pub css_link: RscCssLink,
   pub entries: FxHashMap<Arc<str>, EntryState>,
 }
 
 impl PluginState {
   pub fn clear(&mut self) {
     self.module_loading = None;
+    self.css_link.clear();
     self.entries.clear();
   }
 }
