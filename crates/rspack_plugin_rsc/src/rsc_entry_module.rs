@@ -26,7 +26,7 @@ use swc_core::ecma::atoms::Atom;
 use crate::{
   client_reference_dependency::ClientReferenceDependency,
   constants::LAYERS_NAMES,
-  plugin_state::{ClientModuleImport, CssImportsByServerEntry},
+  plugin_state::{ClientModuleImport, ClientModulesByServerEntry, CssImportsByServerEntry},
 };
 
 #[impl_source_map_config]
@@ -38,6 +38,9 @@ pub struct RscEntryModule {
   identifier: ModuleIdentifier,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
+  root_client_modules: Vec<ClientModuleImport>,
+  #[cacheable(with=AsMap<AsCacheable, AsVec>)]
+  client_modules_by_server_entry: ClientModulesByServerEntry,
   #[cacheable(with=AsMap<AsCacheable, AsVec>)]
   css_imports_by_server_entry: CssImportsByServerEntry,
   name: Arc<str>,
@@ -53,6 +56,8 @@ impl RscEntryModule {
   pub fn new(
     name: Arc<str>,
     client_modules: Vec<ClientModuleImport>,
+    root_client_modules: Vec<ClientModuleImport>,
+    client_modules_by_server_entry: ClientModulesByServerEntry,
     css_imports_by_server_entry: CssImportsByServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
@@ -60,6 +65,8 @@ impl RscEntryModule {
     let identifier = create_identifier(
       name.as_ref(),
       &client_modules,
+      &root_client_modules,
+      &client_modules_by_server_entry,
       &css_imports_by_server_entry,
       is_server_side_rendering,
     );
@@ -75,6 +82,8 @@ impl RscEntryModule {
       identifier,
       lib_ident,
       client_modules,
+      root_client_modules,
+      client_modules_by_server_entry,
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
@@ -95,7 +104,9 @@ impl RscEntryModule {
 
   fn render_debug_comments(&self, compilation: &Compilation) -> String {
     let module_graph = compilation.get_module_graph();
-    let referenced_exports_by_request = create_referenced_exports_by_request(&self.client_modules);
+    let all_client_modules = self.all_client_modules();
+    let referenced_exports_by_request =
+      create_referenced_exports_by_request(all_client_modules.into_iter());
     let mut source = String::new();
 
     if self.is_server_side_rendering {
@@ -157,6 +168,16 @@ impl RscEntryModule {
     }
 
     source
+  }
+
+  fn all_client_modules(&self) -> Vec<&ClientModuleImport> {
+    let mut client_modules = Vec::new();
+    client_modules.extend(self.client_modules.iter());
+    client_modules.extend(self.root_client_modules.iter());
+    for modules in self.client_modules_by_server_entry.values() {
+      client_modules.extend(modules.iter());
+    }
+    client_modules
   }
 }
 
@@ -228,8 +249,9 @@ impl Module for RscEntryModule {
   ) -> Result<BuildResult> {
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
-      let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(self.client_modules.len());
-      for client_module in &self.client_modules {
+      let all_client_modules = self.all_client_modules();
+      let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(all_client_modules.len());
+      for client_module in all_client_modules {
         let referenced_specifiers = create_referenced_specifiers(&client_module.ids);
         let dep = ImportEagerDependency::new(
           Atom::from(client_module.request.as_str()),
@@ -248,21 +270,71 @@ impl Module for RscEntryModule {
       })
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
-      let mut blocks =
-        Vec::with_capacity(self.client_modules.len() + self.css_imports_by_server_entry.len());
+      let mut blocks = Vec::with_capacity(
+        self.client_modules.len()
+          + self.css_imports_by_server_entry.len()
+          + self.client_modules_by_server_entry.len()
+          + usize::from(!self.root_client_modules.is_empty()),
+      );
       let dependencies: Vec<BoxDependency> = vec![];
 
-      for (server_entry, css_imports) in &self.css_imports_by_server_entry {
-        if css_imports.is_empty() {
-          continue;
+      let mut server_entries = self
+        .css_imports_by_server_entry
+        .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+      for server_entry in self.client_modules_by_server_entry.keys() {
+        if !server_entries.contains(server_entry) {
+          server_entries.push(server_entry.clone());
         }
+      }
+      server_entries.sort_unstable();
 
-        let dependencies = css_imports
-          .iter()
-          .map(|request| {
+      for server_entry in server_entries {
+        let mut block_dependencies: Vec<BoxDependency> = Vec::new();
+
+        if let Some(css_imports) = self.css_imports_by_server_entry.get(&server_entry) {
+          block_dependencies.extend(css_imports.iter().map(|request| {
             Box::new(ClientReferenceDependency::new(
               request.clone(),
               Default::default(),
+              self.is_server_side_rendering,
+            )) as Box<dyn Dependency>
+          }));
+        }
+
+        if let Some(client_modules) = self.client_modules_by_server_entry.get(&server_entry) {
+          block_dependencies.extend(client_modules.iter().map(|client_module| {
+            Box::new(ClientReferenceDependency::new(
+              client_module.request.clone(),
+              client_module.ids.clone(),
+              self.is_server_side_rendering,
+            )) as Box<dyn Dependency>
+          }));
+        }
+
+        if block_dependencies.is_empty() {
+          continue;
+        }
+
+        let block = AsyncDependenciesBlock::new(
+          self.identifier,
+          None,
+          None,
+          block_dependencies,
+          Some(server_entry.clone()),
+        );
+        blocks.push(Box::new(block));
+      }
+
+      if !self.root_client_modules.is_empty() {
+        let dependencies = self
+          .root_client_modules
+          .iter()
+          .map(|client_module| {
+            Box::new(ClientReferenceDependency::new(
+              client_module.request.clone(),
+              client_module.ids.clone(),
               self.is_server_side_rendering,
             )) as Box<dyn Dependency>
           })
@@ -273,7 +345,7 @@ impl Module for RscEntryModule {
           None,
           None,
           dependencies,
-          Some(server_entry.clone()),
+          Some(format!("{}#root-client", self.name)),
         );
         blocks.push(Box::new(block));
       }
@@ -333,6 +405,8 @@ impl_empty_diagnosable_trait!(RscEntryModule);
 fn create_identifier(
   name: &str,
   client_modules: &[ClientModuleImport],
+  root_client_modules: &[ClientModuleImport],
+  client_modules_by_server_entry: &ClientModulesByServerEntry,
   css_imports_by_server_entry: &CssImportsByServerEntry,
   is_server_side_rendering: bool,
 ) -> ModuleIdentifier {
@@ -342,18 +416,21 @@ fn create_identifier(
   identifier.push(if is_server_side_rendering { '1' } else { '0' });
   identifier.push('|');
 
-  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
-  for client_module in client_modules {
-    push_value(&mut identifier, &client_module.request);
+  identifier.push_str("isolated[");
+  push_client_modules(&mut identifier, client_modules);
+  identifier.push_str("]|root[");
+  push_client_modules(&mut identifier, root_client_modules);
+  identifier.push_str("]|server[");
+  let mut client_modules_by_server_entry =
+    client_modules_by_server_entry.iter().collect::<Vec<_>>();
+  client_modules_by_server_entry.sort_unstable_by_key(|(server_entry, _)| *server_entry);
+  for (server_entry, client_modules) in client_modules_by_server_entry {
+    push_value(&mut identifier, server_entry);
     identifier.push('[');
-
-    let ids = sorted_strs(client_module.ids.iter().map(|id| id.as_str()));
-    for id in ids {
-      push_value(&mut identifier, id);
-    }
+    push_client_modules(&mut identifier, client_modules);
     identifier.push(']');
   }
+  identifier.push(']');
 
   identifier.push('|');
   let mut css_imports_by_server_entry = css_imports_by_server_entry.iter().collect::<Vec<_>>();
@@ -370,6 +447,21 @@ fn create_identifier(
   }
 
   ModuleIdentifier::from(identifier)
+}
+
+fn push_client_modules(identifier: &mut String, client_modules: &[ClientModuleImport]) {
+  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
+  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
+  for client_module in client_modules {
+    push_value(identifier, &client_module.request);
+    identifier.push('[');
+
+    let ids = sorted_strs(client_module.ids.iter().map(|id| id.as_str()));
+    for id in ids {
+      push_value(identifier, id);
+    }
+    identifier.push(']');
+  }
 }
 
 fn sorted_strs<'a>(values: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
@@ -397,11 +489,10 @@ fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<Referenced
   )
 }
 
-fn create_referenced_exports_by_request(
-  client_modules: &[ClientModuleImport],
-) -> FxHashMap<&str, String> {
+fn create_referenced_exports_by_request<'a>(
+  client_modules: impl Iterator<Item = &'a ClientModuleImport>,
+) -> FxHashMap<&'a str, String> {
   client_modules
-    .iter()
     .map(|client_module| {
       let exports = format_referenced_exports(client_module);
       (client_module.request.as_str(), exports)

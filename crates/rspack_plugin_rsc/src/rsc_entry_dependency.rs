@@ -9,14 +9,21 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::plugin_state::{ClientModuleImport, CssImportsByServerEntry};
+use crate::plugin_state::{
+  ClientModuleImport, ClientModulesByServerEntry, CssImportsByServerEntry,
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RscEntryDependency {
   id: DependencyId,
   pub name: Arc<str>,
+  /// Client modules that should keep the existing one-module-per-async-block behavior.
   pub client_modules: Vec<ClientModuleImport>,
+  /// Client modules owned by the root RSC entry.
+  pub root_client_modules: Vec<ClientModuleImport>,
+  #[cacheable(with=AsMap<AsCacheable, AsVec>)]
+  pub client_modules_by_server_entry: ClientModulesByServerEntry,
   #[cacheable(with=AsMap<AsCacheable, AsVec>)]
   pub css_imports_by_server_entry: CssImportsByServerEntry,
   /// When true, client modules are loaded eagerly (not as code-split points).
@@ -30,6 +37,8 @@ impl RscEntryDependency {
   pub fn new(
     name: Arc<str>,
     client_modules: Vec<ClientModuleImport>,
+    root_client_modules: Vec<ClientModuleImport>,
+    client_modules_by_server_entry: ClientModulesByServerEntry,
     css_imports_by_server_entry: CssImportsByServerEntry,
     is_server_side_rendering: bool,
   ) -> Self {
@@ -38,6 +47,8 @@ impl RscEntryDependency {
       id: DependencyId::new(),
       name,
       client_modules,
+      root_client_modules,
+      client_modules_by_server_entry,
       css_imports_by_server_entry,
       is_server_side_rendering,
       resource_identifier,

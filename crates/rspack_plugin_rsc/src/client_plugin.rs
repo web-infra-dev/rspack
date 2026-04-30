@@ -570,7 +570,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
       let dependency = Box::new(RscEntryDependency::new(
         entry_name.clone(),
-        client_modules.clone(),
+        entry_state.isolated_client_entries.clone(),
+        entry_state.root_client_entries.clone(),
+        entry_state.client_entries_by_server_entry.clone(),
         entry_state.css_imports_by_server_entry(),
         false,
       ));
