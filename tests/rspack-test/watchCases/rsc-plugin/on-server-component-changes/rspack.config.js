@@ -76,13 +76,13 @@ module.exports = [
           );
 
           if (changeCount === 1) {
-            fs.appendFileSync(logFile, 'undefined\n');
+            fs.appendFileSync(logFile, 'callback returned void\n');
             return undefined;
           }
 
           return new Promise((resolve) => {
             setTimeout(() => {
-              fs.appendFileSync(logFile, 'promise\n');
+              fs.appendFileSync(logFile, 'callback resolved promise\n');
               resolve();
             }, 50);
           });

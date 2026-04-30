@@ -19,10 +19,12 @@ module.exports = {
         expect(log).toBe('');
         break;
       case '1':
-        expect(log).toBe('undefined\n');
+        expect(log).toBe('callback returned void\n');
         break;
       case '2':
-        expect(log).toBe('undefined\npromise\n');
+        expect(log).toBe(
+          'callback returned void\ncallback resolved promise\n',
+        );
         break;
       default:
         throw new Error(`Unexpected step: ${stepName}`);
