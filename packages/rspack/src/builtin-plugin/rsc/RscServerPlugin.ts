@@ -35,7 +35,7 @@ export type RscManifest = Record<string, RscManifestPerEntry>;
 
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
-  onServerComponentChanges?: () => Promise<void>;
+  onServerComponentChanges?: () => void | Promise<void>;
   onManifest?: (manifest: RscManifest) => void | Promise<void>;
 };
 
@@ -51,7 +51,14 @@ export class RscServerPlugin extends RspackBuiltinPlugin {
   raw(compiler: Compiler): binding.BuiltinPlugin {
     this.#options.coordinator.applyServerCompiler(compiler);
 
-    const { coordinator, onServerComponentChanges } = this.#options;
+    const { coordinator } = this.#options;
+    let onServerComponentChanges: (() => Promise<void>) | undefined;
+    if (this.#options.onServerComponentChanges) {
+      onServerComponentChanges = async () => {
+        await this.#options.onServerComponentChanges!();
+      };
+    }
+
     let onManifest: ((json: string) => void | Promise<void>) | undefined;
     if (this.#options.onManifest) {
       onManifest = (json: string) =>

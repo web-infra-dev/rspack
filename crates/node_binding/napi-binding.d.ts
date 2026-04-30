@@ -1057,7 +1057,7 @@ export interface JsRscClientPluginOptions {
 
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
-  onServerComponentChanges?: (() => void) | undefined | null
+  onServerComponentChanges?: (() => Promise<undefined>) | undefined | null
   onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
 }
 
