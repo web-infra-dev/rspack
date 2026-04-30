@@ -237,6 +237,7 @@ export async function loadExtendedConfig(
   const currentVisitedPaths = visitedPaths ?? new Set<string>();
 
   if (checkIsMultiRspackOptions(config)) {
+    // If the config is an array, we need to handle each item separately
     const resultPathMap = new WeakMap();
     const extendedConfigs = (await Promise.all(
       config.map(async (item) => {
@@ -296,7 +297,9 @@ export async function loadExtendedConfig(
           `Invalid file URL '${extendPath}' in extends configuration.`,
         );
       }
-    } else if (
+    }
+    // Check if it's a node module or a relative path
+    else if (
       extendPath.startsWith('.') ||
       extendPath.startsWith('/') ||
       extendPath.includes(':\\')
@@ -338,6 +341,7 @@ export async function loadExtendedConfig(
       options,
     );
 
+    // Recursively load extended configurations from the extended config
     const { config: extendedConfig, pathMap: extendedPathMap } =
       (await loadExtendedConfig(
         resolvedConfig,
