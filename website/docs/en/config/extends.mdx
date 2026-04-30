@@ -76,8 +76,7 @@ export default {
 ```
 
 :::info Merge Behavior
-
-When merging configurations:
+`@rspack/cli` uses [rspack-merge](https://github.com/rstackjs/rspack-merge) internally to merge configurations. The default merge rules are:
 
 - Simple values are overwritten
 - Arrays are concatenated

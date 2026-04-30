@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
-import { rspack } from '@rspack/core';
+import merge from 'rspack-merge';
 import findConfig from './findConfig';
 import type { CommonOptions } from './options';
 
@@ -199,6 +199,7 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
+  visitedPaths?: Set<string>,
 ): Promise<{
   config: RspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
@@ -208,6 +209,7 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
+  visitedPaths?: Set<string>,
 ): Promise<{
   config: MultiRspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
@@ -217,6 +219,7 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
+  visitedPaths?: Set<string>,
 ): Promise<{
   config: RspackOptions | MultiRspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
@@ -226,20 +229,25 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
+  visitedPaths?: Set<string>,
 ): Promise<{
   config: RspackOptions | MultiRspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
 }> {
+  const currentVisitedPaths = visitedPaths ?? new Set<string>();
+
   if (checkIsMultiRspackOptions(config)) {
     // If the config is an array, we need to handle each item separately
     const resultPathMap = new WeakMap();
     const extendedConfigs = (await Promise.all(
       config.map(async (item) => {
+        const itemVisitedPaths = new Set(currentVisitedPaths);
         const { config, pathMap } = await loadExtendedConfig(
           item,
           configPath,
           cwd,
           options,
+          itemVisitedPaths,
         );
         resultPathMap.set(config, pathMap.get(config));
         return config;
@@ -248,6 +256,13 @@ export async function loadExtendedConfig(
     extendedConfigs.parallelism = config.parallelism;
     return { config: extendedConfigs, pathMap: resultPathMap };
   }
+
+  if (currentVisitedPaths.has(configPath)) {
+    throw new Error(
+      `Recursive configuration detected. Config file "${configPath}" extends itself.`,
+    );
+  }
+  currentVisitedPaths.add(configPath);
   // set config path
   const pathMap: WeakMap<RspackOptions, string[]> = new WeakMap();
   pathMap.set(config, [configPath]);
@@ -274,8 +289,17 @@ export async function loadExtendedConfig(
   for (const extendPath of extendsList) {
     let resolvedPath: string;
 
+    if (extendPath.startsWith('file://')) {
+      try {
+        resolvedPath = fileURLToPath(extendPath);
+      } catch {
+        throw new Error(
+          `Invalid file URL '${extendPath}' in extends configuration.`,
+        );
+      }
+    }
     // Check if it's a node module or a relative path
-    if (
+    else if (
       extendPath.startsWith('.') ||
       extendPath.startsWith('/') ||
       extendPath.includes(':\\')
@@ -327,6 +351,7 @@ export async function loadExtendedConfig(
         resolvedPath,
         cwd,
         options,
+        currentVisitedPaths,
       )) as {
         config: RspackOptions;
         pathMap: WeakMap<RspackOptions, string[]>;
@@ -337,7 +362,7 @@ export async function loadExtendedConfig(
       ...(extendedPathMap.get(extendedConfig) || []),
     ];
     // Merge the configurations
-    resultConfig = rspack.util.cleverMerge(extendedConfig, resultConfig);
+    resultConfig = merge(extendedConfig, resultConfig);
     // Set config paths
     pathMap.set(resultConfig, configPaths);
   }
