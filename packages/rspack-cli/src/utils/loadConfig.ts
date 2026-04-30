@@ -304,8 +304,10 @@ export async function loadExtendedConfig(
       extendPath.startsWith('/') ||
       extendPath.includes(':\\')
     ) {
+      // It's a relative or absolute path
       resolvedPath = path.resolve(baseDir, extendPath);
 
+      // If the path doesn't have an extension, try to find a matching config file
       if (!path.extname(resolvedPath)) {
         const foundConfig = findConfig(resolvedPath);
         if (foundConfig) {
@@ -317,6 +319,7 @@ export async function loadExtendedConfig(
         }
       }
     } else {
+      // It's a node module
       try {
         resolvedPath = require.resolve(extendPath, { paths: [baseDir, cwd] });
       } catch {
