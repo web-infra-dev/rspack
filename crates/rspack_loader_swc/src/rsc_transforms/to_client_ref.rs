@@ -31,8 +31,7 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
-///     href,
-///     precedence: "default"
+///     href
 ///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
@@ -58,8 +57,7 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
-///     href,
-///     precedence: "default"
+///     href
 ///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
@@ -409,7 +407,6 @@ fn link_props_expr() -> Expr {
     key_value_prop("key", ident_expr("href")),
     key_value_prop("rel", str_expr("stylesheet")),
     key_value_prop("href", ident_expr("href")),
-    key_value_prop("precedence", str_expr("default")),
   ])
 }
 
