@@ -849,6 +849,15 @@ importers:
         specifier: ^19.2.5
         version: 19.2.5
 
+  tests/type-tests:
+    devDependencies:
+      '@rspack/cli':
+        specifier: workspace:*
+        version: link:../../packages/rspack-cli
+      '@rspack/core':
+        specifier: workspace:*
+        version: link:../../packages/rspack
+
   website:
     dependencies:
       '@rstack-dev/doc-ui':
