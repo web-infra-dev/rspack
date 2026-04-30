@@ -36,7 +36,7 @@ pub fn collect_json_module_sizes(
 
     let exports_info = exports_info_artifact.get_exports_info_data(module_id);
 
-    let final_json = match json_data {
+    let json_str = match json_data {
       json::JsonValue::Object(_) | json::JsonValue::Array(_) => {
         let needs_tree_shaking = exports_info.other_exports_info().get_used(None)
           == UsageState::Unused
@@ -52,14 +52,14 @@ pub fn collect_json_module_sizes(
             None,
             exports_info_artifact,
           )
+          .dump()
         } else {
-          json_data.clone()
+          json_data.dump()
         }
       }
-      _ => json_data.clone(),
+      _ => json_data.dump(),
     };
 
-    let json_str = json::stringify(final_json);
     let size = ("module.exports = ".len() + json_str.len()) as i32;
     json_sizes.insert(module_id.to_string(), size);
   }
