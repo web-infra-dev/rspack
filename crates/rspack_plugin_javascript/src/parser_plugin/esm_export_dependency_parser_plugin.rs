@@ -123,24 +123,31 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .into(),
       );
     }
-    let dep = if let Some(settings) = parser.get_tag_data(local_id, ESM_SPECIFIER_TAG) {
-      let settings = ESMSpecifierData::downcast(settings);
+    let dep = if let Some(settings) =
+      parser.get_tag_data_ref::<ESMSpecifierData>(local_id, ESM_SPECIFIER_TAG)
+    {
+      let source = settings.source.clone();
+      let source_order = settings.source_order;
+      let ids = settings.ids.clone().into_vec();
+      let phase = settings.phase;
+      let attributes = settings.attributes.clone();
+      let resource_identifier = settings.resource_identifier;
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
       let mut dep = ESMExportImportedSpecifierDependency::new_with_resource_identifier(
-        settings.source,
-        settings.source_order,
-        settings.ids.into_vec(),
+        source,
+        source_order,
+        ids,
         Some(export_name.clone()),
         None,
         statement.span().into(),
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
-        settings.phase,
-        settings.attributes,
+        phase,
+        attributes,
         loc,
-        settings.resource_identifier,
+        resource_identifier,
       );
       if parser
         .factory_meta

@@ -307,8 +307,8 @@ impl InnerGraphParserPlugin {
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
     let symbol = parser
-      .get_tag_data(name, TOP_LEVEL_SYMBOL)
-      .map(TopLevelSymbol::downcast)
+      .get_tag_data_ref::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
+      .copied()
       .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
 
     parser.inner_graph.add_usage(symbol, usage);
@@ -339,11 +339,13 @@ impl InnerGraphParserPlugin {
     let existing = parser.get_variable_info(name);
     if let Some(existing) = existing
       && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
+      && let tag_info = parser.definitions_db.expect_get_tag_info(tag_info)
       && tag_info.tag == TOP_LEVEL_SYMBOL
-      && let Some(tag_data) = tag_info.data.clone()
+      && let Some(tag_data) = tag_info.data.as_ref()
+      && let tag_data = tag_data.as_ref() as &dyn std::any::Any
+      && let Some(symbol) = tag_data.downcast_ref::<TopLevelSymbol>()
     {
-      return TopLevelSymbol::downcast(tag_data);
+      return *symbol;
     }
 
     let symbol = parser.inner_graph.new_top_level_symbol(name.clone());

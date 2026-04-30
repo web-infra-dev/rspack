@@ -759,6 +759,15 @@ impl<'parser> JavascriptParser<'parser> {
       .and_then(|tag_info_id| self.get_tag_data_by_tag_info_id(tag_info_id, tag))
   }
 
+  pub fn get_tag_data_ref<Data: 'static>(
+    &mut self,
+    name: &Atom,
+    tag: &'static str,
+  ) -> Option<&Data> {
+    let tag_info_id = self.get_variable_info(name)?.tag_info?;
+    self.get_tag_data_by_tag_info_id_ref(tag_info_id, tag)
+  }
+
   fn get_tag_data_by_tag_info_id(
     &self,
     tag_info_id: TagInfoId,
@@ -769,6 +778,28 @@ impl<'parser> JavascriptParser<'parser> {
     while let Some(cur_tag_info) = tag_info {
       if cur_tag_info.tag == tag {
         return cur_tag_info.data.clone();
+      }
+      tag_info = cur_tag_info
+        .next
+        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+    }
+
+    None
+  }
+
+  fn get_tag_data_by_tag_info_id_ref<Data: 'static>(
+    &self,
+    tag_info_id: TagInfoId,
+    tag: &'static str,
+  ) -> Option<&Data> {
+    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+
+    while let Some(cur_tag_info) = tag_info {
+      if cur_tag_info.tag == tag {
+        return cur_tag_info.data.as_ref().and_then(|data| {
+          let data = data.as_ref() as &dyn std::any::Any;
+          data.downcast_ref::<Data>()
+        });
       }
       tag_info = cur_tag_info
         .next
