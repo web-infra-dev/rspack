@@ -297,12 +297,60 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
         "installedChunks[chunkId] = 0;".to_string()
       } else {
+        let cache_bust = if compilation.options.mode.is_development()
+          && compilation.platform.is_node()
+        {
+          let mut chunk_hash_map = String::from("{");
+          let mut first = true;
+          for referenced_chunk_ukey in chunk
+            .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+            .iter()
+          {
+            if !chunk_has_js(referenced_chunk_ukey, compilation) {
+              continue;
+            }
+
+            let referenced_chunk = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .expect_get(referenced_chunk_ukey);
+
+            let Some(chunk_id) = referenced_chunk.id() else {
+              continue;
+            };
+
+            let chunk_hash = referenced_chunk
+              .rendered_hash(
+                &compilation.chunk_hashes_artifact,
+                compilation.options.output.hash_digest_length,
+              )
+              .or_else(|| compilation.get_hash())
+              .unwrap_or("dev");
+
+            if !first {
+              chunk_hash_map.push(',');
+            }
+            first = false;
+            chunk_hash_map.push_str(&rspack_util::json_stringify_str(chunk_id.as_str()));
+            chunk_hash_map.push(':');
+            chunk_hash_map.push_str(&rspack_util::json_stringify_str(chunk_hash));
+          }
+          chunk_hash_map.push('}');
+
+          let fallback_hash =
+            rspack_util::json_stringify_str(compilation.get_hash().unwrap_or("dev"));
+          format!(" + \"?t=\" + ({chunk_hash_map}[chunkId] || {fallback_hash})")
+        } else {
+          String::new()
+        };
+
         runtime_template.render(
           &self.template(TemplateId::WithLoading),
           Some(serde_json::json!({
             "_js_matcher": &has_js_matcher.render("chunkId"),
             "_import_function_name":&compilation.options.output.import_function_name,
             "_output_dir": &root_output_dir,
+            "_cache_bust": &cache_bust,
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
