@@ -140,7 +140,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
-      && parser.get_tag_data(&name, DYNAMIC_IMPORT_TAG).is_some()
+      && parser.has_tag(&name, DYNAMIC_IMPORT_TAG)
     {
       return Some(true);
     }

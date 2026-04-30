@@ -106,6 +106,10 @@ impl ESMImportSideEffectDependency {
   fn missing_module_active(&self) -> bool {
     !self.lazy_make
   }
+
+  pub fn resource_identifier(&self) -> ResourceIdentifier {
+    self.resource_identifier
+  }
 }
 
 pub fn esm_import_dependency_apply<T: ModuleDependency>(

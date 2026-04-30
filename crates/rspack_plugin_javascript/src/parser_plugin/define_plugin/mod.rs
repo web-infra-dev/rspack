@@ -53,9 +53,8 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
-  for (key, value) in self.walk_data.tiling_definitions.iter() {
-    let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
-    if let Some(prev) = compilation.value_cache_versions.get(&cache_key)
+  for (key, (cache_key, value)) in self.walk_data.tiling_definitions.iter() {
+    if let Some(prev) = compilation.value_cache_versions.get(cache_key)
       && prev != value
     {
       compilation.push_diagnostic(
@@ -64,7 +63,7 @@ async fn compilation(
     } else {
       compilation
         .value_cache_versions
-        .insert(cache_key, value.clone());
+        .insert(cache_key.clone(), value.clone());
     }
   }
 

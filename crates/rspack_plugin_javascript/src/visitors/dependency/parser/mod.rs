@@ -22,9 +22,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
+  ImportAttributes, ImportMeta, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData, ResourceIdentifier,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::{SpanExt, fx_hash::FxIndexSet};
@@ -378,6 +379,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) destructuring_assignment_properties: DestructuringAssignmentPropertiesMap,
   pub(crate) dynamic_import_references: ImportsReferencesState,
   pub(crate) common_js_require_references: RequireReferencesState,
+  pub(crate) esm_import_attributes: FxHashMap<Span, Option<ImportAttributes>>,
+  pub(crate) esm_import_side_effect_dependencies: FxHashMap<ResourceIdentifier, DependencyId>,
   pub(crate) worker_index: u32,
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
@@ -562,6 +565,8 @@ impl<'parser> JavascriptParser<'parser> {
       destructuring_assignment_properties: Default::default(),
       dynamic_import_references: Default::default(),
       common_js_require_references: Default::default(),
+      esm_import_attributes: Default::default(),
+      esm_import_side_effect_dependencies: Default::default(),
       semicolons,
       statement_path: Default::default(),
       current_tag_info: None,
@@ -741,6 +746,11 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
+  pub fn get_variable_info_by_str(&mut self, name: &str) -> Option<&VariableInfo> {
+    let id = self.definitions_db.get_by_str(self.definitions, name)?;
+    Some(self.definitions_db.expect_get_variable(id))
+  }
+
   pub fn get_tag_data(
     &mut self,
     name: &Atom,
@@ -749,20 +759,68 @@ impl<'parser> JavascriptParser<'parser> {
     self
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)
-      .and_then(|tag_info_id| {
-        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+      .and_then(|tag_info_id| self.get_tag_data_by_tag_info_id(tag_info_id, tag))
+  }
 
-        while let Some(cur_tag_info) = tag_info {
-          if cur_tag_info.tag == tag {
-            return cur_tag_info.data.clone();
-          }
-          tag_info = cur_tag_info
-            .next
-            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
-        }
+  fn get_tag_data_by_tag_info_id(
+    &self,
+    tag_info_id: TagInfoId,
+    tag: &'static str,
+  ) -> Option<Box<dyn anymap::CloneAny>> {
+    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
 
-        None
-      })
+    while let Some(cur_tag_info) = tag_info {
+      if cur_tag_info.tag == tag {
+        return cur_tag_info.data.clone();
+      }
+      tag_info = cur_tag_info
+        .next
+        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+    }
+
+    None
+  }
+
+  pub fn get_tag_data_by_variable_info(
+    &self,
+    id: VariableInfoId,
+    tag: &'static str,
+  ) -> Option<Box<dyn anymap::CloneAny>> {
+    self
+      .definitions_db
+      .expect_get_variable(id)
+      .tag_info
+      .and_then(|tag_info_id| self.get_tag_data_by_tag_info_id(tag_info_id, tag))
+  }
+
+  pub fn has_tag(&mut self, name: &Atom, tag: &'static str) -> bool {
+    self
+      .get_variable_info(name)
+      .and_then(|variable_info| variable_info.tag_info)
+      .is_some_and(|tag_info_id| self.has_tag_by_tag_info_id(tag_info_id, tag))
+  }
+
+  fn has_tag_by_tag_info_id(&self, tag_info_id: TagInfoId, tag: &'static str) -> bool {
+    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+
+    while let Some(cur_tag_info) = tag_info {
+      if cur_tag_info.tag == tag {
+        return true;
+      }
+      tag_info = cur_tag_info
+        .next
+        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+    }
+
+    false
+  }
+
+  pub fn has_tag_by_variable_info(&self, id: VariableInfoId, tag: &'static str) -> bool {
+    self
+      .definitions_db
+      .expect_get_variable(id)
+      .tag_info
+      .is_some_and(|tag_info_id| self.has_tag_by_tag_info_id(tag_info_id, tag))
   }
 
   pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {

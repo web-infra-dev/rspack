@@ -156,6 +156,35 @@ impl ScopeInfoDB {
     }
   }
 
+  pub fn get_by_str(&self, id: ScopeInfoId, key: &str) -> Option<VariableInfoId> {
+    let definitions = self.expect_get_scope(id);
+    if let Some((_, &top_value)) = definitions
+      .map
+      .iter()
+      .find(|(name, _)| name.as_str() == key)
+    {
+      if top_value == VariableInfoId::tombstone() || top_value == VariableInfoId::undefined() {
+        None
+      } else {
+        Some(top_value)
+      }
+    } else {
+      let mut current = definitions.parent;
+      while let Some(current_id) = current {
+        let scope = self.expect_get_scope(current_id);
+        if let Some((_, &value)) = scope.map.iter().find(|(name, _)| name.as_str() == key) {
+          if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
+            return None;
+          } else {
+            return Some(value);
+          }
+        }
+        current = scope.parent;
+      }
+      None
+    }
+  }
+
   pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
     let scope = self.expect_get_mut_scope(id);
     scope.map.insert(key, variable_info_id);
