@@ -51,14 +51,7 @@ export class RscServerPlugin extends RspackBuiltinPlugin {
   raw(compiler: Compiler): binding.BuiltinPlugin {
     this.#options.coordinator.applyServerCompiler(compiler);
 
-    const { coordinator } = this.#options;
-    let onServerComponentChanges: (() => Promise<void>) | undefined;
-    if (this.#options.onServerComponentChanges) {
-      onServerComponentChanges = async () => {
-        await this.#options.onServerComponentChanges!();
-      };
-    }
-
+    const { coordinator, onServerComponentChanges } = this.#options;
     let onManifest: ((json: string) => void | Promise<void>) | undefined;
     if (this.#options.onManifest) {
       onManifest = (json: string) =>

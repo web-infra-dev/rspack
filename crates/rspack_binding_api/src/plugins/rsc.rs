@@ -17,6 +17,7 @@ use rspack_plugin_rsc::{Coordinator, OnManifest, RscClientPluginOptions, RscServ
 use crate::JsCompiler;
 
 type InvalidateTsFn = Arc<ThreadsafeFunction<(), (), (), Status, false, true, 0>>;
+type OnServerComponentChangesReturn = Either3<Promise<()>, Undefined, Null>;
 
 #[napi]
 pub struct JsCoordinator {
@@ -77,8 +78,9 @@ impl From<&JsRscClientPluginOptions<'_>> for RscClientPluginOptions {
 #[napi(object, object_to_js = false)]
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
+  #[napi(ts_type = "(() => void | Promise<void>) | undefined | null")]
   pub on_server_component_changes:
-    Option<Either3<Function<'static, (), Promise<()>>, Undefined, Null>>,
+    Option<Either3<Function<'static, (), OnServerComponentChangesReturn>, Undefined, Null>>,
   pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
 }
 
@@ -102,12 +104,10 @@ impl TryFrom<&JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
           move || -> BoxFuture<'static, rspack_error::Result<()>> {
             let ts_fn = ts_fn.clone();
             Box::pin(async move {
-              ts_fn
-                .call_async(())
-                .await
-                .to_rspack_result()?
-                .await
-                .to_rspack_result()
+              match ts_fn.call_async(()).await.to_rspack_result()? {
+                Either3::A(promise) => promise.await.to_rspack_result(),
+                Either3::B(_) | Either3::C(_) => Ok(()),
+              }
             })
           },
         ))
