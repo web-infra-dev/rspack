@@ -1082,10 +1082,11 @@ impl CompilerOptionsBuilder {
     // apply externals plugin
     if let Some(externals) = &mut self.externals {
       let externals = std::mem::take(externals);
+      let externals_type = expect!(self.externals_type.clone());
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
-          expect!(self.externals_type.clone()),
+          externals_type,
           externals,
           false,
         )));

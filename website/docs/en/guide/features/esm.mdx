@@ -40,7 +40,6 @@ export default {
       type: 'modern-module',
     },
   },
-  externalsType: 'module-import',
   optimization: {
     avoidEntryIife: true,
     minimize: false,
@@ -73,7 +72,7 @@ In other words, the focus has been shifting from "can Rspack emit ESM at all?" t
 Below are the main configuration options related to ESM and their descriptions, which are used when building both applications and libraries.
 
 1. [output.module](/config/output#outputmodule): Set to `true` to generate ESM format output. When this option is enabled, it affects the following configurations:
-   1. Affects [externalsType](/config/externals#externalstype) default value: When `output.module` is `true`, `externalsType` defaults to `'module-import'`
+   1. Affects [externalsType](/config/externals#externalstype) default value: When `output.module` is `true`, `externalsType` defaults to `'module-import'`; when `output.library.type` is `'modern-module'`, it defaults to `'modern-module'`
    2. Affects [output.filename](/config/output#outputfilename) default value: When `output.module` is `true`, the default filename is `'[name].mjs'` instead of `'[name].js'`
    3. Affects [output.chunkFilename](/config/output#outputchunkfilename) default value: When `output.module` is `true`, chunk filename defaults to `'[id].mjs'` instead of `'[id].js'`
    4. Affects [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename) default value: When `output.module` is `true`, defaults to `'[id].[fullhash].hot-update.mjs'`

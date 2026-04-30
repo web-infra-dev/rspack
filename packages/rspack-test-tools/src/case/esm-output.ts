@@ -121,8 +121,8 @@ const defaultOptions = (
     runtimeChunk: 'single',
   },
   externals: {
-    fs: 'module-import fs',
-    path: 'module-import path',
+    fs: 'fs',
+    path: 'path',
   },
 });
 

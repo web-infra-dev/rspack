@@ -331,6 +331,7 @@ Supported types:
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - uses `import()` to load a native ECMAScript module (async module)
 - [`'module-import'`](#externalstypemodule-import)
+- [`'modern-module'`](#externalstypemodern-module)
 - [`'commonjs-import'`](#externalstypecommonjs-import)
 - `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
@@ -552,6 +553,14 @@ export default {
     },
   ]
 ```
+
+### externalsType['modern-module']
+
+Specify the default type of externals as `'modern-module'`. This is the default when `output.library.type` is `'modern-module'`.
+
+For static ESM imports, Rspack renders the external like [`'module'`](#externalstypemodule), using a static `import` statement. For dynamic `import()`, Rspack renders the external like [`'module-import'`](#externalstypemodule-import), using `import()`.
+
+For CommonJS `require()`, Rspack keeps the external on the require path. When targeting Node.js, the generated ESM output uses [`'node-commonjs'`](#externalstypenode-commonjs) and creates a `require` function with `createRequire`. For other targets, it uses [`'commonjs'`](#externalstypecommonjs) and emits `require()`.
 
 ### externalsType['commonjs-import']
 

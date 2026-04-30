@@ -756,7 +756,9 @@ async fn after_factorize(
 ) -> Result<()> {
   // Check if this is an external module using the existing downcast helper
   if let Some(external_module) = module.as_external_module_mut()
-    && external_module.get_external_type().starts_with("module")
+    && (external_module.get_external_type().starts_with("module")
+      || (external_module.get_external_type() == "modern-module"
+        && data.dependencies.first().is_some_and(is_esm_dep_like)))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {

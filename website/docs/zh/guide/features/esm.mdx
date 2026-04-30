@@ -38,7 +38,6 @@ export default {
       type: 'modern-module',
     },
   },
-  externalsType: 'module-import',
   optimization: {
     avoidEntryIife: true,
     minimize: false,
@@ -71,7 +70,7 @@ export default {
 下面列出了与 ESM 相关的主要配置选项及其说明，这些配置在构建应用和库时都会用到。
 
 1. [output.module](/config/output#outputmodule): 设置为 `true`，表示生成 ESM 格式的产物。开启此选项后，会对以下配置产生影响：
-   1. 影响 [externalsType](/config/externals#externalstype) 默认值：当 `output.module` 为 `true` 时，`externalsType` 默认为 `'module-import'`
+   1. 影响 [externalsType](/config/externals#externalstype) 默认值：当 `output.module` 为 `true` 时，`externalsType` 默认为 `'module-import'`；当 `output.library.type` 为 `'modern-module'` 时，默认为 `'modern-module'`
    2. 影响 [output.filename](/config/output#outputfilename) 默认值：当 `output.module` 为 `true` 时，默认文件名为 `'[name].mjs'` 而不是 `'[name].js'`
    3. 影响 [output.chunkFilename](/config/output#outputchunkfilename) 默认值：当 `output.module` 为 `true` 时，chunk 文件名默认为 `'[id].mjs'` 而不是 `'[id].js'`
    4. 影响 [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename) 默认值：当 `output.module` 为 `true` 时，默认为 `'[id].[fullhash].hot-update.mjs'`
