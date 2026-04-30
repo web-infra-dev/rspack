@@ -47,6 +47,7 @@ pub struct JsHooksAdapterPlugin {
   register_compilation_after_process_assets_taps: RegisterCompilationAfterProcessAssetsTaps,
   register_compilation_seal_taps: RegisterCompilationSealTaps,
   register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps,
+  register_compilation_asset_path_taps: RegisterCompilationAssetPathTaps,
   register_normal_module_factory_before_resolve_taps: RegisterNormalModuleFactoryBeforeResolveTaps,
   register_normal_module_factory_factorize_taps: RegisterNormalModuleFactoryFactorizeTaps,
   register_normal_module_factory_resolve_taps: RegisterNormalModuleFactoryResolveTaps,
@@ -204,6 +205,10 @@ impl Plugin for JsHooksAdapterPlugin {
       .compilation_hooks
       .after_seal
       .intercept(self.register_compilation_after_seal_taps.clone());
+    ctx
+      .compilation_hooks
+      .asset_path
+      .intercept(self.register_compilation_asset_path_taps.clone());
 
     ctx.normal_module_factory_hooks.before_resolve.intercept(
       self
@@ -314,6 +319,7 @@ impl Plugin for JsHooksAdapterPlugin {
       .clear_cache();
     self.register_compilation_seal_taps.clear_cache();
     self.register_compilation_after_seal_taps.clear_cache();
+    self.register_compilation_asset_path_taps.clear_cache();
     self
       .register_normal_module_factory_before_resolve_taps
       .clear_cache();
@@ -591,6 +597,10 @@ impl JsHooksAdapterPlugin {
         ),
         register_compilation_after_seal_taps: RegisterCompilationAfterSealTaps::new(
           register_js_taps.register_compilation_after_seal_taps,
+          non_skippable_registers.clone(),
+        ),
+        register_compilation_asset_path_taps: RegisterCompilationAssetPathTaps::new(
+          register_js_taps.register_compilation_asset_path_taps,
           non_skippable_registers.clone(),
         ),
         register_normal_module_factory_before_resolve_taps:

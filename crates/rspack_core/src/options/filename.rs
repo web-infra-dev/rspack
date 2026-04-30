@@ -356,3 +356,45 @@ fn test_data_uri() {
   assert_eq!(data_uri("data:g;ood").ok(), Some("g"));
   assert_eq!(data_uri("data:;ood").ok(), None);
 }
+
+#[cfg(test)]
+mod asset_path_tests {
+  use std::borrow::Cow;
+
+  use super::render_template;
+  use crate::PathData;
+
+  #[test]
+  fn render_template_with_hash_and_content_hash() {
+    let data = PathData::default()
+      .chunk_name("main")
+      .hash("abc123")
+      .content_hash("def456");
+    let result = render_template(Cow::Borrowed("[name].[contenthash:6].js"), data, None);
+    assert_eq!(result, "main.def456.js");
+  }
+
+  #[test]
+  fn render_template_path_data_fields_match_js_asset_path_data() {
+    // Verify all PathData fields that are exposed to the assetPath hook
+    // via JsAssetPathData are correctly rendered
+    let data = PathData::default()
+      .chunk_name("vendor")
+      .chunk_id("1")
+      .content_hash("cafebabe")
+      .hash("deadbeef")
+      .runtime("web");
+    let result = render_template(Cow::Borrowed("[name].[id].[runtime].js"), data, None);
+    assert_eq!(result, "vendor.1.web.js");
+  }
+
+  #[test]
+  fn has_hash_placeholder_detects_hash_tokens() {
+    use super::{has_content_hash_placeholder, has_hash_placeholder};
+    assert!(has_hash_placeholder("[name].[hash].js"));
+    assert!(has_hash_placeholder("[fullhash]"));
+    assert!(!has_hash_placeholder("[name].[contenthash].js"));
+    assert!(has_content_hash_placeholder("[name].[contenthash].js"));
+    assert!(!has_content_hash_placeholder("[name].[hash].js"));
+  }
+}

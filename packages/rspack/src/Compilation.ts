@@ -256,6 +256,10 @@ export class Compilation {
     seal: liteTapable.SyncHook<[]>;
     afterSeal: liteTapable.AsyncSeriesHook<[], void>;
     needAdditionalPass: liteTapable.SyncBailHook<[], boolean>;
+    assetPath: liteTapable.SyncWaterfallHook<
+      [string, binding.JsPathData],
+      string
+    >;
   }>;
   name?: string;
   startTime?: number;
@@ -390,6 +394,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       seal: new liteTapable.SyncHook([]),
       afterSeal: new liteTapable.AsyncSeriesHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
+      assetPath: new liteTapable.SyncWaterfallHook(['path', 'data']),
     };
 
     // Wrap hooks with a Proxy to provide helpful error messages when

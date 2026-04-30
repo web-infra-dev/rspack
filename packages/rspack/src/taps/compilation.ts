@@ -514,5 +514,19 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         };
       },
     ),
+    registerCompilationAssetPathTaps: createTap(
+      binding.RegisterJsTapKind.CompilationAssetPath,
+
+      function () {
+        return getCompiler().__internal__get_compilation()!.hooks.assetPath;
+      },
+
+      function (queried) {
+        return function (arg: binding.JsAssetPathHookArg) {
+          // SyncWaterfallHook threads the path through each tap; return final path
+          return queried.call(arg.path, arg.data) ?? arg.path;
+        };
+      },
+    ),
   };
 };
