@@ -555,6 +555,12 @@ pub struct RawCssModuleParserOptions {
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub animation: Option<bool>,
+  pub container: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
+  pub function: Option<bool>,
+  pub grid: Option<bool>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
@@ -564,6 +570,12 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
       named_exports: value.named_exports,
       url: value.url,
       resolve_import: convert_import_option(value.resolve_import),
+      animation: value.animation,
+      container: value.container,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
+      function: value.function,
+      grid: value.grid,
     }
   }
 }

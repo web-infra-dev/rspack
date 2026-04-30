@@ -1083,6 +1083,36 @@ export type CssModuleParserOptions = {
    * @default true
    * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Enable/disable renaming of `@keyframes`.
+   */
+  animation?: boolean;
+
+  /**
+   * Enable/disable renaming of `@container` names.
+   */
+  container?: boolean;
+
+  /**
+   * Enable/disable renaming of custom identifiers.
+   */
+  customIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of dashed identifiers, e.g. custom properties.
+   */
+  dashedIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of `@function` names.
+   */
+  function?: boolean;
+
+  /**
+   * Enable/disable renaming of grid identifiers.
+   */
+  grid?: boolean;
 };
 
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
