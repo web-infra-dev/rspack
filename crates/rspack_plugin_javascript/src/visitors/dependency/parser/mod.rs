@@ -1054,11 +1054,16 @@ impl<'parser> JavascriptParser<'parser> {
           return None;
         }
         let root_name = object.get_root_name()?;
+        let is_non_top_level_this = root_name == "this" && !self.is_top_level_this();
 
         let NameInfo {
           name: resolved_root,
           info: root_info,
         } = self.get_name_info_from_variable(&root_name)?;
+
+        if is_non_top_level_this && root_info.is_none() {
+          return None;
+        }
 
         let name = object_and_members_to_name(resolved_root, &members);
         members.reverse();
