@@ -59,7 +59,7 @@
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",
-    "terser-webpack-plugin": "^5.4.0",
+    "terser-webpack-plugin": "^5.5.0",
     "wast-loader": "^1.14.1",
     "webpack": "5.104.1",
     "webpack-merge": "6.0.1",
