@@ -1,7 +1,7 @@
 import type fs from 'node:fs';
 import path from 'node:path';
 import type { Compiler, RspackOptions, StatsError } from '@rspack/core';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 

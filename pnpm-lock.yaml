@@ -438,6 +438,9 @@ importers:
       rimraf:
         specifier: ^5.0.10
         version: 5.0.10
+      rspack-merge:
+        specifier: 0.1.1
+        version: 0.1.1
       source-map:
         specifier: ^0.7.6
         version: 0.7.6
@@ -450,9 +453,6 @@ importers:
       webpack:
         specifier: 5.104.1
         version: 5.104.1
-      webpack-merge:
-        specifier: 6.0.1
-        version: 6.0.1
       webpack-sources:
         specifier: 3.3.4
         version: 3.3.4(patch_hash=0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327)
@@ -6790,6 +6790,9 @@ packages:
     peerDependenciesMeta:
       '@rsbuild/core':
         optional: true
+
+  rspack-merge@0.1.1:
+    resolution: {integrity: sha512-RHKi8nECjP0lM1V7RnM+8G8dRvWgrsnntzfogJQz7oSHo104ca4jsL3KN/0gru233n/lVGrqDPDNlCA4x0UNlg==}
 
   rspack-vue-loader@17.5.0:
     resolution: {integrity: sha512-hJrL2+jytfTs6ORHBOKTh5lU7BVZvmv7afELuQfyEpGC1ll7MKj1BxlgAIbhd6pZwoEwfdH79Lewtwe4VOlfCQ==}
@@ -14464,6 +14467,8 @@ snapshots:
   rsbuild-plugin-open-graph@1.1.2(@rsbuild/core@2.0.3):
     optionalDependencies:
       '@rsbuild/core': 2.0.3(@module-federation/runtime-tools@2.4.0)(core-js@3.49.0)
+
+  rspack-merge@0.1.1: {}
 
   rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.33):
     dependencies:
