@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@rslint/core": "0.5.1",
-    "@rstest/core": "^0.9.9",
+    "@rstest/core": "^0.9.10",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.39",
     "check-dependency-version-consistency": "^6.0.0",

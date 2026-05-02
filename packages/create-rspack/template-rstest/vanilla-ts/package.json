@@ -7,7 +7,7 @@
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@rstest/adapter-rspack": "^0.2.0",
-    "@rstest/core": "^0.9.9",
+    "@rstest/core": "^0.9.10",
     "happy-dom": "^20.9.0"
   }
 }
