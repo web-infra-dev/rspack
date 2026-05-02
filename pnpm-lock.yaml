@@ -381,12 +381,12 @@ importers:
       prebundle:
         specifier: ^1.6.4
         version: 1.6.4(typescript@6.0.3)
+      rspack-merge:
+        specifier: 0.1.1
+        version: 0.1.1
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
-      webpack-merge:
-        specifier: 6.0.1
-        version: 6.0.1
 
   packages/rspack-test-tools:
     dependencies:
@@ -6814,6 +6814,9 @@ packages:
     peerDependenciesMeta:
       '@rsbuild/core':
         optional: true
+
+  rspack-merge@0.1.1:
+    resolution: {integrity: sha512-RHKi8nECjP0lM1V7RnM+8G8dRvWgrsnntzfogJQz7oSHo104ca4jsL3KN/0gru233n/lVGrqDPDNlCA4x0UNlg==}
 
   rspack-vue-loader@17.5.0:
     resolution: {integrity: sha512-hJrL2+jytfTs6ORHBOKTh5lU7BVZvmv7afELuQfyEpGC1ll7MKj1BxlgAIbhd6pZwoEwfdH79Lewtwe4VOlfCQ==}
@@ -14505,6 +14508,8 @@ snapshots:
   rsbuild-plugin-open-graph@1.1.2(@rsbuild/core@2.0.0-rc.1):
     optionalDependencies:
       '@rsbuild/core': 2.0.0-rc.1(@emnapi/core@1.10.0)(@emnapi/runtime@1.10.0)(@module-federation/runtime-tools@2.3.3)(core-js@3.49.0)
+
+  rspack-merge@0.1.1: {}
 
   rspack-vue-loader@17.5.0(@rspack/core@packages+rspack)(vue@3.5.33):
     dependencies:
