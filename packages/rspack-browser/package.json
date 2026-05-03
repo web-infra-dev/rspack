@@ -38,7 +38,7 @@
     "@rspack/lite-tapable": "1.1.0",
     "@swc/types": "0.1.26",
     "@types/watchpack": "^2.4.5",
-    "memfs": "4.53.0",
+    "memfs": "4.57.2",
     "webpack-sources": "3.3.4"
   },
   "peerDependencies": {
