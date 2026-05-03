@@ -52,18 +52,16 @@ import { MiddlewareHandler } from 'hono';`,
     },
     {
       name: 'watchpack',
-      dtsExternals: ['graceful-fs'],
+      copyDts: true,
       afterBundle(task) {
-        const importStatement = "import fs from 'graceful-fs';";
-        const ignoredImportStatement = `// @ts-ignore\n${importStatement}`;
-        const dtsPath = join(task.distPath, 'index.d.ts');
-        replaceFileContent(
-          dtsPath,
-          (content) =>
-            `${content.replace(importStatement, ignoredImportStatement)}
-export type WatchOptions = Watchpack.WatchOptions;
-`,
-        );
+        // watchpack publishes declarations in types/, but its package "types"
+        // entry points at types/index.js.
+        const packageJsonPath = join(task.distPath, 'package.json');
+        replaceFileContent(packageJsonPath, (content) => {
+          const packageJson = JSON.parse(content);
+          packageJson.types = 'types/index.d.ts';
+          return `${JSON.stringify(packageJson, null, 2)}\n`;
+        });
       },
     },
   ],
