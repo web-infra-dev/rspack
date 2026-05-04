@@ -54,7 +54,7 @@
     "jest-diff": "^30.3.0",
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
-    "memfs": "4.53.0",
+    "memfs": "4.57.2",
     "path-serializer": "0.6.0",
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",

@@ -53,7 +53,7 @@
     "less-loader": "^12.3.2",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
-    "memfs": "4.53.0",
+    "memfs": "4.57.2",
     "mime-types": "^3.0.2",
     "mini-svg-data-uri": "^1.4.4",
     "node-polyfill-webpack-plugin": "^4.1.0",
