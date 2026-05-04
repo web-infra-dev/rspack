@@ -270,9 +270,6 @@ importers:
       '@types/node':
         specifier: ^20.19.39
         version: 20.19.39
-      '@types/watchpack':
-        specifier: ^2.4.5
-        version: 2.4.5
       browserslist-load-config:
         specifier: ^1.0.1
         version: 1.0.1
@@ -330,9 +327,6 @@ importers:
       '@swc/types':
         specifier: 0.1.26
         version: 0.1.26
-      '@types/watchpack':
-        specifier: ^2.4.5
-        version: 2.4.5
       memfs:
         specifier: 4.53.0
         version: 4.53.0
@@ -3565,9 +3559,6 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
-
-  '@types/watchpack@2.4.5':
-    resolution: {integrity: sha512-8CarnGOIYYRL342jwQyHrGwz4vCD3y5uwwYmzQVzT2Z24DqSd6wwBva6m0eNJX4S5pVmrx9xUEbOsOoqBVhWsg==}
 
   '@types/yargs-parser@21.0.3':
     resolution: {integrity: sha512-I4q9QU9MQv4oEOz4tAHJtNz1cwuLxn2F3xcc2iV5WdqLPpUnj30aUuxt1mAxYTG+oe8CZMV/+6rU4S4gRDzqtQ==}
@@ -10573,11 +10564,6 @@ snapshots:
   '@types/unist@2.0.11': {}
 
   '@types/unist@3.0.3': {}
-
-  '@types/watchpack@2.4.5':
-    dependencies:
-      '@types/graceful-fs': 4.1.9
-      '@types/node': 20.19.39
 
   '@types/yargs-parser@21.0.3': {}
 
