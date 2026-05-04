@@ -364,3 +364,18 @@ Migrate [raw-loader](https://github.com/webpack-contrib/raw-loader) to [Asset Mo
    },
  };
 ```
+
+## Common webpack package replacements
+
+When migrating webpack ecosystem packages, the following non-plugin packages usually need to be replaced.
+
+| webpack package          | Rspack replacement                                                            | Notes                                  |
+| ------------------------ | ----------------------------------------------------------------------------- | -------------------------------------- |
+| `webpack`                | [`@rspack/core`](https://www.npmjs.com/package/@rspack/core)                  | Core package.                          |
+| `webpack-cli`            | [`@rspack/cli`](https://www.npmjs.com/package/@rspack/cli)                    | CLI commands for Rspack.               |
+| `webpack-dev-server`     | [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server)         | Development server for Rspack.         |
+| `webpack-dev-middleware` | [`@rspack/dev-middleware`](https://github.com/rstackjs/rspack-dev-middleware) | Middleware for custom Node.js servers. |
+| `webpack-chain`          | [`rspack-chain`](https://github.com/rstackjs/rspack-chain)                    | Chainable Rspack configuration API.    |
+| `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | Rspack configuration merging.          |
+
+> For plugin packages, see [Plugin compatibility](/guide/compatibility/plugin).

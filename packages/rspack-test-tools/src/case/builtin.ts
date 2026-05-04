@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
-import { merge } from 'webpack-merge';
+import { merge } from 'rspack-merge';
 import { isJavaScript } from '../helper';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';

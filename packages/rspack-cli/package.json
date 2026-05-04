@@ -44,7 +44,7 @@
     "concat-stream": "^2.0.0",
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",
-    "exit-hook": "^4.0.0",
+    "exit-hook": "^5.1.0",
     "jiti": "^2.6.1",
     "prebundle": "^1.6.4",
     "typescript": "^6.0.3"

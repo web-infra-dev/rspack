@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.59.1",
-    "@rsbuild/core": "2.0.1",
+    "@rsbuild/core": "2.0.3",
     "@rspack/browser": "workspace:*",
     "typescript": "^6.0.3"
   }

@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "@babel/generator": "7.29.1",
-    "@babel/parser": "7.29.2",
+    "@babel/parser": "7.29.3",
     "@babel/traverse": "7.29.0",
     "@babel/types": "7.29.0",
     "chalk": "^4.1.2",
@@ -54,15 +54,15 @@
     "jest-diff": "^30.3.0",
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
-    "memfs": "4.53.0",
+    "memfs": "4.57.2",
     "path-serializer": "0.6.0",
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",
     "source-map": "^0.7.6",
+    "rspack-merge": "0.1.1",
     "terser-webpack-plugin": "^5.5.0",
     "wast-loader": "^1.14.1",
     "webpack": "5.104.1",
-    "webpack-merge": "6.0.1",
     "webpack-sources": "3.3.4"
   },
   "devDependencies": {

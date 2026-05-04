@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { RspackOptions, StatsCompilation } from '@rspack/core';
 import fs from 'fs-extra';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { ECompilerEvent } from '../compiler';
 import { readConfigFile } from '../helper';
 import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
