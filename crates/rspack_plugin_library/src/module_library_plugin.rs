@@ -101,9 +101,6 @@ async fn render_startup(
       .chunk_by_ukey
       .expect_get(chunk_ukey);
     let info_name = export_info.name().expect("should have name");
-    let used_name = export_info
-      .get_used_name(Some(info_name), Some(chunk.runtime()))
-      .expect("name can't be empty");
     let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
     if info_name == "default"
@@ -116,6 +113,11 @@ async fn render_startup(
         "var {var_name} = {exports_name};\n",
       )));
     } else {
+      // Skip exports unused in this runtime (matches webpack's `if (!exportInfo.provided) continue;`).
+      let Some(used_name) = export_info.get_used_name(Some(info_name), Some(chunk.runtime()))
+      else {
+        continue;
+      };
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
         match used_name {
