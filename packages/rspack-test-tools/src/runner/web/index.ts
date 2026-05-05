@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
-import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 import { escapeSep } from '../../helper';
 import EventSource from '../../helper/legacy/EventSourceForNode';
 import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
@@ -26,15 +26,42 @@ const FAKE_HOSTS = [
 
 const FAKE_TEST_ROOT_HOST = 'https://test.cases/root/';
 
+type LegacyResourceLoader = {
+  fetch(
+    url: string,
+    options: { element: HTMLScriptElement },
+  ): Promise<Buffer | string | null> | null;
+};
+
+type LegacyResourceLoaderConstructor = new () => LegacyResourceLoader;
+
+type VirtualConsoleCompat = VirtualConsole & {
+  forwardTo?: (
+    console: Console,
+    options?: { jsdomErrors?: 'none' | string[] },
+  ) => void;
+  sendTo?: (console: Console, options?: { omitJSDOMErrors?: boolean }) => void;
+};
+
+const { ResourceLoader: LegacyResourceLoader } = require('jsdom') as {
+  ResourceLoader: LegacyResourceLoaderConstructor;
+};
+
 export class WebRunner extends NodeRunner {
   private dom: JSDOM;
   constructor(protected _webOptions: IWebRunnerOptions) {
     super(_webOptions);
 
-    const virtualConsole = new VirtualConsole({});
-    virtualConsole.sendTo(console, {
-      omitJSDOMErrors: true,
-    });
+    const virtualConsole = new VirtualConsole() as VirtualConsoleCompat;
+    if (virtualConsole.forwardTo) {
+      virtualConsole.forwardTo(console, {
+        jsdomErrors: 'none',
+      });
+    } else {
+      virtualConsole.sendTo?.(console, {
+        omitJSDOMErrors: true,
+      });
+    }
     this.dom = new JSDOM(
       `
       <!doctype html>
@@ -45,7 +72,7 @@ export class WebRunner extends NodeRunner {
     `,
       {
         url: this._webOptions.location,
-        resources: this.createResourceLoader(),
+        resources: this.createResourceLoader() as any,
         runScripts: 'dangerously',
         virtualConsole,
       },
@@ -102,7 +129,7 @@ export class WebRunner extends NodeRunner {
 
   protected createResourceLoader() {
     const that = this;
-    class CustomResourceLoader extends ResourceLoader {
+    class CustomResourceLoader extends LegacyResourceLoader {
       fetch(url: string, options: { element: HTMLScriptElement }) {
         if (that._options.testConfig.resourceLoader) {
           that.log(`resource custom loader: start ${url}`);
