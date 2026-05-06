@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
-import merge from 'rspack-merge';
+import { merge } from 'rspack-merge';
 import findConfig from './findConfig';
 import type { CommonOptions } from './options';
 
