@@ -122,7 +122,7 @@ pub struct NormalModule {
   resource_data: Arc<ResourceData>,
   /// Loaders for the module
   #[debug(skip)]
-  loaders: Vec<BoxLoader>,
+  loaders: Arc<[BoxLoader]>,
 
   /// Built source of this module (passed with loaders)
   #[cacheable(with=AsOption<AsPreset>)]
@@ -206,7 +206,7 @@ impl NormalModule {
       match_resource,
       resource_data,
       resolve_options,
-      loaders,
+      loaders: loaders.into(),
       source: None,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
