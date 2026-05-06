@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
@@ -28,7 +28,7 @@ define_hook!(NormalModuleFactoryResolveForScheme: SeriesBail(data: &mut ModuleFa
 define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
-define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
+define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
 define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
@@ -36,6 +36,57 @@ define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryC
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
   Ignored,
+}
+
+#[derive(Debug)]
+pub enum NormalModuleCreateDataResource {
+  Owned(ResourceData),
+  Shared(Arc<ResourceData>),
+}
+
+impl NormalModuleCreateDataResource {
+  fn into_shared(self) -> Arc<ResourceData> {
+    match self {
+      Self::Owned(resource_data) => Arc::new(resource_data),
+      Self::Shared(resource_data) => resource_data,
+    }
+  }
+
+  fn take_shared(&mut self) -> Arc<ResourceData> {
+    let shared = std::mem::replace(
+      self,
+      Self::Owned(ResourceData::new_with_resource(String::new())),
+    )
+    .into_shared();
+    *self = Self::Shared(Arc::clone(&shared));
+    shared
+  }
+
+  pub fn update_resource_data(&mut self, new_resource: String) {
+    match self {
+      Self::Owned(resource_data) => resource_data.update_resource_data(new_resource),
+      Self::Shared(_) => {
+        panic!("shared resource resolve data cannot be mutated after module creation")
+      }
+    }
+  }
+}
+
+impl Deref for NormalModuleCreateDataResource {
+  type Target = ResourceData;
+
+  fn deref(&self) -> &Self::Target {
+    match self {
+      Self::Owned(resource_data) => resource_data,
+      Self::Shared(resource_data) => resource_data,
+    }
+  }
+}
+
+impl AsRef<ResourceData> for NormalModuleCreateDataResource {
+  fn as_ref(&self) -> &ResourceData {
+    self
+  }
 }
 
 fn create_global_parser_options_cache(
@@ -223,6 +274,24 @@ mod tests {
       .expect("javascript parser options should be resolved");
     assert_eq!(options.jsx, Some(false));
     assert_eq!(options.require_dynamic, Some(true));
+  }
+
+  #[test]
+  fn reuse_create_data_resource_resolve_data_for_normal_module() {
+    let resource_data = ResourceData::new_with_resource("/a.js".to_string());
+    let mut create_data = NormalModuleCreateData {
+      raw_request: "./a".to_string(),
+      request: "/a.js".to_string(),
+      user_request: "./a".to_string(),
+      resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
+      match_resource: None,
+      side_effects: None,
+      context: None,
+    };
+
+    let resource_data = create_data.resource_resolve_data.take_shared();
+
+    assert_eq!(resource_data.resource(), "/a.js");
   }
 }
 
@@ -700,7 +769,7 @@ module.exports = "data:,";
           .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
-        resource_resolve_data: resource_data,
+        resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -727,6 +796,7 @@ module.exports = "data:,";
     {
       module
     } else {
+      let resource_resolve_data = create_data.resource_resolve_data.take_shared();
       NormalModule::new(
         create_data.request.clone(),
         create_data.user_request.clone(),
@@ -737,7 +807,7 @@ module.exports = "data:,";
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        Arc::new(create_data.resource_resolve_data.clone()),
+        resource_resolve_data.clone(),
         resolved_resolve_options,
         loaders,
         create_data.context.clone().map(|x| x.into()),
@@ -750,7 +820,7 @@ module.exports = "data:,";
       .plugin_driver
       .normal_module_factory_hooks
       .module
-      .call(data, &mut create_data, &mut module)
+      .call(data, &create_data, &mut module)
       .await?;
 
     data.add_file_dependencies(file_dependencies);
@@ -1007,7 +1077,7 @@ pub struct NormalModuleCreateData {
   pub raw_request: String,
   pub request: String,
   pub user_request: String,
-  pub resource_resolve_data: ResourceData,
+  pub resource_resolve_data: NormalModuleCreateDataResource,
   pub match_resource: Option<String>,
   pub side_effects: Option<bool>,
   pub context: Option<String>,
