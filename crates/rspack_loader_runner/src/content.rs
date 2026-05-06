@@ -118,7 +118,7 @@ impl Debug for Content {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   resource: String,
@@ -299,24 +299,6 @@ impl ResourceData {
       self.set_fragment_optional(parsed.fragment);
     }
     self.set_resource(new_resource);
-  }
-}
-
-impl Default for ResourceData {
-  fn default() -> Self {
-    Self {
-      resource: String::new(),
-      resource_path: None,
-      resource_query: None,
-      resource_fragment: None,
-      resource_description: None,
-      mimetype: None,
-      parameters: None,
-      encoding: None,
-      encoded_content: None,
-      context: None,
-      scheme: OnceCell::new(),
-    }
   }
 }
 
