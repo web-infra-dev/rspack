@@ -39,6 +39,7 @@ pub enum NormalModuleFactoryResolveResult {
 }
 
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum NormalModuleCreateDataResource {
   Owned(ResourceData),
   Shared(Arc<ResourceData>),
@@ -53,12 +54,8 @@ impl NormalModuleCreateDataResource {
   }
 
   fn take_shared(&mut self) -> Arc<ResourceData> {
-    let shared = std::mem::replace(
-      self,
-      Self::Owned(ResourceData::new_with_resource(String::new())),
-    )
-    .into_shared();
-    *self = Self::Shared(Arc::clone(&shared));
+    let shared = std::mem::take(self).into_shared();
+    *self = Self::Shared(shared.clone());
     shared
   }
 
@@ -69,6 +66,12 @@ impl NormalModuleCreateDataResource {
         panic!("shared resource resolve data cannot be mutated after module creation")
       }
     }
+  }
+}
+
+impl Default for NormalModuleCreateDataResource {
+  fn default() -> Self {
+    Self::Owned(ResourceData::default())
   }
 }
 
@@ -807,7 +810,7 @@ module.exports = "data:,";
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        resource_resolve_data.clone(),
+        resource_resolve_data,
         resolved_resolve_options,
         loaders,
         create_data.context.clone().map(|x| x.into()),

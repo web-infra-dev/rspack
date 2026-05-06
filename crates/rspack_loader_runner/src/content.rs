@@ -302,6 +302,24 @@ impl ResourceData {
   }
 }
 
+impl Default for ResourceData {
+  fn default() -> Self {
+    Self {
+      resource: String::new(),
+      resource_path: None,
+      resource_query: None,
+      resource_fragment: None,
+      resource_description: None,
+      mimetype: None,
+      parameters: None,
+      encoding: None,
+      encoded_content: None,
+      context: None,
+      scheme: OnceCell::new(),
+    }
+  }
+}
+
 /// Used for [Rule.descriptionData](https://rspack.rs/config/module.html#ruledescriptiondata) and
 /// package.json.sideEffects in tree shaking.
 #[cacheable]
