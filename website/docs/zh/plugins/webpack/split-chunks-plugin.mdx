@@ -392,7 +392,18 @@ Rspack 在处理 `maxSize` 时会基于路径派生出的确定性 key 对模块
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.name
 
-- **类型：** `string | function`
+- **类型：**
+
+```ts
+type SplitChunksName = false | string | SplitChunksNameFunction;
+
+type SplitChunksNameFunction = (
+  module: Module,
+  chunks: Chunk[],
+  cacheGroupKey: string,
+) => string | undefined;
+```
+
 - **默认值：** `false`
 
 > 其中函数类型的版本要求为 `>=0.4.1`
@@ -400,6 +411,68 @@ Rspack 在处理 `maxSize` 时会基于路径派生出的确定性 key 对模块
 每个 cacheGroup 也可以使用：`splitChunks.cacheGroups.{cacheGroup}.name`。
 
 拆分 chunk 的名称。设为 `false` 将保持 chunk 的相同名称，因此不会不必要地更改名称。这是生产环境下构建的建议值。
+
+当 `name` 为函数时，Rspack 会传入以下参数：
+
+- `module`：当前正在考虑拆分的模块。你可以使用 `module.identifier()` 等方法，根据模块请求或资源路径生成稳定的名称。
+- `chunks`：当前包含该模块并被 cache group 选中的 chunks。每一项都是 `Chunk` 对象，因此可以访问 `chunk.name` 等常用属性。
+- `cacheGroupKey`：命中该模块的 cache group 的 key，例如 `cacheGroups.vendors` 对应的值是 `vendors`。
+
+函数应返回拆分 chunk 的名称。返回 `undefined` 时，Rspack 会对该模块组回退到自动命名。
+
+例如，你可以根据 cache group key 和选中的 chunk 名称来命名 vendor chunk：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          name(module, chunks, cacheGroupKey) {
+            const chunkNames = chunks
+              .map((chunk) => chunk.name)
+              .filter(Boolean)
+              .sort()
+              .join('~');
+
+            return `${cacheGroupKey}-${chunkNames || 'shared'}`;
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+你也可以根据提供该模块的 npm 包名生成 chunk 名称：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        npmPackage: {
+          test: /[\\/]node_modules[\\/]/,
+          name(module, chunks, cacheGroupKey) {
+            const identifier = module.identifier();
+            const match = identifier.match(
+              /[\\/]node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/,
+            );
+            const packageName = match
+              ? match[1].replace(/[\\/]/g, '-')
+              : 'misc';
+
+            return `${cacheGroupKey}-${packageName}`;
+          },
+        },
+      },
+    },
+  },
+};
+```
 
 `name` 不只是文件名定制选项，它还会改变分组行为：当不同的 chunk 组合命中了同一个 cacheGroup，并且最终解析到相同的 `name` 时，Rspack 会把它们合并成同一个命名后的拆分候选。这样虽然可能提高缓存命中率，但也可能让某些页面去请求本来不需要的模块依赖链。
 
