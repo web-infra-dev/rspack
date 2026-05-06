@@ -122,6 +122,13 @@ pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub struct IsolatedDts {
+  pub resource_path: String,
+  pub code: String,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -154,6 +161,7 @@ pub struct BuildInfo {
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
+  pub isolated_dts: Option<IsolatedDts>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -190,6 +198,7 @@ impl Default for BuildInfo {
       inline_exports: false,
       collected_typescript_info: None,
       rsc: None,
+      isolated_dts: None,
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }

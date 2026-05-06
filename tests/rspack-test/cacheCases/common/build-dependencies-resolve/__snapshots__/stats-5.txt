@@ -1,0 +1,9 @@
+LOG from rspack.persistentCache
+<i> persistent cache enabled
+<w> persistent cache invalidated because build dependencies changed:
+<w> modified paths (1):
+<w>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-resolve/node_modules/lib/package.json
+<w> BuildDependencies: can't resolve lib/a in <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-resolve.
+<w>   - PackagePathNotExported("./a", "<TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-resolve/node_modules/lib/package.json")
+<w> BuildDependencies: can't resolve lib/src/index in <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-resolve.
+<w>   - PackagePathNotExported("./src/index", "<TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-resolve/node_modules/lib/package.json")

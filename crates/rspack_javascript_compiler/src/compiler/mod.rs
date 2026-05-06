@@ -48,3 +48,9 @@ impl TransformOutput {
     self
   }
 }
+
+#[derive(Debug, Clone)]
+pub struct IsolatedDtsTransformOutput {
+  pub code: String,
+  pub diagnostics: Vec<String>,
+}

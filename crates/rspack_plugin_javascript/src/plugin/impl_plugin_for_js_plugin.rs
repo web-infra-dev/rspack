@@ -31,7 +31,7 @@ use crate::{
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
     ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
     ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
-    IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
+    ImportWeakDependencyTemplate, IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
     ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
     ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
     PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
@@ -156,6 +156,10 @@ async fn compilation(
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
+    DependencyType::DynamicImportWeak,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
     DependencyType::ImportContext,
     params.context_module_factory.clone(),
   );
@@ -227,6 +231,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportEagerDependencyTemplate::template_type(),
     Arc::new(ImportEagerDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportWeakDependencyTemplate::template_type(),
+    Arc::new(ImportWeakDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ProvideDependencyTemplate::template_type(),

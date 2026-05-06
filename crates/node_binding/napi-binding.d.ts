@@ -2910,6 +2910,8 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   autoCjsNodeBuiltin?: boolean
+  /** Emit isolated declaration files for modules transformed by `builtin:swc-loader` */
+  emitDts?: RawSwcEmitDtsOptions
 }
 
 export interface RawRstestPluginOptions {
@@ -3027,6 +3029,11 @@ export interface RawSubresourceIntegrityPluginOptions {
   integrityCallback?: (data: RawIntegrityData) => void
   hashFuncNames: Array<string>
   htmlPlugin: "JavaScript" | "Native" | "Disabled"
+}
+
+export interface RawSwcEmitDtsOptions {
+  rootDir: string
+  declarationDir: string
 }
 
 export interface RawSwcJsMinimizerOptions {
