@@ -2914,6 +2914,10 @@ export interface RawRslibPluginOptions {
   emitDts?: RawSwcEmitDtsOptions
 }
 
+export interface RawRstestDynamicImportOriginOptions {
+  functionName?: string
+}
+
 export interface RawRstestPluginOptions {
   injectModulePathName: boolean
   importMetaPathName: boolean
@@ -2921,7 +2925,7 @@ export interface RawRstestPluginOptions {
   manualMockRoot: string
   preserveNewUrl?: Array<string>
   globals?: boolean
-  injectDynamicImportOrigin?: boolean
+  injectDynamicImportOrigin?: boolean | { functionName?: string }
 }
 
 export interface RawRuleSetCondition {

@@ -48,19 +48,10 @@ pub struct RstestParserPluginOptions {
   /// Whether to handle global `rs` and `rstest` variables.
   /// When false, only ESM imported variables are processed.
   pub globals: bool,
-  /// When `module.parser.javascript.importDynamic` is `false` and the dynamic
-  /// import specifier is not a plain string literal, rewrite the callee to the
-  /// configured `output.importFunctionName` and append the source module's
-  /// absolute path as an extra argument so the runtime can resolve relative
-  /// specifiers against it.
+  /// Whether to rewrite non-string-literal `import()` calls with origin info.
+  /// Pre-resolved at plugin construction — false here covers both "feature
+  /// disabled" and "callee resolved to default `import`".
   pub inject_dynamic_import_origin: bool,
-  /// Snapshot of `module.parser.javascript*.importDynamic` for this module
-  /// type. Used by the dynamic-import-origin rewrite to gate behavior on
-  /// `Some(false)`.
-  pub import_dynamic: Option<bool>,
-  /// Snapshot of `output.importFunctionName`. Used by the
-  /// dynamic-import-origin rewrite to substitute the `import` callee.
-  pub import_function_name: String,
 }
 
 impl Default for RstestParserPluginOptions {
@@ -72,8 +63,6 @@ impl Default for RstestParserPluginOptions {
       manual_mock_root: String::new(),
       globals: true,
       inject_dynamic_import_origin: false,
-      import_dynamic: None,
-      import_function_name: String::new(),
     }
   }
 }
@@ -739,9 +728,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       }
     }
 
-    if self.options.inject_dynamic_import_origin
-      && matches!(self.options.import_dynamic, Some(false))
-    {
+    if self.options.inject_dynamic_import_origin {
       // Only handle the regular evaluation phase. `import.defer(...)` and
       // `import.source(...)` carry phase semantics that rstest's runtime
       // does not implement, and the default `ImportParserPlugin` enforces
@@ -751,14 +738,6 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         import_node.phase,
         swc_core::ecma::ast::ImportPhase::Evaluation
       ) {
-        return None;
-      }
-
-      // Native `import()` only accepts 1-2 args; appending a third argument
-      // would produce a SyntaxError at parse time. Skip injection when no
-      // custom `importFunctionName` is configured and let the default
-      // `ImportParserPlugin` handle the call as before.
-      if self.options.import_function_name == "import" {
         return None;
       }
 
