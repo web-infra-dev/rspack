@@ -503,47 +503,49 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
 }
 
 #[cfg(not(target_family = "wasm"))]
-#[napi::ctor::ctor(crate_path = ::napi::ctor)]
-fn init() {
-  use std::{
-    sync::atomic::{AtomicUsize, Ordering},
-    thread,
-  };
+napi::ctor::declarative::ctor! {
+  #[ctor(unsafe)]
+  fn init() {
+    use std::{
+      sync::atomic::{AtomicUsize, Ordering},
+      thread,
+    };
 
-  #[cfg(feature = "tracy-client")]
-  {
-    use tracy_client::register_demangler;
-    tracy_client::Client::start();
-    register_demangler!();
-  }
-  #[cfg(feature = "sftrace-setup")]
-  if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
-    unsafe {
-      sftrace_setup::setup();
+    #[cfg(feature = "tracy-client")]
+    {
+      use tracy_client::register_demangler;
+      tracy_client::Client::start();
+      register_demangler!();
     }
-  }
+    #[cfg(feature = "sftrace-setup")]
+    if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
+      unsafe {
+        sftrace_setup::setup();
+      }
+    }
 
-  panic::install_panic_handler();
-  // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
-  const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
-  // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
-  // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
-  let default_blocking_threads = 4;
-  let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
-    .ok()
-    .and_then(|v| v.parse::<usize>().ok())
-    .unwrap_or(default_blocking_threads);
-  let rt = tokio::runtime::Builder::new_multi_thread()
-    .max_blocking_threads(blocking_threads)
-    .thread_name_fn(|| {
-      static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
-      let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
-      format!("tokio-{id}")
-    })
-    .enable_all()
-    .build()
-    .expect("Create tokio runtime failed");
-  create_custom_tokio_runtime(rt);
+    panic::install_panic_handler();
+    // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
+    const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
+    // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
+    // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
+    let default_blocking_threads = 4;
+    let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
+      .ok()
+      .and_then(|v| v.parse::<usize>().ok())
+      .unwrap_or(default_blocking_threads);
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(blocking_threads)
+      .thread_name_fn(|| {
+        static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
+        let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
+        format!("tokio-{id}")
+      })
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {
