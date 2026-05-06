@@ -218,8 +218,6 @@ impl ContextModuleFactory {
     let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
-    let mut file_dependencies = Default::default();
-    let mut missing_dependencies = Default::default();
 
     let request = before_resolve_data.request;
     let (loader_request, specifier) = match request.rfind('!') {
@@ -290,11 +288,11 @@ impl ContextModuleFactory {
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),
-      file_dependencies: &mut file_dependencies,
-      missing_dependencies: &mut missing_dependencies,
     };
 
-    let resource_data = resolve(resolve_args, plugin_driver).await;
+    let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
+    let file_dependencies = resolve_dependencies.file_dependencies;
+    let missing_dependencies = resolve_dependencies.missing_dependencies;
 
     let (module, context_module_options) = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {

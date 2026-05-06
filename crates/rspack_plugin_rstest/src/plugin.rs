@@ -10,7 +10,7 @@ use rspack_core::{
   Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
   ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, ResolveContext, ResolveOptionsWithDependencyType, ResolveResult,
+  ParserOptions, Plugin, ResolveOptionsWithDependencyType, ResolveResult,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
@@ -145,12 +145,11 @@ impl RstestPlugin {
       dependency_category,
     };
     let resolver = data.resolver_factory.get(dep);
-    let mut resolve_context = ResolveContext::default();
 
-    let resolved_directory_target = match resolver
-      .resolve_with_context(data.context.as_ref(), stripped, &mut resolve_context)
-      .await
-    {
+    let (resolve_result, resolve_dependencies) = resolver
+      .resolve_with_context(data.context.as_ref(), stripped)
+      .await;
+    let resolved_directory_target = match resolve_result {
       Ok(ResolveResult::Resource(resource)) => self.resolve_directory_mock_target(
         Utf8Path::new(stripped),
         data.context.as_ref(),
@@ -160,8 +159,8 @@ impl RstestPlugin {
       _ => None,
     };
 
-    data.add_file_dependencies(resolve_context.file_dependencies);
-    data.add_missing_dependencies(resolve_context.missing_dependencies);
+    data.add_file_dependencies(resolve_dependencies.file_dependencies);
+    data.add_missing_dependencies(resolve_dependencies.missing_dependencies);
     let resolved_request = resolved_directory_target
       .unwrap_or(default_target)
       .to_string();

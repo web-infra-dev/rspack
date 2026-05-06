@@ -541,11 +541,11 @@ impl NormalModuleFactory {
           resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
-          file_dependencies: &mut file_dependencies,
-          missing_dependencies: &mut missing_dependencies,
         };
 
-        let resource_data = resolve(resolve_args, plugin_driver).await;
+        let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
+        file_dependencies = resolve_dependencies.file_dependencies;
+        missing_dependencies = resolve_dependencies.missing_dependencies;
 
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => resource.into(),
@@ -585,8 +585,8 @@ module.exports = "data:,";
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
           Err(err) => {
-            data.add_file_dependencies(file_dependencies);
-            data.add_missing_dependencies(missing_dependencies);
+            data.file_dependencies = file_dependencies;
+            data.missing_dependencies = missing_dependencies;
             return Err(err);
           }
         }
@@ -826,8 +826,8 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.add_file_dependencies(file_dependencies);
-    data.add_missing_dependencies(missing_dependencies);
+    data.file_dependencies = file_dependencies;
+    data.missing_dependencies = missing_dependencies;
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
