@@ -97,16 +97,15 @@ fn create_loader_context<Context: Send>(
 
 #[tracing::instrument("LoaderRunner:run_loaders", skip_all, level = "trace")]
 pub async fn run_loaders<Context: Send>(
-  loaders: Arc<[Arc<dyn Loader<Context>>]>,
+  loaders: Vec<Arc<dyn Loader<Context>>>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> (LoaderResult<Context>, Option<Error>) {
   let loaders = loaders
-    .iter()
-    .cloned()
-    .map(LoaderItem::from)
+    .into_iter()
+    .map(|i| i.into())
     .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);
   let result = run_loaders_impl(&mut cx, fs).await;
@@ -439,7 +438,7 @@ mod test {
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
       run_loaders(
-        vec![p1, p2, c1, c2].into(),
+        vec![p1, p2, c1, c2],
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -459,7 +458,7 @@ mod test {
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
       run_loaders(
-        vec![p1, p2, p3].into(),
+        vec![p1, p2, p3],
         rs.clone(),
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -532,7 +531,7 @@ mod test {
 
     assert!(
       run_loaders(
-        vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)].into(),
+        vec![Arc::new(Normal) as Arc<dyn Loader>, Arc::new(Normal2)],
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
@@ -589,7 +588,7 @@ mod test {
     // Ignore error: Final loader didn't return a Buffer or String
     assert!(
       run_loaders(
-        vec![Arc::new(Normal2) as Arc<dyn Loader>, Arc::new(Normal)].into(),
+        vec![Arc::new(Normal2), Arc::new(Normal)],
         rs,
         Some(Arc::new(TestContentPlugin)),
         (),
