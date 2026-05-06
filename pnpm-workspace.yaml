@@ -17,12 +17,26 @@ packages:
 
 dedupePeers: true
 
+hoistPattern:
+  - '!buffer'
+
+preferSymlinkedExecutables: true
+
 patchedDependencies:
   webpack-sources@3.3.4: patches/webpack-sources@3.3.4.patch
 
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@swc/core'
-  - 'core-js'
-  - 'es5-ext'
-  - 'esbuild'
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  core-js: false
+  es5-ext: false
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@rspack/*'
+  - '@rsbuild/*'
+  - '@rslib/*'
+  - '@rspress/*'
+  - '@rstest/*'
+  - '@rsdoctor/*'
+  - '@rslint/*'
