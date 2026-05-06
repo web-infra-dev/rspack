@@ -3,7 +3,10 @@ use rspack_error::Result;
 use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
 
-use crate::{DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect};
+use crate::{
+  DataRef, DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect,
+  RuleSetConditionWithEmpty,
+};
 
 pub async fn module_rules_matcher<'a>(
   rules: &'a [ModuleRule],
@@ -90,6 +93,48 @@ async fn module_rules_matcher_async<'a>(
   Ok(())
 }
 
+macro_rules! ensure_sync_matched {
+  ($result:expr) => {
+    match $result {
+      Some(Ok(true)) => {}
+      Some(Ok(false)) => return Some(Ok(false)),
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  };
+}
+
+macro_rules! ensure_sync_not_matched {
+  ($result:expr) => {
+    match $result {
+      Some(Ok(true)) => return Some(Ok(false)),
+      Some(Ok(false)) => {}
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  };
+}
+
+fn check_optional_sync(
+  condition: &RuleSetConditionWithEmpty,
+  data: Option<DataRef<'_>>,
+) -> Option<Result<bool>> {
+  match data {
+    Some(data) => condition.try_match_sync(data),
+    None => condition.match_when_empty_sync(),
+  }
+}
+
+async fn check_optional_async(
+  condition: &RuleSetConditionWithEmpty,
+  data: Option<DataRef<'_>>,
+) -> Result<bool> {
+  match data {
+    Some(data) => condition.try_match(data).await,
+    None => condition.match_when_empty().await,
+  }
+}
+
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
 pub async fn module_rule_matcher<'a>(
   module_rule: &'a ModuleRule,
@@ -135,12 +180,7 @@ fn module_rule_matcher_sync<'a>(
   matched_rules: &mut Vec<&'a ModuleRuleEffect>,
 ) -> Option<Result<bool>> {
   if let Some(test_rule) = &module_rule.rspack_resource {
-    match test_rule.try_match_sync(resource_data.resource().into()) {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(test_rule.try_match_sync(resource_data.resource().into()));
   }
 
   let resource_path = resource_data
@@ -149,162 +189,76 @@ fn module_rule_matcher_sync<'a>(
     .as_str();
 
   if let Some(test_rule) = &module_rule.test {
-    match test_rule.try_match_sync(resource_path.into()) {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(test_rule.try_match_sync(resource_path.into()));
   } else if let Some(resource_rule) = &module_rule.resource {
-    match resource_rule.try_match_sync(resource_path.into()) {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(resource_rule.try_match_sync(resource_path.into()));
   }
 
   if let Some(include_rule) = &module_rule.include {
-    match include_rule.try_match_sync(resource_path.into()) {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(include_rule.try_match_sync(resource_path.into()));
   }
 
   if let Some(exclude_rule) = &module_rule.exclude {
-    match exclude_rule.try_match_sync(resource_path.into()) {
-      Some(Ok(true)) => return Some(Ok(false)),
-      Some(Ok(false)) => {}
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_not_matched!(exclude_rule.try_match_sync(resource_path.into()));
   }
 
   if let Some(resource_query_rule) = &module_rule.resource_query {
-    let result = if let Some(resource_query) = resource_data.query() {
-      resource_query_rule.try_match_sync(resource_query.into())
-    } else {
-      resource_query_rule.match_when_empty_sync()
-    };
-    match result {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(check_optional_sync(
+      resource_query_rule,
+      resource_data.query().map(Into::into),
+    ));
   }
 
   if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
-    let result = if let Some(resource_fragment) = resource_data.fragment() {
-      resource_fragment_condition.try_match_sync(resource_fragment.into())
-    } else {
-      resource_fragment_condition.match_when_empty_sync()
-    };
-    match result {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(check_optional_sync(
+      resource_fragment_condition,
+      resource_data.fragment().map(Into::into),
+    ));
   }
 
   if let Some(mimetype_condition) = &module_rule.mimetype {
-    let result = if let Some(mimetype) = resource_data.mimetype() {
-      mimetype_condition.try_match_sync(mimetype.into())
-    } else {
-      mimetype_condition.match_when_empty_sync()
-    };
-    match result {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(check_optional_sync(
+      mimetype_condition,
+      resource_data.mimetype().map(Into::into),
+    ));
   }
 
   if let Some(scheme_condition) = &module_rule.scheme {
     let scheme = resource_data.get_scheme();
     if scheme.is_none() {
-      match scheme_condition.match_when_empty_sync() {
-        Some(Ok(true)) => {}
-        Some(Ok(false)) => return Some(Ok(false)),
-        Some(Err(err)) => return Some(Err(err)),
-        None => return None,
-      }
+      ensure_sync_matched!(scheme_condition.match_when_empty_sync());
     }
-    match scheme_condition.try_match_sync(scheme.as_str().into()) {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(scheme_condition.try_match_sync(scheme.as_str().into()));
   }
 
   if let Some(issuer_rule) = &module_rule.issuer {
-    let result = if let Some(issuer) = issuer {
-      issuer_rule.try_match_sync((*issuer).into())
-    } else {
-      issuer_rule.match_when_empty_sync()
-    };
-    match result {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(check_optional_sync(issuer_rule, issuer.map(Into::into)));
   }
 
   if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
-    let result = if let Some(issuer_layer) = issuer_layer {
-      issuer_layer_rule.try_match_sync((*issuer_layer).into())
-    } else {
-      issuer_layer_rule.match_when_empty_sync()
-    };
-    match result {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(check_optional_sync(
+      issuer_layer_rule,
+      issuer_layer.map(Into::into),
+    ));
   }
 
   if let Some(dependency_rule) = &module_rule.dependency {
-    match dependency_rule.try_match_sync(dependency.as_str().into()) {
-      Some(Ok(true)) => {}
-      Some(Ok(false)) => return Some(Ok(false)),
-      Some(Err(err)) => return Some(Err(err)),
-      None => return None,
-    }
+    ensure_sync_matched!(dependency_rule.try_match_sync(dependency.as_str().into()));
   }
 
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
-        let result = if let Some(v) = k
-          .split('.')
-          .try_fold(resource_description.json(), |acc, key| acc.get(key))
-        {
-          matcher.try_match_sync(v.into())
-        } else {
-          matcher.match_when_empty_sync()
-        };
-        match result {
-          Some(Ok(true)) => {}
-          Some(Ok(false)) => return Some(Ok(false)),
-          Some(Err(err)) => return Some(Err(err)),
-          None => return None,
-        }
+        ensure_sync_matched!(check_optional_sync(
+          matcher,
+          k.split('.')
+            .try_fold(resource_description.json(), |acc, key| acc.get(key))
+            .map(Into::into),
+        ));
       }
     } else {
       for matcher in description_data.values() {
-        match matcher.match_when_empty_sync() {
-          Some(Ok(true)) => {}
-          Some(Ok(false)) => return Some(Ok(false)),
-          Some(Err(err)) => return Some(Err(err)),
-          None => return None,
-        }
+        ensure_sync_matched!(matcher.match_when_empty_sync());
       }
     }
   }
@@ -312,26 +266,14 @@ fn module_rule_matcher_sync<'a>(
   if let Some(with) = &module_rule.with {
     if let Some(attributes) = attributes {
       for (k, matcher) in with {
-        let result = if let Some(v) = attributes.get(k) {
-          matcher.try_match_sync(v.into())
-        } else {
-          matcher.match_when_empty_sync()
-        };
-        match result {
-          Some(Ok(true)) => {}
-          Some(Ok(false)) => return Some(Ok(false)),
-          Some(Err(err)) => return Some(Err(err)),
-          None => return None,
-        }
+        ensure_sync_matched!(check_optional_sync(
+          matcher,
+          attributes.get(k).map(Into::into),
+        ));
       }
     } else {
       for matcher in with.values() {
-        match matcher.match_when_empty_sync() {
-          Some(Ok(true)) => {}
-          Some(Ok(false)) => return Some(Ok(false)),
-          Some(Err(err)) => return Some(Err(err)),
-          None => return None,
-        }
+        ensure_sync_matched!(matcher.match_when_empty_sync());
       }
     }
   }
@@ -428,37 +370,26 @@ async fn module_rule_matcher_async<'a>(
     return Ok(false);
   }
 
-  if let Some(resource_query_rule) = &module_rule.resource_query {
-    if let Some(resource_query) = resource_data.query() {
-      if !resource_query_rule.try_match(resource_query.into()).await? {
-        return Ok(false);
-      }
-    } else if !resource_query_rule.match_when_empty().await? {
-      return Ok(false);
-    }
+  if let Some(resource_query_rule) = &module_rule.resource_query
+    && !check_optional_async(resource_query_rule, resource_data.query().map(Into::into)).await?
+  {
+    return Ok(false);
   }
 
-  if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
-    if let Some(resource_fragment) = resource_data.fragment() {
-      if !resource_fragment_condition
-        .try_match(resource_fragment.into())
-        .await?
-      {
-        return Ok(false);
-      }
-    } else if !resource_fragment_condition.match_when_empty().await? {
-      return Ok(false);
-    }
+  if let Some(resource_fragment_condition) = &module_rule.resource_fragment
+    && !check_optional_async(
+      resource_fragment_condition,
+      resource_data.fragment().map(Into::into),
+    )
+    .await?
+  {
+    return Ok(false);
   }
 
-  if let Some(mimetype_condition) = &module_rule.mimetype {
-    if let Some(mimetype) = resource_data.mimetype() {
-      if !mimetype_condition.try_match(mimetype.into()).await? {
-        return Ok(false);
-      }
-    } else if !mimetype_condition.match_when_empty().await? {
-      return Ok(false);
-    }
+  if let Some(mimetype_condition) = &module_rule.mimetype
+    && !check_optional_async(mimetype_condition, resource_data.mimetype().map(Into::into)).await?
+  {
+    return Ok(false);
   }
 
   if let Some(scheme_condition) = &module_rule.scheme {
@@ -471,34 +402,16 @@ async fn module_rule_matcher_async<'a>(
     }
   }
 
-  if let Some(issuer_rule) = &module_rule.issuer {
-    match issuer {
-      Some(issuer) => {
-        if !issuer_rule.try_match(issuer.into()).await? {
-          return Ok(false);
-        }
-      }
-      None => {
-        if !issuer_rule.match_when_empty().await? {
-          return Ok(false);
-        }
-      }
-    }
+  if let Some(issuer_rule) = &module_rule.issuer
+    && !check_optional_async(issuer_rule, issuer.map(Into::into)).await?
+  {
+    return Ok(false);
   }
 
-  if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
-    match issuer_layer {
-      Some(issuer_layer) => {
-        if !issuer_layer_rule.try_match(issuer_layer.into()).await? {
-          return Ok(false);
-        }
-      }
-      None => {
-        if !issuer_layer_rule.match_when_empty().await? {
-          return Ok(false);
-        }
-      }
-    };
+  if let Some(issuer_layer_rule) = &module_rule.issuer_layer
+    && !check_optional_async(issuer_layer_rule, issuer_layer.map(Into::into)).await?
+  {
+    return Ok(false);
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
@@ -512,14 +425,14 @@ async fn module_rule_matcher_async<'a>(
   if let Some(description_data) = &module_rule.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
-        if let Some(v) = k
-          .split('.')
-          .try_fold(resource_description.json(), |acc, key| acc.get(key))
+        if !check_optional_async(
+          matcher,
+          k.split('.')
+            .try_fold(resource_description.json(), |acc, key| acc.get(key))
+            .map(Into::into),
+        )
+        .await?
         {
-          if !matcher.try_match(v.into()).await? {
-            return Ok(false);
-          }
-        } else if !matcher.match_when_empty().await? {
           return Ok(false);
         }
       }
@@ -535,11 +448,7 @@ async fn module_rule_matcher_async<'a>(
   if let Some(with) = &module_rule.with {
     if let Some(attributes) = attributes {
       for (k, matcher) in with {
-        if let Some(v) = attributes.get(k) {
-          if !matcher.try_match(v.into()).await? {
-            return Ok(false);
-          }
-        } else if !matcher.match_when_empty().await? {
+        if !check_optional_async(matcher, attributes.get(k).map(Into::into)).await? {
           return Ok(false);
         }
       }
