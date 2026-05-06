@@ -71,7 +71,7 @@ const Search = () => {
       docSearchProps={{
         appId: 'TQOGCXPBUD', // cspell:disable-line
         apiKey: '8c30f9d1f12e786a132af15ea30cf997', // cspell:disable-line
-        indexName: 'rspack',
+        indexName: 'rspack-v1',
         searchParameters: {
           facetFilters: [`lang:${lang}`],
         },
