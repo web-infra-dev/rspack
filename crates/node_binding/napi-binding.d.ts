@@ -2925,7 +2925,7 @@ export interface RawRstestPluginOptions {
   manualMockRoot: string
   preserveNewUrl?: Array<string>
   globals?: boolean
-  injectDynamicImportOrigin?: boolean | { functionName?: string }
+injectDynamicImportOrigin?: boolean | { functionName?: string }
 }
 
 export interface RawRuleSetCondition {
