@@ -104,18 +104,18 @@ impl InnerGraphParserPlugin {
         let mut set_is_true = false;
         let mut is_terminal = true;
         let already_processed = processed.entry(*key).or_default();
-        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
-          for name in names.iter() {
-            already_processed.insert(name.clone());
-          }
+        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.remove(key) {
+          already_processed.extend(names.iter().cloned());
           for name in names {
             match name {
               InnerGraphMapSetValue::Str(v) => {
-                new_set.insert(InnerGraphMapSetValue::Str(v.clone()));
+                new_set.insert(InnerGraphMapSetValue::Str(v));
               }
               InnerGraphMapSetValue::TopLevel(v) => {
-                let item_value = state.inner_graph.get(v);
-                match item_value {
+                if v == *key {
+                  continue;
+                }
+                match state.inner_graph.get(&v) {
                   Some(InnerGraphMapValue::True) => {
                     set_is_true = true;
                     break;
