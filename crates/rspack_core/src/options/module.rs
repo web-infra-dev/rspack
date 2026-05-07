@@ -891,7 +891,10 @@ pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
   Logical(Box<RuleSetLogicalConditions>),
-  Array(Vec<RuleSetCondition>),
+  Array {
+    items: Vec<RuleSetCondition>,
+    can_sync: bool,
+  },
   Func(RuleSetConditionFnMatcher),
 }
 
@@ -901,7 +904,7 @@ impl fmt::Debug for RuleSetCondition {
       Self::String(i) => i.fmt(f),
       Self::Regexp(i) => i.fmt(f),
       Self::Logical(i) => i.fmt(f),
-      Self::Array(i) => i.fmt(f),
+      Self::Array { items, .. } => items.fmt(f),
       Self::Func(_) => "Func(...)".fmt(f),
     }
   }
@@ -942,6 +945,20 @@ impl DataRef<'_> {
 }
 
 impl RuleSetCondition {
+  pub fn array(items: Vec<RuleSetCondition>) -> Self {
+    let can_sync = items.iter().all(Self::can_sync);
+    Self::Array { items, can_sync }
+  }
+
+  fn can_sync(&self) -> bool {
+    match self {
+      Self::String(_) | Self::Regexp(_) => true,
+      Self::Logical(logical) => logical.can_sync,
+      Self::Array { can_sync, .. } => *can_sync,
+      Self::Func(_) => false,
+    }
+  }
+
   pub fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
     match self {
       Self::String(s) => Some(Ok(
@@ -953,9 +970,17 @@ impl RuleSetCondition {
       Self::Regexp(r) => Some(Ok(
         data.as_str().map(|data| r.test(data)).unwrap_or_default(),
       )),
-      Self::Logical(g) => g.try_match_sync(data),
-      Self::Array(l) => {
-        for item in l {
+      Self::Logical(g) => {
+        if !g.can_sync {
+          return None;
+        }
+        g.try_match_sync(data)
+      }
+      Self::Array { items, can_sync } => {
+        if !can_sync {
+          return None;
+        }
+        for item in items {
           match item.try_match_sync(data) {
             Some(Ok(true)) => return Some(Ok(true)),
             Some(Ok(false)) => {}
@@ -983,7 +1008,7 @@ impl RuleSetCondition {
           .try_match_sync(data)
           .expect("non-function condition should match synchronously"),
         Self::Logical(g) => g.try_match_async(data).await,
-        Self::Array(l) => try_any(l, |i| i.try_match(data)).await,
+        Self::Array { items, .. } => try_any(items, |i| i.try_match(data)).await,
         Self::Func(f) => f(data).await,
       }
     })
@@ -994,11 +1019,11 @@ impl RuleSetCondition {
       RuleSetCondition::String(s) => Some(Ok(s.is_empty())),
       RuleSetCondition::Regexp(rspack_regex) => Some(Ok(rspack_regex.test(""))),
       RuleSetCondition::Logical(logical) => logical.match_when_empty_sync(),
-      RuleSetCondition::Array(arr) => {
-        if !arr.is_empty() {
+      RuleSetCondition::Array { items, .. } => {
+        if !items.is_empty() {
           return Some(Ok(false));
         }
-        for item in arr {
+        for item in items {
           match item.match_when_empty_sync() {
             Some(Ok(true)) => return Some(Ok(true)),
             Some(Ok(false)) => {}
@@ -1022,11 +1047,11 @@ impl RuleSetCondition {
   fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
     Box::pin(async move {
       let res = match self {
-        RuleSetCondition::String(_) | RuleSetCondition::Regexp(_) | RuleSetCondition::Array(_) => {
-          self
-            .match_when_empty_sync()
-            .expect("non-function condition should match synchronously")?
-        }
+        RuleSetCondition::String(_)
+        | RuleSetCondition::Regexp(_)
+        | RuleSetCondition::Array { .. } => self
+          .match_when_empty_sync()
+          .expect("non-function condition should match synchronously")?,
         RuleSetCondition::Logical(logical) => logical.match_when_empty_async().await?,
         RuleSetCondition::Func(func) => func("".into()).await?,
       };
@@ -1079,15 +1104,53 @@ impl From<RuleSetCondition> for RuleSetConditionWithEmpty {
   }
 }
 
-#[derive(Debug, Default)]
 pub struct RuleSetLogicalConditions {
   pub and: Option<Vec<RuleSetCondition>>,
   pub or: Option<Vec<RuleSetCondition>>,
   pub not: Option<RuleSetCondition>,
+  can_sync: bool,
+}
+
+impl Default for RuleSetLogicalConditions {
+  fn default() -> Self {
+    Self::new(None, None, None)
+  }
+}
+
+impl fmt::Debug for RuleSetLogicalConditions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("RuleSetLogicalConditions")
+      .field("and", &self.and)
+      .field("or", &self.or)
+      .field("not", &self.not)
+      .finish()
+  }
 }
 
 impl RuleSetLogicalConditions {
+  pub fn new(
+    and: Option<Vec<RuleSetCondition>>,
+    or: Option<Vec<RuleSetCondition>>,
+    not: Option<RuleSetCondition>,
+  ) -> Self {
+    let can_sync = and
+      .iter()
+      .flatten()
+      .chain(or.iter().flatten())
+      .all(RuleSetCondition::can_sync)
+      && not.as_ref().is_none_or(RuleSetCondition::can_sync);
+    Self {
+      and,
+      or,
+      not,
+      can_sync,
+    }
+  }
+
   fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    if !self.can_sync {
+      return None;
+    }
     if let Some(and) = &self.and {
       for item in and {
         match item.try_match_sync(data) {
@@ -1156,6 +1219,9 @@ impl RuleSetLogicalConditions {
   }
 
   fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    if !self.can_sync {
+      return None;
+    }
     let mut has_condition = false;
     let mut match_when_empty = true;
     if let Some(and) = &self.and {

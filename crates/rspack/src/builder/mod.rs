@@ -1935,13 +1935,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // text/javascript or application/javascript
     ModuleRule {
       mimetype: Some(
-        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions {
-          or: Some(vec![
+        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions::new(
+          None,
+          Some(vec![
             RuleSetCondition::String("text/javascript".into()),
             RuleSetCondition::String("application/javascript".into()),
           ]),
-          ..Default::default()
-        }))
+          None,
+        )))
         .into(),
       ),
       effect: ModuleRuleEffect {
