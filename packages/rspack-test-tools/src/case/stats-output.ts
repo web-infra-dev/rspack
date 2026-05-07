@@ -22,10 +22,10 @@ export function createStatsProcessor(
   const snapshotName = 'stats.txt';
   let stderr: any = null;
   return {
-    before: async (context: ITestContext) => {
+    before: (context: ITestContext) => {
       stderr = captureStdio(process.stderr, true);
     },
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       configMultiCompiler(
         context,
         name,
@@ -47,7 +47,7 @@ export function createStatsProcessor(
     check: async (env: ITestEnv, context: ITestContext) => {
       await check(env, context, name, writeStatsOuptut, snapshotName, stderr);
     },
-    after: async (context: ITestContext) => {
+    after: (context: ITestContext) => {
       stderr.restore();
     },
   };
@@ -137,7 +137,7 @@ class RspackStats {
   constructor(public value: string) {}
 }
 
-async function check(
+function check(
   env: ITestEnv,
   context: ITestContext,
   name: string,
@@ -236,7 +236,7 @@ async function check(
   }
 }
 
-async function statsCompiler(context: ITestContext, compiler: Compiler) {
+function statsCompiler(context: ITestContext, compiler: Compiler) {
   const compilers: Compiler[] = (compiler as any).compilers
     ? (compiler as any).compilers
     : [compiler as any];

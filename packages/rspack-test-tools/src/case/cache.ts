@@ -69,7 +69,7 @@ function createCacheProcessor(
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
     },
-    afterAll: async (context: ITestContext) => {
+    afterAll: (context: ITestContext) => {
       const updateIndex = updatePlugin.getUpdateIndex();
       const totalUpdates = updatePlugin.getTotalUpdates();
       if (updateIndex + 1 !== totalUpdates) {

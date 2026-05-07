@@ -12,6 +12,7 @@ import type {
   IModuleScope,
   ITestContext,
   ITestEnv,
+  ITestProcessor,
   ITestRunner,
 } from '../type';
 import { afterExecute, compiler, findMultiCompilerBundle, run } from './common';
@@ -31,7 +32,7 @@ export function createWatchInitialProcessor(
   step: string,
   watchState: Record<string, any>,
   { incremental = false, nativeWatcher = false } = {},
-) {
+): ITestProcessor {
   const watchContext: TWatchContext = {
     currentTriggerFilename: null,
     lastHash: null,
@@ -42,10 +43,10 @@ export function createWatchInitialProcessor(
   };
 
   return {
-    before: async (context: ITestContext) => {
+    before: (context: ITestContext) => {
       context.setValue('watchContext', watchContext);
     },
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       const testConfig = context.getTestConfig();
       const multiCompilerOptions = [];
       const caseOptions: RspackOptions[] = readConfigFile(
@@ -281,7 +282,7 @@ export function createWatchStepProcessor(
     watchState,
     { incremental },
   );
-  processor.compiler = async (context: ITestContext) => {
+  processor.compiler = (context: ITestContext) => {
     // do nothing
   };
   processor.build = async (context: ITestContext) => {

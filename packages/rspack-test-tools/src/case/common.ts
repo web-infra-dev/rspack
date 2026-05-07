@@ -8,12 +8,12 @@ import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv } from '../type';
 
-export async function config(
+export function config(
   context: ITestContext,
   name: string,
   configFiles: string[],
   defaultOptions: RspackOptions = {},
-): Promise<RspackOptions> {
+): RspackOptions {
   const compiler = context.getCompiler();
   compiler.setOptions(defaultOptions);
   if (Array.isArray(configFiles)) {
@@ -27,10 +27,7 @@ export async function config(
   return compiler.getOptions() as RspackOptions;
 }
 
-export async function compiler(
-  context: ITestContext,
-  name: string,
-): Promise<Compiler> {
+export function compiler(context: ITestContext, name: string): Compiler {
   const compiler = context.getCompiler();
   compiler.createCompiler();
   return compiler.getCompiler()! as Compiler;
@@ -203,7 +200,7 @@ export async function check(
   }
 }
 
-export async function checkSnapshot(
+export function checkSnapshot(
   env: ITestEnv,
   context: ITestContext,
   name: string,
@@ -281,7 +278,7 @@ export async function checkSnapshot(
   }
 }
 
-export async function afterExecute(context: ITestContext, name: string) {
+export function afterExecute(context: ITestContext, name: string) {
   const compiler = context.getCompiler();
   const testConfig = context.getTestConfig();
   if (typeof testConfig.afterExecute === 'function') {

@@ -31,7 +31,7 @@ const creator = new HashCaseCreator({
   describe: false,
   steps: ({ name }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         configMultiCompiler(
           context,
           name,
@@ -96,7 +96,7 @@ function overrideOptions(
   }
 }
 
-async function check(env: ITestEnv, context: ITestContext, name: string) {
+function check(env: ITestEnv, context: ITestContext, name: string) {
   const compiler = context.getCompiler();
   const stats = compiler.getStats();
   const testConfig = context.getTestConfig();

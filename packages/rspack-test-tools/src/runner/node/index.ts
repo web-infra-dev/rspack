@@ -515,7 +515,7 @@ export class NodeRunner implements ITestRunner {
             const result = await _require(path.dirname(file!.path), specifier, {
               esmMode: EEsmMode.Evaluated,
             });
-            return await asModule(result, module.context);
+            return asModule(result, module.context);
           },
         } as any);
         esmCache.set(file.path, esm);
@@ -524,7 +524,7 @@ export class NodeRunner implements ITestRunner {
       return (async () => {
         if (esm.status === 'unlinked') {
           await esm.link(async (specifier, referencingModule) => {
-            return await asModule(
+            return asModule(
               await _require(
                 path.dirname(
                   referencingModule.identifier

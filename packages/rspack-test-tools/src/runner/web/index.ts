@@ -190,7 +190,8 @@ export class WebRunner extends NodeRunner {
         return {
           status: 200,
           ok: true,
-          json: async () => JSON.parse(buffer.toString('utf-8')),
+          json: () =>
+            Promise.resolve().then(() => JSON.parse(buffer.toString('utf-8'))),
         };
       } catch (err) {
         if ((err as { code: string }).code === 'ENOENT') {

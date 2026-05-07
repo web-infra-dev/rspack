@@ -117,7 +117,7 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
 }
 
 export class BuildCommand implements RspackCommand {
-  async apply(cli: RspackCLI): Promise<void> {
+  apply(cli: RspackCLI): void {
     const command = cli.program
       .command('', 'run the Rspack build')
       .alias('build')

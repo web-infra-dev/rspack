@@ -18,7 +18,7 @@ const creator = new BasicCaseCreator({
     const filter = FILTERS[cat];
     return [
       {
-        config: async (context: ITestContext) => {
+        config: (context: ITestContext) => {
           const compiler = context.getCompiler();
           compiler.setOptions(defaultOptions(context));
         },

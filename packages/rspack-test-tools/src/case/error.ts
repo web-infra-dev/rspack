@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { Compiler, RspackOptions, StatsError } from '@rspack/core';
 import merge from 'rspack-merge';
 import { BasicCaseCreator } from '../test/creator';
-import type { ITestContext, ITestEnv } from '../type';
+import type { ITestContext, ITestEnv, MaybePromise } from '../type';
 
 let addedSerializer = false;
 
@@ -14,14 +14,18 @@ const creator = new BasicCaseCreator({
     const config = caseConfig as TErrorCaseConfig;
     return [
       {
-        config: async (context: ITestContext) => {
+        config: (context: ITestContext) => {
           const compiler = context.getCompiler();
           compiler.setOptions(options(context, config.options));
         },
         compiler: async (context: ITestContext) => {
           const compilerManager = context.getCompiler();
           compilerManager.createCompiler();
-          compiler(context, compilerManager.getCompiler()!, config.compiler);
+          await compiler(
+            context,
+            compilerManager.getCompiler()!,
+            config.compiler,
+          );
         },
         build: async (context: ITestContext) => {
           const compiler = context.getCompiler();
@@ -112,7 +116,7 @@ function options(
 async function compiler(
   context: ITestContext,
   compiler: Compiler,
-  custom?: (context: ITestContext, compiler: Compiler) => Promise<void>,
+  custom?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>,
 ) {
   if (compiler) {
     compiler.outputFileSystem = {
@@ -152,7 +156,7 @@ async function check(
   env: ITestEnv,
   context: ITestContext,
   name: string,
-  check?: (stats: RspackStatsDiagnostics) => Promise<void>,
+  check?: (stats: RspackStatsDiagnostics) => MaybePromise<void>,
 ) {
   if (context.getError().length > 0) {
     await check?.(
@@ -183,7 +187,7 @@ export type TErrorCaseConfig = {
   description: string;
   skip?: boolean;
   options?: (context: ITestContext) => RspackOptions;
-  compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-  build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-  check?: (stats: RspackStatsDiagnostics) => Promise<void>;
+  compiler?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
+  build?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
+  check?: (stats: RspackStatsDiagnostics) => MaybePromise<void>;
 };

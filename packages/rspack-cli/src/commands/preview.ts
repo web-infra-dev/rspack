@@ -27,7 +27,7 @@ type PreviewOptions = CommonOptions & {
 };
 
 export class PreviewCommand implements RspackCommand {
-  async apply(cli: RspackCLI): Promise<void> {
+  apply(cli: RspackCLI): void {
     const command = cli.program
       .command('preview [dir]', 'run the Rspack server for build output')
       .alias('p');
@@ -115,7 +115,7 @@ async function getPreviewConfig(
 ): Promise<RspackOptions | MultiRspackOptions> {
   const DEFAULT_ROOT = 'dist';
 
-  const internalPreviewConfig = async (item: RspackOptions) => {
+  const internalPreviewConfig = (item: RspackOptions) => {
     // all of the options that a preview static server needs(maybe not all)
     const devServer = item.devServer === false ? undefined : item.devServer;
     item.devServer = {

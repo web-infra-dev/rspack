@@ -70,7 +70,7 @@ export function createHotProcessor(
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
     },
-    afterAll: async (context: ITestContext) => {
+    afterAll: (context: ITestContext) => {
       if (context.getTestConfig().checkSteps === false) {
         return;
       }
