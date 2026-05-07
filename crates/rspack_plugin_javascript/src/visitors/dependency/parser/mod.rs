@@ -765,6 +765,36 @@ impl<'parser> JavascriptParser<'parser> {
       })
   }
 
+  fn has_tag_data_by_id(&self, tag_info_id: TagInfoId, tag: &'static str) -> bool {
+    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+
+    while let Some(cur_tag_info) = tag_info {
+      if cur_tag_info.tag == tag {
+        return cur_tag_info.data.is_some();
+      }
+      tag_info = cur_tag_info
+        .next
+        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+    }
+
+    false
+  }
+
+  pub fn has_tag_data(&mut self, name: &Atom, tag: &'static str) -> bool {
+    self
+      .get_variable_info(name)
+      .and_then(|variable_info| variable_info.tag_info)
+      .is_some_and(|tag_info_id| self.has_tag_data_by_id(tag_info_id, tag))
+  }
+
+  pub fn variable_has_tag_data(&self, id: VariableInfoId, tag: &'static str) -> bool {
+    self
+      .definitions_db
+      .expect_get_variable(id)
+      .tag_info
+      .is_some_and(|tag_info_id| self.has_tag_data_by_id(tag_info_id, tag))
+  }
+
   pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
     let Some(info) = self.get_variable_info(name) else {
       return Some(NameInfo { name, info: None });

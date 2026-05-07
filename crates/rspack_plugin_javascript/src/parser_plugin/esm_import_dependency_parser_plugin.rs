@@ -180,10 +180,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
       && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
-      && parser
-        .get_tag_data(&name.clone(), ESM_SPECIFIER_TAG)
-        .is_some()
+      && parser.variable_has_tag_data(*id, ESM_SPECIFIER_TAG)
     {
       return Some(true);
     }
