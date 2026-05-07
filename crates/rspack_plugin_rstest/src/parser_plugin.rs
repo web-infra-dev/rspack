@@ -729,7 +729,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   ) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
-      let tag_data = parser.get_tag_data(
+      let tag_data = parser.get_tag_data::<bool>(
         &self.compose_rstest_import_call_key(call_expr).into(),
         RSTEST_MOCK_FIRST_ARG_TAG,
       );
