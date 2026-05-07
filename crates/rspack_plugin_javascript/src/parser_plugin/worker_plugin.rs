@@ -1,4 +1,7 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::{
+  hash::Hash,
+  sync::{Arc, LazyLock},
+};
 
 use itertools::Itertools;
 use rspack_core::{
@@ -232,12 +235,17 @@ fn handle_worker<'a>(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorkerPlugin {
+struct WorkerPluginInner {
   new_syntax: FxHashSet<String>,
   call_syntax: FxHashSet<String>,
   from_new_syntax: FxHashSet<(String, String)>,
   from_call_syntax: FxHashSet<(String, String)>,
   pattern_syntax: FxHashMap<String, FxHashSet<String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkerPlugin {
+  inner: Arc<WorkerPluginInner>,
 }
 
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
@@ -248,12 +256,12 @@ const DEFAULT_SYNTAX: [&str; 4] = [
   "Worker from worker_threads",
 ];
 
-static DEFAULT_WORKER_PLUGIN: LazyLock<WorkerPlugin> = LazyLock::new(|| {
-  let mut worker_plugin = WorkerPlugin::empty();
+static DEFAULT_WORKER_PLUGIN: LazyLock<Arc<WorkerPluginInner>> = LazyLock::new(|| {
+  let mut worker_plugin = WorkerPluginInner::empty();
   for syntax in DEFAULT_SYNTAX {
     worker_plugin.handle_syntax(syntax);
   }
-  worker_plugin
+  Arc::new(worker_plugin)
 });
 
 #[derive(Debug, Clone)]
@@ -261,7 +269,7 @@ struct WorkerSpecifierData {
   key: Atom,
 }
 
-impl WorkerPlugin {
+impl WorkerPluginInner {
   fn empty() -> Self {
     Self {
       new_syntax: FxHashSet::default(),
@@ -272,33 +280,21 @@ impl WorkerPlugin {
     }
   }
 
-  pub fn new(syntax_list: &[String]) -> Self {
-    if syntax_list.len() == 1 && syntax_list[0] == "..." {
-      return DEFAULT_WORKER_PLUGIN.clone();
-    }
-
-    let mut this = Self::empty();
-    for syntax in syntax_list {
-      if syntax == "..." {
-        this.merge(DEFAULT_WORKER_PLUGIN.clone());
-      } else {
-        this.handle_syntax(syntax);
-      }
-    }
-    this
-  }
-
-  fn merge(&mut self, other: Self) {
-    self.new_syntax.extend(other.new_syntax);
-    self.call_syntax.extend(other.call_syntax);
-    self.from_new_syntax.extend(other.from_new_syntax);
-    self.from_call_syntax.extend(other.from_call_syntax);
-    for (pattern, members) in other.pattern_syntax {
+  fn merge(&mut self, other: &Self) {
+    self.new_syntax.extend(other.new_syntax.iter().cloned());
+    self.call_syntax.extend(other.call_syntax.iter().cloned());
+    self
+      .from_new_syntax
+      .extend(other.from_new_syntax.iter().cloned());
+    self
+      .from_call_syntax
+      .extend(other.from_call_syntax.iter().cloned());
+    for (pattern, members) in &other.pattern_syntax {
       self
         .pattern_syntax
-        .entry(pattern)
+        .entry(pattern.clone())
         .or_default()
-        .extend(members);
+        .extend(members.iter().cloned());
     }
   }
 
@@ -335,6 +331,28 @@ impl WorkerPlugin {
   }
 }
 
+impl WorkerPlugin {
+  pub fn new(syntax_list: &[String]) -> Self {
+    if syntax_list.len() == 1 && syntax_list[0] == "..." {
+      return Self {
+        inner: DEFAULT_WORKER_PLUGIN.clone(),
+      };
+    }
+
+    let mut inner = WorkerPluginInner::empty();
+    for syntax in syntax_list {
+      if syntax == "..." {
+        inner.merge(&DEFAULT_WORKER_PLUGIN);
+      } else {
+        inner.handle_syntax(syntax);
+      }
+    }
+    Self {
+      inner: Arc::new(inner),
+    }
+  }
+}
+
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for WorkerPlugin {
   fn pre_declarator(
@@ -344,7 +362,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
     _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = decl.name.as_ident()
-      && self.pattern_syntax.contains_key(ident.sym.as_str())
+      && self.inner.pattern_syntax.contains_key(ident.sym.as_str())
     {
       parser.tag_variable(
         ident.sym.clone(),
@@ -359,7 +377,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   }
 
   fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
-    if self.pattern_syntax.contains_key(for_name) {
+    if self.inner.pattern_syntax.contains_key(for_name) {
       parser.tag_variable(
         ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
@@ -388,7 +406,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
-    if let Some(value) = self.pattern_syntax.get(data.key.as_str())
+    if let Some(value) = self.inner.pattern_syntax.get(data.key.as_str())
       && value.contains(&members.iter().map(|id| id.as_str()).join("."))
     {
       return handle_worker(parser, &call_expr.args, call_expr.span).map(
@@ -427,6 +445,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
+        .inner
         .from_call_syntax
         .contains(&(ids, settings.source.to_string()))
       {
@@ -452,7 +471,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       }
       return None;
     }
-    if !self.call_syntax.contains(for_name) {
+    if !self.inner.call_syntax.contains(for_name) {
       return None;
     }
     handle_worker(parser, &call_expr.args, call_expr.span).map(
@@ -489,6 +508,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
       if self
+        .inner
         .from_new_syntax
         .contains(&(ids, settings.source.to_string()))
       {
@@ -516,7 +536,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       }
       return None;
     }
-    if !self.new_syntax.contains(for_name) {
+    if !self.inner.new_syntax.contains(for_name) {
       return None;
     }
     new_expr
@@ -590,4 +610,11 @@ fn test_default_worker_syntax_matches_explicit_syntax() {
     WorkerPlugin::new(&["...".to_string()]),
     WorkerPlugin::new(&explicit_syntax)
   );
+}
+
+#[test]
+fn test_default_worker_syntax_reuses_shared_inner() {
+  let worker_plugin = WorkerPlugin::new(&["...".to_string()]);
+
+  assert!(Arc::ptr_eq(&worker_plugin.inner, &DEFAULT_WORKER_PLUGIN));
 }

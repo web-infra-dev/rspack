@@ -53,31 +53,46 @@ pub fn create_resource_identifier_for_esm_dependency(
   attributes: Option<&ImportAttributes>,
 ) -> ResourceIdentifier {
   let category = DependencyCategory::Esm.as_str();
-  let attrs = attributes
-    .map(|attributes| {
-      let mut attrs = attributes.iter().collect::<Vec<_>>();
-      attrs.sort_unstable_by(|a, b| a.0.cmp(b.0));
-      attrs
-    })
-    .unwrap_or_default();
-  let attributes_len = attrs
-    .iter()
-    .map(|(key, value)| 2 + key.len() + value.len())
-    .sum::<usize>();
-
-  let mut ident = String::with_capacity(category.len() + 1 + request.len() + attributes_len);
+  let mut ident = String::with_capacity(category.len() + 1 + request.len());
   ident.push_str(category);
   ident.push('|');
   ident.push_str(request);
-  if attributes.is_some() {
-    for (key, value) in attrs {
-      ident.push('|');
-      ident.push_str(key);
-      ident.push('=');
-      ident.push_str(value);
-    }
+
+  let Some(attributes) = attributes else {
+    return ident.into();
+  };
+  let mut iter = attributes.iter();
+  let Some(first) = iter.next() else {
+    return ident.into();
+  };
+  let Some(second) = iter.next() else {
+    push_esm_resource_identifier_attribute(&mut ident, first);
+    return ident.into();
+  };
+
+  let mut attrs = Vec::with_capacity(iter.size_hint().0 + 2);
+  attrs.push(first);
+  attrs.push(second);
+  attrs.extend(iter);
+  attrs.sort_unstable_by(|a, b| a.0.cmp(b.0));
+  ident.reserve(
+    attrs
+      .iter()
+      .map(|(key, value)| 2 + key.len() + value.len())
+      .sum::<usize>(),
+  );
+  for attr in attrs {
+    push_esm_resource_identifier_attribute(&mut ident, attr);
   }
   ident.into()
+}
+
+fn push_esm_resource_identifier_attribute(ident: &mut String, (key, value): (&str, &str)) {
+  ident.reserve(2 + key.len() + value.len());
+  ident.push('|');
+  ident.push_str(key);
+  ident.push('=');
+  ident.push_str(value);
 }
 
 #[cfg(test)]
