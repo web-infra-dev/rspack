@@ -1,15 +1,15 @@
-import { defineConfig, ts } from '@rslint/core';
+import { defineConfig, js, ts } from '@rslint/core';
 
 export default defineConfig([
+  js.configs.recommended,
+  ts.configs.recommended,
   {
     // Global ignores — entry with only `ignores` excludes matching files from all rules
     ignores: [
       'packages/rspack/src/runtime/moduleFederationDefaultRuntime.js',
-      'packages/rspack/compiled/**',
       '**/tests/**',
     ],
   },
-  ts.configs.recommended,
   {
     languageOptions: {
       parserOptions: {
