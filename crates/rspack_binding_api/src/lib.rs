@@ -9,6 +9,7 @@
 //!
 //! - `browser`: Enable browser-specific wasm behavior
 //! - `debug_tool`: Enable debug tools
+//! - `perfetto`: Enable perfetto tracing layer
 //! - `plugin`: Enable SWC plugin support
 //! - `sftrace-setup`: Enable performance tracing setup
 //!

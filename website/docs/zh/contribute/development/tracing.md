@@ -15,7 +15,7 @@ description: '介绍 Rspack 中 Tracing 的使用方式'
 ```sh
 # Rspack CLI
 RSPACK_PROFILE=OVERVIEW rspack build # 推荐
-RSPACK_PROFILE=ALL rspack build # 不推荐，大项目的 rspack.pftrace 体积可能非常大
+RSPACK_PROFILE=ALL rspack build # 不推荐，大项目可能会产生大量输出
 
 # Rsbuild
 RSPACK_PROFILE=OVERVIEW rsbuild build
@@ -24,7 +24,7 @@ RSPACK_PROFILE=ALL rsbuild build
 
 - 如果直接使用 `@rspack/core`：可通过 `rspack.experiments.globalTrace.register` 和 `rspack.experiments.globalTrace.cleanup` 开启。你可以查看我们如何在 [`@rspack/cli` 中实现 `RSPACK_PROFILE`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224)获取更多信息。
 
-生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析：
+启用 `perfetto` layer 后，生成的 `rspack.pftrace` 文件可以在 [ui.perfetto.dev](https://ui.perfetto.dev/) 中查看和分析：
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
@@ -35,14 +35,15 @@ RSPACK_PROFILE=ALL rsbuild build
 
 Rspack 支持 `perfetto` 和 `logger` 两种 layer：
 
-- `perfetto`：默认值，生成符合 [`perfetto proto`](https://perfetto.dev/docs/reference/synthetic-track-event) 格式的 rspack.pftrace 文件，可导出到 perfetto 进行复杂的性能分析
-- `logger`：直接在终端输出日志，适用于简单的日志分析或在 CI 环境中查看编译流程
+- `logger`：默认值，直接在终端输出日志，适用于简单的日志分析或在 CI 环境中查看编译流程
+- `perfetto`：仅在使用 `@rspack-debug/core` 时可用，生成符合 [`perfetto proto`](https://perfetto.dev/docs/reference/synthetic-track-event) 格式的 `rspack.pftrace` 文件，可导入到 Perfetto 进行复杂的性能分析
 
 可以通过 `RSPACK_TRACE_LAYER` 环境变量指定 layer：
 
 ```sh
 RSPACK_TRACE_LAYER=logger
-# 或
+
+# 仅适用于 @rspack-debug/core
 RSPACK_TRACE_LAYER=perfetto
 ```
 
@@ -57,6 +58,8 @@ RSPACK_TRACE_LAYER=perfetto
 
 ```sh
 RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=log.txt rspack dev
+
+# 仅适用于 @rspack-debug/core
 RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=rspack.pftrace rspack dev
 ```
 

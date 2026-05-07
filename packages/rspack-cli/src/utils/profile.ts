@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { rspack } from '@rspack/core';
 
-const DEFAULT_RUST_TRACE_LAYER = 'perfetto';
+const DEFAULT_RUST_TRACE_LAYER = 'logger';
 
 export async function applyProfile(
   filterValue: string,

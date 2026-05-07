@@ -71,6 +71,9 @@ async function build() {
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 		}
+		if (values.profile !== "release") {
+			features.push("perfetto");
+		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");
