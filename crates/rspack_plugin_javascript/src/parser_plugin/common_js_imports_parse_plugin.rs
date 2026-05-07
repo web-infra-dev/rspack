@@ -631,7 +631,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
-      && parser.has_tag_data(&name, COMMONJS_REQUIRE_TAG)
+      && parser
+        .get_tag_data::<RequireTagData>(&name, COMMONJS_REQUIRE_TAG)
+        .is_some()
     {
       return Some(true);
     }
