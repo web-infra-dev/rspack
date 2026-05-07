@@ -104,56 +104,52 @@ impl InnerGraphParserPlugin {
         let mut set_is_true = false;
         let mut is_terminal = true;
         let already_processed = processed.entry(*key).or_default();
-        if let Some(value) = state.inner_graph.remove(key) {
-          match value {
-            InnerGraphMapValue::Set(names) => {
-              already_processed.extend(names.iter().cloned());
-              for name in names {
-                match name {
-                  InnerGraphMapSetValue::Str(v) => {
-                    new_set.insert(InnerGraphMapSetValue::Str(v));
+        if matches!(state.inner_graph.get(key), Some(InnerGraphMapValue::Set(_))) {
+          let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.remove(key) else {
+            unreachable!("checked Set value before removing inner graph entry")
+          };
+          already_processed.extend(names.iter().cloned());
+          for name in names {
+            match name {
+              InnerGraphMapSetValue::Str(v) => {
+                new_set.insert(InnerGraphMapSetValue::Str(v));
+              }
+              InnerGraphMapSetValue::TopLevel(v) => {
+                if v == *key {
+                  continue;
+                }
+                match state.inner_graph.get(&v) {
+                  Some(InnerGraphMapValue::True) => {
+                    set_is_true = true;
+                    break;
                   }
-                  InnerGraphMapSetValue::TopLevel(v) => {
-                    if v == *key {
-                      continue;
-                    }
-                    match state.inner_graph.get(&v) {
-                      Some(InnerGraphMapValue::True) => {
-                        set_is_true = true;
-                        break;
+                  Some(InnerGraphMapValue::Set(item_value)) => {
+                    for i in item_value {
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == key) {
+                        continue;
                       }
-                      Some(InnerGraphMapValue::Set(item_value)) => {
-                        for i in item_value {
-                          if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value == key) {
-                            continue;
-                          }
-                          if already_processed.contains(i) {
-                            continue;
-                          }
-                          new_set.insert(i.clone());
-                          if matches!(i, InnerGraphMapSetValue::TopLevel(_)) {
-                            is_terminal = false;
-                          }
-                        }
+                      if already_processed.contains(i) {
+                        continue;
                       }
-                      _ => {}
+                      new_set.insert(i.clone());
+                      if matches!(i, InnerGraphMapSetValue::TopLevel(_)) {
+                        is_terminal = false;
+                      }
                     }
                   }
+                  _ => {}
                 }
               }
-              if set_is_true {
-                state.inner_graph.insert(*key, InnerGraphMapValue::True);
-              } else if new_set.is_empty() {
-                state.inner_graph.insert(*key, InnerGraphMapValue::Nil);
-              } else {
-                state
-                  .inner_graph
-                  .insert(*key, InnerGraphMapValue::Set(new_set));
-              }
             }
-            value => {
-              state.inner_graph.insert(*key, value);
-            }
+          }
+          if set_is_true {
+            state.inner_graph.insert(*key, InnerGraphMapValue::True);
+          } else if new_set.is_empty() {
+            state.inner_graph.insert(*key, InnerGraphMapValue::Nil);
+          } else {
+            state
+              .inner_graph
+              .insert(*key, InnerGraphMapValue::Set(new_set));
           }
         }
 
