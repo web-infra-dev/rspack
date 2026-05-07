@@ -54,7 +54,7 @@
     "pnpm": "10.33.2"
   },
   "devDependencies": {
-    "@rslint/core": "0.5.1",
+    "@rslint/core": "0.5.2",
     "@rstest/core": "^0.9.10",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.39",
