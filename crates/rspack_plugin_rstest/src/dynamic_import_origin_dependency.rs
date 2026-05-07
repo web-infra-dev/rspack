@@ -48,9 +48,11 @@ impl AsContextDependency for RstestDynamicImportOriginDependency {}
 #[derive(Debug, Clone)]
 pub struct RstestDynamicImportOriginDependencyTemplate {
   /// Resolved callee for the rewrite — rstest's own `functionName` override
-  /// or the `output.importFunctionName` fallback. Held on the template (one
-  /// per compilation) rather than per-dep so identical bytes aren't cloned
-  /// for every `import()` call site.
+  /// or the `output.importFunctionName` fallback. Resolved once at `apply`
+  /// time (with the default `import` normalized to "feature off" since
+  /// native `import()` only accepts 1-2 args) and held here so each
+  /// `import()` call site reuses the same string without repeating the
+  /// override + fallback + default-`import` check.
   function_name: String,
 }
 
