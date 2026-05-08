@@ -10,7 +10,7 @@ export { mod3 };
 export { theDefaultExpression }
 
 const { expectSourceToContain, expectSourceToMatch } = require("@rspack/test-tools/helper/legacy/expectSource");
-const regexEscape = require("@rspack/test-tools/helper/legacy/regexEscape");
+const { regexEscape } = require("@rspack/test-tools/helper/legacy/regexEscape");
 
 // It's important to use propertyName when generating object members to ensure that the exported property name
 // uses the same accessor syntax (quotes vs. dot notatation) as the imported property name on the other end

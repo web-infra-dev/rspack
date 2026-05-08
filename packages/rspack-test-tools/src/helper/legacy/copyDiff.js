@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { rimrafSync } = require('rimraf');
 
-module.exports = function copyDiff(src, dest, initial) {
+export function copyDiff(src, dest, initial) {
   fs.mkdirSync(dest, { recursive: true });
   const files = fs.readdirSync(src);
   for (const filename of files) {
@@ -44,4 +44,4 @@ module.exports = function copyDiff(src, dest, initial) {
       }
     }
   }
-};
+}

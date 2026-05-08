@@ -6,7 +6,7 @@ import rspack, {
 } from '@rspack/core';
 import { isJavaScript } from '../helper';
 import { HotUpdatePlugin } from '../helper/hot-update/plugin';
-import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
+import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { LazyCompilationTestPlugin } from '../plugin';
 import { NodeRunner, WebRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';

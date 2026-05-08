@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-module.exports = (globalTimeout = 2000, nameSuffix = '') => {
+export function createLazyTestEnv(globalTimeout = 2000, nameSuffix = '') {
   const state = global.JEST_STATE_SYMBOL;
   let currentDescribeBlock;
   let currentlyRunningTest;
@@ -122,4 +122,4 @@ module.exports = (globalTimeout = 2000, nameSuffix = '') => {
     expect,
     rstest,
   };
-};
+}

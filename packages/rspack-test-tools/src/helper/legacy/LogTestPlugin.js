@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-module.exports = class LogTestPlugin {
+export class LogTestPlugin {
   constructor(noTraced) {
     this.noTraced = noTraced;
   }
@@ -33,4 +33,4 @@ module.exports = class LogTestPlugin {
       otherLogger.debug('debug message only');
     });
   }
-};
+}

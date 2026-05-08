@@ -1,5 +1,5 @@
 // @ts-nocheck
-module.exports = () => {
+export function expectWarningFactory() {
   const warnings = [];
   let oldWarn;
 
@@ -19,4 +19,4 @@ module.exports = () => {
   };
 
   return expectWarning;
-};
+}
