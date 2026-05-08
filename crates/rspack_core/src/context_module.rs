@@ -140,6 +140,7 @@ pub struct ContextOptions {
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
+  pub glob_pattern: Option<String>,
 }
 
 #[cacheable]
@@ -444,12 +445,166 @@ impl ContextModule {
     }
   }
 
+  fn get_glob_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    let module_graph = compilation.get_module_graph();
+    let base_dir = self
+      .options
+      .context_options
+      .glob_pattern
+      .as_ref()
+      .and_then(|g| {
+        let idx = g
+          .find(|c: char| ['*', '?', '[', '{'].contains(&c))
+          .unwrap_or(g.len());
+        let before = &g[..idx];
+        before.rfind('/').map(|slash_idx| &g[..=slash_idx])
+      })
+      .unwrap_or("./");
+
+    match &self.options.context_options.mode {
+      ContextMode::Lazy => {
+        if self.get_blocks().is_empty() {
+          return formatdoc! {r#"
+            {module}.exports = {{}};
+            "#,
+            module = runtime_template.render_module_argument(ModuleArgument::Module),
+          };
+        }
+        let blocks = self.get_blocks();
+        let block_info: Vec<_> = blocks
+          .iter()
+          .filter_map(|b| {
+            let block = module_graph.block_by_id(b)?;
+            let dep = block.get_dependencies().first()?;
+            let dependency = module_graph.dependency_by_id(dep);
+            let user_request = dependency
+              .as_module_dependency()
+              .map(|d| d.user_request().to_string())
+              .or_else(|| {
+                dependency
+                  .as_context_dependency()
+                  .map(|d| d.request().to_string())
+              })?;
+            let module = module_graph.get_module_by_dependency_id(dep)?;
+            let module_id =
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())?;
+            let chunks: Vec<_> = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_block_chunk_group(
+                &block.identifier(),
+                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+              )
+              .expect("should have block chunk group")
+              .chunks
+              .iter()
+              .map(|c| {
+                compilation
+                  .build_chunk_graph_artifact
+                  .chunk_by_ukey
+                  .expect_get(c)
+                  .id()
+                  .expect("should have chunk id in code generation")
+              })
+              .collect();
+            Some((user_request, module_id, chunks))
+          })
+          .collect();
+
+        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+        let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
+
+        let mut entries = String::new();
+        for (i, (user_request, module_id, chunks)) in block_info.iter().enumerate() {
+          if i > 0 {
+            entries.push_str(",\n");
+          }
+          let full_key = if let Some(stripped) = user_request.strip_prefix("./") {
+            format!("{base_dir}{stripped}")
+          } else {
+            format!("{base_dir}{user_request}")
+          };
+          let module_id_json = json_stringify(module_id);
+          let chunk_promise = if chunks.len() == 1 {
+            let chunk_id = json_stringify(&chunks[0]);
+            format!("{ensure_chunk}({chunk_id}).then({require}.bind({require}, {module_id_json}))")
+          } else {
+            let chunk_ids_json = json_stringify_pretty(chunks);
+            format!(
+              "Promise.all({chunk_ids_json}.map({ensure_chunk})).then({require}.bind({require}, {module_id_json}))"
+            )
+          };
+          entries.push_str(&formatdoc! {r#"
+            {full_key_json}: function() {{ return {chunk_promise}; }}"#,
+            full_key_json = json_stringify(&full_key),
+          });
+        }
+
+        formatdoc! {r#"
+          {module}.exports = {{
+          {entries}
+          }};
+          "#,
+          module = runtime_template.render_module_argument(ModuleArgument::Module),
+        }
+      }
+      _ => {
+        if self.get_dependencies().is_empty() {
+          return formatdoc! {r#"
+            {module}.exports = {{}};
+            "#,
+            module = runtime_template.render_module_argument(ModuleArgument::Module),
+          };
+        }
+        let dependencies = self.get_dependencies();
+        let map = self.get_user_request_map(dependencies, compilation);
+        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+
+        let mut entries = String::new();
+        for (i, (user_request, module_id)) in map.iter().enumerate() {
+          if i > 0 {
+            entries.push_str(",\n");
+          }
+          let full_key = if let Some(stripped) = user_request.strip_prefix("./") {
+            format!("{base_dir}{stripped}")
+          } else {
+            format!("{base_dir}{user_request}")
+          };
+          let module_id_expr = if let Some(id) = module_id {
+            format!("{}({})", require, json_stringify(id))
+          } else {
+            format!("undefined /* {} */", json_stringify(user_request))
+          };
+          entries.push_str(&formatdoc! {r#"
+            {full_key_json}: {module_id_expr}"#,
+            full_key_json = json_stringify(&full_key),
+          });
+        }
+
+        formatdoc! {r#"
+          {module}.exports = {{
+          {entries}
+          }};
+          "#,
+          module = runtime_template.render_module_argument(ModuleArgument::Module),
+        }
+      }
+    }
+  }
+
   #[inline]
   fn get_source_string(
     &self,
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    if self.options.context_options.glob_pattern.is_some() {
+      return self.get_glob_source(compilation, runtime_template);
+    }
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {

@@ -201,6 +201,7 @@ impl JavascriptParserPlugin for URLPlugin {
       referenced_specifiers: None,
       attributes: None,
       phase: None,
+      glob_pattern: None,
     };
 
     let mut dep = URLContextDependency::new(

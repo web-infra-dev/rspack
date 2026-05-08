@@ -78,6 +78,7 @@ fn create_import_meta_context_dependency(
       referenced_specifiers: None,
       attributes: None,
       phase: None,
+      glob_pattern: None,
     }
   } else {
     ContextOptions {
@@ -97,6 +98,7 @@ fn create_import_meta_context_dependency(
       referenced_specifiers: None,
       attributes: None,
       phase: None,
+      glob_pattern: None,
     }
   };
   Some(ImportMetaContextDependency::new(

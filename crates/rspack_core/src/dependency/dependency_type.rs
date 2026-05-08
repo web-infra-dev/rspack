@@ -77,6 +77,8 @@ pub enum DependencyType {
   ImportContext,
   // import.meta.webpackContext
   ImportMetaContext,
+  // import.meta.glob
+  ImportMetaGlob,
   // import.meta.resolve
   ImportMetaResolve,
   // import.meta.resolve context
@@ -200,6 +202,7 @@ impl DependencyType {
       DependencyType::ExportInfoApi => "export info api",
       // TODO: mode
       DependencyType::ImportMetaContext => "import.meta context",
+      DependencyType::ImportMetaGlob => "import.meta.glob",
       DependencyType::ImportMetaResolve => "import.meta.resolve",
       DependencyType::ImportMetaResolveContext => "import.meta.resolve context",
       DependencyType::ContainerExposed => "container exposed",

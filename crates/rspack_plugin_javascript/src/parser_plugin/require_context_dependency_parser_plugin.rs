@@ -85,6 +85,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
           referenced_specifiers: None,
           attributes: None,
           phase: None,
+          glob_pattern: None,
         },
         expr.span.into(),
         parser.in_try,

@@ -241,6 +241,14 @@ interface ImportMeta {
   rspackRsc?: {
     loadCss(): any;
   };
+  glob: <T = unknown>(
+    pattern: string,
+    options?: {
+      eager?: boolean;
+      import?: string;
+      query?: string;
+    },
+  ) => Record<string, () => Promise<T>>;
 }
 
 declare const __resourceQuery: string;

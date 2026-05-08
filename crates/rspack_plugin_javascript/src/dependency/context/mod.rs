@@ -2,6 +2,7 @@ mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;
 mod import_meta_context_dependency;
+mod import_meta_glob_dependency;
 mod import_meta_resolve_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
@@ -17,6 +18,7 @@ pub use import_context_dependency::{ImportContextDependency, ImportContextDepend
 pub use import_meta_context_dependency::{
   ImportMetaContextDependency, ImportMetaContextDependencyTemplate,
 };
+pub use import_meta_glob_dependency::{ImportMetaGlobDependency, ImportMetaGlobDependencyTemplate};
 pub use import_meta_resolve_context_dependency::{
   ImportMetaResolveContextDependency, ImportMetaResolveContextDependencyTemplate,
 };
@@ -91,7 +93,12 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}"
+    "context{context}|{}ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}",
+    options
+      .glob_pattern
+      .as_ref()
+      .map(|g| format!("glob {g}|"))
+      .unwrap_or_default()
   );
   id.into()
 }

@@ -261,6 +261,7 @@ impl AMDDefineDependencyParserPlugin {
       referenced_specifiers: None,
       attributes: None,
       phase: None,
+      glob_pattern: None,
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;

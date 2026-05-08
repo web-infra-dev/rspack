@@ -142,6 +142,10 @@ async fn compilation(
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
+    DependencyType::ImportMetaGlob,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
     DependencyType::ImportMetaResolveContext,
     params.context_module_factory.clone(),
   );
@@ -332,6 +336,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportMetaContextDependencyTemplate::template_type(),
     Arc::new(ImportMetaContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaGlobDependencyTemplate::template_type(),
+    Arc::new(ImportMetaGlobDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ImportMetaResolveContextDependencyTemplate::template_type(),

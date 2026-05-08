@@ -496,6 +496,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           referenced_specifiers: exports,
           attributes,
           phase: Some(phase),
+          glob_pattern: None,
         },
         import_call_span.into(),
         dyn_imported.span().into(),

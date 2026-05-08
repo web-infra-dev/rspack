@@ -12,6 +12,7 @@ mod esm_import_dependency_parser_plugin;
 mod esm_top_level_this_plugin;
 mod exports_info_api_plugin;
 mod import_meta_context_dependency_parser_plugin;
+mod import_meta_glob_dependency_parser_plugin;
 mod import_meta_plugin;
 mod import_parser_plugin;
 mod initialize_evaluating;
@@ -54,6 +55,7 @@ pub(crate) use self::{
   esm_top_level_this_plugin::ESMTopLevelThisParserPlugin,
   exports_info_api_plugin::ExportsInfoApiPlugin,
   import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin,
+  import_meta_glob_dependency_parser_plugin::ImportMetaGlobDependencyParserPlugin,
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
   import_parser_plugin::{ImportParserPlugin, ImportsReferencesState},
   initialize_evaluating::InitializeEvaluating,

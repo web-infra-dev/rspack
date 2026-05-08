@@ -51,6 +51,7 @@ fn create_import_meta_resolve_context_dependency(
     referenced_specifiers: None,
     attributes: None,
     phase: None,
+    glob_pattern: None,
   };
   let mut dep = ImportMetaResolveContextDependency::new(options, range, parser.in_try);
   *dep.critical_mut() = result.critical;

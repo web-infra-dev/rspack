@@ -34,6 +34,7 @@ pub mod expr_name {
   pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
   pub const IMPORT_META_CONTEXT: &str = "import.meta.webpackContext";
+  pub const IMPORT_META_GLOB: &str = "import.meta.glob";
 }
 
 pub fn parse_order_string(x: &str) -> Option<i32> {

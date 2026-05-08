@@ -144,6 +144,7 @@ fn create_commonjs_require_context_dependency(
     referenced_specifiers,
     attributes: None,
     phase: None,
+    glob_pattern: None,
   };
   let range = call_expr.span().into();
   let loc = parser
@@ -192,6 +193,7 @@ fn create_require_resolve_context_dependency(
     referenced_specifiers: None,
     attributes: None,
     phase: None,
+    glob_pattern: None,
   };
   RequireResolveContextDependency::new(options, range, parser.in_try)
 }
@@ -584,6 +586,7 @@ impl CommonJsImportsParserPlugin {
         referenced_specifiers: None,
         attributes: None,
         phase: None,
+        glob_pattern: None,
       },
       parser
         .to_dependency_location(DependencyRange::from(span))
