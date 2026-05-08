@@ -733,61 +733,25 @@ impl ModuleGraph {
     module_identifier: ModuleIdentifier,
   ) -> Result<()> {
     let dependency = self.dependency_by_id(&dependency_id);
-    let connection = Self::create_resolved_module_connection(
-      dependency.as_ref(),
-      original_module_identifier,
-      module_identifier,
-    )?;
-    self.set_resolved_module_connection(connection);
-    Ok(())
-  }
-
-  pub fn set_resolved_module_by_dependency(
-    &mut self,
-    original_module_identifier: Option<ModuleIdentifier>,
-    dependency: &dyn Dependency,
-    module_identifier: ModuleIdentifier,
-  ) -> Result<()> {
-    let connection = Self::create_resolved_module_connection(
-      dependency,
-      original_module_identifier,
-      module_identifier,
-    )?;
-    self.set_resolved_module_connection(connection);
-    Ok(())
-  }
-
-  fn set_resolved_module_connection(
-    &mut self,
-    connection: Option<(ModuleGraphConnection, Option<DependencyCondition>)>,
-  ) {
-    if let Some((connection, condition)) = connection {
-      self.add_connection(connection, condition);
-    }
-  }
-
-  fn create_resolved_module_connection(
-    dependency: &dyn Dependency,
-    original_module_identifier: Option<ModuleIdentifier>,
-    module_identifier: ModuleIdentifier,
-  ) -> Result<Option<(ModuleGraphConnection, Option<DependencyCondition>)>> {
     let is_module_dependency =
       dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
     let condition = dependency
       .as_module_dependency()
       .and_then(|dep| dep.get_condition());
     if !is_module_dependency {
-      return Ok(None);
+      return Ok(());
     }
 
     let conditional = condition.is_some();
     let new_connection = ModuleGraphConnection::new(
-      *dependency.id(),
+      dependency_id,
       original_module_identifier,
       module_identifier,
       conditional,
     );
-    Ok(Some((new_connection, condition)))
+    self.add_connection(new_connection, condition);
+
+    Ok(())
   }
 
   /// Uniquely identify a module by its identifier and return the aliased reference

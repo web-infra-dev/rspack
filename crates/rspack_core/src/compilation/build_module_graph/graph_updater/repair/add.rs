@@ -44,25 +44,13 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
+    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
+
     // reuse module if module is already added by other dependency
     if module_graph
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
     {
-      let module_exists = module_graph
-        .module_by_identifier(&module_identifier)
-        .is_some();
-      let has_lazy_dependencies = module_exists
-        && context
-          .artifact
-          .module_to_lazy_make
-          .has_lazy_dependencies(&module_identifier);
-      let forwarded_ids = if !module_exists || has_lazy_dependencies {
-        Some(ForwardedIdSet::from_dependencies(&self.dependencies))
-      } else {
-        None
-      };
-
       set_resolved_module(
         module_graph,
         self.original_module_identifier,
@@ -77,12 +65,16 @@ impl Task<TaskContext> for AddTask {
           .mark_as_add(&module_identifier);
       }
 
-      if module_exists {
-        if has_lazy_dependencies {
-          let forwarded_ids = forwarded_ids.expect("forwarded ids should be calculated");
-          if forwarded_ids.is_empty() {
-            return Ok(vec![]);
-          }
+      if module_graph
+        .module_by_identifier(&module_identifier)
+        .is_some()
+      {
+        if context
+          .artifact
+          .module_to_lazy_make
+          .has_lazy_dependencies(&module_identifier)
+          && !forwarded_ids.is_empty()
+        {
           if let Some(task) = process_unlazy_dependencies(
             &context.artifact.module_to_lazy_make,
             module_graph,
@@ -94,7 +86,6 @@ impl Task<TaskContext> for AddTask {
           return Ok(vec![]);
         }
       } else {
-        let forwarded_ids = forwarded_ids.expect("forwarded ids should be calculated");
         let pending_forwarded_ids = context
           .artifact
           .module_to_lazy_make
@@ -111,7 +102,6 @@ impl Task<TaskContext> for AddTask {
       .exports_info_artifact
       .new_exports_info(module_identifier);
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
     set_resolved_module(
       module_graph,
       self.original_module_identifier,
@@ -145,9 +135,9 @@ fn set_resolved_module(
   module_identifier: ModuleIdentifier,
 ) -> Result<()> {
   for dependency in dependencies {
-    module_graph.set_resolved_module_by_dependency(
+    module_graph.set_resolved_module(
       original_module_identifier,
-      dependency.as_ref(),
+      *dependency.id(),
       module_identifier,
     )?;
     module_graph.add_dependency(dependency);
