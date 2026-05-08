@@ -92,11 +92,8 @@ pub struct JsRscServerPluginOptions<'a> {
   pub on_server_component_changes:
     Option<Either3<Function<'static, (), OnServerComponentChangesReturn>, Undefined, Null>>,
   pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
-  #[napi(
-    js_name = "cssLink",
-    ts_type = "false | { precedence?: string | false; props?: Record<string, string> }"
-  )]
-  pub css_link_props: Option<Either<JsRscCssLinkOptions<'a>, bool>>,
+  #[napi(ts_type = "false | { precedence?: string | false; props?: Record<string, string> }")]
+  pub css_link: Option<Either<JsRscCssLinkOptions<'a>, bool>>,
 }
 
 fn object_to_css_link_props(object: Object<'_>) -> napi::Result<RscCssLinkProps> {
@@ -212,7 +209,7 @@ impl TryFrom<JsRscServerPluginOptions<'_>> for RscServerPluginOptions {
       coordinator: value.coordinator.i.clone(),
       on_server_component_changes,
       on_manifest,
-      css_link_props: normalize_css_link_props(value.css_link_props)?,
+      css_link_props: normalize_css_link_props(value.css_link)?,
     })
   }
 }
