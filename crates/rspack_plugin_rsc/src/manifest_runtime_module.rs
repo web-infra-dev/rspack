@@ -82,6 +82,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
       module_loading,
       server_entries: &entry_state.server_entries,
       bootstrap_scripts: &entry_state.bootstrap_scripts,
+      css_link_props: &plugin_state.css_link_props,
     };
 
     Ok(formatdoc! {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use rspack_core::{ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier};
 use rspack_error::Result;
-use rspack_util::fx_hash::FxIndexSet;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 
@@ -48,6 +48,8 @@ pub struct ModuleLoading {
   #[serde(skip_serializing_if = "Option::is_none")]
   pub cross_origin: Option<CrossOriginMode>,
 }
+
+pub type RscCssLinkProps = FxIndexMap<String, String>;
 
 pub type ServerReferenceManifest = FxHashMap<String, ManifestExport>;
 
@@ -102,6 +104,7 @@ pub struct RscEntryManifest<'a> {
   pub server_entries: &'a FxHashMap<String, ServerEntryState>,
   #[serde(rename = "entryJsFiles")]
   pub bootstrap_scripts: &'a FxIndexSet<String>,
+  pub css_link_props: &'a RscCssLinkProps,
 }
 
 /// Full manifest (all entries) for the onManifest callback. Map from entry name to per-entry manifest.
