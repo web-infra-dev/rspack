@@ -51,7 +51,7 @@
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "engines": {
-    "pnpm": "10.33.2"
+    "pnpm": "10.33.4"
   },
   "devDependencies": {
     "@rslint/core": "0.5.2",
@@ -69,5 +69,5 @@
     "typescript": "^6.0.3",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@10.33.4"
 }
