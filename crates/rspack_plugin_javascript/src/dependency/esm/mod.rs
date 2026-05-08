@@ -13,6 +13,8 @@ mod import_meta_resolve_header_dependency;
 mod import_weak_dependency;
 mod provide_dependency;
 
+use std::fmt::Write as _;
+
 use rspack_core::{DependencyCategory, ImportAttributes, ResourceIdentifier};
 
 pub use self::{
@@ -63,10 +65,11 @@ pub fn create_resource_identifier_for_esm_dependency(
   };
   let mut iter = attributes.iter();
   let Some(first) = iter.next() else {
+    ident.push_str("|attrs=0");
     return ident.into();
   };
   let Some(second) = iter.next() else {
-    push_esm_resource_identifier_attribute(&mut ident, first);
+    push_esm_resource_identifier_attributes(&mut ident, std::iter::once(first), 1);
     return ident.into();
   };
 
@@ -75,23 +78,29 @@ pub fn create_resource_identifier_for_esm_dependency(
   attrs.push(second);
   attrs.extend(iter);
   attrs.sort_unstable_by(|a, b| a.0.cmp(b.0));
-  ident.reserve(
-    attrs
-      .iter()
-      .map(|(key, value)| 2 + key.len() + value.len())
-      .sum::<usize>(),
-  );
-  for attr in attrs {
-    push_esm_resource_identifier_attribute(&mut ident, attr);
-  }
+  let len = attrs.len();
+  push_esm_resource_identifier_attributes(&mut ident, attrs.into_iter(), len);
   ident.into()
 }
 
-fn push_esm_resource_identifier_attribute(ident: &mut String, (key, value): (&str, &str)) {
-  ident.reserve(2 + key.len() + value.len());
+fn push_esm_resource_identifier_attributes<'a>(
+  ident: &mut String,
+  attrs: impl Iterator<Item = (&'a str, &'a str)>,
+  len: usize,
+) {
+  ident.push_str("|attrs=");
+  write!(ident, "{len}").expect("write to String should not fail");
+
+  for (key, value) in attrs {
+    ident.reserve(key.len() + value.len() + 8);
+    push_esm_resource_identifier_attribute_part(ident, key);
+    push_esm_resource_identifier_attribute_part(ident, value);
+  }
+}
+
+fn push_esm_resource_identifier_attribute_part(ident: &mut String, value: &str) {
   ident.push('|');
-  ident.push_str(key);
-  ident.push('=');
+  write!(ident, "{}:", value.len()).expect("write to String should not fail");
   ident.push_str(value);
 }
 
@@ -112,7 +121,23 @@ mod tests {
 
     assert_eq!(
       ident.to_string(),
-      "esm|./data.json|integrity=sha256|type=json"
+      "esm|./data.json|attrs=2|9:integrity|6:sha256|4:type|4:json"
     );
+  }
+
+  #[test]
+  fn creates_resource_identifier_without_attribute_delimiter_collisions() {
+    let first_attributes = ImportAttributes::from_iter([("a".to_string(), "b|c=d".to_string())]);
+    let second_attributes = ImportAttributes::from_iter([
+      ("a".to_string(), "b".to_string()),
+      ("c".to_string(), "d".to_string()),
+    ]);
+
+    let first =
+      create_resource_identifier_for_esm_dependency("./data.json", Some(&first_attributes));
+    let second =
+      create_resource_identifier_for_esm_dependency("./data.json", Some(&second_attributes));
+
+    assert_ne!(first, second);
   }
 }
