@@ -43,7 +43,7 @@ export type RscCssLinkOptions = {
 
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
-  cssLink?: RscCssLinkOptions;
+  cssLink?: RscCssLinkOptions | null;
   onServerComponentChanges?: () => void | Promise<void>;
   onManifest?: (manifest: RscManifest) => void | Promise<void>;
 };

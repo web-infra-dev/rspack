@@ -1062,9 +1062,9 @@ export interface JsRscCssLinkOptions {
 
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
+  cssLink?: JsRscCssLinkOptions | undefined | null
   onServerComponentChanges?: (() => void | Promise<void>) | undefined | null
   onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
-  cssLink?: JsRscCssLinkOptions
 }
 
 export interface JsRsdoctorAsset {

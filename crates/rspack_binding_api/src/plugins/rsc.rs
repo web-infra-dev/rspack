@@ -88,12 +88,11 @@ pub struct JsRscCssLinkOptions<'a> {
 #[napi(object, object_to_js = false)]
 pub struct JsRscServerPluginOptions<'a> {
   pub coordinator: ClassInstance<'a, JsCoordinator>,
+  pub css_link: Option<Either3<JsRscCssLinkOptions<'a>, Undefined, Null>>,
   #[napi(ts_type = "(() => void | Promise<void>) | undefined | null")]
   pub on_server_component_changes:
     Option<Either3<Function<'static, (), OnServerComponentChangesReturn>, Undefined, Null>>,
   pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
-  #[napi(ts_type = "{ precedence?: string | false; props?: Record<string, string> }")]
-  pub css_link: Option<JsRscCssLinkOptions<'a>>,
 }
 
 fn object_to_css_link_props(object: Object<'_>) -> napi::Result<RscCssLinkProps> {
@@ -111,15 +110,15 @@ fn object_to_css_link_props(object: Object<'_>) -> napi::Result<RscCssLinkProps>
 }
 
 fn normalize_css_link_props(
-  css_link_props: Option<JsRscCssLinkOptions<'_>>,
+  css_link_props: Option<Either3<JsRscCssLinkOptions<'_>, Undefined, Null>>,
 ) -> napi::Result<RscCssLinkProps> {
   match css_link_props {
-    None => {
+    None | Some(Either3::B(_)) | Some(Either3::C(_)) => {
       let mut props = RscCssLinkProps::default();
       props.insert("precedence".to_string(), "default".to_string());
       Ok(props)
     }
-    Some(css_link_options) => {
+    Some(Either3::A(css_link_options)) => {
       let mut props = css_link_options
         .props
         .map(object_to_css_link_props)
