@@ -48,7 +48,7 @@
     "chalk": "^4.1.2",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
-    "fs-extra": "^11.3.4",
+    "fs-extra": "^11.3.5",
     "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.3.0",

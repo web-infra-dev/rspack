@@ -57,7 +57,7 @@
     "@rslint/core": "0.5.2",
     "@rstest/core": "^0.9.10",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^20.19.39",
+    "@types/node": "^20.19.40",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
