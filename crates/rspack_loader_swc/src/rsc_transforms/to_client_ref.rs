@@ -27,11 +27,12 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 /// import * as React from "react";
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => React.createElement("link", Object.assign({}, __rspack_rsc_manifest__.cssLinkProps, {
+///   .map(href => React.createElement("link", {
+///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
 ///     href
-///   })));
+///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
 /// export default resources.length
@@ -52,11 +53,12 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 /// const React = require("react");
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
-///   .map(href => React.createElement("link", Object.assign({}, __rspack_rsc_manifest__.cssLinkProps, {
+///   .map(href => React.createElement("link", {
+///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
 ///     href
-///   })));
+///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
 /// module.exports = resources.length
@@ -400,19 +402,12 @@ fn react_link_element(react_name: &str) -> Expr {
 }
 
 fn link_props_expr() -> Expr {
-  call_expr(
-    member_expr(ident_expr("Object"), "assign"),
-    vec![
-      object_expr(vec![]),
-      member_expr(ident_expr(API_RSC_MANIFEST), "cssLinkProps"),
-      object_expr(vec![
-        key_value_prop("key", ident_expr("href")),
-        key_value_prop("rel", str_expr("stylesheet")),
-        key_value_prop("href", ident_expr("href")),
-      ]),
-    ],
-    DUMMY_SP,
-  )
+  object_expr(vec![
+    spread_prop(member_expr(ident_expr(API_RSC_MANIFEST), "cssLinkProps")),
+    key_value_prop("key", ident_expr("href")),
+    key_value_prop("rel", str_expr("stylesheet")),
+    key_value_prop("href", ident_expr("href")),
+  ])
 }
 
 fn object_expr(props: Vec<PropOrSpread>) -> Expr {
@@ -427,6 +422,13 @@ fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
     key: PropName::Ident(ident_name(name)),
     value: Box::new(value),
   })))
+}
+
+fn spread_prop(expr: Expr) -> PropOrSpread {
+  PropOrSpread::Spread(SpreadElement {
+    dot3_token: DUMMY_SP,
+    expr: Box::new(expr),
+  })
 }
 
 fn react_create_element_call(
