@@ -199,6 +199,7 @@ export default defineConfig({
     merge(commonLibConfig, {
       dts: {
         build: true,
+        tsgo: true,
         alias: {
           // alias to pre-bundled types as they are public API
           open: './compiled/open',
