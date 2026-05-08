@@ -1056,7 +1056,7 @@ export interface JsRscClientPluginOptions {
 }
 
 export interface JsRscCssLinkOptions {
-  precedence?: string | false
+  precedence?: string | boolean
   props?: Record<string, string>
 }
 
