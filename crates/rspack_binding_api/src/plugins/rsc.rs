@@ -92,8 +92,8 @@ pub struct JsRscServerPluginOptions<'a> {
   pub on_server_component_changes:
     Option<Either3<Function<'static, (), OnServerComponentChangesReturn>, Undefined, Null>>,
   pub on_manifest: Option<Either3<Function<'static, String, Promise<()>>, Undefined, Null>>,
-  #[napi(ts_type = "false | { precedence?: string | false; props?: Record<string, string> }")]
-  pub css_link: Option<Either<JsRscCssLinkOptions<'a>, bool>>,
+  #[napi(ts_type = "{ precedence?: string | false; props?: Record<string, string> }")]
+  pub css_link: Option<JsRscCssLinkOptions<'a>>,
 }
 
 fn object_to_css_link_props(object: Object<'_>) -> napi::Result<RscCssLinkProps> {
@@ -111,16 +111,15 @@ fn object_to_css_link_props(object: Object<'_>) -> napi::Result<RscCssLinkProps>
 }
 
 fn normalize_css_link_props(
-  css_link_props: Option<Either<JsRscCssLinkOptions<'_>, bool>>,
+  css_link_props: Option<JsRscCssLinkOptions<'_>>,
 ) -> napi::Result<RscCssLinkProps> {
   match css_link_props {
-    Some(Either::B(false)) => Ok(RscCssLinkProps::default()),
-    Some(Either::B(true)) | None => {
+    None => {
       let mut props = RscCssLinkProps::default();
       props.insert("precedence".to_string(), "default".to_string());
       Ok(props)
     }
-    Some(Either::A(css_link_options)) => {
+    Some(css_link_options) => {
       let mut props = css_link_options
         .props
         .map(object_to_css_link_props)
@@ -134,12 +133,7 @@ fn normalize_css_link_props(
         Some(Either::B(false)) => {
           props.shift_remove("precedence");
         }
-        Some(Either::B(true)) => {
-          return Err(napi::Error::from_reason(
-            "RSC cssLink.precedence must be a string or false.",
-          ));
-        }
-        None => {
+        Some(Either::B(true)) | None => {
           props.insert("precedence".to_string(), "default".to_string());
         }
       }

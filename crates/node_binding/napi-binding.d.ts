@@ -1064,7 +1064,7 @@ export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
   onServerComponentChanges?: (() => void | Promise<void>) | undefined | null
   onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
-cssLink?: false | { precedence?: string | false; props?: Record<string, string> }
+  cssLink?: JsRscCssLinkOptions
 }
 
 export interface JsRsdoctorAsset {

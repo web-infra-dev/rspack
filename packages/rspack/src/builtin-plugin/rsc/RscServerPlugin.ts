@@ -36,12 +36,10 @@ export type RscManifest = Record<string, RscManifestPerEntry>;
 
 export type RscCssLinkProps = Record<string, string>;
 
-export type RscCssLinkOptions =
-  | false
-  | {
-      precedence?: string | false;
-      props?: RscCssLinkProps;
-    };
+export type RscCssLinkOptions = {
+  precedence?: string | false;
+  props?: RscCssLinkProps;
+};
 
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
