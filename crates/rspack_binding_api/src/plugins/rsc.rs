@@ -113,7 +113,7 @@ fn normalize_css_link_props(
   css_link_props: Option<Either3<JsRscCssLinkOptions<'_>, Undefined, Null>>,
 ) -> napi::Result<RscCssLinkProps> {
   match css_link_props {
-    None | Some(Either3::B(_)) | Some(Either3::C(_)) => {
+    None | Some(Either3::B(_) | Either3::C(_)) => {
       let mut props = RscCssLinkProps::default();
       props.insert("precedence".to_string(), "default".to_string());
       Ok(props)
