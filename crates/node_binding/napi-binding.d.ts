@@ -216,6 +216,7 @@ export declare class Dependency {
   get type(): string
   get category(): string
   get request(): string | undefined
+  get attributes(): Record<string, string> | undefined
   get critical(): boolean
   set critical(val: boolean)
   get ids(): Array<string> | undefined
