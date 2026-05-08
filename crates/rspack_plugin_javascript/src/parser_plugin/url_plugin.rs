@@ -187,7 +187,7 @@ impl JavascriptParserPlugin for URLPlugin {
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
-      reg_exp: context_reg_exp(&result.reg, "", None, parser),
+      pattern: context_reg_exp(&result.reg, "", None, parser).into(),
       include: magic_comment_options.get_include(),
       exclude: magic_comment_options.get_exclude(),
       category: DependencyCategory::Url,

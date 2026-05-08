@@ -473,7 +473,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         ContextOptions {
           mode: mode.into(),
           recursive: true,
-          reg_exp,
+          pattern: reg_exp.into(),
           include,
           exclude,
           category: DependencyCategory::Esm,

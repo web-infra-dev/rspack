@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType, ReferencedSpecifier,
+  ConstDependency, ContextDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject,
+  ContextOptions, DependencyCategory, DependencyRange, DependencyType, ReferencedSpecifier,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
@@ -130,7 +130,7 @@ fn create_commonjs_require_context_dependency(
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
-    reg_exp: context_reg_exp(&result.reg, "", None, parser),
+    pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     include: None,
     exclude: None,
     category: DependencyCategory::CommonJS,
@@ -178,7 +178,7 @@ fn create_require_resolve_context_dependency(
       ContextMode::Sync
     },
     recursive: true,
-    reg_exp: context_reg_exp(&result.reg, "", None, parser),
+    pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     include: None,
     exclude: None,
     category: DependencyCategory::CommonJS,
@@ -570,7 +570,7 @@ impl CommonJsImportsParserPlugin {
       ContextOptions {
         mode: ContextMode::Sync,
         recursive: true,
-        reg_exp: None,
+        pattern: ContextModulePattern::None,
         include: None,
         exclude: None,
         category: DependencyCategory::Unknown,

@@ -2,6 +2,7 @@ mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;
 mod import_meta_context_dependency;
+mod import_meta_glob_dependency;
 mod import_meta_resolve_context_dependency;
 mod require_context_dependency;
 mod require_resolve_context_dependency;
@@ -17,6 +18,7 @@ pub use import_context_dependency::{ImportContextDependency, ImportContextDepend
 pub use import_meta_context_dependency::{
   ImportMetaContextDependency, ImportMetaContextDependencyTemplate,
 };
+pub use import_meta_glob_dependency::{ImportMetaGlobDependency, ImportMetaGlobDependencyTemplate};
 pub use import_meta_resolve_context_dependency::{
   ImportMetaResolveContextDependency, ImportMetaResolveContextDependencyTemplate,
 };
@@ -26,8 +28,8 @@ pub use require_resolve_context_dependency::{
   RequireResolveContextDependency, RequireResolveContextDependencyTemplate,
 };
 use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 pub use url_context_dependency::{URLContextDependency, URLContextDependencyTemplate};
 
@@ -38,11 +40,11 @@ fn create_resource_identifier_for_context_dependency(
   let context = context.unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
-  let regexp = options
-    .reg_exp
-    .as_ref()
-    .map(|r| r.to_source_string())
-    .unwrap_or_default();
+  let pattern = match &options.pattern {
+    ContextModulePattern::RegExp(r) => r.to_source_string(),
+    ContextModulePattern::Glob(g) => g.clone(),
+    ContextModulePattern::None => String::new(),
+  };
   let include = options
     .include
     .as_ref()
@@ -91,7 +93,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}"
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports}",
   );
   id.into()
 }

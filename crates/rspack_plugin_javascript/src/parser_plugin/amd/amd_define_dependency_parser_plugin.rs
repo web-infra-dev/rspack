@@ -247,7 +247,7 @@ impl AMDDefineDependencyParserPlugin {
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
-      reg_exp: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser),
+      pattern: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser).into(),
       include: None,
       exclude: None,
       category: DependencyCategory::Amd,

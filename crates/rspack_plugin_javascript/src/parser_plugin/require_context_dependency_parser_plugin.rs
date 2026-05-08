@@ -71,7 +71,7 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
         ContextOptions {
           mode,
           recursive,
-          reg_exp,
+          pattern: reg_exp.into(),
           include: None,
           exclude: None,
           category: DependencyCategory::CommonJS,

@@ -1,5 +1,7 @@
-use rspack_core::{ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory};
-use rspack_regex::RspackRegex;
+use rspack_core::{
+  ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
+  extract_glob_base_dir, get_context,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
@@ -8,26 +10,24 @@ use swc_core::{
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::ImportMetaContextDependency,
+  dependency::ImportMetaGlobDependency,
   utils::{
     eval::{self, BasicEvaluatedExpression},
-    object_properties::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop},
+    object_properties::get_bool_by_obj_prop,
   },
-  visitors::{
-    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-  },
+  visitors::{JavascriptParser, expr_name},
 };
 
-fn create_import_meta_context_dependency(
+fn create_import_meta_glob_dependency(
   node: &CallExpr,
   parser: &mut JavascriptParser,
-) -> Option<ImportMetaContextDependency> {
+) -> Option<ImportMetaGlobDependency> {
   assert!(node.callee.is_expr());
   let dyn_imported = node.args.first()?;
   if dyn_imported.spread.is_some() {
     return None;
   }
-  let context = dyn_imported
+  let glob_pattern = dyn_imported
     .expr
     .as_lit()
     .and_then(|lit| {
@@ -36,7 +36,6 @@ fn create_import_meta_context_dependency(
       }
       None
     })
-    // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
     .or_else(|| {
       if let Some(tpl) = dyn_imported.expr.as_tpl()
         && tpl.exprs.is_empty()
@@ -47,28 +46,31 @@ fn create_import_meta_context_dependency(
       }
       None
     })?;
+
+  let recursive = glob_pattern.contains("**");
+  let context = get_context(parser.resource_data);
+  let context_glob_pattern = if glob_pattern.starts_with('/') {
+    glob_pattern.clone()
+  } else {
+    format!("{}/{}", context.as_str(), glob_pattern)
+  };
+  let base_dir = extract_glob_base_dir(&context_glob_pattern).to_string();
+
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
-    let regexp = get_regex_by_obj_prop(obj, "regExp");
-    let regexp_span = regexp.map(|r| r.span().into());
-    let regexp = regexp.map_or_else(default_context_reg_exp, |regexp| {
-      RspackRegex::try_from(regexp).expect("reg failed")
-    });
-    let include = get_regex_by_obj_prop(obj, "include")
-      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    let exclude = get_regex_by_obj_prop(obj, "exclude")
-      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
-      s.value.to_string_lossy().as_ref().into()
-    });
-    let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
+    let eager = get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value);
+    let mode = if eager {
+      ContextMode::Sync
+    } else {
+      ContextMode::Lazy
+    };
     ContextOptions {
-      pattern: clean_regexp_in_context_module(regexp, regexp_span, parser).into(),
-      include,
-      exclude,
+      pattern: ContextModulePattern::Glob(glob_pattern),
+      include: None,
+      exclude: None,
       recursive,
       category: DependencyCategory::Esm,
-      request: context.clone(),
-      context,
+      request: base_dir.clone(),
+      context: base_dir,
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
       mode,
@@ -81,16 +83,16 @@ fn create_import_meta_context_dependency(
     }
   } else {
     ContextOptions {
-      recursive: true,
-      mode: ContextMode::Sync,
+      pattern: ContextModulePattern::Glob(glob_pattern),
       include: None,
       exclude: None,
-      pattern: clean_regexp_in_context_module(default_context_reg_exp(), None, parser).into(),
+      recursive,
       category: DependencyCategory::Esm,
-      request: context.clone(),
-      context,
+      request: base_dir.clone(),
+      context: base_dir,
       namespace_object: ContextNameSpaceObject::Unset,
       group_options: None,
+      mode: ContextMode::Lazy,
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
@@ -99,17 +101,17 @@ fn create_import_meta_context_dependency(
       phase: None,
     }
   };
-  Some(ImportMetaContextDependency::new(
+  Some(ImportMetaGlobDependency::new(
     context_options,
     node.span.into(),
     parser.in_try,
   ))
 }
 
-pub struct ImportMetaContextDependencyParserPlugin;
+pub struct ImportMetaGlobDependencyParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
+impl JavascriptParserPlugin for ImportMetaGlobDependencyParserPlugin {
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser,
@@ -117,9 +119,9 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    if for_name == expr_name::IMPORT_META_CONTEXT {
+    if for_name == expr_name::IMPORT_META_GLOB {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_CONTEXT.into(),
+        expr_name::IMPORT_META_GLOB.into(),
         expr_name::IMPORT_META.into(),
         Some(true),
         start,
@@ -136,9 +138,9 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name != expr_name::IMPORT_META_CONTEXT || expr.args.is_empty() || expr.args.len() > 2 {
+    if for_name != expr_name::IMPORT_META_GLOB || expr.args.is_empty() || expr.args.len() > 2 {
       None
-    } else if let Some(dep) = create_import_meta_context_dependency(expr, parser) {
+    } else if let Some(dep) = create_import_meta_glob_dependency(expr, parser) {
       parser.add_dependency(Box::new(dep));
       Some(true)
     } else {

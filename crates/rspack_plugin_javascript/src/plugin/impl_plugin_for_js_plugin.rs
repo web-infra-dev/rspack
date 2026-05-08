@@ -28,13 +28,14 @@ use crate::{
     ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
-    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
-    ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
-    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
-    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
-    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    ImportMetaContextDependencyTemplate, ImportMetaGlobDependencyTemplate,
+    ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
+    ImportMetaResolveContextDependencyTemplate, ImportMetaResolveDependencyTemplate,
+    ImportMetaResolveHeaderDependencyTemplate, ImportMetaRscDependencyTemplate,
+    ImportWeakDependencyTemplate, IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
+    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
+    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
+    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
@@ -139,6 +140,10 @@ async fn compilation(
   // ImportMetaContextPlugin
   compilation.set_dependency_factory(
     DependencyType::ImportMetaContext,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaGlob,
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -332,6 +337,10 @@ async fn compilation(
   compilation.set_dependency_template(
     ImportMetaContextDependencyTemplate::template_type(),
     Arc::new(ImportMetaContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaGlobDependencyTemplate::template_type(),
+    Arc::new(ImportMetaGlobDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ImportMetaResolveContextDependencyTemplate::template_type(),

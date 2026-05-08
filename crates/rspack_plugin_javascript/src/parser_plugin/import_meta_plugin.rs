@@ -37,7 +37,7 @@ fn create_import_meta_resolve_context_dependency(
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
-    reg_exp: context_reg_exp(&result.reg, "", None, parser),
+    pattern: context_reg_exp(&result.reg, "", None, parser).into(),
     include: None,
     exclude: None,
     category: DependencyCategory::Esm,

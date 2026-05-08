@@ -33,8 +33,8 @@ use crate::{
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, to_path,
+  RuntimeSpec, SourceType, contextify, extract_glob_base_dir, get_exports_type_with_strict,
+  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -122,10 +122,55 @@ pub enum ContextTypePrefix {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub enum ContextModulePattern {
+  None,
+  RegExp(RspackRegex),
+  Glob(String),
+}
+
+impl ContextModulePattern {
+  pub fn reg_exp(&self) -> Option<&RspackRegex> {
+    match self {
+      Self::RegExp(reg_exp) => Some(reg_exp),
+      Self::None | Self::Glob(_) => None,
+    }
+  }
+
+  pub fn glob_pattern(&self) -> Option<&str> {
+    match self {
+      Self::None | Self::RegExp(_) => None,
+      Self::Glob(glob_pattern) => Some(glob_pattern),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    matches!(self, Self::None)
+  }
+
+  pub fn to_pretty_string(&self, source: bool) -> Option<String> {
+    match self {
+      Self::None => None,
+      Self::RegExp(reg_exp) => Some(reg_exp.to_pretty_string(source)),
+      Self::Glob(glob_pattern) => Some(glob_pattern.clone()),
+    }
+  }
+}
+
+impl From<Option<RspackRegex>> for ContextModulePattern {
+  fn from(reg_exp: Option<RspackRegex>) -> Self {
+    match reg_exp {
+      Some(reg_exp) => Self::RegExp(reg_exp),
+      None => Self::None,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  pub reg_exp: Option<RspackRegex>,
+  pub pattern: ContextModulePattern,
   pub include: Option<RspackRegex>,
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
@@ -444,12 +489,156 @@ impl ContextModule {
     }
   }
 
+  fn get_glob_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+    pattern: &str,
+  ) -> String {
+    let module_graph = compilation.get_module_graph();
+    let base_dir = extract_glob_base_dir(pattern);
+
+    match &self.options.context_options.mode {
+      ContextMode::Lazy => {
+        if self.get_blocks().is_empty() {
+          return formatdoc! {r#"
+            {module}.exports = {{}};
+            "#,
+            module = runtime_template.render_module_argument(ModuleArgument::Module),
+          };
+        }
+        let blocks = self.get_blocks();
+        let block_info: Vec<_> = blocks
+          .iter()
+          .filter_map(|b| {
+            let block = module_graph.block_by_id(b)?;
+            let dep = block.get_dependencies().first()?;
+            let dependency = module_graph.dependency_by_id(dep);
+            let user_request = dependency
+              .as_module_dependency()
+              .map(|d| d.user_request().to_string())
+              .or_else(|| {
+                dependency
+                  .as_context_dependency()
+                  .map(|d| d.request().to_string())
+              })?;
+            let module = module_graph.get_module_by_dependency_id(dep)?;
+            let module_id =
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())?;
+            let chunks: Vec<_> = compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_block_chunk_group(
+                &block.identifier(),
+                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+              )
+              .expect("should have block chunk group")
+              .chunks
+              .iter()
+              .map(|c| {
+                compilation
+                  .build_chunk_graph_artifact
+                  .chunk_by_ukey
+                  .expect_get(c)
+                  .id()
+                  .expect("should have chunk id in code generation")
+              })
+              .collect();
+            Some((user_request, module_id, chunks))
+          })
+          .collect();
+
+        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+        let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
+
+        let mut entries = String::new();
+        for (i, (user_request, module_id, chunks)) in block_info.iter().enumerate() {
+          if i > 0 {
+            entries.push_str(",\n");
+          }
+          let full_key = if let Some(stripped) = user_request.strip_prefix("./") {
+            format!("{base_dir}{stripped}")
+          } else {
+            format!("{base_dir}{user_request}")
+          };
+          let module_id_json = json_stringify(module_id);
+          let chunk_promise = if chunks.len() == 1 {
+            let chunk_id = json_stringify(&chunks[0]);
+            format!("{ensure_chunk}({chunk_id}).then({require}.bind({require}, {module_id_json}))")
+          } else {
+            let chunk_ids_json = json_stringify_pretty(chunks);
+            format!(
+              "Promise.all({chunk_ids_json}.map({ensure_chunk})).then({require}.bind({require}, {module_id_json}))"
+            )
+          };
+          entries.push_str(&formatdoc! {r#"
+            {full_key_json}: function() {{ return {chunk_promise}; }}"#,
+            full_key_json = json_stringify(&full_key),
+          });
+        }
+
+        formatdoc! {r#"
+          {module}.exports = {{
+          {entries}
+          }};
+          "#,
+          module = runtime_template.render_module_argument(ModuleArgument::Module),
+        }
+      }
+      _ => {
+        if self.get_dependencies().is_empty() {
+          return formatdoc! {r#"
+            {module}.exports = {{}};
+            "#,
+            module = runtime_template.render_module_argument(ModuleArgument::Module),
+          };
+        }
+        let dependencies = self.get_dependencies();
+        let map = self.get_user_request_map(dependencies, compilation);
+        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+
+        let mut entries = String::new();
+        for (i, (user_request, module_id)) in map.iter().enumerate() {
+          if i > 0 {
+            entries.push_str(",\n");
+          }
+          let full_key = if let Some(stripped) = user_request.strip_prefix("./") {
+            format!("{base_dir}{stripped}")
+          } else {
+            format!("{base_dir}{user_request}")
+          };
+          let module_id_expr = if let Some(id) = module_id {
+            format!("{}({})", require, json_stringify(id))
+          } else {
+            format!("undefined /* {} */", json_stringify(user_request))
+          };
+          entries.push_str(&formatdoc! {r#"
+            {full_key_json}: {module_id_expr}"#,
+            full_key_json = json_stringify(&full_key),
+          });
+        }
+
+        formatdoc! {r#"
+          {module}.exports = {{
+          {entries}
+          }};
+          "#,
+          module = runtime_template.render_module_argument(ModuleArgument::Module),
+        }
+      }
+    }
+  }
+
   #[inline]
   fn get_source_string(
     &self,
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    if let ContextModulePattern::Glob(pattern) = &self.options.context_options.pattern {
+      return self.get_glob_source(compilation, runtime_template, pattern);
+    }
+
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {
@@ -1090,9 +1279,9 @@ impl Module for ContextModule {
       id += " ";
       id += &self.options.addon;
     }
-    if let Some(regexp) = &self.options.context_options.reg_exp {
+    if let Some(regexp) = self.options.context_options.pattern.to_pretty_string(true) {
       id += " ";
-      id += &regexp.to_pretty_string(true);
+      id += &regexp;
     }
     if let Some(include) = &self.options.context_options.include {
       id += " include: ";
@@ -1294,9 +1483,9 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|";
     id += &options.addon;
   }
-  if let Some(regexp) = &options.context_options.reg_exp {
+  if let Some(pattern) = options.context_options.pattern.to_pretty_string(false) {
     id += "|";
-    id += &regexp.to_pretty_string(false);
+    id += &pattern;
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";

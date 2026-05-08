@@ -2,6 +2,7 @@ use std::{borrow::Cow, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
+use fast_glob::glob_match;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
@@ -13,10 +14,10 @@ use tracing::instrument;
 
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
+  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver, resolve, walk_dir,
+  SharedPluginDriver, glob_base_dir_end, resolve, walk_dir,
 };
 
 #[derive(Debug)]
@@ -178,7 +179,7 @@ impl ContextModuleFactory {
       context: data.context.to_string(),
       request: dependency.request().to_string(),
       recursive: dependency_options.recursive,
-      reg_exp: dependency_options.reg_exp.clone(),
+      reg_exp: dependency_options.pattern.reg_exp().cloned(),
       dependencies: data.dependencies.clone(),
     };
 
@@ -297,9 +298,8 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options
-          .reg_exp
-          .clone_from(&before_resolve_data.reg_exp);
+        dependency_options.pattern =
+          ContextModulePattern::from(before_resolve_data.reg_exp.clone());
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -318,9 +318,8 @@ impl ContextModuleFactory {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options
-          .reg_exp
-          .clone_from(&before_resolve_data.reg_exp);
+        dependency_options.pattern =
+          ContextModulePattern::from(before_resolve_data.reg_exp.clone());
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -364,7 +363,7 @@ impl ContextModuleFactory {
       context: context_options.context.clone(),
       dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
-      reg_exp: context_options.reg_exp.clone(),
+      reg_exp: context_options.pattern.reg_exp().cloned(),
       recursive: context_options.recursive,
       resolve_dependencies: self.resolve_dependencies.clone(),
     };
@@ -395,7 +394,8 @@ impl ContextModuleFactory {
 
         context_module_options.resource = after_resolve_data.resource;
         context_module_options.context_options.context = after_resolve_data.context;
-        context_module_options.context_options.reg_exp = after_resolve_data.reg_exp;
+        context_module_options.context_options.pattern =
+          ContextModulePattern::from(after_resolve_data.reg_exp.clone());
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
         let module = ContextModule::new(
@@ -462,12 +462,29 @@ async fn visit_dirs(
         vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
       );
 
-      let Some(reg_exp) = &options.context_options.reg_exp else {
+      let filename_glob = options.context_options.pattern.glob_pattern().map(|g| {
+        let base_dir_len = glob_base_dir_end(g);
+        let remainder = if g.len() > base_dir_len {
+          &g[base_dir_len..]
+        } else {
+          "*"
+        };
+        remainder.strip_prefix('/').unwrap_or(remainder)
+      });
+
+      if filename_glob.is_none() && options.context_options.pattern.is_empty() {
         return;
-      };
+      }
 
       requests.iter().for_each(|r| {
-        if !reg_exp.test(&r.request) {
+        if let Some(filename_glob) = &filename_glob {
+          let stripped = r.request.strip_prefix("./").unwrap_or(&r.request);
+          if !glob_match(filename_glob.as_bytes(), stripped.as_bytes()) {
+            return;
+          }
+        } else if let Some(reg_exp) = options.context_options.pattern.reg_exp()
+          && !reg_exp.test(&r.request)
+        {
           return;
         }
         let request = format!(
