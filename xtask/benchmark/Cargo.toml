@@ -14,7 +14,7 @@ tokio     = { workspace = true }
 [dev-dependencies]
 # Make rust analyzer happy
 async-trait                = { workspace = true }
-rspack                     = { workspace = true, features = ["full"] }
+rspack                     = { workspace = true, features = ["codspeed", "full"] }
 rspack_cacheable           = { workspace = true }
 rspack_collections         = { workspace = true }
 rspack_core                = { workspace = true, features = ["codspeed"] }
