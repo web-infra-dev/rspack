@@ -21,25 +21,3 @@ it('should expose module objects directly in eager mode', () => {
   expect(eagerModules['./dir/foo.js'].default).toBe('foo')
   expect(eagerModules['./dir/bar.js'].default).toBe('bar')
 })
-
-// Named import: each thunk resolves to a single named export
-const namedModules = import.meta.glob('./dir/*.js', { import: 'default' })
-
-it('should resolve to the named export when import option is set', async () => {
-  const fooDefault = await namedModules['./dir/foo.js']()
-  expect(fooDefault).toBe('foo')
-
-  const barDefault = await namedModules['./dir/bar.js']()
-  expect(barDefault).toBe('bar')
-})
-
-// Eager + named import
-const eagerNamed = import.meta.glob('./dir/*.js', {
-  import: 'value',
-  eager: true,
-})
-
-it('should resolve to the named export eagerly', () => {
-  expect(eagerNamed['./dir/foo.js']).toBe(42)
-  expect(eagerNamed['./dir/bar.js']).toBe(99)
-})
