@@ -1,10 +1,15 @@
 {
   "name": "@rspack/test-tools",
   "version": "2.0.2",
-  "license": "MIT",
   "description": "Test tools for rspack",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-test-tools"
+  },
+  "license": "MIT",
   "exports": {
     ".": {
       "default": "./dist/index.js"
@@ -19,26 +24,17 @@
     "./reporter": "./dist/reporter/index.js",
     "./reporter/*": "./dist/reporter/*.js"
   },
-  "scripts": {
-    "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "client",
     "dist",
     "template",
     "rstest.d.ts"
   ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "homepage": "https://rspack.rs",
-  "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/web-infra-dev/rspack",
-    "directory": "packages/rspack-test-tools"
+  "scripts": {
+    "build": "rslib",
+    "dev": "rslib -w"
   },
   "dependencies": {
     "@babel/generator": "7.29.1",
@@ -58,14 +54,15 @@
     "path-serializer": "0.6.0",
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",
-    "source-map": "^0.7.6",
     "rspack-merge": "0.1.1",
+    "source-map": "^0.7.6",
     "terser-webpack-plugin": "^5.5.0",
     "wast-loader": "^1.14.1",
     "webpack": "5.104.1",
     "webpack-sources": "3.3.4"
   },
   "devDependencies": {
+    "@rslib/core": "0.21.3",
     "@rspack/core": "workspace:*",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
@@ -75,5 +72,9 @@
   },
   "peerDependencies": {
     "@rspack/core": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }
