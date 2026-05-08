@@ -362,8 +362,7 @@ export class NodeRunner implements ITestRunner {
   protected createCjsRequirer(): TRunnerRequirer {
     return (currentDirectory, modulePath, context = {}) => {
       if (modulePath === '@rspack/test-tools') {
-        const aliasRequire = require;
-        return aliasRequire('@rspack/test-tools');
+        return require('@rspack/test-tools');
       }
       const file = context.file || this.getFile(modulePath, currentDirectory);
       this.log(`cjs: ${modulePath} -> ${file?.path}`);

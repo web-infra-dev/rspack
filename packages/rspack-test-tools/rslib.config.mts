@@ -5,6 +5,7 @@ export default defineConfig({
     {
       format: 'cjs',
       syntax: ['es2023'],
+      bundle: false,
       dts: {
         tsgo: true,
       },
