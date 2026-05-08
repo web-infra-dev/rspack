@@ -430,7 +430,7 @@ unused_lifetimes                       = "warn"
 unused_macro_rules                     = "warn"
 
 [workspace.lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
+check-cfg = ['cfg(allocative)', 'cfg(codspeed)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
 level     = "warn"
 
 [workspace.lints.clippy]
