@@ -54,8 +54,8 @@ pub fn glob_match_with_options(pattern: &str, path: &str, options: &GlobMatchOpt
   if options.case_sensitive {
     glob_match(pattern.as_bytes(), path.as_bytes())
   } else {
-    let pattern = pattern.to_lowercase();
-    let path = path.to_lowercase();
+    let pattern = pattern.cow_to_lowercase();
+    let path = path.cow_to_lowercase();
     glob_match(pattern.as_bytes(), path.as_bytes())
   }
 }
@@ -166,9 +166,9 @@ fn pattern_has_explicit_dot_for(pattern: &str, base_dir: &Utf8Path, path: &Utf8P
   };
 
   for component in relative.split('/') {
-    if component.starts_with('.') {
-      let dot_component = format!(".{}", &component[1..]);
-      if pattern.contains(&format!("/{}", dot_component)) || pattern.starts_with(&dot_component) {
+    if let Some(stripped) = component.strip_prefix('.') {
+      let dot_component = format!(".{stripped}");
+      if pattern.contains(&format!("/{dot_component}")) || pattern.starts_with(&dot_component) {
         return true;
       }
     }

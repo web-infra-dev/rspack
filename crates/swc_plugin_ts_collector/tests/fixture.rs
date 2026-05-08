@@ -24,7 +24,7 @@ fn find_ts_files(dir: &Path) -> Vec<PathBuf> {
       let path = entry.path();
       if path.is_dir() {
         results.extend(find_ts_files(&path));
-      } else if path.extension().map_or(false, |e| e == "ts") {
+      } else if path.extension().is_some_and(|e| e == "ts") {
         results.push(path);
       }
     }
