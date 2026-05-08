@@ -468,7 +468,7 @@ async fn visit_dirs(
           .find(|c: char| ['*', '?', '[', '{'].contains(&c))
           .unwrap_or(g.len());
         let before = &g[..idx];
-        let base_dir_len = before.rfind('/').map(|s| s + 1).unwrap_or(0);
+        let base_dir_len = before.rfind('/').map_or(0, |s| s + 1);
         let remainder = if g.len() > base_dir_len {
           &g[base_dir_len..]
         } else {
@@ -487,10 +487,10 @@ async fn visit_dirs(
           if !glob_match(filename_glob.as_bytes(), stripped.as_bytes()) {
             return;
           }
-        } else if let Some(reg_exp) = &options.context_options.reg_exp {
-          if !reg_exp.test(&r.request) {
-            return;
-          }
+        } else if let Some(reg_exp) = &options.context_options.reg_exp
+          && !reg_exp.test(&r.request)
+        {
+          return;
         }
         let request = format!(
           "{}{}{}{}",
