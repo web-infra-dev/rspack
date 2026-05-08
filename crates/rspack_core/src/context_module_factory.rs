@@ -2,6 +2,7 @@ use std::{borrow::Cow, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
+use fast_glob::glob_match;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
@@ -462,13 +463,34 @@ async fn visit_dirs(
         vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
       );
 
-      let Some(reg_exp) = &options.context_options.reg_exp else {
-        return;
-      };
+      let filename_glob = options.context_options.glob_pattern.as_ref().map(|g| {
+        let idx = g
+          .find(|c: char| ['*', '?', '[', '{'].contains(&c))
+          .unwrap_or(g.len());
+        let before = &g[..idx];
+        let base_dir_len = before.rfind('/').map(|s| s + 1).unwrap_or(0);
+        let remainder = if g.len() > base_dir_len {
+          &g[base_dir_len..]
+        } else {
+          "*"
+        };
+        remainder.strip_prefix('/').unwrap_or(remainder)
+      });
+
+      if filename_glob.is_none() && options.context_options.reg_exp.is_none() {
+        return Ok(());
+      }
 
       requests.iter().for_each(|r| {
-        if !reg_exp.test(&r.request) {
-          return;
+        if let Some(filename_glob) = &filename_glob {
+          let stripped = r.request.strip_prefix("./").unwrap_or(&r.request);
+          if !glob_match(filename_glob.as_bytes(), stripped.as_bytes()) {
+            return;
+          }
+        } else if let Some(reg_exp) = &options.context_options.reg_exp {
+          if !reg_exp.test(&r.request) {
+            return;
+          }
         }
         let request = format!(
           "{}{}{}{}",

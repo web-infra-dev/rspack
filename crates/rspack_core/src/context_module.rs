@@ -1248,6 +1248,9 @@ impl Module for ContextModule {
     if let Some(regexp) = &self.options.context_options.reg_exp {
       id += " ";
       id += &regexp.to_pretty_string(true);
+    } else if let Some(glob_pattern) = &self.options.context_options.glob_pattern {
+      id += " ";
+      id += glob_pattern;
     }
     if let Some(include) = &self.options.context_options.include {
       id += " include: ";
@@ -1452,6 +1455,9 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if let Some(regexp) = &options.context_options.reg_exp {
     id += "|";
     id += &regexp.to_pretty_string(false);
+  } else if let Some(glob_pattern) = &options.context_options.glob_pattern {
+    id += "|";
+    id += glob_pattern;
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
