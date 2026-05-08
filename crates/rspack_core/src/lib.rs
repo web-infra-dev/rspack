@@ -50,6 +50,7 @@ pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
 mod glob_utils;
+pub(crate) use glob_utils::walk_dir;
 pub use glob_utils::*;
 mod init_fragment;
 pub use init_fragment::*;

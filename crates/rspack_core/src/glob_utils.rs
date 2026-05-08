@@ -78,6 +78,38 @@ fn normalize_path_separators(s: &str) -> String {
   s.cow_replace('\\', "/").into_owned()
 }
 
+/// Walk a directory tree recursively, calling `on_file` for each file found.
+///
+/// - `root`: starting directory
+/// - `recursive`: whether to descend into subdirectories
+/// - `skip_dotfiles`: whether to skip files whose name starts with `.`
+/// - `on_file`: called with (full_path, filename) for each file
+#[async_recursion]
+pub(crate) async fn walk_dir(
+  root: &Utf8Path,
+  fs: Arc<dyn ReadableFileSystem>,
+  recursive: bool,
+  skip_dotfiles: bool,
+  on_file: &mut (impl FnMut(Utf8PathBuf, String) + Send),
+) -> Result<()> {
+  if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
+    return Ok(());
+  }
+  for filename in fs.read_dir(root).await? {
+    let path = root.join(&filename);
+    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
+      if recursive {
+        walk_dir(&path, fs.clone(), recursive, skip_dotfiles, on_file).await?;
+      }
+    } else if skip_dotfiles && filename.starts_with('.') {
+      // skip dotfiles
+    } else {
+      on_file(path, filename);
+    }
+  }
+  Ok(())
+}
+
 /// Find files matching a glob pattern by traversing the filesystem.
 /// Replaces `glob::glob_with`.
 pub async fn find_files_by_glob(
@@ -90,53 +122,26 @@ pub async fn find_files_by_glob(
   let base_dir_path = Utf8Path::new(base_dir);
 
   let mut results = Vec::new();
-  visit_glob_dirs(
+  walk_dir(
     base_dir_path,
-    base_dir_path,
-    &normalized_pattern,
-    options,
-    &*fs,
-    &mut results,
+    fs,
+    true,  // always recursive for glob
+    false, // dotfile filtering handled in callback below
+    &mut |path, _filename| {
+      if options.require_literal_leading_dot
+        && path_has_dot_component(&path, base_dir_path)
+        && !pattern_has_explicit_dot_for(&normalized_pattern, base_dir_path, &path)
+      {
+        return;
+      }
+      let normalized_path = normalize_path_separators(path.as_str());
+      if glob_match_with_options(&normalized_pattern, &normalized_path, options) {
+        results.push(path);
+      }
+    },
   )
   .await?;
   Ok(results)
-}
-
-#[async_recursion]
-async fn visit_glob_dirs(
-  base_dir: &Utf8Path,
-  current_dir: &Utf8Path,
-  pattern: &str,
-  options: &GlobMatchOptions,
-  fs: &dyn ReadableFileSystem,
-  results: &mut Vec<Utf8PathBuf>,
-) -> Result<()> {
-  if !fs.metadata(current_dir).await.is_ok_and(|m| m.is_directory) {
-    return Ok(());
-  }
-
-  for filename in fs.read_dir(current_dir).await? {
-    let path = current_dir.join(&filename);
-
-    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
-      // Always traverse into subdirectories, including dot-directories.
-      // This matches glob crate behavior — `**` traverses all directories.
-      visit_glob_dirs(base_dir, &path, pattern, options, fs, results).await?;
-    } else {
-      if options.require_literal_leading_dot
-        && path_has_dot_component(&path, base_dir)
-        && !pattern_has_explicit_dot_for(pattern, base_dir, &path)
-      {
-        continue;
-      }
-
-      let normalized_path = normalize_path_separators(path.as_str());
-      if glob_match_with_options(pattern, &normalized_path, options) {
-        results.push(path);
-      }
-    }
-  }
-  Ok(())
 }
 
 fn path_has_dot_component(path: &Utf8Path, base_dir: &Utf8Path) -> bool {
@@ -150,8 +155,6 @@ fn path_has_dot_component(path: &Utf8Path, base_dir: &Utf8Path) -> bool {
 }
 
 /// Check whether the glob pattern has an explicit `.` for a given dot-file path.
-/// This is an approximation: we check if the path component that starts with `.`
-/// appears in the pattern with a literal `.` prefix.
 fn pattern_has_explicit_dot_for(pattern: &str, base_dir: &Utf8Path, path: &Utf8Path) -> bool {
   let path_str = normalize_path_separators(path.as_str());
   let base_str = normalize_path_separators(base_dir.as_str());
@@ -162,12 +165,8 @@ fn pattern_has_explicit_dot_for(pattern: &str, base_dir: &Utf8Path, path: &Utf8P
     &path_str
   };
 
-  // For each path component that starts with '.', check if the pattern
-  // explicitly contains it with a literal dot at that position.
   for component in relative.split('/') {
     if component.starts_with('.') {
-      // Check if the pattern contains `/.` followed by this component name
-      // (or starts with `.` for the first component)
       let dot_component = format!(".{}", &component[1..]);
       if pattern.contains(&format!("/{}", dot_component)) || pattern.starts_with(&dot_component) {
         return true;
