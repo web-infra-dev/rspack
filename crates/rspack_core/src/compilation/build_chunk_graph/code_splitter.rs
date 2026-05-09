@@ -38,7 +38,6 @@ type PreparedBlockConnectionMap =
   FxIndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
 type BlockConnectionMap =
   DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
-type SkippedModuleConnection = (ModuleIdentifier, ConnectionIdList, ConnectionState);
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -53,7 +52,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: FxIndexSet<SkippedModuleConnection>,
+  pub skipped_module_connections: FxIndexSet<(ModuleIdentifier, ConnectionIdList)>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -1410,11 +1409,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       });
       let chunk_group_info = self.chunk_group_info_mut(&item.chunk_group_info);
       if !active_state.is_true() {
-        chunk_group_info.skipped_module_connections.insert((
-          *module,
-          connections.clone(),
-          *active_state,
-        ));
+        chunk_group_info
+          .skipped_module_connections
+          .insert((*module, connections.clone()));
         if active_state.is_false() {
           continue;
         }
@@ -1916,6 +1913,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let (
         cgi_ukey,
         chunk_group_ukey,
+        runtime,
         min_available_modules,
         mut skipped_items,
         mut skipped_module_connections,
@@ -1929,6 +1927,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         (
           cgi.ukey,
           cgi.chunk_group,
+          cgi.runtime.clone(),
           cgi.min_available_modules.clone(),
           std::mem::take(&mut cgi.skipped_items),
           std::mem::take(&mut cgi.skipped_module_connections),
@@ -1974,11 +1973,25 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       // Use retain instead of collect indices + shift_remove_index to avoid O(n²)
       if !skipped_module_connections.is_empty() {
         let ordinal_by_module = &self.ordinal_by_module;
+        let module_graph = compilation.get_module_graph();
+        let module_graph_cache = &compilation.module_graph_cache_artifact;
+        let exports_info_artifact = &compilation.exports_info_artifact;
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
 
         let mut queue_actions = Vec::new();
         let mut modules_to_skip = Vec::new();
 
-        skipped_module_connections.retain(|(module, _, active_state)| {
+        skipped_module_connections.retain(|(module, connections)| {
+          let active_state = get_active_state_of_connections(
+            connections,
+            Some(&runtime),
+            module_graph,
+            module_graph_cache,
+            side_effects_state_artifact,
+            exports_info_artifact,
+          );
           if active_state.is_false() {
             return true;
           }
