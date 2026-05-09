@@ -160,17 +160,27 @@ impl Task<TaskContext> for FactorizeTask {
 /// main-thread work limited to artifact and module graph mutations.
 #[derive(Debug)]
 pub enum FactorizeOutcome {
-  /// Module factorization failed and `options.bail` was off.
   Failed,
-  /// Factory succeeded but did not produce a module (ignored import).
   Ignored,
-  /// Module is a side-effect-free ESM evaluation-only import; deps already marked lazy.
+  /// Side-effect-free ESM evaluation-only import; deps already marked lazy in the background.
   SideEffectSkipped,
-  /// Module created successfully; `module_graph_module` is preconstructed.
   Created {
     module: BoxModule,
     module_graph_module: Box<ModuleGraphModule>,
   },
+}
+
+impl FactorizeOutcome {
+  /// Trace label for the non-`Created` variants. Returns `None` for `Created` since it has its own
+  /// trace path that includes the module identifier.
+  fn skip_trace_label(&self) -> Option<&'static str> {
+    match self {
+      Self::Failed => Some("Module created with failure, but without bailout"),
+      Self::SideEffectSkipped => Some("Module make-skipped as side-effect-only import"),
+      Self::Ignored => Some("Module ignored"),
+      Self::Created { .. } => None,
+    }
+  }
 }
 
 #[derive(Debug)]
@@ -196,13 +206,12 @@ impl Task<TaskContext> for FactorizeResultTask {
       from_unlazy,
     } = *self;
 
+    let first_dep_id = *dependencies[0].id();
     let artifact = &mut context.artifact;
     if !factorize_info.is_success() {
-      artifact
-        .make_failed_dependencies
-        .insert(*dependencies[0].id());
+      artifact.make_failed_dependencies.insert(first_dep_id);
     }
-    let resource_id = ResourceId::from(*dependencies[0].id());
+    let resource_id = ResourceId::from(first_dep_id);
     artifact
       .file_dependencies
       .add_files(&resource_id, factorize_info.file_dependencies());
@@ -230,45 +239,29 @@ impl Task<TaskContext> for FactorizeResultTask {
     }
 
     let module_graph = artifact.get_module_graph_mut();
-    match outcome {
-      FactorizeOutcome::Failed => {
-        let dep = &dependencies[0];
-        tracing::trace!("Module created with failure, but without bailout: {dep:?}");
-        for dep in dependencies {
-          module_graph.add_dependency(dep)
-        }
-        Ok(vec![])
+    if let Some(trace_msg) = outcome.skip_trace_label() {
+      tracing::trace!("{}: {:?}", trace_msg, &dependencies[0]);
+      for dep in dependencies {
+        module_graph.add_dependency(dep);
       }
-      FactorizeOutcome::SideEffectSkipped => {
-        let dep = &dependencies[0];
-        tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
-        for dep in dependencies {
-          module_graph.add_dependency(dep)
-        }
-        Ok(vec![])
-      }
-      FactorizeOutcome::Ignored => {
-        let dep = &dependencies[0];
-        tracing::trace!("Module ignored: {dep:?}");
-        for dep in dependencies {
-          module_graph.add_dependency(dep)
-        }
-        Ok(vec![])
-      }
-      FactorizeOutcome::Created {
-        module,
-        module_graph_module,
-      } => {
-        tracing::trace!("Module created: {}", module.identifier());
-        Ok(vec![Box::new(AddTask {
-          original_module_identifier,
-          module,
-          module_graph_module,
-          dependencies,
-          from_unlazy,
-        })])
-      }
+      return Ok(vec![]);
     }
+
+    let FactorizeOutcome::Created {
+      module,
+      module_graph_module,
+    } = outcome
+    else {
+      unreachable!("non-Created outcomes were handled by the skip_trace_label fast path above")
+    };
+    tracing::trace!("Module created: {}", module.identifier());
+    Ok(vec![Box::new(AddTask {
+      original_module_identifier,
+      module,
+      module_graph_module,
+      dependencies,
+      from_unlazy,
+    })])
   }
 }
 

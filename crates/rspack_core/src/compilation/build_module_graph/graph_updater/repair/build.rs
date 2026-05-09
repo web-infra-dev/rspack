@@ -70,15 +70,15 @@ impl Task<TaskContext> for BuildTask {
       .await;
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      // Pre-flatten the block tree on the background thread. The result is two ordered lists
-      // (deps and async blocks) plus the lazy-dependency tracker, so the main-thread task can
-      // apply the module-graph mutations with a single linear pass.
+      // Done on the background thread so the main-thread task can apply graph mutations
+      // in a single linear pass without re-walking the block tree.
       let mut flat_dependencies: Vec<(
         BoxDependency,
         Option<AsyncDependenciesBlockIdentifier>,
         usize,
       )> = Vec::with_capacity(build_result.dependencies.len());
-      let mut flat_blocks: Vec<Box<AsyncDependenciesBlock>> = Vec::new();
+      let mut flat_blocks: Vec<Box<AsyncDependenciesBlock>> =
+        Vec::with_capacity(build_result.blocks.len());
       let mut all_dependencies: Vec<DependencyId> =
         Vec::with_capacity(build_result.dependencies.len());
       let mut lazy_dependencies = LazyDependencies::default();
@@ -128,21 +128,18 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub module: BoxModule,
-  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
-  pub plugin_driver: SharedPluginDriver,
-  pub forwarded_ids: ForwardedIdSet,
-  /// Dependencies in iteration order with their parent block id (None for top-level) and index.
-  pub flat_dependencies: Vec<(
+  module: BoxModule,
+  optimization_bailouts: Vec<OptimizationBailoutItem>,
+  plugin_driver: SharedPluginDriver,
+  forwarded_ids: ForwardedIdSet,
+  flat_dependencies: Vec<(
     BoxDependency,
     Option<AsyncDependenciesBlockIdentifier>,
     usize,
   )>,
-  /// Async dependency blocks in BFS order, ready to be added to the module graph.
-  pub flat_blocks: Vec<Box<AsyncDependenciesBlock>>,
-  /// Full list of dependency ids (top-level + block-nested) before lazy filtering.
-  pub all_dependencies: Vec<DependencyId>,
-  pub lazy_dependencies: LazyDependencies,
+  flat_blocks: Vec<Box<AsyncDependenciesBlock>>,
+  all_dependencies: Vec<DependencyId>,
+  lazy_dependencies: LazyDependencies,
 }
 
 #[async_trait::async_trait]
@@ -168,22 +165,20 @@ impl Task<TaskContext> for BuildResultTask {
       .call(context.compiler_id, context.compilation_id, &mut module)
       .await?;
 
+    let module_id = module.identifier();
     let build_info = module.build_info();
 
     if !module.diagnostics().is_empty() {
-      context
-        .artifact
-        .make_failed_module
-        .insert(module.identifier());
+      context.artifact.make_failed_module.insert(module_id);
     }
 
-    tracing::trace!("Module built: {}", module.identifier());
+    tracing::trace!("Module built: {}", module_id);
     context
       .artifact
       .module_graph
-      .get_optimization_bailout_mut(&module.identifier())
+      .get_optimization_bailout_mut(&module_id)
       .extend(optimization_bailouts);
-    let resource_id = ResourceId::from(module.identifier());
+    let resource_id = ResourceId::from(module_id);
     context
       .artifact
       .file_dependencies
@@ -201,7 +196,6 @@ impl Task<TaskContext> for BuildResultTask {
       .build_dependencies
       .add_files(&resource_id, &build_info.build_dependencies);
 
-    let module_id = module.identifier();
     let module_graph = &mut context.artifact.module_graph;
 
     for (dependency, parent_block, index_in_block) in flat_dependencies {
@@ -225,11 +219,9 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     {
-      let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
+      let mgm = module_graph.module_graph_module_by_identifier_mut(&module_id);
       mgm.all_dependencies_mut().clone_from(&all_dependencies);
     }
-
-    let module_identifier = module.identifier();
 
     module_graph.add_module(module);
 
@@ -244,7 +236,7 @@ impl Task<TaskContext> for BuildResultTask {
       if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
         .artifact
         .module_to_lazy_make
-        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
+        .update_module_lazy_dependencies(module_id, Some(lazy_dependencies))
       {
         forwarded_ids.append(pending_forwarded_ids);
       }
@@ -252,7 +244,7 @@ impl Task<TaskContext> for BuildResultTask {
         &context.artifact.module_to_lazy_make,
         module_graph,
         forwarded_ids,
-        module_identifier,
+        module_id,
       ) {
         tasks.push(Box::new(task));
       }
@@ -262,13 +254,13 @@ impl Task<TaskContext> for BuildResultTask {
       context
         .artifact
         .module_to_lazy_make
-        .update_module_lazy_dependencies(module_identifier, None);
+        .update_module_lazy_dependencies(module_id, None);
       all_dependencies
     };
 
     tasks.push(Box::new(ProcessDependenciesTask {
       dependencies: dependencies_to_process,
-      original_module_identifier: module_identifier,
+      original_module_identifier: module_id,
       from_unlazy: false,
     }));
 
