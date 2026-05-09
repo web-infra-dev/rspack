@@ -5,9 +5,9 @@ use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ImportPhase,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  Resolve, ResolverFactory,
+  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo,
+  ImportPhase, ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, Resolve,
+  ResolverFactory,
   dependency::DependencyType,
   module_graph::ModuleGraphModule,
   utils::{
@@ -121,22 +121,62 @@ impl Task<TaskContext> for FactorizeTask {
       create_data.context_dependencies,
       create_data.missing_dependencies,
     );
+
+    let mut dependencies = create_data.dependencies;
+    let outcome = match factory_result {
+      None => FactorizeOutcome::Failed,
+      Some(factory_result) => match factory_result.module {
+        None => FactorizeOutcome::Ignored,
+        Some(module) => {
+          if skip_side_effect_free_esm_import_side_effect_dependencies(&module, &dependencies) {
+            for dep in &mut dependencies {
+              dep.set_lazy();
+            }
+            FactorizeOutcome::SideEffectSkipped
+          } else {
+            let mut mgm = ModuleGraphModule::new(module.identifier());
+            mgm.set_issuer_if_unset(self.original_module_identifier);
+            FactorizeOutcome::Created {
+              module,
+              module_graph_module: Box::new(mgm),
+            }
+          }
+        }
+      },
+    };
+
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
-      factory_result,
-      dependencies: create_data.dependencies,
+      outcome,
+      dependencies,
       factorize_info,
       from_unlazy: self.from_unlazy,
     })])
   }
 }
 
+/// Decision made in [`FactorizeTask::background_run`] about how to integrate the factorize result
+/// into the module graph. Pre-computing this in the background keeps [`FactorizeResultTask`]'s
+/// main-thread work limited to artifact and module graph mutations.
+#[derive(Debug)]
+pub enum FactorizeOutcome {
+  /// Module factorization failed and `options.bail` was off.
+  Failed,
+  /// Factory succeeded but did not produce a module (ignored import).
+  Ignored,
+  /// Module is a side-effect-free ESM evaluation-only import; deps already marked lazy.
+  SideEffectSkipped,
+  /// Module created successfully; `module_graph_module` is preconstructed.
+  Created {
+    module: BoxModule,
+    module_graph_module: Box<ModuleGraphModule>,
+  },
+}
+
 #[derive(Debug)]
 pub struct FactorizeResultTask {
-  //  pub dependency: DependencyId,
   pub original_module_identifier: Option<ModuleIdentifier>,
-  /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
-  pub factory_result: Option<ModuleFactoryResult>,
+  pub outcome: FactorizeOutcome,
   pub dependencies: Vec<BoxDependency>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
@@ -150,7 +190,7 @@ impl Task<TaskContext> for FactorizeResultTask {
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let FactorizeResultTask {
       original_module_identifier,
-      factory_result,
+      outcome,
       mut dependencies,
       mut factorize_info,
       from_unlazy,
@@ -190,52 +230,45 @@ impl Task<TaskContext> for FactorizeResultTask {
     }
 
     let module_graph = artifact.get_module_graph_mut();
-    let Some(factory_result) = factory_result else {
-      let dep = &dependencies[0];
-      tracing::trace!("Module created with failure, but without bailout: {dep:?}");
-      // sync dependencies to mg
-      for dep in dependencies {
-        module_graph.add_dependency(dep)
+    match outcome {
+      FactorizeOutcome::Failed => {
+        let dep = &dependencies[0];
+        tracing::trace!("Module created with failure, but without bailout: {dep:?}");
+        for dep in dependencies {
+          module_graph.add_dependency(dep)
+        }
+        Ok(vec![])
       }
-      return Ok(vec![]);
-    };
-
-    if let Some(module) = factory_result.module.as_ref()
-      && skip_side_effect_free_esm_import_side_effect_dependencies(module, &dependencies)
-    {
-      let dep = &dependencies[0];
-      tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
-      for dep in &mut dependencies {
-        dep.set_lazy();
+      FactorizeOutcome::SideEffectSkipped => {
+        let dep = &dependencies[0];
+        tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
+        for dep in dependencies {
+          module_graph.add_dependency(dep)
+        }
+        Ok(vec![])
       }
-      for dep in dependencies {
-        module_graph.add_dependency(dep)
+      FactorizeOutcome::Ignored => {
+        let dep = &dependencies[0];
+        tracing::trace!("Module ignored: {dep:?}");
+        for dep in dependencies {
+          module_graph.add_dependency(dep)
+        }
+        Ok(vec![])
       }
-      return Ok(vec![]);
+      FactorizeOutcome::Created {
+        module,
+        module_graph_module,
+      } => {
+        tracing::trace!("Module created: {}", module.identifier());
+        Ok(vec![Box::new(AddTask {
+          original_module_identifier,
+          module,
+          module_graph_module,
+          dependencies,
+          from_unlazy,
+        })])
+      }
     }
-
-    let Some(module) = factory_result.module else {
-      let dep = &dependencies[0];
-      tracing::trace!("Module ignored: {dep:?}");
-      // sync dependencies to mg
-      for dep in dependencies {
-        module_graph.add_dependency(dep)
-      }
-      return Ok(vec![]);
-    };
-    let module_identifier = module.identifier();
-    let mut mgm = ModuleGraphModule::new(module.identifier());
-    mgm.set_issuer_if_unset(original_module_identifier);
-
-    tracing::trace!("Module created: {}", &module_identifier);
-
-    Ok(vec![Box::new(AddTask {
-      original_module_identifier,
-      module,
-      module_graph_module: Box::new(mgm),
-      dependencies,
-      from_unlazy,
-    })])
   }
 }
 
