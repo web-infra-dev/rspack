@@ -15,6 +15,7 @@ pub struct AddTask {
   pub module_graph_module: Box<ModuleGraphModule>,
   pub dependencies: Vec<BoxDependency>,
   pub from_unlazy: bool,
+  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[async_trait::async_trait]
@@ -23,28 +24,33 @@ impl Task<TaskContext> for AddTask {
     TaskType::Main
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
-    let module_identifier = self.module.identifier();
+    let Self {
+      original_module_identifier,
+      module,
+      module_graph_module,
+      dependencies,
+      from_unlazy,
+      forwarded_ids,
+    } = *self;
+    let module_identifier = module.identifier();
     let module_graph = &mut context.artifact.module_graph;
 
     // reuse module for self referenced module
-    if self.module.as_self_module().is_some() {
-      let issuer = self
-        .module_graph_module
+    if module.as_self_module().is_some() {
+      let issuer = module_graph_module
         .issuer()
         .identifier()
         .expect("self module should have issuer");
 
       set_resolved_module(
         module_graph,
-        self.original_module_identifier,
-        self.dependencies,
+        original_module_identifier,
+        dependencies,
         *issuer,
       )?;
 
       return Ok(vec![]);
     }
-
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&self.dependencies);
 
     // reuse module if module is already added by other dependency
     if module_graph
@@ -53,12 +59,12 @@ impl Task<TaskContext> for AddTask {
     {
       set_resolved_module(
         module_graph,
-        self.original_module_identifier,
-        self.dependencies,
+        original_module_identifier,
+        dependencies,
         module_identifier,
       )?;
 
-      if self.from_unlazy {
+      if from_unlazy {
         context
           .artifact
           .affected_modules
@@ -96,7 +102,7 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    module_graph.add_module_graph_module(*self.module_graph_module);
+    module_graph.add_module_graph_module(*module_graph_module);
 
     context
       .exports_info_artifact
@@ -104,12 +110,12 @@ impl Task<TaskContext> for AddTask {
 
     set_resolved_module(
       module_graph,
-      self.original_module_identifier,
-      self.dependencies,
+      original_module_identifier,
+      dependencies,
       module_identifier,
     )?;
 
-    tracing::trace!("Module added: {}", self.module.identifier());
+    tracing::trace!("Module added: {}", module.identifier());
     context
       .artifact
       .affected_modules
@@ -117,7 +123,7 @@ impl Task<TaskContext> for AddTask {
     Ok(vec![Box::new(BuildTask {
       compiler_id: context.compiler_id,
       compilation_id: context.compilation_id,
-      module: self.module,
+      module,
       resolver_factory: context.resolver_factory.clone(),
       compiler_options: context.compiler_options.clone(),
       plugin_driver: context.plugin_driver.clone(),

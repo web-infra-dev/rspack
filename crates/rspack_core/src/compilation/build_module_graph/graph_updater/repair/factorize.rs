@@ -8,6 +8,7 @@ use crate::{
   BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo,
   ImportPhase, ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, Resolve,
   ResolverFactory,
+  compilation::build_module_graph::ForwardedIdSet,
   dependency::DependencyType,
   module_graph::ModuleGraphModule,
   utils::{
@@ -144,6 +145,7 @@ impl Task<TaskContext> for FactorizeTask {
         }
       },
     };
+    let forwarded_ids = ForwardedIdSet::from_dependencies(&dependencies);
 
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
@@ -151,6 +153,7 @@ impl Task<TaskContext> for FactorizeTask {
       dependencies,
       factorize_info,
       from_unlazy: self.from_unlazy,
+      forwarded_ids,
     })])
   }
 }
@@ -190,6 +193,7 @@ pub struct FactorizeResultTask {
   pub dependencies: Vec<BoxDependency>,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
+  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[async_trait::async_trait]
@@ -204,6 +208,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       mut dependencies,
       mut factorize_info,
       from_unlazy,
+      forwarded_ids,
     } = *self;
 
     let first_dep_id = *dependencies[0].id();
@@ -261,6 +266,7 @@ impl Task<TaskContext> for FactorizeResultTask {
       module_graph_module,
       dependencies,
       from_unlazy,
+      forwarded_ids,
     })])
   }
 }
