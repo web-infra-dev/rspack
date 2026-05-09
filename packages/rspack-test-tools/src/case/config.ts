@@ -24,7 +24,7 @@ export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
 
 export function createConfigProcessor(name: string): ITestProcessor {
   return {
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       configMultiCompiler(
         context,
         name,

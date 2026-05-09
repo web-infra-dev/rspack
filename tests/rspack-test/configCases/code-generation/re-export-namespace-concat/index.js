@@ -5,7 +5,7 @@ import * as m_3 from './module3';
 import data from "./data";
 
 const { expectSourceToContain, expectSourceToMatch } = require("@rspack/test-tools/helper/legacy/expectSource");
-const regexEscape = require("@rspack/test-tools/helper/legacy/regexEscape");
+const { regexEscape } = require("@rspack/test-tools/helper/legacy/regexEscape");
 
 // It's important to preserve the same accessor syntax (quotes vs. dot notatation) after the actual export variable.
 // Else, minifiers such as Closure Compiler will not be able to minify correctly in ADVANCED mode.

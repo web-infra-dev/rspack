@@ -133,7 +133,7 @@ impl SideEffectsFlagPlugin {
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
+  create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
   if let Some(has_side_effects) = create_data.side_effects {
@@ -143,7 +143,7 @@ async fn nmf_module(
     return Ok(());
   }
 
-  let resource_data = &create_data.resource_resolve_data;
+  let resource_data = create_data.resource_resolve_data.as_ref();
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
   };

@@ -1,4 +1,4 @@
-const captureStdio = require("@rspack/test-tools/helper/legacy/captureStdio");
+const { captureStdio } = require("@rspack/test-tools/helper/legacy/captureStdio");
 const { createFsFromVolume, Volume } = require("memfs");
 
 class MyPlugin {

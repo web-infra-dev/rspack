@@ -478,11 +478,18 @@ pub fn runtime_globals_to_string(
   };
   if REQUIRE_SCOPE_GLOBALS.contains(*runtime_globals) {
     let require = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
-    return format!("{require}.{name}");
+    let mut result = String::with_capacity(require.len() + 1 + name.len());
+    result.push_str(&require);
+    result.push('.');
+    result.push_str(name);
+    return result;
   }
   if MODULE_GLOBALS.contains(*runtime_globals) {
-    let module = runtime_globals_to_string(&RuntimeGlobals::MODULE, compiler_options);
-    return format!("{module}.{name}");
+    let mut result = String::with_capacity("module".len() + 1 + name.len());
+    result.push_str("module");
+    result.push('.');
+    result.push_str(name);
+    return result;
   }
   name.to_string()
 }

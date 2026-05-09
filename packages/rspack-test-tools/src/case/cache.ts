@@ -7,7 +7,7 @@ import rspack, {
 import { isJavaScript } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { HotUpdatePlugin } from '../helper/hot-update';
-import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
+import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { NodeRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type {
@@ -69,7 +69,7 @@ function createCacheProcessor(
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
     },
-    afterAll: async (context: ITestContext) => {
+    afterAll: (context: ITestContext) => {
       const updateIndex = updatePlugin.getUpdateIndex();
       const totalUpdates = updatePlugin.getTotalUpdates();
       if (updateIndex + 1 !== totalUpdates) {

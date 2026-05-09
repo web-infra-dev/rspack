@@ -28,13 +28,22 @@ export interface RscManifestPerEntry {
   moduleLoading: RscModuleLoading;
   entryCssFiles: Record<string, string[]>;
   entryJsFiles: string[];
+  cssLinkProps: RscCssLinkProps;
 }
 
 /** Full RSC manifest (all entries) passed to onManifest. Map from entry name to per-entry manifest. */
 export type RscManifest = Record<string, RscManifestPerEntry>;
 
+export type RscCssLinkProps = Record<string, string>;
+
+export type RscCssLinkOptions = {
+  precedence?: string | false;
+  props?: RscCssLinkProps;
+};
+
 export type RscServerPluginOptions = {
   coordinator: Coordinator;
+  cssLink?: RscCssLinkOptions | null;
   onServerComponentChanges?: () => void | Promise<void>;
   onManifest?: (manifest: RscManifest) => void | Promise<void>;
 };
@@ -59,8 +68,9 @@ export class RscServerPlugin extends RspackBuiltinPlugin {
     }
 
     return createBuiltinPlugin(this.name, {
-      // @ts-ignore
+      // @ts-expect-error we use a special API to get the underlying binding instance.
       coordinator: coordinator[GET_OR_INIT_BINDING](),
+      cssLink: this.#options.cssLink,
       onServerComponentChanges,
       onManifest,
     });

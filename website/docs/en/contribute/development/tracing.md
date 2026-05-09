@@ -15,7 +15,7 @@ Tracing can be enabled in two ways:
 ```sh
 # Rspack CLI
 RSPACK_PROFILE=OVERVIEW rspack build # recommend
-RSPACK_PROFILE=ALL rspack build # not recommend, may generate too large rspack.pftrace for large projects
+RSPACK_PROFILE=ALL rspack build # not recommend, may generate too much output for large projects
 
 # Rsbuild
 RSPACK_PROFILE=OVERVIEW rsbuild build
@@ -24,7 +24,7 @@ RSPACK_PROFILE=ALL rsbuild build
 
 - If directly using `@rspack/core`: Enable it through `rspack.experiments.globalTrace.register` and `rspack.experiments.globalTrace.cleanup`. You can check how we implement [`RSPACK_PROFILE` in `@rspack/cli`](https://github.com/web-infra-dev/rspack/blob/9be47217b5179186b0825ca79990ab2808aa1a0f/packages/rspack-cli/src/utils/profile.ts#L219-L224) for more information.
 
-The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
+When the `perfetto` layer is enabled, the generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.dev](https://ui.perfetto.dev/):
 
 <img
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-tracing.png"
@@ -35,14 +35,15 @@ The generated `rspack.pftrace` file can be viewed and analyzed in [ui.perfetto.d
 
 Rspack supports two types of layers: `perfetto` and `logger`:
 
-- `perfetto`: The default value, generates a rspack.pftrace file conforming to the [`perfetto proto`](https://perfetto.dev/docs/reference/synthetic-track-event) format, which can be exported to perfetto for complex performance analysis
-- `logger`: Outputs logs directly to the terminal, suitable for simple log analysis or viewing compilation processes in CI environments
+- `logger`: The default value, outputs logs directly to the terminal, suitable for simple log analysis or viewing compilation processes in CI environments
+- `perfetto`: Only available when using `@rspack-debug/core`. It generates a `rspack.pftrace` file conforming to the [`perfetto proto`](https://perfetto.dev/docs/reference/synthetic-track-event) format, which can be imported into Perfetto for complex performance analysis
 
 You can specify the layer through the `RSPACK_TRACE_LAYER` environment variable:
 
 ```sh
 RSPACK_TRACE_LAYER=logger
-# or
+
+# Only available with @rspack-debug/core
 RSPACK_TRACE_LAYER=perfetto
 ```
 
@@ -57,6 +58,8 @@ You can customize the output location through the `RSPACK_TRACE_OUTPUT` environm
 
 ```sh
 RSPACK_TRACE_LAYER=logger RSPACK_TRACE_OUTPUT=./log.txt rspack dev
+
+# Only available with @rspack-debug/core
 RSPACK_TRACE_LAYER=perfetto RSPACK_TRACE_OUTPUT=./perfetto.pftrace rspack dev
 ```
 

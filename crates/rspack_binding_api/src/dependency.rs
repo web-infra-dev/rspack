@@ -2,7 +2,7 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
   Either, Env,
-  bindgen_prelude::{Array, ToNapiValue},
+  bindgen_prelude::{Array, Object, ToNapiValue},
 };
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, DependencyId, internal};
@@ -115,6 +115,22 @@ impl Dependency {
     Ok(match dependency.as_module_dependency() {
       Some(dep) => napi::Either::A(dep.request()),
       None => napi::Either::B(()),
+    })
+  }
+
+  #[napi(getter, ts_return_type = "Record<string, string> | undefined")]
+  pub fn attributes<'a>(&mut self, env: &'a Env) -> napi::Result<Either<Object<'a>, ()>> {
+    let (dependency, _) = self.as_ref()?;
+
+    Ok(match dependency.get_attributes() {
+      Some(attributes) => {
+        let mut object = Object::new(env)?;
+        for (key, value) in attributes.iter() {
+          object.set(key, value)?;
+        }
+        Either::A(object)
+      }
+      None => Either::B(()),
     })
   }
 

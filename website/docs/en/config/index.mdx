@@ -224,7 +224,7 @@ export default function (env, argv) {
 
 ## Merge configurations
 
-Use Rspack's [extends](/config/extends) option or [webpack-merge](https://npmjs.com/package/webpack-merge) package to merge multiple Rspack configurations.
+Use Rspack's [extends](/config/extends) option or [rspack-merge](https://github.com/rstackjs/rspack-merge) package to merge multiple Rspack configurations.
 
 ### extends option
 
@@ -241,18 +241,18 @@ export default {
 
 > This option is only supported in `@rspack/cli`, see [extends](/config/extends) for more usage.
 
-### webpack-merge
+### rspack-merge
 
-`webpack-merge` is a community library for merging multiple webpack configurations, and it can also be used to merge Rspack configurations.
+`rspack-merge` is a library for merging multiple Rspack configurations.
 
-First install `webpack-merge`:
+First install `rspack-merge`:
 
-<PackageManagerTabs command="add webpack-merge -D" />
+<PackageManagerTabs command="add rspack-merge -D" />
 
 Then you can use its `merge` function to merge configurations:
 
 ```js title="rspack.config.mjs"
-import { merge } from 'webpack-merge';
+import { merge } from 'rspack-merge';
 
 const isDev = process.env.NODE_ENV === 'development';
 const base = {};
@@ -263,4 +263,4 @@ const dev = {
 export default isDev ? merge(base, dev) : base;
 ```
 
-> See [webpack-merge documentation](https://npmjs.com/package/webpack-merge) for more details.
+> See [rspack-merge documentation](https://github.com/rstackjs/rspack-merge) for more details.

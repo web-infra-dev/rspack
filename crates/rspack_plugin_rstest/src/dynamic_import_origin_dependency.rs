@@ -45,10 +45,22 @@ impl AsModuleDependency for RstestDynamicImportOriginDependency {}
 impl AsContextDependency for RstestDynamicImportOriginDependency {}
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
-pub struct RstestDynamicImportOriginDependencyTemplate;
+#[derive(Debug, Clone)]
+pub struct RstestDynamicImportOriginDependencyTemplate {
+  /// Resolved callee for the rewrite — rstest's own `functionName` override
+  /// or the `output.importFunctionName` fallback. Resolved once at `apply`
+  /// time (with the default `import` normalized to "feature off" since
+  /// native `import()` only accepts 1-2 args) and held here so each
+  /// `import()` call site reuses the same string without repeating the
+  /// override + fallback + default-`import` check.
+  function_name: String,
+}
 
 impl RstestDynamicImportOriginDependencyTemplate {
+  pub fn new(function_name: String) -> Self {
+    Self { function_name }
+  }
+
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::RstestDynamicImportOrigin)
   }
@@ -59,7 +71,7 @@ impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    code_generatable_context: &mut TemplateContext,
+    _code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
@@ -69,28 +81,15 @@ impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
          RstestDynamicImportOriginDependency",
       );
 
-    let import_fn = code_generatable_context
-      .compilation
-      .options
-      .output
-      .import_function_name
-      .clone();
-
-    // Replace `import` callee with the configured importFunctionName.
     source.replace(
       dep.callee_range.start,
       dep.callee_range.end,
-      import_fn,
+      self.function_name.clone(),
       None,
     );
 
-    // Append the origin so the runtime can resolve relative specifiers against
-    // the source module that produced the dynamic import, instead of the test
-    // entry. Always emit it at the third-argument position — fill the
-    // attributes slot with `void 0` when the call had only a specifier. We
-    // use `void 0` rather than the identifier `undefined` because the latter
-    // can be shadowed (e.g. `function f(undefined) { import(spec) }`), which
-    // would silently feed the runtime a bogus `importAttributes` value.
+    // `void 0` (rather than the identifier `undefined`) for the missing
+    // attributes slot — `undefined` can be shadowed by a local binding.
     let tail = if dep.has_attributes {
       format!(", {}", json_stringify_str(&dep.origin_path))
     } else {

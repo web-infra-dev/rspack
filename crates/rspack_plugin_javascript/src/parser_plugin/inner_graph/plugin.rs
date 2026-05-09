@@ -80,9 +80,9 @@ impl InnerGraphParserPlugin {
           DependencyRange::new(pure_part_start, pure_part_end),
           *parser.module_identifier,
         );
-        let dep_id = *dep.id();
+        let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
-        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
   }
@@ -104,18 +104,21 @@ impl InnerGraphParserPlugin {
         let mut set_is_true = false;
         let mut is_terminal = true;
         let already_processed = processed.entry(*key).or_default();
-        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
-          for name in names.iter() {
-            already_processed.insert(name.clone());
-          }
+        if matches!(state.inner_graph.get(key), Some(InnerGraphMapValue::Set(_))) {
+          let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.remove(key) else {
+            unreachable!("checked Set value before removing inner graph entry")
+          };
+          already_processed.extend(names.iter().cloned());
           for name in names {
             match name {
               InnerGraphMapSetValue::Str(v) => {
-                new_set.insert(InnerGraphMapSetValue::Str(v.clone()));
+                new_set.insert(InnerGraphMapSetValue::Str(v));
               }
               InnerGraphMapSetValue::TopLevel(v) => {
-                let item_value = state.inner_graph.get(v);
-                match item_value {
+                if v == *key {
+                  continue;
+                }
+                match state.inner_graph.get(&v) {
                   Some(InnerGraphMapValue::True) => {
                     set_is_true = true;
                     break;
@@ -221,70 +224,69 @@ impl InnerGraphParserPlugin {
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
   ) {
-    if !state.is_enabled() {
+    if !state.is_enabled() || state.usage_map.is_empty() {
       return;
     }
 
-    let dep_by_span: HashMap<(BytePos, BytePos), (DependencyId, Atom)> = dependencies
-      .iter()
-      .filter_map(|dep| {
-        let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
-        let range = specifier_dep.range()?;
-        Some((
-          (BytePos(range.start), BytePos(range.end)),
-          (*dep.id(), specifier_dep.imported_name().clone()),
-        ))
-      })
-      .collect();
-
     let mut deferred_pure_checks_by_symbol = HashMap::default();
-    let mut always_used_symbols = Vec::new();
+    if state
+      .symbol_map
+      .values()
+      .any(|symbol_data| !symbol_data.depend_on_pure.is_empty())
+    {
+      let mut dep_by_span: HashMap<(BytePos, BytePos), (DependencyId, Atom)> = dependencies
+        .iter()
+        .filter_map(|dep| {
+          let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
+          let range = specifier_dep.range()?;
+          Some((
+            (BytePos(range.start), BytePos(range.end)),
+            (*dep.id(), specifier_dep.imported_name().clone()),
+          ))
+        })
+        .collect();
 
-    for (symbol, symbol_data) in &state.symbol_map {
-      let mut deferred_pure_checks = Vec::new();
-      for (_name, span) in &symbol_data.depend_on_pure {
-        if let Some((dep_id, import_name)) =
-          dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi())))
-        {
-          deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
-            dep_id: *dep_id,
-            atom: import_name.clone(),
-          });
-        } else {
-          always_used_symbols.push(*symbol);
-          deferred_pure_checks.clear();
-          break;
+      let mut always_used_symbols = Vec::new();
+
+      for (symbol, symbol_data) in &state.symbol_map {
+        let mut deferred_pure_checks = Vec::new();
+        for (_name, span) in &symbol_data.depend_on_pure {
+          if let Some((dep_id, import_name)) =
+            dep_by_span.remove(&(BytePos(span.real_lo()), BytePos(span.real_hi())))
+          {
+            deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
+              dep_id,
+              atom: import_name,
+            });
+          } else {
+            always_used_symbols.push(*symbol);
+            deferred_pure_checks.clear();
+            break;
+          }
+        }
+
+        if !deferred_pure_checks.is_empty() {
+          deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
         }
       }
 
-      if !deferred_pure_checks.is_empty() {
-        deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
+      for symbol in always_used_symbols {
+        state.inner_graph.insert(symbol, InnerGraphMapValue::True);
+        deferred_pure_checks_by_symbol.remove(&symbol);
       }
     }
-
-    for symbol in always_used_symbols {
-      state.inner_graph.insert(symbol, InnerGraphMapValue::True);
-      deferred_pure_checks_by_symbol.remove(&symbol);
-    }
-
-    let dep_by_id: HashMap<DependencyId, usize> = dependencies
-      .iter()
-      .enumerate()
-      .map(|(idx, dep)| (*dep.id(), idx))
-      .collect();
 
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_id = match operation {
-        InnerGraphUsageOperation::PureExpression(dep_id)
-        | InnerGraphUsageOperation::ESMImportSpecifier(dep_id)
-        | InnerGraphUsageOperation::URLDependency(dep_id) => dep_id,
+      let dep_idx = match operation {
+        InnerGraphUsageOperation::PureExpression(dep_idx)
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
+        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
       };
-      let Some(dep_idx) = dep_by_id.get(&dep_id).copied() else {
+      let Some(dep) = dependencies.get_mut(dep_idx) else {
         continue;
       };
-      let dep = &mut dependencies[dep_idx];
       match operation {
         InnerGraphUsageOperation::PureExpression(_) => {
           if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
@@ -307,8 +309,8 @@ impl InnerGraphParserPlugin {
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
     let symbol = parser
-      .get_tag_data(name, TOP_LEVEL_SYMBOL)
-      .map(TopLevelSymbol::downcast)
+      .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
+      .copied()
       .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
 
     parser.inner_graph.add_usage(symbol, usage);
@@ -339,11 +341,11 @@ impl InnerGraphParserPlugin {
     let existing = parser.get_variable_info(name);
     if let Some(existing) = existing
       && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
+      && let tag_info = parser.definitions_db.expect_get_tag_info(tag_info)
       && tag_info.tag == TOP_LEVEL_SYMBOL
-      && let Some(tag_data) = tag_info.data.clone()
+      && let Some(tag_data) = tag_info.data.as_deref()
     {
-      return TopLevelSymbol::downcast(tag_data);
+      return *TopLevelSymbol::downcast_ref(tag_data);
     }
 
     let symbol = parser.inner_graph.new_top_level_symbol(name.clone());
@@ -619,9 +621,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           DependencyRange::new(pure_part_start, pure_part_end),
           *parser.module_identifier,
         );
-        let dep_id = *dep.id();
+        let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
-        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
 
@@ -673,9 +675,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         DependencyRange::new(expr_span.real_lo(), expr_span.real_hi()),
         *parser.module_identifier,
       );
-      let dep_id = *dep.id();
+      let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
-      Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+      Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
     }
 
     None
@@ -759,9 +761,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
             DependencyRange::new(expr_span.real_lo(), expr_span.real_hi()),
             *parser.module_identifier,
           );
-          let dep_id = *dep.id();
+          let dep_idx = parser.next_dependency_idx();
           parser.add_dependency(Box::new(dep));
-          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         }
       } else {
         parser.inner_graph.set_top_level_symbol(None);
@@ -799,9 +801,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
             DependencyRange::new(super_span.real_lo(), super_span.real_hi()),
             *parser.module_identifier,
           );
-          let dep_id = *dep.id();
+          let dep_idx = parser.next_dependency_idx();
           parser.add_dependency(Box::new(dep));
-          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         } else if decl.init.is_none() || !decl.init.as_ref().expect("unreachable").is_class() {
           let init = decl.init.as_ref().expect("should have initialization");
           let init_span = init.span();
@@ -809,11 +811,11 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
             DependencyRange::new(init_span.real_lo(), init_span.real_hi()),
             *parser.module_identifier,
           );
-          let dep_id = *dep.id();
+          let dep_idx = parser.next_dependency_idx();
           parser.add_dependency(Box::new(dep));
           InnerGraphParserPlugin::on_usage(
             parser,
-            InnerGraphUsageOperation::PureExpression(dep_id),
+            InnerGraphUsageOperation::PureExpression(dep_idx),
           );
         }
       }

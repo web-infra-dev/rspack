@@ -42,7 +42,10 @@ export default defineConfig({
     {
       format: 'esm',
       syntax: 'es2023',
-      dts: { build: true },
+      dts: {
+        build: true,
+        tsgo: true,
+      },
       autoExternal: false,
       source: {
         entry: {

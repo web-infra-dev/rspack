@@ -63,7 +63,7 @@ ${tooMuch.map((item) => `${explain(item)}`).join('\n\n')}`);
   return diff.join('\n\n');
 };
 
-module.exports = async function checkArrayExpectation(
+export async function checkArrayExpectation(
   testDirectory,
   object,
   kind,
@@ -177,4 +177,4 @@ module.exports = async function checkArrayExpectation(
     );
     return true;
   }
-};
+}

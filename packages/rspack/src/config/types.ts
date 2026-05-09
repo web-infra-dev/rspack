@@ -304,7 +304,7 @@ export type OutputModule = boolean;
 /** Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required. */
 export type StrictModuleExceptionHandling = boolean;
 
-/** Handle error in module loading as per EcmaScript Modules spec at a performance cost. */
+/** Handle error in module loading as per ECMAScript Modules spec at a performance cost. */
 export type StrictModuleErrorHandling = boolean;
 
 /** Indicates what global object will be used to mount the library. */
@@ -415,7 +415,7 @@ export type Environment = {
   /** The environment supports 'document' variable. */
   document?: boolean;
 
-  /** The environment supports an async import() function to import EcmaScript modules. */
+  /** The environment supports an async import() function to import ECMAScript modules. */
   dynamicImport?: boolean;
 
   /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
@@ -545,7 +545,7 @@ export type Output = {
   strictModuleExceptionHandling?: StrictModuleExceptionHandling;
 
   /**
-   * Handle error in module loading as per EcmaScript Modules spec at a performance cost.
+   * Handle error in module loading as per ECMAScript Modules spec at a performance cost.
    * @default false
    * */
   strictModuleErrorHandling?: StrictModuleErrorHandling;

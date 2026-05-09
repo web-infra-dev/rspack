@@ -891,7 +891,10 @@ pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
   Logical(Box<RuleSetLogicalConditions>),
-  Array(Vec<RuleSetCondition>),
+  Array {
+    items: Vec<RuleSetCondition>,
+    can_sync: bool,
+  },
   Func(RuleSetConditionFnMatcher),
 }
 
@@ -901,7 +904,7 @@ impl fmt::Debug for RuleSetCondition {
       Self::String(i) => i.fmt(f),
       Self::Regexp(i) => i.fmt(f),
       Self::Logical(i) => i.fmt(f),
-      Self::Array(i) => i.fmt(f),
+      Self::Array { items, .. } => items.fmt(f),
       Self::Func(_) => "Func(...)".fmt(f),
     }
   }
@@ -942,34 +945,118 @@ impl DataRef<'_> {
 }
 
 impl RuleSetCondition {
-  #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
+  pub fn array(items: Vec<RuleSetCondition>) -> Self {
+    let can_sync = items.iter().all(Self::can_sync);
+    Self::Array { items, can_sync }
+  }
+
+  fn can_sync(&self) -> bool {
     match self {
-      Self::String(s) => Ok(
+      Self::String(_) | Self::Regexp(_) => true,
+      Self::Logical(logical) => logical.can_sync,
+      Self::Array { can_sync, .. } => *can_sync,
+      Self::Func(_) => false,
+    }
+  }
+
+  pub fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    match self {
+      Self::String(s) => Some(Ok(
         data
           .as_str()
           .map(|data| data.starts_with(s))
           .unwrap_or_default(),
-      ),
-      Self::Regexp(r) => Ok(data.as_str().map(|data| r.test(data)).unwrap_or_default()),
-      Self::Logical(g) => g.try_match(data).await,
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
-      Self::Func(f) => f(data).await,
+      )),
+      Self::Regexp(r) => Some(Ok(
+        data.as_str().map(|data| r.test(data)).unwrap_or_default(),
+      )),
+      Self::Logical(g) => {
+        if !g.can_sync {
+          return None;
+        }
+        g.try_match_sync(data)
+      }
+      Self::Array { items, can_sync } => {
+        if !can_sync {
+          return None;
+        }
+        for item in items {
+          match item.try_match_sync(data) {
+            Some(Ok(true)) => return Some(Ok(true)),
+            Some(Ok(false)) => {}
+            Some(Err(err)) => return Some(Err(err)),
+            None => return None,
+          }
+        }
+        Some(Ok(false))
+      }
+      Self::Func(_) => None,
     }
   }
 
-  #[async_recursion]
-  async fn match_when_empty(&self) -> Result<bool> {
-    let res = match self {
-      RuleSetCondition::String(s) => s.is_empty(),
-      RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
-      RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
-      RuleSetCondition::Array(arr) => {
-        arr.is_empty() && try_any(arr, |c| async move { c.match_when_empty().await }).await?
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    if let Some(result) = self.try_match_sync(data) {
+      return result;
+    }
+    self.try_match_async(data).await
+  }
+
+  fn try_match_async<'a>(&'a self, data: DataRef<'a>) -> BoxFuture<'a, Result<bool>> {
+    Box::pin(async move {
+      match self {
+        Self::String(_) | Self::Regexp(_) => self
+          .try_match_sync(data)
+          .expect("non-function condition should match synchronously"),
+        Self::Logical(g) => g.try_match_async(data).await,
+        Self::Array { items, .. } => try_any(items, |i| i.try_match(data)).await,
+        Self::Func(f) => f(data).await,
       }
-      RuleSetCondition::Func(func) => func("".into()).await?,
-    };
-    Ok(res)
+    })
+  }
+
+  fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    match self {
+      RuleSetCondition::String(s) => Some(Ok(s.is_empty())),
+      RuleSetCondition::Regexp(rspack_regex) => Some(Ok(rspack_regex.test(""))),
+      RuleSetCondition::Logical(logical) => logical.match_when_empty_sync(),
+      RuleSetCondition::Array { items, .. } => {
+        if !items.is_empty() {
+          return Some(Ok(false));
+        }
+        for item in items {
+          match item.match_when_empty_sync() {
+            Some(Ok(true)) => return Some(Ok(true)),
+            Some(Ok(false)) => {}
+            Some(Err(err)) => return Some(Err(err)),
+            None => return None,
+          }
+        }
+        Some(Ok(false))
+      }
+      RuleSetCondition::Func(_) => None,
+    }
+  }
+
+  async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(result) = self.match_when_empty_sync() {
+      return result;
+    }
+    self.match_when_empty_async().await
+  }
+
+  fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
+    Box::pin(async move {
+      let res = match self {
+        RuleSetCondition::String(_)
+        | RuleSetCondition::Regexp(_)
+        | RuleSetCondition::Array { .. } => self
+          .match_when_empty_sync()
+          .expect("non-function condition should match synchronously")?,
+        RuleSetCondition::Logical(logical) => logical.match_when_empty_async().await?,
+        RuleSetCondition::Func(func) => func("".into()).await?,
+      };
+      Ok(res)
+    })
   }
 }
 
@@ -987,11 +1074,22 @@ impl RuleSetConditionWithEmpty {
     }
   }
 
+  pub fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    self.condition.try_match_sync(data)
+  }
+
   pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
     self.condition.try_match(data).await
   }
 
+  pub fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    self.condition.match_when_empty_sync()
+  }
+
   pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(result) = self.match_when_empty_sync() {
+      return result;
+    }
     self
       .match_when_empty
       .get_or_try_init(|| async { self.condition.match_when_empty().await })
@@ -1006,51 +1104,209 @@ impl From<RuleSetCondition> for RuleSetConditionWithEmpty {
   }
 }
 
-#[derive(Debug, Default)]
 pub struct RuleSetLogicalConditions {
   pub and: Option<Vec<RuleSetCondition>>,
   pub or: Option<Vec<RuleSetCondition>>,
   pub not: Option<RuleSetCondition>,
+  can_sync: bool,
+}
+
+impl Default for RuleSetLogicalConditions {
+  fn default() -> Self {
+    Self::new(None, None, None)
+  }
+}
+
+impl fmt::Debug for RuleSetLogicalConditions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("RuleSetLogicalConditions")
+      .field("and", &self.and)
+      .field("or", &self.or)
+      .field("not", &self.not)
+      .finish()
+  }
 }
 
 impl RuleSetLogicalConditions {
-  #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
-    if let Some(and) = &self.and
-      && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
-    {
-      return Ok(false);
+  pub fn new(
+    and: Option<Vec<RuleSetCondition>>,
+    or: Option<Vec<RuleSetCondition>>,
+    not: Option<RuleSetCondition>,
+  ) -> Self {
+    let can_sync = and
+      .iter()
+      .flatten()
+      .chain(or.iter().flatten())
+      .all(RuleSetCondition::can_sync)
+      && not.as_ref().is_none_or(RuleSetCondition::can_sync);
+    Self {
+      and,
+      or,
+      not,
+      can_sync,
     }
-    if let Some(or) = &self.or
-      && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
-    {
-      return Ok(false);
-    }
-    if let Some(not) = &self.not
-      && not.try_match(data).await?
-    {
-      return Ok(false);
-    }
-    Ok(true)
   }
 
-  pub async fn match_when_empty(&self) -> Result<bool> {
+  fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    if !self.can_sync {
+      return None;
+    }
+    if let Some(and) = &self.and {
+      for item in and {
+        match item.try_match_sync(data) {
+          Some(Ok(true)) => {}
+          Some(Ok(false)) => return Some(Ok(false)),
+          Some(Err(err)) => return Some(Err(err)),
+          None => return None,
+        }
+      }
+    }
+    if let Some(or) = &self.or {
+      let mut matched = false;
+      for item in or {
+        match item.try_match_sync(data) {
+          Some(Ok(true)) => {
+            matched = true;
+            break;
+          }
+          Some(Ok(false)) => {}
+          Some(Err(err)) => return Some(Err(err)),
+          None => return None,
+        }
+      }
+      if !matched {
+        return Some(Ok(false));
+      }
+    }
+    if let Some(not) = &self.not
+      && match not.try_match_sync(data) {
+        Some(Ok(value)) => value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
+    {
+      return Some(Ok(false));
+    }
+    Some(Ok(true))
+  }
+
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    if let Some(result) = self.try_match_sync(data) {
+      return result;
+    }
+    self.try_match_async(data).await
+  }
+
+  fn try_match_async<'a>(&'a self, data: DataRef<'a>) -> BoxFuture<'a, Result<bool>> {
+    Box::pin(async move {
+      if let Some(and) = &self.and
+        && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+      {
+        return Ok(false);
+      }
+      if let Some(or) = &self.or
+        && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+      {
+        return Ok(false);
+      }
+      if let Some(not) = &self.not
+        && not.try_match(data).await?
+      {
+        return Ok(false);
+      }
+      Ok(true)
+    })
+  }
+
+  fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    if !self.can_sync {
+      return None;
+    }
     let mut has_condition = false;
     let mut match_when_empty = true;
     if let Some(and) = &self.and {
       has_condition = true;
-      match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+      match try_all_sync(and, |i| i.match_when_empty_sync()) {
+        Some(Ok(value)) => match_when_empty &= value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
     }
     if let Some(or) = &self.or {
       has_condition = true;
-      match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+      match try_any_sync(or, |i| i.match_when_empty_sync()) {
+        Some(Ok(value)) => match_when_empty &= value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
     }
     if let Some(not) = &self.not {
       has_condition = true;
-      match_when_empty &= !not.match_when_empty().await?;
+      match not.match_when_empty_sync() {
+        Some(Ok(value)) => match_when_empty &= !value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
     }
-    Ok(has_condition && match_when_empty)
+    Some(Ok(has_condition && match_when_empty))
   }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(result) = self.match_when_empty_sync() {
+      return result;
+    }
+    self.match_when_empty_async().await
+  }
+
+  fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
+    Box::pin(async move {
+      let mut has_condition = false;
+      let mut match_when_empty = true;
+      if let Some(and) = &self.and {
+        has_condition = true;
+        match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+      }
+      if let Some(or) = &self.or {
+        has_condition = true;
+        match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+      }
+      if let Some(not) = &self.not {
+        has_condition = true;
+        match_when_empty &= !not.match_when_empty().await?;
+      }
+      Ok(has_condition && match_when_empty)
+    })
+  }
+}
+
+fn try_any_sync<T, F, E>(items: &[T], f: F) -> Option<Result<bool, E>>
+where
+  F: Fn(&T) -> Option<Result<bool, E>>,
+{
+  for item in items {
+    match f(item) {
+      Some(Ok(true)) => return Some(Ok(true)),
+      Some(Ok(false)) => {}
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  }
+  Some(Ok(false))
+}
+
+fn try_all_sync<T, F, E>(items: &[T], f: F) -> Option<Result<bool, E>>
+where
+  F: Fn(&T) -> Option<Result<bool, E>>,
+{
+  for item in items {
+    match f(item) {
+      Some(Ok(true)) => {}
+      Some(Ok(false)) => return Some(Ok(false)),
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  }
+  Some(Ok(true))
 }
 
 pub struct FuncUseCtx {

@@ -65,7 +65,7 @@ md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.0", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
 miette              = { version = "7.6.0", default-features = false }
-mimalloc            = { version = "0.1.50", default-features = false }
+mimalloc            = { version = "0.1.48", default-features = false }
 mime_guess          = { version = "2.0.5", default-features = false, features = ["rev-mappings"] }
 notify              = { version = "8.2.0", default-features = false }
 num-bigint          = { version = "0.4.6", default-features = false }
@@ -105,7 +105,7 @@ syn                 = { version = "2.0.117", default-features = false }
 termcolor           = { version = "1.4.1", default-features = false }
 textwrap            = { version = "0.16.1", default-features = false }
 thread_local        = { version = "1.1.9", default-features = false }
-tokio               = { version = "1.52.1", default-features = false, features = ["rt", "rt-multi-thread"] }
+tokio               = { version = "1.52.3", default-features = false, features = ["rt", "rt-multi-thread"] }
 tracing             = { version = "0.1.44", default-features = false, features = ["max_level_trace", "release_max_level_trace"] }
 tracing-subscriber  = { version = "0.3.23", default-features = false, features = ["fmt", "registry"] }
 trybuild            = { version = "1.0.116", default-features = false, features = ["diff"] }
@@ -430,7 +430,7 @@ unused_lifetimes                       = "warn"
 unused_macro_rules                     = "warn"
 
 [workspace.lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
+check-cfg = ['cfg(allocative)', 'cfg(codspeed)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
 level     = "warn"
 
 [workspace.lints.clippy]
