@@ -1,5 +1,5 @@
 import { renderToReadableStream } from 'react-server-dom-rspack/server';
-import { App, getCssNodes, getInheritedCssNodes } from '../App';
+import { App, getCssNodes, getDestructuredCssNodes, getInheritedCssNodes } from '../App';
 
 export const renderRscStream = () => {
     return renderToReadableStream(<App />);
@@ -18,6 +18,16 @@ it('should expose entry JS and CSS files for server entries', async () => {
 
 it('should load css from the current server entry', () => {
     const cssNodes = getCssNodes();
+
+    expect(cssNodes.length).toEqual(1);
+    expect(cssNodes[0].type).toBe('link');
+    expect(cssNodes[0].props.rel).toBe('stylesheet');
+    expect(cssNodes[0].props.href).toMatch(/\.css$/);
+    expect(cssNodes[0].props.precedence).toBe('default');
+});
+
+it('should load css from destructured import.meta.rspackRsc', () => {
+    const cssNodes = getDestructuredCssNodes();
 
     expect(cssNodes.length).toEqual(1);
     expect(cssNodes[0].type).toBe('link');

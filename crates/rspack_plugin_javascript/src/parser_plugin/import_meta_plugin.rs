@@ -15,7 +15,7 @@ use url::Url;
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
-    ImportMetaResolveContextDependency, ImportMetaResolveDependency,
+    IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
     ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
@@ -164,6 +164,18 @@ impl ImportMetaPlugin {
     let range = member_expr.span().into();
     let loc = parser.to_dependency_location(range);
     parser.add_dependency(Box::new(ImportMetaRscDependency::new(importer, range, loc)));
+  }
+
+  fn process_rspack_rsc_destructuring(&self, parser: &mut JavascriptParser, span: Span) -> String {
+    let importer = get_rspack_rsc_importer(parser);
+    mark_import_meta_rsc_used(parser);
+
+    let loc = parser.to_dependency_location(span.into());
+    parser.add_dependency(Box::new(ImportMetaRscDependency::new_without_replacement(
+      importer, loc,
+    )));
+
+    IMPORT_META_RSC_BINDING.to_string()
   }
 }
 
@@ -404,6 +416,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else if prop.id == "main" {
             content.push(format!("main: {}", self.import_meta_main(parser)));
+          } else if prop.id == "rspackRsc" && is_rsc_layer(parser) {
+            content.push(format!(
+              "rspackRsc: {}",
+              self.process_rspack_rsc_destructuring(parser, span)
+            ));
           } else {
             content.push(format!(
               r#"[{}]: {}"#,

@@ -47,7 +47,9 @@ pub use self::{
   import_meta_resolve_header_dependency::{
     ImportMetaResolveHeaderDependency, ImportMetaResolveHeaderDependencyTemplate,
   },
-  import_meta_rsc_dependency::{ImportMetaRscDependency, ImportMetaRscDependencyTemplate},
+  import_meta_rsc_dependency::{
+    IMPORT_META_RSC_BINDING, ImportMetaRscDependency, ImportMetaRscDependencyTemplate,
+  },
   import_weak_dependency::{ImportWeakDependency, ImportWeakDependencyTemplate},
   provide_dependency::{ProvideDependency, ProvideDependencyTemplate},
 };

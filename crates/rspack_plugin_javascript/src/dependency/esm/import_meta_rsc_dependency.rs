@@ -9,7 +9,7 @@ use rspack_core::{
 use rspack_util::{ext::DynHash, json_stringify_str};
 use swc_core::atoms::Atom;
 
-const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
+pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -18,7 +18,7 @@ pub struct ImportMetaRscDependency {
   #[cacheable(with=AsPreset)]
   request: Atom,
   importer: String,
-  range: DependencyRange,
+  range: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
   factorize_info: FactorizeInfo,
 }
@@ -29,7 +29,18 @@ impl ImportMetaRscDependency {
       id: DependencyId::new(),
       request: Atom::from("react"),
       importer,
-      range,
+      range: Some(range),
+      loc,
+      factorize_info: Default::default(),
+    }
+  }
+
+  pub fn new_without_replacement(importer: String, loc: Option<DependencyLocation>) -> Self {
+    Self {
+      id: DependencyId::new(),
+      request: Atom::from("react"),
+      importer,
+      range: None,
       loc,
       factorize_info: Default::default(),
     }
@@ -55,7 +66,7 @@ impl Dependency for ImportMetaRscDependency {
   }
 
   fn range(&self) -> Option<DependencyRange> {
-    Some(self.range)
+    self.range
   }
 
   fn get_referenced_exports(
@@ -105,6 +116,7 @@ impl DependencyCodeGeneration for ImportMetaRscDependency {
     _runtime: Option<&RuntimeSpec>,
   ) {
     self.importer.dyn_hash(hasher);
+    self.range.is_some().dyn_hash(hasher);
   }
 }
 
@@ -181,11 +193,13 @@ impl DependencyTemplate for ImportMetaRscDependencyTemplate {
       .with_top_level_decl_symbols(vec![Atom::from(IMPORT_META_RSC_BINDING)]),
     ));
 
-    source.replace(
-      dependency.range.start,
-      dependency.range.end,
-      IMPORT_META_RSC_BINDING.to_string(),
-      None,
-    );
+    if let Some(range) = dependency.range {
+      source.replace(
+        range.start,
+        range.end,
+        IMPORT_META_RSC_BINDING.to_string(),
+        None,
+      );
+    }
   }
 }
