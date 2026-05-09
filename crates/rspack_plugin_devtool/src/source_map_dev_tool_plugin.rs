@@ -48,8 +48,13 @@ fn has_css_extension(s: &str) -> bool {
   s.ends_with(".css") || s.contains(".css?")
 }
 
-fn is_explicit_relative_source_name(s: &str) -> bool {
-  s.starts_with("./") || s.starts_with("../")
+fn is_relative_source_name(s: &str) -> bool {
+  // `module_filename_helpers::resolve_relative_resource_path` emits URL-style
+  // relative paths for `[relative-resource-path]`. In real projects, generated
+  // assets and source files are typically in different directories, so these
+  // names normally start with `../`. Keep the detection narrow to avoid treating
+  // custom bare source names, such as `module`, as file resources.
+  s.starts_with("../")
 }
 
 fn normalize_relative_source_name_url(
@@ -178,7 +183,7 @@ enum SourceName {
 
 impl SourceName {
   fn new(source_name: String, source_map_path: Option<&Utf8Path>) -> Self {
-    if is_explicit_relative_source_name(&source_name)
+    if is_relative_source_name(&source_name)
       && let Some(source_url) = normalize_relative_source_name_url(&source_name, source_map_path)
     {
       return Self::CanonicalResourceUrl(source_url);
