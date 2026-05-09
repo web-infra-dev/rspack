@@ -158,13 +158,22 @@ impl ImportMetaPlugin {
     parser: &mut JavascriptParser,
     member_expr: &swc_core::ecma::ast::MemberExpr,
   ) {
-    let importer = parser.resource_data.resource().to_owned();
+    let importer = get_rspack_rsc_importer(parser);
     mark_import_meta_rsc_used(parser);
 
     let range = member_expr.span().into();
     let loc = parser.to_dependency_location(range);
     parser.add_dependency(Box::new(ImportMetaRscDependency::new(importer, range, loc)));
   }
+}
+
+fn get_rspack_rsc_importer(parser: &JavascriptParser) -> String {
+  // Keep this aligned with RSC get_module_resource: path + query, no fragment.
+  format!(
+    "{}{}",
+    parser.resource_data.path().map_or("", |path| path.as_str()),
+    parser.resource_data.query().unwrap_or("")
+  )
 }
 
 fn mark_import_meta_rsc_used(parser: &mut JavascriptParser) {
