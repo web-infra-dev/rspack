@@ -827,14 +827,18 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   let module_graph = compilation.get_module_graph();
 
   // Collect all existing named chunks
-  let mut used_names: FxHashMap<String, usize> = FxHashMap::default();
+  let mut used_names: FxHashMap<String, usize> = FxHashMap::with_capacity_and_hasher(
+    compilation.build_chunk_graph_artifact.named_chunks.len(),
+    Default::default(),
+  );
   for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
     used_names.insert(name.clone(), 1);
   }
 
   // Collect candidates: (chunk_ukey, root_module_identifier) for unnamed non-initial chunks
   // with exactly one root module
-  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> = Vec::new();
+  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> =
+    Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
 
   for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
     // Skip chunks that already have a name
@@ -867,8 +871,10 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
 
   // Compute short names and track duplicates
   // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order
-  let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> = Vec::new();
-  let mut name_index_map: FxHashMap<String, usize> = FxHashMap::default();
+  let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> =
+    Vec::with_capacity(candidates.len());
+  let mut name_index_map: FxHashMap<String, usize> =
+    FxHashMap::with_capacity_and_hasher(candidates.len(), Default::default());
 
   for (chunk_ukey, module_id) in &candidates {
     let Some(module_path) = module_graph
@@ -891,7 +897,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   }
 
   // Assign names, handling deduplication
-  let mut assignments: Vec<(ChunkUkey, String)> = Vec::new();
+  let mut assignments: Vec<(ChunkUkey, String)> = Vec::with_capacity(candidates.len());
 
   for (base_name, chunks) in &name_to_chunks {
     if chunks.len() == 1 && !used_names.contains_key(base_name) {
