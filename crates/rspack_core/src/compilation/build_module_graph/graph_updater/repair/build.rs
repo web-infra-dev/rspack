@@ -70,27 +70,28 @@ impl Task<TaskContext> for BuildTask {
       .await;
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      // Done on the background thread so the main-thread task can apply graph mutations
-      // in a single linear pass without re-walking the block tree.
-      let mut flat_dependencies: Vec<(
-        BoxDependency,
-        Option<AsyncDependenciesBlockIdentifier>,
-        usize,
-      )> = Vec::with_capacity(build_result.dependencies.len());
-      let mut flat_blocks: Vec<Box<AsyncDependenciesBlock>> =
-        Vec::with_capacity(build_result.blocks.len());
+      // Pre-flatten the block tree on the background thread into a single ordered stream of
+      // FlatBuildItems. Each block's deps are emitted before the block itself, matching the
+      // original handle_block sequencing (deps first, then add_block). The main-thread task
+      // consumes this stream with one linear match, recovering index_in_block via a counter
+      // that resets on parent-block change.
+      let estimated = build_result.dependencies.len() + build_result.blocks.len();
+      let mut flat_items: Vec<FlatBuildItem> = Vec::with_capacity(estimated);
       let mut all_dependencies: Vec<DependencyId> =
         Vec::with_capacity(build_result.dependencies.len());
       let mut lazy_dependencies = LazyDependencies::default();
       let mut queue: VecDeque<Box<AsyncDependenciesBlock>> = VecDeque::new();
 
-      for (index_in_block, dependency) in build_result.dependencies.into_iter().enumerate() {
+      for dependency in build_result.dependencies {
         let dependency_id = *dependency.id();
         if let Some(until) = dependency.lazy() {
           lazy_dependencies.insert(&dependency, until);
         }
         all_dependencies.push(dependency_id);
-        flat_dependencies.push((dependency, None, index_in_block));
+        flat_items.push(FlatBuildItem::Dependency {
+          dependency,
+          parent_block: None,
+        });
       }
       queue.extend(build_result.blocks);
 
@@ -99,16 +100,19 @@ impl Task<TaskContext> for BuildTask {
         let inner_dependencies = block.take_dependencies();
         let inner_blocks = block.take_blocks();
 
-        for (index_in_block, dependency) in inner_dependencies.into_iter().enumerate() {
+        for dependency in inner_dependencies {
           let dependency_id = *dependency.id();
           if let Some(until) = dependency.lazy() {
             lazy_dependencies.insert(&dependency, until);
           }
           all_dependencies.push(dependency_id);
-          flat_dependencies.push((dependency, Some(block_id), index_in_block));
+          flat_items.push(FlatBuildItem::Dependency {
+            dependency,
+            parent_block: Some(block_id),
+          });
         }
 
-        flat_blocks.push(block);
+        flat_items.push(FlatBuildItem::Block(block));
         queue.extend(inner_blocks);
       }
 
@@ -117,13 +121,24 @@ impl Task<TaskContext> for BuildTask {
         optimization_bailouts: build_result.optimization_bailouts,
         plugin_driver,
         forwarded_ids,
-        flat_dependencies,
-        flat_blocks,
+        flat_items,
         all_dependencies,
         lazy_dependencies,
       })]
     })
   }
+}
+
+/// One item in the pre-flattened build result. Emitted in handle_block iteration order: each
+/// block's `Dependency` items appear before its `Block`, so the main thread sees the same
+/// deps-then-add_block sequence the original closure-based walk produced.
+#[derive(Debug)]
+enum FlatBuildItem {
+  Dependency {
+    dependency: BoxDependency,
+    parent_block: Option<AsyncDependenciesBlockIdentifier>,
+  },
+  Block(Box<AsyncDependenciesBlock>),
 }
 
 #[derive(Debug)]
@@ -132,12 +147,7 @@ struct BuildResultTask {
   optimization_bailouts: Vec<OptimizationBailoutItem>,
   plugin_driver: SharedPluginDriver,
   forwarded_ids: ForwardedIdSet,
-  flat_dependencies: Vec<(
-    BoxDependency,
-    Option<AsyncDependenciesBlockIdentifier>,
-    usize,
-  )>,
-  flat_blocks: Vec<Box<AsyncDependenciesBlock>>,
+  flat_items: Vec<FlatBuildItem>,
   all_dependencies: Vec<DependencyId>,
   lazy_dependencies: LazyDependencies,
 }
@@ -153,8 +163,7 @@ impl Task<TaskContext> for BuildResultTask {
       optimization_bailouts,
       plugin_driver,
       mut forwarded_ids,
-      flat_dependencies,
-      flat_blocks,
+      flat_items,
       mut all_dependencies,
       lazy_dependencies,
     } = *self;
@@ -198,24 +207,41 @@ impl Task<TaskContext> for BuildResultTask {
 
     let module_graph = &mut context.artifact.module_graph;
 
-    for (dependency, parent_block, index_in_block) in flat_dependencies {
-      let dependency_id = *dependency.id();
-      if parent_block.is_none() {
-        module.add_dependency_id(dependency_id);
+    // Deps with the same parent block are emitted contiguously by the background pass, so
+    // index_in_block is just a counter that resets on every parent-block change. Avoids
+    // carrying a per-element usize through the cross-task transfer.
+    let mut current_parent: Option<AsyncDependenciesBlockIdentifier> = None;
+    let mut index_in_block: usize = 0;
+    for item in flat_items {
+      match item {
+        FlatBuildItem::Dependency {
+          dependency,
+          parent_block,
+        } => {
+          if parent_block != current_parent {
+            current_parent = parent_block;
+            index_in_block = 0;
+          }
+          let dependency_id = *dependency.id();
+          if parent_block.is_none() {
+            module.add_dependency_id(dependency_id);
+          }
+          module_graph.set_parents(
+            dependency_id,
+            DependencyParents {
+              block: parent_block,
+              module: module_id,
+              index_in_block,
+            },
+          );
+          module_graph.add_dependency(dependency);
+          index_in_block += 1;
+        }
+        FlatBuildItem::Block(block) => {
+          module.add_block_id(block.identifier());
+          module_graph.add_block(block);
+        }
       }
-      module_graph.set_parents(
-        dependency_id,
-        DependencyParents {
-          block: parent_block,
-          module: module_id,
-          index_in_block,
-        },
-      );
-      module_graph.add_dependency(dependency);
-    }
-    for block in flat_blocks {
-      module.add_block_id(block.identifier());
-      module_graph.add_block(block);
     }
 
     {
