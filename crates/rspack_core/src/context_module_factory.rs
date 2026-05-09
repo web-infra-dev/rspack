@@ -426,6 +426,11 @@ async fn visit_dirs(
     fs,
     options.context_options.recursive,
     true, // always skip dotfiles
+    &mut |path| {
+      exclude
+        .as_ref()
+        .is_none_or(|exclude| !exclude.test(path.as_str()))
+    },
     &mut |path, _filename| {
       let path_str = path.as_str();
 

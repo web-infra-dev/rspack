@@ -63,9 +63,25 @@ pub fn glob_match_with_options(pattern: &str, path: &str, options: &GlobMatchOpt
 /// Extract the base directory from a glob pattern.
 /// Returns everything before the first glob metacharacter, up to and including the last `/`.
 fn extract_glob_base_dir(pattern: &str) -> &str {
-  let idx = pattern
-    .find(|c: char| ['*', '?', '[', '{'].contains(&c))
-    .unwrap_or(pattern.len());
+  let mut escaped = false;
+  let mut idx = pattern.len();
+  for (byte_idx, c) in pattern.char_indices() {
+    if escaped {
+      escaped = false;
+      continue;
+    }
+
+    if c == '\\' {
+      escaped = true;
+      continue;
+    }
+
+    if ['*', '?', '[', '{'].contains(&c) {
+      idx = byte_idx;
+      break;
+    }
+  }
+
   let before = &pattern[..idx];
   match before.rfind('/') {
     Some(slash_idx) => &pattern[..=slash_idx],
@@ -90,6 +106,7 @@ pub(crate) async fn walk_dir(
   fs: Arc<dyn ReadableFileSystem>,
   recursive: bool,
   skip_dotfiles: bool,
+  should_enter_dir: &mut (impl FnMut(&Utf8Path) -> bool + Send),
   on_file: &mut (impl FnMut(Utf8PathBuf, String) + Send),
 ) -> Result<()> {
   if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
@@ -98,8 +115,16 @@ pub(crate) async fn walk_dir(
   for filename in fs.read_dir(root).await? {
     let path = root.join(&filename);
     if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
-      if recursive {
-        walk_dir(&path, fs.clone(), recursive, skip_dotfiles, on_file).await?;
+      if recursive && should_enter_dir(&path) {
+        walk_dir(
+          &path,
+          fs.clone(),
+          recursive,
+          skip_dotfiles,
+          should_enter_dir,
+          on_file,
+        )
+        .await?;
       }
     } else if skip_dotfiles && filename.starts_with('.') {
       // skip dotfiles
@@ -127,6 +152,7 @@ pub async fn find_files_by_glob(
     fs,
     true,  // always recursive for glob
     false, // dotfile filtering handled in callback below
+    &mut |_path| true,
     &mut |path, _filename| {
       if options.require_literal_leading_dot
         && path_has_dot_component(&path, base_dir_path)
@@ -156,22 +182,80 @@ fn path_has_dot_component(path: &Utf8Path, base_dir: &Utf8Path) -> bool {
 
 /// Check whether the glob pattern has an explicit `.` for a given dot-file path.
 fn pattern_has_explicit_dot_for(pattern: &str, base_dir: &Utf8Path, path: &Utf8Path) -> bool {
-  let path_str = normalize_path_separators(path.as_str());
   let base_str = normalize_path_separators(base_dir.as_str());
+  let path_str = normalize_path_separators(path.as_str());
+  let pattern_suffix = pattern.strip_prefix(&base_str).unwrap_or(pattern);
 
-  let relative = if let Some(stripped) = path_str.strip_prefix(&base_str) {
-    stripped
-  } else {
-    &path_str
-  };
+  let relative = path_str.strip_prefix(&base_str).unwrap_or(&path_str);
+  let pattern_segments = pattern_suffix
+    .split('/')
+    .filter(|segment| !segment.is_empty())
+    .collect::<Vec<_>>();
+  let path_segments = relative
+    .split('/')
+    .filter(|segment| !segment.is_empty())
+    .collect::<Vec<_>>();
 
-  for component in relative.split('/') {
-    if let Some(stripped) = component.strip_prefix('.') {
-      let dot_component = format!(".{stripped}");
-      if pattern.contains(&format!("/{dot_component}")) || pattern.starts_with(&dot_component) {
-        return true;
+  fn matches_explicit_dot_segments(patterns: &[&str], paths: &[&str]) -> bool {
+    match (patterns.split_first(), paths.split_first()) {
+      (None, None) => true,
+      (None, Some(_)) => false,
+      (Some((&"**", pattern_rest)), _) => {
+        matches_explicit_dot_segments(pattern_rest, paths)
+          || matches!(
+            paths.split_first(),
+            Some((&path_head, path_rest))
+              if !path_head.starts_with('.') && matches_explicit_dot_segments(patterns, path_rest)
+          )
       }
+      (Some((&pattern_head, pattern_rest)), Some((&path_head, path_rest))) => {
+        if path_head.starts_with('.') && !pattern_head.starts_with('.') {
+          return false;
+        }
+        glob_match(pattern_head.as_bytes(), path_head.as_bytes())
+          && matches_explicit_dot_segments(pattern_rest, path_rest)
+      }
+      (Some(_), None) => false,
     }
   }
-  false
+
+  matches_explicit_dot_segments(&pattern_segments, &path_segments)
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn extract_glob_base_dir_skips_escaped_metacharacters() {
+    assert_eq!(
+      extract_glob_base_dir("./fixtures/a\\[b\\]/file"),
+      "./fixtures/a\\[b\\]/"
+    );
+    assert_eq!(
+      extract_glob_base_dir("./fixtures/a\\[b\\]/**/*.js"),
+      "./fixtures/a\\[b\\]/"
+    );
+  }
+
+  #[test]
+  fn explicit_dot_patterns_allow_wildcard_dot_segments() {
+    let base_dir = Utf8Path::new("./fixtures/");
+
+    assert!(pattern_has_explicit_dot_for(
+      "./fixtures/**/.*",
+      base_dir,
+      Utf8Path::new("./fixtures/.env")
+    ));
+    assert!(pattern_has_explicit_dot_for(
+      "./fixtures/**/.*/index.js",
+      base_dir,
+      Utf8Path::new("./fixtures/.cache/index.js")
+    ));
+    assert!(!pattern_has_explicit_dot_for(
+      "./fixtures/**/index.js",
+      base_dir,
+      Utf8Path::new("./fixtures/.cache/index.js")
+    ));
+  }
 }
