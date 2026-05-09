@@ -34,10 +34,59 @@ pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
 type ConnectionIdList = Arc<[DependencyId]>;
-type PreparedBlockConnectionMap =
-  FxIndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
+type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
 type BlockConnectionMap =
   DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
+
+#[derive(Debug, Clone)]
+struct PreparedBlockConnection {
+  block: DependenciesBlockIdentifier,
+  module: ModuleIdentifier,
+  connections: ConnectionIdList,
+}
+
+struct PreparedBlockConnectionBuilder {
+  block: DependenciesBlockIdentifier,
+  module: ModuleIdentifier,
+  dependency: DependencyId,
+}
+
+struct PreparedBlockConnectionGroupBuilder {
+  block: DependenciesBlockIdentifier,
+  module: ModuleIdentifier,
+  connections: Vec<DependencyId>,
+}
+
+fn finalize_prepared_connection_map(
+  connections: Vec<PreparedBlockConnectionBuilder>,
+) -> PreparedBlockConnectionMap {
+  let mut groups = Vec::<PreparedBlockConnectionGroupBuilder>::new();
+  let mut group_index_by_block = DependenciesBlockIdentifierMap::<IdentifierMap<usize>>::default();
+  for connection in connections {
+    let index_by_module = group_index_by_block.entry(connection.block).or_default();
+    if let Some(index) = index_by_module.get(&connection.module) {
+      groups[*index].connections.push(connection.dependency);
+      continue;
+    }
+
+    let index = groups.len();
+    index_by_module.insert(connection.module, index);
+    groups.push(PreparedBlockConnectionGroupBuilder {
+      block: connection.block,
+      module: connection.module,
+      connections: vec![connection.dependency],
+    });
+  }
+
+  groups
+    .into_iter()
+    .map(|connection| PreparedBlockConnection {
+      block: connection.block,
+      module: connection.module,
+      connections: Arc::from(connection.connections.into_boxed_slice()),
+    })
+    .collect()
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -2268,12 +2317,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .module_graph_module_by_identifier(module)
           .map(|mgm| mgm.all_dependencies())
           .unwrap_or_default();
-        let mut connection_map = FxIndexMap::<
-          (DependenciesBlockIdentifier, ModuleIdentifier),
-          Vec<DependencyId>,
-        >::with_capacity_and_hasher(
-          all_dependencies.len(), Default::default()
-        );
+        let mut connection_map = Vec::new();
 
         let mut ordered_deps = Vec::new();
         let mut unordered_deps = Vec::new();
@@ -2304,27 +2348,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
         ordered_deps.sort_by_key(|(source_order, _, _, _)| *source_order);
 
-        for (_, block_id, dep_id, module_identifier) in ordered_deps {
-          connection_map
-            .entry((block_id, module_identifier))
-            .and_modify(|e| e.push(dep_id))
-            .or_insert_with(|| vec![dep_id]);
+        for (_, block, dependency, module) in ordered_deps {
+          connection_map.push(PreparedBlockConnectionBuilder {
+            block,
+            module,
+            dependency,
+          });
         }
 
-        for (block_id, dep_id, module_identifier) in unordered_deps {
-          connection_map
-            .entry((block_id, module_identifier))
-            .and_modify(|e| e.push(dep_id))
-            .or_insert_with(|| vec![dep_id]);
+        for (block, dependency, module) in unordered_deps {
+          connection_map.push(PreparedBlockConnectionBuilder {
+            block,
+            module,
+            dependency,
+          });
         }
 
-        (
-          *module,
-          connection_map
-            .into_iter()
-            .map(|(key, connections)| (key, Arc::from(connections.into_boxed_slice())))
-            .collect(),
-        )
+        (*module, finalize_prepared_connection_map(connection_map))
       })
       .collect::<IdentifierMap<_>>();
 
@@ -2476,15 +2516,15 @@ fn extract_block_modules(
     .get(&module)
     .expect("should have outgoing deps");
 
-  for ((block_id, module_identifier), connections) in connection_map {
-    if map.contains_key(block_id) {
+  for connection in connection_map {
+    if map.contains_key(&connection.block) {
       continue;
     }
     let modules = module_map
-      .get_mut(block_id)
+      .get_mut(&connection.block)
       .expect("should have modules in block_modules_runtime_map");
     let active_state = get_active_state_of_connections(
-      connections,
+      &connection.connections,
       runtime.as_deref(),
       compilation.get_module_graph(),
       &compilation.module_graph_cache_artifact,
@@ -2493,7 +2533,11 @@ fn extract_block_modules(
         .side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
-    modules.push((*module_identifier, active_state, connections.clone()));
+    modules.push((
+      connection.module,
+      active_state,
+      connection.connections.clone(),
+    ));
   }
   for (block, modules) in module_map {
     map.insert(block, Arc::new(modules));
