@@ -316,6 +316,8 @@ impl SourceMapDevToolPlugin {
 
   // Only used when resolving [relative-resource-path].
   // It does not provide values for placeholders, so no rendering is performed here.
+  // External source maps use the source map file path as the base; inline source maps
+  // use the emitted asset path as the base because the source map lives in that asset.
   async fn get_unresolved_source_map_path(
     &self,
     compilation: &Compilation,
@@ -339,7 +341,7 @@ impl SourceMapDevToolPlugin {
         let filename = compilation.get_asset_path(template, data).await?;
         Ok(Some(output_path.node_join(filename.as_str())))
       }
-      None => Ok(None),
+      None => Ok(Some(output_path.node_join(asset_filename))),
     }
   }
 
