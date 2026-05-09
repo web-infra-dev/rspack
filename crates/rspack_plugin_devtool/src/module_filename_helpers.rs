@@ -47,7 +47,7 @@ fn resolve_relative_resource_path(
   source_map_path: Option<&Utf8Path>,
 ) -> Option<String> {
   if absolute_resource_path.starts_with("webpack/") {
-    // Webpack runtime modules are virtual
+    // webpack runtime modules are virtual
     return Some(absolute_resource_path.to_string());
   }
 

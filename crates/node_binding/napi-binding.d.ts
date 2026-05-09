@@ -3303,7 +3303,7 @@ export interface TsconfigOptions {
    */
   configFile: string
   /**
-   * Support for Typescript Project References.
+   * Support for TypeScript Project References.
    *
    * * `'auto'`: use the `references` field from tsconfig of `config_file`.
    * * `string[]`: manually provided relative or absolute path.
