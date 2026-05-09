@@ -29,7 +29,8 @@ use crate::{
     RootCssImports,
   },
   reference_manifest::{
-    RscEntryManifest, RscManifest, build_server_consumer_module_map, build_server_manifest,
+    RscCssLinkProps, RscEntryManifest, RscManifest, build_server_consumer_module_map,
+    build_server_manifest,
   },
   rsc_entry_dependency::RscEntryDependency,
   rsc_entry_module_factory::RscEntryModuleFactory,
@@ -70,6 +71,7 @@ pub type OnManifest = Box<dyn Fn(String) -> BoxFuture<'static, Result<()>> + Syn
 
 pub struct RscServerPluginOptions {
   pub coordinator: Arc<Coordinator>,
+  pub css_link_props: RscCssLinkProps,
   pub on_server_component_changes: Option<OnServerComponentChanges>,
   pub on_manifest: Option<OnManifest>,
 }
@@ -83,6 +85,7 @@ pub struct RscServerPlugin {
   on_server_component_changes: Option<OnServerComponentChanges>,
   #[debug(skip)]
   on_manifest: Option<OnManifest>,
+  css_link_props: RscCssLinkProps,
   prev_server_component_hashes: AtomicRefCell<IdentifierMap<u64>>,
 }
 
@@ -92,6 +95,7 @@ impl RscServerPlugin {
       options.coordinator,
       options.on_server_component_changes,
       options.on_manifest,
+      options.css_link_props,
       Default::default(),
     )
   }
@@ -113,6 +117,10 @@ async fn this_compilation(
       vacant_entry.insert(Default::default());
     }
   };
+  PLUGIN_STATES
+    .entry(compilation.compiler_id())
+    .or_default()
+    .css_link_props = self.css_link_props.clone();
 
   self.coordinator.start_server_entries_compilation().await?;
 
@@ -616,6 +624,7 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
             module_loading,
             server_entries: &state.server_entries,
             bootstrap_scripts: &state.bootstrap_scripts,
+            css_link_props: &plugin_state.css_link_props,
           },
         );
       }

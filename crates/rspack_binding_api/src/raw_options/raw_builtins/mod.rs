@@ -903,7 +903,7 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::RscServerPlugin => {
         #[cfg(not(feature = "browser"))]
         {
-          let options = &downcast_into::<JsRscServerPluginOptions>(self.options)
+          let options = downcast_into::<JsRscServerPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?;
           plugins.push(RscServerPlugin::new(options.try_into()?).boxed());
         }

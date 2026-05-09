@@ -51,13 +51,13 @@
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "engines": {
-    "pnpm": "10.33.2"
+    "pnpm": "10.33.4"
   },
   "devDependencies": {
     "@rslint/core": "0.5.2",
     "@rstest/core": "^0.9.10",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^20.19.39",
+    "@types/node": "^20.19.40",
     "@typescript/native-preview": "7.0.0-dev.20260508.1",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
@@ -70,5 +70,5 @@
     "typescript": "^6.0.3",
     "zx": "8.8.5"
   },
-  "packageManager": "pnpm@10.33.2"
+  "packageManager": "pnpm@10.33.4"
 }
