@@ -6,8 +6,8 @@ use napi::{
 };
 use napi_derive::napi;
 use rspack_core::{
-  ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
-  ResolveOptionsWithDependencyType, ResolverFactory,
+  Context, DependencyCategory, ExternalItem, ExternalItemFnCtx, ExternalItemFnResult,
+  ExternalItemValue, ResolveOptionsWithDependencyType, ResolverFactory,
 };
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
@@ -90,8 +90,8 @@ pub struct RawExternalItemFnCtxData<'a> {
 #[derive(Debug)]
 struct RawExternalItemFnCtxInner {
   request: String,
-  context: String,
-  dependency_type: String,
+  context: Context,
+  dependency_type: DependencyCategory,
   context_info: ContextInfo,
   resolve_options_with_dependency_type: Arc<ResolveOptionsWithDependencyType>,
   resolver_factory: Arc<ResolverFactory>,
