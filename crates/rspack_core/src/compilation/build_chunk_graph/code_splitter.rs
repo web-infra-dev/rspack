@@ -58,12 +58,25 @@ struct PreparedBlockConnectionGroupBuilder {
 }
 
 fn finalize_prepared_connection_map(
-  connections: Vec<PreparedBlockConnectionBuilder>,
+  connections: impl IntoIterator<Item = PreparedBlockConnectionBuilder>,
+  capacity: usize,
 ) -> PreparedBlockConnectionMap {
-  let mut groups = Vec::<PreparedBlockConnectionGroupBuilder>::new();
-  let mut group_index_by_block = DependenciesBlockIdentifierMap::<IdentifierMap<usize>>::default();
+  let mut groups = Vec::<PreparedBlockConnectionGroupBuilder>::with_capacity(capacity);
+  let mut group_index_by_block = Vec::<(DependenciesBlockIdentifier, IdentifierMap<usize>)>::new();
   for connection in connections {
-    let index_by_module = group_index_by_block.entry(connection.block).or_default();
+    let index_by_module = if let Some((_, index_by_module)) = group_index_by_block
+      .iter_mut()
+      .find(|(block, _)| *block == connection.block)
+    {
+      index_by_module
+    } else {
+      group_index_by_block.push((connection.block, IdentifierMap::default()));
+      &mut group_index_by_block
+        .last_mut()
+        .expect("should have block")
+        .1
+    };
+
     if let Some(index) = index_by_module.get(&connection.module) {
       groups[*index].connections.push(connection.dependency);
       continue;
@@ -2317,10 +2330,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           .module_graph_module_by_identifier(module)
           .map(|mgm| mgm.all_dependencies())
           .unwrap_or_default();
-        let mut connection_map = Vec::new();
+        let dependency_count = all_dependencies.len();
 
         let mut ordered_deps = Vec::new();
-        let mut unordered_deps = Vec::new();
+        let mut unordered_deps = Vec::with_capacity(dependency_count);
         for dep_id in all_dependencies {
           let Some(connection) = mg.connection_by_dependency_id(dep_id) else {
             continue;
@@ -2348,23 +2361,30 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         }
         ordered_deps.sort_by_key(|(source_order, _, _, _)| *source_order);
 
-        for (_, block, dependency, module) in ordered_deps {
-          connection_map.push(PreparedBlockConnectionBuilder {
-            block,
-            module,
-            dependency,
-          });
-        }
+        let connection_count = ordered_deps.len() + unordered_deps.len();
+        let ordered_deps = ordered_deps
+          .into_iter()
+          .map(
+            |(_, block, dependency, module)| PreparedBlockConnectionBuilder {
+              block,
+              module,
+              dependency,
+            },
+          );
+        let unordered_deps = unordered_deps
+          .into_iter()
+          .map(
+            |(block, dependency, module)| PreparedBlockConnectionBuilder {
+              block,
+              module,
+              dependency,
+            },
+          );
 
-        for (block, dependency, module) in unordered_deps {
-          connection_map.push(PreparedBlockConnectionBuilder {
-            block,
-            module,
-            dependency,
-          });
-        }
-
-        (*module, finalize_prepared_connection_map(connection_map))
+        (
+          *module,
+          finalize_prepared_connection_map(ordered_deps.chain(unordered_deps), connection_count),
+        )
       })
       .collect::<IdentifierMap<_>>();
 
