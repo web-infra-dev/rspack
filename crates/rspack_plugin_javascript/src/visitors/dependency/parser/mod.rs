@@ -35,7 +35,7 @@ use swc_core::{
   common::{BytePos, Mark, Span, Spanned, comments::Comments},
   ecma::{
     ast::{
-      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
+      ArrayPat, AssignPat, AssignTargetPat, BinaryOp, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
       MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr,
       Pat, Program, RestPat, Stmt, ThisExpr,
     },
@@ -48,8 +48,10 @@ use crate::{
   dependency::{DependencyBranchGuard, local_module::LocalModule, set_dependency_branch_guards},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
+    self, ESM_SPECIFIER_TAG, ESM_STATIC_PROPERTY_KEY_TAG, ESMSpecifierData,
+    ESMStaticPropertyKeyData, ImportsReferencesState, InnerGraphParserPlugin,
+    JavaScriptParserPluginDrive, JavascriptParserPlugin, RequireReferencesState,
+    inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -95,6 +97,7 @@ where
 pub type AtomMembers = SmallVec<[Atom; 2]>;
 pub type OptionalMembers = SmallVec<[bool; 2]>;
 pub type MemberRanges = SmallVec<[Span; 2]>;
+pub(crate) type ESMStaticPropertyKeyBranchGuard = (Atom, Atom, Vec<Atom>);
 
 #[derive(Debug)]
 pub struct ExtractedMemberExpressionChainData<'ast> {
@@ -391,6 +394,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) parser_exports_state: Option<bool>,
   pub(crate) local_modules: Vec<LocalModule>,
   pub(crate) last_esm_import_order: i32,
+  pub(crate) has_esm_namespace_import: bool,
+  pub(crate) esm_static_property_key_branch_guards: Vec<ESMStaticPropertyKeyBranchGuard>,
   pub(crate) inner_graph: InnerGraphState,
   pub(crate) side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
   pub(crate) is_renaming: Option<Atom>,
@@ -578,6 +583,8 @@ impl<'parser> JavascriptParser<'parser> {
       inner_graph: InnerGraphState::new(),
       parse_meta,
       local_modules: Default::default(),
+      has_esm_namespace_import: false,
+      esm_static_property_key_branch_guards: Vec::new(),
       side_effects_item: None,
       parser_runtime_requirements,
       is_renaming: None,
@@ -1080,7 +1087,7 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn extract_member_expression_chain<'ast>(
-    &self,
+    &mut self,
     expr: ExprRef<'ast>,
   ) -> ExtractedMemberExpressionChainData<'ast> {
     let mut object = expr;
@@ -1092,17 +1099,45 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
-            let Expr::Lit(lit) = &*computed.expr else {
-              break;
-            };
-            let value = match lit {
-              Lit::Str(s) => s.value.clone(),
-              Lit::Bool(b) => if b.value { "true" } else { "false" }.into(),
-              Lit::Null(_) => "null".into(),
-              Lit::Num(n) => n.value.to_string().into(),
-              Lit::BigInt(i) => i.value.to_string().into(),
-              Lit::Regex(r) => r.exp.clone().into(),
-              Lit::JSXText(_) => unreachable!(),
+            let value = if let Expr::Lit(lit) = &*computed.expr {
+              match lit {
+                Lit::Str(s) => s.value.clone(),
+                Lit::Bool(b) => if b.value { "true" } else { "false" }.into(),
+                Lit::Null(_) => "null".into(),
+                Lit::Num(n) => n.value.to_string().into(),
+                Lit::BigInt(i) => i.value.to_string().into(),
+                Lit::Regex(r) => r.exp.clone().into(),
+                Lit::JSXText(_) => unreachable!(),
+              }
+            } else {
+              if !self.has_esm_namespace_import {
+                break;
+              }
+              if !self.is_esm_namespace_member_object(expr.obj.as_ref()) {
+                break;
+              }
+              if let Some(value) = self.get_esm_static_property_key(&computed.expr) {
+                value.into()
+              } else {
+                let evaluated = self.evaluate_expression(&computed.expr);
+                if evaluated.could_have_side_effects() {
+                  break;
+                }
+                // Static member names are stored as strings because JS coerces primitive
+                // computed property keys with ToPropertyKey, e.g. ns[1] accesses "1".
+                if !(evaluated.is_string()
+                  || evaluated.is_number()
+                  || evaluated.is_bool()
+                  || evaluated.is_null()
+                  || evaluated.is_undefined())
+                {
+                  break;
+                }
+                let Some(value) = evaluated.as_string() else {
+                  break;
+                };
+                value.into()
+              }
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
@@ -1135,6 +1170,109 @@ impl<'parser> JavascriptParser<'parser> {
       members_optionals,
       member_ranges,
     }
+  }
+
+  fn is_esm_namespace_member_object(&mut self, expr: &Expr) -> bool {
+    let mut object = expr;
+    loop {
+      match object {
+        Expr::Member(member) => {
+          object = member.obj.as_ref();
+        }
+        Expr::Ident(ident) => {
+          let Some(variable_name) = self
+            .get_variable_info(&ident.sym)
+            .and_then(|info| info.name.clone())
+          else {
+            return false;
+          };
+          return self
+            .get_tag_data::<ESMSpecifierData>(&variable_name, ESM_SPECIFIER_TAG)
+            .is_some_and(|data| data.namespace_import);
+        }
+        _ => return false,
+      }
+    }
+  }
+
+  pub fn get_esm_static_property_key(&mut self, expr: &Expr) -> Option<Atom> {
+    let Expr::Ident(ident) = expr else {
+      return None;
+    };
+    let variable_name = self
+      .get_variable_info(&ident.sym)
+      .and_then(|info| info.name.clone())?;
+    self
+      .get_tag_data::<ESMStaticPropertyKeyData>(&variable_name, ESM_STATIC_PROPERTY_KEY_TAG)
+      .map(|data| data.value.clone())
+  }
+
+  pub fn get_esm_static_property_key_in_operator_guard(
+    &mut self,
+    expr: &Expr,
+  ) -> Option<ESMStaticPropertyKeyBranchGuard> {
+    let mut expr = expr;
+    while let Expr::Paren(paren) = expr {
+      expr = &paren.expr;
+    }
+    let Expr::Bin(expr) = expr else {
+      return None;
+    };
+    if expr.op != BinaryOp::In {
+      return None;
+    }
+    let right = self.evaluate_expression(&expr.right);
+    if !right.is_identifier() {
+      return None;
+    }
+    let ExportedVariableInfo::VariableInfo(variable) = right.root_info() else {
+      return None;
+    };
+    let settings = self.get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)?;
+    if !settings.namespace_import {
+      return None;
+    }
+
+    let source = settings.source.clone();
+    let name = settings.name.clone();
+    let mut ids = settings.ids.clone();
+    ids.extend(
+      right
+        .members()
+        .map(|members| members.iter().cloned())
+        .unwrap_or_default(),
+    );
+    ids.push(self.get_esm_static_property_key(&expr.left)?);
+    Some((source, name, ids.into_vec()))
+  }
+
+  pub fn is_esm_static_property_key_guarded(
+    &self,
+    source: &Atom,
+    name: &Atom,
+    ids: &[Atom],
+  ) -> bool {
+    self.esm_static_property_key_branch_guards.iter().any(
+      |(guard_source, guard_name, guard_ids)| {
+        guard_source == source && guard_name == name && ids.starts_with(guard_ids)
+      },
+    )
+  }
+
+  pub fn has_esm_static_property_key_member(&mut self, member_expr: &MemberExpr) -> bool {
+    let mut member = Some(member_expr);
+    while let Some(current) = member {
+      if let Some(computed) = current.prop.as_computed()
+        && self.get_esm_static_property_key(&computed.expr).is_some()
+      {
+        return true;
+      }
+      member = match current.obj.as_ref() {
+        Expr::Member(member) => Some(member),
+        _ => None,
+      };
+    }
+    false
   }
 
   fn enter_ident<F>(&mut self, ident: &Ident, on_ident: F)

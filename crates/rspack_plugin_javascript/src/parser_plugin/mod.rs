@@ -50,7 +50,10 @@ pub(crate) use self::{
   drive::JavaScriptParserPluginDrive,
   esm_detection_parser_plugin::ESMDetectionParserPlugin,
   esm_export_dependency_parser_plugin::ESMExportDependencyParserPlugin,
-  esm_import_dependency_parser_plugin::ESMImportDependencyParserPlugin,
+  esm_import_dependency_parser_plugin::{
+    ESM_SPECIFIER_TAG, ESM_STATIC_PROPERTY_KEY_TAG, ESMImportDependencyParserPlugin,
+    ESMSpecifierData, ESMStaticPropertyKeyData,
+  },
   esm_top_level_this_plugin::ESMTopLevelThisParserPlugin,
   exports_info_api_plugin::ExportsInfoApiPlugin,
   import_meta_context_dependency_parser_plugin::ImportMetaContextDependencyParserPlugin,

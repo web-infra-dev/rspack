@@ -5,7 +5,7 @@ use rspack_core::{
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl},
+  ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl, Lit, VarDeclarator},
 };
 
 use super::{
@@ -16,14 +16,16 @@ use crate::{
   utils::object_properties::get_attributes,
   visitors::{
     AllowedMemberTypes, AtomMembers, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    TagInfoData, get_non_optional_member_chain_from_expr,
-    get_non_optional_member_chain_from_member, get_non_optional_part,
+    TagInfoData, VariableDeclaration, VariableDeclarationKind,
+    get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
+    get_non_optional_part, scope_info::VariableInfoFlags,
   },
 };
 
 pub struct ESMImportDependencyParserPlugin;
 
 pub const ESM_SPECIFIER_TAG: &str = "_identifier__esm_specifier_tag__";
+pub const ESM_STATIC_PROPERTY_KEY_TAG: &str = "_identifier__esm_static_property_key__";
 
 #[derive(Debug, Clone)]
 pub struct ESMSpecifierData {
@@ -34,6 +36,11 @@ pub struct ESMSpecifierData {
   pub source_order: i32,
   pub phase: ImportPhase,
   pub attributes: Option<ImportAttributes>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ESMStaticPropertyKeyData {
+  pub value: Atom,
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -96,6 +103,9 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     } else {
       ImportPhase::Evaluation
     };
+    if id.is_none() {
+      parser.has_esm_namespace_import = true;
+    }
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,
@@ -112,8 +122,37 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     Some(true)
   }
 
+  fn declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &VarDeclarator,
+    declaration: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    if !matches!(declaration.kind(), VariableDeclarationKind::Const) {
+      return None;
+    }
+    if !parser.has_esm_namespace_import {
+      return None;
+    }
+
+    let name = declarator.name.as_ident()?;
+    let init = declarator.init.as_ref()?;
+    let value = static_property_key(init)?;
+    parser.tag_variable_with_flags(
+      name.id.sym.clone(),
+      ESM_STATIC_PROPERTY_KEY_TAG,
+      Some(ESMStaticPropertyKeyData { value }),
+      VariableInfoFlags::NORMAL,
+    );
+
+    None
+  }
+
   fn binary_expression(&self, parser: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
     if expr.op != BinaryOp::In {
+      return None;
+    }
+    if !parser.has_esm_namespace_import {
       return None;
     }
     let right = parser.evaluate_expression(&expr.right);
@@ -138,15 +177,19 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       } else {
         return None;
       };
-    let left = parser.evaluate_expression(&expr.left);
-    if left.could_have_side_effects() {
-      return None;
-    }
-    let left = left.as_string()?;
+    let left = if let Some(value) = parser.get_esm_static_property_key(&expr.left) {
+      value
+    } else {
+      let left = parser.evaluate_expression(&expr.left);
+      if left.could_have_side_effects() {
+        return None;
+      }
+      left.as_string()?.into()
+    };
     let members = right.members().map(|v| v.as_slice()).unwrap_or_default();
     let direct_import = members.is_empty();
     ids.extend(members.iter().cloned());
-    ids.push(left.into());
+    ids.push(left);
 
     let range = DependencyRange::from(expr.span);
     let loc = parser.to_dependency_location(range);
@@ -278,6 +321,16 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     ids.extend(non_optional_members.iter().cloned());
     let direct_import = members.is_empty();
     let ns_access = settings.namespace_import && !ids.is_empty();
+    let export_presence_mode = if ns_access
+      && callee
+        .as_member()
+        .is_some_and(|member| parser.has_esm_static_property_key_member(member))
+      && parser.is_esm_static_property_key_guarded(&settings.source, &settings.name, ids.as_slice())
+    {
+      ExportPresenceMode::None
+    } else {
+      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options)
+    };
     let mut dep = ESMImportSpecifierDependency::new(
       settings.source,
       settings.name,
@@ -289,7 +342,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       true,
       direct_import,
       ns_access,
-      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      export_presence_mode,
       // we don't need to pass destructuring properties here, since this is a call expr,
       // pass destructuring properties here won't help for tree shaking.
       None,
@@ -344,6 +397,14 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let mut ids = settings.ids;
     ids.extend(non_optional_members.iter().cloned());
     let ns_access = settings.namespace_import && !ids.is_empty();
+    let export_presence_mode = if ns_access
+      && parser.has_esm_static_property_key_member(member_expr)
+      && parser.is_esm_static_property_key_guarded(&settings.source, &settings.name, ids.as_slice())
+    {
+      ExportPresenceMode::None
+    } else {
+      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options)
+    };
     let referenced_properties_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&member_expr.span())
@@ -359,7 +420,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       false,
       false, // x.xx()
       ns_access,
-      ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+      export_presence_mode,
       referenced_properties_in_destructuring,
       settings.phase,
       settings.attributes,
@@ -375,4 +436,28 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
 
     Some(true)
   }
+}
+
+fn static_property_key(expr: &Expr) -> Option<Atom> {
+  match expr {
+    Expr::Lit(lit) => static_property_key_from_lit(lit),
+    _ => None,
+  }
+}
+
+fn static_property_key_from_lit(lit: &Lit) -> Option<Atom> {
+  Some(match lit {
+    Lit::Str(s) => s.value.to_atom_lossy().into_owned(),
+    Lit::Bool(b) => {
+      if b.value {
+        "true".into()
+      } else {
+        "false".into()
+      }
+    }
+    Lit::Null(_) => "null".into(),
+    Lit::Num(n) => n.value.to_string().into(),
+    Lit::BigInt(i) => i.value.to_string().into(),
+    Lit::Regex(_) | Lit::JSXText(_) => return None,
+  })
 }

@@ -107,6 +107,20 @@ impl JavascriptParser<'_> {
     self.dependency_branch_guards.truncate(old_len);
   }
 
+  fn with_esm_static_property_key_branch_guard(
+    &mut self,
+    guard: Option<super::ESMStaticPropertyKeyBranchGuard>,
+    f: impl FnOnce(&mut Self),
+  ) {
+    if let Some(guard) = guard {
+      self.esm_static_property_key_branch_guards.push(guard);
+      f(self);
+      self.esm_static_property_key_branch_guards.pop();
+    } else {
+      f(self);
+    }
+  }
+
   fn esm_import_condition_dependencies(
     &self,
     start: usize,
@@ -496,6 +510,8 @@ impl JavascriptParser<'_> {
       }
     } else {
       let mut test_walked = false;
+      let esm_static_property_key_guard =
+        self.get_esm_static_property_key_in_operator_guard(&stmt.test);
       let branch_condition = Self::branch_condition_templates_for_imported_bool(&stmt.test)
         .and_then(|(consequent, alternate)| {
           let dep_start = self.next_dependency_idx();
@@ -515,10 +531,16 @@ impl JavascriptParser<'_> {
       }
       if let Some((consequent_condition, _)) = &branch_condition {
         self.with_dependency_branch_guards(std::iter::once(consequent_condition.clone()), |this| {
-          this.walk_nested_statement(&stmt.cons)
+          this.with_esm_static_property_key_branch_guard(
+            esm_static_property_key_guard.clone(),
+            |this| this.walk_nested_statement(&stmt.cons),
+          )
         });
       } else {
-        self.walk_nested_statement(&stmt.cons);
+        self.with_esm_static_property_key_branch_guard(
+          esm_static_property_key_guard.clone(),
+          |this| this.walk_nested_statement(&stmt.cons),
+        );
       }
       let consequent_terminated = self.terminated;
       self.terminated = None;
