@@ -1,3 +1,3 @@
 export function bar() {
-  throw new Error("unreacheable");
+  throw new Error("unreachable");
 }

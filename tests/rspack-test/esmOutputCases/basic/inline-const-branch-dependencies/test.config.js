@@ -3,7 +3,7 @@ module.exports = {
     return file.endsWith("main.mjs");
   },
   snapshotContent(content) {
-    if (content.includes("unreacheable")) {
+    if (content.includes("unreachable")) {
       throw new Error("inactive bar dependency should not be rendered");
     }
     return content;
