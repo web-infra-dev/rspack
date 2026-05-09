@@ -104,8 +104,8 @@ impl RspackHash {
 
   pub fn with_salt(function: &HashFunction, salt: &HashSalt) -> Self {
     let mut this = Self::new(function);
-    if !matches!(salt, HashSalt::None) {
-      salt.hash(&mut this);
+    if let HashSalt::Salt(salt) = salt {
+      this.write(salt.as_bytes());
     }
     this
   }
