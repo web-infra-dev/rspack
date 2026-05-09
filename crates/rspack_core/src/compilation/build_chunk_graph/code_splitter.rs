@@ -51,17 +51,11 @@ struct PreparedBlockConnectionBuilder {
   dependency: DependencyId,
 }
 
-struct PreparedBlockConnectionGroupBuilder {
-  block: DependenciesBlockIdentifier,
-  module: ModuleIdentifier,
-  connections: Vec<DependencyId>,
-}
-
 fn finalize_prepared_connection_map(
   connections: impl IntoIterator<Item = PreparedBlockConnectionBuilder>,
   capacity: usize,
 ) -> PreparedBlockConnectionMap {
-  let mut groups = Vec::<PreparedBlockConnectionGroupBuilder>::with_capacity(capacity);
+  let mut groups = PreparedBlockConnectionMap::with_capacity(capacity);
   let mut group_index_by_block = Vec::<(DependenciesBlockIdentifier, IdentifierMap<usize>)>::new();
   for connection in connections {
     let index_by_module = if let Some((_, index_by_module)) = group_index_by_block
@@ -78,27 +72,22 @@ fn finalize_prepared_connection_map(
     };
 
     if let Some(index) = index_by_module.get(&connection.module) {
-      groups[*index].connections.push(connection.dependency);
+      Arc::get_mut(&mut groups[*index].connections)
+        .expect("prepared connections should not be shared during finalize")
+        .push(connection.dependency);
       continue;
     }
 
     let index = groups.len();
     index_by_module.insert(connection.module, index);
-    groups.push(PreparedBlockConnectionGroupBuilder {
+    groups.push(PreparedBlockConnection {
       block: connection.block,
       module: connection.module,
-      connections: vec![connection.dependency],
+      connections: Arc::new(vec![connection.dependency]),
     });
   }
 
   groups
-    .into_iter()
-    .map(|connection| PreparedBlockConnection {
-      block: connection.block,
-      module: connection.module,
-      connections: Arc::new(connection.connections),
-    })
-    .collect()
 }
 
 #[derive(Debug, Clone, Default)]
@@ -2335,9 +2324,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         let mut ordered_deps = Vec::new();
         let mut unordered_deps = Vec::with_capacity(dependency_count);
         for dep_id in all_dependencies {
-          let Some(connection) = mg.connection_by_dependency_id(dep_id) else {
-            continue;
-          };
           let dep = mg.dependency_by_id(dep_id);
           let module_dep = dep.as_module_dependency();
           if module_dep.is_none() && dep.as_context_dependency().is_none() {
@@ -2346,6 +2332,9 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           if matches!(module_dep.map(|d| d.weak()), Some(true)) {
             continue;
           }
+          let Some(connection) = mg.connection_by_dependency_id(dep_id) else {
+            continue;
+          };
 
           let module_identifier = *connection.module_identifier();
           let block_id = if let Some(block) = mg.get_parent_block(dep_id) {
