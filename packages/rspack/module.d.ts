@@ -219,9 +219,6 @@ declare namespace Rspack {
 
 interface ImportMeta {
   url: string;
-  rspackRsc: {
-    loadCss(...args: unknown[]): any;
-  };
   webpackHot?: Rspack.Hot;
   webpackContext: (
     request: string,
@@ -238,6 +235,12 @@ interface ImportMeta {
       mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once';
     },
   ) => Rspack.Context;
+  /**
+   * Available in server components when using the RSC plugins.
+   */
+  rspackRsc?: {
+    loadCss(): any;
+  };
 }
 
 declare const __resourceQuery: string;

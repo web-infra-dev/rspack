@@ -176,6 +176,12 @@ fn get_rspack_rsc_importer(parser: &JavascriptParser) -> String {
   )
 }
 
+fn is_rsc_layer(parser: &JavascriptParser) -> bool {
+  parser
+    .get_module_layer()
+    .is_some_and(|layer| layer == "react-server-components")
+}
+
 fn mark_import_meta_rsc_used(parser: &mut JavascriptParser) {
   match parser.build_info.rsc.as_mut() {
     Some(rsc) => {
@@ -215,7 +221,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       evaluated = Some("number".to_string())
     } else if for_name == expr_name::IMPORT_META_MAIN {
       evaluated = Some("boolean".to_string())
-    } else if for_name == expr_name::IMPORT_META_RSPACK_RSC {
+    } else if for_name == expr_name::IMPORT_META_RSPACK_RSC && is_rsc_layer(parser) {
       evaluated = Some("object".to_string())
     } else if let Some(member_expr) = expr.arg.as_member()
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
@@ -265,7 +271,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn evaluate<'a>(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &'a Expr,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     if let Some(member) = expr.as_member()
@@ -279,7 +285,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         if ident.sym == "dirname"
           || ident.sym == "filename"
           || ident.sym == "main"
-          || ident.sym == "rspackRsc"
+          || (ident.sym == "rspackRsc" && is_rsc_layer(parser))
         {
           return None;
         }
@@ -296,7 +302,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
           && (str_lit.value == "dirname"
             || str_lit.value == "filename"
             || str_lit.value == "main"
-            || str_lit.value == "rspackRsc")
+            || (str_lit.value == "rspackRsc" && is_rsc_layer(parser)))
         {
           return None;
         }
@@ -467,7 +473,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         content.into(),
       )));
       Some(true)
-    } else if for_name == expr_name::IMPORT_META_RSPACK_RSC {
+    } else if for_name == expr_name::IMPORT_META_RSPACK_RSC && is_rsc_layer(parser) {
       self.process_rspack_rsc(parser, member_expr);
       Some(true)
     } else {
