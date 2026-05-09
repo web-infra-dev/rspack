@@ -2217,55 +2217,57 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     for batch in chunk_groups_merging_batches {
-      let chunk_groups_merging_tasks = batch
-        .into_iter()
-        .map(|(info_ukey, process_block)| {
-          let cgi = std::mem::take(self.chunk_group_info_mut(&info_ukey));
-          (info_ukey, process_block, cgi)
+      let mut chunk_groups_merging_tasks = Vec::with_capacity(batch.len());
+      for (info_ukey, process_block) in batch {
+        let cgi = std::mem::take(self.chunk_group_info_mut(&info_ukey));
+        chunk_groups_merging_tasks.push((info_ukey, process_block, cgi));
+      }
+
+      let mut chunk_group_merging_results = chunk_groups_merging_tasks
+        .into_par_iter()
+        .map(|(info_ukey, process_block, mut cgi)| {
+          let mut changed = false;
+          let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
+
+          if !cgi.available_modules_to_be_merged.is_empty() {
+            let available_modules_to_be_merged =
+              std::mem::take(&mut cgi.available_modules_to_be_merged);
+
+            for modules_to_be_merged in available_modules_to_be_merged {
+              if !cgi.min_available_modules_init {
+                cgi.min_available_modules_init = true;
+                cgi.min_available_modules = modules_to_be_merged;
+                changed = true;
+                continue;
+              }
+
+              let merged = cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref();
+              if &merged != cgi.min_available_modules.as_ref() {
+                cgi.min_available_modules = Arc::new(merged);
+                changed = true;
+              }
+            }
+          }
+
+          if changed {
+            cgi.invalidate_resulting_available_modules();
+          }
+
+          (
+            info_ukey,
+            Some(cgi),
+            process_block,
+            changed,
+            available_modules_length,
+          )
         })
         .collect::<Vec<_>>();
 
-      let (chunk_group_infos, chunk_group_merging_results): (Vec<_>, Vec<_>) =
-        chunk_groups_merging_tasks
-          .into_par_iter()
-          .map(|(info_ukey, process_block, mut cgi)| {
-            let mut changed = false;
-            let available_modules_length = cgi.available_modules_to_be_merged.len() as u32;
-
-            if !cgi.available_modules_to_be_merged.is_empty() {
-              let available_modules_to_be_merged =
-                std::mem::take(&mut cgi.available_modules_to_be_merged);
-
-              for modules_to_be_merged in available_modules_to_be_merged {
-                if !cgi.min_available_modules_init {
-                  cgi.min_available_modules_init = true;
-                  cgi.min_available_modules = modules_to_be_merged;
-                  changed = true;
-                  continue;
-                }
-
-                let orig = cgi.min_available_modules.clone();
-                cgi.min_available_modules =
-                  Arc::new(cgi.min_available_modules.as_ref() & modules_to_be_merged.as_ref());
-                changed |= orig != cgi.min_available_modules;
-              }
-            }
-
-            if changed {
-              cgi.invalidate_resulting_available_modules();
-            }
-            (
-              (info_ukey, cgi),
-              (info_ukey, process_block, changed, available_modules_length),
-            )
-          })
-          .unzip();
-
-      for (info_ukey, cgi) in chunk_group_infos {
-        *self.chunk_group_info_mut(&info_ukey) = cgi;
+      for (info_ukey, cgi, _, _, _) in &mut chunk_group_merging_results {
+        *self.chunk_group_info_mut(info_ukey) = cgi.take().expect("should have chunk group info");
       }
 
-      for (info_ukey, process_block, changed, available_modules_length) in
+      for (info_ukey, _, process_block, changed, available_modules_length) in
         chunk_group_merging_results
       {
         self.stat_merged_available_module_sets += available_modules_length;
