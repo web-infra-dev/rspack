@@ -118,7 +118,7 @@ impl Debug for Content {
 }
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct ResourceData {
   /// Resource with absolute path, query and fragment
   resource: String,

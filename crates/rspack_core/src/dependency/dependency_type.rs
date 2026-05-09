@@ -25,6 +25,8 @@ pub enum DependencyType {
   DynamicImport,
   // import() eager
   DynamicImportEager,
+  // import() weak
+  DynamicImportWeak,
   // cjs require
   CjsRequire,
   // cjs full require
@@ -131,6 +133,7 @@ pub enum DependencyType {
   RstestModulePath,
   RstestMockModuleId,
   RstestHoistMock,
+  RstestDynamicImportOrigin,
   /// RSC entry that aggregates all "use client" and CSS modules for one Rspack entry
   RscEntry,
   /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
@@ -150,6 +153,8 @@ impl DependencyType {
       DependencyType::EsmExportExpression => "esm export expression",
       DependencyType::EsmExportHeader => "esm export header",
       DependencyType::DynamicImport => "import()",
+      DependencyType::DynamicImportEager => "import() eager",
+      DependencyType::DynamicImportWeak => "import() weak",
       DependencyType::CjsRequire => "cjs require",
       DependencyType::CjsFullRequire => "cjs full require",
       DependencyType::CjsExports => "cjs exports",
@@ -180,7 +185,6 @@ impl DependencyType {
       },
       // TODO: mode
       DependencyType::ImportContext => "import context",
-      DependencyType::DynamicImportEager => "import() eager",
       DependencyType::CommonJSRequireContext => "commonjs require context",
       DependencyType::RequireContext => "require.context",
       DependencyType::RequireResolve => "require.resolve",
@@ -217,6 +221,7 @@ impl DependencyType {
       DependencyType::RstestModulePath => "rstest module path",
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
+      DependencyType::RstestDynamicImportOrigin => "rstest dynamic import origin",
       DependencyType::RscEntry => "rsc entry",
       DependencyType::RscClientReference => "rsc client reference",
     }

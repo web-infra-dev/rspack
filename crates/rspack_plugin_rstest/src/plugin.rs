@@ -1,5 +1,5 @@
 use std::{
-  sync::{Arc, LazyLock},
+  sync::{Arc, LazyLock, OnceLock},
   time::{Duration, Instant},
 };
 
@@ -10,7 +10,7 @@ use rspack_core::{
   Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
   ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, ResolveContext, ResolveOptionsWithDependencyType, ResolveResult,
+  ParserOptions, Plugin, ResolveOptionsWithDependencyType, ResolveResult,
   SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
@@ -29,6 +29,7 @@ static RSTEST_FLAG_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 use crate::{
+  dynamic_import_origin_dependency::RstestDynamicImportOriginDependencyTemplate,
   esm_import_dependency::{
     RstestESMImportSideEffectDependencyTemplate, RstestESMImportSpecifierDependencyTemplate,
   },
@@ -48,6 +49,14 @@ pub struct RstestPluginOptions {
   pub manual_mock_root: String,
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
+  pub inject_dynamic_import_origin: Option<RstestDynamicImportOriginOptions>,
+}
+
+#[derive(Debug, Default)]
+pub struct RstestDynamicImportOriginOptions {
+  /// Overrides the rewrite callee. When `None`, falls back to
+  /// `output.importFunctionName`.
+  pub function_name: Option<String>,
 }
 
 #[derive(Debug)]
@@ -61,11 +70,15 @@ pub struct ProgressPluginStateInfo {
 #[derive(Debug)]
 pub struct RstestPlugin {
   options: RstestPluginOptions,
+  /// Resolved at `apply` time. `Some(callee)` enables the rewrite; `None`
+  /// covers both "feature disabled" and "callee resolved to default `import`"
+  /// (incompatible with native syntax — rewriting would yield a SyntaxError).
+  dynamic_import_origin_callee: OnceLock<Option<Arc<str>>>,
 }
 
 impl RstestPlugin {
   pub fn new(options: RstestPluginOptions) -> Self {
-    Self::new_inner(options)
+    Self::new_inner(options, OnceLock::new())
   }
 
   fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
@@ -145,12 +158,11 @@ impl RstestPlugin {
       dependency_category,
     };
     let resolver = data.resolver_factory.get(dep);
-    let mut resolve_context = ResolveContext::default();
 
-    let resolved_directory_target = match resolver
-      .resolve_with_context(data.context.as_ref(), stripped, &mut resolve_context)
-      .await
-    {
+    let (resolve_result, resolve_dependencies) = resolver
+      .resolve_with_context(data.context.as_ref(), stripped)
+      .await;
+    let resolved_directory_target = match resolve_result {
       Ok(ResolveResult::Resource(resource)) => self.resolve_directory_mock_target(
         Utf8Path::new(stripped),
         data.context.as_ref(),
@@ -160,8 +172,8 @@ impl RstestPlugin {
       _ => None,
     };
 
-    data.add_file_dependencies(resolve_context.file_dependencies);
-    data.add_missing_dependencies(resolve_context.missing_dependencies);
+    data.add_file_dependencies(resolve_dependencies.file_dependencies);
+    data.add_missing_dependencies(resolve_dependencies.missing_dependencies);
     let resolved_request = resolved_directory_target
       .unwrap_or(default_target)
       .to_string();
@@ -233,6 +245,11 @@ async fn nmf_parser(
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
   {
+    let inject_dynamic_import_origin = self
+      .dynamic_import_origin_callee
+      .get()
+      .is_some_and(|c| c.is_some());
+
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
       crate::parser_plugin::RstestParserPluginOptions {
         module_path_name: self.options.module_path_name,
@@ -240,6 +257,7 @@ async fn nmf_parser(
         import_meta_path_name: self.options.import_meta_path_name,
         manual_mock_root: self.options.manual_mock_root.clone(),
         globals: self.options.globals,
+        inject_dynamic_import_origin,
       },
     )) as BoxJavascriptParserPlugin);
   }
@@ -267,6 +285,15 @@ async fn compilation(
     MockModuleIdDependencyTemplate::template_type(),
     Arc::new(MockModuleIdDependencyTemplate::default()),
   );
+
+  if let Some(Some(callee)) = self.dynamic_import_origin_callee.get() {
+    compilation.set_dependency_template(
+      RstestDynamicImportOriginDependencyTemplate::template_type(),
+      Arc::new(RstestDynamicImportOriginDependencyTemplate::new(
+        callee.to_string(),
+      )),
+    );
+  }
 
   Ok(())
 }
@@ -424,6 +451,23 @@ impl Plugin for RstestPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    // Resolve the rewrite callee once: rstest's own `functionName` override
+    // takes precedence; otherwise fall back to `output.importFunctionName`.
+    // Normalize the default `"import"` to `None` since native `import()` only
+    // accepts 1-2 args — appending origin would yield a SyntaxError.
+    let resolved_callee = self
+      .options
+      .inject_dynamic_import_origin
+      .as_ref()
+      .and_then(|cfg| {
+        let name = cfg
+          .function_name
+          .as_deref()
+          .unwrap_or(&ctx.compiler_options.output.import_function_name);
+        (name != "import").then(|| Arc::<str>::from(name))
+      });
+    let _ = self.dynamic_import_origin_callee.set(resolved_callee);
+
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
@@ -436,7 +480,7 @@ impl Plugin for RstestPlugin {
       .compilation
       .tap(compilation_stage_9999::new(self));
 
-    if self.options.module_path_name {
+    if self.options.module_path_name || self.options.inject_dynamic_import_origin.is_some() {
       ctx
         .normal_module_factory_hooks
         .parser

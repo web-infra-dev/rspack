@@ -362,3 +362,18 @@ module.exports = {
    },
  };
 ```
+
+## 常见 webpack 库替换
+
+迁移 webpack 生态中的配套库时，下面这些非插件类包通常需要替换：
+
+| webpack 库               | Rspack 替代方案                                                               | 说明                            |
+| ------------------------ | ----------------------------------------------------------------------------- | ------------------------------- |
+| `webpack`                | [`@rspack/core`](https://www.npmjs.com/package/@rspack/core)                  | 核心包。                        |
+| `webpack-cli`            | [`@rspack/cli`](https://www.npmjs.com/package/@rspack/cli)                    | Rspack CLI 命令。               |
+| `webpack-dev-server`     | [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server)         | Rspack 开发服务器。             |
+| `webpack-dev-middleware` | [`@rspack/dev-middleware`](https://github.com/rstackjs/rspack-dev-middleware) | 自定义 Node.js 服务中的中间件。 |
+| `webpack-chain`          | [`rspack-chain`](https://github.com/rstackjs/rspack-chain)                    | 链式生成 Rspack 配置。          |
+| `webpack-merge`          | [`rspack-merge`](https://github.com/rstackjs/rspack-merge)                    | 合并 Rspack 配置。              |
+
+> 对于插件类包，请查看 [Plugin 兼容](/guide/compatibility/plugin)。

@@ -396,7 +396,18 @@ This option lets you specify the delimiter to use for the generated names.
 
 #### splitChunks.cacheGroups.\{cacheGroup\}.name
 
-- **Type:** `string | function`
+- **Type:**
+
+```ts
+type SplitChunksName = false | string | SplitChunksNameFunction;
+
+type SplitChunksNameFunction = (
+  module: Module,
+  chunks: Chunk[],
+  cacheGroupKey: string,
+) => string | undefined;
+```
+
 - **Default:** `false`
 
 > where the version of the function type is `>=0.4.1`.
@@ -406,6 +417,68 @@ Also available for each cacheGroup: `splitChunks.cacheGroups.{cacheGroup}.name`.
 The name of the split chunk. Providing `false` will keep the same name of the chunks so it doesn't change names unnecessarily. It is the recommended value for production builds.
 
 Providing a string allows you to use a custom name. Specifying a string will merge all common modules and vendors into a single chunk. This might lead to bigger initial downloads and slow down page loads.
+
+When `name` is a function, Rspack calls it with these parameters:
+
+- `module`: the module that is being considered for the split chunk. You can use methods such as `module.identifier()` to derive a stable name from its request or resource path.
+- `chunks`: the chunks that currently contain this module and were selected by the cache group. Each item is a `Chunk` object, so common properties such as `chunk.name` are available.
+- `cacheGroupKey`: the key of the cache group that matched the module, for example `vendors` for `cacheGroups.vendors`.
+
+The function should return the split chunk name. Return `undefined` to let Rspack fall back to automatic naming for that module group.
+
+For example, you can name vendor chunks by the cache group key and by the selected chunk names:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          name(module, chunks, cacheGroupKey) {
+            const chunkNames = chunks
+              .map((chunk) => chunk.name)
+              .filter(Boolean)
+              .sort()
+              .join('~');
+
+            return `${cacheGroupKey}-${chunkNames || 'shared'}`;
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+You can also derive a chunk name from the package that provided the matched module:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        npmPackage: {
+          test: /[\\/]node_modules[\\/]/,
+          name(module, chunks, cacheGroupKey) {
+            const identifier = module.identifier();
+            const match = identifier.match(
+              /[\\/]node_modules[\\/]((?:@[^\\/]+[\\/])?[^\\/]+)/,
+            );
+            const packageName = match
+              ? match[1].replace(/[\\/]/g, '-')
+              : 'misc';
+
+            return `${cacheGroupKey}-${packageName}`;
+          },
+        },
+      },
+    },
+  },
+};
+```
 
 `name` is not only a filename customization. It also changes grouping behavior: when different chunk combinations hit the same cache group and resolve to the same name, Rspack will merge them into the same named split chunk candidate. This can improve cache hit rate, but it can also force a page to fetch modules from unrelated dependency chains.
 

@@ -79,7 +79,7 @@ export interface Asset {
 }
 
 export type ChunkPathData = {
-  id?: string;
+  id?: string | number;
   name?: string;
   hash?: string;
   contentHash?: Record<string, string>;
@@ -91,10 +91,34 @@ export type PathData = {
   contentHash?: string;
   runtime?: string;
   url?: string;
-  id?: string;
+  id?: string | number;
   chunk?: Chunk | ChunkPathData;
   contentHashType?: string;
 };
+
+function normalizePathData(data: PathData = {}): JsPathData {
+  const pathData: JsPathData = {
+    filename: data.filename,
+    hash: data.hash,
+    contentHash: data.contentHash,
+    runtime: data.runtime,
+    url: data.url,
+  };
+
+  if (data.id !== undefined) {
+    pathData.id = String(data.id);
+  }
+
+  if (data.chunk) {
+    pathData.chunk = {
+      id: data.chunk.id !== undefined ? String(data.chunk.id) : undefined,
+      name: data.chunk.name,
+      hash: data.chunk.hash,
+    };
+  }
+
+  return pathData;
+}
 
 export interface LogEntry {
   type: string;
@@ -751,7 +775,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getPath(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -759,7 +783,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -767,7 +791,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getAssetPath(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -775,7 +799,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getAssetPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }

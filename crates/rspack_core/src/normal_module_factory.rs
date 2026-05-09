@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
 
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
@@ -14,7 +14,7 @@ use crate::{
   DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
   ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, RawModule, Resolve, ResolveArgs,
+  ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve, ResolveArgs,
   ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
   ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
@@ -28,7 +28,7 @@ define_hook!(NormalModuleFactoryResolveForScheme: SeriesBail(data: &mut ModuleFa
 define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryCreateModule: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> BoxModule,tracing=false);
-define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData, module: &mut BoxModule),tracing=false);
+define_hook!(NormalModuleFactoryModule: Series(data: &mut ModuleFactoryCreateData, create_data: &NormalModuleCreateData, module: &mut BoxModule),tracing=false);
 define_hook!(NormalModuleFactoryParser: Series(module_type: &ModuleType, parser: &mut Box<dyn ParserAndGenerator>, parser_options: Option<&ParserOptions>),tracing=false);
 define_hook!(NormalModuleFactoryResolveLoader: SeriesBail(context: &Context, resolver: &Resolver, l: &ModuleRuleUseLoader) -> BoxLoader,tracing=false);
 define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryCreateData, module: &mut BoxModule),tracing=false);
@@ -36,6 +36,159 @@ define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryC
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
   Ignored,
+}
+
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum NormalModuleCreateDataResource {
+  Owned(ResourceData),
+  Shared(Arc<ResourceData>),
+}
+
+impl NormalModuleCreateDataResource {
+  fn into_shared(self) -> Arc<ResourceData> {
+    match self {
+      Self::Owned(resource_data) => Arc::new(resource_data),
+      Self::Shared(resource_data) => resource_data,
+    }
+  }
+
+  fn take_shared(&mut self) -> Arc<ResourceData> {
+    let shared = std::mem::take(self).into_shared();
+    *self = Self::Shared(shared.clone());
+    shared
+  }
+
+  pub fn update_resource_data(&mut self, new_resource: String) {
+    match self {
+      Self::Owned(resource_data) => resource_data.update_resource_data(new_resource),
+      Self::Shared(_) => {
+        panic!("shared resource resolve data cannot be mutated after module creation")
+      }
+    }
+  }
+}
+
+impl Default for NormalModuleCreateDataResource {
+  fn default() -> Self {
+    Self::Owned(ResourceData::default())
+  }
+}
+
+impl Deref for NormalModuleCreateDataResource {
+  type Target = ResourceData;
+
+  fn deref(&self) -> &Self::Target {
+    match self {
+      Self::Owned(resource_data) => resource_data,
+      Self::Shared(resource_data) => resource_data,
+    }
+  }
+}
+
+impl AsRef<ResourceData> for NormalModuleCreateDataResource {
+  fn as_ref(&self) -> &ResourceData {
+    self
+  }
+}
+
+fn create_global_parser_options_cache(
+  parser_options: Option<&ParserOptionsMap>,
+) -> HashMap<String, Arc<ParserOptions>> {
+  let mut cache = HashMap::new();
+  let Some(parser_options) = parser_options else {
+    return cache;
+  };
+
+  for (key, options) in parser_options.iter() {
+    cache.insert(key.clone(), Arc::new(options.clone()));
+  }
+
+  for module_type in [
+    ModuleType::JsAuto,
+    ModuleType::JsDynamic,
+    ModuleType::JsEsm,
+    ModuleType::CssAuto,
+    ModuleType::CssModule,
+  ] {
+    if let Some(options) = resolve_global_parser_options(parser_options, &module_type) {
+      cache.insert(module_type.as_str().to_owned(), Arc::new(options));
+    }
+  }
+
+  cache
+}
+
+fn resolve_global_parser_options(
+  parser_options: &ParserOptionsMap,
+  module_type: &ModuleType,
+) -> Option<ParserOptions> {
+  let options = parser_options.get(module_type.as_str());
+  match module_type {
+    ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
+      // Merge `module.parser.["javascript/xxx"]` with `module.parser.["javascript"]` first.
+      rspack_util::merge_from_optional_with(
+        parser_options.get("javascript").cloned(),
+        options,
+        |javascript_options, options| match (javascript_options, options) {
+          (
+            ParserOptions::Javascript(a),
+            ParserOptions::JavascriptAuto(b)
+            | ParserOptions::JavascriptDynamic(b)
+            | ParserOptions::JavascriptEsm(b),
+          ) => ParserOptions::Javascript(a.merge_from(b)),
+          _ => unreachable!(),
+        },
+      )
+    }
+    ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
+      parser_options.get("css").cloned(),
+      options,
+      |css_options, options| match (css_options, options) {
+        (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
+          ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
+        }
+        (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
+          ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
+        }
+        _ => unreachable!(),
+      },
+    ),
+    _ => options.cloned(),
+  }
+}
+
+fn merge_parser_options_with_local(
+  global_parser: Option<Arc<ParserOptions>>,
+  local_parser: Option<&ParserOptions>,
+) -> Option<Arc<ParserOptions>> {
+  match (global_parser, local_parser) {
+    (None, None) => None,
+    (None, Some(local)) => Some(Arc::new(local.clone())),
+    (Some(global), None) => Some(global),
+    (Some(global), Some(local)) => Some(Arc::new(match (&*global, local) {
+      (ParserOptions::Asset(a), ParserOptions::Asset(b)) => {
+        ParserOptions::Asset(a.clone().merge_from(b))
+      }
+      (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.clone().merge_from(b)),
+      (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
+        ParserOptions::CssAuto(a.clone().merge_from(b))
+      }
+      (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
+        ParserOptions::CssModule(a.clone().merge_from(b))
+      }
+      (
+        ParserOptions::Javascript(a),
+        ParserOptions::JavascriptAuto(b)
+        | ParserOptions::JavascriptDynamic(b)
+        | ParserOptions::JavascriptEsm(b),
+      ) => ParserOptions::Javascript(a.clone().merge_from(b)),
+      (ParserOptions::Json(a), ParserOptions::Json(b)) => {
+        ParserOptions::Json(a.clone().merge_from(b))
+      }
+      (global, _) => global.clone(),
+    })),
+  }
 }
 
 #[derive(Debug, Default)]
@@ -60,6 +213,7 @@ pub struct NormalModuleFactoryHooks {
 #[derive(Debug)]
 pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
+  global_parser_options: HashMap<String, Arc<ParserOptions>>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
 }
@@ -85,6 +239,65 @@ impl ModuleFactory for NormalModuleFactory {
   }
 }
 
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::JavascriptParserOptions;
+
+  #[test]
+  fn reuse_global_parser_options_when_local_options_are_empty() {
+    let global = Arc::new(ParserOptions::Javascript(JavascriptParserOptions {
+      jsx: Some(true),
+      ..Default::default()
+    }));
+
+    let resolved = merge_parser_options_with_local(Some(Arc::clone(&global)), None)
+      .expect("global parser options should be reused");
+
+    assert!(Arc::ptr_eq(&resolved, &global));
+  }
+
+  #[test]
+  fn merge_local_parser_options_into_global_parser_options() {
+    let global = Arc::new(ParserOptions::Javascript(JavascriptParserOptions {
+      jsx: Some(true),
+      require_dynamic: Some(true),
+      ..Default::default()
+    }));
+    let local = ParserOptions::JavascriptAuto(JavascriptParserOptions {
+      jsx: Some(false),
+      ..Default::default()
+    });
+
+    let resolved = merge_parser_options_with_local(Some(global), Some(&local))
+      .expect("merged parser options should exist");
+
+    let options = resolved
+      .get_javascript()
+      .expect("javascript parser options should be resolved");
+    assert_eq!(options.jsx, Some(false));
+    assert_eq!(options.require_dynamic, Some(true));
+  }
+
+  #[test]
+  fn reuse_create_data_resource_resolve_data_for_normal_module() {
+    let resource_data = ResourceData::new_with_resource("/a.js".to_string());
+    let mut create_data = NormalModuleCreateData {
+      raw_request: "./a".to_string(),
+      request: "/a.js".to_string(),
+      user_request: "./a".to_string(),
+      resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
+      match_resource: None,
+      side_effects: None,
+      context: None,
+    };
+
+    let resource_data = create_data.resource_resolve_data.take_shared();
+
+    assert_eq!(resource_data.resource(), "/a.js");
+  }
+}
+
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';
 const DOT: char = '.';
@@ -97,8 +310,10 @@ impl NormalModuleFactory {
     loader_resolver_factory: Arc<ResolverFactory>,
     plugin_driver: SharedPluginDriver,
   ) -> Self {
+    let global_parser_options = create_global_parser_options_cache(options.module.parser.as_ref());
     Self {
       options,
+      global_parser_options,
       loader_resolver_factory,
       plugin_driver,
     }
@@ -326,11 +541,11 @@ impl NormalModuleFactory {
           resolve_options: data.resolve_options.clone(),
           resolve_to_context: false,
           optional: dependency_optional,
-          file_dependencies: &mut file_dependencies,
-          missing_dependencies: &mut missing_dependencies,
         };
 
-        let resource_data = resolve(resolve_args, plugin_driver).await;
+        let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
+        file_dependencies = resolve_dependencies.file_dependencies;
+        missing_dependencies = resolve_dependencies.missing_dependencies;
 
         match resource_data {
           Ok(ResolveResult::Resource(resource)) => resource.into(),
@@ -370,8 +585,8 @@ module.exports = "data:,";
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
           Err(err) => {
-            data.add_file_dependencies(file_dependencies);
-            data.add_missing_dependencies(missing_dependencies);
+            data.file_dependencies = file_dependencies;
+            data.missing_dependencies = missing_dependencies;
             return Err(err);
           }
         }
@@ -533,7 +748,7 @@ module.exports = "data:,";
           resolved_module_type.as_str()
         )
       })?(
-      resolved_parser_options.as_ref(),
+      resolved_parser_options.as_deref(),
       resolved_generator_options.as_ref(),
     );
     self
@@ -543,7 +758,7 @@ module.exports = "data:,";
       .call(
         &resolved_module_type,
         &mut resolved_parser_and_generator,
-        resolved_parser_options.as_ref(),
+        resolved_parser_options.as_deref(),
       )
       .await?;
 
@@ -557,7 +772,7 @@ module.exports = "data:,";
           .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
-        resource_resolve_data: resource_data,
+        resource_resolve_data: NormalModuleCreateDataResource::Owned(resource_data),
       };
       if let Some(plugin_result) = self
         .plugin_driver
@@ -584,6 +799,7 @@ module.exports = "data:,";
     {
       module
     } else {
+      let resource_resolve_data = create_data.resource_resolve_data.take_shared();
       NormalModule::new(
         create_data.request.clone(),
         create_data.user_request.clone(),
@@ -594,7 +810,7 @@ module.exports = "data:,";
         resolved_parser_options,
         resolved_generator_options,
         match_resource_data,
-        Arc::new(create_data.resource_resolve_data.clone()),
+        resource_resolve_data,
         resolved_resolve_options,
         loaders,
         create_data.context.clone().map(|x| x.into()),
@@ -607,11 +823,11 @@ module.exports = "data:,";
       .plugin_driver
       .normal_module_factory_hooks
       .module
-      .call(data, &mut create_data, &mut module)
+      .call(data, &create_data, &mut module)
       .await?;
 
-    data.add_file_dependencies(file_dependencies);
-    data.add_missing_dependencies(missing_dependencies);
+    data.file_dependencies = file_dependencies;
+    data.missing_dependencies = missing_dependencies;
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }
@@ -693,42 +909,11 @@ module.exports = "data:,";
     module_type: &ModuleType,
     parser: Option<ParserOptions>,
     generator: Option<GeneratorOptions>,
-  ) -> (Option<ParserOptions>, Option<GeneratorOptions>) {
-    let global_parser = self.options.module.parser.as_ref().and_then(|p| {
-      let options = p.get(module_type.as_str());
-      match module_type {
-        ModuleType::JsAuto | ModuleType::JsDynamic | ModuleType::JsEsm => {
-          // Merge `module.parser.["javascript/xxx"]` with `module.parser.["javascript"]` first
-          rspack_util::merge_from_optional_with(
-            p.get("javascript").cloned(),
-            options,
-            |javascript_options, options| match (javascript_options, options) {
-              (
-                ParserOptions::Javascript(a),
-                ParserOptions::JavascriptAuto(b)
-                | ParserOptions::JavascriptDynamic(b)
-                | ParserOptions::JavascriptEsm(b),
-              ) => ParserOptions::Javascript(a.merge_from(b)),
-              _ => unreachable!(),
-            },
-          )
-        }
-        ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
-          p.get("css").cloned(),
-          options,
-          |css_options, options| match (css_options, options) {
-            (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
-              ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
-            }
-            (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
-              ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
-            }
-            _ => unreachable!(),
-          },
-        ),
-        _ => options.cloned(),
-      }
-    });
+  ) -> (Option<Arc<ParserOptions>>, Option<GeneratorOptions>) {
+    let global_parser = self
+      .global_parser_options
+      .get(module_type.as_str())
+      .map(Arc::clone);
     let global_generator = self.options.module.generator.as_ref().and_then(|g| {
       let options = g.get(module_type.as_str());
 
@@ -778,28 +963,7 @@ module.exports = "data:,";
         _ => options.cloned(),
       }
     });
-    let parser = rspack_util::merge_from_optional_with(
-      global_parser,
-      parser.as_ref(),
-      |global, local| match (global, local) {
-        (ParserOptions::Asset(a), ParserOptions::Asset(b)) => ParserOptions::Asset(a.merge_from(b)),
-        (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.merge_from(b)),
-        (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
-          ParserOptions::CssAuto(a.merge_from(b))
-        }
-        (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
-          ParserOptions::CssModule(a.merge_from(b))
-        }
-        (
-          ParserOptions::Javascript(a),
-          ParserOptions::JavascriptAuto(b)
-          | ParserOptions::JavascriptDynamic(b)
-          | ParserOptions::JavascriptEsm(b),
-        ) => ParserOptions::Javascript(a.merge_from(b)),
-        (ParserOptions::Json(a), ParserOptions::Json(b)) => ParserOptions::Json(a.merge_from(b)),
-        (global, _) => global,
-      },
-    );
+    let parser = merge_parser_options_with_local(global_parser, parser.as_ref());
     let generator = rspack_util::merge_from_optional_with(
       global_generator,
       generator.as_ref(),
@@ -916,7 +1080,7 @@ pub struct NormalModuleCreateData {
   pub raw_request: String,
   pub request: String,
   pub user_request: String,
-  pub resource_resolve_data: ResourceData,
+  pub resource_resolve_data: NormalModuleCreateDataResource,
   pub match_resource: Option<String>,
   pub side_effects: Option<bool>,
   pub context: Option<String>,

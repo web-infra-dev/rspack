@@ -1,9 +1,5 @@
 // @ts-nocheck
-exports.checkChunkModules = function checkChunkModules(
-  statsJson,
-  chunkModulesMap,
-  strict = true,
-) {
+export function checkChunkModules(statsJson, chunkModulesMap, strict = true) {
   for (const chunkId of Reflect.ownKeys(chunkModulesMap)) {
     const chunk = getChunk(statsJson, chunkId);
 
@@ -25,10 +21,12 @@ exports.checkChunkModules = function checkChunkModules(
   }
 
   return true;
-};
+}
 
 function getChunk(statsJson, id) {
-  const chunk = statsJson.chunks.find((chunk) => chunk.id.includes(id));
+  const chunk = statsJson.chunks.find((chunk) =>
+    String(chunk.id).includes(String(id)),
+  );
 
   if (!chunk) {
     throw new Error(`cannot find chunk with id: ${id}`);

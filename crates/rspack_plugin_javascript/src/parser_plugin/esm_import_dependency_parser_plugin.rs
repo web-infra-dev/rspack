@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
-  ImportAttributes, ImportPhase,
+  ConstDependency, DependencyRange, DependencyType, ExportPresenceMode, ImportAttributes,
+  ImportPhase,
 };
 use swc_core::{
   atoms::Atom,
@@ -121,14 +121,23 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let root_info = right.root_info();
-    let settings = if let ExportedVariableInfo::VariableInfo(variable) = root_info
-      && let Some(variable_name) = &parser.definitions_db.expect_get_variable(*variable).name
-      && let Some(data) = parser.get_tag_data(&variable_name.clone(), ESM_SPECIFIER_TAG)
-    {
-      ESMSpecifierData::downcast(data)
-    } else {
-      return None;
-    };
+    let (source, name, source_order, phase, attributes, namespace_import, mut ids) =
+      if let ExportedVariableInfo::VariableInfo(variable) = root_info
+        && let Some(settings) =
+          parser.get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)
+      {
+        (
+          settings.source.clone(),
+          settings.name.clone(),
+          settings.source_order,
+          settings.phase,
+          settings.attributes.clone(),
+          settings.namespace_import,
+          settings.ids.clone(),
+        )
+      } else {
+        return None;
+      };
     let left = parser.evaluate_expression(&expr.left);
     if left.could_have_side_effects() {
       return None;
@@ -136,35 +145,37 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let left = left.as_string()?;
     let members = right.members().map(|v| v.as_slice()).unwrap_or_default();
     let direct_import = members.is_empty();
-    let mut ids = settings.ids;
     ids.extend(members.iter().cloned());
     ids.push(left.into());
 
     let range = DependencyRange::from(expr.span);
     let loc = parser.to_dependency_location(range);
     let mut dep = ESMImportSpecifierDependency::new(
-      settings.source,
-      settings.name,
-      settings.source_order,
+      source,
+      name,
+      source_order,
       parser.in_short_hand,
       !parser.is_asi_position(expr.span_lo()),
       expr.span.into(),
       ids.into_vec(),
       parser.in_tagged_template_tag,
       direct_import,
-      settings.namespace_import,
+      namespace_import,
       ExportPresenceMode::None,
       None,
-      settings.phase,
-      settings.attributes,
+      phase,
+      attributes,
       loc,
     );
     dep.evaluated_in_operator = true;
 
-    let dep_id = *dep.id();
+    let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
+    InnerGraphParserPlugin::on_usage(
+      parser,
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
+    );
 
     Some(true)
   }
@@ -177,9 +188,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
       && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
       && parser
-        .get_tag_data(&name.clone(), ESM_SPECIFIER_TAG)
+        .get_variable_tag_data::<ESMSpecifierData>(*id, ESM_SPECIFIER_TAG)
         .is_some()
     {
       return Some(true);
@@ -223,10 +233,13 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       loc,
     );
-    let dep_id = *dep.id();
+    let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
+    InnerGraphParserPlugin::on_usage(
+      parser,
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
+    );
 
     Some(true)
   }
@@ -289,10 +302,13 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       .strict_this_context_on_imports
       .unwrap_or(false)
       && !direct_import;
-    let dep_id = *dep.id();
+    let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
+    InnerGraphParserPlugin::on_usage(
+      parser,
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
+    );
 
     parser.walk_expr_or_spread(&call_expr.args);
     Some(true)
@@ -349,10 +365,13 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       settings.attributes,
       parser.to_dependency_location(DependencyRange::from(span)),
     );
-    let dep_id = *dep.id();
+    let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
+    InnerGraphParserPlugin::on_usage(
+      parser,
+      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
+    );
 
     Some(true)
   }

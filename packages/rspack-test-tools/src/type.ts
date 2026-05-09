@@ -51,6 +51,8 @@ export interface ITestLoader {
 
 export type TTestRunResult = Record<string, any>;
 
+export type MaybePromise<T> = T | Promise<T>;
+
 export interface ITesterConfig {
   name: string;
   src: string;
@@ -76,16 +78,16 @@ export interface ITester {
 }
 
 export interface ITestProcessor {
-  beforeAll?(context: ITestContext): Promise<void>;
-  afterAll?(context: ITestContext): Promise<void>;
-  before?(context: ITestContext): Promise<void>;
-  after?(context: ITestContext): Promise<void>;
+  beforeAll?(context: ITestContext): MaybePromise<void>;
+  afterAll?(context: ITestContext): MaybePromise<void>;
+  before?(context: ITestContext): MaybePromise<void>;
+  after?(context: ITestContext): MaybePromise<void>;
 
-  config(context: ITestContext): Promise<void>;
-  compiler(context: ITestContext): Promise<void>;
-  build(context: ITestContext): Promise<void>;
-  run(env: ITestEnv, context: ITestContext): Promise<void>;
-  check(env: ITestEnv, context: ITestContext): Promise<unknown>;
+  config(context: ITestContext): MaybePromise<void>;
+  compiler(context: ITestContext): MaybePromise<void>;
+  build(context: ITestContext): MaybePromise<void>;
+  run(env: ITestEnv, context: ITestContext): MaybePromise<void>;
+  check(env: ITestEnv, context: ITestContext): MaybePromise<unknown>;
 }
 
 export interface ITestReporter {

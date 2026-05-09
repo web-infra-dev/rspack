@@ -1,4 +1,4 @@
-const findOutputFiles = require("@rspack/test-tools/helper/legacy/findOutputFiles");
+const { findOutputFiles } = require("@rspack/test-tools/helper/legacy/findOutputFiles");
 
 const allFilenameHashes = new Set();
 const allChunkHashes = new Set();

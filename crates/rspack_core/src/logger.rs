@@ -1,5 +1,6 @@
 use std::{
   backtrace::Backtrace,
+  fmt,
   hash::BuildHasherDefault,
   sync::{
     Arc,
@@ -294,9 +295,18 @@ impl CacheCount {
 
 pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
 
+#[derive(Clone)]
 pub struct CompilationLogger {
   logging: CompilationLogging,
   name: String,
+}
+
+impl fmt::Debug for CompilationLogger {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("CompilationLogger")
+      .field("name", &self.name)
+      .finish_non_exhaustive()
+  }
 }
 
 impl CompilationLogger {

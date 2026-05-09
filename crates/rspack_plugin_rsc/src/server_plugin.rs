@@ -18,17 +18,19 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  component_info::{
-    ClientComponentImports, CssImportsPerServerEntry, collect_component_info_from_entry_dependency,
-  },
+  component_info::{ClientComponentImports, collect_component_info_from_entry_dependency},
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
   hot_reloader::track_server_component_changes,
   loaders::action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
   manifest_runtime_module::RscManifestRuntimeModule,
-  plugin_state::{ActionIdNamePair, ClientModuleImport, PLUGIN_STATES, PluginState},
+  plugin_state::{
+    ActionIdNamePair, ClientModuleImport, CssImportsByServerEntry, PLUGIN_STATES, PluginState,
+    RootCssImports,
+  },
   reference_manifest::{
-    RscEntryManifest, RscManifest, build_server_consumer_module_map, build_server_manifest,
+    RscCssLinkProps, RscEntryManifest, RscManifest, build_server_consumer_module_map,
+    build_server_manifest,
   },
   rsc_entry_dependency::RscEntryDependency,
   rsc_entry_module_factory::RscEntryModuleFactory,
@@ -39,7 +41,8 @@ struct ClientEntry {
   entry_name: Arc<str>,
   runtime: RuntimeSpec,
   client_imports: ClientComponentImports,
-  css_imports_per_server_entry: CssImportsPerServerEntry,
+  css_imports_by_server_entry: CssImportsByServerEntry,
+  root_css_imports: RootCssImports,
 }
 
 #[derive(Debug)]
@@ -68,6 +71,7 @@ pub type OnManifest = Box<dyn Fn(String) -> BoxFuture<'static, Result<()>> + Syn
 
 pub struct RscServerPluginOptions {
   pub coordinator: Arc<Coordinator>,
+  pub css_link_props: RscCssLinkProps,
   pub on_server_component_changes: Option<OnServerComponentChanges>,
   pub on_manifest: Option<OnManifest>,
 }
@@ -81,6 +85,7 @@ pub struct RscServerPlugin {
   on_server_component_changes: Option<OnServerComponentChanges>,
   #[debug(skip)]
   on_manifest: Option<OnManifest>,
+  css_link_props: RscCssLinkProps,
   prev_server_component_hashes: AtomicRefCell<IdentifierMap<u64>>,
 }
 
@@ -90,6 +95,7 @@ impl RscServerPlugin {
       options.coordinator,
       options.on_server_component_changes,
       options.on_manifest,
+      options.css_link_props,
       Default::default(),
     )
   }
@@ -111,6 +117,10 @@ async fn this_compilation(
       vacant_entry.insert(Default::default());
     }
   };
+  PLUGIN_STATES
+    .entry(compilation.compiler_id())
+    .or_default()
+    .css_link_props = self.css_link_props.clone();
 
   self.coordinator.start_server_entries_compilation().await?;
 
@@ -255,13 +265,15 @@ impl RscServerPlugin {
         action_entry_imports.insert(dep, actions);
       }
       if !component_info.client_component_imports.is_empty()
-        || !component_info.css_imports_per_server_entry.is_empty()
+        || !component_info.css_imports_by_server_entry.is_empty()
+        || !component_info.root_css_imports.is_empty()
       {
         client_entries_to_inject.push(ClientEntry {
           entry_name: entry_name.clone(),
           runtime: runtime.clone(),
           client_imports: component_info.client_component_imports,
-          css_imports_per_server_entry: component_info.css_imports_per_server_entry,
+          css_imports_by_server_entry: component_info.css_imports_by_server_entry,
+          root_css_imports: component_info.root_css_imports,
         });
       }
 
@@ -455,15 +467,22 @@ impl RscServerPlugin {
       entry_name,
       runtime,
       client_imports,
-      css_imports_per_server_entry,
+      css_imports_by_server_entry,
+      root_css_imports,
     } = client_entry;
 
     let client_entries = {
       let mut modules = Vec::new();
       let entry_state = plugin_state.entries.entry(entry_name.clone()).or_default();
-      entry_state
-        .css_imports_per_server_entry
-        .extend(css_imports_per_server_entry);
+      for (server_entry, css_imports) in css_imports_by_server_entry {
+        entry_state
+          .server_entries
+          .entry(server_entry)
+          .or_default()
+          .css_imports
+          .extend(css_imports);
+      }
+      entry_state.root_css_imports.extend(root_css_imports);
 
       for (request, ids) in &client_imports {
         modules.push(ClientModuleImport {
@@ -495,8 +514,12 @@ impl RscServerPlugin {
         ids: m.ids.clone(),
       })
       .collect();
-    let ssr_entry_dependency =
-      RscEntryDependency::new(entry_name.clone(), client_entries_for_ssr, true);
+    let ssr_entry_dependency = RscEntryDependency::new(
+      entry_name.clone(),
+      client_entries_for_ssr,
+      Default::default(),
+      true,
+    );
     let dependency_id = *(ssr_entry_dependency.id());
     Some(InjectedSsrEntry {
       runtime,
@@ -599,8 +622,9 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
               .as_ref()
               .or(Some(&empty_consumer_map)),
             module_loading,
-            entry_css_files: &state.entry_css_files,
-            entry_js_files: &state.entry_js_files,
+            server_entries: &state.server_entries,
+            bootstrap_scripts: &state.bootstrap_scripts,
+            css_link_props: &plugin_state.css_link_props,
           },
         );
       }

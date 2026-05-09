@@ -1,5 +1,7 @@
 const rspack = require('@rspack/core');
-const LogTestPlugin = require('@rspack/test-tools/helper/legacy/LogTestPlugin');
+const {
+  LogTestPlugin,
+} = require('@rspack/test-tools/helper/legacy/LogTestPlugin');
 
 module.exports = {
   entry: './index.js',

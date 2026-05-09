@@ -20,8 +20,12 @@ use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
-  SpanExt, ext::DynHash, fx_hash::FxIndexMap, itoa, json_stringify, json_stringify_str,
-  source_map::SourceMapKind, swc::join_atom,
+  SpanExt,
+  ext::DynHash,
+  fx_hash::{FxIndexMap, FxIndexSet},
+  itoa, json_stringify, json_stringify_str,
+  source_map::SourceMapKind,
+  swc::join_atom,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
@@ -1517,9 +1521,9 @@ impl Module for ConcatenatedModule {
     // Move it off the critical path once all replacements are applied.
     fast_set(&mut changes, Vec::new());
 
-    let mut exports_map: HashMap<Atom, String> = HashMap::default();
-    let mut unused_exports: HashSet<Atom> = HashSet::default();
-    let mut inlined_exports: HashSet<Atom> = HashSet::default();
+    let mut exports_map: FxIndexMap<Atom, String> = FxIndexMap::default();
+    let mut unused_exports: FxIndexSet<Atom> = FxIndexSet::default();
+    let mut inlined_exports: FxIndexSet<Atom> = FxIndexSet::default();
 
     let root_info = module_to_info_map
       .get(&self.root_module_ctxt.id)
@@ -1621,14 +1625,16 @@ impl Module for ConcatenatedModule {
 
     // Define exports
     if !exports_map.is_empty() {
-      let mut definitions = Vec::new();
-      for (key, value) in exports_map.iter() {
-        definitions.push(format!(
-          "\n  {}: {}",
-          property_name(key).expect("should convert to property_name"),
-          runtime_template.returning_function(value, "")
-        ));
-      }
+      let definitions: Vec<_> = exports_map
+        .iter()
+        .map(|(key, value)| {
+          format!(
+            "\n  {}: {}",
+            property_name(key).expect("should convert to property_name"),
+            runtime_template.returning_function(value, "")
+          )
+        })
+        .collect();
 
       let exports_argument = self.get_exports_argument();
 

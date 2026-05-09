@@ -3,7 +3,6 @@ mod visitor;
 
 use std::sync::Arc;
 
-use indoc::formatdoc;
 use rspack_fs::ReadableFileSystem;
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
@@ -17,7 +16,9 @@ use swc_core::{
 pub use utils::is_node_package_path;
 
 use self::visitor::DependencyVisitor;
-use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver};
+use crate::{
+  CompilationLogger, Logger, Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver,
+};
 
 /// A toolkit to recursively calculate files used by build dependencies.
 ///
@@ -26,11 +27,11 @@ use crate::{Resolve as ResolveOption, ResolveInnerError, ResolveResult, Resolver
 /// and continue processing them until all dependency files are calculated.
 pub struct Helper {
   resolver: Resolver,
-  warnings: Vec<String>,
+  logger: CompilationLogger,
 }
 
 impl Helper {
-  pub fn new(fs: Arc<dyn ReadableFileSystem>) -> Self {
+  pub fn new(fs: Arc<dyn ReadableFileSystem>, logger: CompilationLogger) -> Self {
     Helper {
       resolver: Resolver::new(
         ResolveOption {
@@ -49,7 +50,7 @@ impl Helper {
         },
         fs,
       ),
-      warnings: Default::default(),
+      logger,
     }
   }
 
@@ -61,11 +62,8 @@ impl Helper {
     match entries {
       Ok(entries) => Some(entries.into_iter().map(|item| dir.join(item)).collect()),
       Err(err) => {
-        self.warnings.push(formatdoc!(
-          r#"
-            BuildDependencies: can't read directory {dir}.
-            - {err}
-          "#,
+        self.logger.warn(format!(
+          "BuildDependencies: can't read directory {dir}.\n  - {err}"
         ));
         None
       }
@@ -92,11 +90,8 @@ impl Helper {
     let source = match self.resolver.inner_fs().read_to_string(file).await {
       Ok(source) => source,
       Err(err) => {
-        self.warnings.push(formatdoc!(
-          r#"
-            BuildDependencies: can't read file ${file}.
-            - {err}
-          "#,
+        self.logger.warn(format!(
+          "BuildDependencies: can't read file {file}.\n  - {err}"
         ));
         return None;
       }
@@ -115,11 +110,8 @@ impl Helper {
       ) {
         Ok(ast) => ast,
         Err(err) => {
-          self.warnings.push(formatdoc!(
-            r#"
-            BuildDependencies: can't parse {file}.
-            - {err:?}
-          "#,
+          self.logger.warn(format!(
+            "BuildDependencies: can't parse {file}.\n  - {err:?}"
           ));
           return None;
         }
@@ -147,11 +139,8 @@ impl Helper {
           // builtin module ignore
         }
         Err(err) => {
-          self.warnings.push(formatdoc!(
-            r#"
-              BuildDependencies: can't resolve {req} in {dirname}.
-              - {err}
-            "#,
+          self.logger.warn(format!(
+            "BuildDependencies: can't resolve {req} in {dirname}.\n  - {err}"
           ));
         }
         _ => {}
@@ -168,11 +157,8 @@ impl Helper {
     let metadata = match self.resolver.inner_fs().metadata(path).await {
       Ok(metadata) => metadata,
       Err(err) => {
-        self.warnings.push(formatdoc!(
-          r#"
-            BuildDependencies: can't resolve {path}.
-            - {err}
-          "#,
+        self.logger.warn(format!(
+          "BuildDependencies: can't resolve {path}.\n  - {err}"
         ));
         return None;
       }
@@ -183,11 +169,6 @@ impl Helper {
       self.resolve_file(path).await
     }
   }
-
-  /// Get all warnings.
-  pub fn into_warnings(self) -> Vec<String> {
-    self.warnings
-  }
 }
 
 #[cfg(test)]
@@ -197,6 +178,27 @@ mod test {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 
   use super::Helper;
+  use crate::{CompilationLogger, CompilationLogging, LogType};
+
+  fn test_logger(name: &str) -> (CompilationLogger, CompilationLogging) {
+    let logging = CompilationLogging::default();
+    (
+      CompilationLogger::new(name.to_string(), logging.clone()),
+      logging,
+    )
+  }
+
+  fn warn_count(logging: &CompilationLogging, name: &str) -> usize {
+    logging
+      .get(name)
+      .map(|entries| {
+        entries
+          .iter()
+          .filter(|entry| matches!(entry, LogType::Warn { .. }))
+          .count()
+      })
+      .unwrap_or_default()
+  }
 
   #[tokio::test]
   async fn helper_file_test() {
@@ -271,14 +273,14 @@ require("lib1");
     .await
     .unwrap();
 
-    let mut helper = Helper::new(fs);
+    let (logger, logging) = test_logger("test");
+    let mut helper = Helper::new(fs, logger);
     let deps = helper
       .resolve("/index.js".into())
       .await
       .expect("should have deps");
     assert_eq!(deps.len(), 10);
-    let warnings = helper.into_warnings();
-    assert_eq!(warnings.len(), 3);
+    assert_eq!(warn_count(&logging, "test"), 3);
   }
 
   #[tokio::test]
@@ -307,13 +309,13 @@ require("lib1");
       .await
       .unwrap();
 
-    let mut helper = Helper::new(fs);
+    let (logger, logging) = test_logger("test");
+    let mut helper = Helper::new(fs, logger);
     let deps = helper
       .resolve("/configs/".into())
       .await
       .expect("should have deps");
     assert_eq!(deps.len(), 3);
-    let warnings = helper.into_warnings();
-    assert_eq!(warnings.len(), 0);
+    assert_eq!(warn_count(&logging, "test"), 0);
   }
 }

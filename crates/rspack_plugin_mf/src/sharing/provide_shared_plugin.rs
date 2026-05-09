@@ -270,11 +270,11 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
+  create_data: &NormalModuleCreateData,
   _module: &mut BoxModule,
 ) -> Result<()> {
   let resource = create_data.resource_resolve_data.resource();
-  let resource_data = &create_data.resource_resolve_data;
+  let resource_data = create_data.resource_resolve_data.as_ref();
   if self
     .resolved_provide_map
     .read()

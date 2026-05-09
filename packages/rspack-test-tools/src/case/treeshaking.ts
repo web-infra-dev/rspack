@@ -12,7 +12,7 @@ const creator = new BasicCaseCreator({
   },
   steps: ({ name }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         const compiler = context.getCompiler();
         const options = defaultOptions(context);
         overrideOptions(context, options);

@@ -3,8 +3,8 @@ use rspack_collections::Identifier;
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
@@ -77,6 +77,10 @@ impl Dependency for ImportContextDependency {
 
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
+  }
+
+  fn get_attributes(&self) -> Option<&ImportAttributes> {
+    self.options.attributes.as_ref()
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

@@ -32,7 +32,6 @@ macro_rules! expect {
 
 use std::{
   borrow::Cow,
-  future::ready,
   sync::{Arc, LazyLock},
 };
 
@@ -1834,6 +1833,13 @@ impl ModuleOptionsBuilder {
   }
 }
 
+fn extension_rule(extension: &str) -> RuleSetCondition {
+  RuleSetCondition::Regexp(
+    RspackRegex::new(&format!("{}$", regex::escape(extension)))
+      .expect("should initialize default extension regex"),
+  )
+}
+
 fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   let mut rules = vec![
     // application/node
@@ -1847,14 +1853,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .json
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".json"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".json")),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
         ..Default::default()
@@ -1872,14 +1871,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .mjs
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".mjs"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".mjs")),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
         resolve: Some(Resolve {
@@ -1898,14 +1890,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .js with type:module
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".js"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".js")),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
         RuleSetCondition::String("module".into()).into(),
@@ -1928,14 +1913,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .cjs
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".cjs"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".cjs")),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsDynamic),
         ..Default::default()
@@ -1944,14 +1922,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .js with type:commonjs
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".js"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".js")),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
         RuleSetCondition::String("commonjs".into()).into(),
@@ -1965,13 +1936,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // text/javascript or application/javascript
     ModuleRule {
       mimetype: Some(
-        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions {
-          or: Some(vec![
+        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions::new(
+          None,
+          Some(vec![
             RuleSetCondition::String("text/javascript".into()),
             RuleSetCondition::String("application/javascript".into()),
           ]),
-          ..Default::default()
-        }))
+          None,
+        )))
         .into(),
       ),
       effect: ModuleRuleEffect {
@@ -1996,14 +1968,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   if async_web_assembly {
     rules.extend(vec![
       ModuleRule {
-        test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-          Box::pin(ready(Ok(
-            ctx
-              .as_str()
-              .map(|data| data.ends_with(".wasm"))
-              .unwrap_or_default(),
-          )))
-        }))),
+        test: Some(extension_rule(".wasm")),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::WasmAsync),
           ..Default::default()
@@ -2059,14 +2024,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
 
     rules.extend(vec![
       ModuleRule {
-        test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-          Box::pin(ready(Ok(
-            ctx
-              .as_str()
-              .map(|data| data.ends_with(".css"))
-              .unwrap_or_default(),
-          )))
-        }))),
+        test: Some(extension_rule(".css")),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::CssAuto),
           resolve: Some(resolve.clone()),

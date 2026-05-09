@@ -10,7 +10,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use self::{
   disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
 };
-use crate::{CacheOptions, Compilation, CompilerOptions};
+use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions};
 
 /// Cache trait
 ///
@@ -104,6 +104,7 @@ pub fn new_cache(
   compiler_option: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+  compilation_logging: CompilationLogging,
 ) -> Box<dyn Cache> {
   match &compiler_option.cache {
     CacheOptions::Disabled => Box::new(DisableCache),
@@ -115,6 +116,7 @@ pub fn new_cache(
         compiler_option.clone(),
         input_filesystem,
         intermediate_filesystem,
+        compilation_logging,
       );
       Box::new(MixedCache::new(persistent))
     }

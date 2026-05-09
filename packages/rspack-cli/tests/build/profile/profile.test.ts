@@ -13,8 +13,11 @@ function findDefaultOutputDirname() {
 
 describe('profile', () => {
   afterEach(() => {
-    const dirname = findDefaultOutputDirname();
-    [dirname, resolve(__dirname, customTracePath)].forEach((p) => {
+    const profileDirs = fs
+      .readdirSync(__dirname)
+      .filter((file) => file.startsWith('.rspack-profile'))
+      .map((file) => resolve(__dirname, file));
+    [...profileDirs, resolve(__dirname, customTracePath)].forEach((p) => {
       if (p && fs.existsSync(p)) {
         fs.rmSync(p, { recursive: true });
       }
@@ -22,27 +25,25 @@ describe('profile', () => {
   });
 
   it('should store all profile files when RSPACK_PROFILE=ALL enabled', async () => {
-    const { exitCode } = await run(
+    const { exitCode, stdout } = await run(
       __dirname,
       [],
       {},
       { RSPACK_PROFILE: 'ALL' },
     );
     expect(exitCode).toBe(0);
-    const dirname = findDefaultOutputDirname();
-    expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
+    expect(stdout.includes('"target":"rspack_binding_api"')).toBe(true);
   });
 
   it('should store rust trace file when RSPACK_PROFILE=OVERVIEW enabled', async () => {
-    const { exitCode } = await run(
+    const { exitCode, stdout } = await run(
       __dirname,
       [],
       {},
       { RSPACK_PROFILE: 'OVERVIEW' },
     );
     expect(exitCode).toBe(0);
-    const dirname = findDefaultOutputDirname();
-    expect(fs.existsSync(resolve(dirname, defaultTracePath))).toBeTruthy();
+    expect(stdout.includes('"target":"rspack_binding_api"')).toBe(true);
   });
 
   it('should filter trace event when use RSPACK_PROFILE=rspack_resolver,rspack', async () => {

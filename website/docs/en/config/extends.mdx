@@ -18,7 +18,7 @@ Used to extend configurations from other files or packages. This allows you to c
 :::info
 This option is only supported in [`@rspack/cli`](/api/cli).
 
-If you are using the JavaScript API or other Rspack-based tools, `extends` will not take effect, use [webpack-merge](/config#webpack-merge) instead.
+If you are using the JavaScript API or other Rspack-based tools, `extends` will not take effect, use [rspack-merge](/config#rspack-merge) instead.
 :::
 
 ## Basic usage
@@ -76,8 +76,7 @@ export default {
 ```
 
 :::info Merge Behavior
-
-When merging configurations:
+`@rspack/cli` uses [rspack-merge](https://github.com/rstackjs/rspack-merge) internally to merge configurations. The default merge rules are:
 
 - Simple values are overwritten
 - Arrays are concatenated

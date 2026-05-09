@@ -1,10 +1,15 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.0.0",
-  "license": "MIT",
+  "version": "2.0.2",
   "description": "Test tools for rspack",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/rspack-test-tools"
+  },
+  "license": "MIT",
   "exports": {
     ".": {
       "default": "./dist/index.js"
@@ -19,53 +24,45 @@
     "./reporter": "./dist/reporter/index.js",
     "./reporter/*": "./dist/reporter/*.js"
   },
-  "scripts": {
-    "build": "tsc -b ./tsconfig.build.json",
-    "dev": "tsc -b -w"
-  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "files": [
     "client",
     "dist",
     "template",
     "rstest.d.ts"
   ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "homepage": "https://rspack.rs",
-  "bugs": "https://github.com/web-infra-dev/rspack/issues",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/web-infra-dev/rspack",
-    "directory": "packages/rspack-test-tools"
+  "scripts": {
+    "build": "rslib",
+    "dev": "rslib -w"
   },
   "dependencies": {
     "@babel/generator": "7.29.1",
-    "@babel/parser": "7.29.2",
+    "@babel/parser": "7.29.3",
     "@babel/traverse": "7.29.0",
     "@babel/types": "7.29.0",
     "chalk": "^4.1.2",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
-    "fs-extra": "^11.3.4",
+    "fs-extra": "^11.3.5",
     "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.3.0",
     "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
-    "memfs": "4.53.0",
+    "memfs": "4.57.2",
     "path-serializer": "0.6.0",
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",
+    "rspack-merge": "0.1.1",
     "source-map": "^0.7.6",
-    "terser-webpack-plugin": "^5.4.0",
+    "terser-webpack-plugin": "^5.5.0",
     "wast-loader": "^1.14.1",
     "webpack": "5.104.1",
-    "webpack-merge": "6.0.1",
     "webpack-sources": "3.3.4"
   },
   "devDependencies": {
+    "@rslib/core": "^0.21.4",
     "@rspack/core": "workspace:*",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
@@ -75,5 +72,9 @@
   },
   "peerDependencies": {
     "@rspack/core": ">=1.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   }
 }

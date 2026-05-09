@@ -232,4 +232,4 @@ pub struct FallbackCacheGroup {
 }
 
 pub type ModuleSizes = IdentifierMap<FxHashMap<SourceType, f64>>;
-pub(crate) type ModuleChunks = IdentifierMap<FxHashSet<ChunkUkey>>;
+pub(crate) type ModuleChunks = Vec<FxHashSet<ChunkUkey>>;

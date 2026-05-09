@@ -65,6 +65,8 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn into_any(data: Self) -> Box<dyn anymap::CloneAny>;
 
   fn downcast(any: Box<dyn anymap::CloneAny>) -> Self;
+
+  fn downcast_ref(any: &dyn anymap::CloneAny) -> &Self;
 }
 
 impl<T> TagInfoData for T
@@ -78,6 +80,13 @@ where
   fn downcast(any: Box<dyn anymap::CloneAny>) -> Self {
     *(any as Box<dyn std::any::Any>)
       .downcast()
+      .expect("TagInfoData should be downcasted from correct tag info")
+  }
+
+  fn downcast_ref(any: &dyn anymap::CloneAny) -> &Self {
+    let any = any as &dyn std::any::Any;
+    any
+      .downcast_ref()
       .expect("TagInfoData should be downcasted from correct tag info")
   }
 }
@@ -741,28 +750,49 @@ impl<'parser> JavascriptParser<'parser> {
     Some(self.definitions_db.expect_get_variable(id))
   }
 
-  pub fn get_tag_data(
+  fn get_tag_data_by_id<Data: TagInfoData>(
+    &self,
+    tag_info_id: TagInfoId,
+    tag: &'static str,
+  ) -> Option<&Data> {
+    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+
+    while let Some(cur_tag_info) = tag_info {
+      if cur_tag_info.tag == tag {
+        return cur_tag_info
+          .data
+          .as_deref()
+          .map(|data| TagInfoData::downcast_ref(data));
+      }
+      tag_info = cur_tag_info
+        .next
+        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+    }
+
+    None
+  }
+
+  pub fn get_tag_data<Data: TagInfoData>(
     &mut self,
     name: &Atom,
     tag: &'static str,
-  ) -> Option<Box<dyn anymap::CloneAny>> {
+  ) -> Option<&Data> {
     self
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)
-      .and_then(|tag_info_id| {
-        let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+      .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
+  }
 
-        while let Some(cur_tag_info) = tag_info {
-          if cur_tag_info.tag == tag {
-            return cur_tag_info.data.clone();
-          }
-          tag_info = cur_tag_info
-            .next
-            .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
-        }
-
-        None
-      })
+  pub fn get_variable_tag_data<Data: TagInfoData>(
+    &self,
+    id: VariableInfoId,
+    tag: &'static str,
+  ) -> Option<&Data> {
+    self
+      .definitions_db
+      .expect_get_variable(id)
+      .tag_info
+      .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
   }
 
   pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {

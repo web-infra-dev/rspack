@@ -25,7 +25,7 @@ use crate::{
   utils::object_properties::get_attributes,
   visitors::{
     ExportDefaultDeclaration, ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser,
-    TagInfoData, create_traceable_error,
+    create_traceable_error,
   },
 };
 
@@ -105,22 +105,31 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         .into(),
       );
     }
-    let dep = if let Some(settings) = parser.get_tag_data(local_id, ESM_SPECIFIER_TAG) {
-      let settings = ESMSpecifierData::downcast(settings);
+    let dep = if let Some((source, source_order, ids, phase, attributes)) = parser
+      .get_tag_data::<ESMSpecifierData>(local_id, ESM_SPECIFIER_TAG)
+      .map(|settings| {
+        (
+          settings.source.clone(),
+          settings.source_order,
+          settings.ids.clone(),
+          settings.phase,
+          settings.attributes.clone(),
+        )
+      }) {
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
       let mut dep = ESMExportImportedSpecifierDependency::new(
-        settings.source,
-        settings.source_order,
-        settings.ids.into_vec(),
+        source,
+        source_order,
+        ids.into_vec(),
         Some(export_name.clone()),
         None,
         statement.span().into(),
         ESMExportImportedSpecifierDependency::create_export_presence_mode(
           parser.javascript_options,
         ),
-        settings.phase,
-        settings.attributes,
+        phase,
+        attributes,
         loc,
       );
       if parser
@@ -133,23 +142,23 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       Box::new(dep) as BoxDependency
     } else {
       let inlinable = parser
-        .get_tag_data(local_id, INLINABLE_CONST_TAG)
-        .map(InlinableConstData::downcast)
-        .map(|data| data.value);
+        .get_tag_data::<InlinableConstData>(local_id, INLINABLE_CONST_TAG)
+        .map(|data| data.value.clone());
       let enum_value = parser
         .build_info
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
-      let variable = parser.get_tag_data(local_id, NESTED_IDENTIFIER_TAG);
+      let variable = parser
+        .get_tag_data::<NestedRequireData>(local_id, NESTED_IDENTIFIER_TAG)
+        .map(|data| data.name.clone());
 
       let range = DependencyRange::from(statement.span());
       let loc = parser.to_dependency_location(range);
       Box::new(ESMExportSpecifierDependency::new(
         export_name.clone(),
         if let Some(variable) = variable {
-          let data = NestedRequireData::downcast(variable);
-          data.name.into()
+          variable.into()
         } else {
           local_id.clone()
         },

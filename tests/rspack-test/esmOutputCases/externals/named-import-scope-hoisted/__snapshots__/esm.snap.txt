@@ -1,0 +1,19 @@
+```mjs title=main.mjs
+import { readFile } from "fs";
+
+// virtual-fs
+
+// ./index.js
+
+
+
+
+it('should scope-hoist remapped named imports from external modules', async () => {
+  const fs = await import(/* webpackIgnore: true */ 'fs')
+
+  expect(readFile).toBe(fs.readFile)
+})
+
+export { readFile };
+
+```

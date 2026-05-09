@@ -155,7 +155,7 @@ pub struct TsconfigOptions {
   #[cacheable(with=AsPreset)]
   pub config_file: Utf8PathBuf,
 
-  /// Support for Typescript Project References.
+  /// Support for TypeScript Project References.
   pub references: TsconfigReferences,
 }
 

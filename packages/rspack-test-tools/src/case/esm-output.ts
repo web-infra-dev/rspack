@@ -29,7 +29,7 @@ const creator = new BasicCaseCreator({
   },
   steps: ({ name }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         configMultiCompiler(
           context,
           name,

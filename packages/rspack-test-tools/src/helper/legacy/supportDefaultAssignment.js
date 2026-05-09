@@ -1,5 +1,5 @@
 // @ts-nocheck
-module.exports = function supportDefaultAssignment() {
+export function supportDefaultAssignment() {
   try {
     // eslint-disable-next-line no-unused-vars
     var E = eval("class E { toString() { return 'default' } }");
@@ -8,4 +8,4 @@ module.exports = function supportDefaultAssignment() {
   } catch (e) {
     return false;
   }
-};
+}

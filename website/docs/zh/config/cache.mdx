@@ -246,6 +246,37 @@ Rspack 将基于 [config.name](/config/other-options#name)、[config.mode](/conf
 Rspack 会在启动时自动清理长时间（7 天）未访问的缓存文件夹。
 :::
 
+### 查看持久化缓存日志
+
+持久化缓存相关日志会通过 `rspack.persistentCache` logger 输出。可以开启 `stats.logging`，在构建 stats 中查看这些日志：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: 'info',
+  },
+};
+```
+
+日志会包含持久化缓存的关键信息，例如持久化缓存是否启用、构建依赖是否有效、缓存恢复是否成功，以及持久化缓存失效的原因，同时也会包含其他 logger 的日志。
+
+如果只想打印 `rspack.persistentCache` 相关日志，可以将 `stats.logging` 设置为 `false` 来关闭其他 logger 的输出，并通过 `stats.loggingDebug` 包含这个 logger：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: false,
+    loggingDebug: /^rspack\.persistentCache$/,
+  },
+};
+```
+
 ## 从 webpack 配置迁移
 
 Rspack 的缓存配置与 webpack 的缓存配置不同。你可以参考以下步骤迁移 webpack 的缓存配置。

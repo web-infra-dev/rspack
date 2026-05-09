@@ -128,7 +128,7 @@ async fn compilation(
 async fn normal_module_factory_module(
   &self,
   module_factory_create_data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
+  create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
   let dep_type = module_factory_create_data.dependencies[0].dependency_type();

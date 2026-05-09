@@ -131,7 +131,7 @@ pub struct NormalModule {
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
   /// Parser options derived from [Rule.parser]
-  parser_options: Option<ParserOptions>,
+  parser_options: Option<Arc<ParserOptions>>,
   /// Generator options derived from [Rule.generator]
   generator_options: Option<GeneratorOptions>,
   /// enable/disable extracting source map
@@ -179,7 +179,7 @@ impl NormalModule {
     module_type: impl Into<ModuleType>,
     layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
-    parser_options: Option<ParserOptions>,
+    parser_options: Option<Arc<ParserOptions>>,
     generator_options: Option<GeneratorOptions>,
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
@@ -298,7 +298,7 @@ impl NormalModule {
   }
 
   pub fn get_parser_options(&self) -> Option<&ParserOptions> {
-    self.parser_options.as_ref()
+    self.parser_options.as_deref()
   }
 
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
@@ -560,7 +560,7 @@ impl Module for NormalModule {
         source: source.clone(),
         module_context: &self.context,
         module_identifier: self.id,
-        module_parser_options: self.parser_options.as_ref(),
+        module_parser_options: self.parser_options.as_deref(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
         module_user_request: &self.user_request,

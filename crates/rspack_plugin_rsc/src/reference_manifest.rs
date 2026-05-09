@@ -3,14 +3,14 @@ use std::sync::Arc;
 
 use rspack_core::{ChunkGraph, Compilation, Module, ModuleGraph, ModuleId, ModuleIdentifier};
 use rspack_error::Result;
-use rspack_util::fx_hash::FxIndexSet;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeMap};
 
 use crate::{
   constants::LAYERS_NAMES,
   loaders::action_entry_loader::{ACTION_ENTRY_LOADER_IDENTIFIER, parse_action_entries},
-  plugin_state::PluginState,
+  plugin_state::{PluginState, ServerEntryState},
   utils::{ChunkModules, get_module_resource},
 };
 
@@ -49,6 +49,8 @@ pub struct ModuleLoading {
   pub cross_origin: Option<CrossOriginMode>,
 }
 
+pub type RscCssLinkProps = FxIndexMap<String, String>;
+
 pub type ServerReferenceManifest = FxHashMap<String, ManifestExport>;
 
 fn serialize_none_as_empty_object<S, T>(val: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
@@ -65,6 +67,28 @@ where
   }
 }
 
+fn serialize_server_entries_css_files<S>(
+  server_entries: &FxHashMap<String, ServerEntryState>,
+  serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+  S: Serializer,
+{
+  let mut map = serializer.serialize_map(Some(
+    server_entries
+      .values()
+      .filter(|server_entry| !server_entry.css_files.is_empty())
+      .count(),
+  ))?;
+  for (server_entry, state) in server_entries {
+    if state.css_files.is_empty() {
+      continue;
+    }
+    map.serialize_entry(server_entry, &state.css_files)?;
+  }
+  map.end()
+}
+
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RscEntryManifest<'a> {
@@ -73,8 +97,14 @@ pub struct RscEntryManifest<'a> {
   #[serde(serialize_with = "serialize_none_as_empty_object")]
   pub server_consumer_module_map: Option<&'a FxHashMap<String, ManifestNode>>,
   pub module_loading: &'a ModuleLoading,
-  pub entry_css_files: &'a FxHashMap<String, FxIndexSet<String>>,
-  pub entry_js_files: &'a FxIndexSet<String>,
+  #[serde(
+    rename = "entryCssFiles",
+    serialize_with = "serialize_server_entries_css_files"
+  )]
+  pub server_entries: &'a FxHashMap<String, ServerEntryState>,
+  #[serde(rename = "entryJsFiles")]
+  pub bootstrap_scripts: &'a FxIndexSet<String>,
+  pub css_link_props: &'a RscCssLinkProps,
 }
 
 /// Full manifest (all entries) for the onManifest callback. Map from entry name to per-entry manifest.

@@ -707,7 +707,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.json$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -780,7 +783,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.mjs$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -872,7 +878,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.js$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -973,7 +982,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.cjs$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1007,7 +1019,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.js$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1156,7 +1171,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.wasm$",
+                                },
                             ),
                             include: None,
                             exclude: None,

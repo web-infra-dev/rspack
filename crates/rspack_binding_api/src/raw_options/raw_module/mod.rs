@@ -82,25 +82,24 @@ impl TryFrom<RawRuleSetLogicalConditions> for rspack_core::RuleSetLogicalConditi
   type Error = rspack_error::Error;
 
   fn try_from(value: RawRuleSetLogicalConditions) -> rspack_error::Result<Self> {
-    Ok(Self {
-      and: value
-        .and
-        .map(|i| {
-          i.into_iter()
-            .map(TryFrom::try_from)
-            .collect::<rspack_error::Result<Vec<_>>>()
-        })
-        .transpose()?,
-      or: value
-        .or
-        .map(|i| {
-          i.into_iter()
-            .map(TryFrom::try_from)
-            .collect::<rspack_error::Result<Vec<_>>>()
-        })
-        .transpose()?,
-      not: value.not.map(TryFrom::try_from).transpose()?,
-    })
+    let and = value
+      .and
+      .map(|i| {
+        i.into_iter()
+          .map(TryFrom::try_from)
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
+    let or = value
+      .or
+      .map(|i| {
+        i.into_iter()
+          .map(TryFrom::try_from)
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
+    let not = value.not.map(TryFrom::try_from).transpose()?;
+    Ok(Self::new(and, or, not))
   }
 }
 
@@ -120,7 +119,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
           l,
         )?))
       }
-      RawRuleSetCondition::array(a) => Self::Array(
+      RawRuleSetCondition::array(a) => Self::array(
         a.into_iter()
           .map(|i| i.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()?,
