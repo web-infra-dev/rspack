@@ -1,3 +1,16 @@
+macro_rules! case_entry {
+  ($register:expr) => {
+    use criterion::criterion_group;
+    use rspack_benchmark::Criterion;
+
+    pub fn bench(c: &mut Criterion) {
+      ($register)(c);
+    }
+
+    criterion_group!(case, bench);
+  };
+}
+
 pub mod build_chunk_graph;
 pub mod build_module_graph;
 pub mod bundle_basic_react_development;

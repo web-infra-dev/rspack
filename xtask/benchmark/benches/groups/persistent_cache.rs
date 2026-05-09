@@ -52,7 +52,7 @@ pub fn persistent_cache_restore_after_single_file_change_benchmark(c: &mut Crite
 
 fn persistent_cache_benchmark_case<F>(
   c: &mut Criterion,
-  benchmark_id: &'static str,
+  benchmark_id: &str,
   prepare_restore_case: F,
 ) where
   F: Fn(&PreparedCase),
@@ -71,14 +71,13 @@ fn persistent_cache_benchmark_case<F>(
         // The measured workspace is seeded once here and then prepared for the
         // timed restore build.
         let measured_case = prepare_seeded_case();
+        let cleanup_guard = PreparedCaseCleanup::new(measured_case.workspace_dir.clone());
         rt.block_on(run_compiler(
           &measured_case.project_dir,
           &measured_case.cache_dir,
         ));
         prepare_restore_case(&measured_case);
-        pending_cleanup
-          .borrow_mut()
-          .push(measured_case.workspace_dir.clone());
+        cleanup_guard.defer_to(&pending_cleanup);
         measured_case
       },
       |case| {
@@ -98,6 +97,32 @@ struct PreparedCase {
   workspace_dir: PathBuf,
   project_dir: PathBuf,
   cache_dir: PathBuf,
+}
+
+struct PreparedCaseCleanup {
+  workspace_dir: Option<PathBuf>,
+}
+
+impl PreparedCaseCleanup {
+  fn new(workspace_dir: PathBuf) -> Self {
+    Self {
+      workspace_dir: Some(workspace_dir),
+    }
+  }
+
+  fn defer_to(mut self, pending_cleanup: &RefCell<Vec<PathBuf>>) {
+    if let Some(workspace_dir) = self.workspace_dir.take() {
+      pending_cleanup.borrow_mut().push(workspace_dir);
+    }
+  }
+}
+
+impl Drop for PreparedCaseCleanup {
+  fn drop(&mut self) {
+    if let Some(workspace_dir) = self.workspace_dir.take() {
+      let _ = fs::remove_dir_all(workspace_dir);
+    }
+  }
 }
 
 // Create an isolated copy of the shared benchmark fixture plus a sample-local
