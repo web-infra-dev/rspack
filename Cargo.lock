@@ -4014,7 +4014,7 @@ dependencies = [
 name = "rspack_hash"
 version = "0.100.2"
 dependencies = [
- "base64",
+ "base64-simd 0.8.0",
  "md4",
  "rspack_cacheable",
  "sha2",

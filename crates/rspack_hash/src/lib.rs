@@ -3,7 +3,7 @@ use std::{
   hash::{Hash, Hasher},
 };
 
-use base64::{Engine, engine::general_purpose};
+use base64_simd::{STANDARD, URL_SAFE_NO_PAD};
 use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use smol_str::SmolStr;
@@ -202,8 +202,8 @@ impl RspackHashDigest {
         let s = hex(inner, &mut buf);
         s.into()
       }
-      HashDigest::Base64 => general_purpose::STANDARD.encode(inner).into(),
-      HashDigest::Base64Url => general_purpose::URL_SAFE_NO_PAD.encode(inner).into(),
+      HashDigest::Base64 => STANDARD.encode_to_string(inner).into(),
+      HashDigest::Base64Url => URL_SAFE_NO_PAD.encode_to_string(inner).into(),
       HashDigest::Base62 => encode_base_n(inner, BASE62_CHARSET).into(),
       HashDigest::Base58 => encode_base_n(inner, BASE58_CHARSET).into(),
       HashDigest::Base52 => encode_base_n(inner, BASE52_CHARSET).into(),
