@@ -70,15 +70,8 @@ impl Task<TaskContext> for BuildTask {
       .await;
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
-      // Pre-flatten the block tree on the background thread into a single ordered stream of
-      // FlatBuildItems. Each block's deps are emitted before the block itself, matching the
-      // original handle_block sequencing (deps first, then add_block). The main-thread task
-      // consumes this stream with one linear match, recovering index_in_block via a counter
-      // that resets on parent-block change.
-      let estimated = build_result.dependencies.len() + build_result.blocks.len();
-      let mut flat_items: Vec<FlatBuildItem> = Vec::with_capacity(estimated);
-      let mut all_dependencies: Vec<DependencyId> =
-        Vec::with_capacity(build_result.dependencies.len());
+      let mut flat_items: Vec<FlatBuildItem> = Vec::new();
+      let mut all_dependencies: Vec<DependencyId> = Vec::new();
       let mut lazy_dependencies = LazyDependencies::default();
       let mut queue: VecDeque<Box<AsyncDependenciesBlock>> = VecDeque::new();
 
@@ -218,11 +211,11 @@ impl Task<TaskContext> for BuildResultTask {
           dependency,
           parent_block,
         } => {
+          let dependency_id = *dependency.id();
           if parent_block != current_parent {
             current_parent = parent_block;
             index_in_block = 0;
           }
-          let dependency_id = *dependency.id();
           if parent_block.is_none() {
             module.add_dependency_id(dependency_id);
           }
