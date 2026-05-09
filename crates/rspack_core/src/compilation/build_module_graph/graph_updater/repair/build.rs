@@ -7,9 +7,9 @@ use super::{
   TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
-  AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
-  SharedPluginDriver,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  CompilationId, CompilerId, CompilerOptions, DependencyId, DependencyParents, ModuleCodeTemplate,
+  OptimizationBailoutItem, ResolverFactory, SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
     ResourceId,
@@ -70,10 +70,57 @@ impl Task<TaskContext> for BuildTask {
       .await;
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
+      // Pre-flatten the block tree on the background thread. The result is two ordered lists
+      // (deps and async blocks) plus the lazy-dependency tracker, so the main-thread task can
+      // apply the module-graph mutations with a single linear pass.
+      let mut flat_dependencies: Vec<(
+        BoxDependency,
+        Option<AsyncDependenciesBlockIdentifier>,
+        usize,
+      )> = Vec::with_capacity(build_result.dependencies.len());
+      let mut flat_blocks: Vec<Box<AsyncDependenciesBlock>> = Vec::new();
+      let mut all_dependencies: Vec<DependencyId> =
+        Vec::with_capacity(build_result.dependencies.len());
+      let mut lazy_dependencies = LazyDependencies::default();
+      let mut queue: VecDeque<Box<AsyncDependenciesBlock>> = VecDeque::new();
+
+      for (index_in_block, dependency) in build_result.dependencies.into_iter().enumerate() {
+        let dependency_id = *dependency.id();
+        if let Some(until) = dependency.lazy() {
+          lazy_dependencies.insert(&dependency, until);
+        }
+        all_dependencies.push(dependency_id);
+        flat_dependencies.push((dependency, None, index_in_block));
+      }
+      queue.extend(build_result.blocks);
+
+      while let Some(mut block) = queue.pop_front() {
+        let block_id = block.identifier();
+        let inner_dependencies = block.take_dependencies();
+        let inner_blocks = block.take_blocks();
+
+        for (index_in_block, dependency) in inner_dependencies.into_iter().enumerate() {
+          let dependency_id = *dependency.id();
+          if let Some(until) = dependency.lazy() {
+            lazy_dependencies.insert(&dependency, until);
+          }
+          all_dependencies.push(dependency_id);
+          flat_dependencies.push((dependency, Some(block_id), index_in_block));
+        }
+
+        flat_blocks.push(block);
+        queue.extend(inner_blocks);
+      }
+
       vec![Box::new(BuildResultTask {
-        build_result: Box::new(build_result),
+        module: build_result.module,
+        optimization_bailouts: build_result.optimization_bailouts,
         plugin_driver,
         forwarded_ids,
+        flat_dependencies,
+        flat_blocks,
+        all_dependencies,
+        lazy_dependencies,
       })]
     })
   }
@@ -81,9 +128,21 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub build_result: Box<BuildResult>,
+  pub module: BoxModule,
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
+  /// Dependencies in iteration order with their parent block id (None for top-level) and index.
+  pub flat_dependencies: Vec<(
+    BoxDependency,
+    Option<AsyncDependenciesBlockIdentifier>,
+    usize,
+  )>,
+  /// Async dependency blocks in BFS order, ready to be added to the module graph.
+  pub flat_blocks: Vec<Box<AsyncDependenciesBlock>>,
+  /// Full list of dependency ids (top-level + block-nested) before lazy filtering.
+  pub all_dependencies: Vec<DependencyId>,
+  pub lazy_dependencies: LazyDependencies,
 }
 
 #[async_trait::async_trait]
@@ -93,11 +152,15 @@ impl Task<TaskContext> for BuildResultTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
-      build_result,
+      mut module,
+      optimization_bailouts,
       plugin_driver,
       mut forwarded_ids,
+      flat_dependencies,
+      flat_blocks,
+      mut all_dependencies,
+      lazy_dependencies,
     } = *self;
-    let mut module = build_result.module;
 
     plugin_driver
       .compilation_hooks
@@ -119,7 +182,7 @@ impl Task<TaskContext> for BuildResultTask {
       .artifact
       .module_graph
       .get_optimization_bailout_mut(&module.identifier())
-      .extend(build_result.optimization_bailouts);
+      .extend(optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
     context
       .artifact
@@ -138,46 +201,27 @@ impl Task<TaskContext> for BuildResultTask {
       .build_dependencies
       .add_files(&resource_id, &build_info.build_dependencies);
 
+    let module_id = module.identifier();
     let module_graph = &mut context.artifact.module_graph;
-    let mut lazy_dependencies = LazyDependencies::default();
-    let mut queue = VecDeque::new();
-    let mut all_dependencies = vec![];
-    let mut handle_block = |dependencies: Vec<BoxDependency>,
-                            blocks: Vec<Box<AsyncDependenciesBlock>>,
-                            current_block: Option<Box<AsyncDependenciesBlock>>|
-     -> Vec<Box<AsyncDependenciesBlock>> {
-      for (index_in_block, dependency) in dependencies.into_iter().enumerate() {
-        let dependency_id = *dependency.id();
-        if let Some(until) = dependency.lazy() {
-          lazy_dependencies.insert(&dependency, until);
-        }
-        if current_block.is_none() {
-          module.add_dependency_id(dependency_id);
-        }
-        all_dependencies.push(dependency_id);
-        module_graph.set_parents(
-          dependency_id,
-          DependencyParents {
-            block: current_block.as_ref().map(|block| block.identifier()),
-            module: module.identifier(),
-            index_in_block,
-          },
-        );
-        module_graph.add_dependency(dependency);
-      }
-      if let Some(current_block) = current_block {
-        module.add_block_id(current_block.identifier());
-        module_graph.add_block(current_block);
-      }
-      blocks
-    };
-    let blocks = handle_block(build_result.dependencies, build_result.blocks, None);
-    queue.extend(blocks);
 
-    while let Some(mut block) = queue.pop_front() {
-      let dependencies = block.take_dependencies();
-      let blocks = handle_block(dependencies, block.take_blocks(), Some(block));
-      queue.extend(blocks);
+    for (dependency, parent_block, index_in_block) in flat_dependencies {
+      let dependency_id = *dependency.id();
+      if parent_block.is_none() {
+        module.add_dependency_id(dependency_id);
+      }
+      module_graph.set_parents(
+        dependency_id,
+        DependencyParents {
+          block: parent_block,
+          module: module_id,
+          index_in_block,
+        },
+      );
+      module_graph.add_dependency(dependency);
+    }
+    for block in flat_blocks {
+      module.add_block_id(block.identifier());
+      module_graph.add_block(block);
     }
 
     {
