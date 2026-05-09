@@ -33,7 +33,7 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
-type ConnectionIdList = Arc<[DependencyId]>;
+type ConnectionIdList = Arc<Vec<DependencyId>>;
 type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
 type BlockConnectionMap =
   DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
@@ -96,7 +96,7 @@ fn finalize_prepared_connection_map(
     .map(|connection| PreparedBlockConnection {
       block: connection.block,
       module: connection.module,
-      connections: Arc::from(connection.connections.into_boxed_slice()),
+      connections: Arc::new(connection.connections),
     })
     .collect()
 }
