@@ -677,7 +677,12 @@ impl<'parser> JavascriptParser<'parser> {
     self.presentational_dependencies.get_mut(idx)
   }
 
-  pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
+  pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
+    if !self.dependency_branch_guards.is_empty() {
+      for dep in block.dependencies_mut() {
+        set_dependency_branch_guards(dep.as_mut(), &self.dependency_branch_guards);
+      }
+    }
     self.blocks.push(block);
   }
 

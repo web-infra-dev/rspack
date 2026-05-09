@@ -148,6 +148,12 @@ if (IS_DEV1) {
   }
 }
 
+if (IS_DEV1) {
+  import("./dynamic-unused");
+} else {
+  values.push("dynamic-alt");
+}
+
 it("should drop inactive ESM branch dependencies guarded by inlined booleans", () => {
   expect(values).toEqual([
     "foo",
@@ -166,5 +172,6 @@ it("should drop inactive ESM branch dependencies guarded by inlined booleans", (
     "foo",
     "foo",
     "alt",
+    "dynamic-alt",
   ]);
 });

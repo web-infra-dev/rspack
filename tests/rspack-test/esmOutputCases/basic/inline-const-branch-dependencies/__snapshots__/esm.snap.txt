@@ -161,6 +161,12 @@ if ((/* inlined export .IS_DEV1 */false)) {
   }
 }
 
+if ((/* inlined export .IS_DEV1 */false)) {
+  Promise.resolve().then(function __rspack_missing_module() { var e = new Error("Cannot find module './dynamic-unused'"); e.code = 'MODULE_NOT_FOUND'; throw e; });
+} else {
+  values.push("dynamic-alt");
+}
+
 it("should drop inactive ESM branch dependencies guarded by inlined booleans", () => {
   expect(values).toEqual([
     "foo",
@@ -179,6 +185,7 @@ it("should drop inactive ESM branch dependencies guarded by inlined booleans", (
     "foo",
     "foo",
     "alt",
+    "dynamic-alt",
   ]);
 });
 
