@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
-import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
+import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { DEBUG_SCOPES } from '../test/debug';
 import type { ITestContext, ITestEnv } from '../type';
 

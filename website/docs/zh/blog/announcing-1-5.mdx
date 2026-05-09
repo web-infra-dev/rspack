@@ -230,7 +230,7 @@ export type MyType = {
 
 这是因为 Rspack 在解析模块时，采用独立的方式处理每个模块，导致类型的导出（例子中的 `MyType`）被错误识别为一个值而非类型，由于在 `./types.ts` 中找不到相应的值导出，因此触发了上述警告。
 
-Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 配置，用于改进对 Typescript 类型导出的识别。开启此配置后，Rspack 能够正确识别跨模块分析类型重导出，从而避免误报警告。
+Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 配置，用于改进对 TypeScript 类型导出的识别。开启此配置后，Rspack 能够正确识别跨模块分析类型重导出，从而避免误报警告。
 
 > 详见 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence)。
 

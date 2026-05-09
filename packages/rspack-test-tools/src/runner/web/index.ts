@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import { escapeSep } from '../../helper';
-import EventSource from '../../helper/legacy/EventSourceForNode';
-import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
+import { EventSource } from '../../helper/legacy/EventSourceForNode';
+import { urlToRelativePath } from '../../helper/legacy/urlToRelativePath';
 import type { TRunnerFile, TRunnerRequirer } from '../../type';
 import { type INodeRunnerOptions, NodeRunner } from '../node';
 

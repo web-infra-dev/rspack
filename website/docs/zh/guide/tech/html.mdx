@@ -4,29 +4,18 @@ description: '在 Rspack 中使用HTML的指南，涵盖环境配置、集成方
 
 # HTML
 
-Rspack 支持通过以下插件来生成 HTML 文件，并自动将生成的 CSS 和 JavaScript 文件注入到 HTML 中。这对于文件名包含哈希值的输出文件尤为有用，因为 Rspack 每次构建时哈希值都可能会变化。
+Rspack 可以为应用生成 HTML 文件，并自动注入构建产物中的 JavaScript 和 CSS 资源。这在生产构建中尤其有用，因为资源文件名通常会包含内容哈希，而生成的 HTML 会始终引用最新的构建产物。
 
-## HtmlWebpackPlugin
+## 插件
 
-Rspack 完全支持 [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin)。
+Rspack 提供两种插件用于生成 HTML：
 
-```js title="rspack.config.mjs"
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import path from 'node:path';
+- 内置的 `HtmlRspackPlugin` 针对性能和常见 HTML 生成场景做了优化；
+- 兼容社区的 `HtmlWebpackPlugin`，适合需要更完整的 webpack 生态兼容性，或需要 `HtmlRspackPlugin` 尚未实现的功能。
 
-export default {
-  entry: 'index.js',
-  output: {
-    path: path.resolve(__dirname, './dist'),
-    filename: 'index_bundle.js',
-  },
-  plugins: [new HtmlWebpackPlugin()],
-};
-```
+如果你不确定应该选择哪个插件，可以先查看 [HtmlRspackPlugin 与 HtmlWebpackPlugin 的对比](/plugins/rspack/html-rspack-plugin#对比)，了解两者在性能、功能和兼容性上的差异。
 
-有关所有配置选项，请参阅[插件文档](https://github.com/jantimon/html-webpack-plugin#options)。
-
-## 内置 HtmlRspackPlugin
+### 内置 HtmlRspackPlugin
 
 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) 是以 Rust 实现的高性能 HTML 插件，它的构建性能显著优于 `HtmlWebpackPlugin` 插件，尤其是在构建大量 HTML 文件的场景下。
 
@@ -34,13 +23,22 @@ export default {
 import { rspack } from '@rspack/core';
 
 export default {
-  entry: 'index.js',
-  output: {
-    path: path.resolve(__dirname, './dist'),
-    filename: 'index_bundle.js',
-  },
   plugins: [new rspack.HtmlRspackPlugin()],
 };
 ```
 
 有关所有配置选项，请参阅[插件文档](/plugins/rspack/html-rspack-plugin)。
+
+### HtmlWebpackPlugin
+
+Rspack 完全兼容 [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin)。
+
+```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+
+export default {
+  plugins: [new HtmlWebpackPlugin()],
+};
+```
+
+有关所有配置选项，请参阅[插件文档](https://github.com/jantimon/html-webpack-plugin#options)。

@@ -7,7 +7,7 @@ use std::{
   sync::Arc,
 };
 
-use criterion::{BatchSize, black_box, criterion_group};
+use criterion::{BatchSize, black_box};
 use rspack::builder::{Builder as _, NodeOptionBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
@@ -406,5 +406,3 @@ fn extract_tarball_entry_to_file(archive_path: &Path, tar_entry: &str, destinati
     )
   });
 }
-
-criterion_group!(scan_dependencies, benchmark_scan_dependencies);

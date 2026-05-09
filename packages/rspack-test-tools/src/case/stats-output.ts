@@ -2,7 +2,7 @@ import path from 'node:path';
 import type { Compiler, RspackOptions, Stats } from '@rspack/core';
 import fs from 'fs-extra';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
-import captureStdio from '../helper/legacy/captureStdio';
+import { captureStdio } from '../helper/legacy/captureStdio';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import { build, compiler, configMultiCompiler } from './common';
