@@ -13,7 +13,10 @@ export default defineConfig([
   {
     languageOptions: {
       parserOptions: {
-        project: ['./packages/*/tsconfig.json'],
+        project: [
+          './packages/*/tsconfig.json',
+          './tests/type-tests/*/tsconfig.json',
+        ],
       },
     },
     rules: {
