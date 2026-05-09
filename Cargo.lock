@@ -3665,6 +3665,7 @@ version = "0.100.2"
 dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
+ "mimalloc",
  "rspack",
  "rspack_cacheable",
  "rspack_collections",
