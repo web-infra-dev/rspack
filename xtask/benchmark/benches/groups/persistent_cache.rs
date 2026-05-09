@@ -8,7 +8,7 @@ use std::{
   },
 };
 
-use criterion::{BatchSize, Criterion, criterion_group};
+use criterion::{BatchSize, Criterion};
 use rspack_core::{
   CacheOptions, Mode,
   cache::persistent::{PersistentCacheOptions, snapshot::SnapshotOptions, storage::StorageOptions},
@@ -32,76 +32,67 @@ const UPDATED_TEXT: &str = "Hello from cache";
 // This benchmark intentionally keeps setup light and does not perform extra
 // correctness validation of cache state. Functional/cache-correctness behavior
 // is covered by dedicated test cases elsewhere.
-pub fn persistent_cache_benchmark(c: &mut Criterion) {
+pub fn persistent_cache_restore_benchmark(c: &mut Criterion) {
+  persistent_cache_benchmark_case(
+    c,
+    "rust@persistent_cache_restore@basic-react-development",
+    |_| {},
+  );
+}
+
+pub fn persistent_cache_restore_after_single_file_change_benchmark(c: &mut Criterion) {
+  persistent_cache_benchmark_case(
+    c,
+    "rust@persistent_cache_restore_after_single_file_change@basic-react-development",
+    |measured_case| {
+      mutate_leaf_module(&measured_case.project_dir);
+    },
+  );
+}
+
+fn persistent_cache_benchmark_case<F>(
+  c: &mut Criterion,
+  benchmark_id: &'static str,
+  prepare_restore_case: F,
+) where
+  F: Fn(&PreparedCase),
+{
   let mut group = c.benchmark_group("persistent_cache");
   let rt = rspack_benchmark::build_tokio_rt();
   let pending_cleanup = RefCell::new(Vec::new());
 
-  group.bench_function(
-    "rust@persistent_cache_restore@basic-react-development",
-    |b| {
-      b.iter_batched(
-        || {
-          // Clear the previous measured workspace outside the next sample's
-          // timed region so cleanup cost never lands in benchmark results.
-          cleanup_pending_workspaces(&pending_cleanup);
+  group.bench_function(benchmark_id, |b| {
+    b.iter_batched(
+      || {
+        // Clear the previous measured workspace outside the next sample's
+        // timed region so cleanup cost never lands in benchmark results.
+        cleanup_pending_workspaces(&pending_cleanup);
 
-          // The measured workspace is seeded once here and then left untouched
-          // until the timed restore build runs.
-          let measured_case = prepare_seeded_case();
-          rt.block_on(run_compiler(
-            &measured_case.project_dir,
-            &measured_case.cache_dir,
-          ));
-          pending_cleanup
-            .borrow_mut()
-            .push(measured_case.workspace_dir.clone());
-          measured_case
-        },
-        |case| {
-          // Criterion/CodSpeed reports the time for this restore build only.
-          rt.block_on(run_restore_build(&case));
-        },
-        BatchSize::PerIteration,
-      );
-    },
-  );
-
-  group.bench_function(
-    "rust@persistent_cache_restore_after_single_file_change@basic-react-development",
-    |b| {
-      b.iter_batched(
-        || {
-          cleanup_pending_workspaces(&pending_cleanup);
-
-          // Seed a fresh workspace first, then apply one deterministic source
-          // edit before entering the timed restore path.
-          let measured_case = prepare_seeded_case();
-          rt.block_on(run_compiler(
-            &measured_case.project_dir,
-            &measured_case.cache_dir,
-          ));
-          mutate_leaf_module(&measured_case.project_dir);
-          pending_cleanup
-            .borrow_mut()
-            .push(measured_case.workspace_dir.clone());
-          measured_case
-        },
-        |case| {
-          // Timed path for "persistent cache restore after a single-file edit".
-          rt.block_on(run_restore_build(&case));
-        },
-        BatchSize::PerIteration,
-      );
-    },
-  );
+        // The measured workspace is seeded once here and then prepared for the
+        // timed restore build.
+        let measured_case = prepare_seeded_case();
+        rt.block_on(run_compiler(
+          &measured_case.project_dir,
+          &measured_case.cache_dir,
+        ));
+        prepare_restore_case(&measured_case);
+        pending_cleanup
+          .borrow_mut()
+          .push(measured_case.workspace_dir.clone());
+        measured_case
+      },
+      |case| {
+        // Criterion/CodSpeed reports the time for this restore build only.
+        rt.block_on(run_restore_build(&case));
+      },
+      BatchSize::PerIteration,
+    );
+  });
 
   group.finish();
 
   cleanup_pending_workspaces(&pending_cleanup);
 }
-
-criterion_group!(persistent_cache, persistent_cache_benchmark);
 
 struct PreparedCase {
   workspace_dir: PathBuf,

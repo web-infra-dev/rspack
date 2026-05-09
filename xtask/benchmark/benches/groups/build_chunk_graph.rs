@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 use std::{cell::RefCell, sync::Arc};
 
-use criterion::{BatchSize, criterion_group};
+use criterion::BatchSize;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
@@ -301,12 +301,6 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
     );
   });
 }
-
-criterion_group!(
-  chunk_graph,
-  build_chunk_graph_benchmark,
-  build_module_graph_benchmark
-);
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
   compilation.build_chunk_graph_artifact.chunk_by_ukey = Default::default();

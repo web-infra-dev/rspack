@@ -2,7 +2,6 @@
 
 use std::sync::Arc;
 
-use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
@@ -106,5 +105,3 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
     });
   });
 }
-
-criterion_group!(module_graph_api, module_graph_api_benchmark);
