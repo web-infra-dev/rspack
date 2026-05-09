@@ -4423,6 +4423,7 @@ dependencies = [
  "sugar_path",
  "thread_local",
  "tracing",
+ "url",
 ]
 
 [[package]]

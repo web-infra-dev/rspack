@@ -1,5 +1,5 @@
 module.exports = {
-    findBundle(i, options) {
-        return ["static/js/main.js"];
-    }
+  findBundle(i, options) {
+    return ['static/js/shallow.js', 'static/js/nested/deep.js'];
+  },
 };
