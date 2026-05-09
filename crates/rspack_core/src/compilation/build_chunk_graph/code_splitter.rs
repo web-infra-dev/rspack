@@ -1,5 +1,4 @@
 use std::{
-  collections::VecDeque,
   hash::BuildHasherDefault,
   sync::{Arc, atomic::AtomicU32},
 };
@@ -34,11 +33,12 @@ pub(crate) type DependenciesBlockIdentifierMap<V> =
 pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
-type ConnectionIdList = Arc<Vec<DependencyId>>;
+type ConnectionIdList = Arc<[DependencyId]>;
 type PreparedBlockConnectionMap =
   FxIndexMap<(DependenciesBlockIdentifier, ModuleIdentifier), ConnectionIdList>;
 type BlockConnectionMap =
   DependenciesBlockIdentifierMap<Arc<Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>>>;
+type SkippedModuleConnection = (ModuleIdentifier, ConnectionIdList, ConnectionState);
 
 #[derive(Debug, Clone, Default)]
 pub struct ChunkGroupInfo {
@@ -53,7 +53,7 @@ pub struct ChunkGroupInfo {
   pub available_modules_to_be_merged: Vec<Arc<BigUint>>,
 
   pub skipped_items: IdentifierIndexSet,
-  pub skipped_module_connections: FxIndexSet<(ModuleIdentifier, ConnectionIdList)>,
+  pub skipped_module_connections: FxIndexSet<SkippedModuleConnection>,
   // set of children chunk groups, that will be revisited when available_modules shrink
   pub children: FxIndexSet<CgiUkey>,
   // set of chunk groups that are the source for min_available_modules
@@ -1410,9 +1410,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       });
       let chunk_group_info = self.chunk_group_info_mut(&item.chunk_group_info);
       if !active_state.is_true() {
-        chunk_group_info
-          .skipped_module_connections
-          .insert((*module, connections.clone()));
+        chunk_group_info.skipped_module_connections.insert((
+          *module,
+          connections.clone(),
+          *active_state,
+        ));
         if active_state.is_false() {
           continue;
         }
@@ -1914,7 +1916,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let (
         cgi_ukey,
         chunk_group_ukey,
-        runtime,
         min_available_modules,
         mut skipped_items,
         mut skipped_module_connections,
@@ -1928,7 +1929,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         (
           cgi.ukey,
           cgi.chunk_group,
-          cgi.runtime.clone(),
           cgi.min_available_modules.clone(),
           std::mem::take(&mut cgi.skipped_items),
           std::mem::take(&mut cgi.skipped_module_connections),
@@ -1974,25 +1974,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       // Use retain instead of collect indices + shift_remove_index to avoid O(n²)
       if !skipped_module_connections.is_empty() {
         let ordinal_by_module = &self.ordinal_by_module;
-        let module_graph = compilation.get_module_graph();
-        let module_graph_cache = &compilation.module_graph_cache_artifact;
-        let exports_info_artifact = &compilation.exports_info_artifact;
-        let side_effects_state_artifact = &compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact;
 
         let mut queue_actions = Vec::new();
         let mut modules_to_skip = Vec::new();
 
-        skipped_module_connections.retain(|(module, connections)| {
-          let active_state = get_active_state_of_connections(
-            connections,
-            Some(&runtime),
-            module_graph,
-            module_graph_cache,
-            side_effects_state_artifact,
-            exports_info_artifact,
-          );
+        skipped_module_connections.retain(|(module, _, active_state)| {
           if active_state.is_false() {
             return true;
           }
@@ -2250,96 +2236,98 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
+        let all_dependencies = mg
+          .module_graph_module_by_identifier(module)
+          .map(|mgm| mgm.all_dependencies())
+          .unwrap_or_default();
         let mut connection_map = FxIndexMap::<
           (DependenciesBlockIdentifier, ModuleIdentifier),
           Vec<DependencyId>,
-        >::default();
+        >::with_capacity_and_hasher(
+          all_dependencies.len(), Default::default()
+        );
 
         let mut ordered_deps = Vec::new();
         let mut unordered_deps = Vec::new();
-        for dep in mg
-          .get_outgoing_deps_in_order(module)
-          .map(|dep_id| mg.dependency_by_id(dep_id))
-          .filter(|dep| {
-            dep.as_module_dependency().is_some() || dep.as_context_dependency().is_some()
-          })
-          .filter(|dep| !matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)))
-        {
-          if let Some(source_order) = dep.source_order() {
-            ordered_deps.push((source_order, dep));
-          } else {
-            unordered_deps.push(dep);
-          }
-        }
-        ordered_deps.sort_by_key(|(source_order, _)| *source_order);
-
-        for dep in ordered_deps
-          .into_iter()
-          .map(|(_, dep)| dep)
-          .chain(unordered_deps)
-        {
-          let dep_id = dep.id();
-
-          // Dependency created but no module is available.
-          // This could happen when module factorization is failed, but `options.bail` set to `false`
-          let Some(module_identifier) = mg.module_identifier_by_dependency_id(dep_id) else {
+        for dep_id in all_dependencies {
+          let Some(connection) = mg.connection_by_dependency_id(dep_id) else {
             continue;
           };
+          let dep = mg.dependency_by_id(dep_id);
+          let module_dep = dep.as_module_dependency();
+          if module_dep.is_none() && dep.as_context_dependency().is_none() {
+            continue;
+          }
+          if matches!(module_dep.map(|d| d.weak()), Some(true)) {
+            continue;
+          }
+
+          let module_identifier = *connection.module_identifier();
           let block_id = if let Some(block) = mg.get_parent_block(dep_id) {
             (*block).into()
           } else {
             (*module).into()
           };
+          if let Some(source_order) = dep.source_order() {
+            ordered_deps.push((source_order, block_id, *dep_id, module_identifier));
+          } else {
+            unordered_deps.push((block_id, *dep_id, module_identifier));
+          }
+        }
+        ordered_deps.sort_by_key(|(source_order, _, _, _)| *source_order);
 
+        for (_, block_id, dep_id, module_identifier) in ordered_deps {
           connection_map
-            .entry((block_id, *module_identifier))
-            .and_modify(|e| e.push(*dep_id))
-            .or_insert_with(|| vec![*dep_id]);
+            .entry((block_id, module_identifier))
+            .and_modify(|e| e.push(dep_id))
+            .or_insert_with(|| vec![dep_id]);
+        }
+
+        for (block_id, dep_id, module_identifier) in unordered_deps {
+          connection_map
+            .entry((block_id, module_identifier))
+            .and_modify(|e| e.push(dep_id))
+            .or_insert_with(|| vec![dep_id]);
         }
 
         (
           *module,
           connection_map
             .into_iter()
-            .map(|(key, connections)| (key, Arc::new(connections)))
+            .map(|(key, connections)| (key, Arc::from(connections.into_boxed_slice())))
             .collect(),
         )
       })
       .collect::<IdentifierMap<_>>();
 
-    self.prepared_blocks_map = all_modules
-      .par_iter()
-      .map(|module| {
-        let mut map =
-          DependenciesBlockIdentifierMap::<Vec<AsyncDependenciesBlockIdentifier>>::default();
+    let block_map_capacity = all_modules.len() + mg.blocks().len();
+    let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<
+      Vec<AsyncDependenciesBlockIdentifier>,
+    >::with_capacity_and_hasher(
+      block_map_capacity, Default::default()
+    );
 
-        let mut queue = VecDeque::<DependenciesBlockIdentifier>::new();
+    for module in all_modules {
+      let blocks = compilation
+        .get_module_graph()
+        .module_by_identifier(module)
+        .expect("should have module")
+        .get_blocks();
 
-        queue.push_back((*module).into());
+      if !blocks.is_empty() {
+        prepared_blocks_map.insert((*module).into(), blocks.to_vec());
+      }
+    }
 
-        while let Some(module) = queue.pop_front() {
-          let blocks = module.get_blocks(compilation);
+    for (block_id, block) in mg.blocks() {
+      let blocks = block.get_blocks();
 
-          if blocks.is_empty() {
-            continue;
-          }
+      if !blocks.is_empty() {
+        prepared_blocks_map.insert((*block_id).into(), blocks.to_vec());
+      }
+    }
 
-          for block in blocks.iter() {
-            queue.push_back((*block).into());
-          }
-
-          map.insert(module, blocks);
-        }
-
-        map
-      })
-      .reduce(
-        DependenciesBlockIdentifierMap::<Vec<AsyncDependenciesBlockIdentifier>>::default,
-        |mut a, b| {
-          a.extend(b);
-          a
-        },
-      );
+    self.prepared_blocks_map = prepared_blocks_map;
 
     Ok(())
   }
@@ -2409,23 +2397,6 @@ impl DependenciesBlockIdentifier {
     }
   }
 
-  pub fn get_blocks(&self, compilation: &Compilation) -> Vec<AsyncDependenciesBlockIdentifier> {
-    match self {
-      DependenciesBlockIdentifier::Module(m) => compilation
-        .get_module_graph()
-        .module_by_identifier(m)
-        .expect("should have module")
-        .get_blocks()
-        .to_vec(),
-      DependenciesBlockIdentifier::AsyncDependenciesBlock(a) => compilation
-        .get_module_graph()
-        .block_by_id(a)
-        .expect("should have block")
-        .get_blocks()
-        .to_vec(),
-    }
-  }
-
   pub fn as_async(self) -> Option<AsyncDependenciesBlockIdentifier> {
     if let DependenciesBlockIdentifier::AsyncDependenciesBlock(id) = self {
       Some(id)
@@ -2462,13 +2433,16 @@ fn extract_block_modules(
   map: &mut BlockConnectionMap,
 ) {
   let block = module.into();
-  let blocks = prepared_blocks_map.get(&block).cloned().unwrap_or_default();
+  let blocks = prepared_blocks_map
+    .get(&block)
+    .map(|blocks| blocks.as_slice())
+    .unwrap_or_default();
   let mut module_map: DependenciesBlockIdentifierMap<
     Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>,
   > =
     DependenciesBlockIdentifierMap::with_capacity_and_hasher(blocks.len() + 1, Default::default());
   module_map.insert(block, Vec::new());
-  module_map.extend(blocks.into_iter().map(|block| (block.into(), Vec::new())));
+  module_map.extend(blocks.iter().map(|block| ((*block).into(), Vec::new())));
 
   let connection_map = prepared_connection_map
     .get(&module)
