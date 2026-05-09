@@ -733,7 +733,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     compilation: &mut Compilation,
   ) -> Result<FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>>> {
     let mut input_entrypoints_and_modules: FxIndexMap<ChunkGroupUkey, Vec<ModuleIdentifier>> =
-      FxIndexMap::default();
+      FxIndexMap::with_capacity_and_hasher(compilation.entries.len(), Default::default());
 
     let entries = compilation.entries.keys().cloned().collect::<Vec<_>>();
 
@@ -742,12 +742,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       all_modules
         .par_iter()
         .map(|m| {
-          (
-            *m,
-            mg.get_outgoing_connections(m)
-              .map(|con| *con.module_identifier())
-              .collect::<Vec<_>>(),
-          )
+          let mut outgoing = mg
+            .module_graph_module_by_identifier(m)
+            .map(|mgm| Vec::with_capacity(mgm.outgoing_connections().len()))
+            .unwrap_or_default();
+
+          for con in mg.get_outgoing_connections(m) {
+            outgoing.push(*con.module_identifier());
+          }
+
+          (*m, outgoing)
         })
         .collect::<IdentifierMap<_>>()
     };
@@ -756,12 +760,23 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .iter()
       .map(|name| self.prepare_entry_input(name, compilation))
       .collect::<Result<Vec<_>>>()?;
+    let initial_depth_capacity = all_modules
+      .len()
+      .checked_div(entries.len())
+      .unwrap_or_default();
 
     let assign_depths_maps = assign_tasks
       .par_iter()
       .map(|(_, modules)| {
-        let mut assign_depths_map = IdentifierMap::default();
-        assign_depths(&mut assign_depths_map, modules.iter(), &outgoings);
+        let initial_depth_capacity = initial_depth_capacity.max(modules.len());
+        let mut assign_depths_map =
+          IdentifierMap::with_capacity_and_hasher(initial_depth_capacity, Default::default());
+        assign_depths(
+          &mut assign_depths_map,
+          modules.iter(),
+          &outgoings,
+          initial_depth_capacity,
+        );
         assign_depths_map
       })
       .collect::<Vec<_>>();
