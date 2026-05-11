@@ -23,7 +23,6 @@ anymap          = { package = "anymap3", version = "1.0.1", default-features = f
 async-recursion = { version = "1.1.1", default-features = false }
 async-trait     = { version = "0.1.89", default-features = false }
 atomic_refcell  = { version = "0.1.14", default-features = false }
-base64          = { version = "0.22.1", default-features = false }
 base64-simd     = { version = "0.8.0", default-features = false, features = ["alloc"] }
 bitflags        = { version = "2.11.1", default-features = false }
 browserslist-rs = { version = "0.19.0", default-features = false }
@@ -48,7 +47,6 @@ enum-tag            = { version = "0.3.0", default-features = false }
 fast-glob           = { version = "1.0.1", default-features = false }
 form_urlencoded     = { version = "1.2.2", default-features = false }
 futures             = { version = "0.3.32", default-features = false, features = ["std"] }
-glob                = { version = "0.3.3", default-features = false }
 hashlink            = { version = "0.11.0", default-features = false }
 heck                = { version = "0.5.0", default-features = false }
 hex                 = { version = "0.4.3", default-features = false, features = ["std"] }

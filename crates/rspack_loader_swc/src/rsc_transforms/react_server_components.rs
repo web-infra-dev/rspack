@@ -157,6 +157,7 @@ impl ReactServerComponents<'_> {
           module_type: RscModuleType::ServerEntry,
           server_refs: export_names.clone(),
           client_refs: Default::default(),
+          import_meta_rsc: false,
           is_cjs,
           action_ids: Default::default(),
         });
@@ -184,6 +185,7 @@ impl ReactServerComponents<'_> {
           module_type: RscModuleType::Client,
           server_refs: Default::default(),
           client_refs: export_names.clone(),
+          import_meta_rsc: false,
           is_cjs,
           action_ids: Default::default(),
         });

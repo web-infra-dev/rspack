@@ -192,12 +192,7 @@ impl From<RawCopyPattern> for CopyPattern {
       glob_options: CopyGlobOptions {
         case_sensitive_match: glob_options.case_sensitive_match,
         dot: glob_options.dot,
-        ignore: glob_options.ignore.map(|ignore| {
-          ignore
-            .into_iter()
-            .map(|filter| glob::Pattern::new(filter.as_ref()).expect("Invalid pattern option"))
-            .collect()
-        }),
+        ignore: glob_options.ignore,
       },
       copy_permissions,
       transform_fn: transform.map(|transformer| -> TransformerFn {
