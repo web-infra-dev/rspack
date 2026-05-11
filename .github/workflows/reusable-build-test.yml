@@ -97,7 +97,7 @@ jobs:
           image: mcr.microsoft.com/playwright:v1.59.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
-          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
+          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}} --ulimit nofile=1048576:1048576
           script: |
             print_fd_usage() {
               local label="$1"
