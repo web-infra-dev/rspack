@@ -163,7 +163,7 @@ export default {
 
 ## Use ESM output
 
-For modern Node.js applications, you can output ESM bundles. See [ESM](/guide/features/esm) for the full ESM output guide. When using `webpack-node-externals` with ESM output, add `importType: 'module'` so external dependencies are loaded with ESM imports:
+For modern Node.js applications, follow the [ESM guide](/guide/features/esm) to output ESM bundles. When using `webpack-node-externals` with ESM output, add `importType: 'module'` so external dependencies are loaded with ESM imports:
 
 ```js title="rspack.config.mjs"
 import nodeExternals from 'webpack-node-externals';

@@ -163,7 +163,7 @@ export default {
 
 ## 使用 ESM 输出
 
-现代 Node.js 应用可以输出 ESM bundle。完整配置请参考 [ESM](/guide/features/esm)。当 `webpack-node-externals` 与 ESM 输出一起使用时，需要添加 `importType: 'module'`，让 external 依赖通过 ESM import 加载：
+对于现代 Node.js 应用，建议参考 [ESM 指南](/guide/features/esm)输出 ESM bundle。当 `webpack-node-externals` 与 ESM 输出一起使用时，需要添加 `importType: 'module'`，让 external 依赖通过 ESM import 加载：
 
 ```js title="rspack.config.mjs"
 import nodeExternals from 'webpack-node-externals';
