@@ -22,6 +22,30 @@ jobs:
       run:
         shell: bash
     steps:
+      - name: Print fd usage at CI start
+        if: inputs.target == 'wasm32-wasip1-threads'
+        run: |
+          print_fd_usage() {
+            local label="$1"
+
+            echo "::group::fd usage (${label})"
+            echo "process fd soft limit: $(ulimit -Sn)"
+            echo "process fd hard limit: $(ulimit -Hn)"
+            if [[ -r /proc/sys/fs/file-max ]]; then
+              echo "system fd max: $(cat /proc/sys/fs/file-max)"
+            fi
+            if [[ -r /proc/sys/fs/file-nr ]]; then
+              read -r system_fd_allocated system_fd_unused system_fd_max < /proc/sys/fs/file-nr
+              echo "system fd allocated=${system_fd_allocated} unused=${system_fd_unused} max=${system_fd_max}"
+            fi
+            if [[ -d /proc/self/fd ]]; then
+              echo "current process fd count: $(find /proc/self/fd -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)"
+            fi
+            echo "::endgroup::"
+          }
+
+          print_fd_usage "ci start"
+
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -75,10 +99,34 @@ jobs:
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
+            print_fd_usage() {
+              local label="$1"
+
+              echo "::group::fd usage (${label})"
+              echo "process fd soft limit: $(ulimit -Sn)"
+              echo "process fd hard limit: $(ulimit -Hn)"
+              if [[ -r /proc/sys/fs/file-max ]]; then
+                echo "system fd max: $(cat /proc/sys/fs/file-max)"
+              fi
+              if [[ -r /proc/sys/fs/file-nr ]]; then
+                read -r system_fd_allocated system_fd_unused system_fd_max < /proc/sys/fs/file-nr
+                echo "system fd allocated=${system_fd_allocated} unused=${system_fd_unused} max=${system_fd_max}"
+              fi
+              if [[ -d /proc/self/fd ]]; then
+                echo "current process fd count: $(find /proc/self/fd -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)"
+              fi
+              echo "::endgroup::"
+            }
+
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
             export WASM=1
             pnpm run build:js
+            print_fd_usage "before e2e-browser-test"
+            set +e
             pnpm run test:e2e-browser
+            e2e_browser_status=$?
+            print_fd_usage "after e2e-browser-test"
+            exit "$e2e_browser_status"
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
