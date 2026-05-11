@@ -793,14 +793,19 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       all_modules
         .par_iter()
         .map(|m| {
-          let mut outgoing = mg
+          let outgoing = mg
             .module_graph_module_by_identifier(m)
-            .map(|mgm| Vec::with_capacity(mgm.outgoing_connections().len()))
+            .map(|mgm| {
+              let outgoing_connections = mgm.outgoing_connections();
+              let mut outgoing = Vec::with_capacity(outgoing_connections.len());
+              for id in outgoing_connections {
+                if let Some(con) = mg.connection_by_dependency_id(id) {
+                  outgoing.push(*con.module_identifier());
+                }
+              }
+              outgoing
+            })
             .unwrap_or_default();
-
-          for con in mg.get_outgoing_connections(m) {
-            outgoing.push(*con.module_identifier());
-          }
 
           (*m, outgoing)
         })
@@ -837,9 +842,12 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     }
 
     // Using this defer insertion strategies to workaround rustc borrow rules
-    for assign_depths_map in assign_depths_maps {
-      for (k, v) in assign_depths_map {
-        compilation.get_module_graph_mut().set_depth_if_lower(&k, v);
+    {
+      let module_graph = compilation.get_module_graph_mut();
+      for assign_depths_map in assign_depths_maps {
+        for (k, v) in assign_depths_map {
+          module_graph.set_depth_if_lower(&k, v);
+        }
       }
     }
 
