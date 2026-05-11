@@ -538,6 +538,27 @@ impl Plugin for CssPlugin {
       }),
     );
     ctx.register_parser_and_generator_builder(
+      ModuleType::CssGlobal,
+      Box::new(|p, g| {
+        let p = p
+          .and_then(|p| p.get_css_global())
+          .expect("should have CssModuleParserOptions");
+        let g = g
+          .and_then(|g| g.get_css_global())
+          .expect("should have CssModuleGeneratorOptions");
+        Box::new(CssParserAndGenerator {
+          convention: None,
+          local_ident_name: None,
+          exports_only: g.exports_only.expect("should have exports_only"),
+          named_exports: p.named_exports.expect("should have named_exports"),
+          es_module: g.es_module.expect("should have es_module"),
+          hot: false,
+          url: p.url.expect("should have url"),
+          resolve_import: p.resolve_import.clone().unwrap_or_default(),
+        }) as Box<dyn ParserAndGenerator>
+      }),
+    );
+    ctx.register_parser_and_generator_builder(
       ModuleType::CssModule,
       Box::new(|p, g| {
         let p = p
@@ -570,10 +591,10 @@ impl Plugin for CssPlugin {
       Box::new(|p, g| {
         let p = p
           .and_then(|p| p.get_css_auto())
-          .expect("should have CssAutoParserOptions");
+          .expect("should have CssModuleParserOptions");
         let g = g
           .and_then(|g| g.get_css_auto())
-          .expect("should have CssAutoGeneratorOptions");
+          .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
           convention: Some(
             g.exports_convention

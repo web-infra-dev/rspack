@@ -43,15 +43,14 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
-  EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  CompilerPlatform, Context, CrossOriginLoading, CssExportsConvention, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserOptions,
+  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments,
+  ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1402,6 +1401,18 @@ fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: b
       Resolve {
         main_files: Some(vec![]),
         main_fields: Some(vec!["style".to_string(), "...".to_string()]),
+        condition_names: Some(style_conditions.clone()),
+        extensions: Some(vec![".css".to_string()]),
+        prefer_relative: Some(true),
+        ..Default::default()
+      },
+    ));
+
+    by_dependency.push((
+      "css-import-global-module".into(),
+      Resolve {
+        main_files: Some(vec![]),
+        main_fields: Some(vec!["style".to_string(), "...".to_string()]),
         condition_names: Some(style_conditions),
         extensions: Some(vec![".css".to_string()]),
         prefer_relative: Some(true),
@@ -1775,7 +1786,7 @@ impl ModuleOptionsBuilder {
       });
       parser.insert("css".to_string(), css_parser_options);
 
-      let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
+      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
@@ -1788,6 +1799,13 @@ impl ModuleOptionsBuilder {
         url: Some(true),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
+
+      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
+        named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
+        url: Some(true),
+      });
+      parser.insert("css/global".to_string(), css_global_parser_options);
 
       // CSS generator options
       let exports_only = !target_properties.document();
@@ -1802,7 +1820,7 @@ impl ModuleOptionsBuilder {
 
       generator.insert(
         "css/auto".to_string(),
-        GeneratorOptions::CssAuto(CssAutoGeneratorOptions {
+        GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
@@ -1818,6 +1836,15 @@ impl ModuleOptionsBuilder {
           exports_convention: Some(CssExportsConvention::default()),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
           es_module: Some(true),
+        }),
+      );
+
+      generator.insert(
+        "css/global".to_string(),
+        GeneratorOptions::CssModule(CssModuleGeneratorOptions {
+          exports_only: Some(exports_only),
+          es_module: Some(true),
+          ..Default::default()
         }),
       );
     }
@@ -2054,6 +2081,17 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
         mimetype: Some(RuleSetCondition::String("text/css".into()).into()),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::Css),
+          resolve: Some(resolve.clone()),
+          ..Default::default()
+        },
+        ..Default::default()
+      },
+      ModuleRule {
+        dependency: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("css-import-global-module").expect("should initialize `Regex`"),
+        )),
+        effect: ModuleRuleEffect {
+          r#type: Some(ModuleType::CssGlobal),
           resolve: Some(resolve),
           ..Default::default()
         },

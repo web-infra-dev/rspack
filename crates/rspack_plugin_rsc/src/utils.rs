@@ -32,7 +32,7 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
 pub fn is_css_mod(module: &dyn Module) -> bool {
   if matches!(
     module.module_type(),
-    ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto
+    ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal
   ) {
     return true;
   }

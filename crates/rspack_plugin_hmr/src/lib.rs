@@ -447,7 +447,7 @@ async fn normal_module_factory_parser(
     }
   } else if matches!(
     module_type,
-    ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule
+    ModuleType::Css | ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule
   ) && let Some(parser) = parser.downcast_mut::<CssParserAndGenerator>()
   {
     parser.hot = true;

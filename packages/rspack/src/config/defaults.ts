@@ -364,6 +364,11 @@ const applyModuleDefaults = (
   D(module.parser['css/auto'], 'namedExports', true);
   D(module.parser['css/auto'], 'url', true);
 
+  F(module.parser, 'css/global', () => ({}));
+  assertNotNill(module.parser['css/global']);
+  D(module.parser['css/global'], 'namedExports', true);
+  D(module.parser['css/global'], 'url', true);
+
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
   D(module.parser['css/module'], 'namedExports', true);
@@ -396,6 +401,13 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/module'], 'exportsConvention', 'as-is');
   D(module.generator['css/module'], 'localIdentName', localIdentName);
+
+  F(module.generator, 'css/global', () => ({}));
+  assertNotNill(module.generator['css/global']);
+  applyCssGeneratorOptionsDefaults(module.generator['css/global'], {
+    targetProperties,
+  });
+
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
     const esm = {
@@ -1180,6 +1192,17 @@ const getResolveDefaults = ({
     // We avoid using any main files because we have to be consistent with CSS `@import`
     // and CSS `@import` does not handle `main` files in directories,
     // you should always specify the full URL for styles
+    mainFiles: [],
+    mainFields: ['style', '...'],
+    conditionNames: [
+      mode === 'development' ? 'development' : 'production',
+      'style',
+    ],
+    extensions: ['.css'],
+    preferRelative: true,
+  };
+
+  resolveOptions.byDependency!['css-import-global-module'] = {
     mainFiles: [],
     mainFields: ['style', '...'],
     conditionNames: [

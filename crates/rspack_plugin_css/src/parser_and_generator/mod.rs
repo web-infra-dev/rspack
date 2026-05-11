@@ -150,6 +150,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mode = match module_type {
       ModuleType::CssModule => css_module_lexer::Mode::Local,
+      ModuleType::CssGlobal => css_module_lexer::Mode::Global,
       ModuleType::CssAuto
         if resource_path.is_some()
           && REGEX_IS_MODULES.is_match(
