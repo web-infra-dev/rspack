@@ -182,7 +182,7 @@ If your project also runs `tsc`, keep `experimentalDecorators` and `emitDecorato
 
 ## Configure development HMR
 
-For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so switch the entry based on `process.env.NODE_ENV === 'production'`:
+Production builds must not include the polling HMR runtime. Add `@rspack/core/hot/poll` only to the development entry, and switch the entry based on `process.env.NODE_ENV === 'production'`:
 
 ```js title="rspack.config.mjs"
 export default {
