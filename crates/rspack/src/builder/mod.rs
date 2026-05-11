@@ -1843,8 +1843,9 @@ impl ModuleOptionsBuilder {
         "css/global".to_string(),
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
+          exports_convention: Some(CssExportsConvention::default()),
+          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
           es_module: Some(true),
-          ..Default::default()
         }),
       );
     }

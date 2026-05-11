@@ -547,8 +547,15 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css_global())
           .expect("should have CssModuleGeneratorOptions");
         Box::new(CssParserAndGenerator {
-          convention: None,
-          local_ident_name: None,
+          convention: Some(
+            g.exports_convention
+              .expect("should have exports_convention"),
+          ),
+          local_ident_name: Some(
+            g.local_ident_name
+              .clone()
+              .expect("should have local_ident_name"),
+          ),
           exports_only: g.exports_only.expect("should have exports_only"),
           named_exports: p.named_exports.expect("should have named_exports"),
           es_module: g.es_module.expect("should have es_module"),

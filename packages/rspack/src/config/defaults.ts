@@ -407,6 +407,8 @@ const applyModuleDefaults = (
   applyCssGeneratorOptionsDefaults(module.generator['css/global'], {
     targetProperties,
   });
+  D(module.generator['css/global'], 'exportsConvention', 'as-is');
+  D(module.generator['css/global'], 'localIdentName', localIdentName);
 
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {

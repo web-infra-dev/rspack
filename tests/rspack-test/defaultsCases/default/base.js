@@ -218,7 +218,9 @@ module.exports = {
 			      },
 			      css/global: Object {
 			        esModule: true,
+			        exportsConvention: as-is,
 			        exportsOnly: false,
+			        localIdentName: [fullhash],
 			      },
 			      css/module: Object {
 			        esModule: true,
