@@ -48,13 +48,47 @@ fn has_css_extension(s: &str) -> bool {
   s.ends_with(".css") || s.contains(".css?")
 }
 
+fn starts_with_url_scheme(s: &str) -> bool {
+  let Some((scheme, _)) = s.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  matches!(chars.next(), Some(c) if c.is_ascii_alphabetic())
+    && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+}
+
+fn starts_with_windows_drive_letter(s: &str) -> bool {
+  let bytes = s.as_bytes();
+  bytes.len() >= 2
+    && bytes[0].is_ascii_alphabetic()
+    && matches!(bytes[1], b':' | b'|')
+    && (bytes.len() == 2 || matches!(bytes[2], b'/' | b'\\' | b'?' | b'#'))
+}
+
 fn is_relative_source_name(s: &str) -> bool {
-  // `module_filename_helpers::resolve_relative_resource_path` emits URL-style
-  // relative paths for `[relative-resource-path]`. In real projects, generated
-  // assets and source files are typically in different directories, so these
-  // names normally start with `../`. Keep the detection narrow to avoid treating
-  // custom bare source names, such as `module`, as file resources.
-  s.starts_with("../")
+  // Source map `sources` entries are URL references. Per ECMA-426
+  // "9 Source map format", each source is a potentially relative URL; per
+  // "9.3 Resolving sources", non-absolute sources are resolved against the
+  // source map URL.
+  //
+  // WHATWG URL "4.3 URL writing" gives the useful forms here:
+  // - absolute URLs: `webpack://...`, `file://...`, `data:...`
+  // - scheme-relative URLs: `//host/path`
+  // - path-absolute URLs: `/path`
+  // - path-relative, scheme-less URLs: `index.js`, `./index.js`, `../index.js`
+  //
+  // Only path-relative, scheme-less URLs depend on the source map location, so
+  // only they need to be canonicalized before names are deduplicated across
+  // assets.
+  //
+  // WHATWG URL "4.2 URL miscellaneous" defines "Windows drive letter",
+  // "normalized Windows drive letter", and "starts with a Windows drive
+  // letter"; keep those Windows absolute paths (`C:/...`, `C:\...`, `C|/...`)
+  // and backslash-rooted Windows paths (`\\server\share`) verbatim.
+  !s.is_empty()
+    && !s.starts_with(['/', '\\'])
+    && !starts_with_url_scheme(s)
+    && !starts_with_windows_drive_letter(s)
 }
 
 fn normalize_relative_source_name_url(
