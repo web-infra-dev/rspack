@@ -1,4 +1,6 @@
-use rspack_core::{ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory};
+use rspack_core::{
+  ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory, extract_glob_base_dir,
+};
 use rspack_util::SpanExt;
 use swc_core::{
   common::Spanned,
@@ -14,17 +16,6 @@ use crate::{
   },
   visitors::{JavascriptParser, expr_name},
 };
-
-fn extract_glob_base_dir(pattern: &str) -> String {
-  let idx = pattern
-    .find(|c: char| ['*', '?', '[', '{'].contains(&c))
-    .unwrap_or(pattern.len());
-  let before = &pattern[..idx];
-  match before.rfind('/') {
-    Some(slash_idx) => pattern[..=slash_idx].to_string(),
-    None => "./".to_string(),
-  }
-}
 
 fn create_import_meta_glob_dependency(
   node: &CallExpr,
@@ -55,7 +46,7 @@ fn create_import_meta_glob_dependency(
       None
     })?;
 
-  let base_dir = extract_glob_base_dir(&glob_pattern);
+  let base_dir = extract_glob_base_dir(&glob_pattern).to_string();
 
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let eager = get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value);

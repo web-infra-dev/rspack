@@ -33,8 +33,8 @@ use crate::{
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, to_path,
+  RuntimeSpec, SourceType, contextify, extract_glob_base_dir, get_exports_type_with_strict,
+  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -456,13 +456,7 @@ impl ContextModule {
       .context_options
       .glob_pattern
       .as_ref()
-      .and_then(|g| {
-        let idx = g
-          .find(|c: char| ['*', '?', '[', '{'].contains(&c))
-          .unwrap_or(g.len());
-        let before = &g[..idx];
-        before.rfind('/').map(|slash_idx| &g[..=slash_idx])
-      })
+      .map(|g| extract_glob_base_dir(g))
       .unwrap_or("./");
 
     match &self.options.context_options.mode {

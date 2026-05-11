@@ -60,9 +60,13 @@ pub fn glob_match_with_options(pattern: &str, path: &str, options: &GlobMatchOpt
   }
 }
 
-/// Extract the base directory from a glob pattern.
-/// Returns everything before the first glob metacharacter, up to and including the last `/`.
-fn extract_glob_base_dir(pattern: &str) -> &str {
+/// Return whether a character has special meaning in glob patterns.
+pub fn is_glob_metacharacter(c: char) -> bool {
+  matches!(c, '*' | '?' | '[' | '{')
+}
+
+/// Return the byte index after the base directory prefix of a glob pattern.
+pub fn glob_base_dir_end(pattern: &str) -> usize {
   let mut escaped = false;
   let mut idx = pattern.len();
   for (byte_idx, c) in pattern.char_indices() {
@@ -76,16 +80,23 @@ fn extract_glob_base_dir(pattern: &str) -> &str {
       continue;
     }
 
-    if ['*', '?', '[', '{'].contains(&c) {
+    if is_glob_metacharacter(c) {
       idx = byte_idx;
       break;
     }
   }
 
-  let before = &pattern[..idx];
-  match before.rfind('/') {
-    Some(slash_idx) => &pattern[..=slash_idx],
-    None => "./",
+  pattern[..idx]
+    .rfind('/')
+    .map_or(0, |slash_idx| slash_idx + 1)
+}
+
+/// Extract the base directory from a glob pattern.
+/// Returns everything before the first glob metacharacter, up to and including the last `/`.
+pub fn extract_glob_base_dir(pattern: &str) -> &str {
+  match glob_base_dir_end(pattern) {
+    0 => "./",
+    end => &pattern[..end],
   }
 }
 

@@ -17,7 +17,7 @@ use crate::{
   DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver, resolve, walk_dir,
+  SharedPluginDriver, glob_base_dir_end, resolve, walk_dir,
 };
 
 #[derive(Debug)]
@@ -464,11 +464,7 @@ async fn visit_dirs(
       );
 
       let filename_glob = options.context_options.glob_pattern.as_ref().map(|g| {
-        let idx = g
-          .find(|c: char| ['*', '?', '[', '{'].contains(&c))
-          .unwrap_or(g.len());
-        let before = &g[..idx];
-        let base_dir_len = before.rfind('/').map_or(0, |s| s + 1);
+        let base_dir_len = glob_base_dir_end(g);
         let remainder = if g.len() > base_dir_len {
           &g[base_dir_len..]
         } else {
@@ -478,7 +474,7 @@ async fn visit_dirs(
       });
 
       if filename_glob.is_none() && options.context_options.reg_exp.is_none() {
-        return Ok(());
+        return;
       }
 
       requests.iter().for_each(|r| {
