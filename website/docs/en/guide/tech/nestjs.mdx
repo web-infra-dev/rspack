@@ -20,7 +20,7 @@ The [rstack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspa
 
 Install Rspack and the helper dependencies used by the NestJS example:
 
-<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin cross-env -D" />
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin -D" />
 
 For a minimal NestJS application, install the NestJS runtime dependencies as usual:
 
@@ -51,7 +51,7 @@ export default defineConfig({
   target: 'node',
   entry: {
     main:
-      process.env.BUILD === 'true'
+      process.env.NODE_ENV === 'production'
         ? './src/main.ts'
         : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
@@ -122,12 +122,12 @@ export default defineConfig({
 
 ## Configure scripts
 
-Use `rspack dev` for development and set `BUILD=true` for production builds:
+Use `rspack dev` for development and `rspack build` for production builds:
 
 ```json title="package.json"
 {
   "scripts": {
-    "build": "cross-env BUILD=true rspack build",
+    "build": "rspack build",
     "dev": "rspack dev",
     "start": "node dist/main.js"
   }
@@ -182,13 +182,13 @@ If your project also runs `tsc`, keep `experimentalDecorators` and `emitDecorato
 
 ## Configure development HMR
 
-For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so switch the entry based on `process.env.BUILD === 'true'`. The example uses `BUILD=true` because this switch is tied to `rspack build` output, not to the broader `NODE_ENV` value:
+For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so switch the entry based on `process.env.NODE_ENV === 'production'`:
 
 ```js title="rspack.config.mjs"
 export default {
   entry: {
     main:
-      process.env.BUILD === 'true'
+      process.env.NODE_ENV === 'production'
         ? './src/main.ts'
         : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },

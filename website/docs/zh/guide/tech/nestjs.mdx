@@ -20,7 +20,7 @@ Rspack 可以用于构建 [NestJS](https://nestjs.com/) 等 Node.js 应用。相
 
 安装 Rspack 以及 NestJS 示例中使用到的辅助依赖：
 
-<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin cross-env -D" />
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin -D" />
 
 对于一个最小的 NestJS 应用，请照常安装 NestJS 运行时依赖：
 
@@ -51,7 +51,7 @@ export default defineConfig({
   target: 'node',
   entry: {
     main:
-      process.env.BUILD === 'true'
+      process.env.NODE_ENV === 'production'
         ? './src/main.ts'
         : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
@@ -122,12 +122,12 @@ export default defineConfig({
 
 ## 配置脚本
 
-使用 `rspack dev` 进行开发，并在生产构建时设置 `BUILD=true`：
+使用 `rspack dev` 进行开发，并使用 `rspack build` 进行生产构建：
 
 ```json title="package.json"
 {
   "scripts": {
-    "build": "cross-env BUILD=true rspack build",
+    "build": "rspack build",
     "dev": "rspack dev",
     "start": "node dist/main.js"
   }
@@ -182,13 +182,13 @@ export default {
 
 ## 配置开发 HMR
 
-对于 Node.js 应用，Rspack 在开发环境使用 polling HMR runtime。生产构建必须关闭 HMR polling entry，因此需要根据 `process.env.BUILD === 'true'` 切换入口。示例使用 `BUILD=true`，是因为这个开关对应的是 `rspack build` 产物，而不是更宽泛的 `NODE_ENV` 值：
+对于 Node.js 应用，Rspack 在开发环境使用 polling HMR runtime。生产构建必须关闭 HMR polling entry，因此需要根据 `process.env.NODE_ENV === 'production'` 切换入口：
 
 ```js title="rspack.config.mjs"
 export default {
   entry: {
     main:
-      process.env.BUILD === 'true'
+      process.env.NODE_ENV === 'production'
         ? './src/main.ts'
         : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
