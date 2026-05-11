@@ -1,8 +1,9 @@
 let outputDirectory;
+const { createFakeWorker } = require("@rspack/test-tools/helper/legacy/createFakeWorker");
 
 module.exports = {
 	moduleScope(scope) {
-		const FakeWorker = require("@rspack/test-tools/helper/legacy/createFakeWorker")({
+		const FakeWorker = createFakeWorker({
 			expect
 		}, {
 			outputDirectory

@@ -4,8 +4,8 @@ import fs from 'fs-extra';
 import merge from 'rspack-merge';
 import { ECompilerEvent } from '../compiler';
 import { readConfigFile } from '../helper';
-import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
-import copyDiff from '../helper/legacy/copyDiff';
+import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
+import { copyDiff } from '../helper/legacy/copyDiff';
 import { WebRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type {

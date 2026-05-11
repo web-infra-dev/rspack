@@ -205,7 +205,7 @@ pub struct TsconfigOptions {
   /// * an absolute path to the configuration file.
   pub config_file: String,
 
-  /// Support for Typescript Project References.
+  /// Support for TypeScript Project References.
   ///
   /// * `'auto'`: use the `references` field from tsconfig of `config_file`.
   /// * `string[]`: manually provided relative or absolute path.

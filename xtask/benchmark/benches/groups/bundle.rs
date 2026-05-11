@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use criterion::{Criterion, criterion_group};
+use criterion::Criterion;
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
 use crate::groups::bundle::util::{CompilerBuilderGenerator, derive_projects};
@@ -9,36 +9,38 @@ pub mod basic_react;
 pub mod threejs;
 pub mod util;
 
-criterion_group!(bundle, bundle_benchmark);
-
-fn bundle_benchmark(c: &mut Criterion) {
-  let mut group = c.benchmark_group("bundle");
-
+pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
     ("threejs", Arc::new(threejs::compiler)),
   ];
+  let (id, get_compiler) = derive_projects(projects)
+    .into_iter()
+    .find(|(id, _)| id == target_id)
+    .unwrap_or_else(|| panic!("unknown bundle benchmark case: {target_id}"));
 
   // Codspeed can only handle to up to 500 threads by default
   let rt = rspack_benchmark::build_tokio_rt();
-  for (id, get_compiler) in derive_projects(projects) {
-    group.bench_function(format!("bundle@{id}"), |b| {
-      b.iter_batched(
-        || {
-          let compiler_context = Arc::new(CompilerContext::new());
-          (
-            compiler_context.clone(),
-            within_compiler_context_sync(compiler_context, || get_compiler().build().unwrap()),
-          )
-        },
-        |(compiler_context, mut compiler)| {
-          rt.block_on(within_compiler_context(compiler_context, async move {
-            compiler.run().await.unwrap();
-            assert!(compiler.compilation.get_errors().next().is_none());
-          }))
-        },
-        criterion::BatchSize::PerIteration,
-      );
-    });
-  }
+  let mut group = c.benchmark_group("bundle");
+
+  group.bench_function(format!("bundle@{id}"), |b| {
+    b.iter_batched(
+      || {
+        let compiler_context = Arc::new(CompilerContext::new());
+        (
+          compiler_context.clone(),
+          within_compiler_context_sync(compiler_context, || get_compiler().build().unwrap()),
+        )
+      },
+      |(compiler_context, mut compiler)| {
+        rt.block_on(within_compiler_context(compiler_context, async move {
+          compiler.run().await.unwrap();
+          assert!(compiler.compilation.get_errors().next().is_none());
+        }))
+      },
+      criterion::BatchSize::PerIteration,
+    );
+  });
+
+  group.finish();
 }

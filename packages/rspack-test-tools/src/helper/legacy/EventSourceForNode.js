@@ -11,7 +11,7 @@
 
 'use strict';
 
-module.exports = class EventSource {
+export class EventSource {
   constructor(url) {
     this.response = undefined;
     const request = (
@@ -46,4 +46,4 @@ module.exports = class EventSource {
   set onmessage(value) {
     throw new Error('not implemented');
   }
-};
+}

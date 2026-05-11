@@ -1,4 +1,5 @@
-const expectWarning = require("@rspack/test-tools/helper/util/expectWarningFactory")();
+const { expectWarningFactory } = require("@rspack/test-tools/helper/util/expectWarningFactory");
+const expectWarning = expectWarningFactory();
 const getInner = require("./module");
 
 it("should print correct warning messages when a disposed module is required", async () => {

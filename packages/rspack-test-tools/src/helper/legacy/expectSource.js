@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use strict';
 
-const regexEscape = require('./regexEscape');
+import { regexEscape } from './regexEscape';
 
 // These expect* methods are necessary because 'source' contains the code for this test file, which will always contain the string
 // being tested for, so we have to use the "DO NOT MATCH BELOW..." technique to exclude the actual testing code from the test.
@@ -26,4 +26,4 @@ function expectSourceToMatch(source, regexStr) {
   expect(source).toMatch(new RegExp(`${regexStr}.*${doNotMatch}`, 's'));
 }
 
-module.exports = { expectSourceToContain, expectSourceToMatch };
+export { expectSourceToContain, expectSourceToMatch };

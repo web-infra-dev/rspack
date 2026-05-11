@@ -119,4 +119,4 @@ const System = {
     return m.exports;
   },
 };
-module.exports = System;
+export { System };

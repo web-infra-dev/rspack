@@ -163,7 +163,7 @@ pub async fn resolve_for_error_hints(
       return Some(format!("Did you mean '{}'?
 
 The request '{}' failed to resolve only because it was resolved as fully specified,
-probably because the origin is strict EcmaScript Module,
+probably because the origin is strict ECMAScript Module,
 e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"'.
 
 The extension in the request is mandatory for it to be fully specified.

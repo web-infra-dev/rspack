@@ -445,7 +445,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
   ],
   [
     'esX',
-    'EcmaScript in this version. Examples: es2020, es5.',
+    'ECMAScript in this version. Examples: es2020, es5.',
     /^es(\d+)$/,
     (version) => {
       let v = +version;

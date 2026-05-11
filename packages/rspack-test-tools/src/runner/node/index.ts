@@ -4,9 +4,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm, { SourceTextModule } from 'node:vm';
 import type { RspackOptions, StatsCompilation } from '@rspack/core';
 import { enableEsmLibraryPlugin } from '../../case/config';
-import asModule from '../../helper/legacy/asModule';
-import createFakeWorker from '../../helper/legacy/createFakeWorker';
-import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
+import { asModule } from '../../helper/legacy/asModule';
+import { createFakeWorker } from '../../helper/legacy/createFakeWorker';
+import { urlToRelativePath } from '../../helper/legacy/urlToRelativePath';
 import {
   EEsmMode,
   type IGlobalContext,

@@ -7,7 +7,7 @@ use std::{
   sync::Arc,
 };
 
-use criterion::{BatchSize, black_box, criterion_group};
+use criterion::{BatchSize, black_box};
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
@@ -33,8 +33,8 @@ use rspack_plugin_split_chunks::{
   SplitChunksPlugin, create_all_chunk_filter, create_default_module_layer_filter,
   create_default_module_type_filter,
 };
-use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashMap;
+use tokio::runtime::Runtime;
 
 use crate::groups::build_chunk_graph::prepare_large_code_splitting_case;
 
@@ -47,34 +47,7 @@ const SPLIT_CHUNKS_WINDOW: usize = 20;
 const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
 const MODULE_ASSET_SEED_COUNT: usize = 256;
 
-pub fn compilation_stages_benchmark(c: &mut Criterion) {
-  within_compiler_context_for_testing_sync(|| {
-    compilation_stages_benchmark_inner(c);
-  })
-}
-
-fn compilation_stages_benchmark_inner(c: &mut Criterion) {
-  let rt = rspack_benchmark::build_tokio_rt();
-  let _guard = rt.enter();
-
-  flag_dependency_exports_benchmark(c, &rt);
-  flag_dependency_usage_benchmark(c, &rt);
-  create_module_ids_benchmark(c, &rt);
-  split_chunks_benchmark(c, &rt);
-  create_chunk_ids_benchmark(c, &rt);
-  mangle_exports_benchmark(c, &rt);
-  create_module_hashes_benchmark(c, &rt);
-  runtime_requirements_benchmark(c, &rt);
-  create_chunk_hashes_benchmark(c, &rt);
-  create_full_hash_benchmark(c, &rt);
-  create_module_assets_benchmark(c, &rt);
-  create_chunk_assets_benchmark(c, &rt);
-  real_content_hash_benchmark(c, &rt);
-  create_concatenate_module_benchmark(c, &rt);
-  concatenate_module_code_generation_benchmark(c, &rt);
-}
-
-fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -117,7 +90,7 @@ fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Run
   });
 }
 
-fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -174,7 +147,7 @@ fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runti
   });
 }
 
-fn create_module_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -210,7 +183,7 @@ fn create_module_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) 
   });
 }
 
-fn split_chunks_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_split_chunks_stage_compiler(fs.clone());
 
@@ -318,7 +291,7 @@ fn split_chunks_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -365,7 +338,7 @@ fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn mangle_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn mangle_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_mangle_exports_stage_compiler(fs.clone());
@@ -442,7 +415,7 @@ fn mangle_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn create_module_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_module_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -474,7 +447,7 @@ fn create_module_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtim
   });
 }
 
-fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -500,7 +473,7 @@ fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
-fn runtime_requirements_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -556,7 +529,7 @@ fn runtime_requirements_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtim
   });
 }
 
-fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_full_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -629,7 +602,7 @@ fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -679,7 +652,7 @@ fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
-fn create_module_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -743,7 +716,7 @@ fn create_module_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtim
   });
 }
 
-fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn real_content_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_real_content_hash_stage_compiler(fs.clone());
@@ -797,7 +770,7 @@ fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) 
   });
 }
 
-fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
 
@@ -886,7 +859,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
   });
 }
 
-fn concatenate_module_code_generation_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn concatenate_module_code_generation_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
 
@@ -1913,5 +1886,3 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
     hide_path_info: Some(true),
   })
 }
-
-criterion_group!(compilation_stages, compilation_stages_benchmark);

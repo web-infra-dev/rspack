@@ -1,3 +1,4 @@
+#[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
 use std::sync::mpsc::channel;
 
 use rayon::iter::ParallelIterator;
@@ -18,7 +19,7 @@ where
 {
   type Item = I;
 
-  #[cfg(not(target_family = "wasm"))]
+  #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
   fn consume(self, mut func: impl FnMut(Self::Item)) {
     let (tx, rx) = channel::<Self::Item>();
     std::thread::scope(|s| {
@@ -32,7 +33,7 @@ where
     });
   }
 
-  #[cfg(target_family = "wasm")]
+  #[cfg(any(target_family = "wasm", feature = "codspeed"))]
   fn consume(self, mut func: impl FnMut(Self::Item)) {
     let items: Vec<Self::Item> = self.collect();
     for item in items {
