@@ -6,7 +6,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Node.js
 
-Rspack can build Node.js applications by bundling application code, transforming TypeScript with SWC, keeping runtime dependencies external, and emitting assets that Node.js can load at runtime.
+Rspack can build Node.js applications by bundling application code, transforming TypeScript with SWC, keeping runtime dependencies external, and emitting assets that Node.js can load at runtime. The examples on this page use ESM output by default.
 
 ## Install dependencies
 
@@ -23,7 +23,7 @@ Install Rspack and the helper dependencies used by the examples on this page:
 
 ## Configure Rspack
 
-The following configuration targets Node.js, externalizes `node_modules`, writes development output to disk, and starts the generated bundle during development:
+The following configuration targets Node.js, emits an ESM bundle, externalizes `node_modules`, writes development output to disk, and starts the generated bundle during development:
 
 ```js title="rspack.config.mjs"
 // @ts-check
@@ -42,6 +42,8 @@ export default defineConfig({
   },
   output: {
     clean: true,
+    filename: '[name].mjs',
+    module: true,
   },
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
@@ -67,16 +69,16 @@ export default defineConfig({
       },
     ],
   },
-  externalsType: 'commonjs',
   externals: [
     nodeExternals({
+      importType: 'module',
       allowlist: [/@rspack\/core\/hot\/poll/],
     }),
   ],
   plugins: [
     process.env.NODE_ENV !== 'production' &&
       new RunScriptWebpackPlugin({
-        name: 'main.js',
+        name: 'main.mjs',
         autoRestart: false,
       }),
   ],
@@ -97,12 +99,12 @@ Use `rspack dev` for development and `rspack build` for production builds:
   "scripts": {
     "build": "rspack build",
     "dev": "rspack dev",
-    "start": "node dist/main.js"
+    "start": "node dist/main.mjs"
   }
 }
 ```
 
-- `dev`: Runs Rspack Dev Server, writes the server bundle to disk, and starts `dist/main.js`.
+- `dev`: Runs Rspack Dev Server, writes the server bundle to disk, and starts `dist/main.mjs`.
 - `build`: Creates a production bundle without the HMR polling entry.
 - `start`: Runs the production output with Node.js.
 
@@ -133,7 +135,7 @@ export default {
 };
 ```
 
-`RunScriptWebpackPlugin` starts the generated `main.js` file during development:
+`RunScriptWebpackPlugin` starts the generated `main.mjs` file during development:
 
 ```js title="rspack.config.mjs"
 import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
@@ -141,7 +143,7 @@ import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
 export default {
   plugins: [
     new RunScriptWebpackPlugin({
-      name: 'main.js',
+      name: 'main.mjs',
       autoRestart: false,
     }),
   ],
@@ -152,17 +154,46 @@ The HMR polling runtime must be allowlisted when `webpack-node-externals` is use
 
 ## Externalize dependencies
 
-Use [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) to externalize packages from `node_modules`:
+Use [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) to externalize packages from `node_modules`. For ESM output, set `importType: 'module'` so external dependencies are loaded with ESM imports:
 
 ```js title="rspack.config.mjs"
 import nodeExternals from 'webpack-node-externals';
 
 export default {
+  externals: [
+    nodeExternals({
+      importType: 'module',
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+## Use CommonJS output
+
+For older Node.js applications that still need CommonJS output, use `.js` output files, start `main.js`, and externalize dependencies as CommonJS modules:
+
+```js title="rspack.config.mjs"
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  output: {
+    filename: '[name].js',
+  },
   externalsType: 'commonjs',
   externals: [
     nodeExternals({
+      importType: 'commonjs',
       allowlist: [/@rspack\/core\/hot\/poll/],
     }),
+  ],
+  plugins: [
+    process.env.NODE_ENV !== 'production' &&
+      new RunScriptWebpackPlugin({
+        name: 'main.js',
+        autoRestart: false,
+      }),
   ],
 };
 ```

@@ -6,7 +6,7 @@ import { PackageManagerTabs } from '@theme';
 
 # Node.js
 
-Rspack 可以用于构建 Node.js 应用：打包应用代码、通过 SWC 转译 TypeScript、external 运行时依赖，并输出 Node.js 可在运行时加载的资源。
+Rspack 可以用于构建 Node.js 应用：打包应用代码、通过 SWC 转译 TypeScript、external 运行时依赖，并输出 Node.js 可在运行时加载的资源。本文示例默认使用 ESM 输出。
 
 ## 安装依赖
 
@@ -23,7 +23,7 @@ Rspack 可以用于构建 Node.js 应用：打包应用代码、通过 SWC 转�
 
 ## 配置 Rspack
 
-以下配置面向 Node.js，external `node_modules`，在开发阶段将产物写入磁盘，并启动生成的 bundle：
+以下配置面向 Node.js，输出 ESM bundle，external `node_modules`，在开发阶段将产物写入磁盘，并启动生成的 bundle：
 
 ```js title="rspack.config.mjs"
 // @ts-check
@@ -42,6 +42,8 @@ export default defineConfig({
   },
   output: {
     clean: true,
+    filename: '[name].mjs',
+    module: true,
   },
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
@@ -67,16 +69,16 @@ export default defineConfig({
       },
     ],
   },
-  externalsType: 'commonjs',
   externals: [
     nodeExternals({
+      importType: 'module',
       allowlist: [/@rspack\/core\/hot\/poll/],
     }),
   ],
   plugins: [
     process.env.NODE_ENV !== 'production' &&
       new RunScriptWebpackPlugin({
-        name: 'main.js',
+        name: 'main.mjs',
         autoRestart: false,
       }),
   ],
@@ -97,12 +99,12 @@ export default defineConfig({
   "scripts": {
     "build": "rspack build",
     "dev": "rspack dev",
-    "start": "node dist/main.js"
+    "start": "node dist/main.mjs"
   }
 }
 ```
 
-- `dev`：运行 Rspack Dev Server，将服务端 bundle 写入磁盘，并启动 `dist/main.js`。
+- `dev`：运行 Rspack Dev Server，将服务端 bundle 写入磁盘，并启动 `dist/main.mjs`。
 - `build`：创建不包含 HMR polling 入口的生产 bundle。
 - `start`：使用 Node.js 运行生产产物。
 
@@ -133,7 +135,7 @@ export default {
 };
 ```
 
-`RunScriptWebpackPlugin` 会在开发阶段启动生成的 `main.js` 文件：
+`RunScriptWebpackPlugin` 会在开发阶段启动生成的 `main.mjs` 文件：
 
 ```js title="rspack.config.mjs"
 import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
@@ -141,7 +143,7 @@ import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
 export default {
   plugins: [
     new RunScriptWebpackPlugin({
-      name: 'main.js',
+      name: 'main.mjs',
       autoRestart: false,
     }),
   ],
@@ -152,17 +154,46 @@ export default {
 
 ## External 依赖
 
-使用 [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) external `node_modules` 中的包：
+使用 [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) external `node_modules` 中的包。对于 ESM 输出，请设置 `importType: 'module'`，让 external 依赖通过 ESM import 加载：
 
 ```js title="rspack.config.mjs"
 import nodeExternals from 'webpack-node-externals';
 
 export default {
+  externals: [
+    nodeExternals({
+      importType: 'module',
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+## 使用 CommonJS 输出
+
+如果旧的 Node.js 应用仍然需要 CommonJS 输出，可以使用 `.js` 产物、启动 `main.js`，并把 external 依赖作为 CommonJS 模块加载：
+
+```js title="rspack.config.mjs"
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  output: {
+    filename: '[name].js',
+  },
   externalsType: 'commonjs',
   externals: [
     nodeExternals({
+      importType: 'commonjs',
       allowlist: [/@rspack\/core\/hot\/poll/],
     }),
+  ],
+  plugins: [
+    process.env.NODE_ENV !== 'production' &&
+      new RunScriptWebpackPlugin({
+        name: 'main.js',
+        autoRestart: false,
+      }),
   ],
 };
 ```

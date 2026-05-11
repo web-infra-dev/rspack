@@ -52,6 +52,8 @@ export default defineConfig({
   },
   output: {
     clean: true,
+    filename: '[name].mjs',
+    module: true,
   },
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
@@ -94,11 +96,10 @@ export default defineConfig({
       }),
     ],
   },
-  externalsType: 'commonjs',
   plugins: [
     process.env.NODE_ENV !== 'production' &&
       new RunScriptWebpackPlugin({
-        name: 'main.js',
+        name: 'main.mjs',
         autoRestart: false,
       }),
   ],
@@ -109,6 +110,7 @@ export default defineConfig({
   },
   externals: [
     nodeExternals({
+      importType: 'module',
       allowlist: [/@rspack\/core\/hot\/poll/],
     }),
   ],
@@ -124,12 +126,12 @@ Use `rspack dev` during development and `rspack build` for production:
   "scripts": {
     "build": "rspack build",
     "dev": "rspack dev",
-    "start": "node dist/main.js"
+    "start": "node dist/main.mjs"
   }
 }
 ```
 
-- `dev`: Runs Rspack Dev Server, writes the server bundle to disk, and starts `dist/main.js`.
+- `dev`: Runs Rspack Dev Server, writes the server bundle to disk, and starts `dist/main.mjs`.
 - `build`: Creates a production bundle without the HMR polling entry.
 - `start`: Runs the production bundle with Node.js.
 
@@ -210,7 +212,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-See [Node.js - Configure development HMR](/guide/tech/node#configure-development-hmr) for the shared Rspack entry, `writeToDisk`, `RunScriptWebpackPlugin`, and externals allowlist settings used with this bootstrap code.
+See [Node.js - Configure development HMR](/guide/tech/node#configure-development-hmr) for the shared Rspack entry, `writeToDisk`, `RunScriptWebpackPlugin`, and externals allowlist settings used with this bootstrap code. If your project needs CommonJS output, see [Node.js - Use CommonJS output](/guide/tech/node#use-commonjs-output).
 
 ## Configure production minification
 
