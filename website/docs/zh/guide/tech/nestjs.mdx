@@ -24,7 +24,7 @@ Rspack 可以使用通用的 Node.js runtime 配置来构建 [NestJS](https://ne
 
 ## 基本概念
 
-NestJS 应用运行在 Node.js 中，因此 runtime target、external 依赖、开发脚本和 native addon 处理都可以复用通用的 [Node.js 配置](/guide/tech/node)。除此之外，NestJS 还需要 decorator metadata，框架会在运行时读取这些信息。
+NestJS 应用运行在 Node.js 中，因此大部分配置都与通用的 [Node.js 配置](/guide/tech/node) 一致。除此之外，NestJS 还需要 decorator metadata，框架会在运行时读取这些信息。
 
 - **Decorator metadata**：启用 TypeScript decorators 和 decorator metadata，保证依赖注入、控制器、路由、守卫、拦截器等 NestJS 能力正常工作。
 - **HMR cleanup**：开发阶段 HMR 更新服务端 bundle 时，需要在接受更新前关闭旧的 Nest 应用实例。
