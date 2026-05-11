@@ -565,6 +565,54 @@ export default {
 
 这意味着 `modern-module` 暂时不会为 `require()` 依赖区分不同的 CommonJS external 变体。特别是，当前还没有提供在生成的 ESM 产物中保留裸 `require()` 调用的变体。
 
+**示例**
+
+```js title="src/index.js"
+import { readFile } from 'node:fs/promises';
+
+const path = require('node:path');
+
+export async function loadConfig(file) {
+  const os = await import('node:os');
+  const content = await readFile(file, 'utf-8');
+  return {
+    content,
+    dirname: path.dirname(file),
+    platform: os.platform(),
+  };
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: {
+    library: {
+      type: 'modern-module',
+    },
+  },
+  externalsType: 'modern-module',
+  externals: ['node:fs/promises', 'node:path', 'node:os'],
+};
+```
+
+生成的 ESM 产物会保留静态 import 为 `import` 语句，保留动态 import 为 `import()`，并通过 `createRequire` 渲染 `require()` external：
+
+```js
+import { createRequire as __rspack_createRequire } from 'node:module';
+import { readFile } from 'node:fs/promises';
+
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+const path = __rspack_createRequire_require('node:path');
+
+async function loadConfig(file) {
+  const os = await import('node:os');
+  // ...
+}
+
+export { loadConfig };
+```
+
 ### externalsType['commonjs-import']
 
 将 externals 的默认类型指定为 `'commonjs-import'`。这将结合 [`'commonjs'`](#externalstypecommonjs) 和 [`'import'`](#externalstypeimport)。Rspack 将自动检测导入语法的类型，对于动态导入设置为 `'import'`，其他的导入设置为 `'commonjs'`。
