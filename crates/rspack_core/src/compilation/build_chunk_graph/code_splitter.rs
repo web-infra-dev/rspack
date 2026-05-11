@@ -1892,11 +1892,6 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
     let queue_connect = std::mem::take(&mut self.queue_connect);
     for (chunk_group_info_ukey, targets) in queue_connect {
-      let target_groups = targets
-        .iter()
-        .map(|(target_ukey, _)| self.chunk_group_info(target_ukey).chunk_group)
-        .collect_vec();
-
       let (chunk_group_ukey, resulting_available_modules, runtime) = {
         let chunk_group_info = self
           .chunk_group_infos
@@ -1923,27 +1918,22 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         )
       };
 
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .expect_get_mut(&chunk_group_ukey)
-        .children
-        .extend(target_groups);
-
       self.stat_connected_chunk_groups += targets.len() as u32;
 
       // 3. Update chunk group info
+      let mut target_groups = Vec::with_capacity(targets.len());
       for (target_ukey, process_block) in targets {
-        let updated = {
+        let (target_group, updated) = {
           let target_cgi = self
             .chunk_group_infos
             .get_mut(&target_ukey)
             .unwrap_or_else(|| panic!("ChunkGroupInfo({target_ukey:?}) not found"));
+          let target_group = target_cgi.chunk_group;
 
           compilation
             .build_chunk_graph_artifact
             .chunk_group_by_ukey
-            .expect_get_mut(&target_cgi.chunk_group)
+            .expect_get_mut(&target_group)
             .add_parent(chunk_group_ukey);
 
           target_cgi
@@ -1959,12 +1949,11 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
             Arc::get_mut(&mut target_cgi.runtime).expect("should have runtime")
           };
 
-          let mut updated = false;
-          for &r in runtime.iter() {
-            updated |= target_runtime.insert(r);
-          }
-          updated
+          let runtime_len = target_runtime.len();
+          target_runtime.extend(&runtime);
+          (target_group, target_runtime.len() != runtime_len)
         };
+        target_groups.push(target_group);
 
         self
           .chunk_groups_for_merging
@@ -1973,6 +1962,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
           self.outdated_chunk_group_info.insert(target_ukey);
         }
       }
+
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get_mut(&chunk_group_ukey)
+        .children
+        .extend(target_groups);
     }
   }
 
