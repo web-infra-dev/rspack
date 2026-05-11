@@ -24,7 +24,9 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  is_export_inlined, visitors::DestructuringAssignmentProperties,
+  dependency::{DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition},
+  is_export_inlined,
+  visitors::DestructuringAssignmentProperties,
 };
 
 #[cacheable]
@@ -44,6 +46,8 @@ pub struct ESMImportSpecifierDependency {
   call: bool,
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  branch_guards: Option<Box<DependencyBranchGuards>>,
   #[cacheable(with=AsOption<AsCacheable>)]
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: ResourceIdentifier,
@@ -91,6 +95,7 @@ impl ESMImportSpecifierDependency {
       direct_import,
       export_presence_mode,
       used_by_exports: None,
+      branch_guards: None,
       evaluated_in_operator: false,
       namespace_object_as_context: false,
       ns_access,
@@ -166,6 +171,10 @@ impl ESMImportSpecifierDependency {
 
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
+  }
+
+  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
+    self.branch_guards.get_or_insert_default().extend(guards);
   }
 }
 
@@ -339,9 +348,12 @@ impl ModuleDependency for ESMImportSpecifierDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    Some(DependencyCondition::new(
-      ESMImportSpecifierDependencyCondition,
-    ))
+    compose_dependency_condition(
+      Some(DependencyCondition::new(
+        ESMImportSpecifierDependencyCondition,
+      )),
+      self.branch_guards.as_deref(),
+    )
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

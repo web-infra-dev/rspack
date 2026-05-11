@@ -5984,9 +5984,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "65.0.1"
+version = "65.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34d31c34dbae14e61ab4236f32dffc29632f5a8324c1a38d3ad52236b5eeadf5"
+checksum = "6b86be5373e799721f0e249e888ee902927ed14094179475fade2473babdd4d1"
 dependencies = [
  "par-core",
  "swc",
@@ -6290,9 +6290,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_minifier"
-version = "52.0.2"
+version = "52.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "993e8c98b61b4018d9502a50a6a9ab20212696bf8cb2f3588fa7e7a2b8260407"
+checksum = "d04e438d1cbf78281d8fa81768a0bdabd11840fe9232b3e65222ae6b02bf557b"
 dependencies = [
  "arrayvec",
  "bitflags 2.11.1",
@@ -6326,9 +6326,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_parser"
-version = "39.0.1"
+version = "39.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c94d9deb6d91ade011685df51fdbb345f33de17e0b70ea7b2028051a8b76da36"
+checksum = "8b13829b24cbdb2d7a08282bd968af8a258fd762c918df9a7b82291d44068bbc"
 dependencies = [
  "bitflags 2.11.1",
  "either",
@@ -6621,9 +6621,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_react"
-version = "46.0.0"
+version = "46.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9b3f021e71fde8ac978eecfb5d8f46a09d9fef8c2a5add5168496d53a3d9c531"
+checksum = "28008872ce50cabf9c5fc6d5a4ffa83b771760914a5cdc13d7ed77be57f7329f"
 dependencies = [
  "base64",
  "bytes-str",
@@ -6733,9 +6733,9 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_ast"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e989e5521df651db50467a9a87f3ec8ea2750e77baa1f598bfec452ccaff8860"
+checksum = "aaba9543d2570c45e2fdb803001fcbbf177292f682fd1c3d4ac81c70c8f4770b"
 dependencies = [
  "hashbrown 0.16.1",
  "num-bigint",
@@ -6747,9 +6747,9 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_parser"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d135d7979c1d780a2cc0eda478d3009a65dc082821421759cdbf871c4148cbfe"
+checksum = "b33d9e15aee36a3a957f61eaebe2817fa98e908f3e78a045e2b3128b864d79a7"
 dependencies = [
  "bitflags 2.11.1",
  "either",
@@ -6764,9 +6764,9 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_semantic"
-version = "0.6.5"
+version = "0.6.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9db20f10f09a5d81a41ea26d4ab83873cc63e55add9740ceb3377511c43073f5"
+checksum = "a596361abb8bcc30438ba86d6e1d083b501c33c18e69f9e7fbb481837fac96c4"
 dependencies = [
  "oxc_index",
  "rustc-hash",

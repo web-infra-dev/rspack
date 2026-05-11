@@ -1,0 +1,194 @@
+```mjs title=main.mjs
+// ./alt.js
+function alt() {
+  return "alt";
+}
+
+// ./foo.js
+function foo() {
+  console.log.bind({});
+  return "foo";
+}
+
+// ./index.js
+
+
+
+
+
+const values = [];
+
+if ((/* inlined export .IS_DEV */true)) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV */true) && ((/* inlined export .IS_DEV1 */false) || (/* inlined export .IS_DEV2 */true))) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if (((/* inlined export .IS_DEV */true) && (/* inlined export .IS_DEV1 */false)) || ((/* inlined export .IS_DEV */true) && (/* inlined export .IS_DEV2 */true))) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if (((/* inlined export .IS_DEV */true) || (/* inlined export .IS_DEV1 */false)) && (/* inlined export .IS_DEV2 */true)) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if (!(!(/* inlined export .IS_DEV */true) || (!(/* inlined export .IS_DEV1 */false) && !(/* inlined export .IS_DEV2 */true)))) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV1 */false)) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
+if ((/* inlined export .IS_DEV */true) && (/* inlined export .IS_DEV1 */false)) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
+if ((/* inlined export .IS_DEV1 */false) || !(/* inlined export .IS_DEV */true)) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
+if ((/* inlined export .IS_DEV */true) && ((/* inlined export .IS_DEV1 */false) || false)) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
+if (!(/* inlined export .IS_DEV */true) || ((/* inlined export .IS_DEV1 */false) && (/* inlined export .IS_DEV2 */true))) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
+if ((/* inlined export .IS_DEV */true) && (/* inlined export .IS_DEV1 */false) || (/* inlined export .IS_DEV2 */true)) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV1 */false) || (/* inlined export .IS_DEV */true) && false) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
+if (((/* inlined export .IS_DEV1 */false) || (/* inlined export .IS_DEV2 */true)) && ((/* inlined export .IS_DEV */true) && false || (/* inlined export .IS_DEV2 */true))) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV */true)) {
+  if ((/* inlined export .IS_DEV1 */false)) {
+    console.log(bar);
+    values.push(bar());
+  } else {
+    console.log(foo);
+    values.push(foo());
+  }
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV1 */false)) {
+  console.log(bar);
+  values.push(bar());
+} else if ((/* inlined export .IS_DEV2 */true)) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV1 */false)) {
+  if ((/* inlined export .IS_DEV */true)) {
+    console.log(bar);
+    values.push(bar());
+  }
+} else {
+  if ((/* inlined export .IS_DEV2 */true)) {
+    console.log(alt);
+    values.push(alt());
+  } else {
+    console.log(bar);
+    values.push(bar());
+  }
+}
+
+if ((/* inlined export .IS_DEV1 */false)) {
+  Promise.resolve().then(function __rspack_missing_module() { var e = new Error("Cannot find module './dynamic-unused'"); e.code = 'MODULE_NOT_FOUND'; throw e; });
+} else {
+  values.push("dynamic-alt");
+}
+
+it("should drop inactive ESM branch dependencies guarded by inlined booleans", () => {
+  expect(values).toEqual([
+    "foo",
+    "foo",
+    "foo",
+    "foo",
+    "foo",
+    "alt",
+    "alt",
+    "alt",
+    "alt",
+    "alt",
+    "foo",
+    "alt",
+    "foo",
+    "foo",
+    "foo",
+    "alt",
+    "dynamic-alt",
+  ]);
+});
+
+export {};
+
+```

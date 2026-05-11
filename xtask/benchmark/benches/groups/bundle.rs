@@ -3,7 +3,10 @@ use std::sync::Arc;
 use criterion::Criterion;
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
-use crate::groups::bundle::util::{CompilerBuilderGenerator, derive_projects};
+use crate::groups::{
+  bundle::util::{CompilerBuilderGenerator, derive_projects},
+  diagnostics::assert_no_compilation_errors,
+};
 
 pub mod basic_react;
 pub mod threejs;
@@ -33,9 +36,10 @@ pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
         )
       },
       |(compiler_context, mut compiler)| {
+        let context = format!("bundle@{id} benchmark build");
         rt.block_on(within_compiler_context(compiler_context, async move {
           compiler.run().await.unwrap();
-          assert!(compiler.compilation.get_errors().next().is_none());
+          assert_no_compilation_errors(&compiler.compilation, &context);
         }))
       },
       criterion::BatchSize::PerIteration,
