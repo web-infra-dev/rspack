@@ -1459,12 +1459,14 @@ impl AssetInfoRelated {
 /// the same time.
 pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
-  modules: impl ExactSizeIterator<Item = &'a ModuleIdentifier>,
+  modules: impl Iterator<Item = &'a ModuleIdentifier>,
   outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
   initial_queue_capacity: usize,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
-  let mut q = VecDeque::with_capacity(initial_queue_capacity.max(modules.len()));
+  let (module_count_lower_bound, module_count_upper_bound) = modules.size_hint();
+  let module_count = module_count_upper_bound.unwrap_or(module_count_lower_bound);
+  let mut q = VecDeque::with_capacity(initial_queue_capacity.max(module_count));
   for item in modules {
     q.push_back((*item, 0));
   }

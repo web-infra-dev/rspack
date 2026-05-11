@@ -1,4 +1,5 @@
 use std::{
+  collections::hash_map,
   hash::BuildHasherDefault,
   sync::{Arc, atomic::AtomicU32},
 };
@@ -56,35 +57,29 @@ fn finalize_prepared_connection_map(
   capacity: usize,
 ) -> PreparedBlockConnectionMap {
   let mut groups = PreparedBlockConnectionMap::with_capacity(capacity);
-  let mut group_index_by_block = Vec::<(DependenciesBlockIdentifier, IdentifierMap<usize>)>::new();
+  let mut group_index_by_block = DependenciesBlockIdentifierMap::<IdentifierMap<usize>>::default();
   for connection in connections {
-    let index_by_module = if let Some((_, index_by_module)) = group_index_by_block
-      .iter_mut()
-      .find(|(block, _)| *block == connection.block)
-    {
-      index_by_module
-    } else {
-      group_index_by_block.push((connection.block, IdentifierMap::default()));
-      &mut group_index_by_block
-        .last_mut()
-        .expect("should have block")
-        .1
+    let index_by_module = match group_index_by_block.entry(connection.block) {
+      hash_map::Entry::Occupied(entry) => entry.into_mut(),
+      hash_map::Entry::Vacant(entry) => entry.insert(IdentifierMap::default()),
     };
 
-    if let Some(index) = index_by_module.get(&connection.module) {
-      Arc::get_mut(&mut groups[*index].connections)
-        .expect("prepared connections should not be shared during finalize")
-        .push(connection.dependency);
-      continue;
+    match index_by_module.entry(connection.module) {
+      hash_map::Entry::Occupied(entry) => {
+        Arc::get_mut(&mut groups[*entry.get()].connections)
+          .expect("prepared connections should not be shared during finalize")
+          .push(connection.dependency);
+      }
+      hash_map::Entry::Vacant(entry) => {
+        let index = groups.len();
+        entry.insert(index);
+        groups.push(PreparedBlockConnection {
+          block: connection.block,
+          module: connection.module,
+          connections: Arc::new(vec![connection.dependency]),
+        });
+      }
     }
-
-    let index = groups.len();
-    index_by_module.insert(connection.module, index);
-    groups.push(PreparedBlockConnection {
-      block: connection.block,
-      module: connection.module,
-      connections: Arc::new(vec![connection.dependency]),
-    });
   }
 
   groups
@@ -2387,11 +2382,10 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .collect::<IdentifierMap<_>>();
 
-    let block_map_capacity = all_modules.len() + mg.blocks().len();
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<
       Vec<AsyncDependenciesBlockIdentifier>,
     >::with_capacity_and_hasher(
-      block_map_capacity, Default::default()
+      all_modules.len(), Default::default()
     );
 
     for module in all_modules {
