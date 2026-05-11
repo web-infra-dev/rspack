@@ -16,7 +16,7 @@ use rspack_core::{
 use rspack_fs::{NativeFileSystem, NoopFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
-use super::bundle::basic_react;
+use super::{bundle::basic_react, diagnostics::assert_no_compilation_errors};
 
 static NEXT_CASE_ID: AtomicUsize = AtomicUsize::new(0);
 const BENCHCASE_NAME: &str = "basic-react";
@@ -180,6 +180,7 @@ async fn run_compiler(project_dir: &Path, cache_dir: &Path) {
 
   within_compiler_context(compiler_context, async move {
     compiler.run().await.unwrap();
+    assert_no_compilation_errors(&compiler.compilation, "persistent cache benchmark build");
     compiler.close().await.unwrap();
   })
   .await;

@@ -11,7 +11,10 @@ use rspack_core::{
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::within_compiler_context_for_testing_sync;
 
-use crate::groups::build_chunk_graph::{NUM_MODULES, prepare_large_code_splitting_case};
+use crate::groups::{
+  build_chunk_graph::{NUM_MODULES, prepare_large_code_splitting_case},
+  diagnostics::assert_no_compilation_errors,
+};
 
 pub fn module_graph_api_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
@@ -70,10 +73,7 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
       .unwrap();
   });
 
-  assert!(
-    compiler.compilation.get_errors().next().is_none(),
-    "module_graph_api benchmark setup should not produce compilation errors"
-  );
+  assert_no_compilation_errors(&compiler.compilation, "module_graph_api benchmark setup");
 
   let dependency_ids = {
     let module_graph = compiler.compilation.get_module_graph();

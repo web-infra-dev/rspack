@@ -14,6 +14,8 @@ use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 
+use crate::groups::diagnostics::assert_no_compilation_errors;
+
 pub(crate) static NUM_MODULES: usize = 10000;
 
 pub(crate) async fn prepare_large_code_splitting_case(
@@ -191,7 +193,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     compiler.compilation.exports_info_artifact = exports_info_artifact.into();
   });
 
-  assert!(compiler.compilation.get_errors().next().is_none());
+  assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark setup");
   let compiler = RefCell::new(compiler);
 
   c.bench_function("rust@build_chunk_graph", |b| {
@@ -203,6 +205,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
       |_| {
         let mut compiler = compiler.borrow_mut();
         build_chunk_graph::build_chunk_graph(&mut compiler.compilation).unwrap();
+        assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark pass");
         assert_eq!(
           compiler
             .compilation
@@ -276,10 +279,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
             .await
             .unwrap();
         });
-        assert!(
-          compiler.compilation.get_errors().next().is_none(),
-          "build_module_graph benchmark setup should not produce compilation errors"
-        );
+        assert_no_compilation_errors(&compiler.compilation, "build_module_graph benchmark setup");
       },
       |_| {
         let mut compiler = compiler.borrow_mut();
@@ -288,10 +288,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
             .await
             .unwrap();
         });
-        assert!(
-          compiler.compilation.get_errors().next().is_none(),
-          "build_module_graph benchmark pass should not produce compilation errors"
-        );
+        assert_no_compilation_errors(&compiler.compilation, "build_module_graph benchmark pass");
         assert_eq!(
           compiler.compilation.get_module_graph().modules_len(),
           NUM_MODULES + NUM_MODULES / 10
