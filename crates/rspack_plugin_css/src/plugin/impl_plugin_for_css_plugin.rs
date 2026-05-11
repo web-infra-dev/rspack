@@ -526,8 +526,8 @@ impl Plugin for CssPlugin {
           .and_then(|g| g.get_css())
           .expect("should have CssGeneratorOptions");
         Box::new(CssParserAndGenerator::new(
-          CssModuleGeneratorOptions::from(g.clone()),
-          CssModuleParserOptions::from(p.clone()),
+          CssModuleGeneratorOptions::from(g),
+          CssModuleParserOptions::from(p),
         )) as Box<dyn ParserAndGenerator>
       }),
     );

@@ -415,12 +415,12 @@ pub struct CssModuleParserOptions {
   pub resolve_import: Option<CssParserImport>,
 }
 
-impl From<CssParserOptions> for CssModuleParserOptions {
-  fn from(value: CssParserOptions) -> Self {
+impl From<&CssParserOptions> for CssModuleParserOptions {
+  fn from(value: &CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
       url: value.url,
-      resolve_import: value.resolve_import,
+      resolve_import: value.resolve_import.clone(),
     }
   }
 }
@@ -752,8 +752,8 @@ pub struct CssModuleGeneratorOptions {
   pub es_module: Option<bool>,
 }
 
-impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
+impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
       es_module: value.es_module,

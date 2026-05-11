@@ -147,7 +147,7 @@ fn resolve_global_parser_options(
         options,
         |css_options, options| match (css_options, options) {
           (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
-            ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
+            ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(&a).merge_from(b))
           }
           _ => unreachable!(),
         },
@@ -940,7 +940,7 @@ module.exports = "data:,";
             |css_options, options| match (css_options, options) {
               (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
                 GeneratorOptions::CssModule(
-                  Into::<CssModuleGeneratorOptions>::into(a).merge_from(b),
+                  Into::<CssModuleGeneratorOptions>::into(&a).merge_from(b),
                 )
               }
               _ => unreachable!(),
