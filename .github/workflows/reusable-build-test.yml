@@ -73,11 +73,10 @@ jobs:
           image: mcr.microsoft.com/playwright:v1.59.1-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
-          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}} --ulimit nofile=1048576:1048576
+          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
           script: |
             export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
             export WASM=1
-            ulimit -Sn "$(ulimit -Hn)"
             pnpm run build:js
             pnpm run test:e2e-browser
   test:
