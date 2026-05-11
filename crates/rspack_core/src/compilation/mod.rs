@@ -1479,8 +1479,10 @@ pub fn assign_depths<'a>(
         vac.insert(depth);
       }
     };
-    for con in outgoings.get(&id).expect("should have outgoings").iter() {
-      q.push_back((*con, depth + 1));
+    if let Some(outgoing_modules) = outgoings.get(&id) {
+      for con in outgoing_modules {
+        q.push_back((*con, depth + 1));
+      }
     }
   }
 }

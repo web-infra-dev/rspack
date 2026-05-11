@@ -787,22 +787,25 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       let mg = compilation.get_module_graph();
       all_modules
         .par_iter()
-        .map(|m| {
-          let outgoing = mg
-            .module_graph_module_by_identifier(m)
-            .map(|mgm| {
-              let outgoing_connections = mgm.outgoing_connections();
-              let mut outgoing = Vec::with_capacity(outgoing_connections.len());
-              for id in outgoing_connections {
-                if let Some(con) = mg.connection_by_dependency_id(id) {
-                  outgoing.push(*con.module_identifier());
-                }
-              }
-              outgoing
-            })
-            .unwrap_or_default();
+        .filter_map(|m| {
+          let mgm = mg.module_graph_module_by_identifier(m)?;
+          let outgoing_connections = mgm.outgoing_connections();
+          if outgoing_connections.is_empty() {
+            return None;
+          }
 
-          (*m, outgoing)
+          let mut outgoing = Vec::with_capacity(outgoing_connections.len());
+          for id in outgoing_connections {
+            if let Some(con) = mg.connection_by_dependency_id(id) {
+              outgoing.push(*con.module_identifier());
+            }
+          }
+
+          if outgoing.is_empty() {
+            None
+          } else {
+            Some((*m, outgoing))
+          }
         })
         .collect::<IdentifierMap<_>>()
     };
@@ -2136,53 +2139,76 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
 
   fn process_chunk_groups_for_combining(&mut self, compilation: &mut Compilation) {
     let chunk_group_infos = &self.chunk_group_infos;
-    self.chunk_groups_for_combining.retain(|info_ukey| {
-      let info = chunk_group_infos
-        .get(info_ukey)
-        .unwrap_or_else(|| panic!("ChunkGroupInfo({info_ukey:?}) not found"));
-      info.available_sources.iter().all(|source_ukey| {
-        let source = chunk_group_infos
-          .get(source_ukey)
-          .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"));
-        source.min_available_modules_init
-      })
-    });
-
     let chunk_groups_for_combining = self
       .chunk_groups_for_combining
       .iter()
-      .copied()
+      .filter_map(|info_ukey| {
+        let info = chunk_group_infos
+          .get(info_ukey)
+          .unwrap_or_else(|| panic!("ChunkGroupInfo({info_ukey:?}) not found"));
+        let mut source_ukeys = Vec::with_capacity(info.available_sources.len());
+        for source_ukey in &info.available_sources {
+          let source = chunk_group_infos
+            .get(source_ukey)
+            .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"));
+          if !source.min_available_modules_init {
+            return None;
+          }
+          source_ukeys.push(*source_ukey);
+        }
+        Some((*info_ukey, source_ukeys))
+      })
       .collect_vec();
     let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
-    for info_ukey in chunk_groups_for_combining {
-      let source_ukeys = self
-        .chunk_group_infos
-        .get(&info_ukey)
-        .unwrap_or_else(|| panic!("ChunkGroupInfo({info_ukey:?}) not found"))
-        .available_sources
-        .clone();
-      let mut available_modules = BigUint::from(0u32);
-
-      // combine min_available_modules from all resulting_available_modules
-      for source_ukey in source_ukeys {
-        let source_chunk_group = self
-          .chunk_group_infos
-          .get(&source_ukey)
-          .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"))
-          .chunk_group;
+    for (info_ukey, source_ukeys) in chunk_groups_for_combining {
+      let available_modules = if let [source_ukey] = source_ukeys.as_slice() {
         let source = self
           .chunk_group_infos
-          .get_mut(&source_ukey)
+          .get_mut(source_ukey)
           .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"));
+        let source_chunk_group = source.chunk_group;
         source.calculate_resulting_available_modules(
           chunk_group_by_ukey.expect_get(&source_chunk_group),
           &self.mask_by_chunk,
         );
-        let resulting_available_modules = source
+        source
           .resulting_available_modules
-          .as_ref()
-          .expect("should have resulting available modules");
-        available_modules |= resulting_available_modules.as_ref();
+          .clone()
+          .expect("should have resulting available modules")
+      } else {
+        let mut available_modules = BigUint::from(0u32);
+
+        // combine min_available_modules from all resulting_available_modules
+        for source_ukey in source_ukeys {
+          let source = self
+            .chunk_group_infos
+            .get_mut(&source_ukey)
+            .unwrap_or_else(|| panic!("ChunkGroupInfo({source_ukey:?}) not found"));
+          let source_chunk_group = source.chunk_group;
+          source.calculate_resulting_available_modules(
+            chunk_group_by_ukey.expect_get(&source_chunk_group),
+            &self.mask_by_chunk,
+          );
+          let resulting_available_modules = source
+            .resulting_available_modules
+            .as_ref()
+            .expect("should have resulting available modules");
+          available_modules |= resulting_available_modules.as_ref();
+        }
+        Arc::new(available_modules)
+      };
+
+      let should_update = {
+        let info = self
+          .chunk_group_infos
+          .get(&info_ukey)
+          .unwrap_or_else(|| panic!("ChunkGroupInfo({info_ukey:?}) not found"));
+        !info.min_available_modules_init
+          || info.min_available_modules.as_ref() != available_modules.as_ref()
+      };
+
+      if !should_update {
+        continue;
       }
 
       self.outdated_chunk_group_info.insert(info_ukey);
@@ -2191,7 +2217,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
         .get_mut(&info_ukey)
         .unwrap_or_else(|| panic!("ChunkGroupInfo({info_ukey:?}) not found"));
       info.invalidate_resulting_available_modules();
-      info.min_available_modules = Arc::new(available_modules);
+      info.min_available_modules = available_modules;
       info.min_available_modules_init = true;
     }
 
