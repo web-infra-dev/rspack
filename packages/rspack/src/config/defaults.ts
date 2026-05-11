@@ -1204,17 +1204,6 @@ const getResolveDefaults = ({
     preferRelative: true,
   };
 
-  resolveOptions.byDependency!['css-import-global-module'] = {
-    mainFiles: [],
-    mainFields: ['style', '...'],
-    conditionNames: [
-      mode === 'development' ? 'development' : 'production',
-      'style',
-    ],
-    extensions: ['.css'],
-    preferRelative: true,
-  };
-
   return resolveOptions;
 };
 

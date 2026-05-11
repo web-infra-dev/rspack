@@ -1401,18 +1401,6 @@ fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: b
       Resolve {
         main_files: Some(vec![]),
         main_fields: Some(vec!["style".to_string(), "...".to_string()]),
-        condition_names: Some(style_conditions.clone()),
-        extensions: Some(vec![".css".to_string()]),
-        prefer_relative: Some(true),
-        ..Default::default()
-      },
-    ));
-
-    by_dependency.push((
-      "css-import-global-module".into(),
-      Resolve {
-        main_files: Some(vec![]),
-        main_fields: Some(vec!["style".to_string(), "...".to_string()]),
         condition_names: Some(style_conditions),
         extensions: Some(vec![".css".to_string()]),
         prefer_relative: Some(true),
@@ -2082,17 +2070,6 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
         mimetype: Some(RuleSetCondition::String("text/css".into()).into()),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::Css),
-          resolve: Some(resolve.clone()),
-          ..Default::default()
-        },
-        ..Default::default()
-      },
-      ModuleRule {
-        dependency: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("css-import-global-module").expect("should initialize `Regex`"),
-        )),
-        effect: ModuleRuleEffect {
-          r#type: Some(ModuleType::CssGlobal),
           resolve: Some(resolve),
           ..Default::default()
         },
