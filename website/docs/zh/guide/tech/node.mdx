@@ -42,8 +42,10 @@ export default defineConfig({
   },
   output: {
     clean: true,
-    filename: '[name].mjs',
     module: true,
+    chunkFormat: 'module',
+    chunkLoading: 'import',
+    workerChunkLoading: 'import',
   },
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
