@@ -297,8 +297,6 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub side_effect_free: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports_final_name: Option<Vec<(String, String)>>,
 }
 
 // webpack build info
