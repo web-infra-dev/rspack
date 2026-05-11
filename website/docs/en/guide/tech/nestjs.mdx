@@ -198,7 +198,7 @@ export default {
 };
 ```
 
-If the production bundle still includes `@rspack/core/hot/poll`, the Node.js application will crash at runtime because HMR is not available in production mode.
+If the production bundle still includes `@rspack/core/hot/poll`, the Node.js application will crash at runtime because HMR is not available in build mode.
 
 Because the server process is started from the generated bundle, `devServer.devMiddleware.writeToDisk` must be enabled:
 
