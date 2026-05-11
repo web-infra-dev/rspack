@@ -65,7 +65,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             }
           }
           Payload::ImportSection(s) => {
-            for import in s {
+            for import in s.into_imports() {
               match import {
                 Ok(Import { module, name, .. }) => {
                   dependencies.push(Box::new(WasmImportDependency::new(
