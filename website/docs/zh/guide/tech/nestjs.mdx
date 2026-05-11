@@ -52,10 +52,6 @@ export default defineConfig({
   },
   output: {
     clean: true,
-    module: true,
-    chunkFormat: 'module',
-    chunkLoading: 'import',
-    workerChunkLoading: 'import',
   },
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
@@ -101,7 +97,7 @@ export default defineConfig({
   plugins: [
     process.env.NODE_ENV !== 'production' &&
       new RunScriptWebpackPlugin({
-        name: 'main.mjs',
+        name: 'main.js',
         autoRestart: false,
       }),
   ],
@@ -112,7 +108,6 @@ export default defineConfig({
   },
   externals: [
     nodeExternals({
-      importType: 'module',
       allowlist: [/@rspack\/core\/hot\/poll/],
     }),
   ],
@@ -128,12 +123,12 @@ export default defineConfig({
   "scripts": {
     "build": "rspack build",
     "dev": "rspack dev",
-    "start": "node dist/main.mjs"
+    "start": "node dist/main.js"
   }
 }
 ```
 
-- `dev`：运行 Rspack Dev Server，将服务端 bundle 写入磁盘，并启动 `dist/main.mjs`。
+- `dev`：运行 Rspack Dev Server，将服务端 bundle 写入磁盘，并启动 `dist/main.js`。
 - `build`：创建不包含 HMR polling 入口的生产 bundle。
 - `start`：使用 Node.js 运行生产 bundle。
 
@@ -214,7 +209,7 @@ async function bootstrap() {
 bootstrap();
 ```
 
-通用的 Rspack entry、`writeToDisk`、`RunScriptWebpackPlugin` 和 externals allowlist 设置请参考 [Node.js - 配置开发 HMR](/guide/tech/node#配置开发-hmr)。如果你的项目需要 CommonJS 输出，请参考 [Node.js - 使用 CommonJS 输出](/guide/tech/node#使用-commonjs-输出)。
+通用的 Rspack entry、`writeToDisk`、`RunScriptWebpackPlugin` 和 externals allowlist 设置请参考 [Node.js - 配置开发 HMR](/guide/tech/node#配置开发-hmr)。如果你的项目需要 ESM 输出，请参考 [Node.js - 使用 ESM 输出](/guide/tech/node#使用-esm-输出)。
 
 ## 配置生产压缩
 
