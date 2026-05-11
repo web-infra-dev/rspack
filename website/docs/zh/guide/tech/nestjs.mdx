@@ -200,7 +200,7 @@ export default {
 };
 ```
 
-如果生产 bundle 中仍然包含 `@rspack/core/hot/poll`，Node.js 应用可能会在运行时崩溃，因为生产模式下不会启用 HMR。
+如果生产 bundle 中仍然包含 `@rspack/core/hot/poll`，Node.js 应用会在运行时崩溃，因为生产模式下不会启用 HMR。
 
 由于服务端进程会从生成的 bundle 启动，因此需要启用 `devServer.devMiddleware.writeToDisk`：
 
