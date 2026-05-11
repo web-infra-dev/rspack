@@ -4,17 +4,18 @@ import { App } from '../App';
 
 const fs = __non_webpack_require__('node:fs');
 
-const RSC_ENTRY_MODULE_HEADER = '"rspack/rsc-entry?name=main"() {';
+const RSC_ENTRY_MODULE_HEADER = /^"rspack\/rsc-entry\?name=main"\(\) \{/m;
 
 const readBundle = (filename) => {
   return fs.readFileSync(path.join(__dirname, filename), 'utf-8');
 };
 
 const extractRscEntryModuleContent = (source) => {
-  const start = source.indexOf(RSC_ENTRY_MODULE_HEADER);
+  const match = RSC_ENTRY_MODULE_HEADER.exec(source);
+  const start = match?.index ?? -1;
   expect(start).toBeGreaterThanOrEqual(0);
 
-  const contentStart = start + RSC_ENTRY_MODULE_HEADER.length;
+  const contentStart = start + match[0].length;
   const contentEnd = source.indexOf('\n},', contentStart);
   expect(contentEnd).toBeGreaterThanOrEqual(0);
 
