@@ -51,13 +51,13 @@ export default defineConfig({
   module: {
     rules: [
       {
-        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            detectSyntax: 'auto',
-          },
+        test: /\.(?:js|mjs|ts)$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
         },
+        type: 'javascript/auto',
       },
       {
         test: /\.node$/,
