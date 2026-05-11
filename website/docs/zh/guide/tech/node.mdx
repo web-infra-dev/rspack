@@ -51,15 +51,11 @@ export default defineConfig({
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
       },
