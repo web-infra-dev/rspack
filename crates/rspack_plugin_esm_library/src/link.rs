@@ -701,7 +701,8 @@ impl EsmLibraryPlugin {
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
-                    && ext.get_external_type().as_str().starts_with("module")
+                    && (ext.get_external_type().as_str().starts_with("module")
+                      || ext.resolve_external_type() == "module")
                   {
                     let Some((raw_import_source, import_binding)) = concate_modules_map
                       .get(&symbol_binding.module)

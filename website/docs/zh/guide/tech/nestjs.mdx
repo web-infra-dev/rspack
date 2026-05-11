@@ -1,14 +1,296 @@
 ---
-description: '在 Rspack 中使用NestJS的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理。'
+description: '在 Rspack 中使用 NestJS 的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理。'
 ---
+
+import { PackageManagerTabs } from '@theme';
 
 # NestJS
 
-Rspack 不仅能用于构建前端应用，也可以用于构建 Node.js 应用，你可以使用 Rspack 来构建 NestJS，Rspack 提供了一个 [NestJS Example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) 的例子供参考。
+Rspack 可以用于构建 [NestJS](https://nestjs.com/) 等 Node.js 应用。相比直接使用 `tsc`，Rspack 可以打包应用代码、通过 SWC 转译 TypeScript、支持开发阶段 HMR，并在需要时 external 运行时依赖。
+
+## 如何使用
+
+你可以参考当前文档，为已有 NestJS 项目手动添加所需的 Rspack 配置。`rstack-examples` 中的 [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) 也可作为参考，它包含完整的 `rspack.config.mjs`、开发脚本、生产构建脚本和 HMR 入口。
+
+## 示例
+
+[rstack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) 仓库包含了使用 Rspack 构建 NestJS 应用的完整示例。
+
+## 安装依赖
+
+安装 Rspack 以及 NestJS 示例中使用到的辅助依赖：
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin -D" />
+
+对于一个最小的 NestJS 应用，请照常安装 NestJS 运行时依赖：
+
+<PackageManagerTabs command="add @nestjs/common @nestjs/core @nestjs/platform-express reflect-metadata rxjs" />
+
+## 基本概念
+
+NestJS 应用运行在 Node.js 中，因此 Rspack 配置需要面向 Node.js runtime，并保留 NestJS 在运行时读取的框架 metadata。
+
+- **Node.js target**（[`target: 'node'`](/config/target)）：生成适用于 Node.js 而不是浏览器的产物。
+- **Decorator metadata**：NestJS 依赖 TypeScript decorators 和生成的 metadata 来实现依赖注入、控制器、路由、守卫、拦截器等框架能力。
+- **External dependencies**：服务端应用通常不需要把 `node_modules` 中的所有包都打进 bundle。External 依赖可以减小 bundle 体积，并让 Node.js 在运行时正常加载依赖。
+- **Development HMR**：开发环境下，Node.js 进程需要在 Rspack 重新构建服务端 bundle 后重启或接受更新。
+
+## 配置 Rspack
+
+以下配置改编自 NestJS 示例：
+
+```js title="rspack.config.mjs"
+// @ts-check
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  target: 'node',
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+  output: {
+    clean: true,
+  },
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              parser: {
+                decorators: true,
+              },
+              transform: {
+                legacyDecorator: true,
+                decoratorMetadata: true,
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          compress: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+          mangle: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+        },
+      }),
+    ],
+  },
+  externalsType: 'commonjs',
+  plugins: [
+    process.env.NODE_ENV !== 'production' &&
+      new RunScriptWebpackPlugin({
+        name: 'main.js',
+        autoRestart: false,
+      }),
+  ],
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+});
+```
+
+## 配置脚本
+
+使用 `rspack dev` 进行开发，并使用 `rspack build` 进行生产构建：
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack dev",
+    "start": "node dist/main.js"
+  }
+}
+```
+
+- `dev`：运行 Rspack Dev Server，将服务端 bundle 写入磁盘，并启动 `dist/main.js`。
+- `build`：创建不包含 HMR polling 入口的生产 bundle。
+- `start`：使用 Node.js 运行生产产物。
+
+## 配置 TypeScript decorators
+
+NestJS 使用 `@Module()`、`@Controller()`、`@Injectable()`、`@Get()` 等 decorators。你需要配置 `builtin:swc-loader` 来解析 TypeScript decorators 并生成 decorator metadata：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              parser: {
+                decorators: true,
+              },
+              transform: {
+                legacyDecorator: true,
+                decoratorMetadata: true,
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+如果项目同时运行 `tsc`，请在 `tsconfig.json` 中启用 `experimentalDecorators` 和 `emitDecoratorMetadata`，让 TypeScript 工具链和 Rspack 的 SWC 转换保持一致：
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+## 配置开发 HMR
+
+只在开发入口中添加 `@rspack/core/hot/poll`；如果生产 bundle 中包含它，Node.js 应用会在运行时崩溃，因为 build mode 下不会启用 HMR：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+};
+```
+
+由于服务端进程会从生成的 bundle 启动，因此需要启用 `devServer.devMiddleware.writeToDisk`：
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+};
+```
+
+在 NestJS bootstrap 文件中添加 HMR 处理，让旧的应用实例在接受更新前被关闭：
+
+```ts title="src/main.ts"
+declare const module: any;
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+  if (module.hot) {
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
+  }
+}
+
+bootstrap();
+```
+
+`RunScriptWebpackPlugin` 会在开发阶段启动生成的 `main.js` 文件：
+
+```js title="rspack.config.mjs"
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+
+export default {
+  plugins: [
+    new RunScriptWebpackPlugin({
+      name: 'main.js',
+      autoRestart: false,
+    }),
+  ],
+};
+```
+
+## External 依赖
+
+使用 [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) external `node_modules` 中的包：
+
+```js title="rspack.config.mjs"
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  externalsType: 'commonjs',
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+开发环境下，HMR polling runtime 必须加入 allowlist，这样它会被打进服务端产物，而不是被当作外部依赖处理。
+
+## 配置生产压缩
+
+压缩 NestJS 服务端 bundle 时，需要保留 class name 和 function name。NestJS 的 execution context、metadata reflection 等机制可能依赖稳定的 class 和 handler function 引用。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          compress: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+          mangle: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+        },
+      }),
+    ],
+  },
+};
+```
 
 ## Native node modules
 
-当使用 Rspack 构建 Node.js 应用时，可能会碰到一些依赖包含 Node.js native addon 依赖（`.node` 模块），因为 `.node` 无法打包进 JS 产物里，因此一般需要特殊处理，通过 [node-loader](https://www.npmjs.com/package/node-loader) 可以很好的处理 addon 的打包。
+当使用 Rspack 构建 Node.js 应用时，可能会碰到一些依赖包含 Node.js native addon 依赖（`.node` 模块）。因为 `.node` 模块无法打包进 JavaScript 产物里，所以通常需要特殊处理。可以使用 [node-loader](https://www.npmjs.com/package/node-loader) 处理 addon 的打包。
 
 ```js title="rspack.config.mjs"
 export default {

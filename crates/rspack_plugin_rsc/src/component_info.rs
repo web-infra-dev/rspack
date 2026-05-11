@@ -9,7 +9,7 @@ use rspack_plugin_javascript::dependency::{
   ESMImportSpecifierDependency,
 };
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::atoms::{Atom, Wtf8Atom};
 
 use crate::{
@@ -20,6 +20,9 @@ use crate::{
 
 // { [request to inject into client compilation]: [exported names] }
 pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
+// { [server entry path]: [`import.meta.rspackRsc` importer paths] }
+// Used only to let `loadCss()` importers inherit their nearest server entry CSS files.
+pub type ImportMetaRscImporters = FxHashMap<String, FxIndexSet<String>>;
 
 // Tracks server component traversal per current `use server-entry` owner.
 // This lets a shared server component be visited once for each server entry
@@ -32,6 +35,7 @@ pub struct ComponentInfo {
   pub client_component_imports: ClientComponentImports,
   pub css_imports_by_server_entry: CssImportsByServerEntry,
   pub root_css_imports: RootCssImports,
+  pub import_meta_rsc_importers: ImportMetaRscImporters,
   pub action_imports: Vec<(String, Vec<ActionIdNamePair>)>,
 }
 
@@ -86,6 +90,16 @@ fn traverse_module(
   // CSS below it belongs to the nested entry, not to its parent entry.
   let server_entry = is_server_entry_module(module).then(|| resource.to_string());
   let current_server_entry = server_entry.as_deref().or(current_server_entry);
+
+  if get_module_rsc_information(module).is_some_and(|rsc| rsc.import_meta_rsc)
+    && let Some(server_entry) = current_server_entry
+  {
+    component_info
+      .import_meta_rsc_importers
+      .entry(server_entry.to_string())
+      .or_default()
+      .insert(resource.to_string());
+  }
 
   if is_css_mod(module) {
     record_css_import(

@@ -156,6 +156,10 @@ impl AsyncDependenciesBlock {
     self.dependencies.get_mut(idx)
   }
 
+  pub fn dependencies_mut(&mut self) -> &mut [BoxDependency] {
+    &mut self.dependencies
+  }
+
   pub fn add_block(&mut self, _block: AsyncDependenciesBlock) {
     unimplemented!("Nested block are not implemented");
     // self.block_ids.push(block.id);

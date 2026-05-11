@@ -2,14 +2,295 @@
 description: 'Use NestJS with Rspack, covering setup, configuration, integration details, and framework-specific development patterns.'
 ---
 
+import { PackageManagerTabs } from '@theme';
+
 # NestJS
 
-Rspack not only supports building frontend projects but also supports building Node.js App like NestJS.
-Rspack provides NestJS [example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) for reference.
+Rspack can build Node.js applications such as [NestJS](https://nestjs.com/). Compared with using `tsc` directly, Rspack can bundle application code, transform TypeScript with SWC, support development-time HMR, and keep runtime dependencies external when needed.
+
+## How to use
+
+You can follow this document to manually add the required Rspack configuration to an existing NestJS project. The [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) in `rstack-examples` is also available as a reference, and contains a complete `rspack.config.mjs`, development script, production build script, and HMR entry.
+
+## Example
+
+The [rstack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) repository contains a complete NestJS application built with Rspack.
+
+## Install dependencies
+
+Install Rspack and the helper dependencies used by the NestJS example:
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin -D" />
+
+For a minimal NestJS application, install the NestJS runtime dependencies as usual:
+
+<PackageManagerTabs command="add @nestjs/common @nestjs/core @nestjs/platform-express reflect-metadata rxjs" />
+
+## Basic concepts
+
+NestJS applications run in Node.js, so the Rspack configuration should target the Node.js runtime and preserve the framework metadata that NestJS reads at runtime.
+
+- **Node.js target** ([`target: 'node'`](/config/target)): Generates output suitable for Node.js instead of the browser.
+- **Decorator metadata**: NestJS relies on TypeScript decorators and emitted metadata for dependency injection, controllers, routes, guards, interceptors, and other framework features.
+- **External dependencies**: Server applications usually do not need to bundle every package in `node_modules`. Externalizing dependencies keeps the bundle smaller and allows Node.js to load packages normally at runtime.
+- **Development HMR**: In development, the Node.js process needs to restart or accept updates after Rspack rebuilds the server bundle.
+
+## Configure Rspack
+
+The following configuration is adapted from the NestJS example:
+
+```js title="rspack.config.mjs"
+// @ts-check
+import { defineConfig } from '@rspack/cli';
+import { rspack } from '@rspack/core';
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  target: 'node',
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+  output: {
+    clean: true,
+  },
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              parser: {
+                decorators: true,
+              },
+              transform: {
+                legacyDecorator: true,
+                decoratorMetadata: true,
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          compress: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+          mangle: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+        },
+      }),
+    ],
+  },
+  externalsType: 'commonjs',
+  plugins: [
+    process.env.NODE_ENV !== 'production' &&
+      new RunScriptWebpackPlugin({
+        name: 'main.js',
+        autoRestart: false,
+      }),
+  ],
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+});
+```
+
+## Configure scripts
+
+Use `rspack dev` for development and `rspack build` for production builds:
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack dev",
+    "start": "node dist/main.js"
+  }
+}
+```
+
+- `dev`: Runs Rspack Dev Server, writes the server bundle to disk, and starts `dist/main.js`.
+- `build`: Creates a production bundle without the HMR polling entry.
+- `start`: Runs the production output with Node.js.
+
+## Configure TypeScript decorators
+
+NestJS uses decorators such as `@Module()`, `@Controller()`, `@Injectable()`, and `@Get()`. Configure `builtin:swc-loader` to parse TypeScript decorators and emit decorator metadata:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              parser: {
+                decorators: true,
+              },
+              transform: {
+                legacyDecorator: true,
+                decoratorMetadata: true,
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+If your project also runs `tsc`, keep `experimentalDecorators` and `emitDecoratorMetadata` enabled in `tsconfig.json` so TypeScript tooling and Rspack's SWC transform follow the same assumptions:
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+## Configure development HMR
+
+Add `@rspack/core/hot/poll` only to the development entry, since including it in the production bundle will crash the Node.js application because HMR is not available in build mode:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+};
+```
+
+Because the server process is started from the generated bundle, `devServer.devMiddleware.writeToDisk` must be enabled:
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+};
+```
+
+Add HMR handling to the NestJS bootstrap file so the old application instance is closed before the updated module is accepted:
+
+```ts title="src/main.ts"
+declare const module: any;
+
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+  if (module.hot) {
+    module.hot.accept();
+    module.hot.dispose(() => app.close());
+  }
+}
+
+bootstrap();
+```
+
+`RunScriptWebpackPlugin` starts the generated `main.js` file during development:
+
+```js title="rspack.config.mjs"
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+
+export default {
+  plugins: [
+    new RunScriptWebpackPlugin({
+      name: 'main.js',
+      autoRestart: false,
+    }),
+  ],
+};
+```
+
+## Externalize dependencies
+
+Use [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) to externalize packages from `node_modules`:
+
+```js title="rspack.config.mjs"
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  externalsType: 'commonjs',
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+The HMR polling runtime must be allowlisted in development so it is bundled into the server output instead of being treated as an external dependency.
+
+## Configure production minification
+
+When minifying a NestJS server bundle, keep class names and function names. NestJS APIs such as execution context and metadata reflection can depend on stable class and handler function references.
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    minimizer: [
+      new rspack.SwcJsMinimizerRspackPlugin({
+        minimizerOptions: {
+          compress: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+          mangle: {
+            keep_classnames: true,
+            keep_fnames: true,
+          },
+        },
+      }),
+    ],
+  },
+};
+```
 
 ## Native node modules
 
-When building Node.js applications with Rspack, you may encounter dependencies that include Node.js native addon dependencies (`.node` modules). Because `.node` modules cannot be packaged into JavaScript artifacts, special handling is usually required. node-loader can be used to handle addon packaging very well.
+When building Node.js applications with Rspack, you may encounter dependencies that include Node.js native addon dependencies (`.node` modules). Because `.node` modules cannot be packaged into JavaScript artifacts, special handling is usually required. [node-loader](https://www.npmjs.com/package/node-loader) can be used to handle addon packaging.
 
 ```js title="rspack.config.mjs"
 export default {
