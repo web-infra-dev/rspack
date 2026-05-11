@@ -49,15 +49,14 @@ import { rspack } from '@rspack/core';
 import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
 import nodeExternals from 'webpack-node-externals';
 
-const isProduction = process.env.BUILD === 'true';
-
 export default defineConfig({
   context: import.meta.dirname,
   target: 'node',
   entry: {
-    main: isProduction
-      ? './src/main.ts'
-      : ['@rspack/core/hot/poll?100', './src/main.ts'],
+    main:
+      process.env.BUILD === 'true'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
   output: {
     clean: true,
@@ -186,16 +185,15 @@ export default {
 
 ## 配置开发 HMR
 
-对于 Node.js 应用，Rspack 在开发环境使用 polling HMR runtime。生产构建必须关闭 HMR polling entry，因此需要通过 `isProduction` 在生产入口和开发入口之间切换：
+对于 Node.js 应用，Rspack 在开发环境使用 polling HMR runtime。生产构建必须关闭 HMR polling entry，因此需要根据 `process.env.BUILD === 'true'` 切换入口：
 
 ```js title="rspack.config.mjs"
-const isProduction = process.env.BUILD === 'true';
-
 export default {
   entry: {
-    main: isProduction
-      ? './src/main.ts'
-      : ['@rspack/core/hot/poll?100', './src/main.ts'],
+    main:
+      process.env.BUILD === 'true'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
 };
 ```

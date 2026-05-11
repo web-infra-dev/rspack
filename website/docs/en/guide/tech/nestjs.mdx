@@ -49,15 +49,14 @@ import { rspack } from '@rspack/core';
 import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
 import nodeExternals from 'webpack-node-externals';
 
-const isProduction = process.env.BUILD === 'true';
-
 export default defineConfig({
   context: import.meta.dirname,
   target: 'node',
   entry: {
-    main: isProduction
-      ? './src/main.ts'
-      : ['@rspack/core/hot/poll?100', './src/main.ts'],
+    main:
+      process.env.BUILD === 'true'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
   output: {
     clean: true,
@@ -186,16 +185,15 @@ If your project also runs `tsc`, keep `experimentalDecorators` and `emitDecorato
 
 ## Configure development HMR
 
-For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so use `isProduction` to switch between the production entry and the development entry:
+For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so switch the entry based on `process.env.BUILD === 'true'`:
 
 ```js title="rspack.config.mjs"
-const isProduction = process.env.BUILD === 'true';
-
 export default {
   entry: {
-    main: isProduction
-      ? './src/main.ts'
-      : ['@rspack/core/hot/poll?100', './src/main.ts'],
+    main:
+      process.env.BUILD === 'true'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
   },
 };
 ```
