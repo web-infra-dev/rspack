@@ -182,7 +182,7 @@ export default {
 
 ## 配置开发 HMR
 
-生产构建不能包含 polling HMR runtime。只在开发入口中添加 `@rspack/core/hot/poll`，并根据 `process.env.NODE_ENV === 'production'` 切换入口：
+只在开发入口中添加 `@rspack/core/hot/poll`；如果生产 bundle 中包含它，Node.js 应用会在运行时崩溃，因为 build mode 下不会启用 HMR：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -194,8 +194,6 @@ export default {
   },
 };
 ```
-
-如果生产 bundle 中仍然包含 `@rspack/core/hot/poll`，Node.js 应用会在运行时崩溃，因为 build mode 下不会启用 HMR。
 
 由于服务端进程会从生成的 bundle 启动，因此需要启用 `devServer.devMiddleware.writeToDisk`：
 

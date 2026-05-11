@@ -182,7 +182,7 @@ If your project also runs `tsc`, keep `experimentalDecorators` and `emitDecorato
 
 ## Configure development HMR
 
-Production builds must not include the polling HMR runtime. Add `@rspack/core/hot/poll` only to the development entry, and switch the entry based on `process.env.NODE_ENV === 'production'`:
+Add `@rspack/core/hot/poll` only to the development entry, since including it in the production bundle will crash the Node.js application because HMR is not available in build mode:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -194,8 +194,6 @@ export default {
   },
 };
 ```
-
-If the production bundle still includes `@rspack/core/hot/poll`, the Node.js application will crash at runtime because HMR is not available in build mode.
 
 Because the server process is started from the generated bundle, `devServer.devMiddleware.writeToDisk` must be enabled:
 
