@@ -10,10 +10,7 @@ Rspack can build Node.js applications such as [NestJS](https://nestjs.com/). Com
 
 ## How to use
 
-Rspack provides two ways to build NestJS applications:
-
-- **Use the example**: Start from the [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) in `rstack-examples`, which contains a complete `rspack.config.mjs`, development script, production build script, and HMR entry.
-- **Manually configure Rspack**: Follow this document to add the required Rspack configuration to an existing NestJS project.
+You can follow this document to manually add the required Rspack configuration to an existing NestJS project. The [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) in `rstack-examples` is also available as a reference, and contains a complete `rspack.config.mjs`, development script, production build script, and HMR entry.
 
 ## Example
 
@@ -33,7 +30,7 @@ For a minimal NestJS application, install the NestJS runtime dependencies as usu
 
 NestJS applications run in Node.js, so the Rspack configuration should target the Node.js runtime and preserve the framework metadata that NestJS reads at runtime.
 
-- **Node.js target** (`target: 'node'`): Generates output suitable for Node.js instead of the browser.
+- **Node.js target** ([`target: 'node'`](/config/target)): Generates output suitable for Node.js instead of the browser.
 - **Decorator metadata**: NestJS relies on TypeScript decorators and emitted metadata for dependency injection, controllers, routes, guards, interceptors, and other framework features.
 - **External dependencies**: Server applications usually do not need to bundle every package in `node_modules`. Externalizing dependencies keeps the bundle smaller and allows Node.js to load packages normally at runtime.
 - **Development HMR**: In development, the Node.js process needs to restart or accept updates after Rspack rebuilds the server bundle.
@@ -185,7 +182,7 @@ If your project also runs `tsc`, keep `experimentalDecorators` and `emitDecorato
 
 ## Configure development HMR
 
-For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so switch the entry based on `process.env.BUILD === 'true'`:
+For Node.js applications, Rspack uses the polling HMR runtime in development. The HMR polling entry must be disabled for production builds, so switch the entry based on `process.env.BUILD === 'true'`. The example uses `BUILD=true` because this switch is tied to `rspack build` output, not to the broader `NODE_ENV` value:
 
 ```js title="rspack.config.mjs"
 export default {

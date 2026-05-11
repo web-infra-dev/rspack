@@ -10,10 +10,7 @@ Rspack 可以用于构建 [NestJS](https://nestjs.com/) 等 Node.js 应用。相
 
 ## 如何使用
 
-Rspack 提供两种方式来构建 NestJS 应用：
-
-- **使用示例**：从 `rstack-examples` 中的 [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) 开始，它包含完整的 `rspack.config.mjs`、开发脚本、生产构建脚本和 HMR 入口。
-- **手动配置 Rspack**：你可以参考当前文档，为已有 NestJS 项目添加所需的 Rspack 配置。
+你可以参考当前文档，为已有 NestJS 项目手动添加所需的 Rspack 配置。`rstack-examples` 中的 [NestJS example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/nestjs) 也可作为参考，它包含完整的 `rspack.config.mjs`、开发脚本、生产构建脚本和 HMR 入口。
 
 ## 示例
 
@@ -33,7 +30,7 @@ Rspack 提供两种方式来构建 NestJS 应用：
 
 NestJS 应用运行在 Node.js 中，因此 Rspack 配置需要面向 Node.js runtime，并保留 NestJS 在运行时读取的框架 metadata。
 
-- **Node.js target**（`target: 'node'`）：生成适用于 Node.js 而不是浏览器的产物。
+- **Node.js target**（[`target: 'node'`](/config/target)）：生成适用于 Node.js 而不是浏览器的产物。
 - **Decorator metadata**：NestJS 依赖 TypeScript decorators 和生成的 metadata 来实现依赖注入、控制器、路由、守卫、拦截器等框架能力。
 - **External dependencies**：服务端应用通常不需要把 `node_modules` 中的所有包都打进 bundle。External 依赖可以减小 bundle 体积，并让 Node.js 在运行时正常加载依赖。
 - **Development HMR**：开发环境下，Node.js 进程需要在 Rspack 重新构建服务端 bundle 后重启或接受更新。
@@ -185,7 +182,7 @@ export default {
 
 ## 配置开发 HMR
 
-对于 Node.js 应用，Rspack 在开发环境使用 polling HMR runtime。生产构建必须关闭 HMR polling entry，因此需要根据 `process.env.BUILD === 'true'` 切换入口：
+对于 Node.js 应用，Rspack 在开发环境使用 polling HMR runtime。生产构建必须关闭 HMR polling entry，因此需要根据 `process.env.BUILD === 'true'` 切换入口。示例使用 `BUILD=true`，是因为这个开关对应的是 `rspack build` 产物，而不是更宽泛的 `NODE_ENV` 值：
 
 ```js title="rspack.config.mjs"
 export default {
