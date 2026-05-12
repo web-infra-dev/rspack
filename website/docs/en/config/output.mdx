@@ -347,17 +347,17 @@ export default {
 
 The following substitutions are available in template strings
 
-| Template                 | Description                                                                                         |
-| ------------------------ | --------------------------------------------------------------------------------------------------- |
-| [absolute-resource-path] | The absolute filename                                                                               |
-| [relative-resource-path] | Resource path relative to the source map file’s directory (inline source maps are not supported)    |
-| [all-loaders]            | Automatic and explicit loaders and params up to the name of the first loader                        |
-| [hash]                   | The hash of the module identifier                                                                   |
-| [id]                     | The module identifier                                                                               |
-| [loaders]                | Explicit loaders and params up to the name of the first loader                                      |
-| [resource]               | The path used to resolve the file and any query params used on the first loader                     |
-| [resource-path]          | The path used to resolve the file without any query params                                          |
-| [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise |
+| Template                 | Description                                                                                                           |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| [absolute-resource-path] | The absolute filename                                                                                                 |
+| [relative-resource-path] | Resource path relative to the source map file’s directory, or to the emitted asset’s directory for inline source maps |
+| [all-loaders]            | Automatic and explicit loaders and params up to the name of the first loader                                          |
+| [hash]                   | The hash of the module identifier                                                                                     |
+| [id]                     | The module identifier                                                                                                 |
+| [loaders]                | Explicit loaders and params up to the name of the first loader                                                        |
+| [resource]               | The path used to resolve the file and any query params used on the first loader                                       |
+| [resource-path]          | The path used to resolve the file without any query params                                                            |
+| [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise                   |
 
 When using a function, the same options are available camel-cased via the `info` parameter:
 

@@ -18,7 +18,7 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
   },
   webServer: {
-    command: 'npx rsbuild dev',
+    command: 'npx rsbuild build && npx rsbuild preview --port 8900',
     port: 8900,
     reuseExistingServer: !process.env.CI,
     timeout: 60 * 1000,
