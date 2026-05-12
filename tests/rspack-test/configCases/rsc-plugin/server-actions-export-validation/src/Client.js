@@ -1,6 +1,6 @@
 "use client";
 
-import { invalidAction } from "./server-actions";
+import { invalidAction } from "./invalid-actions";
 
 export const Client = () => {
 	async function onClick() {

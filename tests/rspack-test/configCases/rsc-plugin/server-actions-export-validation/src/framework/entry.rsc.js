@@ -7,10 +7,6 @@ import { App } from "../App";
 const RSC_ACTION_ERROR =
 	'A "use server" file can only export async functions, found number.';
 
-export const renderRscStream = () => {
-	return renderToReadableStream(<App />);
-};
-
 const getActionIds = () => {
 	const manifest = __rspack_rsc_manifest__;
 	expect(manifest).toBeDefined();
@@ -19,10 +15,14 @@ const getActionIds = () => {
 	return Object.keys(manifest.serverManifest);
 };
 
+export const renderRscStream = () => {
+	return renderToReadableStream(<App />);
+};
+
 it("should reject non-function server action exports with rscA at runtime", () => {
 	const actionIds = getActionIds();
 
-	expect(actionIds).toHaveLength(2);
+	expect(actionIds).toHaveLength(1);
 	expect(() => {
 		for (const actionId of actionIds) {
 			loadServerAction(actionId);

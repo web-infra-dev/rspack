@@ -1541,10 +1541,15 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
           continue;
         }
 
+        let reference_id = self.generate_server_reference_id(export_name, None);
+        self.has_action = true;
+        self
+          .reference_ids_by_export_name
+          .insert(export_name.clone(), reference_id.clone());
         self.server_reference_exports.push(ServerReferenceExport {
           ident: Ident::from(id.clone()),
           export_name: export_name.clone(),
-          reference_id: self.generate_server_reference_id(export_name, None),
+          reference_id,
         });
       }
     }
