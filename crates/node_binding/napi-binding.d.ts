@@ -742,7 +742,6 @@ export interface JsBuildMeta {
   exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
   defaultObject?: undefined | 'false' | 'redirect' | 'redirect-warn'
   sideEffectFree?: boolean
-  exportsFinalName?: Array<[string, string]> | undefined
 }
 
 export interface JsBuildTimeExecutionOption {

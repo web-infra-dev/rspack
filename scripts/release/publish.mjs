@@ -10,7 +10,6 @@ const __dirname = path.dirname(__filename);
 
 export async function publish_handler(mode, options) {
   console.log('options:', options);
-  const npmrcPath = `${process.env.HOME}/.npmrc`;
   const root = process.cwd();
   const version = await getLastVersion(root);
   const name = await getPkgName(root);
@@ -24,17 +23,6 @@ export async function publish_handler(mode, options) {
     name.startsWith('@rspack/')
   ) {
     throw Error('Latest tag cannot be prerelease version');
-  }
-
-  if (fs.existsSync(npmrcPath)) {
-    console.info('Found existing .npmrc file');
-  } else {
-    console.info('No .npmrc file found, creating one');
-
-    fs.writeFileSync(
-      npmrcPath,
-      `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`,
-    );
   }
 
   await publish(options);

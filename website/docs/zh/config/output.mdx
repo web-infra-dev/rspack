@@ -343,17 +343,17 @@ export default {
 
 模板字符串支持以下模式：
 
-| 模板                     | 描述                                                                       |
-| ------------------------ | -------------------------------------------------------------------------- |
-| [absolute-resource-path] | 绝对路径文件名                                                             |
-| [relative-resource-path] | 模块资源相对于 source map 文件所在目录的相对路径（不支持内联 source map）  |
-| [all-loaders]            | 自动和显式的 loader，并且参数取决于第一个 loader 名称                      |
-| [hash]                   | 模块标识符的 hash                                                          |
-| [id]                     | 模块标识符                                                                 |
-| [loaders]                | 显式的 loader，并且参数取决于第一个 loader 名称                            |
-| [resource]               | 用于解析文件的路径和用于第一个 loader 的任意查询参数                       |
-| [resource-path]          | 不带任何查询参数，用于解析文件的路径                                       |
-| [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空 |
+| 模板                     | 描述                                                                                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------- |
+| [absolute-resource-path] | 绝对路径文件名                                                                                  |
+| [relative-resource-path] | 模块资源相对于 source map 文件所在目录的相对路径；对于内联 source map，则相对于产物文件所在目录 |
+| [all-loaders]            | 自动和显式的 loader，并且参数取决于第一个 loader 名称                                           |
+| [hash]                   | 模块标识符的 hash                                                                               |
+| [id]                     | 模块标识符                                                                                      |
+| [loaders]                | 显式的 loader，并且参数取决于第一个 loader 名称                                                 |
+| [resource]               | 用于解析文件的路径和用于第一个 loader 的任意查询参数                                            |
+| [resource-path]          | 不带任何查询参数，用于解析文件的路径                                                            |
+| [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空                      |
 
 当使用一个函数，同样的选项要通过 `info` 参数并使用驼峰式：
 

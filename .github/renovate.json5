@@ -1,7 +1,11 @@
 {
   $schema: 'https://docs.renovatebot.com/renovate-schema.json',
   timezone: 'Asia/Shanghai',
-  extends: [':dependencyDashboard', 'helpers:pinGitHubActionDigests'],
+  extends: [
+    ':dependencyDashboard',
+    'helpers:pinGitHubActionDigests',
+    'github>rstackjs/renovate:security',
+  ],
   schedule: ['before 8am on saturday'],
   enabledManagers: ['github-actions', 'cargo', 'npm'],
   ignorePaths: [

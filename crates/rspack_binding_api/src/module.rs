@@ -797,8 +797,6 @@ pub struct JsBuildMeta {
   #[napi(ts_type = "undefined | 'false' | 'redirect' | 'redirect-warn'")]
   pub default_object: Option<String>,
   pub side_effect_free: Option<bool>,
-  #[napi(ts_type = "Array<[string, string]> | undefined")]
-  pub exports_final_name: Option<Vec<Vec<String>>>,
 }
 
 impl From<JsBuildMeta> for BuildMeta {
@@ -808,7 +806,6 @@ impl From<JsBuildMeta> for BuildMeta {
       has_top_level_await,
       esm,
       default_object: raw_default_object,
-      exports_final_name: raw_exports_final_name,
       side_effect_free,
       exports_type: raw_exports_type,
     } = value;
@@ -837,23 +834,6 @@ impl From<JsBuildMeta> for BuildMeta {
       BuildMetaExportsType::Unset
     };
 
-    let exports_final_name = raw_exports_final_name.map(|exports_name| {
-      exports_name
-        .into_iter()
-        .map(|export_name| {
-          let first = export_name
-            .first()
-            .expect("The buildMeta exportsFinalName item should have first value")
-            .clone();
-          let second = export_name
-            .get(1)
-            .expect("The buildMeta exportsFinalName item should have second value")
-            .clone();
-          (first, second)
-        })
-        .collect::<Vec<_>>()
-    });
-
     Self {
       strict_esm_module: strict_esm_module.unwrap_or_default(),
       has_top_level_await: has_top_level_await.unwrap_or_default(),
@@ -861,7 +841,6 @@ impl From<JsBuildMeta> for BuildMeta {
       exports_type,
       default_object,
       side_effect_free,
-      exports_final_name,
     }
   }
 }
