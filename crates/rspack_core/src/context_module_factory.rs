@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use async_recursion::async_recursion;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -16,7 +17,7 @@ use crate::{
   DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver, resolve, walk_dir,
+  SharedPluginDriver, resolve,
 };
 
 #[derive(Debug)]
@@ -410,6 +411,7 @@ impl ContextModuleFactory {
   }
 }
 
+#[async_recursion]
 async fn visit_dirs(
   ctx: &str,
   dir: &Utf8Path,
@@ -418,32 +420,42 @@ async fn visit_dirs(
   resolve_options: &ResolveInnerOptions<'_>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
+  if !fs.metadata(dir).await.is_ok_and(|m| m.is_directory) {
+    return Ok(());
+  }
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
+  for filename in fs.read_dir(dir).await? {
+    let path = dir.join(&filename);
+    let path_str = path.as_str();
 
-  walk_dir(
-    dir,
-    fs,
-    options.context_options.recursive,
-    true, // always skip dotfiles
-    &mut |path| {
-      exclude
-        .as_ref()
-        .is_none_or(|exclude| !exclude.test(path.as_str()))
-    },
-    &mut |path, _filename| {
-      let path_str = path.as_str();
+    if let Some(exclude) = exclude
+      && exclude.test(path_str)
+    {
+      // ignore excluded files
+      continue;
+    }
 
-      if let Some(exclude) = exclude
-        && exclude.test(path_str)
-      {
-        return;
+    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
+      if options.context_options.recursive {
+        visit_dirs(
+          ctx,
+          &path,
+          dependencies,
+          options,
+          resolve_options,
+          fs.clone(),
+        )
+        .await?;
       }
-
+    } else if filename.starts_with('.') {
+      // ignore hidden files
+    } else {
       if let Some(include) = include
         && !include.test(path_str)
       {
-        return;
+        // ignore not included files
+        continue;
       }
 
       // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
@@ -463,7 +475,7 @@ async fn visit_dirs(
       );
 
       let Some(reg_exp) = &options.context_options.reg_exp else {
-        return;
+        return Ok(());
       };
 
       requests.iter().for_each(|r| {
@@ -497,10 +509,10 @@ async fn visit_dirs(
           dependency_type: DependencyType::ContextElement(options.type_prefix),
           factorize_info: Default::default(),
         });
-      });
-    },
-  )
-  .await
+      })
+    }
+  }
+  Ok(())
 }
 
 #[derive(Debug, Clone)]
