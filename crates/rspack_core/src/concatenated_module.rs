@@ -56,7 +56,7 @@ use crate::{
   filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
-  reserved_names::RESERVED_NAMES,
+  reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
@@ -997,7 +997,7 @@ impl Module for ConcatenatedModule {
     // Generate source code and analyze scopes
     // Prepare a ReplaceSource for the final source
     //
-    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES.iter().map(|s| Atom::new(*s)).collect();
+    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
 
     let arc_map = Arc::new(module_to_info_map);
 

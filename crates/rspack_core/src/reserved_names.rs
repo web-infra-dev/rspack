@@ -1,3 +1,8 @@
+use std::sync::LazyLock;
+
+use rustc_hash::FxHashSet;
+use swc_core::atoms::Atom;
+
 pub const RESERVED_NAMES: [&str; 188] = [
   "__rspack_default_export",
   "__rspack_ns_object",
@@ -188,3 +193,21 @@ pub const RESERVED_NAMES: [&str; 188] = [
   "onmousedown",
   "onsubmit",
 ];
+
+pub static RESERVED_NAMES_ATOM_SET: LazyLock<FxHashSet<Atom>> =
+  LazyLock::new(|| RESERVED_NAMES.iter().map(|name| Atom::new(*name)).collect());
+
+#[cfg(test)]
+mod tests {
+  use swc_core::atoms::Atom;
+
+  use super::{RESERVED_NAMES, RESERVED_NAMES_ATOM_SET};
+
+  #[test]
+  fn reserved_names_atom_set_matches_reserved_names() {
+    assert_eq!(RESERVED_NAMES_ATOM_SET.len(), RESERVED_NAMES.len());
+    for name in RESERVED_NAMES {
+      assert!(RESERVED_NAMES_ATOM_SET.contains(&Atom::new(name)));
+    }
+  }
+}
