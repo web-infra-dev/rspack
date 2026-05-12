@@ -638,6 +638,13 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (entry_name, entry_state) in &plugin_state.entries {
     let client_modules = &entry_state.injected_client_entries;
+    if entry_state.injected_client_entries.is_empty()
+      && !entry_state.has_css_imports_by_server_entry()
+      && entry_state.root_css_imports.is_empty()
+    {
+      continue;
+    }
+
     if compilation.entries.get(entry_name.as_ref()).is_none() {
       compilation.push_diagnostic(Diagnostic::error(
         "RSC Client Entry Mismatch".to_string(),
@@ -688,12 +695,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .add_dependency(dependency);
     }
 
-    #[allow(clippy::unwrap_used)]
-    let entry_data = compilation.entries.get_mut(entry_name.as_ref()).unwrap();
-    entry_data.dependencies.append(&mut entry_dependencies);
-    entry_data
-      .include_dependencies
-      .append(&mut include_dependencies);
+    if let Some(entry_data) = compilation.entries.get_mut(entry_name.as_ref()) {
+      entry_data.dependencies.append(&mut entry_dependencies);
+      entry_data
+        .include_dependencies
+        .append(&mut include_dependencies);
+    }
   }
 
   Ok(())
