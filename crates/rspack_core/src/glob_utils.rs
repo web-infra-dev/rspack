@@ -91,7 +91,42 @@ fn extract_glob_base_dir(pattern: &str) -> &str {
 
 /// Normalize backslashes to forward slashes in a path string.
 fn normalize_path_separators(s: &str) -> String {
-  s.cow_replace('\\', "/").into_owned()
+  let mut result = String::with_capacity(s.len());
+  let mut chars = s.chars().peekable();
+  while let Some(c) = chars.next() {
+    if c == '\\' {
+      if chars
+        .peek()
+        .is_some_and(|next| matches!(next, '[' | ']' | '{' | '}'))
+      {
+        result.push(c);
+      } else {
+        result.push('/');
+      }
+    } else {
+      result.push(c);
+    }
+  }
+  result
+}
+
+fn unescape_glob_path(s: &str) -> String {
+  let mut result = String::with_capacity(s.len());
+  let mut chars = s.chars().peekable();
+  while let Some(c) = chars.next() {
+    if c == '\\'
+      && chars
+        .peek()
+        .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
+    {
+      if let Some(next) = chars.next() {
+        result.push(next);
+      }
+    } else {
+      result.push(c);
+    }
+  }
+  result
 }
 
 /// Walk a directory tree recursively, calling `on_file` for each file found.
@@ -144,7 +179,8 @@ pub async fn find_files_by_glob(
 ) -> Result<Vec<Utf8PathBuf>> {
   let normalized_pattern = normalize_path_separators(pattern);
   let base_dir = extract_glob_base_dir(&normalized_pattern);
-  let base_dir_path = Utf8Path::new(base_dir);
+  let unescaped_base_dir = unescape_glob_path(base_dir);
+  let base_dir_path = Utf8Path::new(&unescaped_base_dir);
 
   let mut results = Vec::new();
   walk_dir(
@@ -235,6 +271,26 @@ mod tests {
     assert_eq!(
       extract_glob_base_dir("./fixtures/a\\[b\\]/**/*.js"),
       "./fixtures/a\\[b\\]/"
+    );
+  }
+
+  #[test]
+  fn normalize_path_separators_preserves_glob_escapes() {
+    assert_eq!(
+      normalize_path_separators("./fixtures/a\\[b\\]/**/*.js"),
+      "./fixtures/a\\[b\\]/**/*.js"
+    );
+    assert_eq!(
+      normalize_path_separators("C:\\fixtures\\a\\[b\\]\\*.js"),
+      "C:/fixtures/a\\[b\\]/*.js"
+    );
+  }
+
+  #[test]
+  fn unescape_glob_path_restores_literal_path_segments() {
+    assert_eq!(
+      unescape_glob_path("./fixtures/a\\[b\\]/"),
+      "./fixtures/a[b]/"
     );
   }
 
