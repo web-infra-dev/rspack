@@ -581,9 +581,9 @@ impl RscServerPlugin {
       }
       entry_state.root_css_imports.extend(root_css_imports);
       entry_state.injected_client_entries = client_entries.clone();
-      entry_state.isolated_client_entries = isolated_client_entries.clone();
-      entry_state.root_client_entries = root_client_entries.clone();
-      entry_state.client_entries_by_server_entry = client_entries_by_server_entry.clone();
+      entry_state.isolated_client_entries = isolated_client_entries;
+      entry_state.root_client_entries = root_client_entries;
+      entry_state.client_entries_by_server_entry = client_entries_by_server_entry;
     }
 
     // Add for the client compilation
