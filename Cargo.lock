@@ -3693,7 +3693,6 @@ dependencies = [
  "cow-utils",
  "derive_more",
  "futures",
- "glob",
  "heck",
  "napi",
  "napi-derive",
@@ -3914,6 +3913,7 @@ dependencies = [
  "derive_more",
  "dyn-clone",
  "either",
+ "fast-glob",
  "futures",
  "hashlink",
  "heck",
@@ -4341,8 +4341,8 @@ name = "rspack_plugin_copy"
 version = "0.100.3"
 dependencies = [
  "derive_more",
+ "fast-glob",
  "futures",
- "glob",
  "pathdiff",
  "regex",
  "rspack_core",
@@ -5241,7 +5241,6 @@ dependencies = [
 name = "rspack_swc_plugin_ts_collector"
 version = "0.100.3"
 dependencies = [
- "glob",
  "insta",
  "rspack_javascript_compiler",
  "rustc-hash",
