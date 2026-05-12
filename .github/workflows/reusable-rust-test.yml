@@ -64,16 +64,10 @@ jobs:
         run: cargo workspaces exec cargo check --all-targets --locked
 
       - name: Run Clippy
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
-        with:
-          command: clippy
-          args: --workspace --all-targets --tests -- -D warnings
+        run: cargo clippy --workspace --all-targets --tests -- -D warnings
 
       - name: Run rustfmt
-        uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505 # v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Install taplo
         run: cargo install taplo-cli --locked
