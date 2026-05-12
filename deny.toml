@@ -248,7 +248,6 @@ skip = [
     { crate = "supports-color", reason = "external dependency"},
     { crate = "zerocopy", reason = "external dependency"},
     { crate = "linux-raw-sys", reason = "external dependency"},
-    { crate = "rustix", reason = "external dependency"},
     { crate = "ctor", reason = "external dependency"},
     { crate = "windows-link", reason = "external dependency"},
 ]
