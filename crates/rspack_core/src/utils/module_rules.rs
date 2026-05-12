@@ -188,8 +188,18 @@ fn module_rule_matcher_sync<'a>(
     .unwrap_or_else(|| Utf8Path::new(""))
     .as_str();
 
-  if let Some(test_rule) = &module_rule.test {
-    ensure_sync_matched!(test_rule.try_match_sync(resource_path.into()));
+  let test_unmatched = if let Some(test_rule) = &module_rule.test {
+    match test_rule.try_match_sync(resource_path.into()) {
+      Some(Ok(true)) => false,
+      Some(Ok(false)) => true,
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  } else {
+    false
+  };
+  if test_unmatched {
+    return Some(Ok(false));
   } else if let Some(resource_rule) = &module_rule.resource {
     ensure_sync_matched!(resource_rule.try_match_sync(resource_path.into()));
   }

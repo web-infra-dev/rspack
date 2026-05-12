@@ -8,10 +8,9 @@
 use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
-use base64::prelude::*;
 use indoc::formatdoc;
 use rspack_error::Result;
-use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
+use rspack_util::{base64, source_map::SourceMapKind, swc::minify_file_comments};
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
@@ -418,8 +417,7 @@ impl<'a> JavaScriptTransformer<'a> {
 
             let content = url.path()[idx + "base64,".len()..].trim();
 
-            let res = BASE64_STANDARD
-              .decode(content.as_bytes())
+            let res = base64::decode_to_vec(content.as_bytes())
               .context("failed to decode base64-encoded source map")?;
 
             Ok(Some(sourcemap::SourceMap::from_slice(&res).context(

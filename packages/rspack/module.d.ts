@@ -235,6 +235,12 @@ interface ImportMeta {
       mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once';
     },
   ) => Rspack.Context;
+  /**
+   * Available in server components when using the RSC plugins.
+   */
+  rspackRsc?: {
+    loadCss(): any;
+  };
 }
 
 declare const __resourceQuery: string;

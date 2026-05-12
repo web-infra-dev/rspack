@@ -3,6 +3,7 @@ use std::{
   hash::{Hash, Hasher},
 };
 
+use base64_simd::{STANDARD, URL_SAFE_NO_PAD};
 use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use smol_str::SmolStr;
@@ -103,8 +104,8 @@ impl RspackHash {
 
   pub fn with_salt(function: &HashFunction, salt: &HashSalt) -> Self {
     let mut this = Self::new(function);
-    if !matches!(salt, HashSalt::None) {
-      salt.hash(&mut this);
+    if let HashSalt::Salt(salt) = salt {
+      this.write(salt.as_bytes());
     }
     this
   }
@@ -201,8 +202,8 @@ impl RspackHashDigest {
         let s = hex(inner, &mut buf);
         s.into()
       }
-      HashDigest::Base64 => encode_base_n(inner, BASE64_CHARSET).into(),
-      HashDigest::Base64Url => encode_base_n(inner, BASE64URL_CHARSET).into(),
+      HashDigest::Base64 => STANDARD.encode_to_string(inner).into(),
+      HashDigest::Base64Url => URL_SAFE_NO_PAD.encode_to_string(inner).into(),
       HashDigest::Base62 => encode_base_n(inner, BASE62_CHARSET).into(),
       HashDigest::Base58 => encode_base_n(inner, BASE58_CHARSET).into(),
       HashDigest::Base52 => encode_base_n(inner, BASE52_CHARSET).into(),
@@ -267,9 +268,6 @@ const BASE49_CHARSET: &[u8] = b"abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXY
 const BASE52_CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const BASE58_CHARSET: &[u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const BASE62_CHARSET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-const BASE64_CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const BASE64URL_CHARSET: &[u8] =
-  b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 /// Encodes raw hash bytes into a base-N string using the given charset.
 /// Matches webpack's `encode` in `hash-digest.js`: interprets the buffer as a

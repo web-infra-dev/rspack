@@ -213,7 +213,28 @@ fn collect_server_entry_css_files(
     }
 
     if let Some(server_entry_state) = entry_state.server_entries.get_mut(server_entry) {
-      server_entry_state.css_files.extend(css_files);
+      let import_meta_rsc_importers = server_entry_state
+        .import_meta_rsc_importers
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+      server_entry_state
+        .css_files
+        .extend(css_files.iter().cloned());
+
+      // `import.meta.rspackRsc.loadCss()` is keyed only by importer resource in
+      // the runtime manifest, so a shared importer cannot distinguish which
+      // `use server-entry` parent called it. Merge every reachable parent entry's
+      // CSS into the importer bucket; this may over-include styles when the
+      // importer is shared across entry scopes, but it keeps `loadCss()` complete.
+      for importer in import_meta_rsc_importers {
+        entry_state
+          .server_entries
+          .entry(importer)
+          .or_default()
+          .css_files
+          .extend(css_files.iter().cloned());
+      }
     }
   }
 }

@@ -31,6 +31,8 @@ pub struct ClientModuleImport {
 pub struct ServerEntryState {
   /// CSS import paths referenced by this server entry.
   pub css_imports: FxIndexSet<String>,
+  /// `import.meta.rspackRsc` importer resources that inherit this entry's CSS files.
+  pub import_meta_rsc_importers: FxIndexSet<String>,
   /// CSS chunk file paths emitted for this server entry.
   pub css_files: FxIndexSet<String>,
 }

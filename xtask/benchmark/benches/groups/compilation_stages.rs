@@ -36,7 +36,9 @@ use rspack_plugin_split_chunks::{
 use rustc_hash::FxHashMap;
 use tokio::runtime::Runtime;
 
-use crate::groups::build_chunk_graph::prepare_large_code_splitting_case;
+use crate::groups::{
+  build_chunk_graph::prepare_large_code_splitting_case, diagnostics::assert_no_compilation_errors,
+};
 
 const GENERAL_STAGE_NUM_MODULES: usize = 3000;
 const CONCAT_GROUPS: usize = 160;
@@ -1841,13 +1843,6 @@ fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
         .count()
     })
     .sum()
-}
-
-fn assert_no_compilation_errors(compilation: &Compilation, context: &str) {
-  assert!(
-    compilation.get_errors().next().is_none(),
-    "{context} should not produce compilation errors"
-  );
 }
 
 fn create_split_chunks_plugin() -> SplitChunksPlugin {

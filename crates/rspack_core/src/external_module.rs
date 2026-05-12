@@ -364,10 +364,26 @@ fn resolve_external_type<'a>(
       }
     }
     "module-import" => {
+      if matches!(
+        dependency_meta.external_type.as_ref(),
+        Some(ExternalTypeEnum::Import)
+      ) {
+        "import"
+      } else {
+        "module"
+      }
+    }
+    "modern-module" => {
       if let Some(external_type) = dependency_meta.external_type.as_ref() {
         match external_type {
           ExternalTypeEnum::Import => "import",
           ExternalTypeEnum::Module => "module",
+          // `modern-module` currently collapses require-style CommonJS
+          // externals to node-commonjs in ESM output. This preserves a
+          // distinct identity from plain commonjs externals, but it also means
+          // we don't yet support selecting other CJS render variants such as
+          // preserving a bare require(...).
+          ExternalTypeEnum::CommonJs => "node-commonjs",
         }
       } else {
         "module"
@@ -401,6 +417,7 @@ pub struct ExternalModule {
 pub enum ExternalTypeEnum {
   Import,
   Module,
+  CommonJs,
 }
 
 pub type MetaExternalType = Option<ExternalTypeEnum>;
@@ -470,6 +487,10 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn resolve_external_type(&self) -> &str {
+    resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
+  }
+
   pub fn set_external_type(&mut self, new_type: ExternalType) {
     self.external_type = new_type;
   }
@@ -486,10 +507,6 @@ impl ExternalModule {
       ExternalRequest::Single(request) => (Some(request), &self.external_type),
       ExternalRequest::Map(map) => (map.get(&self.external_type), &self.external_type),
     }
-  }
-
-  fn resolve_external_type(&self) -> &str {
-    resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
   }
 
   fn get_source(
@@ -1015,7 +1032,13 @@ impl Module for ExternalModule {
   }
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    match self.external_type.as_str() {
+    let external_type = if self.external_type == "modern-module" {
+      self.resolve_external_type()
+    } else {
+      self.external_type.as_str()
+    };
+
+    match external_type {
       "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
       _ => Some(
         compilation

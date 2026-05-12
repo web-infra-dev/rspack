@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyRange, ImportMeta, RuntimeGlobals, RuntimeRequirementsDependency,
-  property_access,
+  DependencyCategory, DependencyRange, ImportMeta, RscMeta, RscModuleType, RuntimeGlobals,
+  RuntimeRequirementsDependency, property_access,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
@@ -15,8 +15,8 @@ use url::Url;
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::{
-    ImportMetaResolveContextDependency, ImportMetaResolveDependency,
-    ImportMetaResolveHeaderDependency,
+    IMPORT_META_RSC_BINDING, ImportMetaResolveContextDependency, ImportMetaResolveDependency,
+    ImportMetaResolveHeaderDependency, ImportMetaRscDependency,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
@@ -152,6 +152,64 @@ impl ImportMetaPlugin {
     let dep = create_import_meta_resolve_context_dependency(parser, param, param.range().into());
     parser.add_dependency(Box::new(dep));
   }
+
+  fn process_rspack_rsc(
+    &self,
+    parser: &mut JavascriptParser,
+    member_expr: &swc_core::ecma::ast::MemberExpr,
+  ) {
+    let importer = get_rspack_rsc_importer(parser);
+    mark_import_meta_rsc_used(parser);
+
+    let range = member_expr.span().into();
+    let loc = parser.to_dependency_location(range);
+    parser.add_dependency(Box::new(ImportMetaRscDependency::new(importer, range, loc)));
+  }
+
+  fn process_rspack_rsc_destructuring(&self, parser: &mut JavascriptParser, span: Span) -> String {
+    let importer = get_rspack_rsc_importer(parser);
+    mark_import_meta_rsc_used(parser);
+
+    let loc = parser.to_dependency_location(span.into());
+    parser.add_dependency(Box::new(ImportMetaRscDependency::new_without_replacement(
+      importer, loc,
+    )));
+
+    IMPORT_META_RSC_BINDING.to_string()
+  }
+}
+
+fn get_rspack_rsc_importer(parser: &JavascriptParser) -> String {
+  // Keep this aligned with RSC get_module_resource: path + query, no fragment.
+  format!(
+    "{}{}",
+    parser.resource_data.path().map_or("", |path| path.as_str()),
+    parser.resource_data.query().unwrap_or("")
+  )
+}
+
+fn is_rsc_layer(parser: &JavascriptParser) -> bool {
+  parser
+    .get_module_layer()
+    .is_some_and(|layer| layer == "react-server-components")
+}
+
+fn mark_import_meta_rsc_used(parser: &mut JavascriptParser) {
+  match parser.build_info.rsc.as_mut() {
+    Some(rsc) => {
+      rsc.import_meta_rsc = true;
+    }
+    None => {
+      parser.build_info.rsc = Some(RscMeta {
+        module_type: RscModuleType::Server,
+        server_refs: Default::default(),
+        client_refs: Default::default(),
+        import_meta_rsc: true,
+        is_cjs: false,
+        action_ids: Default::default(),
+      });
+    }
+  }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -175,6 +233,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       evaluated = Some("number".to_string())
     } else if for_name == expr_name::IMPORT_META_MAIN {
       evaluated = Some("boolean".to_string())
+    } else if for_name == expr_name::IMPORT_META_RSPACK_RSC && is_rsc_layer(parser) {
+      evaluated = Some("object".to_string())
     } else if let Some(member_expr) = expr.arg.as_member()
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
       && meta_expr
@@ -223,7 +283,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn evaluate<'a>(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     expr: &'a Expr,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     if let Some(member) = expr.as_member()
@@ -234,7 +294,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         // - Skip `dirname` and `filename` - they are handled by NodeStuffPlugin
         //   and may have runtime values when node.__dirname/node.__filename is false
         // - Skip `main` - it will generate dynamic code: `moduleCache[entryModuleId] === module`
-        if ident.sym == "dirname" || ident.sym == "filename" || ident.sym == "main" {
+        if ident.sym == "dirname"
+          || ident.sym == "filename"
+          || ident.sym == "main"
+          || (ident.sym == "rspackRsc" && is_rsc_layer(parser))
+        {
           return None;
         }
         return Some(eval::evaluate_to_undefined(
@@ -247,7 +311,10 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       {
         // Check for computed properties like import.meta["dirname"]
         if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
-          && (str_lit.value == "dirname" || str_lit.value == "filename" || str_lit.value == "main")
+          && (str_lit.value == "dirname"
+            || str_lit.value == "filename"
+            || str_lit.value == "main"
+            || (str_lit.value == "rspackRsc" && is_rsc_layer(parser)))
         {
           return None;
         }
@@ -349,6 +416,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
             content.push(format!(r#"webpack: {}"#, self.import_meta_version()));
           } else if prop.id == "main" {
             content.push(format!("main: {}", self.import_meta_main(parser)));
+          } else if prop.id == "rspackRsc" && is_rsc_layer(parser) {
+            content.push(format!(
+              "rspackRsc: {}",
+              self.process_rspack_rsc_destructuring(parser, span)
+            ));
           } else {
             content.push(format!(
               r#"[{}]: {}"#,
@@ -417,6 +489,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         member_expr.span().into(),
         content.into(),
       )));
+      Some(true)
+    } else if for_name == expr_name::IMPORT_META_RSPACK_RSC && is_rsc_layer(parser) {
+      self.process_rspack_rsc(parser, member_expr);
       Some(true)
     } else {
       None

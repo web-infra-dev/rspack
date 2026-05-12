@@ -7,8 +7,11 @@ import * as reexportedBarrelSideEffects from "./re-export.barrel-side-effects.js
 import * as reexportedDestructingBarrelSideEffects from "./re-export.destructing-barrel-side-effects.js";
 import * as constantsCjs from "./constants.cjs";
 import * as constantsNoInline from "./constants.no-inline.js";
+import { REMOVE_b as BRANCH_TRUE, REMOVE_FALSE as BRANCH_FALSE } from "./constants.js";
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
+const fs = __non_webpack_require__("fs");
+const path = __non_webpack_require__("path");
+const generated = /** @type {string} */ (fs.readFileSync(__filename, "utf-8"));
 
 it("should inline constants", () => {
   // START:A
@@ -179,4 +182,33 @@ it("should keep the module if part of the exports is inlined and side effects fr
 
 it("should not inline no-inlinable constants", () => {
   expect(constantsNoInline.INLINE_1).toEqual({});
+})
+
+it("should drop inactive branch dependencies guarded by inlined imported booleans", () => {
+  const values = [];
+  if (BRANCH_TRUE) {
+    values.push("true-branch");
+  } else {
+    require("./branch-unused.js");
+  }
+  if (BRANCH_FALSE) {
+    require("./branch-unused.js");
+  } else {
+    values.push("false-branch-alt");
+  }
+  if (BRANCH_FALSE) {
+    import("./branch-unused.js");
+  } else {
+    values.push("dynamic-branch-alt");
+  }
+
+  expect(values).toEqual(["true-branch", "false-branch-alt", "dynamic-branch-alt"]);
+  const unusedMarker = "__inlineConst" + "BranchUnused";
+  const emittedSource = fs
+    .readdirSync(path.dirname(__filename))
+    .filter(file => file.endsWith(".js"))
+    .map(file => fs.readFileSync(path.join(path.dirname(__filename), file), "utf-8"))
+    .join("\n");
+  expect(globalThis[unusedMarker]).toBe(undefined);
+  expect(emittedSource.includes(unusedMarker)).toBe(false);
 })

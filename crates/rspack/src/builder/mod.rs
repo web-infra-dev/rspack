@@ -1070,7 +1070,16 @@ impl CompilerOptionsBuilder {
 
     w!(self.externals_type, {
       if let Some(library) = &output.library {
-        library.library_type.clone()
+        // Keep modern-module libraries on the existing output.module default
+        // for compatibility. `externalsType: "modern-module"` must be enabled
+        // explicitly for now, and will become the default in the next major.
+        if library.library_type != "modern-module" {
+          library.library_type.clone()
+        } else if output.module {
+          "module-import".to_string()
+        } else {
+          "var".to_string()
+        }
       } else if output.module {
         "module-import".to_string()
       } else {
@@ -1081,10 +1090,11 @@ impl CompilerOptionsBuilder {
     // apply externals plugin
     if let Some(externals) = &mut self.externals {
       let externals = std::mem::take(externals);
+      let externals_type = expect!(self.externals_type.clone());
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
-          expect!(self.externals_type.clone()),
+          externals_type,
           externals,
           false,
         )));
