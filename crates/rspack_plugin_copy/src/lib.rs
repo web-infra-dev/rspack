@@ -8,19 +8,18 @@ use std::{
 };
 
 use derive_more::Debug;
-use fast_glob::glob_match;
 use futures::future::{BoxFuture, join_all};
+use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
-  escape_glob_pattern, find_files_by_glob,
+  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
   rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -107,7 +106,7 @@ pub struct CopyPattern {
 pub struct CopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
-  pub ignore: Option<Vec<String>>,
+  pub ignore: Option<Vec<GlobPattern>>,
 }
 
 #[derive(Debug, Clone)]
@@ -165,9 +164,7 @@ impl CopyRspackPlugin {
       return Ok(None);
     }
     if let Some(ignore) = &pattern.glob_options.ignore
-      && ignore
-        .iter()
-        .any(|ignore| glob_match(ignore.as_bytes(), entry.as_str().as_bytes()))
+      && ignore.iter().any(|ignore| ignore.matches(entry.as_str()))
     {
       return Ok(None);
     }
@@ -418,7 +415,7 @@ impl CopyRspackPlugin {
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let mut escaped = Utf8PathBuf::from(escape_glob_pattern(abs_from.as_str()));
+        let mut escaped = Utf8PathBuf::from(GlobPattern::escape(abs_from.as_str()));
         escaped.push("**/*");
 
         escaped.as_str().to_string()
@@ -438,7 +435,7 @@ impl CopyRspackPlugin {
           dot_enable = Some(true);
         }
 
-        escape_glob_pattern(abs_from.as_str())
+        GlobPattern::escape(abs_from.as_str())
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
@@ -459,30 +456,29 @@ impl CopyRspackPlugin {
 
     logger.log(format!("begin globbing '{glob_query}'..."));
 
-    let glob_match_options = GlobMatchOptions {
-      case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
-      require_literal_leading_dot: !dot_enable.unwrap_or(false),
-    };
-
-    let glob_entries = find_files_by_glob(
+    let glob_entries = glob::glob_with(
       &glob_query,
-      &glob_match_options,
-      compilation.input_filesystem.clone(),
-    )
-    .await;
+      MatchOptions {
+        case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
+        require_literal_separator: Default::default(),
+        require_literal_leading_dot: !dot_enable.unwrap_or(false),
+      },
+    );
 
     match glob_entries {
       Ok(entries) => {
         let entries: Vec<_> = entries
-          .into_iter()
-          .filter(|entry| {
-            if let Some(filters) = &pattern.glob_options.ignore {
+          .filter_map(|entry| {
+            let entry = entry.ok()?.assert_utf8();
+
+            let filters = pattern.glob_options.ignore.as_ref();
+
+            if let Some(filters) = filters {
               // If filters length is 0, exist is true by default
-              filters
-                .iter()
-                .all(|filter| !glob_match(filter.as_bytes(), entry.as_str().as_bytes()))
+              let exist = filters.iter().all(|filter| !filter.matches(entry.as_str()));
+              exist.then_some(entry)
             } else {
-              true
+              Some(entry)
             }
           })
           .collect();
@@ -575,7 +571,7 @@ impl CopyRspackPlugin {
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
-          .push(Diagnostic::error("Glob Error".into(), e.to_string()));
+          .push(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
 
         Ok(None)
       }

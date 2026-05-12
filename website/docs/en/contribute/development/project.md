@@ -214,9 +214,17 @@ End-to-end tests for Rspack, covering real-world scenarios and integration testi
 - **`fixtures/`**: Shared fixtures and utilities for E2E tests
 - **`utils/`**: Utility functions for E2E test execution
 
-### Benchmarks (`bench/`)
+### JavaScript benchmarks (`bench/`)
 
 Performance benchmarks for tracking Rspack JavaScript API performance and preventing performance degradation:
 
 - **`fixtures/`**: Benchmark test fixtures (e.g., `ts-react` project for benchmarking)
 - Benchmark files for measuring build performance and API execution time
+
+### Rust benchmarks (`xtask/benchmark/`)
+
+CodSpeed benchmarks for tracking Rust compilation pipeline performance:
+
+- **`cases/`**: End-to-end benchmark cases for module graph, chunk graph, bundling, scanning dependencies, and persistent cache
+- **`stages/`**: Focused benchmark cases for individual compilation stages
+- See **`xtask/benchmark/README.md`** for local CodSpeed CPU simulation commands and Valgrind temporary file locations

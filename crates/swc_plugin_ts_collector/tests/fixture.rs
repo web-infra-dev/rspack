@@ -5,6 +5,7 @@ use std::{
   sync::Arc,
 };
 
+use glob::glob;
 use rspack_javascript_compiler::{JavaScriptCompiler, transform::SwcOptions};
 use rspack_swc_plugin_ts_collector::{ExportedEnumCollector, TypeExportsCollector};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -16,21 +17,6 @@ use swc_core::{
     visit::VisitWith,
   },
 };
-
-fn find_ts_files(dir: &Path) -> Vec<PathBuf> {
-  let mut results = Vec::new();
-  if let Ok(entries) = std::fs::read_dir(dir) {
-    for entry in entries.flatten() {
-      let path = entry.path();
-      if path.is_dir() {
-        results.extend(find_ts_files(&path));
-      } else if path.extension().is_some_and(|e| e == "ts") {
-        results.push(path);
-      }
-    }
-  }
-  results
-}
 
 fn snapshot_name(root: &Path, input: &Path) -> String {
   #[allow(clippy::disallowed_methods)]
@@ -45,7 +31,10 @@ fn snapshot_name(root: &Path, input: &Path) -> String {
 #[test]
 fn type_exports() {
   let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR").to_string()).join("tests");
-  let cases = find_ts_files(&tests_dir.join("type-exports"));
+  let cases = glob(&format!("{}/type-exports/**/*.ts", tests_dir.display()))
+    .expect("glob failed")
+    .collect::<Result<Vec<_>, _>>()
+    .expect("glob error");
   assert!(!cases.is_empty(), "no test cases found");
   for input in cases {
     let snapshot_name = snapshot_name(&tests_dir, &input);
@@ -75,7 +64,10 @@ fn type_exports() {
 #[test]
 fn enums() {
   let tests_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR").to_string()).join("tests");
-  let cases = find_ts_files(&tests_dir.join("enums"));
+  let cases = glob(&format!("{}/enums/**/*.ts", tests_dir.display()))
+    .expect("glob failed")
+    .collect::<Result<Vec<_>, _>>()
+    .expect("glob error");
   assert!(!cases.is_empty(), "no test cases found");
   for input in cases {
     let snapshot_name = snapshot_name(&tests_dir, &input);

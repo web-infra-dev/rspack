@@ -214,9 +214,17 @@ Rspack 的端到端测试，涵盖真实场景和集成测试：
 - **`fixtures/`**: E2E 测试的共享 fixtures 和工具
 - **`utils/`**: E2E 测试执行的工具函数
 
-### 基准测试 (`bench/`)
+### JavaScript 基准测试 (`bench/`)
 
 用于跟踪 Rspack JavaScript API 性能并防止性能退化的性能基准测试：
 
 - **`fixtures/`**: 基准测试 fixtures（例如，用于基准测试的 `ts-react` 项目）
 - 用于测量构建性能和 API 执行时间的基准测试文件
+
+### Rust 基准测试 (`xtask/benchmark/`)
+
+用于跟踪 Rust 编译流水线性能的 CodSpeed 基准测试：
+
+- **`cases/`**: 针对 module graph、chunk graph、bundling、依赖扫描和 persistent cache 的端到端基准测试用例
+- **`stages/`**: 针对单个 compilation stage 的基准测试用例
+- 请参考 **`xtask/benchmark/README.md`** 了解本地 CodSpeed CPU simulation 命令和 Valgrind 临时文件位置

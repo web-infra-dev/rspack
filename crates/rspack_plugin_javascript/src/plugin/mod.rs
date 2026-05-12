@@ -34,7 +34,7 @@ use rspack_core::{
   SourceType,
   concatenated_module::find_new_name,
   render_init_fragments,
-  reserved_names::RESERVED_NAMES,
+  reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
   split_readable_identifier,
 };
@@ -1026,8 +1026,7 @@ var {} = {{}};
 
     let mut inlined_modules_to_info: IdentifierMap<InlinedModuleInfo> = IdentifierMap::default();
     let mut non_inlined_module_through_idents: Vec<ConcatenatedModuleIdent> = Vec::new();
-    let mut all_used_names: HashSet<Atom> =
-      RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect();
+    let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
     let mut renamed_inline_modules: IdentifierMap<Arc<dyn Source>> = IdentifierMap::default();
 
     let render_module_results = rspack_parallel::scope::<_, _>(|token| {
@@ -1089,7 +1088,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
+            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
           })
         },
         |mut acc, (rendered_module, m)| {
@@ -1243,7 +1242,7 @@ var {} = {{}};
           Ok(RenameInfoPatch {
             inlined_modules_to_info: IdentifierMap::default(),
             non_inlined_module_through_idents: Vec::new(),
-            all_used_names: RESERVED_NAMES.iter().map(|item| Atom::new(*item)).collect(),
+            all_used_names: RESERVED_NAMES_ATOM_SET.clone(),
           })
         },
         |acc, chunk| match acc {
