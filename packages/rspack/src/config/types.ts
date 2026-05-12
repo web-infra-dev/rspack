@@ -1255,7 +1255,7 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssAutoParserOptions;
+  'css/auto'?: CssModuleParserOptions;
 
   /** Parser options for `css/global` modules. */
   'css/global'?: CssModuleParserOptions;
@@ -1434,7 +1434,7 @@ export type GeneratorOptionsByModuleTypeKnown = {
   css?: CssGeneratorOptions;
 
   /** Generator options for css/auto modules. */
-  'css/auto'?: CssAutoGeneratorOptions;
+  'css/auto'?: CssModuleGeneratorOptions;
 
   /** Generator options for css/global modules. */
   'css/global'?: CssModuleGeneratorOptions;
