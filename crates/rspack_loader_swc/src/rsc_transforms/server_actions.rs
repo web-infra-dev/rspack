@@ -1704,8 +1704,7 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
 
       // Ensure that the exports are functions by appending a runtime check:
       //
-      //   import { ensureServerActions } from 'react-server-dom-rspack/server'
-      //   ensureServerActions([action1, action2, ...])
+      //   __webpack_require__.rscA([action1, action2, ...])
       //
       // But it's only needed for the server layer, because on the client
       // layer they're transformed into references already.
@@ -1713,29 +1712,19 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         new.append(&mut self.extra_items);
 
         if !server_reference_exports.is_empty() {
-          let ensure_ident = private_ident!("ensureServerActions");
-          new.push(ModuleItem::ModuleDecl(ModuleDecl::Import(ImportDecl {
-            span: DUMMY_SP,
-            specifiers: vec![ImportSpecifier::Named(ImportNamedSpecifier {
-              span: DUMMY_SP,
-              local: ensure_ident.clone(),
-              imported: None,
-              is_type_only: false,
-            })],
-            src: Box::new(Str {
-              span: DUMMY_SP,
-              value: atom!("react-server-dom-rspack/server").into(),
-              raw: None,
-            }),
-            type_only: false,
-            with: None,
-            phase: Default::default(),
-          })));
           new.push(ModuleItem::Stmt(Stmt::Expr(ExprStmt {
             span: DUMMY_SP,
             expr: Box::new(Expr::Call(CallExpr {
               span: DUMMY_SP,
-              callee: Callee::Expr(Box::new(Expr::Ident(ensure_ident))),
+              callee: Callee::Expr(Box::new(Expr::Member(MemberExpr {
+                span: DUMMY_SP,
+                obj: Box::new(Expr::Ident(Ident::new(
+                  atom!("__webpack_require__"),
+                  DUMMY_SP,
+                  SyntaxContext::empty(),
+                ))),
+                prop: MemberProp::Ident(quote_ident!("rscA")),
+              }))),
               args: vec![ExprOrSpread {
                 spread: None,
                 expr: Box::new(Expr::Array(ArrayLit {

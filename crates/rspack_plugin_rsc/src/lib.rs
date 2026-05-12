@@ -3,6 +3,7 @@ mod client_reference_dependency;
 mod component_info;
 mod constants;
 mod coordinator;
+mod ensure_server_actions_runtime_module;
 mod hot_reloader;
 mod loaders;
 mod manifest_runtime_module;

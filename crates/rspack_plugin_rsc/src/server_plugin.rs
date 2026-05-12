@@ -7,11 +7,12 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_collections::{Identifiable, IdentifierMap};
 use rspack_core::{
-  BoxDependency, ChunkByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilationChunkIds,
-  CompilationParams, CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerDone,
-  CompilerFailed, CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId,
-  DependencyType, EntryDependency, EntryOptions, Logger, Plugin, RuntimeGlobals, RuntimeModule,
-  RuntimeSpec, get_entry_runtime,
+  BoxDependency, ChunkByUkey, ChunkNamedIdArtifact, ChunkUkey, Compilation,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationChunkIds, CompilationParams,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CompilerDone, CompilerFailed,
+  CompilerFinishMake, CompilerThisCompilation, Dependency, DependencyId, DependencyType,
+  EntryDependency, EntryOptions, Logger, Module, ModuleIdentifier, Plugin, RuntimeGlobals,
+  RuntimeModule, RuntimeSpec, get_entry_runtime,
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -23,6 +24,7 @@ use crate::{
   },
   constants::{CSS_REGEX, LAYERS_NAMES},
   coordinator::Coordinator,
+  ensure_server_actions_runtime_module::RscEnsureServerActionsRuntimeModule,
   hot_reloader::track_server_component_changes,
   loaders::action_entry_loader::ACTION_ENTRY_LOADER_IDENTIFIER,
   manifest_runtime_module::RscManifestRuntimeModule,
@@ -184,7 +186,75 @@ async fn runtime_requirements_in_tree(
       Box::new(RscManifestRuntimeModule::new(&compilation.runtime_template)),
     ));
   }
+  if runtime_requirements.contains(RuntimeGlobals::RSC_ENSURE_SERVER_ACTIONS) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      Box::new(RscEnsureServerActionsRuntimeModule::new(
+        &compilation.runtime_template,
+      )),
+    ));
+  }
   Ok(None)
+}
+
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for RscServerPlugin,tracing=false)]
+async fn additional_module_runtime_requirements(
+  &self,
+  compilation: &Compilation,
+  module_identifier: &ModuleIdentifier,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let Some(module) = compilation.module_by_identifier(module_identifier) else {
+    return Ok(());
+  };
+
+  if module_needs_ensure_server_actions_runtime(module.as_ref(), compilation) {
+    runtime_requirements
+      .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::RSC_ENSURE_SERVER_ACTIONS);
+  }
+
+  Ok(())
+}
+
+fn has_server_actions(module: &dyn Module) -> bool {
+  module
+    .build_info()
+    .rsc
+    .as_ref()
+    .is_some_and(|rsc| !rsc.action_ids.is_empty())
+}
+
+fn is_rsc_layer_module(module: &dyn Module) -> bool {
+  module
+    .get_layer()
+    .is_some_and(|layer| layer == LAYERS_NAMES.react_server_components)
+}
+
+fn module_needs_ensure_server_actions_runtime(
+  module: &dyn Module,
+  compilation: &Compilation,
+) -> bool {
+  if !is_rsc_layer_module(module) {
+    return false;
+  }
+
+  if has_server_actions(module) {
+    return true;
+  }
+
+  let Some(concatenated_module) = module.as_concatenated_module() else {
+    return false;
+  };
+
+  let module_graph = compilation.get_module_graph();
+  concatenated_module
+    .get_modules()
+    .iter()
+    .any(|inner_module| {
+      module_graph
+        .module_by_identifier(&inner_module.id)
+        .is_some_and(|module| has_server_actions(module.as_ref()))
+    })
 }
 
 /// Compute server manifest and server_consumer_module_map once per entry. Stored in plugin_state for
@@ -227,6 +297,10 @@ impl Plugin for RscServerPlugin {
       .compilation_hooks
       .runtime_requirement_in_tree
       .tap(runtime_requirements_in_tree::new(self));
+    ctx
+      .compilation_hooks
+      .additional_module_runtime_requirements
+      .tap(additional_module_runtime_requirements::new(self));
 
     ctx.compilation_hooks.chunk_ids.tap(chunk_ids::new(self));
 

@@ -300,6 +300,8 @@ define_runtime_globals! {
 
   // react server component
   const RSC_MANIFEST;
+
+  const RSC_ENSURE_SERVER_ACTIONS;
 }
 
 impl Default for RuntimeGlobals {
@@ -373,6 +375,7 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::RSPACK_UNIQUE_ID
     | RuntimeGlobals::ASYNC_STARTUP
     | RuntimeGlobals::RSC_MANIFEST
+    | RuntimeGlobals::RSC_ENSURE_SERVER_ACTIONS
     | RuntimeGlobals::TO_BINARY
     | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES
     | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
@@ -473,6 +476,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
 
     RuntimeGlobals::RSC_MANIFEST => "rscM",
+    RuntimeGlobals::RSC_ENSURE_SERVER_ACTIONS => "rscA",
     RuntimeGlobals::TO_BINARY => "tb",
     _ => unreachable!(),
   };
