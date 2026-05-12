@@ -1075,6 +1075,9 @@ export type CssModuleParserOptions = {
   resolveImport?: CssParserResolveImport;
 };
 
+/** @deprecated Use `CssModuleParserOptions` instead. */
+export type CssAutoParserOptions = CssModuleParserOptions;
+
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
 
 export type JavascriptParserCommonjsExports = boolean | 'skipInEsm';
@@ -1252,7 +1255,7 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssModuleParserOptions;
+  'css/auto'?: CssAutoParserOptions;
 
   /** Parser options for `css/global` modules. */
   'css/global'?: CssModuleParserOptions;
@@ -1405,6 +1408,9 @@ export type CssModuleGeneratorOptions = {
   esModule?: CssGeneratorEsModule;
 };
 
+/** @deprecated Use `CssModuleGeneratorOptions` instead. */
+export type CssAutoGeneratorOptions = CssModuleGeneratorOptions;
+
 /** Generator options for json modules. */
 export type JsonGeneratorOptions = {
   /**
@@ -1428,7 +1434,7 @@ export type GeneratorOptionsByModuleTypeKnown = {
   css?: CssGeneratorOptions;
 
   /** Generator options for css/auto modules. */
-  'css/auto'?: CssModuleGeneratorOptions;
+  'css/auto'?: CssAutoGeneratorOptions;
 
   /** Generator options for css/global modules. */
   'css/global'?: CssModuleGeneratorOptions;
