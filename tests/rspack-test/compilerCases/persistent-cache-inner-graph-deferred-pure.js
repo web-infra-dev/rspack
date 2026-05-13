@@ -47,7 +47,8 @@ module.exports = {
 				sideEffects: true,
 				innerGraph: true,
 				usedExports: true,
-				concatenateModules: false
+				concatenateModules: false,
+				inlineExports: false,
 			},
 			output: {
 				path: context.getDist(OUTPUT_DIR),
