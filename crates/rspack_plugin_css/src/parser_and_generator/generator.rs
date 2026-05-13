@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rspack_core::{
   CssExport, CssExports, GenerateContext, Module, ModuleArgument, RuntimeGlobals, UsageState,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
@@ -7,7 +9,7 @@ use rspack_util::fx_hash::FxIndexSet;
 
 use crate::{
   parser_and_generator::{get_unused_local_ident, get_used_exports},
-  utils::{css_modules_exports_to_concatenate_module_string, css_modules_exports_to_string},
+  utils::{css_modules_exports_to_concatenate_module_string, stringified_exports},
 };
 
 pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
@@ -135,17 +137,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         &self.generate_context.compilation.exports_info_artifact,
       );
 
-      css_modules_exports_to_string(
-        exports,
-        module,
-        self.generate_context.compilation,
-        self.generate_context.runtime,
-        self.generate_context.runtime_template,
-        &ns_obj,
-        &left,
-        &right,
-        self.with_hmr,
-      )?
+      self.css_modules_exports_to_string(exports, &ns_obj, &left, &right)?
     } else {
       let module_argument = self
         .generate_context
@@ -162,6 +154,51 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
     self.concat_source.add(RawStringSource::from(exports_str));
     Ok(())
+  }
+
+  fn css_modules_exports_to_string<'b>(
+    &mut self,
+    exports: rspack_util::fx_hash::FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
+    ns_obj: &str,
+    left: &str,
+    right: &str,
+  ) -> Result<String> {
+    let (decl_name, exports_string) = stringified_exports(
+      exports,
+      self.generate_context.compilation,
+      self.generate_context.runtime_template,
+      self.module,
+      self.generate_context.runtime,
+    )?;
+    let module_argument = self
+      .generate_context
+      .runtime_template
+      .render_module_argument(ModuleArgument::Module);
+    let hmr_code = self.render_exports_hmr(&module_argument, decl_name);
+
+    let mut code = format!(
+      "{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}"
+    );
+    code += right;
+    code += ";\n";
+    Ok(code)
+  }
+
+  fn render_exports_hmr<'b>(&self, module_argument: &str, decl_name: &str) -> Cow<'b, str> {
+    if self.with_hmr {
+      Cow::Owned(format!(
+        "// only invalidate when locals change
+var stringified_exports = JSON.stringify({decl_name});
+if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
+  {module_argument}.hot.invalidate();
+}} else {{
+  {module_argument}.hot.accept();
+}}
+{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
+      ))
+    } else {
+      Cow::Borrowed("")
+    }
   }
 
   fn render_accept_hmr(&self) -> String {

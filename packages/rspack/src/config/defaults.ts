@@ -34,6 +34,7 @@ import {
 import type {
   Context,
   CssGeneratorOptions,
+  CssModuleGeneratorOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
@@ -302,6 +303,18 @@ const applyCssGeneratorOptionsDefaults = (
   D(generatorOptions, 'esModule', true);
 };
 
+const applyCssModuleGeneratorOptionsDefaults = (
+  generatorOptions: CssModuleGeneratorOptions,
+  { targetProperties }: { targetProperties: TargetProperties | false },
+) => {
+  D(
+    generatorOptions,
+    'exportsOnly',
+    !targetProperties || targetProperties.document === false,
+  );
+  D(generatorOptions, 'esModule', true);
+};
+
 const applyJsonGeneratorOptionsDefaults = (
   generatorOptions: JsonGeneratorOptions,
 ) => {
@@ -382,7 +395,7 @@ const applyModuleDefaults = (
 
   F(module.generator, 'css/auto', () => ({}));
   assertNotNill(module.generator['css/auto']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/auto'], {
     targetProperties,
   });
   D(module.generator['css/auto'], 'exportsConvention', 'as-is');
@@ -396,7 +409,7 @@ const applyModuleDefaults = (
 
   F(module.generator, 'css/module', () => ({}));
   assertNotNill(module.generator['css/module']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/module'], {
     targetProperties,
   });
   D(module.generator['css/module'], 'exportsConvention', 'as-is');
@@ -404,7 +417,7 @@ const applyModuleDefaults = (
 
   F(module.generator, 'css/global', () => ({}));
   assertNotNill(module.generator['css/global']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/global'], {
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/global'], {
     targetProperties,
   });
   D(module.generator['css/global'], 'exportsConvention', 'as-is');

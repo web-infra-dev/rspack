@@ -1372,6 +1372,12 @@ export type CssGeneratorLocalIdentName = string;
 
 export type CssGeneratorEsModule = boolean;
 
+export type CssGeneratorExportType =
+  | 'link'
+  | 'text'
+  | 'css-style-sheet'
+  | 'style';
+
 export type CssGeneratorLocalIdentHashDigest = string;
 
 export type CssGeneratorLocalIdentHashDigestLength = number;
@@ -1394,6 +1400,11 @@ export type CssGeneratorOptions = {
 
 /** Generator options for css/auto, css/global and css/module modules. */
 export type CssModuleGeneratorOptions = {
+  /**
+   * Configure how CSS content is exported as default.
+   */
+  exportType?: CssGeneratorExportType;
+
   /**
    * Customize how CSS export names are exported to javascript modules
    * @default 'as-is'

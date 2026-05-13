@@ -833,6 +833,8 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
 pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub exports_only: Option<bool>,
   pub local_ident_hash_digest: Option<String>,
   pub local_ident_hash_digest_length: Option<u32>,
@@ -846,6 +848,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: RawCssModuleGeneratorOptions) -> Self {
     Self {
       exports_convention: value.exports_convention.map(|n| n.into()),
+      export_type: value.export_type.map(Into::into),
       exports_only: value.exports_only,
       local_ident_hash_digest: value.local_ident_hash_digest,
       local_ident_hash_digest_length: value.local_ident_hash_digest_length,

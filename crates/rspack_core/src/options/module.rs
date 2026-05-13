@@ -744,9 +744,48 @@ pub struct CssGeneratorOptions {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CssExportType {
+  Link,
+  Text,
+  CssStyleSheet,
+  Style,
+}
+
+impl fmt::Display for CssExportType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      CssExportType::Link => write!(f, "link"),
+      CssExportType::Text => write!(f, "text"),
+      CssExportType::CssStyleSheet => write!(f, "css-style-sheet"),
+      CssExportType::Style => write!(f, "style"),
+    }
+  }
+}
+
+impl From<String> for CssExportType {
+  fn from(value: String) -> Self {
+    match value.as_str() {
+      "link" => Self::Link,
+      "text" => Self::Text,
+      "css-style-sheet" => Self::CssStyleSheet,
+      "style" => Self::Style,
+      _ => unreachable!("css exportType should be link, text, css-style-sheet or style"),
+    }
+  }
+}
+
+impl MergeFrom for CssExportType {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[cacheable]
 #[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
+  pub export_type: Option<CssExportType>,
   pub exports_only: Option<bool>,
   pub local_ident_hash_digest: Option<String>,
   pub local_ident_hash_digest_length: Option<u32>,

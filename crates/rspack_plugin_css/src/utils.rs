@@ -11,8 +11,8 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use regex::{Captures, Regex};
 use rspack_core::{
   ChunkGraph, Compilation, CompilerOptions, CssExport, CssExportsConvention, GenerateContext,
-  LocalIdentName, ModuleArgument, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData,
-  RuntimeGlobals, RuntimeSpec, UsedNameItem,
+  LocalIdentName, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
+  RuntimeSpec, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
@@ -195,44 +195,6 @@ pub(crate) fn export_locals_convention(
     res.push(key.to_kebab_case());
   }
   res
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn css_modules_exports_to_string<'a>(
-  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
-  module: &dyn rspack_core::Module,
-  compilation: &Compilation,
-  runtime: Option<&RuntimeSpec>,
-  runtime_template: &mut ModuleCodeTemplate,
-  ns_obj: &str,
-  left: &str,
-  right: &str,
-  with_hmr: bool,
-) -> Result<String> {
-  let (decl_name, exports_string) =
-    stringified_exports(exports, compilation, runtime_template, module, runtime)?;
-
-  let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
-
-  let hmr_code = if with_hmr {
-    Cow::Owned(format!(
-      "// only invalidate when locals change
-var stringified_exports = JSON.stringify({decl_name});
-if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
-  {module_argument}.hot.invalidate();
-}} else {{
-  {module_argument}.hot.accept(); 
-}}
-{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
-    ))
-  } else {
-    Cow::Borrowed("")
-  };
-  let mut code =
-    format!("{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}",);
-  code += right;
-  code += ";\n";
-  Ok(code)
 }
 
 pub fn stringified_exports<'a>(

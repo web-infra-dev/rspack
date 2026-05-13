@@ -2125,6 +2125,7 @@ export interface RawCssImportContext {
 
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   exportsOnly?: boolean
   localIdentHashDigest?: string
   localIdentHashDigestLength?: number
