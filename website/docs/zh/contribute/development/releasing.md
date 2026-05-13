@@ -65,7 +65,8 @@ git push origin release/vx.y.z
    - [Release Full](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml): 发布 npm 包到 registry
    - [Release Crates](https://github.com/web-infra-dev/rspack/actions/workflows/release-crates.yml): 发布 Rust crates 到 crates.io
 7. 发布完成后，合并 PR 到 `main` 分支。
-8. 生成 GitHub [release note](https://github.com/web-infra-dev/rspack/releases)，补充 highlights 信息。
+8. 使用 `create-draft-release-notes` agent skill 和发布 tag（例如 `v1.0.0`）基于 GitHub 生成的 notes 创建 GitHub [release note](https://github.com/web-infra-dev/rspack/releases) 草稿，并按发布分组整理内容。
+9. 检查 release note 草稿，补充 highlights 和必要的人工说明。
 
 ## Canary 发布
 
