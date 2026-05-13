@@ -3,6 +3,9 @@ const common = {
   optimization: {
     realContentHash: false,
   },
+  experiments: {
+    css: true,
+  },
 };
 
 /** @type {import("@rspack/core").Configuration[]} */
@@ -133,29 +136,6 @@ module.exports = [
           type: 'css/module',
           generator: {
             esModule: false,
-          },
-        },
-      ],
-    },
-  },
-  {
-    ...common,
-    output: {
-      filename: 'bundle7.[contenthash].js',
-      chunkFilename: 'css7/[name].[contenthash].js',
-      cssChunkFilename: 'css7/[name].[contenthash].css',
-    },
-    module: {
-      rules: [
-        {
-          test: /\.css$/,
-          type: 'css/module',
-          generator: {
-            localIdentName: '[name]__[local]__[fullhash]',
-            localIdentHashDigest: 'base64url',
-            localIdentHashDigestLength: 6,
-            localIdentHashFunction: 'sha256',
-            localIdentHashSalt: 'css-module-generator-options',
           },
         },
       ],
