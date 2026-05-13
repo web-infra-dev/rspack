@@ -1,20 +1,22 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkGraph, CssExport, CssExports, GenerateContext, Module, ModuleArgument, RuntimeGlobals,
-  UsageState, UsedNameItem,
+  ChunkGraph, CssExport, CssExports, GenerateContext, Module, ModuleArgument, RESERVED_IDENTIFIER,
+  RuntimeGlobals, UsageState, UsedNameItem,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
+  to_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
-  json_stringify, json_stringify_str,
+  itoa, json_stringify, json_stringify_str,
 };
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
   parser_and_generator::{get_unused_local_ident, get_used_exports},
-  utils::{css_modules_exports_to_concatenate_module_string, unescape},
+  utils::unescape,
 };
 
 pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
@@ -90,12 +92,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           exports_info_artifact,
         );
 
-        css_modules_exports_to_concatenate_module_string(
-          exports,
-          module,
-          self.generate_context,
-          &mut self.concat_source,
-        )?;
+        self.css_modules_exports_to_concatenate_module_string(exports)?;
       }
       return Ok(());
     }
@@ -181,6 +178,111 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     code += right;
     code += ";\n";
     Ok(code)
+  }
+
+  fn css_modules_exports_to_concatenate_module_string<'b>(
+    &mut self,
+    exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
+  ) -> Result<()> {
+    let module = self.module;
+    let GenerateContext {
+      compilation,
+      concatenation_scope,
+      runtime,
+      runtime_template,
+      ..
+    } = self.generate_context;
+    let Some(scope) = concatenation_scope else {
+      return Ok(());
+    };
+    let module_graph = compilation.get_module_graph();
+    let mut used_identifiers = HashSet::default();
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+
+    for (key, elements) in exports {
+      let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+      let used_name = export_info.get_used_name(None, *runtime);
+      let used_name = match used_name {
+        Some(UsedNameItem::Str(name)) => name.to_string(),
+        _ => key.to_string(),
+      };
+
+      let content = elements
+        .iter()
+        .map(
+          |CssExport {
+             ident,
+             from,
+             id: _,
+             orig_name: _,
+           }| match from {
+            None => json_stringify_str(ident),
+            Some(from_name) => {
+              let from = module
+                .get_dependencies()
+                .iter()
+                .find_map(|id| {
+                  let dependency = module_graph.dependency_by_id(id);
+                  let request = if let Some(d) = dependency.as_module_dependency() {
+                    Some(d.request())
+                  } else {
+                    dependency.as_context_dependency().map(|d| d.request())
+                  };
+                  if let Some(request) = request
+                    && request == from_name
+                  {
+                    return module_graph.module_graph_module_by_dependency_id(id);
+                  }
+                  None
+                })
+                .expect("should have css from module");
+
+              let from_exports_info = compilation
+                .exports_info_artifact
+                .get_exports_info_data(&from.module_identifier);
+              let from_used_name = match from_exports_info
+                .get_read_only_export_info(&Atom::from(ident.as_str()))
+                .get_used_name(None, *runtime)
+              {
+                Some(UsedNameItem::Str(name)) => json_stringify_str(&name),
+                _ => json_stringify_str(ident),
+              };
+
+              let from = json_stringify(
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                  .expect("should have module"),
+              );
+              format!(
+                "{}({from})[{}]",
+                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+                from_used_name
+              )
+            }
+          },
+        )
+        .collect::<Vec<_>>()
+        .join(" + \" \" + ");
+      let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
+      if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
+        identifier = Cow::Owned(format!("_{identifier}"));
+      }
+      let mut i = 0;
+      while used_identifiers.contains(&identifier) {
+        let mut i_buffer = itoa::Buffer::new();
+        let i_str = i_buffer.format(i);
+        identifier = Cow::Owned(format!("{identifier}{i_str}"));
+        i += 1;
+      }
+      // TODO: conditional support `const or var` after we finished runtimeTemplate utils
+      self.concat_source.add(RawStringSource::from(format!(
+        "var {identifier} = {content};\n"
+      )));
+      used_identifiers.insert(identifier.clone());
+      scope.register_export(key.into(), identifier.into_owned());
+    }
+    Ok(())
   }
 
   fn stringified_exports<'b>(
