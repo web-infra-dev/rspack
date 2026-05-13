@@ -6,7 +6,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::Result;
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -45,13 +45,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
-    let module_argument = if with_hmr {
-      generate_context
-        .runtime_template
-        .render_module_argument(ModuleArgument::Module)
-    } else {
-      String::new()
-    };
+    let module_argument = generate_context
+      .runtime_template
+      .render_module_argument(ModuleArgument::Module);
 
     Self {
       module,
@@ -139,12 +135,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         &self.generate_context.compilation.exports_info_artifact,
       );
 
-      self.css_modules_exports_to_string(exports, &ns_obj, &left, &right)?
+      self.css_modules_exports_to_string(exports, &ns_obj, &left, &right)
     } else {
-      let module_argument = self
-        .generate_context
-        .runtime_template
-        .render_module_argument(ModuleArgument::Module);
+      let module_argument = &self.module_argument;
       format!(
         "{}{}{module_argument}.exports = {{}}{};\n{}",
         &ns_obj,
@@ -164,20 +157,17 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     ns_obj: &str,
     left: &str,
     right: &str,
-  ) -> Result<String> {
-    let (decl_name, exports_string) = self.stringified_exports(exports)?;
-    let module_argument = self
-      .generate_context
-      .runtime_template
-      .render_module_argument(ModuleArgument::Module);
-    let hmr_code = self.render_exports_hmr(&module_argument, decl_name);
+  ) -> String {
+    let (decl_name, exports_string) = self.stringified_exports(exports);
+    let module_argument = &self.module_argument;
+    let hmr_code = self.render_exports_hmr(decl_name);
 
     let mut code = format!(
       "{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}"
     );
     code += right;
     code += ";\n";
-    Ok(code)
+    code
   }
 
   fn css_modules_exports_to_concatenate_module_string<'b>(
@@ -288,7 +278,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn stringified_exports<'b>(
     &mut self,
     exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
-  ) -> Result<(&'static str, String)> {
+  ) -> (&'static str, String) {
     let module = self.module;
     let compilation = self.generate_context.compilation;
     let module_graph = compilation.get_module_graph();
@@ -363,24 +353,24 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         )
         .collect::<Vec<_>>()
         .join(" + \" \" + ");
-      use std::fmt::Write;
-      writeln!(
-        stringified_exports,
+      stringified_exports.push_str(&format!(
         "  {}: {},",
         json_stringify_str(&used_name),
         content
-      )
-      .to_rspack_result()?;
+      ));
+      stringified_exports.push('\n');
     }
 
     let decl_name = "exports";
-    Ok((
+    (
       decl_name,
       format!("var {decl_name} = {{\n{stringified_exports}}};"),
-    ))
+    )
   }
 
-  fn render_exports_hmr<'b>(&self, module_argument: &str, decl_name: &str) -> Cow<'b, str> {
+  fn render_exports_hmr<'b>(&self, decl_name: &str) -> Cow<'b, str> {
+    let module_argument = &self.module_argument;
+
     if self.with_hmr {
       Cow::Owned(format!(
         "// only invalidate when locals change
