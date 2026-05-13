@@ -1075,9 +1075,6 @@ export type CssModuleParserOptions = {
   resolveImport?: CssParserResolveImport;
 };
 
-/** @deprecated Use `CssModuleParserOptions` instead. */
-export type CssAutoParserOptions = CssModuleParserOptions;
-
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
 
 export type JavascriptParserCommonjsExports = boolean | 'skipInEsm';
@@ -1407,9 +1404,6 @@ export type CssModuleGeneratorOptions = {
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
-
-/** @deprecated Use `CssModuleGeneratorOptions` instead. */
-export type CssAutoGeneratorOptions = CssModuleGeneratorOptions;
 
 /** Generator options for json modules. */
 export type JsonGeneratorOptions = {
