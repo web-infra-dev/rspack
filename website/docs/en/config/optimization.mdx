@@ -119,7 +119,7 @@ export default {
 
 Performs cross-module inline optimization for:
 
-1. Exported constant value in leaf modules of the module graph:
+1. Exported top-level constant values that can be statically evaluated:
    - `null` or `undefined`
    - `boolean` values (`true` or `false`)
    - `number` with length \<= 6
@@ -159,6 +159,10 @@ const __webpack_modules__ = {
 
 :::tip
 Since this feature relies on module export usage information ([optimization.usedExports](#optimizationusedexports)), it is recommended to enable it only in production mode where `usedExports` is enabled by default.
+:::
+
+:::warning TDZ behavior
+Inlining constant exports from modules in circular dependencies may change code that would otherwise throw a temporal dead zone (TDZ) error so that it no longer throws. Most tools in the ecosystem generally do not preserve TDZ errors when optimizing; Rspack also follows this optimization-first behavior.
 :::
 
 For more details, refer to the [inline const example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const).
