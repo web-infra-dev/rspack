@@ -97,7 +97,7 @@ fn normalize_path_separators(s: &str) -> String {
     if c == '\\' {
       if chars
         .peek()
-        .is_some_and(|next| matches!(next, '[' | ']' | '{' | '}'))
+        .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
       {
         result.push(c);
       } else {
@@ -192,7 +192,7 @@ pub async fn find_files_by_glob(
     &mut |path, _filename| {
       if options.require_literal_leading_dot
         && path_has_dot_component(&path, base_dir_path)
-        && !pattern_has_explicit_dot_for(&normalized_pattern, base_dir_path, &path)
+        && !pattern_has_explicit_dot_for(&normalized_pattern, base_dir_path, &path, options)
       {
         return;
       }
@@ -217,7 +217,12 @@ fn path_has_dot_component(path: &Utf8Path, base_dir: &Utf8Path) -> bool {
 }
 
 /// Check whether the glob pattern has an explicit `.` for a given dot-file path.
-fn pattern_has_explicit_dot_for(pattern: &str, base_dir: &Utf8Path, path: &Utf8Path) -> bool {
+fn pattern_has_explicit_dot_for(
+  pattern: &str,
+  base_dir: &Utf8Path,
+  path: &Utf8Path,
+  options: &GlobMatchOptions,
+) -> bool {
   let base_str = normalize_path_separators(base_dir.as_str());
   let path_str = normalize_path_separators(path.as_str());
   let pattern_suffix = pattern.strip_prefix(&base_str).unwrap_or(pattern);
@@ -232,30 +237,34 @@ fn pattern_has_explicit_dot_for(pattern: &str, base_dir: &Utf8Path, path: &Utf8P
     .filter(|segment| !segment.is_empty())
     .collect::<Vec<_>>();
 
-  fn matches_explicit_dot_segments(patterns: &[&str], paths: &[&str]) -> bool {
+  fn matches_explicit_dot_segments(
+    patterns: &[&str],
+    paths: &[&str],
+    options: &GlobMatchOptions,
+  ) -> bool {
     match (patterns.split_first(), paths.split_first()) {
       (None, None) => true,
       (None, Some(_)) => false,
       (Some((&"**", pattern_rest)), _) => {
-        matches_explicit_dot_segments(pattern_rest, paths)
+        matches_explicit_dot_segments(pattern_rest, paths, options)
           || matches!(
             paths.split_first(),
             Some((&path_head, path_rest))
-              if !path_head.starts_with('.') && matches_explicit_dot_segments(patterns, path_rest)
+              if !path_head.starts_with('.') && matches_explicit_dot_segments(patterns, path_rest, options)
           )
       }
       (Some((&pattern_head, pattern_rest)), Some((&path_head, path_rest))) => {
         if path_head.starts_with('.') && !pattern_head.starts_with('.') {
           return false;
         }
-        glob_match(pattern_head.as_bytes(), path_head.as_bytes())
-          && matches_explicit_dot_segments(pattern_rest, path_rest)
+        glob_match_with_options(pattern_head, path_head, options)
+          && matches_explicit_dot_segments(pattern_rest, path_rest, options)
       }
       (Some(_), None) => false,
     }
   }
 
-  matches_explicit_dot_segments(&pattern_segments, &path_segments)
+  matches_explicit_dot_segments(&pattern_segments, &path_segments, options)
 }
 
 #[cfg(test)]
@@ -281,8 +290,16 @@ mod tests {
       "./fixtures/a\\[b\\]/**/*.js"
     );
     assert_eq!(
-      normalize_path_separators("C:\\fixtures\\a\\[b\\]\\*.js"),
-      "C:/fixtures/a\\[b\\]/*.js"
+      normalize_path_separators("./fixtures/file\\*.js"),
+      "./fixtures/file\\*.js"
+    );
+    assert_eq!(
+      normalize_path_separators("./fixtures/file\\?.js"),
+      "./fixtures/file\\?.js"
+    );
+    assert_eq!(
+      normalize_path_separators("C:\\fixtures\\a\\[b\\]\\file.js"),
+      "C:/fixtures/a\\[b\\]/file.js"
     );
   }
 
@@ -297,21 +314,41 @@ mod tests {
   #[test]
   fn explicit_dot_patterns_allow_wildcard_dot_segments() {
     let base_dir = Utf8Path::new("./fixtures/");
+    let options = GlobMatchOptions::default();
 
     assert!(pattern_has_explicit_dot_for(
       "./fixtures/**/.*",
       base_dir,
-      Utf8Path::new("./fixtures/.env")
+      Utf8Path::new("./fixtures/.env"),
+      &options
     ));
     assert!(pattern_has_explicit_dot_for(
       "./fixtures/**/.*/index.js",
       base_dir,
-      Utf8Path::new("./fixtures/.cache/index.js")
+      Utf8Path::new("./fixtures/.cache/index.js"),
+      &options
     ));
     assert!(!pattern_has_explicit_dot_for(
       "./fixtures/**/index.js",
       base_dir,
-      Utf8Path::new("./fixtures/.cache/index.js")
+      Utf8Path::new("./fixtures/.cache/index.js"),
+      &options
+    ));
+  }
+
+  #[test]
+  fn explicit_dot_patterns_respect_case_insensitive_matching() {
+    let base_dir = Utf8Path::new("./fixtures/");
+    let options = GlobMatchOptions {
+      case_sensitive: false,
+      ..Default::default()
+    };
+
+    assert!(pattern_has_explicit_dot_for(
+      "./fixtures/**/.ENV",
+      base_dir,
+      Utf8Path::new("./fixtures/.env"),
+      &options
     ));
   }
 }
