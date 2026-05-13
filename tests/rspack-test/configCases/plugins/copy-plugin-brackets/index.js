@@ -17,4 +17,23 @@ it("should copy files when from paths contain brackets", () => {
 			.readFileSync(path.join(outputPath, "from-object/file[1].txt"), "utf-8")
 			.trim()
 	).toBe("from file");
+	expect(
+		fs.readFileSync(path.join(outputPath, "file*.txt"), "utf-8").trim()
+	).toBe("from star file");
+	expect(
+		fs
+			.readFileSync(
+				path.join(outputPath, "from-question-directory/nested.txt"),
+				"utf-8"
+			)
+			.trim()
+	).toBe("from question directory");
+	expect(
+		fs
+			.readFileSync(
+				path.join(outputPath, "from-dotfile/src/dotfiles/.env"),
+				"utf-8"
+			)
+			.trim()
+	).toBe("from case insensitive dotfile");
 });
