@@ -98,11 +98,20 @@ impl<'a> LocalIdentOptions<'a> {
       hash.rendered(hash_digest_length).to_string()
     };
     let module_hash = self.module_hash.to_string();
-    let content_hash = {
+    let content_hash;
+    let content_hash = if self
+      .local_name_ident
+      .template
+      .as_str()
+      .contains("[contenthash")
+    {
       let mut hasher = RspackHash::new(&HashFunction::MD4);
       hasher.write(self.source.as_bytes());
       let hash = hasher.digest(&HashDigest::Hex);
-      non_numeric_only_hash(hash.encoded(), 20)
+      content_hash = non_numeric_only_hash(hash.encoded(), 20);
+      content_hash.as_str()
+    } else {
+      ""
     };
     let resource_path = self
       .relative_resource
@@ -129,7 +138,7 @@ impl<'a> LocalIdentOptions<'a> {
         .filename(&self.relative_resource)
         .chunk_name(&chunk_name)
         .hash(&module_hash)
-        .content_hash(&content_hash)
+        .content_hash(content_hash)
         .id(id.as_ref()),
       local,
       local_ident_hash: &local_ident_hash,

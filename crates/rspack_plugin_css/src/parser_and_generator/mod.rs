@@ -156,7 +156,8 @@ impl CssParserAndGenerator {
       .as_ref()
       .map(|local_ident_name| local_ident_name.template.as_str());
     let should_use_resource_hash = local_ident_name.is_some_and(|local_ident_name| {
-      local_ident_name.contains("[hash") && !relative_resource.contains(['?', '#'])
+      (local_ident_name.contains("[hash") || local_ident_name.contains("[fullhash"))
+        && !relative_resource.contains(['?', '#'])
     }) && self.generator_options.local_ident_hash_salt.is_none();
     if should_use_resource_hash {
       let mut hasher = RspackHash::with_salt(
