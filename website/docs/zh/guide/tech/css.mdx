@@ -2,7 +2,7 @@
 description: '在 Rspack 中使用CSS的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理，帮助快速定位相关信息。'
 ---
 
-import { PackageManagerTabs } from '@theme';
+import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 # CSS
 
@@ -14,11 +14,93 @@ Rspack 内置了对 CSS 的支持，并提供了多种能力来支持 CSS 打包
 
 ### 内置 CSS 支持
 
-Rspack 支持以下三种 CSS 模块类型，你可以手动进行配置：
+Rspack 支持以下四种 CSS 模块类型，你可以手动进行配置：
 
-- `css/auto`：基于文件扩展名自动判断是普通 CSS 文件还是 CSS Modules，`*.module.css` 结尾的文件会被视为 CSS Modules。
-- `css`：用于解析普通的 CSS 文件。
-- `css/module`：用于解析 [CSS Modules](#css-modules)。
+- `css/auto`：基于文件扩展名自动判断是普通 CSS 文件还是 [CSS Modules](#css-modules)，`*.module.css` 或 `*.modules.css` 结尾的文件会被视为 CSS Modules。
+- `css`：用于解析普通的 CSS 文件，不启用 CSS Modules 能力。
+- `css/global`：用于以全局作用域模式解析 CSS Modules。
+- `css/module`：用于解析 CSS Modules。
+
+`css/auto`、`css/global` 和 `css/module` 的区别在于 CSS Modules 作用域对生成 CSS 的影响：
+
+- `css/auto` 会根据文件名选择行为。`style.css` 会作为普通 CSS 处理，而 `style.module.css` 和 `style.modules.css` 会按 `css/module` 处理。
+- `css/module` 会启用 CSS Modules，默认使用局部作用域。像 `.button` 这样的选择器会在生成的 CSS 中被重命名。如果希望选择器保持全局，可以使用 `:global(.button)`。
+- `css/global` 会启用 CSS Modules，默认使用全局作用域。像 `.button` 这样的选择器会保持全局。如果希望选择器在生成的 CSS 中被重命名，可以使用 `:local(.button)`。
+
+例如：
+
+```css title="style.css"
+.button {
+  color: red;
+}
+
+:local(.title) {
+  color: blue;
+}
+```
+
+当使用 `type: 'css'` 时，文件会作为普通 CSS 输出，不会应用 CSS Modules 作用域转换。
+
+当使用 `type: 'css/module'` 时，`.button` 和 `.title` 都是局部选择器，会在生成的 CSS 中被重命名。如果 `.button` 需要保持全局，可以使用 `:global(.button)`。
+
+当使用 `type: 'css/global'` 时，`.button` 会保持全局，而 `.title` 因为被 `:local(...)` 包裹，会被重命名。
+
+生成的 CSS 大致如下：
+
+<Tabs>
+  <Tab label="css/auto style.css">
+
+```css
+.button {
+  color: red;
+}
+
+:local(.title) {
+  color: blue;
+}
+```
+
+  </Tab>
+  <Tab label="css/auto style.module.css">
+
+```css
+._button_hash {
+  color: red;
+}
+
+._title_hash {
+  color: blue;
+}
+```
+
+  </Tab>
+  <Tab label="css/module style.css">
+
+```css
+._button_hash {
+  color: red;
+}
+
+._title_hash {
+  color: blue;
+}
+```
+
+  </Tab>
+  <Tab label="css/global style.css">
+
+```css
+.button {
+  color: red;
+}
+
+._title_hash {
+  color: blue;
+}
+```
+
+  </Tab>
+</Tabs>
 
 要启用 CSS 支持，需要将 CSS 规则添加到配置中：
 
@@ -27,12 +109,16 @@ export default {
   module: {
     rules: [
       {
-        test: /\.css$/i,
-        type: 'css/auto',
-      },
-      {
         test: /\.module\.css$/i,
         type: 'css/module',
+      },
+      {
+        test: /\.global\.css$/i,
+        type: 'css/global',
+      },
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
       },
     ],
   },
@@ -87,7 +173,7 @@ export default {
 > 参考 [迁移指南](/guide/migration/webpack#mini-css-extract-plugin--rspackcssextractrspackplugin) 了解如何从 webpack 进行迁移。
 
 :::tip
-CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'` 或 `type: 'css/module'` 同时使用，因为 css-loader 会将 css 转换成 javascript 类型。
+CssExtractRspackPlugin 不能与 `type: 'css'`、`type: 'css/auto'`、`type: 'css/global'` 或 `type: 'css/module'` 同时使用，因为 css-loader 会将 css 转换成 javascript 类型。
 :::
 
 ### 使用 style-loader
@@ -115,7 +201,7 @@ export default {
 ```
 
 :::tip
-style-loader 不能与 `type: 'css'`、`type: 'css/auto'` 或 `type: 'css/module'` 同时使用，因为 css-loader 会将 css 转换成 javascript 类型。
+style-loader 不能与 `type: 'css'`、`type: 'css/auto'`、`type: 'css/global'` 或 `type: 'css/module'` 同时使用，因为 css-loader 会将 css 转换成 javascript 类型。
 :::
 
 ## CSS Modules

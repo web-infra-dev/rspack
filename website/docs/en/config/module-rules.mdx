@@ -623,6 +623,7 @@ type RuleType =
   | 'asset'
   | 'css'
   | 'css/auto'
+  | 'css/global'
   | 'css/module'
   | 'javascript/auto'
   | 'javascript/dynamic'
@@ -661,7 +662,7 @@ The meanings of all `type` options are as follows:
 - `'javascript/esm'`: JavaScript modules, treated as strict ES modules.
 - `'javascript/dynamic'`: JavaScript modules, treated as Script.
 - `'json'`: JSON data module, see [JSON](/guide/tech/json).
-- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ## rules[].layer
