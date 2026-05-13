@@ -11,16 +11,16 @@ use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
   Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType,
-  contextify, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
+  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -103,71 +103,79 @@ impl RscEntryModule {
   }
 
   fn render_debug_comments(&self, compilation: &Compilation) -> String {
-    let module_graph = compilation.get_module_graph();
-    let all_client_modules = self.all_client_modules();
-    let referenced_exports_by_request =
-      create_referenced_exports_by_request(all_client_modules.into_iter());
     let mut source = String::new();
+    let root_chunking = self.debug_chunking("single async block");
+    let ungrouped_chunking = self.debug_chunking("one async block per module");
+    let server_entry_chunking = self.debug_chunking("one async block per server-entry");
 
-    if self.is_server_side_rendering {
-      for dep_id in self.get_dependencies() {
-        let dependency = module_graph.dependency_by_id(dep_id);
-        let dep = dependency
-          .downcast_ref::<ImportEagerDependency>()
-          .unwrap_or_else(|| {
-            panic!(
-              "Expected dependency of eager RscEntryModule to be ImportEagerDependency, got {:?}",
-              dependency.dependency_type()
-            )
-          });
-        append_debug_comment_for_request(
-          &mut source,
-          referenced_exports_by_request
-            .get(dep.request())
-            .map(String::as_str),
-          compilation,
-          dep.request(),
-        );
-      }
-
+    if self.is_server_side_rendering
+      && self.root_client_modules.is_empty()
+      && self.client_modules_by_server_entry.is_empty()
+      && self.css_imports_by_server_entry.is_empty()
+    {
+      append_client_modules_debug_section(
+        &mut source,
+        compilation,
+        "ssr-eager",
+        "eager import for SSR",
+        None,
+        &self.client_modules,
+      );
       return source;
     }
 
-    for block_id in self.get_blocks() {
-      let block = module_graph
-        .block_by_id(block_id)
-        .expect("should have block");
+    append_client_modules_debug_section(
+      &mut source,
+      compilation,
+      "root",
+      root_chunking,
+      None,
+      &self.root_client_modules,
+    );
+    append_client_modules_debug_section(
+      &mut source,
+      compilation,
+      "ungrouped",
+      ungrouped_chunking,
+      None,
+      &self.client_modules,
+    );
 
-      for dependency_id in block.get_dependencies() {
-        let dependency = module_graph.dependency_by_id(dependency_id);
-        let dep = dependency
-          .downcast_ref::<ClientReferenceDependency>()
-          .unwrap_or_else(|| {
-            panic!(
-              "Expected dependency of RscEntryModule to be ClientReferenceDependency, got {:?}",
-              dependency.dependency_type()
-            )
-          });
-
-        append_debug_comment_for_request(
-          &mut source,
-          referenced_exports_by_request
-            .get(dep.user_request())
-            .map(String::as_str)
-            .or_else(|| {
-              self
-                .css_imports_by_server_entry
-                .values()
-                .any(|imports| imports.contains(dep.user_request()))
-                .then_some("side-effect")
-            }),
-          compilation,
-          dep.user_request(),
-        );
-      }
+    for server_entry in self.debug_server_entries() {
+      append_server_entry_debug_section(
+        &mut source,
+        compilation,
+        server_entry.as_str(),
+        server_entry_chunking,
+        self.css_imports_by_server_entry.get(&server_entry),
+        self.client_modules_by_server_entry.get(&server_entry),
+      );
     }
 
     source
+  }
+
+  fn debug_chunking(&self, async_chunking: &'static str) -> &'static str {
+    if self.is_server_side_rendering {
+      "eager import for SSR"
+    } else {
+      async_chunking
+    }
+  }
+
+  fn debug_server_entries(&self) -> Vec<String> {
+    let mut server_entries = self
+      .css_imports_by_server_entry
+      .keys()
+      .cloned()
+      .collect::<Vec<_>>();
+    for server_entry in self.client_modules_by_server_entry.keys() {
+      if !server_entries.contains(server_entry) {
+        server_entries.push(server_entry.clone());
+      }
+    }
+    server_entries.sort_unstable();
+    server_entries
   }
 
   fn all_client_modules(&self) -> Vec<&ClientModuleImport> {
@@ -489,25 +497,119 @@ fn create_referenced_specifiers(ids: &FxIndexSet<Atom>) -> Option<Vec<Referenced
   )
 }
 
-fn create_referenced_exports_by_request<'a>(
-  client_modules: impl Iterator<Item = &'a ClientModuleImport>,
-) -> FxHashMap<&'a str, String> {
-  client_modules
-    .map(|client_module| {
-      let exports = format_referenced_exports(client_module);
-      (client_module.request.as_str(), exports)
-    })
-    .collect()
+fn append_client_modules_debug_section(
+  source: &mut String,
+  compilation: &Compilation,
+  chunk_group: &str,
+  chunking: &str,
+  server_entry: Option<&str>,
+  client_modules: &[ClientModuleImport],
+) {
+  if client_modules.is_empty() {
+    return;
+  }
+
+  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
+  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
+  append_debug_section_header(
+    source,
+    chunk_group,
+    chunking,
+    server_entry
+      .map(|server_entry| contextify(compilation.options.context.as_path(), server_entry)),
+  );
+  for client_module in client_modules {
+    let request = contextify(
+      compilation.options.context.as_path(),
+      client_module.request.as_str(),
+    );
+    append_debug_module_line(source, &request, &format_referenced_exports(client_module));
+  }
+  append_debug_section_end(source);
 }
 
-fn append_debug_comment_for_request(
+fn append_server_entry_debug_section(
   source: &mut String,
-  exports: Option<&str>,
   compilation: &Compilation,
-  request: &str,
+  server_entry: &str,
+  chunking: &str,
+  css_imports: Option<&FxIndexSet<String>>,
+  client_modules: Option<&Vec<ClientModuleImport>>,
 ) {
-  let request = contextify(compilation.options.context.as_path(), request);
-  append_debug_comment(source, &request, exports.unwrap_or("unknown"));
+  if css_imports.is_none_or(|css_imports| css_imports.is_empty())
+    && client_modules.is_none_or(|client_modules| client_modules.is_empty())
+  {
+    return;
+  }
+
+  append_debug_section_header(
+    source,
+    "server-entry",
+    chunking,
+    Some(contextify(
+      compilation.options.context.as_path(),
+      server_entry,
+    )),
+  );
+
+  if let Some(css_imports) = css_imports {
+    for css_import in sorted_strs(css_imports.iter().map(String::as_str)) {
+      let request = contextify(compilation.options.context.as_path(), css_import);
+      append_debug_module_line(source, &request, "side-effect");
+    }
+  }
+
+  if let Some(client_modules) = client_modules {
+    let mut client_modules = client_modules.iter().collect::<Vec<_>>();
+    client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
+    for client_module in client_modules {
+      let request = contextify(
+        compilation.options.context.as_path(),
+        client_module.request.as_str(),
+      );
+      append_debug_module_line(source, &request, &format_referenced_exports(client_module));
+    }
+  }
+
+  append_debug_section_end(source);
+}
+
+fn append_debug_section_header(
+  source: &mut String,
+  chunk_group: &str,
+  chunking: &str,
+  server_entry: Option<String>,
+) {
+  if !source.is_empty() {
+    source.push('\n');
+  }
+
+  let chunk_group = sanitize_comment_part(chunk_group);
+  let chunking = sanitize_comment_part(chunking);
+  write!(
+    source,
+    "/*!\n * chunk group: {chunk_group}\n * chunking: {chunking}\n"
+  )
+  .expect("writing debug comments to String should not fail");
+
+  if let Some(server_entry) = server_entry {
+    let server_entry = sanitize_comment_part(&server_entry);
+    writeln!(source, " * server-entry: {server_entry}")
+      .expect("writing debug comments to String should not fail");
+  }
+
+  source.push_str(" * modules:\n");
+}
+
+fn append_debug_module_line(source: &mut String, request: &str, exports: &str) {
+  let request = sanitize_comment_part(request);
+  let exports = sanitize_comment_part(exports);
+  writeln!(source, " * - {request} (exports: {exports})")
+    .expect("writing debug comments to String should not fail");
+}
+
+fn append_debug_section_end(source: &mut String) {
+  source.push_str(" */");
 }
 
 fn sanitize_comment_part(value: &str) -> Cow<'_, str> {
@@ -516,20 +618,6 @@ fn sanitize_comment_part(value: &str) -> Cow<'_, str> {
   } else {
     Cow::Borrowed(value)
   }
-}
-
-fn append_debug_comment(source: &mut String, request: &str, exports: &str) {
-  if !source.is_empty() {
-    source.push('\n');
-  }
-
-  let request = sanitize_comment_part(request);
-  let exports = sanitize_comment_part(exports);
-  write!(
-    source,
-    "/*!\n * module: {request}\n * exports: {exports}\n */"
-  )
-  .expect("writing debug comments to String should not fail");
 }
 
 fn format_referenced_exports(client_module: &ClientModuleImport) -> String {

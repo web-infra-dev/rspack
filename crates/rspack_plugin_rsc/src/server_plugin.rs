@@ -92,7 +92,7 @@ fn client_imports_to_modules(client_imports: &ClientComponentImports) -> Vec<Cli
     .collect()
 }
 
-fn classify_client_entries(
+fn group_client_entries_by_owner(
   client_imports: &ClientComponentImports,
   root_client_imports: &ClientComponentImports,
   client_imports_by_server_entry: &ClientComponentImportsByServerEntry,
@@ -555,7 +555,7 @@ impl RscServerPlugin {
 
     let client_entries = client_imports_to_modules(&client_imports);
     let (ungrouped_client_entries, root_client_entries, client_entries_by_server_entry) =
-      classify_client_entries(
+      group_client_entries_by_owner(
         &client_imports,
         &root_client_imports,
         &client_imports_by_server_entry,

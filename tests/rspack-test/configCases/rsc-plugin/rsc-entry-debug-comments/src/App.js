@@ -1,8 +1,15 @@
-'use server-entry';
-
-import './App.css';
-import { Client } from './Client';
+import { RootClient } from './clients/RootClient';
+import { SharedRootAndPage } from './clients/SharedRootAndPage';
+import { PageOne } from './pages/PageOne';
+import { PageTwo } from './pages/PageTwo';
 
 export const App = () => {
-  return <Client />;
+  return (
+    <>
+      <RootClient />
+      <SharedRootAndPage />
+      <PageOne />
+      <PageTwo />
+    </>
+  );
 };
