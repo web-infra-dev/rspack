@@ -11,10 +11,11 @@ const readBundle = (filename) => {
 };
 
 const extractRscEntryModuleContent = (source) => {
-  const start = source.indexOf(RSC_ENTRY_MODULE_HEADER);
+  const header = `\n${RSC_ENTRY_MODULE_HEADER}`;
+  const start = source.indexOf(header);
   expect(start).toBeGreaterThanOrEqual(0);
 
-  const contentStart = start + RSC_ENTRY_MODULE_HEADER.length;
+  const contentStart = start + header.length;
   const contentEnd = source.indexOf('\n},', contentStart);
   expect(contentEnd).toBeGreaterThanOrEqual(0);
 

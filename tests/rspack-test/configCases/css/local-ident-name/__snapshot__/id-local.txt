@@ -1,8 +1,8 @@
 Object {
-  btn--info_is-disabled_1: style_module_css-btn--info_is-disabled_1,
-  btn-info_is-disabled: style_module_css-btn-info_is-disabled,
+  btn--info_is-disabled_1: _style_module_css-btn--info_is-disabled_1,
+  btn-info_is-disabled: _style_module_css-btn-info_is-disabled,
   foo: bar,
-  foo_bar: style_module_css-foo_bar,
+  foo_bar: _style_module_css-foo_bar,
   my-btn-info_is-disabled: value,
-  simple: style_module_css-simple,
+  simple: _style_module_css-simple,
 }

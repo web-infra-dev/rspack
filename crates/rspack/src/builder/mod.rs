@@ -1814,6 +1814,7 @@ impl ModuleOptionsBuilder {
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
 
           es_module: Some(true),
+          ..Default::default()
         }),
       );
 
@@ -1824,6 +1825,7 @@ impl ModuleOptionsBuilder {
           exports_convention: Some(CssExportsConvention::default()),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
           es_module: Some(true),
+          ..Default::default()
         }),
       );
 
@@ -1834,6 +1836,7 @@ impl ModuleOptionsBuilder {
           exports_convention: Some(CssExportsConvention::default()),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
           es_module: Some(true),
+          ..Default::default()
         }),
       );
     }

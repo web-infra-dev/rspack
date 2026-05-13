@@ -1,8 +1,8 @@
 Object {
-  btn--info_is-disabled_1: -style_module_css_uniqueName-id-contenthash-[contenthash],
-  btn-info_is-disabled: -style_module_css_uniqueName-id-contenthash-[contenthash],
+  btn--info_is-disabled_1: -_style_module_css_uniqueName-id-contenthash-[contenthash],
+  btn-info_is-disabled: -_style_module_css_uniqueName-id-contenthash-[contenthash],
   foo: bar,
-  foo_bar: -style_module_css_uniqueName-id-contenthash-[contenthash],
+  foo_bar: -_style_module_css_uniqueName-id-contenthash-[contenthash],
   my-btn-info_is-disabled: value,
-  simple: -style_module_css_uniqueName-id-contenthash-[contenthash],
+  simple: -_style_module_css_uniqueName-id-contenthash-[contenthash],
 }

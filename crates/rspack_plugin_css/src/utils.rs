@@ -16,18 +16,6 @@ use rspack_util::identifier::make_paths_relative;
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
-static CSS_PREPARE_ID_LEADING_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"^([.-]|[^a-zA-Z0-9_-])+").expect("Invalid regexp"));
-static CSS_PREPARE_ID_REST_REGEX: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r"[^a-zA-Z0-9@_-]+").expect("Invalid regexp"));
-
-fn css_prepare_id(v: &str) -> String {
-  let without_leading = CSS_PREPARE_ID_LEADING_REGEX.replace(v, "");
-  CSS_PREPARE_ID_REST_REGEX
-    .replace_all(&without_leading, "_")
-    .into_owned()
-}
-
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
@@ -78,19 +66,19 @@ impl<'a> LocalIdentOptions<'a> {
     let hash_digest_length = self
       .local_ident_hash_digest_length
       .unwrap_or(output.hash_digest_length);
-    let hash = if template.contains("[hash") || template.contains("[fullhash") {
+    let hash = {
       let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-      if !output.unique_name.is_empty() {
-        hasher.write(output.unique_name.as_bytes());
-      }
       hasher.write(self.relative_resource.as_bytes());
-      hasher.write(local.as_bytes());
-      hasher
-        .digest(hash_digest)
-        .rendered(hash_digest_length)
-        .to_string()
-    } else {
-      String::new()
+      if template.contains("[hash")
+        || template.contains("[fullhash")
+        || !template.contains("[local]")
+      {
+        hasher.write(local.as_bytes());
+      }
+      let hash = hasher.digest(hash_digest);
+      LEADING_DIGIT_REGEX
+        .replace(hash.rendered(hash_digest_length), "_${1}")
+        .into_owned()
     };
     let resource_path = self
       .relative_resource
@@ -107,7 +95,7 @@ impl<'a> LocalIdentOptions<'a> {
       .and_then(|s| s.to_str())
       .map(|base| base.strip_suffix(&ext).unwrap_or(base).to_string())
       .unwrap_or_default();
-    let id = css_prepare_id(if self.compiler_options.mode.is_development() {
+    let id = PathData::prepare_id(if self.compiler_options.mode.is_development() {
       &self.relative_resource
     } else {
       &hash
@@ -117,7 +105,7 @@ impl<'a> LocalIdentOptions<'a> {
         .filename(&self.relative_resource)
         .chunk_name(&chunk_name)
         .hash(&hash)
-        .id(&id),
+        .id(id.as_ref()),
       local,
       unique_name: &output.unique_name,
       folder: Path::new(&self.relative_resource)

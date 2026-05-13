@@ -372,15 +372,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let module_argument = &self.module_argument;
 
     if self.with_hmr {
+      let accept_suffix = " ";
       Cow::Owned(format!(
         "// only invalidate when locals change
-var stringified_exports = JSON.stringify({decl_name});
-if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
-  {module_argument}.hot.invalidate();
-}} else {{
-  {module_argument}.hot.accept();
-}}
-{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
+	var stringified_exports = JSON.stringify({decl_name});
+	if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
+	  {module_argument}.hot.invalidate();
+	}} else {{
+	  {module_argument}.hot.accept();{accept_suffix}
+	}}
+	{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
       ))
     } else {
       Cow::Borrowed("")
