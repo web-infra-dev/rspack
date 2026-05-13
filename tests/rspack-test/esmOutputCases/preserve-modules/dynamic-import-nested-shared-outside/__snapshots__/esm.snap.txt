@@ -10,7 +10,6 @@ const feature = () => `feature:${util}`
 /* export default */ const src_feature = (feature);
 
 var feature_answer = (/* inlined export .answer */42);
-var src_feature_answer = (/* inlined export .answer */42);
 export { feature_answer as answer };
 export default src_feature;
 
