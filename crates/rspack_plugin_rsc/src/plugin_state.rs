@@ -44,8 +44,8 @@ pub struct EntryState {
   pub server_entries: FxHashMap<String, ServerEntryState>,
   /// All client modules discovered from the RSC graph for this entry.
   pub injected_client_entries: Vec<ClientModuleImport>,
-  /// Client modules used by multiple owners and kept as individual async chunks.
-  pub isolated_client_entries: Vec<ClientModuleImport>,
+  /// Client modules that cannot be assigned to exactly one owner and stay as standalone async chunks.
+  pub ungrouped_client_entries: Vec<ClientModuleImport>,
   /// Client modules used only by the root RSC tree.
   pub root_client_entries: Vec<ClientModuleImport>,
   /// Client modules used only by one `use server-entry` subtree.

@@ -416,7 +416,7 @@ fn create_identifier(
   identifier.push(if is_server_side_rendering { '1' } else { '0' });
   identifier.push('|');
 
-  identifier.push_str("isolated[");
+  identifier.push_str("ungrouped[");
   push_client_modules(&mut identifier, client_modules);
   identifier.push_str("]|root[");
   push_client_modules(&mut identifier, root_client_modules);

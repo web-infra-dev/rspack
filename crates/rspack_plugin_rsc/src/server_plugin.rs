@@ -101,7 +101,7 @@ fn classify_client_entries(
   Vec<ClientModuleImport>,
   ClientModulesByServerEntry,
 ) {
-  let mut isolated_client_entries = Vec::new();
+  let mut ungrouped_client_entries = Vec::new();
   let mut root_client_entries = Vec::new();
   let mut client_entries_by_server_entry: ClientModulesByServerEntry = Default::default();
 
@@ -137,15 +137,15 @@ fn classify_client_entries(
           .or_default()
           .push(client_module);
       } else {
-        isolated_client_entries.push(client_module);
+        ungrouped_client_entries.push(client_module);
       }
     } else {
-      isolated_client_entries.push(client_module);
+      ungrouped_client_entries.push(client_module);
     }
   }
 
   (
-    isolated_client_entries,
+    ungrouped_client_entries,
     root_client_entries,
     client_entries_by_server_entry,
   )
@@ -554,7 +554,7 @@ impl RscServerPlugin {
     } = client_entry;
 
     let client_entries = client_imports_to_modules(&client_imports);
-    let (isolated_client_entries, root_client_entries, client_entries_by_server_entry) =
+    let (ungrouped_client_entries, root_client_entries, client_entries_by_server_entry) =
       classify_client_entries(
         &client_imports,
         &root_client_imports,
@@ -581,7 +581,7 @@ impl RscServerPlugin {
       }
       entry_state.root_css_imports.extend(root_css_imports);
       entry_state.injected_client_entries = client_entries.clone();
-      entry_state.isolated_client_entries = isolated_client_entries;
+      entry_state.ungrouped_client_entries = ungrouped_client_entries;
       entry_state.root_client_entries = root_client_entries;
       entry_state.client_entries_by_server_entry = client_entries_by_server_entry;
     }
