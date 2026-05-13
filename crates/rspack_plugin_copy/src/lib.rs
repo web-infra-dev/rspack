@@ -442,11 +442,14 @@ impl CopyRspackPlugin {
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
-        let glob_query = if Path::new(orig_from).is_absolute() {
+        let mut glob_query = if Path::new(orig_from).is_absolute() {
           orig_from.into()
         } else {
           context.join(orig_from).as_str().to_string()
         };
+        if cfg!(windows) {
+          glob_query = glob_query.replace('\\', "/");
+        }
         // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
         // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
         if glob_query.ends_with("/**") {
