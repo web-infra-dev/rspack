@@ -1,15 +1,20 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  CssExport, CssExports, GenerateContext, Module, ModuleArgument, RuntimeGlobals, UsageState,
+  ChunkGraph, CssExport, CssExports, GenerateContext, Module, ModuleArgument, RuntimeGlobals,
+  UsageState, UsedNameItem,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::Result;
-use rspack_util::fx_hash::FxIndexSet;
+use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_util::{
+  atom::Atom,
+  fx_hash::{FxIndexMap, FxIndexSet},
+  json_stringify, json_stringify_str,
+};
 
 use crate::{
   parser_and_generator::{get_unused_local_ident, get_used_exports},
-  utils::{css_modules_exports_to_concatenate_module_string, stringified_exports},
+  utils::{css_modules_exports_to_concatenate_module_string, unescape},
 };
 
 pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
@@ -163,13 +168,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     left: &str,
     right: &str,
   ) -> Result<String> {
-    let (decl_name, exports_string) = stringified_exports(
-      exports,
-      self.generate_context.compilation,
-      self.generate_context.runtime_template,
-      self.module,
-      self.generate_context.runtime,
-    )?;
+    let (decl_name, exports_string) = self.stringified_exports(exports)?;
     let module_argument = self
       .generate_context
       .runtime_template
@@ -182,6 +181,101 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     code += right;
     code += ";\n";
     Ok(code)
+  }
+
+  fn stringified_exports<'b>(
+    &mut self,
+    exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
+  ) -> Result<(&'static str, String)> {
+    let module = self.module;
+    let compilation = self.generate_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    let mut stringified_exports = String::new();
+
+    for (key, elements) in exports {
+      let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+      let used_name = export_info.get_used_name(None, self.generate_context.runtime);
+      let used_name = match used_name {
+        Some(UsedNameItem::Str(name)) => name.to_string(),
+        _ => key.to_string(),
+      };
+
+      let content = elements
+        .iter()
+        .map(
+          |CssExport {
+             ident,
+             from,
+             id: _,
+             orig_name: _,
+           }| match from {
+            None => json_stringify_str(ident),
+            Some(from_name) => {
+              let from = module
+                .get_dependencies()
+                .iter()
+                .find_map(|id| {
+                  let dependency = module_graph.dependency_by_id(id);
+                  let request = if let Some(d) = dependency.as_module_dependency() {
+                    Some(d.request())
+                  } else {
+                    dependency.as_context_dependency().map(|d| d.request())
+                  };
+                  if let Some(request) = request
+                    && request == from_name
+                  {
+                    return module_graph.module_graph_module_by_dependency_id(id);
+                  }
+                  None
+                })
+                .expect("should have css from module");
+
+              let from_exports_info = compilation
+                .exports_info_artifact
+                .get_exports_info_data(&from.module_identifier);
+              let from_used_name = match from_exports_info
+                .get_read_only_export_info(&Atom::from(ident.as_str()))
+                .get_used_name(None, self.generate_context.runtime)
+              {
+                Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
+                _ => json_stringify_str(&unescape(ident)),
+              };
+
+              let from = json_stringify(
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                  .expect("should have module"),
+              );
+              format!(
+                "{}({from})[{}]",
+                self
+                  .generate_context
+                  .runtime_template
+                  .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+                from_used_name
+              )
+            }
+          },
+        )
+        .collect::<Vec<_>>()
+        .join(" + \" \" + ");
+      use std::fmt::Write;
+      writeln!(
+        stringified_exports,
+        "  {}: {},",
+        json_stringify_str(&used_name),
+        content
+      )
+      .to_rspack_result()?;
+    }
+
+    let decl_name = "exports";
+    Ok((
+      decl_name,
+      format!("var {decl_name} = {{\n{stringified_exports}}};"),
+    ))
   }
 
   fn render_exports_hmr<'b>(&self, module_argument: &str, decl_name: &str) -> Cow<'b, str> {

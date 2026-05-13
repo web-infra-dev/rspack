@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  fmt::Write,
   hash::Hasher,
   path::Path,
   sync::{Arc, LazyLock},
@@ -10,13 +9,12 @@ use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use regex::{Captures, Regex};
 use rspack_core::{
-  ChunkGraph, Compilation, CompilerOptions, CssExport, CssExportsConvention, GenerateContext,
-  LocalIdentName, ModuleCodeTemplate, PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals,
-  RuntimeSpec, UsedNameItem,
+  ChunkGraph, CompilerOptions, CssExport, CssExportsConvention, GenerateContext, LocalIdentName,
+  PathData, RESERVED_IDENTIFIER, ResourceData, RuntimeGlobals, UsedNameItem,
   rspack_sources::{ConcatSource, RawStringSource},
   to_identifier,
 };
-use rspack_error::{Diagnostic, Error, Result, Severity, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rspack_util::{
   atom::Atom,
@@ -195,97 +193,6 @@ pub(crate) fn export_locals_convention(
     res.push(key.to_kebab_case());
   }
   res
-}
-
-pub fn stringified_exports<'a>(
-  exports: FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>,
-  compilation: &Compilation,
-  runtime_template: &mut ModuleCodeTemplate,
-  module: &dyn rspack_core::Module,
-  runtime: Option<&RuntimeSpec>,
-) -> Result<(&'static str, String)> {
-  let mut stringified_exports = String::new();
-  let module_graph = compilation.get_module_graph();
-  let exports_info = compilation
-    .exports_info_artifact
-    .get_exports_info_data(&module.identifier());
-  for (key, elements) in exports {
-    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
-    let used_name = export_info.get_used_name(None, runtime);
-    let used_name = match used_name {
-      Some(UsedNameItem::Str(name)) => name.to_string(),
-      _ => key.to_string(),
-    };
-
-    let content = elements
-      .iter()
-      .map(
-        |CssExport {
-           ident,
-           from,
-           id: _,
-           orig_name: _,
-         }| match from {
-          None => json_stringify_str(ident),
-          Some(from_name) => {
-            let from = module
-              .get_dependencies()
-              .iter()
-              .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.as_module_dependency() {
-                  Some(d.request())
-                } else {
-                  dependency.as_context_dependency().map(|d| d.request())
-                };
-                if let Some(request) = request
-                  && request == from_name
-                {
-                  return module_graph.module_graph_module_by_dependency_id(id);
-                }
-                None
-              })
-              .expect("should have css from module");
-
-            let from_exports_info = compilation
-              .exports_info_artifact
-              .get_exports_info_data(&from.module_identifier);
-            let from_used_name = match from_exports_info
-              .get_read_only_export_info(&Atom::from(ident.as_str()))
-              .get_used_name(None, runtime)
-            {
-              Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
-              _ => json_stringify_str(&unescape(ident)),
-            };
-
-            let from = rspack_util::json_stringify(
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                .expect("should have module"),
-            );
-            format!(
-              "{}({from})[{}]",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              from_used_name
-            )
-          }
-        },
-      )
-      .collect::<Vec<_>>()
-      .join(" + \" \" + ");
-    writeln!(
-      stringified_exports,
-      "  {}: {},",
-      json_stringify_str(&used_name),
-      content
-    )
-    .to_rspack_result()?;
-  }
-
-  let decl_name = "exports";
-  Ok((
-    decl_name,
-    format!("var {decl_name} = {{\n{stringified_exports}}};"),
-  ))
 }
 
 pub fn css_modules_exports_to_concatenate_module_string<'a>(
