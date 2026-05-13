@@ -164,8 +164,7 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
     .first()
     .copied()
     .filter(u8::is_ascii_digit)
-    .map(|b| b - b'0')
-    .unwrap_or(0);
+    .map_or(0, |b| b - b'0');
   format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
 }
 

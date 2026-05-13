@@ -395,7 +395,7 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
     let with_hmr = self.with_hmr;
     let module_argument = self.module_argument();
     if with_hmr {
-      format!("{}.hot.accept();\n", module_argument)
+      format!("{module_argument}.hot.accept();\n")
     } else {
       Default::default()
     }

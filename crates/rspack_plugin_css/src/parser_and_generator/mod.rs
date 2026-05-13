@@ -61,6 +61,17 @@ pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
 
 pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>;
 
+struct LocalIdentUsage<'a> {
+  name: &'a str,
+  range: css_module_lexer::Range,
+  resource_data: &'a ResourceData,
+  source: &'a str,
+  module_hash: &'a str,
+  compiler_options: &'a CompilerOptions,
+  css_exports: &'a mut Option<CssExports>,
+  dependencies: &'a mut Vec<Box<dyn Dependency>>,
+}
+
 #[cacheable]
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
@@ -218,17 +229,20 @@ impl CssParserAndGenerator {
       .to_string()
   }
 
-  pub async fn handle_local_ident_usage(
+  async fn handle_local_ident_usage(
     &self,
-    name: &str,
-    range: css_module_lexer::Range,
-    resource_data: &ResourceData,
-    source: &str,
-    module_hash: &str,
-    compiler_options: &CompilerOptions,
-    css_exports: &mut Option<CssExports>,
-    dependencies: &mut Vec<Box<dyn Dependency>>,
+    local_ident_usage: LocalIdentUsage<'_>,
   ) -> rspack_error::Result<()> {
+    let LocalIdentUsage {
+      name,
+      range,
+      resource_data,
+      source,
+      module_hash,
+      compiler_options,
+      css_exports,
+      dependencies,
+    } = local_ident_usage;
     let name = unescape(name);
     let (local_ident, convention_names) = self
       .resolve_local_ident_and_update_exports(
@@ -250,19 +264,21 @@ impl CssParserAndGenerator {
     Ok(())
   }
 
-  #[allow(clippy::too_many_arguments)]
-  pub async fn handle_local_ident_declaration(
+  async fn handle_local_ident_declaration(
     &self,
-    name: &str,
-    range: css_module_lexer::Range,
-    resource_data: &ResourceData,
-    source: &str,
-    module_hash: &str,
-    compiler_options: &CompilerOptions,
-    css_exports: &mut Option<CssExports>,
+    local_ident_usage: LocalIdentUsage<'_>,
     css_local_names: &mut Option<FxHashMap<String, String>>,
-    dependencies: &mut Vec<Box<dyn Dependency>>,
   ) -> rspack_error::Result<()> {
+    let LocalIdentUsage {
+      name,
+      range,
+      resource_data,
+      source,
+      module_hash,
+      compiler_options,
+      css_exports,
+      dependencies,
+    } = local_ident_usage;
     let name = unescape(name);
     let (local_ident, convention_names) = self
       .resolve_local_ident_and_update_exports(
@@ -700,30 +716,32 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
           self
-            .handle_local_ident_usage(
+            .handle_local_ident_usage(LocalIdentUsage {
               name,
               range,
               resource_data,
-              &source_code,
-              &module_hash,
+              source: &source_code,
+              module_hash: &module_hash,
               compiler_options,
-              &mut css_exports,
-              &mut dependencies,
-            )
+              css_exports: &mut css_exports,
+              dependencies: &mut dependencies,
+            })
             .await?;
         }
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
           self
             .handle_local_ident_declaration(
-              name,
-              range,
-              resource_data,
-              &source_code,
-              &module_hash,
-              compiler_options,
-              &mut css_exports,
+              LocalIdentUsage {
+                name,
+                range,
+                resource_data,
+                source: &source_code,
+                module_hash: &module_hash,
+                compiler_options,
+                css_exports: &mut css_exports,
+                dependencies: &mut dependencies,
+              },
               &mut css_local_names,
-              &mut dependencies,
             )
             .await?;
         }
