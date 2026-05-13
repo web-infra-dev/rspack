@@ -40,8 +40,8 @@ use crate::{
   },
   parser_and_generator::generator::{CssModuleGenerator, update_css_exports},
   utils::{
-    LocalIdentOptions, css_parsing_traceable_error, export_locals_convention, normalize_url,
-    replace_module_request_prefix, unescape,
+    LEADING_DIGIT_REGEX, LocalIdentOptions, css_parsing_traceable_error, export_locals_convention,
+    normalize_url, replace_module_request_prefix, unescape,
   },
 };
 
@@ -150,28 +150,37 @@ impl CssParserAndGenerator {
     presentational_dependency_hash_updates: &[String],
     compiler_options: &CompilerOptions,
   ) -> String {
+    let local_ident_name = self
+      .generator_options
+      .local_ident_name
+      .as_ref()
+      .map(|local_ident_name| local_ident_name.template.as_str());
+    let should_use_resource_hash = local_ident_name.is_some_and(|local_ident_name| {
+      local_ident_name.contains("[hash") && !relative_resource.contains(['?', '#'])
+    }) && self.generator_options.local_ident_hash_salt.is_none();
+    if should_use_resource_hash {
+      let mut hasher = RspackHash::with_salt(
+        &compiler_options.output.hash_function,
+        &compiler_options.output.hash_salt,
+      );
+      hasher.write(relative_resource.as_bytes());
+      let hash = hasher
+        .digest(&compiler_options.output.hash_digest)
+        .rendered(compiler_options.output.hash_digest_length)
+        .to_string();
+      return LEADING_DIGIT_REGEX.replace(&hash, "_${1}").into_owned();
+    }
+
     let local_ident_hash_function = self
       .generator_options
       .local_ident_hash_function
       .as_deref()
       .map(Into::into);
-    let local_ident_hash_digest = self
-      .generator_options
-      .local_ident_hash_digest
-      .as_deref()
-      .map(Into::into);
-    let local_ident_hash_digest_length = self
-      .generator_options
-      .local_ident_hash_digest_length
-      .map(|len| len as usize);
     let hash_function = local_ident_hash_function
       .as_ref()
       .unwrap_or(&compiler_options.output.hash_function);
-    let hash_digest = local_ident_hash_digest
-      .as_ref()
-      .unwrap_or(&compiler_options.output.hash_digest);
-    let hash_digest_length =
-      local_ident_hash_digest_length.unwrap_or(compiler_options.output.hash_digest_length);
+    let hash_digest = &HashDigest::Hex;
+    let hash_digest_length = 20;
 
     let build_hash = {
       let mut hasher = RspackHash::new(hash_function);
@@ -197,7 +206,6 @@ impl CssParserAndGenerator {
       hasher.digest(&HashDigest::Hex).encoded().to_string()
     };
 
-    let local_ident_name = self.local_ident_name().template.as_str();
     let mut hasher = RspackHash::new(hash_function);
     hasher.write(build_hash.as_bytes());
     if self.exports_only() {
@@ -216,12 +224,14 @@ impl CssParserAndGenerator {
       let convention_names = export_locals_convention(name, self.convention());
       let convention_names =
         serde_json::to_string(&convention_names).expect("css export names should be serializable");
-      let local_ident_name =
-        serde_json::to_string(local_ident_name).expect("local ident name should be serializable");
-      hasher.write(
-        format!("exportsConvention|{convention_names}|localIdentName|{local_ident_name}")
-          .as_bytes(),
-      );
+      if let Some(local_ident_name) = local_ident_name {
+        let local_ident_name =
+          serde_json::to_string(local_ident_name).expect("local ident name should be serializable");
+        hasher.write(
+          format!("exportsConvention|{convention_names}|localIdentName|{local_ident_name}")
+            .as_bytes(),
+        );
+      }
     }
     hasher
       .digest(hash_digest)
@@ -549,25 +559,30 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut export_dependency_names = Vec::new();
     let mut graph_export_name_set = FxHashSet::default();
     let mut presentational_dependency_hash_updates = Vec::new();
+    let convention = self.generator_options.exports_convention.as_ref();
     for dependency in deps.iter() {
       match dependency {
         css_module_lexer::Dependency::LocalClass { name, .. }
         | css_module_lexer::Dependency::LocalId { name, .. } => {
-          let (_prefix, name) = name.split_at(1);
-          let name = unescape(name).into_owned();
-          for convention_name in export_locals_convention(&name, self.convention()) {
-            graph_export_name_set.insert(convention_name);
+          if let Some(convention) = convention {
+            let (_prefix, name) = name.split_at(1);
+            let name = unescape(name).into_owned();
+            for convention_name in export_locals_convention(&name, convention) {
+              graph_export_name_set.insert(convention_name);
+            }
+            export_dependency_names.push(name);
           }
-          export_dependency_names.push(name);
         }
         css_module_lexer::Dependency::LocalKeyframes { name, .. }
         | css_module_lexer::Dependency::LocalKeyframesDecl { name, .. }
         | css_module_lexer::Dependency::ICSSExportValue { prop: name, .. } => {
-          let name = unescape(name).into_owned();
-          for convention_name in export_locals_convention(&name, self.convention()) {
-            graph_export_name_set.insert(convention_name);
+          if let Some(convention) = convention {
+            let name = unescape(name).into_owned();
+            for convention_name in export_locals_convention(&name, convention) {
+              graph_export_name_set.insert(convention_name);
+            }
+            export_dependency_names.push(name);
           }
-          export_dependency_names.push(name);
         }
         css_module_lexer::Dependency::Replace { content, range } => {
           presentational_dependency_hash_updates.push(format!(
@@ -580,13 +595,15 @@ impl ParserAndGenerator for CssParserAndGenerator {
         _ => {}
       }
     }
-    for captures in REGEX_CUSTOM_PROPERTY_IDENT.captures_iter(&source_code) {
-      if let Some(name) = captures.get(2) {
-        let name = name.as_str().to_string();
-        for convention_name in export_locals_convention(&name, self.convention()) {
-          graph_export_name_set.insert(convention_name);
+    if let Some(convention) = convention {
+      for captures in REGEX_CUSTOM_PROPERTY_IDENT.captures_iter(&source_code) {
+        if let Some(name) = captures.get(2) {
+          let name = name.as_str().to_string();
+          for convention_name in export_locals_convention(&name, convention) {
+            graph_export_name_set.insert(convention_name);
+          }
+          export_dependency_names.push(name);
         }
-        export_dependency_names.push(name);
       }
     }
     let graph_export_names = graph_export_name_set.into_iter().collect::<Vec<_>>();

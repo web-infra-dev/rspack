@@ -62,14 +62,31 @@ impl<'a> LocalIdentOptions<'a> {
 
   pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
-    let hash_function = self
-      .local_ident_hash_function
-      .unwrap_or(&output.hash_function);
-    let hash_salt = self.local_ident_hash_salt.unwrap_or(&output.hash_salt);
-    let hash_digest = self.local_ident_hash_digest.unwrap_or(&output.hash_digest);
-    let hash_digest_length = self
-      .local_ident_hash_digest_length
-      .unwrap_or(output.hash_digest_length);
+    let use_output_hash_for_fullhash = self.local_name_ident.template.as_str() == "[fullhash]";
+    let hash_function = if use_output_hash_for_fullhash {
+      &output.hash_function
+    } else {
+      self
+        .local_ident_hash_function
+        .unwrap_or(&output.hash_function)
+    };
+    let hash_salt = if use_output_hash_for_fullhash {
+      &output.hash_salt
+    } else {
+      self.local_ident_hash_salt.unwrap_or(&output.hash_salt)
+    };
+    let hash_digest = if use_output_hash_for_fullhash {
+      &output.hash_digest
+    } else {
+      self.local_ident_hash_digest.unwrap_or(&output.hash_digest)
+    };
+    let hash_digest_length = if use_output_hash_for_fullhash {
+      output.hash_digest_length
+    } else {
+      self
+        .local_ident_hash_digest_length
+        .unwrap_or(output.hash_digest_length)
+    };
     let local_ident_hash = {
       let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
       if !output.unique_name.is_empty() {
@@ -80,7 +97,7 @@ impl<'a> LocalIdentOptions<'a> {
       let hash = hasher.digest(hash_digest);
       hash.rendered(hash_digest_length).to_string()
     };
-    let module_hash = { self.module_hash.to_string() };
+    let module_hash = self.module_hash.to_string();
     let content_hash = {
       let mut hasher = RspackHash::new(&HashFunction::MD4);
       hasher.write(self.source.as_bytes());
