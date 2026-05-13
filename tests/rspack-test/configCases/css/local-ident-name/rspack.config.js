@@ -28,6 +28,12 @@ const common = {
             },
           },
           {
+            resourceQuery: /\?fullhash-local$/,
+            generator: {
+              localIdentName: '[fullhash]-[local]',
+            },
+          },
+          {
             resourceQuery: /\?path-name-local$/,
             generator: {
               localIdentName: '[path][name]__[local]',

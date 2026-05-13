@@ -8,10 +8,13 @@ use std::{
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use regex::{Captures, Regex};
-use rspack_core::{CompilerOptions, CssExportsConvention, LocalIdentName, PathData, ResourceData};
+use rspack_core::{
+  CompilerOptions, CssExportsConvention, LocalIdentName, PathData, ReplaceAllPlaceholder,
+  ResourceData,
+};
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
-use rspack_util::identifier::make_paths_relative;
+use rspack_util::{base64, identifier::make_paths_relative};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
@@ -53,11 +56,6 @@ impl<'a> LocalIdentOptions<'a> {
 
   pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
-    let template = self
-      .local_name_ident
-      .template
-      .template()
-      .unwrap_or_default();
     let hash_function = self
       .local_ident_hash_function
       .unwrap_or(&output.hash_function);
@@ -66,18 +64,24 @@ impl<'a> LocalIdentOptions<'a> {
     let hash_digest_length = self
       .local_ident_hash_digest_length
       .unwrap_or(output.hash_digest_length);
-    let hash = {
+    let local_ident_hash = {
       let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-      hasher.write(self.relative_resource.as_bytes());
-      if template.contains("[hash")
-        || template.contains("[fullhash")
-        || !template.contains("[local]")
-      {
-        hasher.write(local.as_bytes());
+      if !output.unique_name.is_empty() {
+        hasher.write(output.unique_name.as_bytes());
       }
+      hasher.write(self.relative_resource.as_bytes());
+      hasher.write(local.as_bytes());
       let hash = hasher.digest(hash_digest);
       LEADING_DIGIT_REGEX
         .replace(hash.rendered(hash_digest_length), "_${1}")
+        .into_owned()
+    };
+    let module_hash = {
+      let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
+      hasher.write(self.relative_resource.as_bytes());
+      let hash = hasher.digest(&output.hash_digest);
+      LEADING_DIGIT_REGEX
+        .replace(hash.rendered(output.hash_digest_length), "_${1}")
         .into_owned()
     };
     let resource_path = self
@@ -98,15 +102,16 @@ impl<'a> LocalIdentOptions<'a> {
     let id = PathData::prepare_id(if self.compiler_options.mode.is_development() {
       &self.relative_resource
     } else {
-      &hash
+      &module_hash
     });
     let local_ident = LocalIdentNameRenderOptions {
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(&chunk_name)
-        .hash(&hash)
+        .hash(&module_hash)
         .id(id.as_ref()),
       local,
+      local_ident_hash: &local_ident_hash,
       unique_name: &output.unique_name,
       folder: Path::new(&self.relative_resource)
         .parent()
@@ -127,16 +132,34 @@ impl<'a> LocalIdentOptions<'a> {
 struct LocalIdentNameRenderOptions<'a> {
   path_data: PathData<'a>,
   local: &'a str,
+  local_ident_hash: &'a str,
   unique_name: &'a str,
   folder: &'a str,
 }
 
+fn render_hash(hash: &str, len: Option<usize>, need_base64: bool) -> String {
+  let content = if need_base64 {
+    base64::encode_to_string(hash)
+  } else {
+    hash.to_string()
+  };
+  content[..len.unwrap_or(content.len()).min(content.len())].to_string()
+}
+
 impl LocalIdentNameRenderOptions<'_> {
   pub async fn render_local_ident_name(self, local_ident_name: &LocalIdentName) -> Result<String> {
-    let raw = local_ident_name
-      .template
-      .render(self.path_data, None)
-      .await?;
+    let template = local_ident_name.template.template().map_or_else(
+      || local_ident_name.template.clone(),
+      |template| {
+        template
+          .replace_all_with_len("[fullhash]", |len, need_base64| {
+            render_hash(self.local_ident_hash, len, need_base64)
+          })
+          .into_owned()
+          .into()
+      },
+    );
+    let raw = template.render(self.path_data, None).await?;
     let s: &str = raw.as_ref();
 
     Ok(
