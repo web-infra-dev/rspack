@@ -34,7 +34,7 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
   generate_context: &'a mut GenerateContext<'g>,
   with_hmr: bool,
   es_module: bool,
-  module_argument: String,
+  module_argument: Option<String>,
   concat_source: ConcatSource,
 }
 
@@ -45,18 +45,23 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     with_hmr: bool,
     es_module: bool,
   ) -> Self {
-    let module_argument = generate_context
-      .runtime_template
-      .render_module_argument(ModuleArgument::Module);
-
     Self {
       module,
       generate_context,
       with_hmr,
       es_module,
-      module_argument,
+      module_argument: None,
       concat_source: Default::default(),
     }
+  }
+
+  fn module_argument(&mut self) -> &str {
+    self.module_argument.get_or_insert_with(|| {
+      self
+        .generate_context
+        .runtime_template
+        .render_module_argument(ModuleArgument::Module)
+    })
   }
 
   pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
@@ -137,13 +142,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
       self.css_modules_exports_to_string(exports, &ns_obj, &left, &right)
     } else {
-      let module_argument = &self.module_argument;
+      let hmr_code = self.render_accept_hmr();
+      let module_argument = self.module_argument();
       format!(
         "{}{}{module_argument}.exports = {{}}{};\n{}",
-        &ns_obj,
-        &left,
-        &right,
-        self.render_accept_hmr()
+        &ns_obj, &left, &right, hmr_code
       )
     };
 
@@ -159,8 +162,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     right: &str,
   ) -> String {
     let (decl_name, exports_string) = self.stringified_exports(exports);
-    let module_argument = &self.module_argument;
     let hmr_code = self.render_exports_hmr(decl_name);
+    let module_argument = self.module_argument();
 
     let mut code = format!(
       "{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}"
@@ -368,11 +371,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     )
   }
 
-  fn render_exports_hmr<'b>(&self, decl_name: &str) -> Cow<'b, str> {
-    let module_argument = &self.module_argument;
+  fn render_exports_hmr<'b>(&mut self, decl_name: &str) -> Cow<'b, str> {
+    let with_hmr = self.with_hmr;
     let accept = self.render_accept_hmr();
+    let module_argument = self.module_argument();
 
-    if self.with_hmr {
+    if with_hmr {
       Cow::Owned(format!(
         "// only invalidate when locals change
 var stringified_exports = JSON.stringify({decl_name});
@@ -387,9 +391,11 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
     }
   }
 
-  fn render_accept_hmr(&self) -> String {
-    if self.with_hmr {
-      format!("{}.hot.accept();\n", self.module_argument)
+  fn render_accept_hmr(&mut self) -> String {
+    let with_hmr = self.with_hmr;
+    let module_argument = self.module_argument();
+    if with_hmr {
+      format!("{}.hot.accept();\n", module_argument)
     } else {
       Default::default()
     }
