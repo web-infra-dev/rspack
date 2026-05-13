@@ -281,6 +281,14 @@ mod tests {
       extract_glob_base_dir("./fixtures/a\\[b\\]/**/*.js"),
       "./fixtures/a\\[b\\]/"
     );
+    assert_eq!(
+      extract_glob_base_dir("./fixtures/file\\*.js"),
+      "./fixtures/"
+    );
+    assert_eq!(
+      extract_glob_base_dir("./fixtures/directory\\?1/**/*.js"),
+      "./fixtures/directory\\?1/"
+    );
   }
 
   #[test]
@@ -309,6 +317,40 @@ mod tests {
       unescape_glob_path("./fixtures/a\\[b\\]/"),
       "./fixtures/a[b]/"
     );
+    assert_eq!(
+      unescape_glob_path("./fixtures/file\\*.js"),
+      "./fixtures/file*.js"
+    );
+    assert_eq!(
+      unescape_glob_path("./fixtures/directory\\?1/"),
+      "./fixtures/directory?1/"
+    );
+  }
+
+  #[test]
+  fn escaped_star_and_question_match_literal_path_segments() {
+    let options = GlobMatchOptions::default();
+
+    assert!(glob_match_with_options(
+      "./fixtures/file\\*.js",
+      "./fixtures/file*.js",
+      &options
+    ));
+    assert!(!glob_match_with_options(
+      "./fixtures/file\\*.js",
+      "./fixtures/file-a.js",
+      &options
+    ));
+    assert!(glob_match_with_options(
+      "./fixtures/directory\\?1/**/*.js",
+      "./fixtures/directory?1/index.js",
+      &options
+    ));
+    assert!(!glob_match_with_options(
+      "./fixtures/directory\\?1/**/*.js",
+      "./fixtures/directory-a1/index.js",
+      &options
+    ));
   }
 
   #[test]

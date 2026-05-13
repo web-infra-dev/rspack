@@ -15,11 +15,6 @@ module.exports = {
           from: 'src/file[1].txt',
           to: 'from-object/file[1].txt',
         },
-        'src/file*.txt',
-        {
-          from: 'src/directory?1',
-          to: 'from-question-directory',
-        },
         {
           from: 'src/dotfiles/**/.ENV',
           to: 'from-dotfile',
