@@ -1,4 +1,6 @@
-const { findOutputFiles } = require("@rspack/test-tools/helper/legacy/findOutputFiles");
+const findOutputFilesModule = require("@rspack/test-tools/helper/legacy/findOutputFiles");
+const findOutputFiles =
+	findOutputFilesModule.findOutputFiles || findOutputFilesModule;
 
 const allCss = new Set();
 const allBundles = new Set();
@@ -17,7 +19,7 @@ module.exports = {
 		return [`./css${i}/${async}`, `./${bundle}`];
 	},
 	afterExecute: () => {
-		expect(allBundles.size).toBe(6);
-		expect(allCss.size).toBe(6);
+		expect(allBundles.size).toBe(7);
+		expect(allCss.size).toBe(7);
 	}
 };

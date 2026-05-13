@@ -168,10 +168,38 @@ impl CssParserAndGenerator {
     name: &str,
     css_exports: &mut Option<CssExports>,
   ) -> rspack_error::Result<(String, Vec<String>)> {
-    let local_ident =
-      LocalIdentOptions::new(resource_data, self.local_ident_name(), compiler_options)
-        .get_local_ident(name)
-        .await?;
+    let local_ident_hash_digest = self
+      .generator_options
+      .local_ident_hash_digest
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_digest_length = self
+      .generator_options
+      .local_ident_hash_digest_length
+      .map(|len| len as usize);
+    let local_ident_hash_function = self
+      .generator_options
+      .local_ident_hash_function
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_salt = self
+      .generator_options
+      .local_ident_hash_salt
+      .clone()
+      .map(Some)
+      .map(Into::into);
+
+    let local_ident = LocalIdentOptions::new(
+      resource_data,
+      self.local_ident_name(),
+      compiler_options,
+      local_ident_hash_digest.as_ref(),
+      local_ident_hash_digest_length,
+      local_ident_hash_function.as_ref(),
+      local_ident_hash_salt.as_ref(),
+    )
+    .get_local_ident(name)
+    .await?;
     let convention = self.convention();
     let exports = css_exports.get_or_insert_default();
     let convention_names = export_locals_convention(name, convention);

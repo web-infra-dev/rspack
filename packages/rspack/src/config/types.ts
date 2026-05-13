@@ -1372,6 +1372,14 @@ export type CssGeneratorLocalIdentName = string;
 
 export type CssGeneratorEsModule = boolean;
 
+export type CssGeneratorLocalIdentHashDigest = string;
+
+export type CssGeneratorLocalIdentHashDigestLength = number;
+
+export type CssGeneratorLocalIdentHashFunction = string;
+
+export type CssGeneratorLocalIdentHashSalt = string;
+
 /** Generator options for css modules. */
 export type CssGeneratorOptions = {
   /**
@@ -1397,6 +1405,26 @@ export type CssModuleGeneratorOptions = {
    * If false, generate stylesheets and embed them in the template.
    */
   exportsOnly?: CssGeneratorExportsOnly;
+
+  /**
+   * Digest types used for the hash.
+   */
+  localIdentHashDigest?: CssGeneratorLocalIdentHashDigest;
+
+  /**
+   * Number of chars which are used for the hash.
+   */
+  localIdentHashDigestLength?: CssGeneratorLocalIdentHashDigestLength;
+
+  /**
+   * Algorithm used for generation the hash.
+   */
+  localIdentHashFunction?: CssGeneratorLocalIdentHashFunction;
+
+  /**
+   * Any string which is added to the hash to salt it.
+   */
+  localIdentHashSalt?: CssGeneratorLocalIdentHashSalt;
 
   /** Customize the format of the local class names generated for CSS modules */
   localIdentName?: CssGeneratorLocalIdentName;

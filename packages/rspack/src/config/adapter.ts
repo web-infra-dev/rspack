@@ -794,6 +794,10 @@ function getRawCssAutoOrModuleGeneratorOptions(
 ): RawCssModuleGeneratorOptions {
   return {
     localIdentName: options.localIdentName,
+    localIdentHashDigest: options.localIdentHashDigest,
+    localIdentHashDigestLength: options.localIdentHashDigestLength,
+    localIdentHashFunction: options.localIdentHashFunction,
+    localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
     esModule: options.esModule,

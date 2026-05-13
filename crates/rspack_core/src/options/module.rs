@@ -748,6 +748,10 @@ pub struct CssGeneratorOptions {
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<String>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<String>,
+  pub local_ident_hash_salt: Option<String>,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
 }
