@@ -22,6 +22,8 @@ pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
+  source: &'a str,
+  module_hash: &'a str,
   local_name_ident: &'a LocalIdentName,
   compiler_options: &'a CompilerOptions,
   local_ident_hash_digest: Option<&'a HashDigest>,
@@ -34,6 +36,8 @@ impl<'a> LocalIdentOptions<'a> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     resource_data: &ResourceData,
+    source: &'a str,
+    module_hash: &'a str,
     local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
     local_ident_hash_digest: Option<&'a HashDigest>,
@@ -45,6 +49,8 @@ impl<'a> LocalIdentOptions<'a> {
       make_paths_relative(&compiler_options.context, resource_data.resource());
     Self {
       relative_resource,
+      source,
+      module_hash,
       local_name_ident,
       compiler_options,
       local_ident_hash_digest,
@@ -72,17 +78,14 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(self.relative_resource.as_bytes());
       hasher.write(local.as_bytes());
       let hash = hasher.digest(hash_digest);
-      LEADING_DIGIT_REGEX
-        .replace(hash.rendered(hash_digest_length), "_${1}")
-        .into_owned()
+      hash.rendered(hash_digest_length).to_string()
     };
-    let module_hash = {
-      let mut hasher = RspackHash::with_salt(&output.hash_function, &output.hash_salt);
-      hasher.write(self.relative_resource.as_bytes());
-      let hash = hasher.digest(&output.hash_digest);
-      LEADING_DIGIT_REGEX
-        .replace(hash.rendered(output.hash_digest_length), "_${1}")
-        .into_owned()
+    let module_hash = { self.module_hash.to_string() };
+    let content_hash = {
+      let mut hasher = RspackHash::new(&HashFunction::MD4);
+      hasher.write(self.source.as_bytes());
+      let hash = hasher.digest(&HashDigest::Hex);
+      non_numeric_only_hash(hash.encoded(), 20)
     };
     let resource_path = self
       .relative_resource
@@ -109,6 +112,7 @@ impl<'a> LocalIdentOptions<'a> {
         .filename(&self.relative_resource)
         .chunk_name(&chunk_name)
         .hash(&module_hash)
+        .content_hash(&content_hash)
         .id(id.as_ref()),
       local,
       local_ident_hash: &local_ident_hash,
@@ -144,6 +148,25 @@ fn render_hash(hash: &str, len: Option<usize>, need_base64: bool) -> String {
     hash.to_string()
   };
   content[..len.unwrap_or(content.len()).min(content.len())].to_string()
+}
+
+fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
+  if hash_length < 1 {
+    return String::new();
+  }
+  let len = hash_length.min(hash.len());
+  let slice = &hash[..len];
+  if slice.bytes().any(|b| !b.is_ascii_digit()) {
+    return slice.to_string();
+  }
+  let first = hash
+    .as_bytes()
+    .first()
+    .copied()
+    .filter(u8::is_ascii_digit)
+    .map(|b| b - b'0')
+    .unwrap_or(0);
+  format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
 }
 
 impl LocalIdentNameRenderOptions<'_> {

@@ -1,25 +1,25 @@
 .btn-info_is-disabled {
-    color: blue;
+  color: blue;
 }
 
 .btn--info_is-disabled_1 {
-    color: blue;
+  color: blue;
 }
 
 .simple {
-    color: red;
+  color: red;
 }
 
 a {
-    color: yellow;
+  color: yellow;
 }
 
 :export {
-    foo: bar;
-    my-btn-info_is-disabled: value;
+  foo: bar;
+  my-btn-info_is-disabled: value;
 }
 
 .foo_bar {
-    --color-red: red;
-    color: var(--color-red);
+  --color-red: red;
+  color: var(--color-red);
 }

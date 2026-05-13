@@ -1,6 +1,10 @@
 const path = __non_webpack_require__("path");
 
 const getHashPrefix = (value, local) => value.slice(0, -`-${local}`.length);
+const getSnapshotPath = name => {
+  const suffix = typeof document === "undefined" ? "-node" : "";
+  return path.join(__SNAPSHOT__, name.replace(/\.txt$/, `${suffix}.txt`));
+};
 
 it("should have correct local ident for css export locals", async () => {
   const [
@@ -44,8 +48,8 @@ it("should have correct local ident for css export locals", async () => {
   );
 
   expect(idLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "id-local.txt"));
-  expect(hash).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "hash.txt"));
-  expect(hashLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "hash-local.txt"));
+  expect(hash).toMatchFileSnapshotSync(getSnapshotPath("hash.txt"));
+  expect(hashLocal).toMatchFileSnapshotSync(getSnapshotPath("hash-local.txt"));
   expect(fullhashLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "fullhash-local.txt"));
   expect(pathNameLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "path-name-local.txt"));
   expect(fileLocal).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "file-local.txt"));
@@ -53,8 +57,6 @@ it("should have correct local ident for css export locals", async () => {
   expect(uniqueNameIdContenthash).toMatchFileSnapshotSync(
     path.join(__SNAPSHOT__, "unique-name-id-contenthash.txt")
   );
-  expect(hashLocalCustom).toMatchFileSnapshotSync(
-    path.join(__SNAPSHOT__, "hash-local-custom.txt")
-  );
+  expect(hashLocalCustom).toMatchFileSnapshotSync(getSnapshotPath("hash-local-custom.txt"));
   expect(less).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, "less.txt"));
 });

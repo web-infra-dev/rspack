@@ -406,6 +406,9 @@ const applyModuleDefaults = (
         : '[id]-[local]'
       : '[fullhash]';
   D(module.generator['css/auto'], 'localIdentName', localIdentName);
+  D(module.generator['css/auto'], 'localIdentHashFunction', 'md4');
+  D(module.generator['css/auto'], 'localIdentHashDigest', 'base64url');
+  D(module.generator['css/auto'], 'localIdentHashDigestLength', 6);
 
   F(module.generator, 'css/module', () => ({}));
   assertNotNill(module.generator['css/module']);
@@ -414,6 +417,9 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/module'], 'exportsConvention', 'as-is');
   D(module.generator['css/module'], 'localIdentName', localIdentName);
+  D(module.generator['css/module'], 'localIdentHashFunction', 'md4');
+  D(module.generator['css/module'], 'localIdentHashDigest', 'base64url');
+  D(module.generator['css/module'], 'localIdentHashDigestLength', 6);
 
   F(module.generator, 'css/global', () => ({}));
   assertNotNill(module.generator['css/global']);
@@ -422,6 +428,9 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/global'], 'exportsConvention', 'as-is');
   D(module.generator['css/global'], 'localIdentName', localIdentName);
+  D(module.generator['css/global'], 'localIdentHashFunction', 'md4');
+  D(module.generator['css/global'], 'localIdentHashDigest', 'base64url');
+  D(module.generator['css/global'], 'localIdentHashDigestLength', 6);
 
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
