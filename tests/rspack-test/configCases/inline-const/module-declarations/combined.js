@@ -1,4 +1,4 @@
-import "./side-effect.js";
+import "./side-effect.js?combined";
 
 export * from "./re-export.js";
 export { named as renamed } from "./re-export.js";
