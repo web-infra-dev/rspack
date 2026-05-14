@@ -23,8 +23,17 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        if ! command -v rustup &> /dev/null ; then
-          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+        # The macos-latest runner image ships a Homebrew `rustup-init` and
+        # populates ~/.cargo/bin/{cargo,rustc,rustup,...} as symlinks to it.
+        # `rustup-init` is the installer, not the multi-call rustup binary,
+        # so `cargo test` ends up invoking the installer and fails with
+        # "unexpected argument 'test'". Detect a working rustup via
+        # `rustup show`; if it isn't, wipe the broken shim dir and install
+        # a real rustup. ~/.rustup/toolchains (the cached toolchain) is left
+        # untouched so the rustup-cache restore still hits.
+        if ! rustup show >/dev/null 2>&1 ; then
+          rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
+          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y --no-modify-path
           echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
         fi
 
