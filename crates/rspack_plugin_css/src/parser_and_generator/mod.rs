@@ -1004,6 +1004,8 @@ impl ParserAndGenerator for CssParserAndGenerator {
     if self.exports_only() {
       None
     } else {
+      // CSS Module cannot be concatenated as it must appear in css chunk, if it's
+      // concatenated, it will be removed from module graph
       Some("Module Concatenation is not implemented for CssParserAndGenerator".into())
     }
   }
