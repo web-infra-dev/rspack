@@ -34,7 +34,12 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        if ! command -v rustup &> /dev/null ; then
+        # Probe cargo, not rustup: macos-latest also ships a working
+        # /opt/homebrew/bin/rustup alongside the broken ~/.cargo/bin shim,
+        # so `command -v rustup` would skip install even after the wipe
+        # above. cargo is what we actually need — and what gets re-created
+        # by the installer's proxy hardlinks.
+        if ! command -v cargo &> /dev/null ; then
           curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
           echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
         fi
