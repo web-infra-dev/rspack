@@ -89,7 +89,7 @@ fn emit_isolated_dts_asset(
     })?;
   let declaration_file_path = resolved_declaration_dir
     .join(output_relative_path)
-    .with_extension("d.ts");
+    .with_extension(declaration_extension(&resource_path));
   let filename = diff_paths(
     declaration_file_path.as_std_path(),
     output_path.as_std_path(),
@@ -116,6 +116,14 @@ fn emit_isolated_dts_asset(
   );
 
   Ok(())
+}
+
+fn declaration_extension(resource_path: &Utf8Path) -> &'static str {
+  match resource_path.extension() {
+    Some("mts") => "d.mts",
+    Some("cts") => "d.cts",
+    _ => "d.ts",
+  }
 }
 
 fn resolve_emit_dts_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {

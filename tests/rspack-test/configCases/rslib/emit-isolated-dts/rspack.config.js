@@ -15,7 +15,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.[cm]?ts$/,
         type: 'javascript/auto',
         use: {
           loader: 'builtin:swc-loader',

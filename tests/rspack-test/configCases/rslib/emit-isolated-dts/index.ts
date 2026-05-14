@@ -5,6 +5,8 @@ export interface Foo {
 export type { Foo as TypeOnlyFoo } from "./types/foo";
 export type { Foo as AliasFoo } from "@/foo";
 export type { MixedFoo as AliasMixedFoo } from "@/mixed";
+import { mtsValue } from "./module.mts";
+export { mtsValue };
 
 export const foo: Foo = { value: "bar" };
 
@@ -21,6 +23,7 @@ it("should emit declaration assets only through RslibPlugin", () => {
   );
 
   expect(foo).toEqual({ value: "bar" });
+  expect(mtsValue).toEqual({ module: "mts" });
   expect(dts).toContain("export interface Foo");
   expect(dts).toContain("export type { Foo as TypeOnlyFoo }");
   expect(dts).toContain("./types/foo");
@@ -63,4 +66,16 @@ it("should emit declaration assets only through RslibPlugin", () => {
   expect(aliasMixedDts).toContain("export type MixedFoo");
   expect(aliasMixedDts).toContain("mixed: string");
   expect(aliasMixedDts).toContain("export declare const mixedValue");
+
+  const mtsDts = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../../configCases/rslib/emit-isolated-dts/dist/types/module.d.mts",
+    ),
+    "utf-8",
+  );
+
+  expect(mtsDts).toContain("export type MtsFoo");
+  expect(mtsDts).toContain('module: "mts"');
+  expect(mtsDts).toContain("export declare const mtsValue");
 });
