@@ -17,6 +17,7 @@ it("should have correct local ident for css export locals", async () => {
     queryFragment,
     uniqueNameIdContenthash,
     hashLocalCustom,
+    fastPathCustomLength,
     less
   ] = await Promise.all([
     import("./style.module.css"),

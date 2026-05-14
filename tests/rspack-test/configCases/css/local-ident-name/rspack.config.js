@@ -16,20 +16,36 @@ const common = {
         type: 'css/auto',
         oneOf: [
           {
+            test: /fast-path\.module\.css$/,
+            generator: {
+              localIdentHashDigestLength: 8,
+              localIdentName: '[hash]-[local]',
+            },
+          },
+          {
             resourceQuery: /\?hash$/,
             generator: {
+              localIdentHashDigest: 'hex',
+              localIdentHashDigestLength: 20,
+              localIdentHashFunction: 'md4',
               localIdentName: '[hash]',
             },
           },
           {
             resourceQuery: /\?hash-local$/,
             generator: {
+              localIdentHashDigest: 'hex',
+              localIdentHashDigestLength: 20,
+              localIdentHashFunction: 'md4',
               localIdentName: '[hash]-[local]',
             },
           },
           {
             resourceQuery: /\?fullhash-local$/,
             generator: {
+              localIdentHashDigest: 'base64url',
+              localIdentHashDigestLength: 6,
+              localIdentHashFunction: 'md4',
               localIdentName: '[fullhash]-[local]',
             },
           },
@@ -61,9 +77,9 @@ const common = {
           {
             resourceQuery: /\?hash-local-custom$/,
             generator: {
-              localIdentHashSalt: 'salt',
-              localIdentHashDigest: 'base26',
-              localIdentHashDigestLength: 16,
+              localIdentHashDigest: 'hex',
+              localIdentHashDigestLength: 20,
+              localIdentHashFunction: 'md4',
               localIdentName: '[hash]-[local]',
             },
           },

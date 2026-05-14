@@ -39,6 +39,7 @@ import type {
   InfrastructureLogging,
   JavascriptParserOptions,
   JsonGeneratorOptions,
+  HashFunction,
   Library,
   LibraryOptions,
   Loader,
@@ -112,6 +113,8 @@ export const applyRspackOptionsDefaults = (
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
     outputModule: options.output.module,
+    hashFunction: options.output.hashFunction ?? 'xxhash64',
+    hashSalt: options.output.hashSalt,
   });
 
   applyOutputDefaults(options, {
@@ -330,6 +333,8 @@ const applyModuleDefaults = (
     uniqueName,
     deferImport,
     outputModule,
+    hashFunction,
+    hashSalt,
   }: {
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
@@ -337,6 +342,8 @@ const applyModuleDefaults = (
     uniqueName?: string;
     deferImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
+    hashFunction: HashFunction;
+    hashSalt?: RspackOptionsNormalized['output']['hashSalt'];
   },
 ) => {
   assertNotNill(module.parser);
@@ -406,7 +413,8 @@ const applyModuleDefaults = (
         : '[id]-[local]'
       : '[fullhash]';
   D(module.generator['css/auto'], 'localIdentName', localIdentName);
-  D(module.generator['css/auto'], 'localIdentHashFunction', 'md4');
+  D(module.generator['css/auto'], 'localIdentHashSalt', hashSalt);
+  D(module.generator['css/auto'], 'localIdentHashFunction', hashFunction);
   D(module.generator['css/auto'], 'localIdentHashDigest', 'base64url');
   D(module.generator['css/auto'], 'localIdentHashDigestLength', 6);
 
@@ -417,7 +425,8 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/module'], 'exportsConvention', 'as-is');
   D(module.generator['css/module'], 'localIdentName', localIdentName);
-  D(module.generator['css/module'], 'localIdentHashFunction', 'md4');
+  D(module.generator['css/module'], 'localIdentHashSalt', hashSalt);
+  D(module.generator['css/module'], 'localIdentHashFunction', hashFunction);
   D(module.generator['css/module'], 'localIdentHashDigest', 'base64url');
   D(module.generator['css/module'], 'localIdentHashDigestLength', 6);
 
@@ -428,7 +437,8 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/global'], 'exportsConvention', 'as-is');
   D(module.generator['css/global'], 'localIdentName', localIdentName);
-  D(module.generator['css/global'], 'localIdentHashFunction', 'md4');
+  D(module.generator['css/global'], 'localIdentHashSalt', hashSalt);
+  D(module.generator['css/global'], 'localIdentHashFunction', hashFunction);
   D(module.generator['css/global'], 'localIdentHashDigest', 'base64url');
   D(module.generator['css/global'], 'localIdentHashDigestLength', 6);
 

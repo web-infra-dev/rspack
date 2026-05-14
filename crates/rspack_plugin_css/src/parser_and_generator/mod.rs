@@ -162,33 +162,50 @@ impl CssParserAndGenerator {
       .local_ident_name
       .as_ref()
       .map(|local_ident_name| local_ident_name.template.as_str());
-    let should_use_resource_hash = local_ident_name.is_some_and(|local_ident_name| {
-      (local_ident_name.contains("[hash") || local_ident_name.contains("[fullhash"))
-        && !relative_resource.contains(['?', '#'])
-    }) && self.generator_options.local_ident_hash_salt.is_none();
-    if should_use_resource_hash {
-      let mut hasher = RspackHash::with_salt(
-        &compiler_options.output.hash_function,
-        &compiler_options.output.hash_salt,
-      );
-      hasher.write(relative_resource.as_bytes());
-      let hash = hasher
-        .digest(&compiler_options.output.hash_digest)
-        .rendered(compiler_options.output.hash_digest_length)
-        .to_string();
-      return LEADING_DIGIT_REGEX.replace(&hash, "_${1}").into_owned();
-    }
-
+    let local_ident_hash_digest = self
+      .generator_options
+      .local_ident_hash_digest
+      .as_deref()
+      .map(Into::into);
+    let local_ident_hash_digest_length = self
+      .generator_options
+      .local_ident_hash_digest_length
+      .map(|len| len as usize);
     let local_ident_hash_function = self
       .generator_options
       .local_ident_hash_function
       .as_deref()
       .map(Into::into);
+    let local_ident_hash_salt = self
+      .generator_options
+      .local_ident_hash_salt
+      .clone()
+      .map(Some)
+      .map(Into::into);
     let hash_function = local_ident_hash_function
       .as_ref()
       .unwrap_or(&compiler_options.output.hash_function);
-    let hash_digest = &HashDigest::Hex;
-    let hash_digest_length = 20;
+    let hash_salt = local_ident_hash_salt
+      .as_ref()
+      .unwrap_or(&compiler_options.output.hash_salt);
+    let hash_digest = local_ident_hash_digest
+      .as_ref()
+      .unwrap_or(&compiler_options.output.hash_digest);
+    let hash_digest_length =
+      local_ident_hash_digest_length.unwrap_or(compiler_options.output.hash_digest_length);
+    let should_use_resource_hash = local_ident_name.is_some_and(|local_ident_name| {
+      (local_ident_name.contains("[hash") || local_ident_name.contains("[fullhash"))
+        && !relative_resource.contains(['?', '#'])
+    });
+    if should_use_resource_hash {
+      let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+      hasher.write(relative_resource.as_bytes());
+      let hash = hasher
+        .digest(hash_digest)
+        .rendered(hash_digest_length)
+        .to_string();
+      return LEADING_DIGIT_REGEX.replace(&hash, "_${1}").into_owned();
+    }
 
     let build_hash = {
       let mut hasher = RspackHash::new(hash_function);
@@ -216,7 +233,7 @@ impl CssParserAndGenerator {
       hasher.digest(&HashDigest::Hex).encoded().to_string()
     };
 
-    let mut hasher = RspackHash::new(hash_function);
+    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
     hasher.write(build_hash.as_bytes());
     if self.exports_only() {
       hasher.write(b"javascript");

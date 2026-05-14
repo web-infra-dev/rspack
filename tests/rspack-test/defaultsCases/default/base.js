@@ -216,7 +216,8 @@ module.exports = {
 			        exportsOnly: false,
 			        localIdentHashDigest: base64url,
 			        localIdentHashDigestLength: 6,
-			        localIdentHashFunction: md4,
+			        localIdentHashFunction: xxhash64,
+			        localIdentHashSalt: undefined,
 			        localIdentName: [fullhash],
 			      },
 			      css/global: Object {
@@ -225,7 +226,8 @@ module.exports = {
 			        exportsOnly: false,
 			        localIdentHashDigest: base64url,
 			        localIdentHashDigestLength: 6,
-			        localIdentHashFunction: md4,
+			        localIdentHashFunction: xxhash64,
+			        localIdentHashSalt: undefined,
 			        localIdentName: [fullhash],
 			      },
 			      css/module: Object {
@@ -234,7 +236,8 @@ module.exports = {
 			        exportsOnly: false,
 			        localIdentHashDigest: base64url,
 			        localIdentHashDigestLength: 6,
-			        localIdentHashFunction: md4,
+			        localIdentHashFunction: xxhash64,
+			        localIdentHashSalt: undefined,
 			        localIdentName: [fullhash],
 			      },
 			      json: Object {
