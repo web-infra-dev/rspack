@@ -7,10 +7,10 @@ use once_cell::sync::OnceCell;
 use regex::Regex;
 use rspack_core::{
   BoxDependencyTemplate, BoxLoader, BoxModuleDependency, BuildInfo, BuildMeta,
-  BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ConstDependency,
+  BuildMetaDefaultObject, BuildMetaExportsType, CompilerOptions, ConstDependency, CssExportType,
   CssExportsConvention, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport,
   CssParserImportContext, Dependency, DependencyRange, LocalIdentName, ModuleType, ParseContext,
-  ParseResult, ResourceData,
+  ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, Source},
@@ -148,6 +148,7 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
       self.handle_dependency(dependency, &module_hash).await?;
     }
     self.handle_warnings(warnings);
+    self.add_static_exports_dependency();
 
     self.build_info.css_exports = self.css_exports.take();
     self.build_info.css_local_names = self.css_local_names.take();
@@ -241,6 +242,10 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
 
   fn dashed_idents(&self) -> bool {
     self.parser_options.dashed_idents.unwrap_or(true)
+  }
+
+  fn export_type(&self) -> Option<CssExportType> {
+    self.generator_options.export_type
   }
 
   fn mode(module_type: &ModuleType, resource_path: Option<&str>) -> css_module_lexer::Mode {
@@ -780,6 +785,20 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
         },
       );
       self.diagnostics.push(error.into());
+    }
+  }
+
+  fn add_static_exports_dependency(&mut self) {
+    if matches!(
+      self.export_type(),
+      Some(CssExportType::Text | CssExportType::CssStyleSheet)
+    ) {
+      self
+        .dependencies
+        .push(Box::new(StaticExportsDependency::new(
+          StaticExportsSpec::Array(vec!["default".into()]),
+          false,
+        )));
     }
   }
 
