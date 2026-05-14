@@ -19,27 +19,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Wipe broken rustup shim on macOS
-      if: runner.os == 'macOS'
-      shell: bash
-      # The macos-latest runner image ships Homebrew's rustup-init (just the
-      # installer) and symlinks ~/.cargo/bin/{cargo,rustc,rustup,...} to it.
-      # That installer doesn't proxy cargo/rustc, so `cargo test` dies with
-      # "unexpected argument 'test'". Nuke the shim dir so the installer
-      # below lays down a real rustup with working proxies. ~/.rustup/
-      # toolchains is untouched, so the rustup-cache restore still hits.
-      run: rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
-
     - name: Install rustup, if needed
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        # Probe cargo, not rustup: macos-latest also ships a working
-        # /opt/homebrew/bin/rustup alongside the broken ~/.cargo/bin shim,
-        # so `command -v rustup` would skip install even after the wipe
-        # above. cargo is what we actually need — and what gets re-created
-        # by the installer's proxy hardlinks.
-        if ! command -v cargo &> /dev/null ; then
+        if ! command -v rustup &> /dev/null ; then
           curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
           echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
         fi
@@ -83,3 +67,18 @@ runs:
       with:
         key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if == 'true' }}
+
+    - name: Refresh rustup proxies on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      # macos-latest images symlink ~/.cargo/bin/{cargo,rustc,rustup,...} to
+      # Homebrew's rustup-init (installer-only, no cargo/rustc proxy). The
+      # Swatinem cargo cache also captures ~/.cargo/bin, so even if we
+      # wiped earlier the broken shims come back on restore. Wipe + curl
+      # install AFTER the cargo cache restore so the proxies are real for
+      # the rest of the job. ~/.rustup/toolchains is untouched, and the
+      # post-step save will then cache the fixed ~/.cargo/bin going forward.
+      run: |
+        rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
+        curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+        echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
