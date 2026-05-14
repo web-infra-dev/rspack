@@ -36,7 +36,11 @@ use swc_core::{
       Syntax, TsSyntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
       parse_file_as_script,
     },
-    transforms::base::helpers::{self, Helpers},
+    transforms::base::{
+      helpers::{self, Helpers},
+      resolver,
+    },
+    visit::VisitMutWith,
   },
 };
 use swc_error_reporters::handler::try_with_handler;
@@ -136,6 +140,53 @@ impl JavaScriptCompiler {
       };
 
       Ok(IsolatedDtsTransformOutput { code, diagnostics })
+    })
+  }
+
+  /// Generate isolated declaration output from a source string for callers that
+  /// are outside the normal loader transform path.
+  pub fn emit_isolated_dts_from_source(
+    &self,
+    source: String,
+    filename: Arc<FileName>,
+    syntax: Syntax,
+    target: EsVersion,
+  ) -> Result<IsolatedDtsTransformOutput> {
+    self.run(|| {
+      let comments = SingleThreadedComments::default();
+      let fm = self.cm.new_source_file(filename.clone(), source);
+      let unresolved_mark = Mark::new();
+      let top_level_mark = Mark::new();
+      let is_typescript = syntax.typescript();
+      let mut program = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+        let mut had_error = false;
+        let mut errors = vec![];
+        let program = parse_file_as_program(&fm, syntax, target, Some(&comments), &mut errors);
+
+        for error in errors {
+          error.into_diagnostic(handler).emit();
+          had_error = true;
+        }
+
+        let program = program.map_err(|error| {
+          error.into_diagnostic(handler).emit();
+          anyhow::Error::msg("Syntax Error")
+        })?;
+
+        if had_error {
+          bail!("Syntax Error");
+        }
+
+        Ok(program)
+      })
+      .map_err(|error| error.to_pretty_error())?;
+      program.visit_mut_with(&mut resolver(
+        unresolved_mark,
+        top_level_mark,
+        is_typescript,
+      ));
+
+      self.emit_isolated_dts(&program, filename, unresolved_mark, target, &comments)
     })
   }
 }

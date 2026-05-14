@@ -1,0 +1,311 @@
+use std::{
+  collections::{HashSet, VecDeque},
+  sync::Arc,
+};
+
+use rspack_core::{
+  Compilation, DependencyCategory, IsolatedDts, Resolve, ResolveDependencies,
+  ResolveOptionsWithDependencyType, ResolveResult, TsconfigOptions, TsconfigReferences,
+};
+use rspack_error::{Result, error};
+use rspack_javascript_compiler::JavaScriptCompiler;
+use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::node_path::NodePath;
+use swc_core::{
+  common::{FileName, SourceMap, comments::SingleThreadedComments},
+  ecma::{
+    ast::{EsVersion, ExportAll, ImportDecl, NamedExport, TsExternalModuleRef, TsImportType},
+    parser::{Syntax, TsSyntax, parse_file_as_module},
+    visit::{Visit, VisitWith},
+  },
+};
+
+use crate::plugin::SwcEmitDtsOptions;
+
+pub(crate) async fn complete_isolated_dts_outputs(
+  compilation: &mut Compilation,
+  options: &SwcEmitDtsOptions,
+  roots: Vec<IsolatedDts>,
+) -> Result<Vec<IsolatedDts>> {
+  if roots.is_empty() {
+    return Ok(roots);
+  }
+
+  let compiler_root = compilation.options.context.as_path().to_path_buf();
+  let root_dir = resolve_path(&compiler_root, &options.root_dir);
+  let fs = compilation.input_filesystem.clone();
+  let tsconfig = default_tsconfig_options(compilation, &compiler_root, &fs).await;
+  let resolver = compilation
+    .resolver_factory
+    .get(ResolveOptionsWithDependencyType {
+      resolve_options: Some(Box::new(type_resolve_options(tsconfig))),
+      resolve_to_context: false,
+      dependency_category: DependencyCategory::Esm,
+    });
+  let javascript_compiler = JavaScriptCompiler::new();
+
+  let mut outputs = Vec::with_capacity(roots.len());
+  let mut queue = VecDeque::with_capacity(roots.len());
+  let mut seen: HashSet<Utf8PathBuf> = HashSet::default();
+
+  for dts in roots {
+    let resource_path = resolve_path(&compiler_root, &dts.resource_path);
+    seen.insert(resource_path);
+    queue.push_back(dts.clone());
+    outputs.push(dts);
+  }
+
+  while let Some(dts) = queue.pop_front() {
+    let issuer = resolve_path(&compiler_root, &dts.resource_path);
+    let issuer_dir = issuer.parent().unwrap_or(compiler_root.as_path());
+    let references = collect_dts_references(&issuer, &dts.code)?;
+
+    for request in references {
+      let (result, resolve_dependencies) = resolver
+        .resolve_with_context(issuer_dir.as_std_path(), &request)
+        .await;
+      add_resolve_dependencies(compilation, resolve_dependencies);
+      let Ok(ResolveResult::Resource(resource)) = result else {
+        continue;
+      };
+
+      let resource_path = resource.path.node_normalize();
+      if !is_supported_ts_source(&resource_path) || !resource_path.starts_with(&root_dir) {
+        continue;
+      }
+
+      compilation
+        .file_dependencies
+        .insert(resource_path.clone().into_std_path_buf().into());
+
+      if !seen.insert(resource_path.clone()) {
+        continue;
+      }
+
+      let source = fs.read_to_string(&resource_path).await?;
+      let dts_output = javascript_compiler.emit_isolated_dts_from_source(
+        source,
+        Arc::new(FileName::Real(resource_path.clone().into_std_path_buf())),
+        source_syntax(&resource_path),
+        EsVersion::EsNext,
+      )?;
+      handle_isolated_dts_diagnostics(&resource_path, dts_output.diagnostics)?;
+
+      let dts = IsolatedDts {
+        resource_path: resource_path.as_str().to_string(),
+        code: dts_output.code,
+      };
+      queue.push_back(dts.clone());
+      outputs.push(dts);
+    }
+  }
+
+  Ok(outputs)
+}
+
+fn resolve_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
+  let path = Utf8Path::new(value);
+  if path.is_absolute() {
+    path.to_path_buf().node_normalize()
+  } else {
+    base.node_join(path).node_normalize()
+  }
+}
+
+fn add_resolve_dependencies(
+  compilation: &mut Compilation,
+  resolve_dependencies: ResolveDependencies,
+) {
+  compilation
+    .file_dependencies
+    .extend(resolve_dependencies.file_dependencies);
+  compilation
+    .missing_dependencies
+    .extend(resolve_dependencies.missing_dependencies);
+}
+
+async fn default_tsconfig_options(
+  compilation: &mut Compilation,
+  compiler_root: &Utf8Path,
+  fs: &Arc<dyn rspack_fs::ReadableFileSystem>,
+) -> Option<TsconfigOptions> {
+  if compilation.options.resolve.tsconfig.is_some() {
+    return None;
+  }
+
+  let tsconfig = compiler_root.node_join("tsconfig.json");
+  match fs.metadata(&tsconfig).await {
+    Ok(metadata) if metadata.is_file => {
+      compilation
+        .file_dependencies
+        .insert(tsconfig.clone().into_std_path_buf().into());
+      Some(TsconfigOptions {
+        config_file: tsconfig,
+        references: TsconfigReferences::Disabled,
+      })
+    }
+    _ => {
+      compilation
+        .missing_dependencies
+        .insert(tsconfig.into_std_path_buf().into());
+      None
+    }
+  }
+}
+
+fn type_resolve_options(tsconfig: Option<TsconfigOptions>) -> Resolve {
+  Resolve {
+    extensions: Some(vec![
+      ".ts".into(),
+      ".tsx".into(),
+      ".mts".into(),
+      ".cts".into(),
+      ".d.ts".into(),
+      ".d.mts".into(),
+      ".d.cts".into(),
+      "...".into(),
+    ]),
+    extension_alias: Some(vec![
+      (
+        ".js".into(),
+        vec![".ts".into(), ".tsx".into(), ".d.ts".into(), ".js".into()],
+      ),
+      (".jsx".into(), vec![".tsx".into(), ".jsx".into()]),
+      (
+        ".mjs".into(),
+        vec![".mts".into(), ".d.mts".into(), ".mjs".into()],
+      ),
+      (
+        ".cjs".into(),
+        vec![".cts".into(), ".d.cts".into(), ".cjs".into()],
+      ),
+    ]),
+    fully_specified: Some(false),
+    tsconfig,
+    ..Default::default()
+  }
+}
+
+fn collect_dts_references(resource_path: &Utf8Path, code: &str) -> Result<Vec<String>> {
+  let cm = Arc::<SourceMap>::default();
+  let comments = SingleThreadedComments::default();
+  let fm = cm.new_source_file(
+    Arc::new(FileName::Real(
+      resource_path.to_path_buf().into_std_path_buf(),
+    )),
+    code.to_string(),
+  );
+  let mut errors = Vec::new();
+  let module = parse_file_as_module(
+    &fm,
+    Syntax::Typescript(TsSyntax {
+      dts: true,
+      ..Default::default()
+    }),
+    EsVersion::EsNext,
+    Some(&comments),
+    &mut errors,
+  )
+  .map_err(|err| {
+    error!(
+      "Failed to parse generated declaration file for {}: {:?}",
+      resource_path, err
+    )
+  })?;
+
+  if let Some(error) = errors.into_iter().next() {
+    return Err(error!(
+      "Failed to parse generated declaration file for {}: {:?}",
+      resource_path, error
+    ));
+  }
+
+  let mut collector = DtsReferenceCollector::default();
+  module.visit_with(&mut collector);
+  Ok(collector.references)
+}
+
+#[derive(Default)]
+struct DtsReferenceCollector {
+  references: Vec<String>,
+  seen: HashSet<String>,
+}
+
+impl DtsReferenceCollector {
+  fn push(&mut self, value: impl Into<String>) {
+    let value = value.into();
+    if self.seen.insert(value.clone()) {
+      self.references.push(value);
+    }
+  }
+}
+
+impl Visit for DtsReferenceCollector {
+  fn visit_import_decl(&mut self, node: &ImportDecl) {
+    self.push(node.src.value.to_string_lossy().to_string());
+  }
+
+  fn visit_export_all(&mut self, node: &ExportAll) {
+    self.push(node.src.value.to_string_lossy().to_string());
+  }
+
+  fn visit_named_export(&mut self, node: &NamedExport) {
+    if let Some(src) = &node.src {
+      self.push(src.value.to_string_lossy().to_string());
+    }
+  }
+
+  fn visit_ts_import_type(&mut self, node: &TsImportType) {
+    // Matches inline import types, for example:
+    //   export type Foo = import("./foo").Foo;
+    self.push(node.arg.value.to_string_lossy().to_string());
+    node.visit_children_with(self);
+  }
+
+  fn visit_ts_external_module_ref(&mut self, node: &TsExternalModuleRef) {
+    // Matches TypeScript import-equals declarations, for example:
+    //   import Foo = require("./foo");
+    self.push(node.expr.value.to_string_lossy().to_string());
+  }
+}
+
+fn is_supported_ts_source(path: &Utf8Path) -> bool {
+  !is_declaration_file(path) && matches!(path.extension(), Some("ts" | "tsx" | "mts" | "cts"))
+}
+
+fn is_declaration_file(path: &Utf8Path) -> bool {
+  let path = path.as_str();
+  path.ends_with(".d.ts") || path.ends_with(".d.mts") || path.ends_with(".d.cts")
+}
+
+fn source_syntax(path: &Utf8Path) -> Syntax {
+  // Declaration completion only needs to parse TypeScript sources for fast dts.
+  // Keep this intentionally minimal instead of reusing swc-loader transform options.
+  Syntax::Typescript(TsSyntax {
+    tsx: matches!(path.extension(), Some("tsx")),
+    decorators: true,
+    disallow_ambiguous_jsx_like: matches!(path.extension(), Some("mts" | "cts")),
+    ..Default::default()
+  })
+}
+
+fn handle_isolated_dts_diagnostics(
+  resource_path: &Utf8Path,
+  diagnostics: Vec<String>,
+) -> Result<()> {
+  let mut diagnostics = diagnostics.into_iter();
+  let Some(first) = diagnostics.next() else {
+    return Ok(());
+  };
+  let remaining = diagnostics.collect::<Vec<_>>();
+  let help = if remaining.is_empty() {
+    String::new()
+  } else {
+    format!("\n{}", remaining.join("\n"))
+  };
+
+  Err(error!(
+    "Failed to generate declaration files for {}.\n{}{}",
+    resource_path, first, help
+  ))
+}

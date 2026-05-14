@@ -4827,6 +4827,7 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_hook",
+ "rspack_javascript_compiler",
  "rspack_paths",
  "rspack_plugin_asset",
  "rspack_plugin_externals",

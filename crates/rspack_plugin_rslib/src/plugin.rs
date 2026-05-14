@@ -31,6 +31,7 @@ use crate::{
     cutout_star_re_export_externals,
   },
   hashbang_parser_plugin::HashbangParserPlugin,
+  isolated_dts::complete_isolated_dts_outputs,
   parser_plugin::RslibParserPlugin,
   react_directives_parser_plugin::ReactDirectivesParserPlugin,
 };
@@ -328,6 +329,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     .modules()
     .filter_map(|(_, module)| module.build_info().isolated_dts.clone())
     .collect::<Vec<_>>();
+  let dts_outputs = complete_isolated_dts_outputs(compilation, options, dts_outputs).await?;
 
   for dts in dts_outputs {
     emit_isolated_dts_asset(compilation, options, dts)?;
