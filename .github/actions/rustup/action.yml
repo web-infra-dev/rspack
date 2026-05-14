@@ -27,7 +27,7 @@ runs:
         # ~/.cargo/bin/* to it; that installer doesn't proxy cargo/rustc, so
         # `cargo test` dies with "unexpected argument 'test'". Wipe the shim
         # dir only when rustup actually resolves to rustup-init.
-        [[ "$(readlink -f "${CARGO_HOME:-$HOME/.cargo}/bin/rustup" 2>/dev/null)" == */rustup-init ]] && rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
+        [[ "$(realpath "${CARGO_HOME:-$HOME/.cargo}/bin/rustup" 2>/dev/null)" == */rustup-init ]] && rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
         if ! command -v rustup &> /dev/null ; then
           curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y --no-modify-path
           echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
