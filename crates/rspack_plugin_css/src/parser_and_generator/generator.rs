@@ -315,7 +315,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         _ => Cow::Borrowed(key),
       };
 
-      let mut content = String::new();
+      stringified_exports.push_str("  ");
+      stringified_exports.push_str(&json_stringify_str(&used_name));
+      stringified_exports.push_str(": ");
+
+      let mut is_first = true;
       for CssExport {
         ident,
         from,
@@ -323,12 +327,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         orig_name: _,
       } in elements
       {
-        if !content.is_empty() {
-          content.push_str(" + \" \" + ");
+        if is_first {
+          is_first = false;
+        } else {
+          stringified_exports.push_str(" + \" \" + ");
         }
 
         match from {
-          None => content.push_str(&json_stringify_str(ident)),
+          None => stringified_exports.push_str(&json_stringify_str(ident)),
           Some(from_name) => {
             let from = module
               .get_dependencies()
@@ -364,25 +370,21 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
               ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
                 .expect("should have module"),
             );
-            content.push_str(
+            stringified_exports.push_str(
               &self
                 .generate_context
                 .runtime_template
                 .render_runtime_globals(&RuntimeGlobals::REQUIRE),
             );
-            content.push('(');
-            content.push_str(&from);
-            content.push_str(")[");
-            content.push_str(&from_used_name);
-            content.push(']');
+            stringified_exports.push('(');
+            stringified_exports.push_str(&from);
+            stringified_exports.push_str(")[");
+            stringified_exports.push_str(&from_used_name);
+            stringified_exports.push(']');
           }
         }
       }
 
-      stringified_exports.push_str("  ");
-      stringified_exports.push_str(&json_stringify_str(&used_name));
-      stringified_exports.push_str(": ");
-      stringified_exports.push_str(&content);
       stringified_exports.push_str(",\n");
     }
 
