@@ -43,15 +43,14 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
-  EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  CompilerPlatform, Context, CrossOriginLoading, CssExportsConvention, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserOptions,
+  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments,
+  ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1775,7 +1774,7 @@ impl ModuleOptionsBuilder {
       });
       parser.insert("css".to_string(), css_parser_options);
 
-      let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
+      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
@@ -1788,6 +1787,13 @@ impl ModuleOptionsBuilder {
         url: Some(true),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
+
+      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
+        named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
+        url: Some(true),
+      });
+      parser.insert("css/global".to_string(), css_global_parser_options);
 
       // CSS generator options
       let exports_only = !target_properties.document();
@@ -1802,7 +1808,7 @@ impl ModuleOptionsBuilder {
 
       generator.insert(
         "css/auto".to_string(),
-        GeneratorOptions::CssAuto(CssAutoGeneratorOptions {
+        GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
@@ -1813,6 +1819,16 @@ impl ModuleOptionsBuilder {
 
       generator.insert(
         "css/module".to_string(),
+        GeneratorOptions::CssModule(CssModuleGeneratorOptions {
+          exports_only: Some(exports_only),
+          exports_convention: Some(CssExportsConvention::default()),
+          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+          es_module: Some(true),
+        }),
+      );
+
+      generator.insert(
+        "css/global".to_string(),
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),

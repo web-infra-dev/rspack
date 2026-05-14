@@ -364,6 +364,11 @@ const applyModuleDefaults = (
   D(module.parser['css/auto'], 'namedExports', true);
   D(module.parser['css/auto'], 'url', true);
 
+  F(module.parser, 'css/global', () => ({}));
+  assertNotNill(module.parser['css/global']);
+  D(module.parser['css/global'], 'namedExports', true);
+  D(module.parser['css/global'], 'url', true);
+
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
   D(module.parser['css/module'], 'namedExports', true);
@@ -396,6 +401,15 @@ const applyModuleDefaults = (
   });
   D(module.generator['css/module'], 'exportsConvention', 'as-is');
   D(module.generator['css/module'], 'localIdentName', localIdentName);
+
+  F(module.generator, 'css/global', () => ({}));
+  assertNotNill(module.generator['css/global']);
+  applyCssGeneratorOptionsDefaults(module.generator['css/global'], {
+    targetProperties,
+  });
+  D(module.generator['css/global'], 'exportsConvention', 'as-is');
+  D(module.generator['css/global'], 'localIdentName', localIdentName);
+
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
     const esm = {

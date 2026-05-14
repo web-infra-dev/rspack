@@ -9,14 +9,13 @@ use winnow::prelude::*;
 
 use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
-  CompilerOptions, Context, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, Dependency, DependencyCategory,
-  DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, ResourceData,
-  ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
+  CompilerOptions, Context, CssModuleGeneratorOptions, CssModuleParserOptions, Dependency,
+  DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  NormalModule, ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
+  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
   diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
   stringify_loaders_and_resource,
 };
@@ -109,6 +108,7 @@ fn create_global_parser_options_cache(
     ModuleType::JsDynamic,
     ModuleType::JsEsm,
     ModuleType::CssAuto,
+    ModuleType::CssGlobal,
     ModuleType::CssModule,
   ] {
     if let Some(options) = resolve_global_parser_options(parser_options, &module_type) {
@@ -141,19 +141,18 @@ fn resolve_global_parser_options(
         },
       )
     }
-    ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
-      parser_options.get("css").cloned(),
-      options,
-      |css_options, options| match (css_options, options) {
-        (ParserOptions::Css(a), ParserOptions::CssAuto(b)) => {
-          ParserOptions::CssAuto(Into::<CssAutoParserOptions>::into(a).merge_from(b))
-        }
-        (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
-          ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(a).merge_from(b))
-        }
-        _ => unreachable!(),
-      },
-    ),
+    ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule => {
+      rspack_util::merge_from_optional_with(
+        parser_options.get("css").cloned(),
+        options,
+        |css_options, options| match (css_options, options) {
+          (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
+            ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(&a).merge_from(b))
+          }
+          _ => unreachable!(),
+        },
+      )
+    }
     _ => options.cloned(),
   }
 }
@@ -171,9 +170,6 @@ fn merge_parser_options_with_local(
         ParserOptions::Asset(a.clone().merge_from(b))
       }
       (ParserOptions::Css(a), ParserOptions::Css(b)) => ParserOptions::Css(a.clone().merge_from(b)),
-      (ParserOptions::CssAuto(a), ParserOptions::CssAuto(b)) => {
-        ParserOptions::CssAuto(a.clone().merge_from(b))
-      }
       (ParserOptions::CssModule(a), ParserOptions::CssModule(b)) => {
         ParserOptions::CssModule(a.clone().merge_from(b))
       }
@@ -937,19 +933,20 @@ module.exports = "data:,";
             },
           )
         }
-        ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
-          g.get("css").cloned(),
-          options,
-          |css_options, options| match (css_options, options) {
-            (GeneratorOptions::Css(a), GeneratorOptions::CssAuto(b)) => {
-              GeneratorOptions::CssAuto(Into::<CssAutoGeneratorOptions>::into(a).merge_from(b))
-            }
-            (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
-              GeneratorOptions::CssModule(Into::<CssModuleGeneratorOptions>::into(a).merge_from(b))
-            }
-            _ => unreachable!(),
-          },
-        ),
+        ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule => {
+          rspack_util::merge_from_optional_with(
+            g.get("css").cloned(),
+            options,
+            |css_options, options| match (css_options, options) {
+              (GeneratorOptions::Css(a), GeneratorOptions::CssModule(b)) => {
+                GeneratorOptions::CssModule(
+                  Into::<CssModuleGeneratorOptions>::into(&a).merge_from(b),
+                )
+              }
+              _ => unreachable!(),
+            },
+          )
+        }
         ModuleType::Json => rspack_util::merge_from_optional_with(
           g.get("json").cloned(),
           options,
@@ -972,7 +969,6 @@ module.exports = "data:,";
         | (GeneratorOptions::AssetInline(_), GeneratorOptions::AssetInline(_))
         | (GeneratorOptions::AssetResource(_), GeneratorOptions::AssetResource(_))
         | (GeneratorOptions::Css(_), GeneratorOptions::Css(_))
-        | (GeneratorOptions::CssAuto(_), GeneratorOptions::CssAuto(_))
         | (GeneratorOptions::CssModule(_), GeneratorOptions::CssModule(_))
         | (GeneratorOptions::Json(_), GeneratorOptions::Json(_)) => global.merge_from(local),
         _ => global,

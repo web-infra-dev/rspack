@@ -216,6 +216,12 @@ module.exports = {
 			        exportsOnly: false,
 			        localIdentName: [fullhash],
 			      },
+			      css/global: Object {
+			        esModule: true,
+			        exportsConvention: as-is,
+			        exportsOnly: false,
+			        localIdentName: [fullhash],
+			      },
 			      css/module: Object {
 			        esModule: true,
 			        exportsConvention: as-is,
@@ -238,6 +244,10 @@ module.exports = {
 			        url: true,
 			      },
 			      css/auto: Object {
+			        namedExports: true,
+			        url: true,
+			      },
+			      css/global: Object {
 			        namedExports: true,
 			        url: true,
 			      },

@@ -2,7 +2,7 @@
 description: 'Use CSS with Rspack, covering setup, configuration, integration details, and framework-specific development patterns.'
 ---
 
-import { PackageManagerTabs } from '@theme';
+import { PackageManagerTabs, Tabs, Tab } from '@theme';
 
 # CSS
 
@@ -14,11 +14,93 @@ You can choose from the following options:
 
 ### Built-in CSS support
 
-Rspack supports the following three CSS module types which you can configure manually:
+Rspack supports the following four [CSS Modules](#css-modules) types which you can configure manually:
 
-- `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` are treated as CSS Modules.
-- `css`: Used to handle normal CSS files.
-- `css/module`: Used to handle [CSS Modules](#css-modules).
+- `css/auto`: Automatically determines whether a file is a normal CSS file or CSS Modules based on the file extension. Files ending with `*.module.css` or `*.modules.css` are treated as CSS Modules.
+- `css`: Used to handle normal CSS files without CSS Modules features.
+- `css/global`: Used to handle CSS Modules in global scope mode.
+- `css/module`: Used to handle CSS Modules.
+
+The difference between `css/auto`, `css/global`, and `css/module` is how CSS Modules scope affects the generated CSS:
+
+- `css/auto` chooses the behavior by filename. `style.css` is handled as plain CSS, while `style.module.css` and `style.modules.css` are handled like `css/module`.
+- `css/module` enables CSS Modules with local scope by default. A selector like `.button` is renamed in the generated CSS. Use `:global(.button)` when you want a selector to stay global.
+- `css/global` enables CSS Modules with global scope by default. A selector like `.button` stays global. Use `:local(.button)` when you want a selector to be renamed in the generated CSS.
+
+For example:
+
+```css title="style.css"
+.button {
+  color: red;
+}
+
+:local(.title) {
+  color: blue;
+}
+```
+
+With `type: 'css'`, the file is emitted as plain CSS without applying CSS Modules scope transforms.
+
+With `type: 'css/module'`, `.button` and `.title` are local selectors and are renamed in the generated CSS. Use `:global(.button)` if `.button` should stay global.
+
+With `type: 'css/global'`, `.button` stays global, while `.title` is renamed because it is wrapped in `:local(...)`.
+
+The generated CSS would look like this:
+
+<Tabs>
+  <Tab label="css/auto style.css">
+
+```css
+.button {
+  color: red;
+}
+
+:local(.title) {
+  color: blue;
+}
+```
+
+  </Tab>
+  <Tab label="css/auto style.module.css">
+
+```css
+._button_hash {
+  color: red;
+}
+
+._title_hash {
+  color: blue;
+}
+```
+
+  </Tab>
+  <Tab label="css/module style.css">
+
+```css
+._button_hash {
+  color: red;
+}
+
+._title_hash {
+  color: blue;
+}
+```
+
+  </Tab>
+  <Tab label="css/global style.css">
+
+```css
+.button {
+  color: red;
+}
+
+._title_hash {
+  color: blue;
+}
+```
+
+  </Tab>
+</Tabs>
 
 To enable CSS support, add CSS rules to your configuration:
 
@@ -27,12 +109,16 @@ export default {
   module: {
     rules: [
       {
-        test: /\.css$/i,
-        type: 'css/auto',
-      },
-      {
         test: /\.module\.css$/i,
         type: 'css/module',
+      },
+      {
+        test: /\.global\.css$/i,
+        type: 'css/global',
+      },
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
       },
     ],
   },
@@ -87,7 +173,7 @@ export default {
 > Refer to the [migration guide](/guide/migration/webpack#mini-css-extract-plugin--rspackcssextractrspackplugin) to learn how to migrate from webpack.
 
 :::tip
-CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by native css support.
+CssExtractRspackPlugin cannot be used with `type: 'css'`, `type: 'css/auto'`, `type: 'css/global'`, or `type: 'css/module'` as these types are provided by native css support.
 :::
 
 ### Using style-loader
@@ -115,7 +201,7 @@ export default {
 ```
 
 :::tip
-style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, or `type: 'css/module'` as these types are provided by native css support.
+style-loader cannot be used with `type: 'css'`, `type: 'css/auto'`, `type: 'css/global'`, or `type: 'css/module'` as these types are provided by native css support.
 :::
 
 ## CSS Modules

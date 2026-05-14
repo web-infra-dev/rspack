@@ -23,6 +23,9 @@ module.exports = {
 			-         "localIdentName": "[fullhash]",
 			+         "localIdentName": "[id]-[local]",
 			@@ ... @@
+			-         "localIdentName": "[fullhash]",
+			+         "localIdentName": "[id]-[local]",
+			@@ ... @@
 			-         "exportsDepth": 9007199254740991,
 			+         "exportsDepth": 1,
 			@@ ... @@

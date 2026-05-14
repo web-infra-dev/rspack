@@ -8,11 +8,12 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, CssParserImport,
-  CssParserImportContext, Dependency, DependencyRange, DependencyType, ExportsInfoArtifact,
-  GenerateContext, LocalIdentName, Module, ModuleArgument, ModuleGraph, ModuleIdentifier,
-  ModuleInitFragments, ModuleType, NormalModule, ParseContext, ParseResult, ParserAndGenerator,
-  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
+  ChunkGraph, Compilation, ConstDependency, CssExportsConvention, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserImport, CssParserImportContext, Dependency, DependencyRange,
+  DependencyType, ExportsInfoArtifact, GenerateContext, LocalIdentName, Module, ModuleArgument,
+  ModuleGraph, ModuleIdentifier, ModuleInitFragments, ModuleType, NormalModule, ParseContext,
+  ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext,
+  UsageState,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -75,6 +76,28 @@ pub struct CssParserAndGenerator {
   pub url: bool,
   pub resolve_import: CssParserImport,
   pub hot: bool,
+}
+
+impl CssParserAndGenerator {
+  pub fn new(
+    generator_options: CssModuleGeneratorOptions,
+    parser_options: CssModuleParserOptions,
+  ) -> Self {
+    Self {
+      convention: generator_options.exports_convention,
+      local_ident_name: generator_options.local_ident_name,
+      exports_only: generator_options
+        .exports_only
+        .expect("should have exports_only"),
+      named_exports: parser_options
+        .named_exports
+        .expect("should have named_exports"),
+      es_module: generator_options.es_module.expect("should have es_module"),
+      url: parser_options.url.expect("should have url"),
+      resolve_import: parser_options.resolve_import.unwrap_or_default(),
+      hot: false,
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -150,6 +173,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     let mode = match module_type {
       ModuleType::CssModule => css_module_lexer::Mode::Local,
+      ModuleType::CssGlobal => css_module_lexer::Mode::Global,
       ModuleType::CssAuto
         if resource_path.is_some()
           && REGEX_IS_MODULES.is_match(

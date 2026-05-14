@@ -52,7 +52,6 @@ impl ParserOptionsMap {
 pub enum ParserOptions {
   Asset(AssetParserOptions),
   Css(CssParserOptions),
-  CssAuto(CssAutoParserOptions),
   CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
   JavascriptAuto(JavascriptParserOptions),
@@ -76,7 +75,8 @@ macro_rules! get_variant {
 impl ParserOptions {
   get_variant!(get_asset, Asset, AssetParserOptions);
   get_variant!(get_css, Css, CssParserOptions);
-  get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
+  get_variant!(get_css_auto, CssModule, CssModuleParserOptions);
+  get_variant!(get_css_global, CssModule, CssModuleParserOptions);
   get_variant!(get_css_module, CssModule, CssModuleParserOptions);
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
   get_variant!(get_javascript_auto, JavascriptAuto, JavascriptParserOptions);
@@ -409,36 +409,18 @@ pub struct CssParserOptions {
 
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
-pub struct CssAutoParserOptions {
-  pub named_exports: Option<bool>,
-  pub url: Option<bool>,
-  pub resolve_import: Option<CssParserImport>,
-}
-
-impl From<CssParserOptions> for CssAutoParserOptions {
-  fn from(value: CssParserOptions) -> Self {
-    Self {
-      named_exports: value.named_exports,
-      url: value.url,
-      resolve_import: value.resolve_import,
-    }
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
 }
 
-impl From<CssParserOptions> for CssModuleParserOptions {
-  fn from(value: CssParserOptions) -> Self {
+impl From<&CssParserOptions> for CssModuleParserOptions {
+  fn from(value: &CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
       url: value.url,
-      resolve_import: value.resolve_import,
+      resolve_import: value.resolve_import.clone(),
     }
   }
 }
@@ -518,7 +500,6 @@ pub enum GeneratorOptions {
   AssetInline(AssetInlineGeneratorOptions),
   AssetResource(AssetResourceGeneratorOptions),
   Css(CssGeneratorOptions),
-  CssAuto(CssAutoGeneratorOptions),
   CssModule(CssModuleGeneratorOptions),
   Json(JsonGeneratorOptions),
   Unknown,
@@ -533,7 +514,8 @@ impl GeneratorOptions {
     AssetResourceGeneratorOptions
   );
   get_variant!(get_css, Css, CssGeneratorOptions);
-  get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
+  get_variant!(get_css_auto, CssModule, CssModuleGeneratorOptions);
+  get_variant!(get_css_global, CssModule, CssModuleGeneratorOptions);
   get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
   get_variant!(get_json, Json, JsonGeneratorOptions);
 
@@ -763,25 +745,6 @@ pub struct CssGeneratorOptions {
 
 #[cacheable]
 #[derive(Default, Debug, Clone, MergeFrom)]
-pub struct CssAutoGeneratorOptions {
-  pub exports_convention: Option<CssExportsConvention>,
-  pub exports_only: Option<bool>,
-  pub local_ident_name: Option<LocalIdentName>,
-  pub es_module: Option<bool>,
-}
-
-impl From<CssGeneratorOptions> for CssAutoGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
-    Self {
-      exports_only: value.exports_only,
-      es_module: value.es_module,
-      ..Default::default()
-    }
-  }
-}
-
-#[cacheable]
-#[derive(Default, Debug, Clone, MergeFrom)]
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
@@ -789,8 +752,8 @@ pub struct CssModuleGeneratorOptions {
   pub es_module: Option<bool>,
 }
 
-impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
+impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
       es_module: value.es_module,

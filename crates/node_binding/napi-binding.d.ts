@@ -2091,19 +2091,6 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
-export interface RawCssAutoGeneratorOptions {
-  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
-  exportsOnly?: boolean
-  localIdentName?: string
-  esModule?: boolean
-}
-
-export interface RawCssAutoParserOptions {
-  namedExports?: boolean
-  url?: boolean
-  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
-}
-
 export interface RawCssChunkingPluginOptions {
   strict?: boolean
   minSize?: number
@@ -2303,12 +2290,13 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/global" | "css/module" | "json"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
   css?: RawCssGeneratorOptions
-  cssAuto?: RawCssAutoGeneratorOptions
+  cssAuto?: RawCssModuleGeneratorOptions
+  cssGlobal?: RawCssModuleGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
   json?: RawJsonGeneratorOptions
 }
@@ -2778,10 +2766,11 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
+  type: "asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
-  cssAuto?: RawCssAutoParserOptions
+  cssAuto?: RawCssModuleParserOptions
+  cssGlobal?: RawCssModuleParserOptions
   cssModule?: RawCssModuleParserOptions
   javascript?: RawJavascriptParserOptions
   json?: RawJsonParserOptions

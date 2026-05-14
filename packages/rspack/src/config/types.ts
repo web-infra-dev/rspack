@@ -1054,28 +1054,7 @@ export type CssParserOptions = {
   resolveImport?: CssParserResolveImport;
 };
 
-/** Options object for `css/auto` modules. */
-export type CssAutoParserOptions = {
-  /**
-   * Use ES modules named export for CSS exports.
-   * @default true
-   * */
-  namedExports?: CssParserNamedExports;
-
-  /**
-   * Allow to enable/disables handling the CSS functions url.
-   * @default true
-   * */
-  url?: CssParserUrl;
-
-  /**
-   * Allow to enable/disables `@import` at-rules handling.
-   * @default true
-   * */
-  resolveImport?: CssParserResolveImport;
-};
-
-/** Options object for `css/module` modules. */
+/** Options object for `css/auto`, `css/global` and `css/module` modules. */
 export type CssModuleParserOptions = {
   /**
    * Use ES modules named export for CSS exports.
@@ -1273,7 +1252,10 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssAutoParserOptions;
+  'css/auto'?: CssModuleParserOptions;
+
+  /** Parser options for `css/global` modules. */
+  'css/global'?: CssModuleParserOptions;
 
   /** Parser options for `css/module` modules. */
   'css/module'?: CssModuleParserOptions;
@@ -1402,8 +1384,8 @@ export type CssGeneratorOptions = {
   esModule?: CssGeneratorEsModule;
 };
 
-/** Generator options for css/auto modules. */
-export type CssAutoGeneratorOptions = {
+/** Generator options for css/auto, css/global and css/module modules. */
+export type CssModuleGeneratorOptions = {
   /**
    * Customize how CSS export names are exported to javascript modules
    * @default 'as-is'
@@ -1422,9 +1404,6 @@ export type CssAutoGeneratorOptions = {
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
-
-/** Generator options for css/module modules. */
-export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 
 /** Generator options for json modules. */
 export type JsonGeneratorOptions = {
@@ -1449,7 +1428,10 @@ export type GeneratorOptionsByModuleTypeKnown = {
   css?: CssGeneratorOptions;
 
   /** Generator options for css/auto modules. */
-  'css/auto'?: CssAutoGeneratorOptions;
+  'css/auto'?: CssModuleGeneratorOptions;
+
+  /** Generator options for css/global modules. */
+  'css/global'?: CssModuleGeneratorOptions;
 
   /** Generator options for css/module modules. */
   'css/module'?: CssModuleGeneratorOptions;
