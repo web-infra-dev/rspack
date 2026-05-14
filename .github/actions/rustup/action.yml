@@ -23,25 +23,11 @@ runs:
       if: runner.os != 'Windows'
       shell: bash
       run: |
-        # The macos-latest runner image ships Homebrew's `rustup-init` and
-        # populates ~/.cargo/bin/{cargo,rustc,rustup,...} as symlinks pointing
-        # back to it. `rustup-init` is only the installer — it doesn't proxy
-        # `cargo`/`rustc`, so `cargo test` ends up in the installer's arg
-        # parser and fails with "unexpected argument 'test'". A bare
-        # `command -v rustup` passes because the symlink exists, leaving the
-        # broken chain in place. Detect that exact case by resolving where
-        # `rustup` points; if it lands on `rustup-init`, wipe the shim dir
-        # so the official installer below can create real proxy binaries.
-        # ~/.rustup/toolchains (the cached toolchain) is left untouched.
-        rustup_bin=$(command -v rustup 2>/dev/null || true)
-        if [ -n "$rustup_bin" ]; then
-          resolved=$(readlink -f "$rustup_bin" 2>/dev/null || echo "$rustup_bin")
-          case "$resolved" in
-            */rustup-init)
-              rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
-              ;;
-          esac
-        fi
+        # macos-latest ships Homebrew's `rustup-init` and symlinks
+        # ~/.cargo/bin/* to it; that installer doesn't proxy cargo/rustc, so
+        # `cargo test` dies with "unexpected argument 'test'". Wipe the shim
+        # dir only when rustup actually resolves to rustup-init.
+        [[ "$(readlink -f "${CARGO_HOME:-$HOME/.cargo}/bin/rustup" 2>/dev/null)" == */rustup-init ]] && rm -rf "${CARGO_HOME:-$HOME/.cargo}/bin"
         if ! command -v rustup &> /dev/null ; then
           curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y --no-modify-path
           echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
