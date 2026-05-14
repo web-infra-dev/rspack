@@ -6,6 +6,7 @@ use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned, comments::CommentKind},
+  ecma::ast::Expr,
 };
 
 use super::{
@@ -30,6 +31,41 @@ use crate::{
 };
 
 pub struct ESMExportDependencyParserPlugin;
+
+fn create_default_exported_namespace_dependency(
+  parser: &mut JavascriptParser,
+  statement: ExportDefaultDeclaration,
+  expr: ExportDefaultExpression,
+) -> Option<ESMExportImportedSpecifierDependency> {
+  let ExportDefaultExpression::Expr(Expr::Ident(ident)) = expr else {
+    return None;
+  };
+  let settings = parser
+    .get_tag_data::<ESMSpecifierData>(&ident.sym, ESM_SPECIFIER_TAG)
+    .filter(|settings| settings.namespace_import && settings.ids.is_empty())?
+    .clone();
+  let statement_span = statement.span();
+  let mut dep = ESMExportImportedSpecifierDependency::new(
+    settings.source,
+    settings.source_order,
+    vec![],
+    Some(JS_DEFAULT_KEYWORD.clone()),
+    None,
+    statement_span.into(),
+    ESMExportImportedSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+    settings.phase,
+    settings.attributes,
+    parser.to_dependency_location(DependencyRange::from(statement_span)),
+  );
+  if parser
+    .factory_meta
+    .and_then(|meta| meta.side_effect_free)
+    .unwrap_or_default()
+  {
+    dep.set_lazy();
+  }
+  Some(dep)
+}
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
@@ -243,8 +279,16 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
   ) -> Option<bool> {
     let expr_span = expr.span();
     let statement_span = statement.span();
+    if let Some(dep) = create_default_exported_namespace_dependency(parser, statement, expr) {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        DependencyRange::new(statement_span.real_lo(), expr_span.real_lo()),
+        "".into(),
+      )));
+      parser.add_dependency(Box::new(dep));
+      return Some(true);
+    }
 
-    let dep: ESMExportExpressionDependency = ESMExportExpressionDependency::new(
+    let dep = ESMExportExpressionDependency::new(
       expr_span.into(),
       statement_span.into(),
       parser
