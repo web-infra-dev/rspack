@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
@@ -6,7 +5,6 @@ use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
 
 pub struct RuntimeRequirementsPass;
 
-#[async_trait]
 impl PassExt for RuntimeRequirementsPass {
   fn name(&self) -> &'static str {
     "runtime requirements"

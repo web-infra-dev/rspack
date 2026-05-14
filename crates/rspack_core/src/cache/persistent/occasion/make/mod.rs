@@ -30,7 +30,6 @@ impl MakeOccasion {
   }
 }
 
-#[async_trait::async_trait]
 impl Occasion for MakeOccasion {
   type Artifact = BuildModuleGraphArtifact;
 

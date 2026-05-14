@@ -4257,7 +4257,6 @@ dependencies = [
 name = "rspack_parallel"
 version = "0.100.3"
 dependencies = [
- "async-trait",
  "rayon",
  "rspack_tasks",
  "tokio",

@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::compilation::pass::PassExt;
 
 pub struct OptimizeModulesPass;
 
-#[async_trait]
 impl PassExt for OptimizeModulesPass {
   fn name(&self) -> &'static str {
     "optimize modules"

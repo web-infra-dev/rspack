@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::compilation::pass::PassExt;
 
 pub struct OptimizeTreePass;
 
-#[async_trait]
 impl PassExt for OptimizeTreePass {
   fn name(&self) -> &'static str {
     "optimize tree"
