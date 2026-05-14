@@ -9,6 +9,7 @@ version.workspace = true
 [dependencies]
 async-trait           = { workspace = true }
 atomic_refcell        = { workspace = true }
+concat-string         = { workspace = true }
 cow-utils             = { workspace = true }
 css-module-lexer      = { workspace = true }
 heck                  = { workspace = true }

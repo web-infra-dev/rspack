@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use concat_string::concat_string;
 use rspack_core::{
   ChunkGraph, CssExport, CssExports, GenerateContext, Module, ModuleArgument, RESERVED_IDENTIFIER,
   RuntimeGlobals, UsageState, UsedNameItem,
@@ -103,22 +104,24 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .compilation
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
-    let (ns_obj, left, right) = if self.es_module
+    let (ns_obj, left, right): (Cow<'_, str>, &str, &str) = if self.es_module
       && exports_info
         .other_exports_info()
         .get_used(self.generate_context.runtime)
         != UsageState::Unused
     {
       (
-        self
-          .generate_context
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-        "(".to_string(),
-        ")".to_string(),
+        Cow::Owned(
+          self
+            .generate_context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+        ),
+        "(",
+        ")",
       )
     } else {
-      (String::new(), String::new(), String::new())
+      (Cow::Borrowed(""), "", "")
     };
 
     let exports_str = if let Some(exports) = &build_info.css_exports {
@@ -140,13 +143,18 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         &self.generate_context.compilation.exports_info_artifact,
       );
 
-      self.css_modules_exports_to_string(exports, &ns_obj, &left, &right)
+      self.css_modules_exports_to_string(exports, &ns_obj, left, right)
     } else {
       let hmr_code = self.render_accept_hmr();
       let module_argument = self.module_argument();
-      format!(
-        "{}{}{module_argument}.exports = {{}}{};\n{}",
-        &ns_obj, &left, &right, hmr_code
+      concat_string!(
+        ns_obj,
+        left,
+        module_argument,
+        ".exports = {}",
+        right,
+        "\n",
+        hmr_code
       )
     };
 
@@ -165,12 +173,19 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let hmr_code = self.render_exports_hmr(decl_name);
     let module_argument = self.module_argument();
 
-    let mut code = format!(
-      "{exports_string}\n{hmr_code}\n{ns_obj}{left}{module_argument}.exports = {decl_name}"
-    );
-    code += right;
-    code += ";\n";
-    code
+    concat_string!(
+      exports_string,
+      "\n",
+      hmr_code,
+      "\n",
+      ns_obj,
+      left,
+      module_argument,
+      ".exports = ",
+      decl_name,
+      right,
+      ";\n"
+    )
   }
 
   fn css_modules_exports_to_concatenate_module_string<'b>(
@@ -197,66 +212,69 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     for (key, elements) in exports {
       let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
       let used_name = export_info.get_used_name(None, *runtime);
-      let used_name = match used_name {
-        Some(UsedNameItem::Str(name)) => name.to_string(),
-        _ => key.to_string(),
+      let used_name: Cow<'_, str> = match used_name {
+        Some(UsedNameItem::Str(name)) => Cow::Owned(name.to_string()),
+        _ => Cow::Borrowed(key),
       };
 
-      let content = elements
-        .iter()
-        .map(
-          |CssExport {
-             ident,
-             from,
-             id: _,
-             orig_name: _,
-           }| match from {
-            None => json_stringify_str(ident),
-            Some(from_name) => {
-              let from = module
-                .get_dependencies()
-                .iter()
-                .find_map(|id| {
-                  let dependency = module_graph.dependency_by_id(id);
-                  let request = if let Some(d) = dependency.as_module_dependency() {
-                    Some(d.request())
-                  } else {
-                    dependency.as_context_dependency().map(|d| d.request())
-                  };
-                  if let Some(request) = request
-                    && request == from_name
-                  {
-                    return module_graph.module_graph_module_by_dependency_id(id);
-                  }
-                  None
-                })
-                .expect("should have css from module");
+      let mut content = String::new();
+      for CssExport {
+        ident,
+        from,
+        id: _,
+        orig_name: _,
+      } in elements
+      {
+        if !content.is_empty() {
+          content.push_str(" + \" \" + ");
+        }
 
-              let from_exports_info = compilation
-                .exports_info_artifact
-                .get_exports_info_data(&from.module_identifier);
-              let from_used_name = match from_exports_info
-                .get_read_only_export_info(&Atom::from(ident.as_str()))
-                .get_used_name(None, *runtime)
-              {
-                Some(UsedNameItem::Str(name)) => json_stringify_str(&name),
-                _ => json_stringify_str(ident),
-              };
+        match from {
+          None => content.push_str(&json_stringify_str(ident)),
+          Some(from_name) => {
+            let from = module
+              .get_dependencies()
+              .iter()
+              .find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = if let Some(d) = dependency.as_module_dependency() {
+                  Some(d.request())
+                } else {
+                  dependency.as_context_dependency().map(|d| d.request())
+                };
+                if let Some(request) = request
+                  && request == from_name
+                {
+                  return module_graph.module_graph_module_by_dependency_id(id);
+                }
+                None
+              })
+              .expect("should have css from module");
 
-              let from = json_stringify(
-                ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                  .expect("should have module"),
-              );
-              format!(
-                "{}({from})[{}]",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-                from_used_name
-              )
-            }
-          },
-        )
-        .collect::<Vec<_>>()
-        .join(" + \" \" + ");
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_exports_info_data(&from.module_identifier);
+            let from_used_name = match from_exports_info
+              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_used_name(None, *runtime)
+            {
+              Some(UsedNameItem::Str(name)) => json_stringify_str(&name),
+              _ => json_stringify_str(ident),
+            };
+
+            let from = json_stringify(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                .expect("should have module"),
+            );
+            content.push_str(&runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE));
+            content.push('(');
+            content.push_str(&from);
+            content.push_str(")[");
+            content.push_str(&from_used_name);
+            content.push(']');
+          }
+        }
+      }
       let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
       if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
         identifier = Cow::Owned(format!("_{identifier}"));
@@ -269,9 +287,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         i += 1;
       }
       // TODO: conditional support `const or var` after we finished runtimeTemplate utils
-      self.concat_source.add(RawStringSource::from(format!(
-        "var {identifier} = {content};\n"
-      )));
+      let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
+      self.concat_source.add(RawStringSource::from(export_source));
       used_identifiers.insert(identifier.clone());
       scope.register_export(key.into(), identifier.into_owned());
     }
@@ -293,82 +310,85 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     for (key, elements) in exports {
       let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
       let used_name = export_info.get_used_name(None, self.generate_context.runtime);
-      let used_name = match used_name {
-        Some(UsedNameItem::Str(name)) => name.to_string(),
-        _ => key.to_string(),
+      let used_name: Cow<'_, str> = match used_name {
+        Some(UsedNameItem::Str(name)) => Cow::Owned(name.to_string()),
+        _ => Cow::Borrowed(key),
       };
 
-      let content = elements
-        .iter()
-        .map(
-          |CssExport {
-             ident,
-             from,
-             id: _,
-             orig_name: _,
-           }| match from {
-            None => json_stringify_str(ident),
-            Some(from_name) => {
-              let from = module
-                .get_dependencies()
-                .iter()
-                .find_map(|id| {
-                  let dependency = module_graph.dependency_by_id(id);
-                  let request = if let Some(d) = dependency.as_module_dependency() {
-                    Some(d.request())
-                  } else {
-                    dependency.as_context_dependency().map(|d| d.request())
-                  };
-                  if let Some(request) = request
-                    && request == from_name
-                  {
-                    return module_graph.module_graph_module_by_dependency_id(id);
-                  }
-                  None
-                })
-                .expect("should have css from module");
+      let mut content = String::new();
+      for CssExport {
+        ident,
+        from,
+        id: _,
+        orig_name: _,
+      } in elements
+      {
+        if !content.is_empty() {
+          content.push_str(" + \" \" + ");
+        }
 
-              let from_exports_info = compilation
-                .exports_info_artifact
-                .get_exports_info_data(&from.module_identifier);
-              let from_used_name = match from_exports_info
-                .get_read_only_export_info(&Atom::from(ident.as_str()))
-                .get_used_name(None, self.generate_context.runtime)
-              {
-                Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
-                _ => json_stringify_str(&unescape(ident)),
-              };
+        match from {
+          None => content.push_str(&json_stringify_str(ident)),
+          Some(from_name) => {
+            let from = module
+              .get_dependencies()
+              .iter()
+              .find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = if let Some(d) = dependency.as_module_dependency() {
+                  Some(d.request())
+                } else {
+                  dependency.as_context_dependency().map(|d| d.request())
+                };
+                if let Some(request) = request
+                  && request == from_name
+                {
+                  return module_graph.module_graph_module_by_dependency_id(id);
+                }
+                None
+              })
+              .expect("should have css from module");
 
-              let from = json_stringify(
-                ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                  .expect("should have module"),
-              );
-              format!(
-                "{}({from})[{}]",
-                self
-                  .generate_context
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-                from_used_name
-              )
-            }
-          },
-        )
-        .collect::<Vec<_>>()
-        .join(" + \" \" + ");
-      stringified_exports.push_str(&format!(
-        "  {}: {},",
-        json_stringify_str(&used_name),
-        content
-      ));
-      stringified_exports.push('\n');
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_exports_info_data(&from.module_identifier);
+            let from_used_name = match from_exports_info
+              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_used_name(None, self.generate_context.runtime)
+            {
+              Some(UsedNameItem::Str(name)) => json_stringify_str(&unescape(name.as_str())),
+              _ => json_stringify_str(&unescape(ident)),
+            };
+
+            let from = json_stringify(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
+                .expect("should have module"),
+            );
+            content.push_str(
+              &self
+                .generate_context
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+            );
+            content.push('(');
+            content.push_str(&from);
+            content.push_str(")[");
+            content.push_str(&from_used_name);
+            content.push(']');
+          }
+        }
+      }
+
+      stringified_exports.push_str("  ");
+      stringified_exports.push_str(&json_stringify_str(&used_name));
+      stringified_exports.push_str(": ");
+      stringified_exports.push_str(&content);
+      stringified_exports.push_str(",\n");
     }
 
     let decl_name = "exports";
-    (
-      decl_name,
-      format!("var {decl_name} = {{\n{stringified_exports}}};"),
-    )
+    let exports_source = concat_string!("var ", decl_name, " = {\n", stringified_exports, "};");
+    (decl_name, exports_source)
   }
 
   fn render_exports_hmr<'b>(&mut self, decl_name: &str) -> Cow<'b, str> {

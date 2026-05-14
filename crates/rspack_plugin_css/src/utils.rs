@@ -97,7 +97,6 @@ impl<'a> LocalIdentOptions<'a> {
       let hash = hasher.digest(hash_digest);
       hash.rendered(hash_digest_length).to_string()
     };
-    let module_hash = self.module_hash.to_string();
     let content_hash;
     let content_hash = if self
       .local_name_ident
@@ -118,26 +117,21 @@ impl<'a> LocalIdentOptions<'a> {
       .split(['?', '#'])
       .next()
       .unwrap_or(&self.relative_resource);
-    let ext = Path::new(resource_path)
-      .extension()
+    let resource_path = Path::new(resource_path);
+    let chunk_name = resource_path
+      .file_stem()
       .and_then(|s| s.to_str())
-      .map(|ext| format!(".{ext}"))
-      .unwrap_or_default();
-    let chunk_name = Path::new(resource_path)
-      .file_name()
-      .and_then(|s| s.to_str())
-      .map(|base| base.strip_suffix(&ext).unwrap_or(base).to_string())
       .unwrap_or_default();
     let id = PathData::prepare_id(if self.compiler_options.mode.is_development() {
       &self.relative_resource
     } else {
-      &module_hash
+      self.module_hash
     });
     let local_ident = LocalIdentNameRenderOptions {
       path_data: PathData::default()
         .filename(&self.relative_resource)
-        .chunk_name(&chunk_name)
-        .hash(&module_hash)
+        .chunk_name(chunk_name)
+        .hash(self.module_hash)
         .content_hash(content_hash)
         .id(id.as_ref()),
       local,

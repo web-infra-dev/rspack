@@ -29,6 +29,7 @@ use rspack_util::{
   ext::DynHash,
   fx_hash::{FxIndexMap, FxIndexSet},
   identifier::make_paths_relative,
+  itoa,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -70,6 +71,12 @@ struct LocalIdentUsage<'a> {
   compiler_options: &'a CompilerOptions,
   css_exports: &'a mut Option<CssExports>,
   dependencies: &'a mut Vec<Box<dyn Dependency>>,
+}
+
+struct PresentationalDependencyHashUpdate<'a> {
+  start: u32,
+  end: u32,
+  content: &'a str,
 }
 
 #[cacheable]
@@ -141,13 +148,13 @@ impl CssParserAndGenerator {
     self.parser_options.url.expect("should have url")
   }
 
-  pub fn get_css_local_ident_module_hash(
+  fn get_css_local_ident_module_hash(
     &self,
     relative_resource: &str,
     source: &str,
     export_dependency_names: &[String],
     graph_export_names: &[String],
-    presentational_dependency_hash_updates: &[String],
+    presentational_dependency_hash_updates: &[PresentationalDependencyHashUpdate<'_>],
     compiler_options: &CompilerOptions,
   ) -> String {
     let local_ident_name = self
@@ -198,9 +205,11 @@ impl CssParserAndGenerator {
       graph_exports.sort();
 
       let mut hasher = RspackHash::new(hash_function);
-      hasher.write(format!("{}{}", relative_resource, false).as_bytes());
+      hasher.write(relative_resource.as_bytes());
+      hasher.write(b"false");
       for name in graph_exports {
-        hasher.write(format!("{name}2truefalse").as_bytes());
+        hasher.write(name.as_bytes());
+        hasher.write(b"2truefalse");
       }
       hasher.write(b"*side effects only*2undefinedfalse");
       hasher.write(b"null2falsefalse");
@@ -215,11 +224,20 @@ impl CssParserAndGenerator {
       hasher.write(b"javascript");
       hasher.write(b"css");
     }
-    hasher.write(self.es_module().to_string().as_bytes());
-    hasher.write(self.exports_only().to_string().as_bytes());
+    hasher.write(if self.es_module() { b"true" } else { b"false" });
+    hasher.write(if self.exports_only() {
+      b"true"
+    } else {
+      b"false"
+    });
     hasher.write(graph_hash.as_bytes());
+    let mut itoa_buffer = itoa::Buffer::new();
     for update in presentational_dependency_hash_updates {
-      hasher.write(update.as_bytes());
+      hasher.write(itoa_buffer.format(update.start).as_bytes());
+      hasher.write(b",");
+      hasher.write(itoa_buffer.format(update.end).as_bytes());
+      hasher.write(b"|");
+      hasher.write(update.content.as_bytes());
     }
     for name in export_dependency_names {
       let convention_names = export_locals_convention(name, self.convention());
@@ -228,10 +246,10 @@ impl CssParserAndGenerator {
       if let Some(local_ident_name) = local_ident_name {
         let local_ident_name =
           serde_json::to_string(local_ident_name).expect("local ident name should be serializable");
-        hasher.write(
-          format!("exportsConvention|{convention_names}|localIdentName|{local_ident_name}")
-            .as_bytes(),
-        );
+        hasher.write(b"exportsConvention|");
+        hasher.write(convention_names.as_bytes());
+        hasher.write(b"|localIdentName|");
+        hasher.write(local_ident_name.as_bytes());
       }
     }
     hasher
@@ -586,12 +604,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
         }
         css_module_lexer::Dependency::Replace { content, range } => {
-          presentational_dependency_hash_updates.push(format!(
-            "{},{}|{}",
-            range.start,
-            range.end + 1,
-            content
-          ));
+          presentational_dependency_hash_updates.push(PresentationalDependencyHashUpdate {
+            start: range.start,
+            end: range.end + 1,
+            content,
+          });
         }
         _ => {}
       }
