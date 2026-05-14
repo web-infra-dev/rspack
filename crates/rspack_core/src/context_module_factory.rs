@@ -2,7 +2,6 @@ use std::{borrow::Cow, sync::Arc};
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
-use fast_glob::glob_match;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
@@ -14,10 +13,11 @@ use tracing::instrument;
 
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
-  ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver, glob_base_dir_end, resolve, walk_dir,
+  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
+  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, glob_base_dir_end,
+  glob_match_with_options, resolve, walk_dir,
 };
 
 #[derive(Debug)]
@@ -298,8 +298,10 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.pattern =
-          ContextModulePattern::from(before_resolve_data.reg_exp.clone());
+        dependency_options.pattern = create_context_module_pattern(
+          &dependency_options.pattern,
+          before_resolve_data.reg_exp.clone(),
+        );
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -318,8 +320,10 @@ impl ContextModuleFactory {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.pattern =
-          ContextModulePattern::from(before_resolve_data.reg_exp.clone());
+        dependency_options.pattern = create_context_module_pattern(
+          &dependency_options.pattern,
+          before_resolve_data.reg_exp.clone(),
+        );
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -394,8 +398,10 @@ impl ContextModuleFactory {
 
         context_module_options.resource = after_resolve_data.resource;
         context_module_options.context_options.context = after_resolve_data.context;
-        context_module_options.context_options.pattern =
-          ContextModulePattern::from(after_resolve_data.reg_exp.clone());
+        context_module_options.context_options.pattern = create_context_module_pattern(
+          &context_module_options.context_options.pattern,
+          after_resolve_data.reg_exp.clone(),
+        );
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
         let module = ContextModule::new(
@@ -406,6 +412,18 @@ impl ContextModuleFactory {
 
         Ok(Some(ModuleFactoryResult::new_with_module(module)))
       }
+    }
+  }
+}
+
+fn create_context_module_pattern(
+  current: &ContextModulePattern,
+  reg_exp: Option<RspackRegex>,
+) -> ContextModulePattern {
+  match current {
+    ContextModulePattern::Glob(glob_pattern) => ContextModulePattern::Glob(glob_pattern.clone()),
+    ContextModulePattern::None | ContextModulePattern::RegExp(_) => {
+      ContextModulePattern::from(reg_exp)
     }
   }
 }
@@ -479,7 +497,7 @@ async fn visit_dirs(
       requests.iter().for_each(|r| {
         if let Some(filename_glob) = &filename_glob {
           let stripped = r.request.strip_prefix("./").unwrap_or(&r.request);
-          if !glob_match(filename_glob.as_bytes(), stripped.as_bytes()) {
+          if !glob_match_with_options(filename_glob, stripped, &GlobMatchOptions::default()) {
             return;
           }
         } else if let Some(reg_exp) = options.context_options.pattern.reg_exp()
