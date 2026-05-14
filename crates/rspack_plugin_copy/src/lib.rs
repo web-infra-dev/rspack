@@ -7,6 +7,7 @@ use std::{
   sync::{Arc, LazyLock, Mutex},
 };
 
+use cow_utils::CowUtils;
 use derive_more::Debug;
 use fast_glob::glob_match;
 use futures::future::{BoxFuture, join_all};
@@ -130,6 +131,14 @@ pub struct CopyRspackPlugin {
 
 static TEMPLATE_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
+
+fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
+  if cfg!(windows) {
+    path.cow_replace('\\', "/")
+  } else {
+    Cow::Borrowed(path)
+  }
+}
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
@@ -418,10 +427,9 @@ impl CopyRspackPlugin {
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let mut escaped = Utf8PathBuf::from(escape_glob_pattern(abs_from.as_str()));
-        escaped.push("**/*");
-
-        escaped.as_str().to_string()
+        let from = normalize_glob_path_separators(abs_from.as_str());
+        let escaped = escape_glob_pattern(&from);
+        format!("{}/**/*", escaped.trim_end_matches('/'))
       }
       FromType::File => {
         logger.debug(format!("added '{abs_from}' as a file dependency"));
@@ -438,7 +446,8 @@ impl CopyRspackPlugin {
           dot_enable = Some(true);
         }
 
-        escape_glob_pattern(abs_from.as_str())
+        let from = normalize_glob_path_separators(abs_from.as_str());
+        escape_glob_pattern(&from)
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
@@ -448,7 +457,7 @@ impl CopyRspackPlugin {
           context.join(orig_from).as_str().to_string()
         };
         if cfg!(windows) {
-          glob_query = glob_query.replace('\\', "/");
+          glob_query = glob_query.cow_replace('\\', "/").into_owned();
         }
         // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
         // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
