@@ -153,7 +153,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         module_argument,
         ".exports = {}",
         right,
-        "\n",
+        ";\n",
         hmr_code
       )
     };
