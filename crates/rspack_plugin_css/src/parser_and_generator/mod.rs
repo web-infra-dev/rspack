@@ -84,6 +84,11 @@ struct PresentationalDependencyHashUpdate<'a> {
 pub struct CssParserAndGenerator {
   pub generator_options: CssModuleGeneratorOptions,
   pub parser_options: CssModuleParserOptions,
+  pub exports_only: bool,
+  pub named_exports: bool,
+  pub es_module: bool,
+  pub url: bool,
+  pub resolve_import: CssParserImport,
   pub hot: bool,
 }
 
@@ -92,9 +97,24 @@ impl CssParserAndGenerator {
     generator_options: CssModuleGeneratorOptions,
     parser_options: CssModuleParserOptions,
   ) -> Self {
+    let exports_only = generator_options
+      .exports_only
+      .expect("should have exports_only");
+    let named_exports = parser_options
+      .named_exports
+      .expect("should have named_exports");
+    let es_module = generator_options.es_module.expect("should have es_module");
+    let url = parser_options.url.expect("should have url");
+    let resolve_import = parser_options.resolve_import.clone().unwrap_or_default();
+
     Self {
       generator_options,
       parser_options,
+      exports_only,
+      named_exports,
+      es_module,
+      url,
+      resolve_import,
       hot: false,
     }
   }
@@ -116,36 +136,23 @@ impl CssParserAndGenerator {
   }
 
   pub fn exports_only(&self) -> bool {
-    self
-      .generator_options
-      .exports_only
-      .expect("should have exports_only")
+    self.exports_only
   }
 
   pub fn named_exports(&self) -> bool {
-    self
-      .parser_options
-      .named_exports
-      .expect("should have named_exports")
+    self.named_exports
   }
 
   pub fn es_module(&self) -> bool {
-    self
-      .generator_options
-      .es_module
-      .expect("should have es_module")
+    self.es_module
   }
 
   pub fn resolve_import(&self) -> &CssParserImport {
-    self
-      .parser_options
-      .resolve_import
-      .as_ref()
-      .unwrap_or(&CssParserImport::Bool(true))
+    &self.resolve_import
   }
 
   pub fn url(&self) -> bool {
-    self.parser_options.url.expect("should have url")
+    self.url
   }
 
   fn get_css_local_ident_module_hash(

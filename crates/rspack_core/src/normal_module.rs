@@ -85,6 +85,8 @@ define_hook!(NormalModuleLoaderStartYielding: Series(loader_context: &mut Loader
 define_hook!(NormalModuleBeforeLoaders: Series(module: &mut NormalModule),tracing=false);
 define_hook!(NormalModuleAdditionalData: Series(additional_data: &mut Option<&mut AdditionalData>),tracing=false);
 
+static JS_SOURCE_TYPES: &[SourceType; 1] = &[SourceType::JavaScript];
+
 #[derive(Debug, Default)]
 pub struct NormalModuleHooks {
   pub read_resource: NormalModuleReadResourceHook,
@@ -351,6 +353,9 @@ impl Module for NormalModule {
   }
 
   fn source_types(&self, module_graph: &ModuleGraph) -> &[SourceType] {
+    if self.module_type.is_js_like() {
+      return JS_SOURCE_TYPES;
+    }
     self.parser_and_generator.source_types(self, module_graph)
   }
 

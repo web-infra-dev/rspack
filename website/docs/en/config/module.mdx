@@ -89,7 +89,6 @@ export default {
       },
       // Generator options for css/auto modules
       'css/auto': {
-        exportType: 'css-style-sheet',
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
@@ -106,7 +105,6 @@ export default {
       },
       // Generator options for css/global modules
       'css/global': {
-        exportType: 'css-style-sheet',
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
@@ -118,7 +116,6 @@ export default {
       },
       // Generator options for css/module modules
       'css/module': {
-        exportType: 'css-style-sheet',
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
@@ -610,25 +607,6 @@ export default {
 };
 ```
 
-### module.generator["css/auto"].exportType
-
-- **Type:** `'link' | 'text' | 'css-style-sheet' | 'style'`
-- **Default:** `undefined`
-
-Configure how CSS content is exported as the default export of CSS Modules.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        exportType: 'css-style-sheet',
-      },
-    },
-  },
-};
-```
-
 ### module.generator["css/auto"].exportsOnly
 
 - **Type:** `boolean`
@@ -863,22 +841,6 @@ export default {
 };
 ```
 
-### module.generator["css/global"].exportType
-
-Same as [`module.generator["css/auto"].exportType`](#modulegeneratorcssautoexporttype).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        exportType: 'css-style-sheet',
-      },
-    },
-  },
-};
-```
-
 ### module.generator["css/global"].exportsConvention
 
 Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
@@ -1017,22 +979,6 @@ export default {
     generator: {
       'css/module': {
         // options
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].exportType
-
-Same as [`module.generator["css/auto"].exportType`](#modulegeneratorcssautoexporttype).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        exportType: 'css-style-sheet',
       },
     },
   },

@@ -89,7 +89,6 @@ export default {
       },
       // css/auto 模块的生成器选项
       'css/auto': {
-        exportType: 'css-style-sheet',
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
@@ -106,7 +105,6 @@ export default {
       },
       // css/global 模块的生成器选项
       'css/global': {
-        exportType: 'css-style-sheet',
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
@@ -118,7 +116,6 @@ export default {
       },
       // css/module 模块的生成器选项
       'css/module': {
-        exportType: 'css-style-sheet',
         exportsConvention: 'as-is',
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
@@ -609,25 +606,6 @@ export default {
 };
 ```
 
-### module.generator["css/auto"].exportType
-
-- **类型：** `'link' | 'text' | 'css-style-sheet' | 'style'`
-- **默认值：** `undefined`
-
-配置 CSS Modules 中 CSS 内容作为默认导出时的导出方式。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/auto': {
-        exportType: 'css-style-sheet',
-      },
-    },
-  },
-};
-```
-
 ### module.generator["css/auto"].exportsOnly
 
 - **类型：** `boolean`
@@ -860,22 +838,6 @@ export default {
 };
 ```
 
-### module.generator["css/global"].exportType
-
-和 [`module.generator["css/auto"].exportType`](#modulegeneratorcssautoexporttype) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        exportType: 'css-style-sheet',
-      },
-    },
-  },
-};
-```
-
 ### module.generator["css/global"].exportsConvention
 
 和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
@@ -1014,22 +976,6 @@ export default {
     generator: {
       'css/module': {
         // options
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].exportType
-
-和 [`module.generator["css/auto"].exportType`](#modulegeneratorcssautoexporttype) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        exportType: 'css-style-sheet',
       },
     },
   },
