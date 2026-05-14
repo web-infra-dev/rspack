@@ -38,9 +38,6 @@ module.exports = {
         },
         generator: {
           exportsConvention: 'camel-case',
-          localIdentHashDigest: 'hex',
-          localIdentHashDigestLength: 20,
-          localIdentHashFunction: 'md4',
           localIdentName: '[hash]-[local]',
         },
       },
