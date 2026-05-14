@@ -1768,6 +1768,7 @@ impl ModuleOptionsBuilder {
 
     if css {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
+        export_type: None,
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
@@ -1775,23 +1776,35 @@ impl ModuleOptionsBuilder {
       parser.insert("css".to_string(), css_parser_options);
 
       let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
+        export_type: None,
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: None,
+        custom_idents: None,
+        dashed_idents: None,
       });
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
       let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
+        export_type: None,
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: None,
+        custom_idents: None,
+        dashed_idents: None,
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
 
       let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
+        export_type: None,
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: None,
+        custom_idents: None,
+        dashed_idents: None,
       });
       parser.insert("css/global".to_string(), css_global_parser_options);
 

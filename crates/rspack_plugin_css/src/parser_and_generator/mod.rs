@@ -46,9 +46,12 @@ pub struct CssParserAndGenerator {
 
 impl CssParserAndGenerator {
   pub fn new(
-    generator_options: CssModuleGeneratorOptions,
+    mut generator_options: CssModuleGeneratorOptions,
     parser_options: CssModuleParserOptions,
   ) -> Self {
+    if generator_options.export_type.is_none() {
+      generator_options.export_type = parser_options.export_type;
+    }
     Self {
       generator_options,
       parser_options,

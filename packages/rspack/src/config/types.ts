@@ -1020,6 +1020,7 @@ export type AssetParserOptions = {
 
 export type CssParserNamedExports = boolean;
 export type CssParserUrl = boolean;
+export type CssParserImport = boolean;
 
 export type CssParserResolveImportContext = {
   url: string;
@@ -1036,10 +1037,21 @@ export type CssParserResolveImport =
 /** Options object for `css` modules. */
 export type CssParserOptions = {
   /**
+   * Configure how CSS content is exported as default.
+   */
+  exportType?: CssGeneratorExportType;
+
+  /**
    * Use ES modules named export for CSS exports.
    * @default true
    * */
   namedExports?: CssParserNamedExports;
+
+  /**
+   * Enable/disable `@import` at-rules handling.
+   * @default true
+   * */
+  import?: CssParserImport;
 
   /**
    * Allow to enable/disables handling the CSS functions url.
@@ -1057,10 +1069,21 @@ export type CssParserOptions = {
 /** Options object for `css/auto`, `css/global` and `css/module` modules. */
 export type CssModuleParserOptions = {
   /**
+   * Configure how CSS content is exported as default.
+   */
+  exportType?: CssGeneratorExportType;
+
+  /**
    * Use ES modules named export for CSS exports.
    * @default true
    * */
   namedExports?: CssParserNamedExports;
+
+  /**
+   * Enable/disable `@import` at-rules handling.
+   * @default true
+   * */
+  import?: CssParserImport;
 
   /**
    * Allow to enable/disables handling the CSS functions url.
@@ -1073,6 +1096,21 @@ export type CssModuleParserOptions = {
    * @default true
    * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Enable/disable renaming of `@keyframes`.
+   */
+  animation?: boolean;
+
+  /**
+   * Enable/disable renaming of custom identifiers.
+   */
+  customIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of dashed identifiers, e.g. custom properties.
+   */
+  dashedIdents?: boolean;
 };
 
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;

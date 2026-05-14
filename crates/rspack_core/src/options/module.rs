@@ -402,25 +402,32 @@ impl MergeFrom for CssParserImport {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, Default, MergeFrom)]
 pub struct CssModuleParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 impl From<&CssParserOptions> for CssModuleParserOptions {
   fn from(value: &CssParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       resolve_import: value.resolve_import.clone(),
+      ..Default::default()
     }
   }
 }

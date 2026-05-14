@@ -231,6 +231,18 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
     self.parser_options.url.expect("should have url")
   }
 
+  fn animation(&self) -> bool {
+    self.parser_options.animation.unwrap_or(true)
+  }
+
+  fn custom_idents(&self) -> bool {
+    self.parser_options.custom_idents.unwrap_or(true)
+  }
+
+  fn dashed_idents(&self) -> bool {
+    self.parser_options.dashed_idents.unwrap_or(true)
+  }
+
   fn mode(module_type: &ModuleType, resource_path: Option<&str>) -> css_module_lexer::Mode {
     match module_type {
       ModuleType::CssModule => css_module_lexer::Mode::Local,
@@ -276,7 +288,38 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
         }
         css_module_lexer::Dependency::LocalKeyframes { name, .. }
         | css_module_lexer::Dependency::LocalKeyframesDecl { name, .. }
-        | css_module_lexer::Dependency::ICSSExportValue { prop: name, .. } => {
+          if self.animation() =>
+        {
+          self.collect_export_name(
+            name,
+            &mut graph_export_name_set,
+            &mut export_dependency_names,
+          );
+        }
+        css_module_lexer::Dependency::LocalCounterStyle { name, .. }
+        | css_module_lexer::Dependency::LocalCounterStyleDecl { name, .. }
+        | css_module_lexer::Dependency::LocalFontPalette { name, .. }
+        | css_module_lexer::Dependency::LocalFontPaletteDecl { name, .. }
+          if self.custom_idents() =>
+        {
+          self.collect_export_name(
+            name,
+            &mut graph_export_name_set,
+            &mut export_dependency_names,
+          );
+        }
+        css_module_lexer::Dependency::LocalVar { name, .. }
+        | css_module_lexer::Dependency::LocalVarDecl { name, .. }
+        | css_module_lexer::Dependency::LocalPropertyDecl { name, .. }
+          if self.dashed_idents() =>
+        {
+          self.collect_export_name(
+            name,
+            &mut graph_export_name_set,
+            &mut export_dependency_names,
+          );
+        }
+        css_module_lexer::Dependency::ICSSExportValue { prop: name, .. } => {
           self.collect_export_name(
             name,
             &mut graph_export_name_set,
@@ -294,7 +337,9 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
       }
     }
 
-    if let Some(convention) = self.generator_options.exports_convention.as_ref() {
+    if self.dashed_idents()
+      && let Some(convention) = self.generator_options.exports_convention.as_ref()
+    {
       for captures in REGEX_CUSTOM_PROPERTY_IDENT.captures_iter(&self.source_code) {
         if let Some(name) = captures.get(2) {
           let name = name.as_str().to_string();
@@ -367,11 +412,52 @@ impl<'parser_and_generator, 'context> CssModuleParser<'parser_and_generator, 'co
           .await
       }
       css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
+        if !self.animation() {
+          return Ok(());
+        }
         self
           .handle_local_ident_usage(name, range, module_hash)
           .await
       }
       css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
+        if !self.animation() {
+          return Ok(());
+        }
+        self
+          .handle_local_ident_declaration(name, range.start, range.end, module_hash)
+          .await
+      }
+      css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
+      | css_module_lexer::Dependency::LocalFontPalette { name, range, .. } => {
+        if !self.custom_idents() {
+          return Ok(());
+        }
+        self
+          .handle_local_ident_usage(name, range, module_hash)
+          .await
+      }
+      css_module_lexer::Dependency::LocalCounterStyleDecl { name, range, .. }
+      | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. } => {
+        if !self.custom_idents() {
+          return Ok(());
+        }
+        self
+          .handle_local_ident_declaration(name, range.start, range.end, module_hash)
+          .await
+      }
+      css_module_lexer::Dependency::LocalVar { name, range, .. } => {
+        if !self.dashed_idents() {
+          return Ok(());
+        }
+        self
+          .handle_local_ident_usage(name, range, module_hash)
+          .await
+      }
+      css_module_lexer::Dependency::LocalVarDecl { name, range, .. }
+      | css_module_lexer::Dependency::LocalPropertyDecl { name, range, .. } => {
+        if !self.dashed_idents() {
+          return Ok(());
+        }
         self
           .handle_local_ident_declaration(name, range.start, range.end, module_hash)
           .await

@@ -522,8 +522,11 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub r#import: Option<bool>,
   #[napi(
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
@@ -533,9 +536,11 @@ pub struct RawCssParserOptions {
 impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
-      resolve_import: convert_import_option(value.resolve_import),
+      resolve_import: convert_import_option(value.resolve_import)
+        .or_else(|| value.r#import.map(CssParserImport::Bool)),
     }
   }
 }
@@ -543,20 +548,31 @@ impl From<RawCssParserOptions> for CssParserOptions {
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub r#import: Option<bool>,
   #[napi(
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
-      resolve_import: convert_import_option(value.resolve_import),
+      resolve_import: convert_import_option(value.resolve_import)
+        .or_else(|| value.r#import.map(CssParserImport::Bool)),
+      animation: value.animation,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
     }
   }
 }
