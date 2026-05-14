@@ -179,37 +179,9 @@ jobs:
           echo '[profile.test]' >> Cargo.toml
           echo 'debug = false' >> Cargo.toml
 
-      - name: Diagnostics before rspack test
-        if: matrix.array.runner == '"macos-latest"'
-        shell: bash
-        run: |
-          echo "PATH=$PATH"
-          echo "--- which/type ---"
-          which -a cargo rustc rustup rustup-init 2>&1 || true
-          type -a cargo rustc rustup 2>&1 || true
-          echo "--- ~/.cargo/bin ---"
-          ls -la "$HOME/.cargo/bin" 2>&1 || true
-          echo "--- /opt/homebrew/bin/{rustup,rustup-init,cargo} ---"
-          ls -la /opt/homebrew/bin/rustup /opt/homebrew/bin/rustup-init /opt/homebrew/bin/cargo 2>&1 || true
-          echo "--- ~/.rustup ---"
-          ls -la "$HOME/.rustup" 2>&1 || true
-          cat "$HOME/.rustup/settings.toml" 2>&1 || true
-          echo "--- version probes ---"
-          rustup --version 2>&1 || true
-          "$HOME/.cargo/bin/rustup" --version 2>&1 || true
-          /opt/homebrew/bin/rustup --version 2>&1 || true
-
       - name: Run rspack test
-        id: watcher_test
         run: |
           cargo test -p rspack_watcher -- --nocapture
-
-      - name: Setup tmate session on macOS failure
-        if: failure() && matrix.array.runner == '"macos-latest"'
-        uses: mxschmitt/action-tmate@c0afd6f790e3a5564914980036ebf83216678101 # v3.23
-        with:
-          limit-access-to-actor: true
-        timeout-minutes: 30
 
   test_required_check:
     name: Rust Test Required Check
