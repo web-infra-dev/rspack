@@ -2092,18 +2092,20 @@ var {} = {{}};
                 context,
               )],
             );
-            entry_chunk_link.used_names.insert(new_name.clone());
-            entry_chunk_link
-              .decl_before_exports
-              .insert(format!("var {new_name} = {inlined_value};\n"));
-
-            Self::add_chunk_export(
+            if Self::add_chunk_export(
               entry_chunk,
               new_name.clone(),
               name.clone(),
               exports,
               !allow_rename,
-            );
+            )
+            .is_some()
+            {
+              entry_chunk_link.used_names.insert(new_name.clone());
+              entry_chunk_link
+                .decl_before_exports
+                .insert(format!("var {new_name} = {inlined_value};\n"));
+            }
           }
         }
       }

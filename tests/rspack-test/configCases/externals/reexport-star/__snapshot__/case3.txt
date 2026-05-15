@@ -7,4 +7,5 @@ const foo = 2
 
 const bar = 1
 
-export { bar, foo };
+var case3_foo = (/* inlined export .foo */2);
+export { bar, case3_foo as foo };
