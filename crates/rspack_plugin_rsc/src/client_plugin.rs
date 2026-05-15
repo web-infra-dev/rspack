@@ -188,9 +188,10 @@ fn collect_server_entry_css_files(
       continue;
     };
 
-    // Server-entry CSS blocks use the server entry resource as their request.
-    // Client component blocks use the client module request, so this lookup
-    // also filters out non-CSS blocks without walking dependencies again.
+    // Only server CSS blocks should populate `entryCssFiles` for loadCss().
+    // Client component blocks use the client module request here; their CSS is
+    // recorded on `clientManifest[*].cssFiles` when recording the client module.
+    // This lookup keeps those client component CSS files out of server entries.
     if entry_state
       .server_entries
       .get(server_entry)
