@@ -84,6 +84,7 @@ struct PresentationalDependencyHashUpdate<'a> {
 pub struct CssParserAndGenerator {
   pub generator_options: CssModuleGeneratorOptions,
   pub parser_options: CssModuleParserOptions,
+  pub exports_only: bool,
   pub hot: bool,
 }
 
@@ -92,9 +93,14 @@ impl CssParserAndGenerator {
     generator_options: CssModuleGeneratorOptions,
     parser_options: CssModuleParserOptions,
   ) -> Self {
+    let exports_only = generator_options
+      .exports_only
+      .expect("should have exports_only");
+
     Self {
       generator_options,
       parser_options,
+      exports_only,
       hot: false,
     }
   }
@@ -113,13 +119,6 @@ impl CssParserAndGenerator {
       .local_ident_name
       .as_ref()
       .expect("should have local_ident_name for module_type css/auto, css/global or css/module")
-  }
-
-  pub fn exports_only(&self) -> bool {
-    self
-      .generator_options
-      .exports_only
-      .expect("should have exports_only")
   }
 
   pub fn named_exports(&self) -> bool {
@@ -235,18 +234,14 @@ impl CssParserAndGenerator {
 
     let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
     hasher.write(build_hash.as_bytes());
-    if self.exports_only() {
+    if self.exports_only {
       hasher.write(b"javascript");
     } else {
       hasher.write(b"javascript");
       hasher.write(b"css");
     }
     hasher.write(if self.es_module() { b"true" } else { b"false" });
-    hasher.write(if self.exports_only() {
-      b"true"
-    } else {
-      b"false"
-    });
+    hasher.write(if self.exports_only { b"true" } else { b"false" });
     hasher.write(graph_hash.as_bytes());
     let mut itoa_buffer = itoa::Buffer::new();
     for update in presentational_dependency_hash_updates {
@@ -500,7 +495,7 @@ static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    if self.exports_only() {
+    if self.exports_only {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
@@ -1035,7 +1030,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    if self.exports_only() {
+    if self.exports_only {
       None
     } else {
       // CSS Module cannot be concatenated as it must appear in css chunk, if it's
