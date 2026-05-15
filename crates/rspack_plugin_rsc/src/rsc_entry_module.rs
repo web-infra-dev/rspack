@@ -325,10 +325,11 @@ impl Module for RscEntryModule {
           continue;
         }
 
+        let block_modifier = format!("server-entry={server_entry}");
         let block = AsyncDependenciesBlock::new(
           self.identifier,
           None,
-          None,
+          Some(&block_modifier),
           block_dependencies,
           Some(server_entry.clone()),
         );
