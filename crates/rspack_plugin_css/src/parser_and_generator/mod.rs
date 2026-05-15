@@ -453,7 +453,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       presentational_dependency_hash_updates,
       exports_only: self.exports_only,
       es_module: self.es_module(),
-      exports_convention: self.convention().clone(),
+      exports_convention: self.generator_options.exports_convention,
     };
 
     for dependency in deps {

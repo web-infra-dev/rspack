@@ -36,7 +36,7 @@ pub struct LocalIdentModuleHashOptions<'a> {
   pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
   pub exports_only: bool,
   pub es_module: bool,
-  pub exports_convention: CssExportsConvention,
+  pub exports_convention: Option<CssExportsConvention>,
 }
 
 #[derive(Debug, Clone)]
@@ -180,7 +180,12 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(update.content.as_bytes());
     }
     for name in module_hash_options.export_dependency_names.iter() {
-      let convention_names = export_locals_convention(name, module_hash_options.exports_convention);
+      let convention_names = export_locals_convention(
+        name,
+        module_hash_options
+          .exports_convention
+          .expect("should have convention for module_type css/auto, css/global or css/module"),
+      );
       let convention_names =
         serde_json::to_string(&convention_names).expect("css export names should be serializable");
       let local_ident_name = json_stringify_str(local_ident_name);
@@ -221,10 +226,10 @@ impl<'a> LocalIdentOptions<'a> {
       .as_str()
       .contains("[contenthash")
     {
-      let mut hasher = RspackHash::new(&HashFunction::MD4);
+      let mut hasher = RspackHash::new(self.local_ident_hash_function);
       hasher.write(self.source.as_bytes());
-      let hash = hasher.digest(&HashDigest::Hex);
-      content_hash = non_numeric_only_hash(hash.encoded(), 20);
+      let hash = hasher.digest(&self.local_ident_hash_digest);
+      content_hash = non_numeric_only_hash(hash.encoded(), self.local_ident_hash_digest_length);
       content_hash.as_str()
     } else {
       ""
@@ -314,6 +319,9 @@ impl LocalIdentNameRenderOptions<'_> {
       |template| {
         template
           .replace_all_with_len("[fullhash]", |len, need_base64| {
+            render_hash(self.local_ident_hash, len, need_base64)
+          })
+          .replace_all_with_len("[hash]", |len, need_base64| {
             render_hash(self.local_ident_hash, len, need_base64)
           })
           .into_owned()
