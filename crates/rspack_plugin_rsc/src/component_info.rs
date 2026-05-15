@@ -219,7 +219,7 @@ fn record_client_component_import(
       .client_component_imports
       .contains_key(resource)
   {
-    add_client_import_for_owner(
+    add_client_import_for_server_entry(
       module,
       resource,
       imported_identifiers,
@@ -274,14 +274,14 @@ fn get_imported_ids(module_graph: &ModuleGraph, dependency_id: &DependencyId) ->
   }
 }
 
-fn add_client_import_for_owner(
+fn add_client_import_for_server_entry(
   module: &dyn Module,
   resource: &str,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
   component_info: &mut ComponentInfo,
 ) {
-  add_client_import_to_map(
+  add_client_import_to_scope(
     module,
     resource,
     imported_identifiers,
@@ -289,7 +289,7 @@ fn add_client_import_for_owner(
   );
 
   let Some(server_entry) = current_server_entry else {
-    add_client_import_to_map(
+    add_client_import_to_scope(
       module,
       resource,
       imported_identifiers,
@@ -302,7 +302,7 @@ fn add_client_import_for_owner(
     .client_component_imports_by_server_entry
     .entry(server_entry.to_string())
     .or_default();
-  add_client_import_to_map(
+  add_client_import_to_scope(
     module,
     resource,
     imported_identifiers,
@@ -310,7 +310,7 @@ fn add_client_import_for_owner(
   );
 }
 
-fn add_client_import_to_map(
+fn add_client_import_to_scope(
   module: &dyn Module,
   mod_request: &str,
   imported_identifiers: &[Atom],
