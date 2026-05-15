@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rustc_hash::FxHashSet;
 
 use super::*;
@@ -12,6 +13,7 @@ pub struct ChunkHashResult {
 
 pub struct CreateHashPass;
 
+#[async_trait]
 impl PassExt for CreateHashPass {
   fn name(&self) -> &'static str {
     "hashing"

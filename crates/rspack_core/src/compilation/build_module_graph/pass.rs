@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::build_module_graph_pass;
@@ -20,6 +21,7 @@ use crate::{
 /// - finish module graph
 pub struct BuildModuleGraphPhasePass;
 
+#[async_trait]
 impl PassExt for BuildModuleGraphPhasePass {
   fn name(&self) -> &'static str {
     "build module graph"

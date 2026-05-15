@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::*;
@@ -7,6 +8,7 @@ use crate::{
 
 pub struct FinishModulesPhasePass;
 
+#[async_trait]
 impl PassExt for FinishModulesPhasePass {
   fn name(&self) -> &'static str {
     "finish modules"

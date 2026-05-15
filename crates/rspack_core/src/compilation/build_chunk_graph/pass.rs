@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_error::Result;
 
 use crate::{
@@ -7,6 +8,7 @@ use crate::{
 
 pub struct BuildChunkGraphPass;
 
+#[async_trait]
 impl PassExt for BuildChunkGraphPass {
   fn name(&self) -> &'static str {
     "build chunk graph"

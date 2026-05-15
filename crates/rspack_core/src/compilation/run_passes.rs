@@ -19,30 +19,35 @@ impl Compilation {
     _plugin_driver: SharedPluginDriver,
     cache: &mut dyn Cache,
   ) -> Result<()> {
+    let passes: Vec<Box<dyn PassExt>> = vec![
+      Box::new(BuildModuleGraphPhasePass),
+      Box::new(FinishModulesPhasePass),
+      Box::new(SealPass),
+      Box::new(OptimizeDependenciesPass),
+      Box::new(BuildChunkGraphPass),
+      Box::new(OptimizeModulesPass),
+      Box::new(OptimizeChunksPass),
+      Box::new(OptimizeTreePass),
+      Box::new(OptimizeChunkModulesPass),
+      Box::new(ModuleIdsPass),
+      Box::new(ChunkIdsPass),
+      Box::new(AssignRuntimeIdsPass),
+      Box::new(OptimizeCodeGenerationPass),
+      Box::new(CreateModuleHashesPass),
+      Box::new(CodeGenerationPass),
+      Box::new(RuntimeRequirementsPass),
+      Box::new(CreateHashPass),
+      Box::new(CreateModuleAssetsPass),
+      Box::new(CreateChunkAssetsPass),
+      Box::new(ProcessAssetsPass),
+      Box::new(AfterProcessAssetsPass),
+      Box::new(AfterSealPass),
+    ];
     self.module_static_cache.enable_new_cache();
 
-    BuildModuleGraphPhasePass.run(self, cache).await?;
-    FinishModulesPhasePass.run(self, cache).await?;
-    SealPass.run(self, cache).await?;
-    OptimizeDependenciesPass.run(self, cache).await?;
-    BuildChunkGraphPass.run(self, cache).await?;
-    OptimizeModulesPass.run(self, cache).await?;
-    OptimizeChunksPass.run(self, cache).await?;
-    OptimizeTreePass.run(self, cache).await?;
-    OptimizeChunkModulesPass.run(self, cache).await?;
-    ModuleIdsPass.run(self, cache).await?;
-    ChunkIdsPass.run(self, cache).await?;
-    AssignRuntimeIdsPass.run(self, cache).await?;
-    OptimizeCodeGenerationPass.run(self, cache).await?;
-    CreateModuleHashesPass.run(self, cache).await?;
-    CodeGenerationPass.run(self, cache).await?;
-    RuntimeRequirementsPass.run(self, cache).await?;
-    CreateHashPass.run(self, cache).await?;
-    CreateModuleAssetsPass.run(self, cache).await?;
-    CreateChunkAssetsPass.run(self, cache).await?;
-    ProcessAssetsPass.run(self, cache).await?;
-    AfterProcessAssetsPass.run(self, cache).await?;
-    AfterSealPass.run(self, cache).await?;
+    for pass in &passes {
+      pass.run(self, cache).await?;
+    }
 
     self.module_static_cache.disable_cache();
 

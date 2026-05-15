@@ -1,8 +1,11 @@
+use async_trait::async_trait;
+
 use super::*;
 use crate::compilation::pass::PassExt;
 
 pub struct OptimizeCodeGenerationPass;
 
+#[async_trait]
 impl PassExt for OptimizeCodeGenerationPass {
   fn name(&self) -> &'static str {
     "optimize code generation"
