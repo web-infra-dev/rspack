@@ -107,7 +107,7 @@ fn traverse_module(
       .insert(resource.to_string());
   }
 
-  if is_css_mod(module) {
+  if is_css_mod(module, resource.as_ref()) {
     record_css_import(
       compilation,
       module,

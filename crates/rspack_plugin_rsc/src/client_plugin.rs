@@ -96,7 +96,7 @@ fn record_module(
     return;
   }
 
-  if is_css_mod(module.as_ref()) {
+  if is_css_mod(module.as_ref(), resource.as_ref()) {
     return;
   }
 
