@@ -29,7 +29,7 @@ use rspack_util::{
   ext::DynHash,
   fx_hash::{FxIndexMap, FxIndexSet},
   identifier::make_paths_relative,
-  itoa,
+  itoa, json_stringify_str,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -239,11 +239,9 @@ impl CssParserAndGenerator {
     }
     for name in export_dependency_names {
       let convention_names = export_locals_convention(name, self.convention());
-      let convention_names =
-        serde_json::to_string(&convention_names).expect("css export names should be serializable");
+      let convention_names = json_stringify_str(&convention_names);
       if let Some(local_ident_name) = local_ident_name {
-        let local_ident_name =
-          serde_json::to_string(local_ident_name).expect("local ident name should be serializable");
+        let local_ident_name = json_stringify_str(local_ident_name);
         hasher.write(b"exportsConvention|");
         hasher.write(convention_names.as_bytes());
         hasher.write(b"|localIdentName|");
@@ -338,25 +336,13 @@ impl CssParserAndGenerator {
     compiler_options: &CompilerOptions,
     name: &str,
     css_exports: &mut Option<CssExports>,
-  ) -> rspack_error::Result<(String, Vec<String>)> {
-    let local_ident_hash_digest = self.generator_options.local_ident_hash_digest.as_ref();
-    let local_ident_hash_digest_length = self
-      .generator_options
-      .local_ident_hash_digest_length
-      .map(|len| len as usize);
-    let local_ident_hash_function = self.generator_options.local_ident_hash_function.as_ref();
-    let local_ident_hash_salt = self.generator_options.local_ident_hash_salt.as_ref();
-
+  ) -> Result<(String, Vec<String>)> {
     let local_ident = LocalIdentOptions::new(
       resource_data,
       source,
       module_hash,
-      self.local_ident_name(),
       compiler_options,
-      local_ident_hash_digest,
-      local_ident_hash_digest_length,
-      local_ident_hash_function,
-      local_ident_hash_salt,
+      &self.generator_options,
     )
     .get_local_ident(name)
     .await?;

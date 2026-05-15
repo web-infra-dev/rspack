@@ -9,8 +9,8 @@ use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use regex::{Captures, Regex};
 use rspack_core::{
-  CompilerOptions, CssExportsConvention, LocalIdentName, PathData, ReplaceAllPlaceholder,
-  ResourceData,
+  CompilerOptions, CssExportsConvention, CssModuleGeneratorOptions, GeneratorOptions,
+  LocalIdentName, PathData, ReplaceAllPlaceholder, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
@@ -24,35 +24,48 @@ pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   source: &'a str,
   module_hash: &'a str,
-  local_name_ident: &'a LocalIdentName,
   compiler_options: &'a CompilerOptions,
-  local_ident_hash_digest: Option<&'a HashDigest>,
-  local_ident_hash_digest_length: Option<usize>,
-  local_ident_hash_function: Option<&'a HashFunction>,
-  local_ident_hash_salt: Option<&'a HashSalt>,
+  local_ident_name: &'a LocalIdentName,
+  local_ident_hash_digest: HashDigest,
+  local_ident_hash_digest_length: usize,
+  local_ident_hash_function: HashFunction,
+  local_ident_hash_salt: HashSalt,
 }
 
 impl<'a> LocalIdentOptions<'a> {
-  #[allow(clippy::too_many_arguments)]
   pub fn new(
     resource_data: &ResourceData,
     source: &'a str,
     module_hash: &'a str,
-    local_name_ident: &'a LocalIdentName,
     compiler_options: &'a CompilerOptions,
-    local_ident_hash_digest: Option<&'a HashDigest>,
-    local_ident_hash_digest_length: Option<usize>,
-    local_ident_hash_function: Option<&'a HashFunction>,
-    local_ident_hash_salt: Option<&'a HashSalt>,
+    generator_options: &CssModuleGeneratorOptions,
   ) -> Self {
     let relative_resource =
       make_paths_relative(&compiler_options.context, resource_data.resource());
+
+    let local_ident_name = generator_options
+      .local_ident_name
+      .as_ref()
+      .expect("should have local_ident_name when calculating css local ident module hash");
+    let hash_digest = generator_options
+      .local_ident_hash_digest
+      .expect("should have local_ident_hash_digest when calculating css local ident module hash");
+    let hash_digest_length = generator_options.local_ident_hash_digest_length.expect(
+      "should have local_ident_hash_digest_length when calculating css local ident module hash",
+    );
+    let hash_function = generator_options
+      .local_ident_hash_function
+      .expect("should have local_ident_hash_function when calculating css local ident module hash");
+    let hash_salt = generator_options
+      .local_ident_hash_salt
+      .expect("should have local_ident_hash_salt when calculating css local ident module hash");
+
     Self {
       relative_resource,
       source,
       module_hash,
-      local_name_ident,
       compiler_options,
+      local_ident_name,
       local_ident_hash_digest,
       local_ident_hash_digest_length,
       local_ident_hash_function,
@@ -62,7 +75,7 @@ impl<'a> LocalIdentOptions<'a> {
 
   pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
-    let use_output_hash_for_fullhash = self.local_name_ident.template.as_str() == "[fullhash]";
+    let use_output_hash_for_fullhash = self.local_ident_name.template.as_str() == "[fullhash]";
     let hash_function = if use_output_hash_for_fullhash {
       &output.hash_function
     } else {
@@ -99,7 +112,7 @@ impl<'a> LocalIdentOptions<'a> {
     };
     let content_hash;
     let content_hash = if self
-      .local_name_ident
+      .local_ident_name
       .template
       .as_str()
       .contains("[contenthash")
@@ -143,7 +156,7 @@ impl<'a> LocalIdentOptions<'a> {
         .and_then(|s| s.to_str())
         .unwrap_or(""),
     }
-    .render_local_ident_name(self.local_name_ident)
+    .render_local_ident_name(self.local_ident_name)
     .await?;
     Ok(
       LEADING_DIGIT_REGEX
