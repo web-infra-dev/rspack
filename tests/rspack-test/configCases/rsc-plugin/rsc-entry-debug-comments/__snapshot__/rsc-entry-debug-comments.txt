@@ -7,8 +7,8 @@ server
  * - ./src/clients/PageOneClient.js (exports: PageOneClient)
  * - ./src/clients/PageTwoClient.js (exports: PageTwoClient)
  * - ./src/clients/RootClient.js (exports: RootClient)
- * - ./src/clients/SharedAcrossPages.js (exports: SharedAcrossPages)
- * - ./src/clients/SharedRootAndPage.js (exports: SharedRootAndPage)
+ * - ./src/clients/SharedAcrossPages.js (exports: *)
+ * - ./src/clients/SharedRootAndPage.js (exports: *)
  */
 
 client
@@ -23,8 +23,8 @@ client
  * chunk group: ungrouped
  * chunking: one async block per module
  * modules:
- * - ./src/clients/SharedAcrossPages.js (exports: SharedAcrossPages)
- * - ./src/clients/SharedRootAndPage.js (exports: SharedRootAndPage)
+ * - ./src/clients/SharedAcrossPages.js (exports: *)
+ * - ./src/clients/SharedRootAndPage.js (exports: *)
  */
 /*!
  * chunk group: server-entry
