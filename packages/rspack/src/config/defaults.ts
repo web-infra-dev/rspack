@@ -113,7 +113,7 @@ export const applyRspackOptionsDefaults = (
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
     outputModule: options.output.module,
-    hashFunction: options.output.hashFunction ?? 'xxhash64',
+    hashFunction: options.output.hashFunction!,
     hashSalt: options.output.hashSalt,
   });
 
