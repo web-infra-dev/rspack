@@ -379,6 +379,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       _ => css_module_lexer::Mode::Css,
     };
+    build_meta.is_css_module = matches!(
+      mode,
+      css_module_lexer::Mode::Local | css_module_lexer::Mode::Global
+    );
 
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
@@ -453,6 +457,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       presentational_dependency_hash_updates,
       exports_only: self.exports_only,
       es_module: self.es_module(),
+      named_exports: self.named_exports(),
       exports_convention: self.generator_options.exports_convention,
     };
 
@@ -551,6 +556,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
           let local_ident_options = LocalIdentOptions::new(
             resource_data,
+            module_type,
             &source_code,
             compiler_options,
             &self.generator_options,
@@ -578,6 +584,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
           let local_ident_options = LocalIdentOptions::new(
             resource_data,
+            module_type,
             &source_code,
             compiler_options,
             &self.generator_options,
@@ -596,6 +603,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
           let local_ident_options = LocalIdentOptions::new(
             resource_data,
+            module_type,
             &source_code,
             compiler_options,
             &self.generator_options,

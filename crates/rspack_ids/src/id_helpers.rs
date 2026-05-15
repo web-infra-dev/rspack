@@ -64,7 +64,8 @@ pub fn get_used_module_ids_and_modules_with_artifact(
         used_ids.insert(module_id.to_string());
       } else {
         if filter.as_ref().is_none_or(|f| (f)(module))
-          && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+          && (chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+            || module.build_meta().is_css_module)
         {
           modules.push(module.identifier());
         }
