@@ -106,17 +106,6 @@ export const applyRspackOptionsDefaults = (
 
   applySnapshotDefaults(options.snapshot, { production });
 
-  applyModuleDefaults(options.module, {
-    asyncWebAssembly: options.experiments.asyncWebAssembly!,
-    targetProperties,
-    mode: options.mode,
-    uniqueName: options.output.uniqueName,
-    deferImport: options.experiments.deferImport,
-    outputModule: options.output.module,
-    hashFunction: options.output.hashFunction!,
-    hashSalt: options.output.hashSalt,
-  });
-
   applyOutputDefaults(options, {
     context: options.context!,
     targetProperties,
@@ -126,6 +115,17 @@ export const applyRspackOptionsDefaults = (
       (Array.isArray(target) &&
         target.some((target) => target.startsWith('browserslist'))),
     entry: options.entry,
+  });
+
+  applyModuleDefaults(options.module, {
+    asyncWebAssembly: options.experiments.asyncWebAssembly!,
+    targetProperties,
+    mode: options.mode,
+    uniqueName: options.output.uniqueName,
+    deferImport: options.experiments.deferImport,
+    outputModule: options.output.module,
+    hashFunction: options.output.hashFunction!,
+    hashSalt: options.output.hashSalt,
   });
 
   applyExternalsPresetsDefaults(options.externalsPresets, {

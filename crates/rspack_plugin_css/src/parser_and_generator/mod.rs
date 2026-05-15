@@ -154,48 +154,34 @@ impl CssParserAndGenerator {
     export_dependency_names: &[String],
     graph_export_names: &[String],
     presentational_dependency_hash_updates: &[PresentationalDependencyHashUpdate<'_>],
-    compiler_options: &CompilerOptions,
   ) -> String {
     let local_ident_name = self
       .generator_options
       .local_ident_name
-      .as_ref()
-      .map(|local_ident_name| local_ident_name.template.as_str());
-    let local_ident_hash_digest = self
+      .expect("should have local_ident_name when calculating css local ident module hash");
+    let hash_digest = self
       .generator_options
       .local_ident_hash_digest
-      .as_deref()
-      .map(Into::into);
-    let local_ident_hash_digest_length = self
+      .expect("should have local_ident_hash_digest when calculating css local ident module hash");
+    let hash_digest_length = self
       .generator_options
       .local_ident_hash_digest_length
-      .map(|len| len as usize);
-    let local_ident_hash_function = self
+      .expect(
+        "should have local_ident_hash_digest_length when calculating css local ident module hash",
+      );
+    let hash_function = self
       .generator_options
       .local_ident_hash_function
-      .as_deref()
-      .map(Into::into);
-    let local_ident_hash_salt = self
+      .expect("should have local_ident_hash_function when calculating css local ident module hash");
+    let hash_salt = self
       .generator_options
       .local_ident_hash_salt
-      .clone()
-      .map(Some)
-      .map(Into::into);
-    let hash_function = local_ident_hash_function
-      .as_ref()
-      .unwrap_or(&compiler_options.output.hash_function);
-    let hash_salt = local_ident_hash_salt
-      .as_ref()
-      .unwrap_or(&compiler_options.output.hash_salt);
-    let hash_digest = local_ident_hash_digest
-      .as_ref()
-      .unwrap_or(&compiler_options.output.hash_digest);
-    let hash_digest_length =
-      local_ident_hash_digest_length.unwrap_or(compiler_options.output.hash_digest_length);
-    let should_use_resource_hash = local_ident_name.is_some_and(|local_ident_name| {
-      (local_ident_name.contains("[hash") || local_ident_name.contains("[fullhash"))
-        && !relative_resource.contains(['?', '#'])
-    });
+      .expect("should have local_ident_hash_salt when calculating css local ident module hash");
+
+    let should_use_resource_hash = (local_ident_name.contains("[hash")
+      || local_ident_name.contains("[fullhash"))
+      && !relative_resource.contains(['?', '#']);
+
     if should_use_resource_hash {
       let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
       hasher.write(relative_resource.as_bytes());
@@ -353,26 +339,13 @@ impl CssParserAndGenerator {
     name: &str,
     css_exports: &mut Option<CssExports>,
   ) -> rspack_error::Result<(String, Vec<String>)> {
-    let local_ident_hash_digest = self
-      .generator_options
-      .local_ident_hash_digest
-      .as_deref()
-      .map(Into::into);
+    let local_ident_hash_digest = self.generator_options.local_ident_hash_digest.as_ref();
     let local_ident_hash_digest_length = self
       .generator_options
       .local_ident_hash_digest_length
       .map(|len| len as usize);
-    let local_ident_hash_function = self
-      .generator_options
-      .local_ident_hash_function
-      .as_deref()
-      .map(Into::into);
-    let local_ident_hash_salt = self
-      .generator_options
-      .local_ident_hash_salt
-      .clone()
-      .map(Some)
-      .map(Into::into);
+    let local_ident_hash_function = self.generator_options.local_ident_hash_function.as_ref();
+    let local_ident_hash_salt = self.generator_options.local_ident_hash_salt.as_ref();
 
     let local_ident = LocalIdentOptions::new(
       resource_data,
@@ -380,10 +353,10 @@ impl CssParserAndGenerator {
       module_hash,
       self.local_ident_name(),
       compiler_options,
-      local_ident_hash_digest.as_ref(),
+      local_ident_hash_digest,
       local_ident_hash_digest_length,
-      local_ident_hash_function.as_ref(),
-      local_ident_hash_salt.as_ref(),
+      local_ident_hash_function,
+      local_ident_hash_salt,
     )
     .get_local_ident(name)
     .await?;
@@ -645,7 +618,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       &export_dependency_names,
       &graph_export_names,
       &presentational_dependency_hash_updates,
-      compiler_options,
     );
     for dependency in deps {
       match dependency {

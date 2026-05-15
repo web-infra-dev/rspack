@@ -4018,6 +4018,7 @@ dependencies = [
  "base64-simd 0.8.0",
  "md4",
  "rspack_cacheable",
+ "rspack_util",
  "sha2",
  "smol_str",
  "xxhash-rust",

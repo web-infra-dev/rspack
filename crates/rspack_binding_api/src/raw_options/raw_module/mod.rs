@@ -845,13 +845,13 @@ pub struct RawCssModuleGeneratorOptions {
 impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: RawCssModuleGeneratorOptions) -> Self {
     Self {
-      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_convention: value.exports_convention.map(|s| s.into()),
       exports_only: value.exports_only,
-      local_ident_hash_digest: value.local_ident_hash_digest,
+      local_ident_hash_digest: value.local_ident_hash_digest.map(|s| s.as_str().into()),
       local_ident_hash_digest_length: value.local_ident_hash_digest_length,
-      local_ident_hash_function: value.local_ident_hash_function,
-      local_ident_hash_salt: value.local_ident_hash_salt,
-      local_ident_name: value.local_ident_name.map(|n| n.into()),
+      local_ident_hash_function: value.local_ident_hash_function.map(|s| s.as_str().into()),
+      local_ident_hash_salt: value.local_ident_hash_salt.map(|s| s.into()),
+      local_ident_name: value.local_ident_name.map(|s| s.into()),
       es_module: value.es_module,
     }
   }
