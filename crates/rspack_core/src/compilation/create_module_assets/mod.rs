@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::compilation::pass::PassExt;
 
 pub struct CreateModuleAssetsPass;
 
-#[async_trait]
 impl PassExt for CreateModuleAssetsPass {
   fn name(&self) -> &'static str {
     "create module assets"

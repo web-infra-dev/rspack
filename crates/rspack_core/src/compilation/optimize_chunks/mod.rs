@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::compilation::pass::PassExt;
 
 pub struct OptimizeChunksPass;
 
-#[async_trait]
 impl PassExt for OptimizeChunksPass {
   fn name(&self) -> &'static str {
     "optimize chunks"

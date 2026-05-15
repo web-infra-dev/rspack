@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt};
 
 pub struct OptimizeChunkModulesPass;
 
-#[async_trait]
 impl PassExt for OptimizeChunkModulesPass {
   fn name(&self) -> &'static str {
     "optimize chunk modules"

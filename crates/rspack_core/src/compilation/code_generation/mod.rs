@@ -1,5 +1,3 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::{
   ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
@@ -7,7 +5,6 @@ use crate::{
 
 pub struct CodeGenerationPass;
 
-#[async_trait]
 impl PassExt for CodeGenerationPass {
   fn name(&self) -> &'static str {
     "code generation"

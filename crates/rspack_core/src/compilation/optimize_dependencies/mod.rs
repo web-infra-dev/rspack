@@ -1,11 +1,8 @@
-use async_trait::async_trait;
-
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt};
 
 pub struct OptimizeDependenciesPass;
 
-#[async_trait]
 impl PassExt for OptimizeDependenciesPass {
   fn name(&self) -> &'static str {
     "optimize dependencies"
