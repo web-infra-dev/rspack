@@ -16,7 +16,7 @@ use rspack_napi::napi::{
   Either,
   bindgen_prelude::{Buffer, Result, SharedReference, ToNapiValue},
 };
-use rspack_util::{atom::Atom, itoa, numeric_id_value};
+use rspack_util::{atom::Atom, itoa, numeric_id_value, ryu_js};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -325,8 +325,9 @@ impl<'a> From<(String, rspack_core::LogType)> for JsStatsLogging<'a> {
         secs,
         subsec_nanos,
       } => {
-        let mut time_buffer = itoa::Buffer::new();
-        let time_str = time_buffer.format(secs * 1000 + subsec_nanos as u64 / 1_000_000);
+        let ms = secs as f64 * 1000.0 + subsec_nanos as f64 / 1_000_000.0;
+        let mut time_buffer = ryu_js::Buffer::new();
+        let time_str = time_buffer.format(ms);
         Self {
           name: value.0,
           r#type: "time",
