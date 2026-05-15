@@ -1,8 +1,8 @@
 Object {
-  btn--info_is-disabled_1: _1345eb888e62f079d512-btn--info_is-disabled_1,
-  btn-info_is-disabled: _1345eb888e62f079d512-btn-info_is-disabled,
+  btn--info_is-disabled_1: _00a20c06fd874b32044e-btn--info_is-disabled_1,
+  btn-info_is-disabled: _00a20c06fd874b32044e-btn-info_is-disabled,
   foo: bar,
-  foo_bar: _1345eb888e62f079d512-foo_bar,
+  foo_bar: _00a20c06fd874b32044e-foo_bar,
   my-btn-info_is-disabled: value,
-  simple: _1345eb888e62f079d512-simple,
+  simple: _00a20c06fd874b32044e-simple,
 }

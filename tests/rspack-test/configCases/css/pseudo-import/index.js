@@ -16,7 +16,7 @@ it("should compile", () => {
 it("should re-export", async () => {
 	const module = await import("./reexport.modules.css");
 	expect(module).toEqual(nsObj({
-		"className": "_reexport_modules_css-className",
+		"className": "reexport_modules_css-className",
 		"primary-color": "constructor",
 		"secondary-color": "toString",
 	}));

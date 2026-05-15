@@ -460,6 +460,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       named_exports: self.named_exports(),
       exports_convention: self.generator_options.exports_convention,
     };
+    let local_ident_options = OnceCell::new();
 
     for dependency in deps {
       match dependency {
@@ -553,18 +554,19 @@ impl ParserAndGenerator for CssParserAndGenerator {
         | css_module_lexer::Dependency::LocalId { name, range, .. } => {
           let (_prefix, name) = name.split_at(1);
           let name = unescape(name);
-
-          let local_ident_options = LocalIdentOptions::new(
-            resource_data,
-            module_type,
-            &source_code,
-            compiler_options,
-            &self.generator_options,
-          );
+          let local_ident_options = local_ident_options.get_or_init(|| {
+            LocalIdentOptions::new(
+              resource_data,
+              module_type,
+              &source_code,
+              compiler_options,
+              &self.generator_options,
+            )
+          });
 
           let (local_ident, convention_names) = self
             .resolve_local_ident_and_update_exports(
-              &local_ident_options,
+              local_ident_options,
               &name,
               &mut css_exports,
               &module_hash_options,
@@ -582,18 +584,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
           )));
         }
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
-          let local_ident_options = LocalIdentOptions::new(
-            resource_data,
-            module_type,
-            &source_code,
-            compiler_options,
-            &self.generator_options,
-          );
+          let local_ident_options = local_ident_options.get_or_init(|| {
+            LocalIdentOptions::new(
+              resource_data,
+              module_type,
+              &source_code,
+              compiler_options,
+              &self.generator_options,
+            )
+          });
           self
             .handle_local_ident_usage(
               name,
               range,
-              &local_ident_options,
+              local_ident_options,
               &mut css_exports,
               &mut dependencies,
               &module_hash_options,
@@ -601,18 +605,20 @@ impl ParserAndGenerator for CssParserAndGenerator {
             .await?;
         }
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
-          let local_ident_options = LocalIdentOptions::new(
-            resource_data,
-            module_type,
-            &source_code,
-            compiler_options,
-            &self.generator_options,
-          );
+          let local_ident_options = local_ident_options.get_or_init(|| {
+            LocalIdentOptions::new(
+              resource_data,
+              module_type,
+              &source_code,
+              compiler_options,
+              &self.generator_options,
+            )
+          });
           self
             .handle_local_ident_declaration(
               name,
               range,
-              &local_ident_options,
+              local_ident_options,
               &mut css_exports,
               &mut dependencies,
               &mut css_local_names,

@@ -35,13 +35,13 @@ module.exports = {
 			+   "mode": "development",
 			@@ ... @@
 			-         "localIdentName": "[fullhash]",
-			+         "localIdentName": "[id]-[local]",
+			+         "localIdentName": "[uniqueName]-[id]-[local]",
 			@@ ... @@
 			-         "localIdentName": "[fullhash]",
-			+         "localIdentName": "[id]-[local]",
+			+         "localIdentName": "[uniqueName]-[id]-[local]",
 			@@ ... @@
 			-         "localIdentName": "[fullhash]",
-			+         "localIdentName": "[id]-[local]",
+			+         "localIdentName": "[uniqueName]-[id]-[local]",
 			@@ ... @@
 			-         "exportsDepth": 9007199254740991,
 			+         "exportsDepth": 1,

@@ -12,9 +12,9 @@ _index_module_css__rspack_import_0.compose;
 },
 "./index.module.css"(module) {
 var exports = {
-  "foo": "d4ecfa0771d07b56",
-  "bar": "_23b3aa514f799b79",
-  "compose": "_3c681712e39511e0" + " " + "_23b3aa514f799b79",
+  "foo": "_1Oz6B3",
+  "bar": "I7OqUU",
+  "compose": "PGgXEu" + " " + "I7OqUU",
 };
 
 module.exports = exports;

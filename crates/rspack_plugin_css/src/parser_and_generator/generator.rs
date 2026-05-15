@@ -282,11 +282,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
         identifier = Cow::Owned(format!("_{identifier}"));
       }
+      let base_identifier = identifier.clone();
       let mut i = 0;
       while used_identifiers.contains(&identifier) {
         let mut i_buffer = itoa::Buffer::new();
         let i_str = i_buffer.format(i);
-        identifier = Cow::Owned(format!("{identifier}{i_str}"));
+        identifier = Cow::Owned(format!("{base_identifier}{i_str}"));
         i += 1;
       }
       // TODO: conditional support `const or var` after we finished runtimeTemplate utils
