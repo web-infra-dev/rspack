@@ -491,7 +491,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             let last_one = i == len - 1;
             if !last_one && let Some(nested_info) = export_info.exports_info() {
               let changed_flag = export_info.set_used_conditionally(
-                Box::new(|used| used == &UsageState::Unused),
+                |used| used == &UsageState::Unused,
                 UsageState::OnlyPropertiesUsed,
                 runtime.as_ref(),
               );
@@ -517,7 +517,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             }
 
             let changed_flag = export_info.set_used_conditionally(
-              Box::new(|v| v != &UsageState::Used),
+              |v| v != &UsageState::Used,
               UsageState::Used,
               runtime.as_ref(),
             );
@@ -707,7 +707,34 @@ fn collect_active_dependencies(
         (block.get_blocks(), block.get_dependencies())
       }
     };
-    dependencies.extend(block_dependencies);
+    for &dep_id in block_dependencies {
+      let Some(connection) = module_graph.connection_by_dependency_id(&dep_id) else {
+        continue;
+      };
+      let active_state = connection.active_state(
+        module_graph,
+        runtime,
+        module_graph_cache,
+        side_effects_state_artifact,
+        exports_info_artifact,
+      );
+
+      match active_state {
+        ConnectionState::Active(false) => {
+          continue;
+        }
+        ConnectionState::TransitiveOnly => {
+          q.push((
+            ModuleOrAsyncDependenciesBlock::Module(*connection.module_identifier()),
+            runtime.cloned(),
+            false,
+          ));
+          continue;
+        }
+        _ => {}
+      }
+      dependencies.push((dep_id, *connection.module_identifier()));
+    }
     for block_id in blocks {
       let block = module_graph
         .block_by_id(block_id)
@@ -726,36 +753,6 @@ fn collect_active_dependencies(
       }
     }
   }
-
-  let dependencies = dependencies
-    .into_iter()
-    .filter_map(|dep_id| {
-      let connection = module_graph.connection_by_dependency_id(&dep_id)?;
-      let active_state = connection.active_state(
-        module_graph,
-        runtime,
-        module_graph_cache,
-        side_effects_state_artifact,
-        exports_info_artifact,
-      );
-
-      match active_state {
-        ConnectionState::Active(false) => {
-          return None;
-        }
-        ConnectionState::TransitiveOnly => {
-          q.push((
-            ModuleOrAsyncDependenciesBlock::Module(*connection.module_identifier()),
-            runtime.cloned(),
-            false,
-          ));
-          return None;
-        }
-        _ => {}
-      }
-      Some((dep_id, *connection.module_identifier()))
-    })
-    .collect::<Vec<_>>();
 
   (dependencies, q)
 }
@@ -846,7 +843,7 @@ fn process_referenced_module_without_nested(
         }
 
         let changed_flag = export_info.set_used_conditionally(
-          Box::new(|v| v != &UsageState::Used),
+          |v| v != &UsageState::Used,
           UsageState::Used,
           runtime.as_ref(),
         );
