@@ -146,6 +146,7 @@ impl CssParserAndGenerator {
     Ok(())
   }
 
+  #[allow(clippy::too_many_arguments)]
   async fn handle_local_ident_declaration<'a>(
     &self,
     name: &'a str,

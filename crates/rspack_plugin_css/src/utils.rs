@@ -246,7 +246,7 @@ impl<'a> LocalIdentOptions<'a> {
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(chunk_name)
-        .hash(&self.module_hash(module_hash_options))
+        .hash(self.module_hash(module_hash_options))
         .content_hash(content_hash)
         .id(id.as_ref()),
       local,
@@ -279,7 +279,7 @@ pub fn replace_css_module_id_placeholder<'a>(
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
     .expect("css module should have module id when rendering local ident");
   let module_id = prepare_css_module_id(module_id.as_str());
-  Cow::Owned(local_ident.replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref()))
+  local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref())
 }
 
 static PREPARE_CSS_MODULE_ID_START_REGEX: LazyLock<Regex> =
