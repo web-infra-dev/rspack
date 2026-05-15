@@ -1,3 +1,5 @@
+use async_trait::async_trait;
+
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt};
 
@@ -26,6 +28,7 @@ fn get_modules_needing_ids(
 
 pub struct ModuleIdsPass;
 
+#[async_trait]
 impl PassExt for ModuleIdsPass {
   fn name(&self) -> &'static str {
     "module ids"

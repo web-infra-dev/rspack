@@ -1,8 +1,11 @@
+use async_trait::async_trait;
+
 use super::*;
 use crate::compilation::pass::PassExt;
 
 pub struct AfterSealPass;
 
+#[async_trait]
 impl PassExt for AfterSealPass {
   fn name(&self) -> &'static str {
     "after seal"

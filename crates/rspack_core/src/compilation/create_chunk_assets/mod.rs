@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rustc_hash::FxHashSet;
 
 use super::*;
@@ -5,6 +6,7 @@ use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
 
 pub struct CreateChunkAssetsPass;
 
+#[async_trait]
 impl PassExt for CreateChunkAssetsPass {
   fn name(&self) -> &'static str {
     "create chunk assets"

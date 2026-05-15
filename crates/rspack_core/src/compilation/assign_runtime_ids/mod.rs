@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::*;
@@ -5,6 +6,7 @@ use crate::compilation::pass::PassExt;
 
 pub struct AssignRuntimeIdsPass;
 
+#[async_trait]
 impl PassExt for AssignRuntimeIdsPass {
   fn name(&self) -> &'static str {
     "assign runtime ids"

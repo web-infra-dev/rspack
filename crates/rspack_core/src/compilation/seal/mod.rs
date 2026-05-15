@@ -1,9 +1,11 @@
+use async_trait::async_trait;
 use rspack_error::Result;
 
 use crate::{Compilation, compilation::pass::PassExt};
 
 pub struct SealPass;
 
+#[async_trait]
 impl PassExt for SealPass {
   fn name(&self) -> &'static str {
     "seal"

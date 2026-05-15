@@ -1,8 +1,11 @@
+use async_trait::async_trait;
+
 use super::*;
 use crate::{cache::Cache, compilation::pass::PassExt};
 
 pub struct ProcessAssetsPass;
 
+#[async_trait]
 impl PassExt for ProcessAssetsPass {
   fn name(&self) -> &'static str {
     "process assets"
