@@ -9,36 +9,55 @@ use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use regex::{Captures, Regex};
 use rspack_core::{
-  CompilerOptions, CssExportsConvention, CssModuleGeneratorOptions, GeneratorOptions,
-  LocalIdentName, PathData, ReplaceAllPlaceholder, ResourceData,
+  CompilerOptions, CssExportsConvention, CssModuleGeneratorOptions, LocalIdentName, PathData,
+  ReplaceAllPlaceholder, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
-use rspack_util::{base64, identifier::make_paths_relative};
+use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
+
+#[derive(Debug, Clone)]
+pub struct PresentationalDependencyHashUpdate<'a> {
+  pub start: u32,
+  pub end: u32,
+  pub content: &'a str,
+}
+
+#[derive(Debug, Clone)]
+pub struct LocalIdentModuleHashOptions<'a> {
+  pub export_dependency_names: &'a [String],
+  pub graph_export_names: &'a [String],
+  pub presentational_dependency_hash_updates: &'a [PresentationalDependencyHashUpdate<'a>],
+  pub exports_only: bool,
+  pub es_module: bool,
+  pub exports_convention: &'a CssExportsConvention,
+}
+
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   source: &'a str,
-  module_hash: &'a str,
+  module_hash: String,
+  module_hash_options: LocalIdentModuleHashOptions<'a>,
   compiler_options: &'a CompilerOptions,
   local_ident_name: &'a LocalIdentName,
-  local_ident_hash_digest: HashDigest,
+  local_ident_hash_digest: &'a HashDigest,
   local_ident_hash_digest_length: usize,
-  local_ident_hash_function: HashFunction,
-  local_ident_hash_salt: HashSalt,
+  local_ident_hash_function: &'a HashFunction,
+  local_ident_hash_salt: &'a HashSalt,
 }
 
 impl<'a> LocalIdentOptions<'a> {
   pub fn new(
     resource_data: &ResourceData,
     source: &'a str,
-    module_hash: &'a str,
     compiler_options: &'a CompilerOptions,
-    generator_options: &CssModuleGeneratorOptions,
+    generator_options: &'a CssModuleGeneratorOptions,
+    module_hash_options: LocalIdentModuleHashOptions<'a>,
   ) -> Self {
     let relative_resource =
       make_paths_relative(&compiler_options.context, resource_data.resource());
@@ -47,68 +66,146 @@ impl<'a> LocalIdentOptions<'a> {
       .local_ident_name
       .as_ref()
       .expect("should have local_ident_name when calculating css local ident module hash");
-    let hash_digest = generator_options
+    let local_ident_hash_digest = generator_options
       .local_ident_hash_digest
+      .as_ref()
       .expect("should have local_ident_hash_digest when calculating css local ident module hash");
-    let hash_digest_length = generator_options.local_ident_hash_digest_length.expect(
-      "should have local_ident_hash_digest_length when calculating css local ident module hash",
-    );
-    let hash_function = generator_options
+    let local_ident_hash_digest_length = generator_options
+      .local_ident_hash_digest_length
+      .map(|len| len as usize)
+      .expect(
+        "should have local_ident_hash_digest_length when calculating css local ident module hash",
+      );
+    let local_ident_hash_function = generator_options
       .local_ident_hash_function
+      .as_ref()
       .expect("should have local_ident_hash_function when calculating css local ident module hash");
-    let hash_salt = generator_options
+    let local_ident_hash_salt = generator_options
       .local_ident_hash_salt
+      .as_ref()
       .expect("should have local_ident_hash_salt when calculating css local ident module hash");
 
-    Self {
+    let mut options = Self {
       relative_resource,
       source,
-      module_hash,
+      module_hash: String::new(),
+      module_hash_options,
       compiler_options,
       local_ident_name,
       local_ident_hash_digest,
       local_ident_hash_digest_length,
       local_ident_hash_function,
       local_ident_hash_salt,
+    };
+    options.module_hash = options.get_module_hash();
+    options
+  }
+
+  fn get_module_hash(&self) -> String {
+    let local_ident_name = self.local_ident_name.template.as_str();
+    let should_use_resource_hash = (local_ident_name.contains("[hash")
+      || local_ident_name.contains("[fullhash"))
+      && !self.relative_resource.contains(['?', '#']);
+
+    if should_use_resource_hash {
+      let mut hasher =
+        RspackHash::with_salt(self.local_ident_hash_function, self.local_ident_hash_salt);
+      hasher.write(self.relative_resource.as_bytes());
+      let hash = hasher
+        .digest(self.local_ident_hash_digest)
+        .rendered(self.local_ident_hash_digest_length)
+        .to_string();
+      return LEADING_DIGIT_REGEX.replace(&hash, "_${1}").into_owned();
     }
+
+    let build_hash = {
+      let mut hasher = RspackHash::new(self.local_ident_hash_function);
+      hasher.write(b"source");
+      hasher.write(b"RawSource");
+      hasher.write(self.source.as_bytes());
+      hasher.write(b"meta");
+      hasher.write(br#"{"isCssModule":true,"exportsType":"namespace","defaultObject":false}"#);
+      hasher.digest(&HashDigest::Hex).encoded().to_string()
+    };
+
+    let graph_hash = {
+      let mut graph_exports = self.module_hash_options.graph_export_names.to_vec();
+      graph_exports.sort();
+
+      let mut hasher = RspackHash::new(self.local_ident_hash_function);
+      hasher.write(self.relative_resource.as_bytes());
+      hasher.write(b"false");
+      for name in graph_exports {
+        hasher.write(name.as_bytes());
+        hasher.write(b"2truefalse");
+      }
+      hasher.write(b"*side effects only*2undefinedfalse");
+      hasher.write(b"null2falsefalse");
+      hasher.digest(&HashDigest::Hex).encoded().to_string()
+    };
+
+    let mut hasher =
+      RspackHash::with_salt(self.local_ident_hash_function, self.local_ident_hash_salt);
+    hasher.write(build_hash.as_bytes());
+    if self.module_hash_options.exports_only {
+      hasher.write(b"javascript");
+    } else {
+      hasher.write(b"javascript");
+      hasher.write(b"css");
+    }
+    hasher.write(if self.module_hash_options.es_module {
+      b"true"
+    } else {
+      b"false"
+    });
+    hasher.write(if self.module_hash_options.exports_only {
+      b"true"
+    } else {
+      b"false"
+    });
+    hasher.write(graph_hash.as_bytes());
+    let mut itoa_buffer = itoa::Buffer::new();
+    for update in self
+      .module_hash_options
+      .presentational_dependency_hash_updates
+    {
+      hasher.write(itoa_buffer.format(update.start).as_bytes());
+      hasher.write(b",");
+      hasher.write(itoa_buffer.format(update.end).as_bytes());
+      hasher.write(b"|");
+      hasher.write(update.content.as_bytes());
+    }
+    for name in self.module_hash_options.export_dependency_names {
+      let convention_names =
+        export_locals_convention(name, self.module_hash_options.exports_convention);
+      let convention_names =
+        serde_json::to_string(&convention_names).expect("css export names should be serializable");
+      let local_ident_name = json_stringify_str(local_ident_name);
+      hasher.write(b"exportsConvention|");
+      hasher.write(convention_names.as_bytes());
+      hasher.write(b"|localIdentName|");
+      hasher.write(local_ident_name.as_bytes());
+    }
+    hasher
+      .digest(self.local_ident_hash_digest)
+      .rendered(self.local_ident_hash_digest_length)
+      .to_string()
   }
 
   pub async fn get_local_ident(&self, local: &str) -> Result<String> {
     let output = &self.compiler_options.output;
-    let use_output_hash_for_fullhash = self.local_ident_name.template.as_str() == "[fullhash]";
-    let hash_function = if use_output_hash_for_fullhash {
-      &output.hash_function
-    } else {
-      self
-        .local_ident_hash_function
-        .unwrap_or(&output.hash_function)
-    };
-    let hash_salt = if use_output_hash_for_fullhash {
-      &output.hash_salt
-    } else {
-      self.local_ident_hash_salt.unwrap_or(&output.hash_salt)
-    };
-    let hash_digest = if use_output_hash_for_fullhash {
-      &output.hash_digest
-    } else {
-      self.local_ident_hash_digest.unwrap_or(&output.hash_digest)
-    };
-    let hash_digest_length = if use_output_hash_for_fullhash {
-      output.hash_digest_length
-    } else {
-      self
-        .local_ident_hash_digest_length
-        .unwrap_or(output.hash_digest_length)
-    };
     let local_ident_hash = {
-      let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+      let mut hasher =
+        RspackHash::with_salt(self.local_ident_hash_function, self.local_ident_hash_salt);
       if !output.unique_name.is_empty() {
         hasher.write(output.unique_name.as_bytes());
       }
       hasher.write(self.relative_resource.as_bytes());
       hasher.write(local.as_bytes());
-      let hash = hasher.digest(hash_digest);
-      hash.rendered(hash_digest_length).to_string()
+      let hash = hasher.digest(self.local_ident_hash_digest);
+      hash
+        .rendered(self.local_ident_hash_digest_length)
+        .to_string()
     };
     let content_hash;
     let content_hash = if self
@@ -135,16 +232,18 @@ impl<'a> LocalIdentOptions<'a> {
       .file_stem()
       .and_then(|s| s.to_str())
       .unwrap_or_default();
-    let id = PathData::prepare_id(if self.compiler_options.mode.is_development() {
-      &self.relative_resource
+    let use_module_hash_as_id = self.local_ident_name.template.as_str().contains("[local]")
+      && !self.compiler_options.mode.is_development();
+    let id = PathData::prepare_id(if use_module_hash_as_id {
+      &self.module_hash
     } else {
-      self.module_hash
+      &self.relative_resource
     });
     let local_ident = LocalIdentNameRenderOptions {
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(chunk_name)
-        .hash(self.module_hash)
+        .hash(&self.module_hash)
         .content_hash(content_hash)
         .id(id.as_ref()),
       local,
