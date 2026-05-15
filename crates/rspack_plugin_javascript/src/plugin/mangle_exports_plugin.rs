@@ -17,11 +17,15 @@ use crate::utils::mangle_exports::{
   NUMBER_OF_IDENTIFIER_CONTINUATION_CHARS, NUMBER_OF_IDENTIFIER_START_CHARS, number_to_identifier,
 };
 
+struct MangleableState {
+  avoid_mangle_non_provided: bool,
+}
+
 fn get_mangleable_state(
   exports_info: &ExportsInfoData,
   deterministic: bool,
   is_namespace: bool,
-) -> Option<bool> {
+) -> Option<MangleableState> {
   if exports_info.other_exports_info().get_used(None) != UsageState::Unused {
     return None;
   }
@@ -44,7 +48,9 @@ fn get_mangleable_state(
     }
   }
 
-  has_mangleable_export.then_some(avoid_mangle_non_provided)
+  has_mangleable_export.then_some(MangleableState {
+    avoid_mangle_non_provided,
+  })
 }
 
 /// Struct to represent the mangle exports plugin.
@@ -161,7 +167,7 @@ async fn optimize_code_generation(
       .filter_map(|(exports_info, is_namespace)| {
         let deterministic = self.deterministic;
         let exports_info_data = exports_info.as_data(exports_info_artifact);
-        let avoid_mangle_non_provided =
+        let mangleable_state =
           get_mangleable_state(exports_info_data, deterministic, *is_namespace)?;
 
         Some((
@@ -178,7 +184,7 @@ async fn optimize_code_generation(
                 let can_not_mangle = export_info_data.can_mangle() != Some(true)
                   || is_one_char_mangle_name(name.as_str())
                   || (deterministic && is_two_char_deterministic_mangle_name(name.as_str()))
-                  || (avoid_mangle_non_provided
+                  || (mangleable_state.avoid_mangle_non_provided
                     && !matches!(export_info_data.provided(), Some(ExportProvided::Provided)));
 
                 if can_not_mangle {
