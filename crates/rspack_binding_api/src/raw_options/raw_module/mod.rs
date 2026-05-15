@@ -850,7 +850,7 @@ impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
       local_ident_hash_digest: value.local_ident_hash_digest.map(|s| s.as_str().into()),
       local_ident_hash_digest_length: value.local_ident_hash_digest_length,
       local_ident_hash_function: value.local_ident_hash_function.map(|s| s.as_str().into()),
-      local_ident_hash_salt: value.local_ident_hash_salt.map(|s| s.into()),
+      local_ident_hash_salt: value.local_ident_hash_salt.into(),
       local_ident_name: value.local_ident_name.map(|s| s.into()),
       es_module: value.es_module,
     }

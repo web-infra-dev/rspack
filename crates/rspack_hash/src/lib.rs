@@ -77,8 +77,9 @@ impl MergeFrom for HashDigest {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, Default)]
 pub enum HashSalt {
+  #[default]
   None,
   Salt(String),
 }

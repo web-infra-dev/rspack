@@ -752,7 +752,7 @@ pub struct CssModuleGeneratorOptions {
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<HashFunction>,
-  pub local_ident_hash_salt: Option<HashSalt>,
+  pub local_ident_hash_salt: HashSalt,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
 }

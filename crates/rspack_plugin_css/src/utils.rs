@@ -7,6 +7,7 @@ use std::{
 
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
+use once_cell::sync::OnceCell;
 use regex::{Captures, Regex};
 use rspack_core::{
   CompilerOptions, CssExportsConvention, CssModuleGeneratorOptions, LocalIdentName, PathData,
@@ -15,6 +16,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
+use rustc_hash::FxHashSet;
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
@@ -29,20 +31,19 @@ pub struct PresentationalDependencyHashUpdate<'a> {
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentModuleHashOptions<'a> {
-  pub export_dependency_names: &'a [String],
-  pub graph_export_names: &'a [String],
-  pub presentational_dependency_hash_updates: &'a [PresentationalDependencyHashUpdate<'a>],
+  pub export_dependency_names: Vec<String>,
+  pub graph_export_names: FxHashSet<String>,
+  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
   pub exports_only: bool,
   pub es_module: bool,
-  pub exports_convention: &'a CssExportsConvention,
+  pub exports_convention: CssExportsConvention,
 }
 
 #[derive(Debug, Clone)]
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   source: &'a str,
-  module_hash: String,
-  module_hash_options: LocalIdentModuleHashOptions<'a>,
+  module_hash: OnceCell<String>,
   compiler_options: &'a CompilerOptions,
   local_ident_name: &'a LocalIdentName,
   local_ident_hash_digest: &'a HashDigest,
@@ -57,7 +58,6 @@ impl<'a> LocalIdentOptions<'a> {
     source: &'a str,
     compiler_options: &'a CompilerOptions,
     generator_options: &'a CssModuleGeneratorOptions,
-    module_hash_options: LocalIdentModuleHashOptions<'a>,
   ) -> Self {
     let relative_resource =
       make_paths_relative(&compiler_options.context, resource_data.resource());
@@ -80,28 +80,29 @@ impl<'a> LocalIdentOptions<'a> {
       .local_ident_hash_function
       .as_ref()
       .expect("should have local_ident_hash_function when calculating css local ident module hash");
-    let local_ident_hash_salt = generator_options
-      .local_ident_hash_salt
-      .as_ref()
-      .expect("should have local_ident_hash_salt when calculating css local ident module hash");
+    let local_ident_hash_salt = &generator_options.local_ident_hash_salt;
 
-    let mut options = Self {
+    Self {
       relative_resource,
       source,
-      module_hash: String::new(),
-      module_hash_options,
+      module_hash: OnceCell::new(),
       compiler_options,
       local_ident_name,
       local_ident_hash_digest,
       local_ident_hash_digest_length,
       local_ident_hash_function,
       local_ident_hash_salt,
-    };
-    options.module_hash = options.get_module_hash();
-    options
+    }
   }
 
-  fn get_module_hash(&self) -> String {
+  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> &str {
+    self
+      .module_hash
+      .get_or_init(|| self.get_module_hash(module_hash_options))
+      .as_str()
+  }
+
+  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
     let local_ident_name = self.local_ident_name.template.as_str();
     let should_use_resource_hash = (local_ident_name.contains("[hash")
       || local_ident_name.contains("[fullhash"))
@@ -129,7 +130,10 @@ impl<'a> LocalIdentOptions<'a> {
     };
 
     let graph_hash = {
-      let mut graph_exports = self.module_hash_options.graph_export_names.to_vec();
+      let mut graph_exports = module_hash_options
+        .graph_export_names
+        .iter()
+        .collect::<Vec<_>>();
       graph_exports.sort();
 
       let mut hasher = RspackHash::new(self.local_ident_hash_function);
@@ -147,27 +151,27 @@ impl<'a> LocalIdentOptions<'a> {
     let mut hasher =
       RspackHash::with_salt(self.local_ident_hash_function, self.local_ident_hash_salt);
     hasher.write(build_hash.as_bytes());
-    if self.module_hash_options.exports_only {
+    if module_hash_options.exports_only {
       hasher.write(b"javascript");
     } else {
       hasher.write(b"javascript");
       hasher.write(b"css");
     }
-    hasher.write(if self.module_hash_options.es_module {
+    hasher.write(if module_hash_options.es_module {
       b"true"
     } else {
       b"false"
     });
-    hasher.write(if self.module_hash_options.exports_only {
+    hasher.write(if module_hash_options.exports_only {
       b"true"
     } else {
       b"false"
     });
     hasher.write(graph_hash.as_bytes());
     let mut itoa_buffer = itoa::Buffer::new();
-    for update in self
-      .module_hash_options
+    for update in module_hash_options
       .presentational_dependency_hash_updates
+      .iter()
     {
       hasher.write(itoa_buffer.format(update.start).as_bytes());
       hasher.write(b",");
@@ -175,9 +179,8 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(b"|");
       hasher.write(update.content.as_bytes());
     }
-    for name in self.module_hash_options.export_dependency_names {
-      let convention_names =
-        export_locals_convention(name, self.module_hash_options.exports_convention);
+    for name in module_hash_options.export_dependency_names.iter() {
+      let convention_names = export_locals_convention(name, module_hash_options.exports_convention);
       let convention_names =
         serde_json::to_string(&convention_names).expect("css export names should be serializable");
       let local_ident_name = json_stringify_str(local_ident_name);
@@ -192,7 +195,11 @@ impl<'a> LocalIdentOptions<'a> {
       .to_string()
   }
 
-  pub async fn get_local_ident(&self, local: &str) -> Result<String> {
+  pub async fn get_local_ident(
+    &self,
+    local: &str,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
+  ) -> Result<String> {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
       let mut hasher =
@@ -235,7 +242,7 @@ impl<'a> LocalIdentOptions<'a> {
     let use_module_hash_as_id = self.local_ident_name.template.as_str().contains("[local]")
       && !self.compiler_options.mode.is_development();
     let id = PathData::prepare_id(if use_module_hash_as_id {
-      &self.module_hash
+      &self.module_hash(module_hash_options)
     } else {
       &self.relative_resource
     });
@@ -243,7 +250,7 @@ impl<'a> LocalIdentOptions<'a> {
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(chunk_name)
-        .hash(&self.module_hash)
+        .hash(&self.module_hash(module_hash_options))
         .content_hash(content_hash)
         .id(id.as_ref()),
       local,
@@ -334,7 +341,7 @@ pub fn escape_css(s: &str) -> Cow<'_, str> {
 
 pub(crate) fn export_locals_convention(
   key: &str,
-  locals_convention: &CssExportsConvention,
+  locals_convention: CssExportsConvention,
 ) -> Vec<String> {
   let mut res = Vec::with_capacity(3);
   if locals_convention.as_is() {

@@ -59,14 +59,6 @@ pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
 
 pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>;
 
-struct LocalIdentUsage<'a> {
-  name: &'a str,
-  range: css_module_lexer::Range,
-  local_ident_options: &'a LocalIdentOptions<'a>,
-  css_exports: &'a mut Option<CssExports>,
-  dependencies: &'a mut Vec<Box<dyn Dependency>>,
-}
-
 #[cacheable]
 #[derive(Debug)]
 pub struct CssParserAndGenerator {
@@ -93,11 +85,10 @@ impl CssParserAndGenerator {
     }
   }
 
-  pub fn convention(&self) -> &CssExportsConvention {
+  pub fn convention(&self) -> CssExportsConvention {
     self
       .generator_options
       .exports_convention
-      .as_ref()
       .expect("should have convention for module_type css/auto, css/global or css/module")
   }
 
@@ -127,20 +118,23 @@ impl CssParserAndGenerator {
     self.parser_options.url.expect("should have url")
   }
 
-  async fn handle_local_ident_usage(
+  async fn handle_local_ident_usage<'a>(
     &self,
-    local_ident_usage: LocalIdentUsage<'_>,
-  ) -> rspack_error::Result<()> {
-    let LocalIdentUsage {
-      name,
-      range,
-      local_ident_options,
-      css_exports,
-      dependencies,
-    } = local_ident_usage;
+    name: &'a str,
+    range: css_module_lexer::Range,
+    local_ident_options: &'a LocalIdentOptions<'a>,
+    css_exports: &'a mut Option<CssExports>,
+    dependencies: &'a mut Vec<Box<dyn Dependency>>,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
+  ) -> Result<()> {
     let name = unescape(name);
     let (local_ident, convention_names) = self
-      .resolve_local_ident_and_update_exports(local_ident_options, &name, css_exports)
+      .resolve_local_ident_and_update_exports(
+        local_ident_options,
+        &name,
+        css_exports,
+        module_hash_options,
+      )
       .await?;
     dependencies.push(Box::new(CssSelfReferenceLocalIdentDependency::new(
       convention_names,
@@ -152,21 +146,24 @@ impl CssParserAndGenerator {
     Ok(())
   }
 
-  async fn handle_local_ident_declaration(
+  async fn handle_local_ident_declaration<'a>(
     &self,
-    local_ident_usage: LocalIdentUsage<'_>,
+    name: &'a str,
+    range: css_module_lexer::Range,
+    local_ident_options: &'a LocalIdentOptions<'a>,
+    css_exports: &'a mut Option<CssExports>,
+    dependencies: &'a mut Vec<Box<dyn Dependency>>,
     css_local_names: &mut Option<FxHashMap<String, String>>,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> rspack_error::Result<()> {
-    let LocalIdentUsage {
-      name,
-      range,
-      local_ident_options,
-      css_exports,
-      dependencies,
-    } = local_ident_usage;
     let name = unescape(name);
     let (local_ident, convention_names) = self
-      .resolve_local_ident_and_update_exports(local_ident_options, &name, css_exports)
+      .resolve_local_ident_and_update_exports(
+        local_ident_options,
+        &name,
+        css_exports,
+        module_hash_options,
+      )
       .await?;
 
     let local_names = css_local_names.get_or_insert_default();
@@ -186,8 +183,11 @@ impl CssParserAndGenerator {
     local_ident_options: &LocalIdentOptions<'_>,
     name: &str,
     css_exports: &mut Option<CssExports>,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<(String, Vec<String>)> {
-    let local_ident = local_ident_options.get_local_ident(name).await?;
+    let local_ident = local_ident_options
+      .get_local_ident(name, module_hash_options)
+      .await?;
     let convention = self.convention();
     let exports = css_exports.get_or_insert_default();
     let convention_names = export_locals_convention(name, convention);
@@ -391,13 +391,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     let mut export_dependency_names = Vec::new();
     let mut graph_export_name_set = FxHashSet::default();
     let mut presentational_dependency_hash_updates = Vec::new();
-    let mut has_local_ident_dependency = false;
-    let convention = self.generator_options.exports_convention.as_ref();
+
+    let convention = self.generator_options.exports_convention;
     for dependency in deps.iter() {
       match dependency {
         css_module_lexer::Dependency::LocalClass { name, .. }
         | css_module_lexer::Dependency::LocalId { name, .. } => {
-          has_local_ident_dependency = true;
           if let Some(convention) = convention {
             let (_prefix, name) = name.split_at(1);
             let name = unescape(name).into_owned();
@@ -409,7 +408,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
         css_module_lexer::Dependency::LocalKeyframes { name, .. }
         | css_module_lexer::Dependency::LocalKeyframesDecl { name, .. } => {
-          has_local_ident_dependency = true;
           if let Some(convention) = convention {
             let name = unescape(name).into_owned();
             for convention_name in export_locals_convention(&name, convention) {
@@ -448,23 +446,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
         }
       }
     }
-    let graph_export_names = graph_export_name_set.into_iter().collect::<Vec<_>>();
-    let local_ident_options = has_local_ident_dependency.then(|| {
-      LocalIdentOptions::new(
-        resource_data,
-        &source_code,
-        compiler_options,
-        &self.generator_options,
-        LocalIdentModuleHashOptions {
-          export_dependency_names: &export_dependency_names,
-          graph_export_names: &graph_export_names,
-          presentational_dependency_hash_updates: &presentational_dependency_hash_updates,
-          exports_only: self.exports_only,
-          es_module: self.es_module(),
-          exports_convention: self.convention(),
-        },
-      )
-    });
+
+    let module_hash_options = LocalIdentModuleHashOptions {
+      export_dependency_names,
+      graph_export_names: graph_export_name_set,
+      presentational_dependency_hash_updates,
+      exports_only: self.exports_only,
+      es_module: self.es_module(),
+      exports_convention: self.convention().clone(),
+    };
+
     for dependency in deps {
       match dependency {
         css_module_lexer::Dependency::Url {
@@ -557,12 +548,21 @@ impl ParserAndGenerator for CssParserAndGenerator {
         | css_module_lexer::Dependency::LocalId { name, range, .. } => {
           let (_prefix, name) = name.split_at(1);
           let name = unescape(name);
-          let local_ident_options = local_ident_options
-            .as_ref()
-            .expect("should have local ident options for css local class or id");
+
+          let local_ident_options = LocalIdentOptions::new(
+            resource_data,
+            &source_code,
+            compiler_options,
+            &self.generator_options,
+          );
 
           let (local_ident, convention_names) = self
-            .resolve_local_ident_and_update_exports(local_ident_options, &name, &mut css_exports)
+            .resolve_local_ident_and_update_exports(
+              &local_ident_options,
+              &name,
+              &mut css_exports,
+              &module_hash_options,
+            )
             .await?;
 
           let local_names = css_local_names.get_or_insert_default();
@@ -576,33 +576,39 @@ impl ParserAndGenerator for CssParserAndGenerator {
           )));
         }
         css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
-          let local_ident_options = local_ident_options
-            .as_ref()
-            .expect("should have local ident options for css local keyframes");
+          let local_ident_options = LocalIdentOptions::new(
+            resource_data,
+            &source_code,
+            compiler_options,
+            &self.generator_options,
+          );
           self
-            .handle_local_ident_usage(LocalIdentUsage {
+            .handle_local_ident_usage(
               name,
               range,
-              local_ident_options,
-              css_exports: &mut css_exports,
-              dependencies: &mut dependencies,
-            })
+              &local_ident_options,
+              &mut css_exports,
+              &mut dependencies,
+              &module_hash_options,
+            )
             .await?;
         }
         css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
-          let local_ident_options = local_ident_options
-            .as_ref()
-            .expect("should have local ident options for css local keyframes declaration");
+          let local_ident_options = LocalIdentOptions::new(
+            resource_data,
+            &source_code,
+            compiler_options,
+            &self.generator_options,
+          );
           self
             .handle_local_ident_declaration(
-              LocalIdentUsage {
-                name,
-                range,
-                local_ident_options,
-                css_exports: &mut css_exports,
-                dependencies: &mut dependencies,
-              },
+              name,
+              range,
+              &local_ident_options,
+              &mut css_exports,
+              &mut dependencies,
               &mut css_local_names,
+              &module_hash_options,
             )
             .await?;
         }
