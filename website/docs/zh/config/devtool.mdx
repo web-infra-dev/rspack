@@ -15,7 +15,7 @@ import WebpackLicense from '@components/WebpackLicense';
 - **类型：**
 
 ```ts
-type Devtool = 'string' | false;
+type Devtool = string | false;
 ```
 
 - **默认值：** development 模式为 `cheap-module-source-map`，production 模式 为 `false`
@@ -65,7 +65,7 @@ type Devtool = 'string' | false;
 | nosources | 创建的 source map 不包含 `sourcesContent`（源代码内容）                                                 |
 | debugids  | 创建的 source map 增加 `debugId` 字段                                                                   |
 
-验证 `devtool` 的配置时，我们期望的格式是 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
+验证 `devtool` 的配置时，Rspack 期望的格式是 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
 
 ## 推荐配置
 
