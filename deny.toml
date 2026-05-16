@@ -225,6 +225,7 @@ skip = [
     { crate = "ptr_meta_derive", reason = "external dependency"},
     { crate = "rkyv", reason = "FIXME: need to be fixed"},
     { crate = "rkyv_derive", reason = "FIXME: need to be fixed"},
+    { crate = "swc_core", reason = "swc_experimental crates still depend on swc_core 65.1.0"},
     { crate = "syn", reason = "external dependency"},
     { crate = "thiserror", reason = "external dependency"},
     { crate = "thiserror-impl", reason = "external dependency"},
