@@ -84,7 +84,7 @@ regex               = { version = "1.12.3", default-features = false, features =
 regex-syntax        = { version = "0.8.10", default-features = false, features = ["std"] }
 regress             = { version = "0.10.5", default-features = false, features = ["pattern"] }
 rspack_resolver     = { features = ["package_json_raw_json_api", "yarn_pnp"], version = "=0.8.0", default-features = false }
-rspack_sources      = { version = "=0.4.22", default-features = false, features = ["rspack_cacheable"] }
+rspack_sources      = { version = "=0.4.23", default-features = false, features = ["rspack_cacheable"] }
 rustc-hash          = { version = "2.1.2", default-features = false }
 ryu-js              = { version = "1.0.2", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
@@ -126,23 +126,23 @@ napi-derive = { version = "3.5.5", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
-rkyv      = { version = "=0.8.8", default-features = false, features = ["std", "bytecheck"] }
+rkyv      = { version = "=0.8.16", default-features = false, features = ["std", "bytecheck"] }
 
 # Must be pinned with the same swc versions
-pnp                 = { version = "0.12.8", default-features = false }
-swc                 = { version = "63.0.0", default-features = false }
-swc_config          = { version = "4.0.1", default-features = false }
-swc_core            = { version = "65.1.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "52.0.6", default-features = false }
+pnp                 = { version = "0.12.9", default-features = false }
+swc                 = { version = "64.0.0", default-features = false }
+swc_config          = { version = "5.0.0", default-features = false }
+swc_core            = { version = "66.0.1", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "53.0.0", default-features = false }
 swc_error_reporters = { version = "23.0.0", default-features = false }
 swc_html            = { version = "33.0.0", default-features = false }
-swc_html_minifier   = { version = "52.0.0", default-features = false }
+swc_html_minifier   = { version = "53.0.0", default-features = false }
 swc_plugin_runner   = { version = "27.0.0", default-features = false }
-swc_typescript      = { version = "28.0.0", default-features = false }
+swc_typescript      = { version = "28.0.1", default-features = false }
 
-swc_experimental_ecma_ast      = { version = "0.6.6", default-features = false }
-swc_experimental_ecma_parser   = { version = "0.6.6", default-features = false }
-swc_experimental_ecma_semantic = { version = "0.6.6", default-features = false }
+swc_experimental_ecma_ast      = { version = "0.6.7", default-features = false }
+swc_experimental_ecma_parser   = { version = "0.6.7", default-features = false }
+swc_experimental_ecma_semantic = { version = "0.6.7", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client  = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }
@@ -310,6 +310,18 @@ opt-level = "s"
 opt-level = "s"
 
 [profile.release.package.swc_ecma_loader]
+opt-level = "s"
+
+[profile.release.package.swc_experimental_ecma_ast]
+opt-level = "s"
+
+[profile.release.package.swc_experimental_ecma_parser]
+opt-level = "s"
+
+[profile.release.package.swc_experimental_ecma_semantic]
+opt-level = "s"
+
+[profile.release.package.swc_experimental_ecma_visit]
 opt-level = "s"
 
 [profile.release.package.chrono]

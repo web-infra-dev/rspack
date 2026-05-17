@@ -37,7 +37,7 @@
     "@emnapi/runtime": "1.10.0",
     "@napi-rs/cli": "3.6.2",
     "@napi-rs/wasm-runtime": "1.1.4",
-    "@types/node": "^20.19.40",
+    "@types/node": "^20.19.41",
     "emnapi": "1.10.0",
     "typescript": "^6.0.3"
   },
