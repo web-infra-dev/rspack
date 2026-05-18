@@ -9,6 +9,7 @@ use rspack_hook::{plugin, plugin_hook};
 struct CycleGraph {
   modules: Vec<ModuleIdentifier>,
   edges: Vec<Vec<usize>>,
+  self_loop_modules: Vec<bool>,
 }
 
 impl CycleGraph {
@@ -26,6 +27,7 @@ impl CycleGraph {
     }
 
     let mut edges = vec![Vec::new(); modules.len()];
+    let mut self_loop_modules = vec![false; modules.len()];
     for (index, module_id) in modules.iter().enumerate() {
       let module_edges = &mut edges[index];
       for connection in module_graph.get_outgoing_connections(module_id) {
@@ -36,6 +38,7 @@ impl CycleGraph {
 
         let target_id = *connection.module_identifier();
         if target_id == *module_id {
+          self_loop_modules[index] = true;
           continue;
         }
 
@@ -48,7 +51,11 @@ impl CycleGraph {
       module_edges.dedup();
     }
 
-    Self { modules, edges }
+    Self {
+      modules,
+      edges,
+      self_loop_modules,
+    }
   }
 }
 
@@ -169,7 +176,7 @@ impl<'a> CycleDetector<'a> {
         }
       }
 
-      if component.len() > 1 {
+      if component.len() > 1 || self.graph.self_loop_modules[module_index] {
         self
           .circular_modules
           .extend(component.into_iter().map(|index| self.graph.modules[index]));
@@ -179,14 +186,8 @@ impl<'a> CycleDetector<'a> {
 }
 
 #[plugin]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CircularModulesInfoPlugin {}
-
-impl CircularModulesInfoPlugin {
-  pub fn new() -> Self {
-    Self::new_inner()
-  }
-}
 
 fn should_ignore_dependency_type(ty: DependencyType) -> bool {
   matches!(
@@ -247,7 +248,7 @@ async fn optimize_modules(
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
-  let graph = CycleGraph::build(&module_graph);
+  let graph = CycleGraph::build(module_graph);
   *circular_modules = CycleDetector::new(&graph).find_circular_modules();
 
   Ok(None)

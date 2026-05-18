@@ -790,7 +790,7 @@ impl<'a> BuiltinPlugin<'a> {
         .boxed(),
       ),
       BuiltinPluginName::CircularModulesInfoPlugin => {
-        plugins.push(CircularModulesInfoPlugin::new().boxed())
+        plugins.push(CircularModulesInfoPlugin::default().boxed())
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
         // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
