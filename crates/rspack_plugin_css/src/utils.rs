@@ -1,9 +1,4 @@
-use std::{
-  borrow::Cow,
-  hash::Hasher,
-  path::Path,
-  sync::{Arc, LazyLock},
-};
+use std::{borrow::Cow, hash::Hasher, path::Path, sync::LazyLock};
 
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
@@ -24,17 +19,17 @@ pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
-pub struct PresentationalDependencyHashUpdate<'a> {
+pub struct PresentationalDependencyHashUpdate {
   pub start: u32,
   pub end: u32,
-  pub content: &'a str,
+  pub content: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalIdentModuleHashOptions<'a> {
+pub struct LocalIdentModuleHashOptions {
   pub export_dependency_names: Vec<String>,
   pub graph_export_names: FxHashSet<String>,
-  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
+  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate>,
   pub exports_only: bool,
   pub es_module: bool,
   pub named_exports: bool,
@@ -45,7 +40,7 @@ pub struct LocalIdentModuleHashOptions<'a> {
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   module_type: &'static str,
-  source: &'a str,
+  source: String,
   module_hash: OnceCell<String>,
   compiler_options: &'a CompilerOptions,
   local_ident_name: &'a LocalIdentName,
@@ -59,7 +54,7 @@ impl<'a> LocalIdentOptions<'a> {
   pub fn new(
     resource_data: &ResourceData,
     module_type: &ModuleType,
-    source: &'a str,
+    source: &str,
     compiler_options: &'a CompilerOptions,
     generator_options: &'a CssModuleGeneratorOptions,
   ) -> Self {
@@ -89,7 +84,7 @@ impl<'a> LocalIdentOptions<'a> {
     Self {
       relative_resource,
       module_type: module_type.as_str(),
-      source,
+      source: source.to_string(),
       module_hash: OnceCell::new(),
       compiler_options,
       local_ident_name,
@@ -100,14 +95,14 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> &str {
+  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions) -> &str {
     self
       .module_hash
       .get_or_init(|| self.get_module_hash(module_hash_options))
       .as_str()
   }
 
-  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
+  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions) -> String {
     let local_ident_name = self.local_ident_name.template.as_str();
     let build_hash = {
       let mut hasher = RspackHash::new(self.local_ident_hash_function);
@@ -200,7 +195,7 @@ impl<'a> LocalIdentOptions<'a> {
   pub async fn get_local_ident(
     &self,
     local: &str,
-    module_hash_options: &LocalIdentModuleHashOptions<'_>,
+    module_hash_options: &LocalIdentModuleHashOptions,
   ) -> Result<String> {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
@@ -471,16 +466,15 @@ pub fn normalize_url(s: &str) -> String {
   result.to_string()
 }
 
-#[allow(clippy::rc_buffer)]
 pub fn css_parsing_traceable_error(
-  source_code: Arc<String>,
+  source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
   severity: Severity,
 ) -> Error {
   let mut error = Error::from_string(
-    Some(source_code.to_string()),
+    Some(source_code.to_owned()),
     start as usize,
     end as usize,
     match severity {
@@ -496,13 +490,13 @@ pub fn css_parsing_traceable_error(
 pub fn replace_module_request_prefix<'s>(
   specifier: &'s str,
   diagnostics: &mut Vec<Diagnostic>,
-  source_code: impl Fn() -> Arc<String>,
+  source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
 ) -> &'s str {
   if let Some(specifier) = specifier.strip_prefix('~') {
     let mut error = css_parsing_traceable_error(
-      source_code(),
+      source_code,
       start,
       end,
       "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),
