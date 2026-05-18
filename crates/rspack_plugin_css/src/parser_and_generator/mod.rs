@@ -380,10 +380,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
       }
       _ => css_module_lexer::Mode::Css,
     };
-    build_meta.is_css_module = matches!(
-      mode,
-      css_module_lexer::Mode::Local | css_module_lexer::Mode::Global
-    );
 
     let mut diagnostics: Vec<Diagnostic> = vec![];
     let mut dependencies: Vec<Box<dyn Dependency>> = vec![];
