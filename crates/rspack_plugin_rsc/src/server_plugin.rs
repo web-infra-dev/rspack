@@ -598,10 +598,15 @@ impl RscServerPlugin {
       entry_state.root_css_imports.extend(root_css_imports);
 
       // These grouped client entries are only used to shape client compiler
-      // async blocks. They intentionally do not seed `server_entries`: CSS
-      // imported by client components is collected from client chunks into
-      // `clientManifest[*].cssFiles`, while `server_entries` tracks server CSS
-      // imports and `import.meta.rspackRsc.loadCss()` data.
+      // async blocks. Do not create a `server_entries[server_entry]` record
+      // from `client_entries_by_server_entry` alone: a server entry that only
+      // owns client components has no server CSS block to record here.
+      //
+      // Client component CSS is collected from the client module chunks and
+      // stored on `clientManifest[*].cssFiles` when that client module is
+      // recorded. `server_entries` is intentionally reserved for server CSS
+      // imports and `import.meta.rspackRsc.loadCss()` data, which are the only
+      // sources that should populate `entryCssFiles`.
       entry_state.injected_client_entries = client_entries.clone();
       entry_state.ungrouped_client_entries = ungrouped_client_entries;
       entry_state.root_client_entries = root_client_entries;

@@ -191,7 +191,12 @@ fn collect_server_entry_css_files(
     // Only server CSS blocks should populate `entryCssFiles` for loadCss().
     // Client component blocks use the client module request here; their CSS is
     // recorded on `clientManifest[*].cssFiles` when recording the client module.
-    // This lookup keeps those client component CSS files out of server entries.
+    //
+    // It is expected for a grouped client owner to have no `server_entries`
+    // record when that server entry only owns client components and imports no
+    // server CSS directly. Seeding `server_entries` for that case would make
+    // client component CSS look like server-entry CSS, which would duplicate
+    // the client manifest data and change the meaning of `entryCssFiles`.
     if entry_state
       .server_entries
       .get(server_entry)
