@@ -39,7 +39,7 @@ export default {
 hooks.createScript.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    script.crossorigin = 'anonymous';
+    script.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -47,8 +47,8 @@ hooks.createScript.tap('MyPlugin', (code, chunk) => {
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
+    header="Chunk.ts"
+    key="Chunk"
   >
     <ChunkType />
   </CollapsePanel>
@@ -64,7 +64,7 @@ hooks.createScript.tap('MyPlugin', (code, chunk) => {
 hooks.createLink.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -87,7 +87,7 @@ hooks.createLink.tap('MyPlugin', (code, chunk) => {
 hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -95,8 +95,8 @@ hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
+    header="Chunk.ts"
+    key="Chunk"
   >
     <ChunkType />
   </CollapsePanel>
@@ -114,7 +114,7 @@ hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
 hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -122,8 +122,8 @@ hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
+    header="Chunk.ts"
+    key="Chunk"
   >
     <ChunkType />
   </CollapsePanel>

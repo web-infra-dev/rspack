@@ -40,7 +40,7 @@ As in the following code, the `crossorigin` attribute can be added to the `<scri
 hooks.createScript.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    script.crossorigin = 'anonymous';
+    script.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -48,8 +48,8 @@ hooks.createScript.tap('MyPlugin', (code, chunk) => {
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
+    header="Chunk.ts"
+    key="Chunk"
   >
     <ChunkType />
   </CollapsePanel>
@@ -65,7 +65,7 @@ Can modify the code executed when creating a generic `<link>` tag.
 hooks.createLink.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -88,7 +88,7 @@ As in the following code, the `crossorigin` attribute can be added to the `<link
 hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -96,8 +96,8 @@ hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
+    header="Chunk.ts"
+    key="Chunk"
   >
     <ChunkType />
   </CollapsePanel>
@@ -115,7 +115,7 @@ As in the following code, the `crossorigin` attribute can be added to the `<link
 hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
   return `
     ${code}
-    link.crossorigin = 'anonymous';
+    link.crossOrigin = 'anonymous';
   `;
 });
 ```
@@ -123,8 +123,8 @@ hooks.linkPreload.tap('MyPlugin', (code, chunk) => {
 <Collapse>
   <CollapsePanel
     className="collapse-code-panel"
-    header="CreateScript.ts"
-    key="CreateScript"
+    header="Chunk.ts"
+    key="Chunk"
   >
     <ChunkType />
   </CollapsePanel>
