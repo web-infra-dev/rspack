@@ -125,7 +125,9 @@ impl JavaScriptCompiler {
       // Collect declaration references from the FastDts output AST before codegen.
       // Rslib uses these references to complete type-only declaration outputs without
       // parsing the generated .d.ts string again.
-      let references = collect_isolated_dts_references(&program);
+      let mut collector = DtsReferenceCollector::default();
+      program.visit_with(&mut collector);
+      let references = collector.references;
 
       let code = {
         let mut buf = Vec::new();
@@ -202,12 +204,6 @@ impl JavaScriptCompiler {
       self.emit_isolated_dts(&program, filename, unresolved_mark, target, &comments)
     })
   }
-}
-
-fn collect_isolated_dts_references(program: &Program) -> Vec<String> {
-  let mut collector = DtsReferenceCollector::default();
-  program.visit_with(&mut collector);
-  collector.references
 }
 
 #[derive(Default)]

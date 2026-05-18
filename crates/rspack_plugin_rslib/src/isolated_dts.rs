@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use rspack_core::{
-  Compilation, DependencyCategory, IsolatedDts, Resolve, ResolveDependencies,
-  ResolveOptionsWithDependencyType, ResolveResult, TsconfigOptions, TsconfigReferences,
+  Compilation, DependencyCategory, IsolatedDts, Resolve, ResolveOptionsWithDependencyType,
+  ResolveResult, TsconfigOptions, TsconfigReferences,
 };
 use rspack_error::{Result, error};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -93,13 +93,25 @@ pub(crate) async fn complete_isolated_dts_outputs(
       let (result, resolve_dependencies) = resolver
         .resolve_with_context(issuer_dir.as_std_path(), &request)
         .await;
-      add_resolve_dependencies(compilation, resolve_dependencies);
+      compilation
+        .file_dependencies
+        .extend(resolve_dependencies.file_dependencies);
+      compilation
+        .missing_dependencies
+        .extend(resolve_dependencies.missing_dependencies);
       let Ok(ResolveResult::Resource(resource)) = result else {
         continue;
       };
 
       let resource_path = resource.path.node_normalize();
-      if !is_supported_ts_source(&resource_path) || !resource_path.starts_with(&root_dir) {
+      let resource_path_str = resource_path.as_str();
+      let resource_extension = resource_path.extension();
+      let is_declaration_file = resource_path_str.ends_with(".d.ts")
+        || resource_path_str.ends_with(".d.mts")
+        || resource_path_str.ends_with(".d.cts");
+      let is_supported_ts_source =
+        !is_declaration_file && matches!(resource_extension, Some("ts" | "tsx" | "mts" | "cts"));
+      if !is_supported_ts_source || !resource_path.starts_with(&root_dir) {
         continue;
       }
 
@@ -107,17 +119,26 @@ pub(crate) async fn complete_isolated_dts_outputs(
         continue;
       }
 
+      let std_resource_path = resource_path.clone().into_std_path_buf();
       compilation
         .file_dependencies
-        .insert(resource_path.clone().into_std_path_buf().into());
+        .insert(std_resource_path.clone().into());
 
       let source = fs.read_to_string(&resource_path).await?;
+      // Declaration completion only needs to parse TypeScript sources for fast dts.
+      // Keep this intentionally minimal instead of reusing swc-loader transform options.
+      let syntax = Syntax::Typescript(TsSyntax {
+        tsx: matches!(resource_extension, Some("tsx")),
+        decorators: true,
+        disallow_ambiguous_jsx_like: matches!(resource_extension, Some("mts" | "cts")),
+        ..Default::default()
+      });
       let dts_output = javascript_compiler
         .get_or_insert_with(JavaScriptCompiler::new)
         .emit_isolated_dts_from_source(
           source,
-          Arc::new(FileName::Real(resource_path.clone().into_std_path_buf())),
-          source_syntax(&resource_path),
+          Arc::new(FileName::Real(std_resource_path)),
+          syntax,
           EsVersion::EsNext,
         )?;
       handle_isolated_dts_diagnostics(&resource_path, dts_output.diagnostics)?;
@@ -147,18 +168,6 @@ fn resolve_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
   } else {
     base.node_join(path).node_normalize()
   }
-}
-
-fn add_resolve_dependencies(
-  compilation: &mut Compilation,
-  resolve_dependencies: ResolveDependencies,
-) {
-  compilation
-    .file_dependencies
-    .extend(resolve_dependencies.file_dependencies);
-  compilation
-    .missing_dependencies
-    .extend(resolve_dependencies.missing_dependencies);
 }
 
 async fn default_tsconfig_options(
@@ -221,26 +230,6 @@ fn type_resolve_options(tsconfig: Option<TsconfigOptions>) -> Resolve {
     tsconfig,
     ..Default::default()
   }
-}
-
-fn is_supported_ts_source(path: &Utf8Path) -> bool {
-  !is_declaration_file(path) && matches!(path.extension(), Some("ts" | "tsx" | "mts" | "cts"))
-}
-
-fn is_declaration_file(path: &Utf8Path) -> bool {
-  let path = path.as_str();
-  path.ends_with(".d.ts") || path.ends_with(".d.mts") || path.ends_with(".d.cts")
-}
-
-fn source_syntax(path: &Utf8Path) -> Syntax {
-  // Declaration completion only needs to parse TypeScript sources for fast dts.
-  // Keep this intentionally minimal instead of reusing swc-loader transform options.
-  Syntax::Typescript(TsSyntax {
-    tsx: matches!(path.extension(), Some("tsx")),
-    decorators: true,
-    disallow_ambiguous_jsx_like: matches!(path.extension(), Some("mts" | "cts")),
-    ..Default::default()
-  })
 }
 
 fn handle_isolated_dts_diagnostics(
