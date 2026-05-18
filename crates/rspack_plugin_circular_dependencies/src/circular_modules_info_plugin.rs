@@ -304,11 +304,9 @@ async fn optimize_modules(
   circular_modules: &mut IdentifierSet,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  let s = std::time::Instant::now();
   let module_graph = compilation.get_module_graph();
   let graph = CycleGraph::build(module_graph);
   *circular_modules = CycleDetector::new(&graph).find_circular_modules();
-  dbg!(s.elapsed());
   Ok(None)
 }
 
