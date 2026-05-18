@@ -95,7 +95,11 @@ impl From<Option<String>> for HashSalt {
 
 impl MergeFrom for HashSalt {
   fn merge_from(self, other: &Self) -> Self {
-    other.clone()
+    if matches!(other, HashSalt::None) {
+      self
+    } else {
+      other.clone()
+    }
   }
 }
 
