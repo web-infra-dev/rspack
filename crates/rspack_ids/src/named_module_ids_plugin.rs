@@ -32,8 +32,9 @@ fn assign_named_module_ids(
     })
     .collect();
   let mut name_to_items: ModuleIdMap<IdentifierIndexSet> = ModuleIdMap::default();
-  let mut invalid_and_repeat_names: ModuleIdSet =
-    std::iter::once(ModuleId::from(String::new())).collect();
+  let mut invalid_and_repeat_names = ModuleIdSet::default();
+  invalid_and_repeat_names.insert(ModuleId::from(String::new()));
+  let mut needs_name_to_items_keys = false;
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
@@ -69,13 +70,18 @@ fn assign_named_module_ids(
   for (item, name) in item_name_pair {
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
+    if items.len() > 1 {
+      needs_name_to_items_keys = true;
+    }
     // Also rename the conflicting modules in used_ids
     if let Some(item) = used_ids.get(&name) {
       items.insert(*item);
+      needs_name_to_items_keys = true;
     }
   }
 
-  let name_to_items_keys = name_to_items.keys().cloned().collect::<ModuleIdSet>();
+  let name_to_items_keys =
+    needs_name_to_items_keys.then(|| name_to_items.keys().cloned().collect::<ModuleIdSet>());
   let mut unnamed_items = vec![];
 
   for (name, mut items) in name_to_items {
@@ -97,7 +103,10 @@ fn assign_named_module_ids(
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
         let mut formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
-        while name_to_items_keys.contains(&formatted_name) && used_ids.contains_key(&formatted_name)
+        while name_to_items_keys
+          .as_ref()
+          .is_some_and(|keys| keys.contains(&formatted_name))
+          && used_ids.contains_key(&formatted_name)
         {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
