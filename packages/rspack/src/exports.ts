@@ -352,7 +352,6 @@ export type {
 } from './builtin-plugin';
 export {
   CircularDependencyRspackPlugin,
-  CircularModulesInfoPlugin,
   ContextReplacementPlugin,
   CopyRspackPlugin,
   CssExtractRspackPlugin,
