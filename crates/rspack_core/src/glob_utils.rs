@@ -89,27 +89,6 @@ fn extract_glob_base_dir(pattern: &str) -> &str {
   }
 }
 
-/// Normalize backslashes to forward slashes in a path string.
-fn normalize_path_separators(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  let mut chars = s.chars().peekable();
-  while let Some(c) = chars.next() {
-    if c == '\\' {
-      if chars
-        .peek()
-        .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
-      {
-        result.push(c);
-      } else {
-        result.push('/');
-      }
-    } else {
-      result.push(c);
-    }
-  }
-  result
-}
-
 fn unescape_glob_path(s: &str) -> String {
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
@@ -177,8 +156,7 @@ pub async fn find_files_by_glob(
   options: &GlobMatchOptions,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<Vec<Utf8PathBuf>> {
-  let normalized_pattern = normalize_path_separators(pattern);
-  let base_dir = extract_glob_base_dir(&normalized_pattern);
+  let base_dir = extract_glob_base_dir(pattern);
   let unescaped_base_dir = unescape_glob_path(base_dir);
   let base_dir_path = Utf8Path::new(&unescaped_base_dir);
 
@@ -192,12 +170,11 @@ pub async fn find_files_by_glob(
     &mut |path, _filename| {
       if options.require_literal_leading_dot
         && path_has_dot_component(&path, base_dir_path)
-        && !pattern_has_explicit_dot_for(&normalized_pattern, base_dir_path, &path, options)
+        && !pattern_has_explicit_dot_for(pattern, base_dir_path, &path, options)
       {
         return;
       }
-      let normalized_path = normalize_path_separators(path.as_str());
-      if glob_match_with_options(&normalized_pattern, &normalized_path, options) {
+      if glob_match_with_options(pattern, path.as_str(), options) {
         results.push(path);
       }
     },
@@ -223,11 +200,11 @@ fn pattern_has_explicit_dot_for(
   path: &Utf8Path,
   options: &GlobMatchOptions,
 ) -> bool {
-  let base_str = normalize_path_separators(base_dir.as_str());
-  let path_str = normalize_path_separators(path.as_str());
+  let base_str = base_dir.as_str();
+  let path_str = path.as_str();
   let pattern_suffix = pattern.strip_prefix(&base_str).unwrap_or(pattern);
 
-  let relative = path_str.strip_prefix(&base_str).unwrap_or(&path_str);
+  let relative = path_str.strip_prefix(base_str).unwrap_or(path_str);
   let pattern_segments = pattern_suffix
     .split('/')
     .filter(|segment| !segment.is_empty())
@@ -288,26 +265,6 @@ mod tests {
     assert_eq!(
       extract_glob_base_dir("./fixtures/directory\\?1/**/*.js"),
       "./fixtures/directory\\?1/"
-    );
-  }
-
-  #[test]
-  fn normalize_path_separators_preserves_glob_escapes() {
-    assert_eq!(
-      normalize_path_separators("./fixtures/a\\[b\\]/**/*.js"),
-      "./fixtures/a\\[b\\]/**/*.js"
-    );
-    assert_eq!(
-      normalize_path_separators("./fixtures/file\\*.js"),
-      "./fixtures/file\\*.js"
-    );
-    assert_eq!(
-      normalize_path_separators("./fixtures/file\\?.js"),
-      "./fixtures/file\\?.js"
-    );
-    assert_eq!(
-      normalize_path_separators("C:\\fixtures\\a\\[b\\]\\file.js"),
-      "C:/fixtures/a\\[b\\]/file.js"
     );
   }
 
