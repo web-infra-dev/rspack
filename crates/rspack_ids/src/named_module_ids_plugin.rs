@@ -12,6 +12,21 @@ use rspack_util::{comparators::compare_ids, itoa};
 
 use crate::id_helpers::{get_long_module_name, get_short_module_name};
 
+fn add_conflicted_module_name(
+  name_to_item: &mut ModuleIdMap<ModuleIdentifier>,
+  conflict_name_to_items: &mut ModuleIdMap<IdentifierIndexSet>,
+  name: ModuleId,
+  item: ModuleIdentifier,
+) {
+  if let Some(existing) = name_to_item.remove(&name) {
+    conflict_name_to_items
+      .entry(name.clone())
+      .or_default()
+      .insert(existing);
+  }
+  conflict_name_to_items.entry(name).or_default().insert(item);
+}
+
 #[tracing::instrument(skip_all)]
 fn assign_named_module_ids(
   modules: IdentifierSet,
@@ -31,33 +46,41 @@ fn assign_named_module_ids(
       (item, name)
     })
     .collect();
-  let mut name_to_items: ModuleIdMap<IdentifierIndexSet> = ModuleIdMap::default();
-  let mut invalid_and_repeat_names = ModuleIdSet::default();
-  invalid_and_repeat_names.insert(ModuleId::from(String::new()));
+  let mut name_to_item: ModuleIdMap<ModuleIdentifier> = ModuleIdMap::default();
+  let mut conflict_name_to_items: ModuleIdMap<IdentifierIndexSet> = ModuleIdMap::default();
   let mut needs_name_to_items_keys = false;
   for (item, name) in item_name_pair {
-    let items = name_to_items.entry(name.clone()).or_default();
-    items.insert(item);
-    // If the short module id is conflict, then we need to rename all the conflicting modules to long module id
-    if items.len() > 1 {
-      invalid_and_repeat_names.insert(name);
-    }
-    // Also rename the conflicting modules in used_ids
-    else if let Some(item) = used_ids.get(&name) {
-      items.insert(*item);
-      invalid_and_repeat_names.insert(name);
+    if name.as_str().is_empty() {
+      add_conflicted_module_name(&mut name_to_item, &mut conflict_name_to_items, name, item);
+    } else if let Some(used_item) = used_ids.get(&name) {
+      add_conflicted_module_name(
+        &mut name_to_item,
+        &mut conflict_name_to_items,
+        name.clone(),
+        item,
+      );
+      add_conflicted_module_name(
+        &mut name_to_item,
+        &mut conflict_name_to_items,
+        name,
+        *used_item,
+      );
+    } else if conflict_name_to_items.contains_key(&name) {
+      add_conflicted_module_name(&mut name_to_item, &mut conflict_name_to_items, name, item);
+    } else if let Some(existing) = name_to_item.insert(name.clone(), item) {
+      add_conflicted_module_name(
+        &mut name_to_item,
+        &mut conflict_name_to_items,
+        name.clone(),
+        existing,
+      );
+      add_conflicted_module_name(&mut name_to_item, &mut conflict_name_to_items, name, item);
     }
   }
 
-  let item_name_pair: Vec<_> = invalid_and_repeat_names
-    .iter()
-    .flat_map(|name| {
-      let mut res = vec![];
-      for item in name_to_items.remove(name).unwrap_or_default() {
-        res.push((name.clone(), item));
-      }
-      res
-    })
+  let item_name_pair: Vec<_> = conflict_name_to_items
+    .into_iter()
+    .flat_map(|(name, items)| items.into_iter().map(move |item| (name.clone(), item)))
     .par_bridge()
     .map(|(name, item)| {
       let module = module_graph
@@ -67,36 +90,59 @@ fn assign_named_module_ids(
       (item, long_name)
     })
     .collect();
+  let mut conflict_name_to_items: ModuleIdMap<IdentifierIndexSet> = ModuleIdMap::default();
   for (item, name) in item_name_pair {
-    let items = name_to_items.entry(name.clone()).or_default();
-    items.insert(item);
-    if items.len() > 1 {
+    if let Some(used_item) = used_ids.get(&name) {
+      add_conflicted_module_name(
+        &mut name_to_item,
+        &mut conflict_name_to_items,
+        name.clone(),
+        item,
+      );
+      add_conflicted_module_name(
+        &mut name_to_item,
+        &mut conflict_name_to_items,
+        name,
+        *used_item,
+      );
       needs_name_to_items_keys = true;
-    }
-    // Also rename the conflicting modules in used_ids
-    if let Some(item) = used_ids.get(&name) {
-      items.insert(*item);
+    } else if conflict_name_to_items.contains_key(&name) {
+      add_conflicted_module_name(&mut name_to_item, &mut conflict_name_to_items, name, item);
+      needs_name_to_items_keys = true;
+    } else if let Some(existing) = name_to_item.insert(name.clone(), item) {
+      add_conflicted_module_name(
+        &mut name_to_item,
+        &mut conflict_name_to_items,
+        name.clone(),
+        existing,
+      );
+      add_conflicted_module_name(&mut name_to_item, &mut conflict_name_to_items, name, item);
       needs_name_to_items_keys = true;
     }
   }
 
   let name_to_items_keys =
-    needs_name_to_items_keys.then(|| name_to_items.keys().cloned().collect::<ModuleIdSet>());
+    needs_name_to_items_keys.then(|| name_to_item.keys().cloned().collect::<ModuleIdSet>());
   let mut unnamed_items = vec![];
 
-  for (name, mut items) in name_to_items {
+  for (name, item) in name_to_item {
     if name.as_str().is_empty() {
-      for item in items {
-        unnamed_items.push(item)
-      }
-    } else if items.len() == 1 && !used_ids.contains_key(&name) {
-      let item = items[0];
+      unnamed_items.push(item)
+    } else {
       if ChunkGraph::set_module_id(module_ids, item, name.clone())
         && let Some(mutations) = mutations
       {
         mutations.add(Mutation::ModuleSetId { module: item });
       }
       used_ids.insert(name, item);
+    }
+  }
+
+  for (name, mut items) in conflict_name_to_items {
+    if name.as_str().is_empty() {
+      for item in items {
+        unnamed_items.push(item)
+      }
     } else {
       items.sort_unstable_by(|a, b| compare_ids(a, b));
       let mut i = 0;
