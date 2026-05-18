@@ -1,7 +1,4 @@
-use std::{
-  collections::{HashSet, VecDeque},
-  sync::Arc,
-};
+use std::{collections::VecDeque, sync::Arc};
 
 use rspack_core::{
   Compilation, DependencyCategory, IsolatedDts, Resolve, ResolveDependencies,
@@ -11,6 +8,7 @@ use rspack_error::{Result, error};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::node_path::NodePath;
+use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::FileName,
   ecma::{
@@ -21,13 +19,49 @@ use swc_core::{
 
 use crate::plugin::SwcEmitDtsOptions;
 
+pub(crate) struct IsolatedDtsAsset {
+  pub resource_path: String,
+  pub code: String,
+}
+
+struct IsolatedDtsReferences {
+  issuer_resource_path: String,
+  references: Vec<String>,
+}
+
 pub(crate) async fn complete_isolated_dts_outputs(
   compilation: &mut Compilation,
   options: &SwcEmitDtsOptions,
   roots: Vec<IsolatedDts>,
-) -> Result<Vec<IsolatedDts>> {
+) -> Result<Vec<IsolatedDtsAsset>> {
   if roots.is_empty() {
-    return Ok(roots);
+    return Ok(Vec::new());
+  }
+
+  let mut outputs = Vec::with_capacity(roots.len());
+  let mut queue = VecDeque::with_capacity(roots.len());
+
+  for IsolatedDts {
+    resource_path,
+    code,
+    references,
+  } in roots
+  {
+    let has_references = !references.is_empty();
+    if has_references {
+      queue.push_back(IsolatedDtsReferences {
+        issuer_resource_path: resource_path.clone(),
+        references,
+      });
+    }
+    outputs.push(IsolatedDtsAsset {
+      resource_path,
+      code,
+    });
+  }
+
+  if queue.is_empty() {
+    return Ok(outputs);
   }
 
   let compiler_root = compilation.options.context.as_path().to_path_buf();
@@ -41,24 +75,21 @@ pub(crate) async fn complete_isolated_dts_outputs(
       resolve_to_context: false,
       dependency_category: DependencyCategory::Esm,
     });
-  let javascript_compiler = JavaScriptCompiler::new();
+  let mut javascript_compiler = None;
+  let mut seen: HashSet<Utf8PathBuf> = outputs
+    .iter()
+    .map(|output| resolve_path(&compiler_root, &output.resource_path))
+    .collect();
 
-  let mut outputs = Vec::with_capacity(roots.len());
-  let mut queue = VecDeque::with_capacity(roots.len());
-  let mut seen: HashSet<Utf8PathBuf> = HashSet::default();
-
-  for dts in roots {
-    let resource_path = resolve_path(&compiler_root, &dts.resource_path);
-    seen.insert(resource_path);
-    queue.push_back(dts.clone());
-    outputs.push(dts);
-  }
-
-  while let Some(dts) = queue.pop_front() {
-    let issuer = resolve_path(&compiler_root, &dts.resource_path);
+  while let Some(IsolatedDtsReferences {
+    issuer_resource_path,
+    references,
+  }) = queue.pop_front()
+  {
+    let issuer = resolve_path(&compiler_root, &issuer_resource_path);
     let issuer_dir = issuer.parent().unwrap_or(compiler_root.as_path());
 
-    for request in dts.references {
+    for request in references {
       let (result, resolve_dependencies) = resolver
         .resolve_with_context(issuer_dir.as_std_path(), &request)
         .await;
@@ -72,30 +103,37 @@ pub(crate) async fn complete_isolated_dts_outputs(
         continue;
       }
 
-      compilation
-        .file_dependencies
-        .insert(resource_path.clone().into_std_path_buf().into());
-
       if !seen.insert(resource_path.clone()) {
         continue;
       }
 
+      compilation
+        .file_dependencies
+        .insert(resource_path.clone().into_std_path_buf().into());
+
       let source = fs.read_to_string(&resource_path).await?;
-      let dts_output = javascript_compiler.emit_isolated_dts_from_source(
-        source,
-        Arc::new(FileName::Real(resource_path.clone().into_std_path_buf())),
-        source_syntax(&resource_path),
-        EsVersion::EsNext,
-      )?;
+      let dts_output = javascript_compiler
+        .get_or_insert_with(JavaScriptCompiler::new)
+        .emit_isolated_dts_from_source(
+          source,
+          Arc::new(FileName::Real(resource_path.clone().into_std_path_buf())),
+          source_syntax(&resource_path),
+          EsVersion::EsNext,
+        )?;
       handle_isolated_dts_diagnostics(&resource_path, dts_output.diagnostics)?;
 
-      let dts = IsolatedDts {
-        resource_path: resource_path.as_str().to_string(),
+      let has_references = !dts_output.references.is_empty();
+      let resource_path = resource_path.as_str().to_string();
+      if has_references {
+        queue.push_back(IsolatedDtsReferences {
+          issuer_resource_path: resource_path.clone(),
+          references: dts_output.references,
+        });
+      }
+      outputs.push(IsolatedDtsAsset {
+        resource_path,
         code: dts_output.code,
-        references: dts_output.references,
-      };
-      queue.push_back(dts.clone());
-      outputs.push(dts);
+      });
     }
   }
 

@@ -5,12 +5,13 @@
  * Author Donny/강동윤
  * Copyright (c)
  */
-use std::{cell::RefCell, collections::HashSet, fs::File, path::PathBuf, rc::Rc, sync::Arc};
+use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc, sync::Arc};
 
 use anyhow::{Context, bail};
 use indoc::formatdoc;
 use rspack_error::Result;
 use rspack_util::{base64, source_map::SourceMapKind, swc::minify_file_comments};
+use rustc_hash::FxHashSet as HashSet;
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
@@ -228,34 +229,34 @@ impl Visit for DtsReferenceCollector {
     // Matches import declarations, for example:
     //   import type { Foo } from "./foo";
     //   import "./foo";
-    self.push(node.src.value.to_string_lossy().to_string());
+    self.push(node.src.value.to_string_lossy().into_owned());
   }
 
   fn visit_export_all(&mut self, node: &ExportAll) {
     // Matches export-all declarations, for example:
     //   export * from "./foo";
-    self.push(node.src.value.to_string_lossy().to_string());
+    self.push(node.src.value.to_string_lossy().into_owned());
   }
 
   fn visit_named_export(&mut self, node: &NamedExport) {
     // Matches named re-exports, for example:
     //   export type { Foo } from "./foo";
     if let Some(src) = &node.src {
-      self.push(src.value.to_string_lossy().to_string());
+      self.push(src.value.to_string_lossy().into_owned());
     }
   }
 
   fn visit_ts_import_type(&mut self, node: &TsImportType) {
     // Matches inline import types, for example:
     //   export type Foo = import("./foo").Foo;
-    self.push(node.arg.value.to_string_lossy().to_string());
+    self.push(node.arg.value.to_string_lossy().into_owned());
     node.visit_children_with(self);
   }
 
   fn visit_ts_external_module_ref(&mut self, node: &TsExternalModuleRef) {
     // Matches TypeScript import-equals declarations, for example:
     //   import Foo = require("./foo");
-    self.push(node.expr.value.to_string_lossy().to_string());
+    self.push(node.expr.value.to_string_lossy().into_owned());
   }
 }
 
