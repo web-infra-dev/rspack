@@ -94,7 +94,7 @@ export const commonOptionsForBuildAndServe = (command: Command): Command => {
   return command
     .option(
       '-d, --devtool <value>',
-      'specify a developer tool for debugging. Defaults to `cheap-module-source-map` in development and `source-map` in production.',
+      'set source map style for debugging. Use `false` to disable source maps.',
     )
     .option('--entry <entry>', 'entry file', {
       type: [String],
