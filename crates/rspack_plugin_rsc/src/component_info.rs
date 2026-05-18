@@ -1,8 +1,8 @@
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, DependencyId, Module, ModuleGraph, RscMeta, RscModuleType, RuntimeSpec,
-  module_declared_side_effect_free,
+  Compilation, DependencyId, Module, ModuleGraph, ModuleIdentifier, RscMeta, RscModuleType,
+  RuntimeSpec, module_declared_side_effect_free,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -25,10 +25,11 @@ pub type ClientComponentImportsByServerEntry = FxIndexMap<String, ClientComponen
 // Used only to let `loadCss()` importers inherit their nearest server entry CSS files.
 pub type ImportMetaRscImporters = FxHashMap<String, FxIndexSet<String>>;
 
-// Tracks server component traversal per current `use server-entry` owner.
-// This lets a shared server component be visited once for each server entry
-// that needs to collect CSS from it, while still preventing recursive loops.
-type VisitedServerComponents = FxHashSet<(rspack_core::ModuleIdentifier, Option<String>)>;
+// Tracks server component traversal per current `use server-entry` owner and
+// dynamic import context. This lets a shared server component be visited once
+// for each server entry and sync/dynamic path that needs to collect client
+// imports, while still preventing recursive loops.
+type VisitedServerComponents = FxHashSet<(ModuleIdentifier, Option<String>, bool)>;
 
 #[derive(Debug, Default)]
 pub struct ComponentInfo {
@@ -145,6 +146,7 @@ fn traverse_module(
   let is_first_visit_server_component = visited_server_components.insert((
     module.identifier(),
     current_server_entry.map(ToOwned::to_owned),
+    is_under_server_dynamic_import,
   ));
   if !is_first_visit_server_component {
     return;

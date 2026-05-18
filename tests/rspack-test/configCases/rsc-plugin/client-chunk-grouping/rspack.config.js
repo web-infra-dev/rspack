@@ -18,6 +18,10 @@ const clientPaths = {
   rootB: path.join(__dirname, 'src/clients/RootOnlyB.js'),
   sharedAcrossPages: path.join(__dirname, 'src/clients/SharedAcrossPages.js'),
   sharedRootAndPage: path.join(__dirname, 'src/clients/SharedRootAndPage.js'),
+  sharedServerChild: path.join(
+    __dirname,
+    'src/clients/SharedServerChildClient.js',
+  ),
 };
 
 const swcLoaderRule = {
@@ -123,9 +127,11 @@ module.exports = [
           const rootB = getClient(clientPaths.rootB);
           const sharedAcrossPages = getClient(clientPaths.sharedAcrossPages);
           const sharedRootAndPage = getClient(clientPaths.sharedRootAndPage);
+          const sharedServerChild = getClient(clientPaths.sharedServerChild);
 
           expectSameChunks(pageOneA, pageOneB);
           expectDifferentChunks(pageOneA, pageOneDynamic);
+          expectDifferentChunks(pageOneA, sharedServerChild);
           expectDifferentChunks(pageOneA, pageTwo);
 
           expectSameChunks(rootA, rootB);
@@ -150,6 +156,7 @@ module.exports = [
           expect(pageOneA.cssFiles).toBeDefined();
           expect(pageOneB.cssFiles).toBeDefined();
           expect(pageOneDynamic.cssFiles).toBeDefined();
+          expect(sharedServerChild.cssFiles).toBeDefined();
           expect(pageTwo.cssFiles).toBeDefined();
           expect(mainEntry.entryCssFiles[pageOnePath]).toBeDefined();
           expect(mainEntry.entryCssFiles[pageTwoPath]).toBeDefined();
@@ -162,6 +169,9 @@ module.exports = [
           );
           expect(mainEntry.entryCssFiles[pageOnePath]).not.toEqual(
             pageOneDynamic.cssFiles,
+          );
+          expect(mainEntry.entryCssFiles[pageOnePath]).not.toEqual(
+            sharedServerChild.cssFiles,
           );
           expect(mainEntry.entryCssFiles[pageTwoPath]).toEqual(
             pageTwo.cssFiles,
@@ -202,6 +212,7 @@ module.exports = [
           expect(pageOneCss).toContain('page-one-client-a-css');
           expect(pageOneCss).toContain('page-one-client-b-css');
           expect(pageOneCss).not.toContain('page-one-dynamic-client-css');
+          expect(pageOneCss).not.toContain('shared-server-child-client-css');
           expect(pageOneCss).not.toContain('page-two-client-css');
           expect(pageOneCss).not.toContain('shared-across-pages-client-css');
 
@@ -210,6 +221,12 @@ module.exports = [
             'page-one-dynamic-client-css',
           );
           expect(pageOneDynamicCssFile).not.toBe(pageOneCssFile);
+
+          const sharedServerChildCssFile = findCssAsset(
+            compilation,
+            'shared-server-child-client-css',
+          );
+          expect(sharedServerChildCssFile).not.toBe(pageOneCssFile);
 
           const pageTwoCssFile = findCssAsset(
             compilation,
