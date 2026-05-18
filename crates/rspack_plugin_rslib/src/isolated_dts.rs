@@ -32,7 +32,7 @@ struct IsolatedDtsReferences {
 pub(crate) async fn complete_isolated_dts_outputs(
   compilation: &mut Compilation,
   options: &SwcEmitDtsOptions,
-  roots: Vec<Box<IsolatedDts>>,
+  roots: Vec<IsolatedDts>,
 ) -> Result<Vec<IsolatedDtsAsset>> {
   if roots.is_empty() {
     return Ok(Vec::new());
@@ -41,12 +41,12 @@ pub(crate) async fn complete_isolated_dts_outputs(
   let mut outputs = Vec::with_capacity(roots.len());
   let mut queue = VecDeque::with_capacity(roots.len());
 
-  for dts in roots {
-    let IsolatedDts {
-      resource_path,
-      code,
-      references,
-    } = *dts;
+  for IsolatedDts {
+    resource_path,
+    code,
+    references,
+  } in roots
+  {
     let has_references = !references.is_empty();
     if has_references {
       queue.push_back(IsolatedDtsReferences {

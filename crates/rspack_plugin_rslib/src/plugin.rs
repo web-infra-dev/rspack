@@ -352,7 +352,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let dts_outputs = compilation
     .get_module_graph()
     .modules()
-    .filter_map(|(_, module)| module.build_info().isolated_dts.clone())
+    .filter_map(|(_, module)| module.build_info().isolated_dts.as_deref().cloned())
     .collect::<Vec<_>>();
   if dts_outputs.is_empty() {
     return Ok(());
