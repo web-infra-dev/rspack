@@ -1227,13 +1227,14 @@ async fn run_optimize_dependencies_hook(compilation: &mut Compilation) -> Result
 
 async fn run_optimize_modules_hook(compilation: &mut Compilation) -> Result<()> {
   let mut diagnostics = vec![];
+  let mut circular_modules = IdentifierSet::default();
   while matches!(
     compilation
       .plugin_driver
       .clone()
       .compilation_hooks
       .optimize_modules
-      .call(compilation, &mut diagnostics)
+      .call(compilation, &mut circular_modules, &mut diagnostics)
       .await?,
     Some(true)
   ) {}
