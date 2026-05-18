@@ -413,7 +413,11 @@ pub struct CssParserOptions {
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 impl From<&CssParserOptions> for CssModuleParserOptions {
@@ -421,7 +425,11 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      r#import: None,
       resolve_import: value.resolve_import.clone(),
+      animation: None,
+      custom_idents: None,
+      dashed_idents: None,
     }
   }
 }

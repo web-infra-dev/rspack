@@ -399,16 +399,22 @@ const applyModuleDefaults = (
   assertNotNill(module.parser['css/auto']);
   D(module.parser['css/auto'], 'namedExports', true);
   D(module.parser['css/auto'], 'url', true);
+  D(module.parser['css/auto'], 'import', true);
+  D(module.parser['css/auto'], 'animation', true);
 
   F(module.parser, 'css/global', () => ({}));
   assertNotNill(module.parser['css/global']);
   D(module.parser['css/global'], 'namedExports', true);
   D(module.parser['css/global'], 'url', true);
+  D(module.parser['css/global'], 'import', true);
+  D(module.parser['css/global'], 'animation', true);
 
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
   D(module.parser['css/module'], 'namedExports', true);
   D(module.parser['css/module'], 'url', true);
+  D(module.parser['css/module'], 'import', true);
+  D(module.parser['css/module'], 'animation', true);
 
   F(module.generator, 'css', () => ({}));
   assertNotNill(module.generator.css);

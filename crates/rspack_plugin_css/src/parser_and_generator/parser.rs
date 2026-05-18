@@ -169,7 +169,38 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalKeyframes { name, .. }
-        | css_module_lexer::Dependency::LocalKeyframesDecl { name, .. } => {
+        | css_module_lexer::Dependency::LocalKeyframesDecl { name, .. }
+          if self.animation() =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalCounterStyle { name, .. }
+        | css_module_lexer::Dependency::LocalCounterStyleDecl { name, .. }
+        | css_module_lexer::Dependency::LocalFontPalette { name, .. }
+        | css_module_lexer::Dependency::LocalFontPaletteDecl { name, .. }
+          if self.custom_idents() =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalVar { name, .. }
+        | css_module_lexer::Dependency::LocalVarDecl { name, .. }
+        | css_module_lexer::Dependency::LocalPropertyDecl { name, .. }
+          if self.dashed_idents() =>
+        {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
               unescape(name).into_owned(),
@@ -275,11 +306,13 @@ impl<'context> CssModuleParser<'context> {
           .await
       }
       css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
-        self.handle_local_ident_usage(name, range).await
+        self
+          .handle_optional_local_ident_usage(self.animation(), name, range)
+          .await
       }
       css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
         self
-          .handle_local_ident_declaration(name, range.start, range.end)
+          .handle_optional_local_ident_declaration(self.animation(), name, range)
           .await
       }
       css_module_lexer::Dependency::Composes {
@@ -294,6 +327,29 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
         self.handle_icss_export_value(prop, value);
         Ok(())
+      }
+      css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
+      | css_module_lexer::Dependency::LocalFontPalette { name, range, .. } => {
+        self
+          .handle_optional_local_ident_usage(self.custom_idents(), name, range)
+          .await
+      }
+      css_module_lexer::Dependency::LocalCounterStyleDecl { name, range, .. }
+      | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. } => {
+        self
+          .handle_optional_local_ident_declaration(self.custom_idents(), name, range)
+          .await
+      }
+      css_module_lexer::Dependency::LocalVar { name, range, .. } => {
+        self
+          .handle_optional_local_ident_usage(self.dashed_idents(), name, range)
+          .await
+      }
+      css_module_lexer::Dependency::LocalVarDecl { name, range, .. }
+      | css_module_lexer::Dependency::LocalPropertyDecl { name, range, .. } => {
+        self
+          .handle_optional_local_ident_declaration(self.dashed_idents(), name, range)
+          .await
       }
       _ => Ok(()),
     }
@@ -345,7 +401,7 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
 
-    if !self.should_import(request, media, supports, layer).await {
+    if !self.import() || !self.should_import(request, media, supports, layer).await {
       return Ok(());
     }
 
@@ -410,6 +466,22 @@ impl<'context> CssModuleParser<'context> {
     self.parser_options.url.expect("should have url")
   }
 
+  fn import(&self) -> bool {
+    self.parser_options.r#import.unwrap_or(true)
+  }
+
+  fn animation(&self) -> bool {
+    self.parser_options.animation.unwrap_or(true)
+  }
+
+  fn custom_idents(&self) -> bool {
+    self.parser_options.custom_idents.unwrap_or(false)
+  }
+
+  fn dashed_idents(&self) -> bool {
+    self.parser_options.dashed_idents.unwrap_or(false)
+  }
+
   fn convention(&self) -> CssExportsConvention {
     self
       .generator_options
@@ -463,6 +535,18 @@ impl<'context> CssModuleParser<'context> {
     Ok(())
   }
 
+  async fn handle_optional_local_ident_usage(
+    &mut self,
+    enabled: bool,
+    name: &str,
+    range: css_module_lexer::Range,
+  ) -> Result<()> {
+    if !enabled {
+      return Ok(());
+    }
+    self.handle_local_ident_usage(name, range).await
+  }
+
   async fn handle_local_ident_declaration(
     &mut self,
     name: &str,
@@ -486,6 +570,20 @@ impl<'context> CssModuleParser<'context> {
         end,
       )));
     Ok(())
+  }
+
+  async fn handle_optional_local_ident_declaration(
+    &mut self,
+    enabled: bool,
+    name: &str,
+    range: css_module_lexer::Range,
+  ) -> Result<()> {
+    if !enabled {
+      return Ok(());
+    }
+    self
+      .handle_local_ident_declaration(name, range.start, range.end)
+      .await
   }
 
   async fn resolve_local_ident_and_update_exports(

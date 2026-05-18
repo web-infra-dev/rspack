@@ -1776,22 +1776,34 @@ impl ModuleOptionsBuilder {
 
       let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        r#import: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
       let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        r#import: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
 
       let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        r#import: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css/global".to_string(), css_global_parser_options);
 

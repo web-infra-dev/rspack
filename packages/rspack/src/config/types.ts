@@ -1072,7 +1072,31 @@ export type CssModuleParserOptions = {
    * Allow to enable/disables `@import` at-rules handling.
    * @default true
    * */
+  import?: boolean;
+
+  /**
+   * Allow to filter handling of `@import` at-rules.
+   * @default true
+   * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Enable/disable renaming of `@keyframes`.
+   * @default true
+   */
+  animation?: boolean;
+
+  /**
+   * Enable/disable renaming of custom identifiers.
+   * @default false
+   */
+  customIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of dashed identifiers, e.g. custom properties.
+   * @default false
+   */
+  dashedIdents?: boolean;
 };
 
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
