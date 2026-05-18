@@ -10,6 +10,7 @@ pub(crate) fn set_build_info(
   resource_path: &Utf8Path,
   compiler_context: &Utf8Path,
   code: String,
+  references: Vec<String>,
 ) {
   // BuildInfo is persisted in cache, so avoid storing checkout-specific absolute paths.
   let relative_resource_path = resource_path
@@ -25,6 +26,7 @@ pub(crate) fn set_build_info(
   build_info.isolated_dts = Some(IsolatedDts {
     resource_path,
     code,
+    references,
   });
 }
 

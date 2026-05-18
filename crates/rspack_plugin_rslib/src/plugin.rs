@@ -58,6 +58,7 @@ fn emit_isolated_dts_asset(
   let IsolatedDts {
     resource_path,
     code,
+    ..
   } = dts;
   let compiler_root = compilation.options.context.as_path();
   let raw_resource_path = Utf8PathBuf::from(&resource_path);

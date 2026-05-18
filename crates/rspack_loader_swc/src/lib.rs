@@ -226,6 +226,7 @@ impl SwcLoader {
         resource_path.as_path(),
         loader_context.context.options.context.as_path(),
         isolated_dts.code,
+        isolated_dts.references,
       );
     }
 

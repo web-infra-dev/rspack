@@ -133,6 +133,7 @@ pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
 pub struct IsolatedDts {
   pub resource_path: String,
   pub code: String,
+  pub references: Vec<String>,
 }
 
 #[cacheable]

@@ -12,11 +12,10 @@ use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::node_path::NodePath;
 use swc_core::{
-  common::{FileName, SourceMap, comments::SingleThreadedComments},
+  common::FileName,
   ecma::{
-    ast::{EsVersion, ExportAll, ImportDecl, NamedExport, TsExternalModuleRef, TsImportType},
-    parser::{Syntax, TsSyntax, parse_file_as_module},
-    visit::{Visit, VisitWith},
+    ast::EsVersion,
+    parser::{Syntax, TsSyntax},
   },
 };
 
@@ -58,9 +57,8 @@ pub(crate) async fn complete_isolated_dts_outputs(
   while let Some(dts) = queue.pop_front() {
     let issuer = resolve_path(&compiler_root, &dts.resource_path);
     let issuer_dir = issuer.parent().unwrap_or(compiler_root.as_path());
-    let references = collect_dts_references(&issuer, &dts.code)?;
 
-    for request in references {
+    for request in dts.references {
       let (result, resolve_dependencies) = resolver
         .resolve_with_context(issuer_dir.as_std_path(), &request)
         .await;
@@ -94,6 +92,7 @@ pub(crate) async fn complete_isolated_dts_outputs(
       let dts = IsolatedDts {
         resource_path: resource_path.as_str().to_string(),
         code: dts_output.code,
+        references: dts_output.references,
       };
       queue.push_back(dts.clone());
       outputs.push(dts);
@@ -183,89 +182,6 @@ fn type_resolve_options(tsconfig: Option<TsconfigOptions>) -> Resolve {
     fully_specified: Some(false),
     tsconfig,
     ..Default::default()
-  }
-}
-
-fn collect_dts_references(resource_path: &Utf8Path, code: &str) -> Result<Vec<String>> {
-  let cm = Arc::<SourceMap>::default();
-  let comments = SingleThreadedComments::default();
-  let fm = cm.new_source_file(
-    Arc::new(FileName::Real(
-      resource_path.to_path_buf().into_std_path_buf(),
-    )),
-    code.to_string(),
-  );
-  let mut errors = Vec::new();
-  let module = parse_file_as_module(
-    &fm,
-    Syntax::Typescript(TsSyntax {
-      dts: true,
-      ..Default::default()
-    }),
-    EsVersion::EsNext,
-    Some(&comments),
-    &mut errors,
-  )
-  .map_err(|err| {
-    error!(
-      "Failed to parse generated declaration file for {}: {:?}",
-      resource_path, err
-    )
-  })?;
-
-  if let Some(error) = errors.into_iter().next() {
-    return Err(error!(
-      "Failed to parse generated declaration file for {}: {:?}",
-      resource_path, error
-    ));
-  }
-
-  let mut collector = DtsReferenceCollector::default();
-  module.visit_with(&mut collector);
-  Ok(collector.references)
-}
-
-#[derive(Default)]
-struct DtsReferenceCollector {
-  references: Vec<String>,
-  seen: HashSet<String>,
-}
-
-impl DtsReferenceCollector {
-  fn push(&mut self, value: impl Into<String>) {
-    let value = value.into();
-    if self.seen.insert(value.clone()) {
-      self.references.push(value);
-    }
-  }
-}
-
-impl Visit for DtsReferenceCollector {
-  fn visit_import_decl(&mut self, node: &ImportDecl) {
-    self.push(node.src.value.to_string_lossy().to_string());
-  }
-
-  fn visit_export_all(&mut self, node: &ExportAll) {
-    self.push(node.src.value.to_string_lossy().to_string());
-  }
-
-  fn visit_named_export(&mut self, node: &NamedExport) {
-    if let Some(src) = &node.src {
-      self.push(src.value.to_string_lossy().to_string());
-    }
-  }
-
-  fn visit_ts_import_type(&mut self, node: &TsImportType) {
-    // Matches inline import types, for example:
-    //   export type Foo = import("./foo").Foo;
-    self.push(node.arg.value.to_string_lossy().to_string());
-    node.visit_children_with(self);
-  }
-
-  fn visit_ts_external_module_ref(&mut self, node: &TsExternalModuleRef) {
-    // Matches TypeScript import-equals declarations, for example:
-    //   import Foo = require("./foo");
-    self.push(node.expr.value.to_string_lossy().to_string());
   }
 }
 
