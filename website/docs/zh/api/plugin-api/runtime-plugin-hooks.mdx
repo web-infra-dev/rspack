@@ -29,7 +29,7 @@ export default {
 
 ## `createScript`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 可修改创建 `<script>` 标签时所执行的代码。
 
@@ -54,13 +54,34 @@ hooks.createScript.tap('MyPlugin', (code, chunk) => {
   </CollapsePanel>
 </Collapse>
 
+## `createLink`
+
+`SyncWaterfallHook<[string, Chunk]>`
+
+可修改创建通用 `<link>` 标签时所执行的代码。
+
+```js
+hooks.createLink.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
 ## `linkPrefetch`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
-可修改创建[预载](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="prefetch">` 标签时所执行的代码。
+可修改创建[预取](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="prefetch">` 标签时所执行的代码。
 
-如以下代码，可给用于预载的 `<link>` 标签添加 `crossorigin` 属性：
+如以下代码，可给用于预取的 `<link>` 标签添加 `crossorigin` 属性：
 
 ```js
 hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
@@ -83,11 +104,11 @@ hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
 
 ## `linkPreload`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
-可修改创建[预取](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="preload">` 标签时所执行的代码。
+可修改创建[预加载](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="preload">` 标签时所执行的代码。
 
-如以下代码，可给用于预取的 `<link>` 标签添加 `crossorigin` 属性：
+如以下代码，可给用于预加载的 `<link>` 标签添加 `crossorigin` 属性：
 
 ```js
 hooks.linkPreload.tap('MyPlugin', (code, chunk) => {

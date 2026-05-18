@@ -30,7 +30,7 @@ export default {
 
 ## `createScript`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 Can modify the code executed when creating the `<script>` tag.
 
@@ -55,9 +55,30 @@ hooks.createScript.tap('MyPlugin', (code, chunk) => {
   </CollapsePanel>
 </Collapse>
 
+## `createLink`
+
+`SyncWaterfallHook<[string, Chunk]>`
+
+Can modify the code executed when creating a generic `<link>` tag.
+
+```js
+hooks.createLink.tap('MyPlugin', (code, chunk) => {
+  return `
+    ${code}
+    link.crossorigin = 'anonymous';
+  `;
+});
+```
+
+<Collapse>
+  <CollapsePanel className="collapse-code-panel" header="Chunk.ts" key="Chunk">
+    <ChunkType />
+  </CollapsePanel>
+</Collapse>
+
 ## `linkPrefetch`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 Can modify the code executed when creating the [prefetch](/guide/optimization/code-splitting#prefetchingpreloading-modules) `<link rel="prefetch">` tag.
 
@@ -84,7 +105,7 @@ hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
 
 ## `linkPreload`
 
-`SyncWaterallHook<[string, chunk]>`
+`SyncWaterfallHook<[string, Chunk]>`
 
 Can modify the code executed when creating the [preload](/guide/optimization/code-splitting#prefetchingpreloading-modules) `<link rel="preload">` tag.
 
