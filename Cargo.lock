@@ -5968,9 +5968,9 @@ dependencies = [
 
 [[package]]
 name = "swc_core"
-version = "66.0.1"
+version = "66.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7732cc0c530a42ddfc03135c8747d8ef0db1d15f18f158fb2345f28ceb10ffb"
+checksum = "96dba809fb900d93b02fb821fe19c48c76433f5dfb3a76bdb28068851e2a6307"
 dependencies = [
  "par-core",
  "swc",
@@ -6994,9 +6994,9 @@ dependencies = [
 
 [[package]]
 name = "swc_typescript"
-version = "28.0.1"
+version = "28.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb1fb646fa6dc0c0f45cbb8c7acc4b581857a5468e778b3cf51a2db15447d772"
+checksum = "a86cf04561e92a19f5f37b7fcfdb442e749b9e360bc2796f731599967dfcb8cd"
 dependencies = [
  "bitflags 2.11.1",
  "petgraph",
