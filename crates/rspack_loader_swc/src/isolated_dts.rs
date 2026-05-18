@@ -23,11 +23,11 @@ pub(crate) fn set_build_info(
   }
   .to_slash_lossy()
   .into_owned();
-  build_info.isolated_dts = Some(IsolatedDts {
+  build_info.isolated_dts = Some(Box::new(IsolatedDts {
     resource_path,
     code,
     references,
-  });
+  }));
 }
 
 pub(crate) fn handle_isolated_dts_diagnostics(diagnostics: Vec<String>) -> Result<()> {
