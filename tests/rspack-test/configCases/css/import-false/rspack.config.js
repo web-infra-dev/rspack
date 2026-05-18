@@ -14,7 +14,7 @@ module.exports = {
     ],
     parser: {
       'css/auto': {
-        resolveImport: false,
+        import: false,
       },
     },
     generator: {
