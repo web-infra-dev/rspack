@@ -44,6 +44,7 @@ struct ClientEntry {
   entry_name: Arc<str>,
   runtime: RuntimeSpec,
   client_imports: ClientComponentImports,
+  async_client_component_imports: ClientComponentImports,
   root_client_imports: ClientComponentImports,
   client_imports_by_server_entry: ClientComponentImportsByServerEntry,
   css_imports_by_server_entry: CssImportsByServerEntry,
@@ -94,6 +95,7 @@ fn client_imports_to_modules(client_imports: &ClientComponentImports) -> Vec<Cli
 
 fn group_client_entries_by_owner(
   client_imports: &ClientComponentImports,
+  async_client_component_imports: &ClientComponentImports,
   root_client_imports: &ClientComponentImports,
   client_imports_by_server_entry: &ClientComponentImportsByServerEntry,
 ) -> (
@@ -106,6 +108,22 @@ fn group_client_entries_by_owner(
   let mut client_entries_by_server_entry: ClientModulesByServerEntry = Default::default();
 
   for (request, ids) in client_imports {
+    let client_module = ClientModuleImport {
+      request: request.clone(),
+      ids: ids.iter().cloned().collect(),
+    };
+
+    // Preserve server-side dynamic import boundaries in the client compiler:
+    // `RscEntryModule` emits ungrouped modules as one async block per module,
+    // so a server `import("./Client")` keeps a matching client chunk instead
+    // of being merged into the synchronous root/server-entry owner group.
+    // The `client_module` above uses ids from `client_imports`, which keeps
+    // the merged export set when the same module is reached by multiple paths.
+    if async_client_component_imports.contains_key(request.as_str()) {
+      ungrouped_client_entries.push(client_module);
+      continue;
+    }
+
     let mut owner_count = 0usize;
     let is_root_owned = root_client_imports.contains_key(request.as_str());
     let mut owned_server_entry = None;
@@ -122,11 +140,6 @@ fn group_client_entries_by_owner(
         }
       }
     }
-
-    let client_module = ClientModuleImport {
-      request: request.clone(),
-      ids: ids.iter().cloned().collect(),
-    };
 
     if owner_count == 1 {
       if is_root_owned {
@@ -348,6 +361,7 @@ impl RscServerPlugin {
           entry_name: entry_name.clone(),
           runtime: runtime.clone(),
           client_imports: component_info.client_component_imports,
+          async_client_component_imports: component_info.async_client_component_imports,
           root_client_imports: component_info.root_client_component_imports,
           client_imports_by_server_entry: component_info.client_component_imports_by_server_entry,
           css_imports_by_server_entry: component_info.css_imports_by_server_entry,
@@ -546,6 +560,7 @@ impl RscServerPlugin {
       entry_name,
       runtime,
       client_imports,
+      async_client_component_imports,
       root_client_imports,
       client_imports_by_server_entry,
       css_imports_by_server_entry,
@@ -557,6 +572,7 @@ impl RscServerPlugin {
     let (ungrouped_client_entries, root_client_entries, client_entries_by_server_entry) =
       group_client_entries_by_owner(
         &client_imports,
+        &async_client_component_imports,
         &root_client_imports,
         &client_imports_by_server_entry,
       );

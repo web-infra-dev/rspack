@@ -7,10 +7,13 @@ import { SharedRootAndPage } from '../clients/SharedRootAndPage';
 import './PageOne.css';
 
 export const PageOne = async () => {
+  const { PageOneDynamicClient } = await import('../clients/PageOneDynamicClient');
+
   return (
     <section className="page-one-server-css">
       <PageOneClientA />
       <PageOneClientB />
+      <PageOneDynamicClient />
       <SharedAcrossPages />
       <SharedRootAndPage />
     </section>

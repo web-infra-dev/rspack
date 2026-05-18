@@ -12,6 +12,7 @@ const pageTwoPath = path.join(__dirname, 'src/pages/PageTwo.js');
 const clientPaths = {
   pageOneA: path.join(__dirname, 'src/clients/PageOneClientA.js'),
   pageOneB: path.join(__dirname, 'src/clients/PageOneClientB.js'),
+  pageOneDynamic: path.join(__dirname, 'src/clients/PageOneDynamicClient.js'),
   pageTwo: path.join(__dirname, 'src/clients/PageTwoClient.js'),
   rootA: path.join(__dirname, 'src/clients/RootOnlyA.js'),
   rootB: path.join(__dirname, 'src/clients/RootOnlyB.js'),
@@ -116,6 +117,7 @@ module.exports = [
 
           const pageOneA = getClient(clientPaths.pageOneA);
           const pageOneB = getClient(clientPaths.pageOneB);
+          const pageOneDynamic = getClient(clientPaths.pageOneDynamic);
           const pageTwo = getClient(clientPaths.pageTwo);
           const rootA = getClient(clientPaths.rootA);
           const rootB = getClient(clientPaths.rootB);
@@ -123,6 +125,7 @@ module.exports = [
           const sharedRootAndPage = getClient(clientPaths.sharedRootAndPage);
 
           expectSameChunks(pageOneA, pageOneB);
+          expectDifferentChunks(pageOneA, pageOneDynamic);
           expectDifferentChunks(pageOneA, pageTwo);
 
           expectSameChunks(rootA, rootB);
@@ -146,6 +149,7 @@ module.exports = [
 
           expect(pageOneA.cssFiles).toBeDefined();
           expect(pageOneB.cssFiles).toBeDefined();
+          expect(pageOneDynamic.cssFiles).toBeDefined();
           expect(pageTwo.cssFiles).toBeDefined();
           expect(mainEntry.entryCssFiles[pageOnePath]).toBeDefined();
           expect(mainEntry.entryCssFiles[pageTwoPath]).toBeDefined();
@@ -155,6 +159,9 @@ module.exports = [
           );
           expect(mainEntry.entryCssFiles[pageOnePath]).toEqual(
             pageOneB.cssFiles,
+          );
+          expect(mainEntry.entryCssFiles[pageOnePath]).not.toEqual(
+            pageOneDynamic.cssFiles,
           );
           expect(mainEntry.entryCssFiles[pageTwoPath]).toEqual(
             pageTwo.cssFiles,
@@ -194,8 +201,15 @@ module.exports = [
           const pageOneCss = readAsset(compilation, pageOneCssFile);
           expect(pageOneCss).toContain('page-one-client-a-css');
           expect(pageOneCss).toContain('page-one-client-b-css');
+          expect(pageOneCss).not.toContain('page-one-dynamic-client-css');
           expect(pageOneCss).not.toContain('page-two-client-css');
           expect(pageOneCss).not.toContain('shared-across-pages-client-css');
+
+          const pageOneDynamicCssFile = findCssAsset(
+            compilation,
+            'page-one-dynamic-client-css',
+          );
+          expect(pageOneDynamicCssFile).not.toBe(pageOneCssFile);
 
           const pageTwoCssFile = findCssAsset(
             compilation,

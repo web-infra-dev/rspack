@@ -35,6 +35,13 @@ pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
   /// All client component imports reached from this RSC entry.
   pub client_component_imports: ClientComponentImports,
+  /// Client component imports reached through a server-side dynamic import.
+  ///
+  /// These imports mark modules that must be emitted as independent async
+  /// blocks in the client compiler, so `import("./Client")` from a server
+  /// component does not get merged into the synchronous root/server-entry
+  /// client owner group.
+  pub async_client_component_imports: ClientComponentImports,
   /// Client component imports reached without a `use server-entry` owner.
   pub root_client_component_imports: ClientComponentImports,
   /// Client component imports reached under each `use server-entry` owner.
@@ -68,6 +75,7 @@ pub fn collect_component_info_from_entry_dependency(
     resolved_module.as_ref(),
     &[],
     None,
+    false,
     &mut visited_client_modules,
     &mut visited_server_components,
     &mut component_info,
@@ -83,6 +91,7 @@ fn traverse_module(
   module: &dyn Module,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
+  is_under_server_dynamic_import: bool,
   visited_client_modules: &mut IdentifierSet,
   visited_server_components: &mut VisitedServerComponents,
   component_info: &mut ComponentInfo,
@@ -126,6 +135,7 @@ fn traverse_module(
       resource.as_ref(),
       imported_identifiers,
       current_server_entry,
+      is_under_server_dynamic_import,
       is_first_visit_client_module,
       component_info,
     );
@@ -150,6 +160,11 @@ fn traverse_module(
       continue;
     };
     let imported_ids = get_imported_ids(module_graph, &connection.dependency_id);
+    // A dependency with a parent block is inside a server-side dynamic import.
+    // Propagate the flag so client components reached that way keep a matching
+    // independent async chunk in the client compiler.
+    let is_under_server_dynamic_import =
+      is_under_server_dynamic_import || module_graph.get_parent_block(dependency_id).is_some();
 
     let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
     else {
@@ -161,6 +176,7 @@ fn traverse_module(
       resolved_module.as_ref(),
       &imported_ids,
       current_server_entry,
+      is_under_server_dynamic_import,
       visited_client_modules,
       visited_server_components,
       component_info,
@@ -211,6 +227,7 @@ fn record_client_component_import(
   resource: &str,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
+  is_under_server_dynamic_import: bool,
   is_first_visit_client_module: bool,
   component_info: &mut ComponentInfo,
 ) {
@@ -219,6 +236,22 @@ fn record_client_component_import(
       .client_component_imports
       .contains_key(resource)
   {
+    if is_under_server_dynamic_import {
+      add_client_import_to_scope(
+        module,
+        resource,
+        imported_identifiers,
+        &mut component_info.client_component_imports,
+      );
+      add_client_import_to_scope(
+        module,
+        resource,
+        imported_identifiers,
+        &mut component_info.async_client_component_imports,
+      );
+      return;
+    }
+
     add_client_import_for_server_entry(
       module,
       resource,
