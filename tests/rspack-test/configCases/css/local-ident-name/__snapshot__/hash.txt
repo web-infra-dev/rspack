@@ -1,0 +1,8 @@
+Object {
+  btn--info_is-disabled_1: bcd6155cbac1c5f958f5,
+  btn-info_is-disabled: bcd6155cbac1c5f958f5,
+  foo: bar,
+  foo_bar: bcd6155cbac1c5f958f5,
+  my-btn-info_is-disabled: value,
+  simple: bcd6155cbac1c5f958f5,
+}

@@ -1,17 +1,44 @@
 server
 "use strict";
 /*!
- * module: ./src/Client.js
- * exports: Client
+ * chunk group: ssr-eager
+ * chunking: eager import for SSR
+ * modules:
+ * - ./src/clients/PageOneClient.js (exports: PageOneClient)
+ * - ./src/clients/PageTwoClient.js (exports: PageTwoClient)
+ * - ./src/clients/RootClient.js (exports: RootClient)
+ * - ./src/clients/SharedAcrossPages.js (exports: *)
+ * - ./src/clients/SharedRootAndPage.js (exports: *)
  */
 
 client
 "use strict";
 /*!
- * module: ./src/App.css
- * exports: side-effect
+ * chunk group: root
+ * chunking: single async block
+ * modules:
+ * - ./src/clients/RootClient.js (exports: RootClient)
  */
 /*!
- * module: ./src/Client.js
- * exports: Client
+ * chunk group: ungrouped
+ * chunking: one async block per module
+ * modules:
+ * - ./src/clients/SharedAcrossPages.js (exports: *)
+ * - ./src/clients/SharedRootAndPage.js (exports: *)
+ */
+/*!
+ * chunk group: server-entry
+ * chunking: one async block per server-entry
+ * server-entry: ./src/pages/PageOne.js
+ * modules:
+ * - ./src/pages/PageOne.css (exports: side-effect)
+ * - ./src/clients/PageOneClient.js (exports: PageOneClient)
+ */
+/*!
+ * chunk group: server-entry
+ * chunking: one async block per server-entry
+ * server-entry: ./src/pages/PageTwo.js
+ * modules:
+ * - ./src/pages/PageTwo.css (exports: side-effect)
+ * - ./src/clients/PageTwoClient.js (exports: PageTwoClient)
  */

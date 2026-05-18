@@ -8,8 +8,8 @@
     "test:CI": "CI=1 pnpm run test"
   },
   "devDependencies": {
-    "@playwright/test": "1.59.1",
-    "@rsbuild/core": "2.0.5",
+    "@playwright/test": "1.60.0",
+    "@rsbuild/core": "2.0.6",
     "@rspack/browser": "workspace:*",
     "typescript": "^6.0.3"
   }

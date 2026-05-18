@@ -29,15 +29,14 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   }
 }
 
-pub fn is_css_mod(module: &dyn Module) -> bool {
+pub fn is_css_mod(module: &dyn Module, resource: &str) -> bool {
   if matches!(
     module.module_type(),
     ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal
   ) {
     return true;
   }
-  let resource = get_module_resource(module);
-  CSS_REGEX.is_match(resource.as_ref())
+  CSS_REGEX.is_match(resource)
 }
 
 pub struct ChunkModules<'a> {

@@ -91,6 +91,10 @@ export default {
       'css/auto': {
         exportsConvention: 'as-is',
         exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
@@ -99,10 +103,25 @@ export default {
         exportsOnly: false,
         esModule: true,
       },
+      // css/global 模块的生成器选项
+      'css/global': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
       // css/module 模块的生成器选项
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
@@ -627,6 +646,82 @@ export default {
 };
 ```
 
+### module.generator["css/auto"].localIdentHashDigest
+
+- **类型：** `string`
+- **默认值：** `'base64url'`
+
+配置生成 CSS Modules 局部标识符时使用的哈希摘要编码。支持的值与 [`output.hashDigest`](/config/output#outputhashdigest) 相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashDigestLength
+
+- **类型：** `number`
+- **默认值：** `6`
+
+配置生成 CSS Modules 局部标识符时使用的哈希字符数。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashFunction
+
+- **类型：** `string`
+- **默认值：** `'md4'`
+
+配置生成 CSS Modules 局部标识符时使用的哈希函数。支持的值与 [`output.hashFunction`](/config/output#outputhashfunction) 相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashSalt
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+配置生成 CSS Modules 局部标识符时添加到哈希中的盐值。未设置时，Rspack 会使用 [`output.hashSalt`](/config/output#outputhashsalt)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
 ### module.generator["css/auto"].esModule
 
 - **类型：** `boolean`
@@ -727,6 +822,150 @@ export default {
 };
 ```
 
+### module.generator["css/global"]
+
+`css/global` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsConvention
+
+和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsOnly
+
+和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentName
+
+和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigest
+
+和 [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigestLength
+
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashFunction
+
+和 [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashSalt
+
+和 [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].esModule
+
+和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["css/module"]
 
 `css/module` 模块的生成器选项。
@@ -785,6 +1024,70 @@ export default {
     generator: {
       'css/module': {
         localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigest
+
+和 [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigestLength
+
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashFunction
+
+和 [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashSalt
+
+和 [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashSalt: 'my-salt',
       },
     },
   },

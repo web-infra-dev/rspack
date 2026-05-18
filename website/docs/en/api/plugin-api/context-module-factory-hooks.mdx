@@ -10,7 +10,7 @@ The `ContextModuleFactory` module is used by the `Compiler` to generate dependen
 
 ## `beforeResolve`
 
-`AsyncSeriesBailHook<[BeforeResolveResult]>`
+`AsyncSeriesWaterfallHook<[BeforeResolveResult]>`
 
 Called before resolving the requested directory. The request can be ignored by returning `false`.
 
@@ -37,7 +37,7 @@ export type BeforeResolveResult =
 
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[AfterResolveResult]>`
+`AsyncSeriesWaterfallHook<[AfterResolveResult]>`
 
 Called after the requested directory resolved.
 
@@ -49,7 +49,7 @@ Called after the requested directory resolved.
   >
 ```ts
 type AfterResolveData = {
-  resource: number;
+  resource: string;
   context: string;
   request: string;
   regExp: RegExp | undefined;

@@ -10,6 +10,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
+use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
@@ -748,8 +749,26 @@ pub struct CssGeneratorOptions {
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<HashDigest>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<HashFunction>,
+  pub local_ident_hash_salt: HashSalt,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
+}
+
+impl CssModuleGeneratorOptions {
+  pub fn css_modules_default() -> Self {
+    Self {
+      exports_convention: Some(CssExportsConvention::default()),
+      local_ident_hash_digest: Some(HashDigest::Base64Url),
+      local_ident_hash_digest_length: Some(6),
+      local_ident_hash_function: Some(HashFunction::Xxhash64),
+      local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+      es_module: Some(true),
+      ..Default::default()
+    }
+  }
 }
 
 impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {

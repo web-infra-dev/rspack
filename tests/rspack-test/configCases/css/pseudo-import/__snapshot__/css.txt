@@ -1,13 +1,13 @@
 Array [
-  ._style_modules_css-class {
+  .style_modules_css-class {
 	color: IMPORTED_NAME;
 	background: IMPORTED_NAME;
 }
 
 
-._style_modules_css-class {background: IMPORTED_NAME}
+.style_modules_css-class {background: IMPORTED_NAME}
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: i__imported_a_0;
 	color: i__imported__b_1;
 	color: i__imported___c_2;
@@ -16,13 +16,13 @@ Array [
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: something;
 }
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: again;
 }
 
@@ -35,11 +35,11 @@ Array [
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color:    _i_multile_values   ;
 }
 
-._style_modules_css-nest {
+.style_modules_css-nest {
 	
 
 	:export {
@@ -48,15 +48,15 @@ Array [
 
 	unknown: unknown;
 },
-  ._style_modules_css-class {
+  .style_modules_css-class {
 	color: IMPORTED_NAME;
 	background: IMPORTED_NAME;
 }
 
 
-._style_modules_css-class {background: IMPORTED_NAME}
+.style_modules_css-class {background: IMPORTED_NAME}
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: i__imported_a_0;
 	color: i__imported__b_1;
 	color: i__imported___c_2;
@@ -65,13 +65,13 @@ Array [
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: something;
 }
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: again;
 }
 
@@ -84,11 +84,11 @@ Array [
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color:    _i_multile_values   ;
 }
 
-._style_modules_css-nest {
+.style_modules_css-nest {
 	
 
 	:export {
@@ -97,15 +97,15 @@ Array [
 
 	unknown: unknown;
 },
-  ._style_modules_css-class {
+  .style_modules_css-class {
 	color: IMPORTED_NAME;
 	background: IMPORTED_NAME;
 }
 
 
-._style_modules_css-class {background: IMPORTED_NAME}
+.style_modules_css-class {background: IMPORTED_NAME}
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: i__imported_a_0;
 	color: i__imported__b_1;
 	color: i__imported___c_2;
@@ -114,13 +114,13 @@ Array [
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: something;
 }
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color: again;
 }
 
@@ -133,11 +133,11 @@ Array [
 
 
 
-._style_modules_css-class {
+.style_modules_css-class {
 	color:    _i_multile_values   ;
 }
 
-._style_modules_css-nest {
+.style_modules_css-nest {
 	
 
 	:export {

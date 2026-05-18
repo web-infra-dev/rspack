@@ -434,17 +434,22 @@ impl SplitChunksPlugin {
             return Ok(());
           }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
-          let mut filtered = vec![];
+          let mut used_exports_combs = None;
+          let mut non_used_exports_combs = None;
 
           for cache_group in cache_groups.iter() {
-            let mut is_match = true;
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
-            is_match &= (cache_group.cache_group.r#type)(module);
+            if !(cache_group.cache_group.r#type)(module) {
+              continue;
+            }
+
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            is_match &= (cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await?;
+            if !(cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await? {
+              continue;
+            }
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
-            is_match &= match &cache_group.cache_group.test {
+            let is_match = match &cache_group.cache_group.test {
               CacheGroupTest::String(str) => module
                 .name_for_condition().is_some_and(|name| name.starts_with(str)),
               CacheGroupTest::RegExp(regexp) => module
@@ -456,14 +461,10 @@ impl SplitChunksPlugin {
               CacheGroupTest::Enabled => true,
             };
 
-            if is_match {
-              filtered.push(cache_group);
+            if !is_match {
+              continue;
             }
-          }
-          let mut used_exports_combs = None;
-          let mut non_used_exports_combs = None;
 
-          for cache_group in filtered {
             let IndexedCacheGroup {
               cache_group_index,
               cache_group,

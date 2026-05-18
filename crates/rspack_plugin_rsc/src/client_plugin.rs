@@ -96,7 +96,7 @@ fn record_module(
     return;
   }
 
-  if is_css_mod(module.as_ref()) {
+  if is_css_mod(module.as_ref(), resource.as_ref()) {
     return;
   }
 
@@ -188,9 +188,15 @@ fn collect_server_entry_css_files(
       continue;
     };
 
-    // Server-entry CSS blocks use the server entry resource as their request.
-    // Client component blocks use the client module request, so this lookup
-    // also filters out non-CSS blocks without walking dependencies again.
+    // Only server CSS blocks should populate `entryCssFiles` for loadCss().
+    // Client component blocks use the client module request here; their CSS is
+    // recorded on `clientManifest[*].cssFiles` when recording the client module.
+    //
+    // It is expected for a grouped client owner to have no `server_entries`
+    // record when that server entry only owns client components and imports no
+    // server CSS directly. Seeding `server_entries` for that case would make
+    // client component CSS look like server-entry CSS, which would duplicate
+    // the client manifest data and change the meaning of `entryCssFiles`.
     if entry_state
       .server_entries
       .get(server_entry)
@@ -665,7 +671,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
       let dependency = Box::new(RscEntryDependency::new(
         entry_name.clone(),
-        client_modules.clone(),
+        entry_state.ungrouped_client_entries.clone(),
+        entry_state.root_client_entries.clone(),
+        entry_state.client_entries_by_server_entry.clone(),
         entry_state.css_imports_by_server_entry(),
         false,
       ));

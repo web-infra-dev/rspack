@@ -91,6 +91,10 @@ export default {
       'css/auto': {
         exportsConvention: 'as-is',
         exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
@@ -99,10 +103,25 @@ export default {
         exportsOnly: false,
         esModule: true,
       },
+      // Generator options for css/global modules
+      'css/global': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
       // Generator options for css/module modules
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
@@ -628,6 +647,82 @@ export default {
 };
 ```
 
+### module.generator["css/auto"].localIdentHashDigest
+
+- **Type:** `string`
+- **Default:** `'base64url'`
+
+Configure the digest encoding used for hashes in generated CSS Modules local identifiers. This has the same supported values as [`output.hashDigest`](/config/output#outputhashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashDigestLength
+
+- **Type:** `number`
+- **Default:** `6`
+
+Configure how many characters from the hash are used in generated CSS Modules local identifiers.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashFunction
+
+- **Type:** `string`
+- **Default:** `'md4'`
+
+Configure the hash function used for generated CSS Modules local identifiers. This has the same supported values as [`output.hashFunction`](/config/output#outputhashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashSalt
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Configure a salt added to the hash used for generated CSS Modules local identifiers. When unset, Rspack uses [`output.hashSalt`](/config/output#outputhashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
 ### module.generator["css/auto"].esModule
 
 - **Type:** `boolean`
@@ -730,6 +825,150 @@ export default {
 };
 ```
 
+### module.generator["css/global"]
+
+Generator options for `css/global` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsConvention
+
+Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentName
+
+Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigest
+
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigestLength
+
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashFunction
+
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashSalt
+
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["css/module"]
 
 Generator options for `css/module` modules.
@@ -788,6 +1027,70 @@ export default {
     generator: {
       'css/module': {
         localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigest
+
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigestLength
+
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashFunction
+
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashSalt
+
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashSalt: 'my-salt',
       },
     },
   },

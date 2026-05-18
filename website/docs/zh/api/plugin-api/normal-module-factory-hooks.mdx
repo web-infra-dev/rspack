@@ -143,6 +143,24 @@ compiler.hooks.compilation.tap(
   </CollapsePanel>
 </Collapse>
 
+## `createModule`
+
+`AsyncSeriesBailHook<[NormalModuleCreateData, {}]>`
+
+在请求解析完成后、Rspack 创建 normal module 实例之前调用。返回 `undefined` 表示继续默认的模块创建流程。
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.createModule.tap('MyPlugin', (createData) => {
+      // 查看模块创建数据
+      console.log(createData.resourceResolveData.resource);
+    });
+  },
+);
+```
+
 ## `resolveForScheme`
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`

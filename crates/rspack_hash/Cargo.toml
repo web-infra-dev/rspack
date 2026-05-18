@@ -10,6 +10,7 @@ version.workspace = true
 base64-simd      = { workspace = true }
 md4              = { workspace = true }
 rspack_cacheable = { workspace = true }
+rspack_util      = { workspace = true }
 sha2             = { workspace = true }
 smol_str         = { workspace = true }
 xxhash-rust      = { workspace = true, features = ["xxh64"] }

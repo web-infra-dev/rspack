@@ -16,6 +16,7 @@ use crate::reference_manifest::{
 
 pub type ActionIdNamePair = (Atom, Atom);
 pub type CssImportsByServerEntry = FxHashMap<String, FxIndexSet<String>>;
+pub type ClientModulesByServerEntry = FxHashMap<String, Vec<ClientModuleImport>>;
 pub type RootCssImports = FxIndexSet<String>;
 
 /// Structured info about a client module to inject into the client compiler.
@@ -41,7 +42,14 @@ pub struct ServerEntryState {
 #[derive(Debug, Default)]
 pub struct EntryState {
   pub server_entries: FxHashMap<String, ServerEntryState>,
+  /// All client modules discovered from the RSC graph for this entry.
   pub injected_client_entries: Vec<ClientModuleImport>,
+  /// Client modules that cannot be assigned to exactly one owner and stay as standalone async chunks.
+  pub ungrouped_client_entries: Vec<ClientModuleImport>,
+  /// Client modules used only by the root RSC tree.
+  pub root_client_entries: Vec<ClientModuleImport>,
+  /// Client modules used only by one `use server-entry` subtree.
+  pub client_entries_by_server_entry: ClientModulesByServerEntry,
   pub client_modules: FxHashMap<String, ManifestExport>,
   /// Root CSS import paths reached through a parent chain without `use server-entry`.
   /// These are attached directly to the matching client compiler entry.

@@ -6,6 +6,9 @@ module.exports = {
         test: /\.css$/,
         type: 'css/module',
         generator: {
+          localIdentHashDigest: 'hex',
+          localIdentHashDigestLength: 16,
+          localIdentHashFunction: 'xxhash64',
           localIdentName: '[hash]',
         },
       },

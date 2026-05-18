@@ -1,0 +1,8 @@
+Object {
+  btn--info_is-disabled_1: ./style.module.less__btn--info_is-disabled_1,
+  btn-info_is-disabled: ./style.module.less__btn-info_is-disabled,
+  foo: bar,
+  foo_bar: ./style.module.less__foo_bar,
+  my-btn-info_is-disabled: value,
+  simple: ./style.module.less__simple,
+}

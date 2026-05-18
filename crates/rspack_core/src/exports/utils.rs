@@ -178,8 +178,6 @@ impl UsageKey {
   }
 }
 
-pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
-
 #[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
 pub enum UsageState {
   Unused = 0,

@@ -3,13 +3,13 @@ it("should work", async () => {
 	let styles = await import(/* webpackFetchPriority: "high" */ "./style.module.css");
 
 	expect(styles).toMatchObject({
-		class: "_style_module_css-class"
+		class: "style_module_css-class"
 	});
 
 	await NEXT_HMR();
 	styles = await import(/* webpackFetchPriority: "high" */ "./style.module.css");
 	expect(styles).toMatchObject({
-		"class-other": "_style_module_css-class-other"
+		"class-other": "style_module_css-class-other"
 	});
 
 	const links = window.document.getElementsByTagName('link');

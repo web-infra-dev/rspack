@@ -1,8 +1,8 @@
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
-  Compilation, DependencyId, Module, ModuleGraph, RscMeta, RscModuleType, RuntimeSpec,
-  module_declared_side_effect_free,
+  Compilation, DependencyId, Module, ModuleGraph, ModuleIdentifier, RscMeta, RscModuleType,
+  RuntimeSpec, module_declared_side_effect_free,
 };
 use rspack_plugin_javascript::dependency::{
   CommonJsExportRequireDependency, ESMExportImportedSpecifierDependency,
@@ -20,19 +20,33 @@ use crate::{
 
 // { [request to inject into client compilation]: [exported names] }
 pub type ClientComponentImports = FxIndexMap<String, FxIndexSet<Atom>>;
+pub type ClientComponentImportsByServerEntry = FxIndexMap<String, ClientComponentImports>;
 // { [server entry path]: [`import.meta.rspackRsc` importer paths] }
 // Used only to let `loadCss()` importers inherit their nearest server entry CSS files.
 pub type ImportMetaRscImporters = FxHashMap<String, FxIndexSet<String>>;
 
-// Tracks server component traversal per current `use server-entry` owner.
-// This lets a shared server component be visited once for each server entry
-// that needs to collect CSS from it, while still preventing recursive loops.
-type VisitedServerComponents = FxHashSet<(rspack_core::ModuleIdentifier, Option<String>)>;
+// Tracks server component traversal per current `use server-entry` owner and
+// dynamic import context. This lets a shared server component be visited once
+// for each server entry and sync/dynamic path that needs to collect client
+// imports, while still preventing recursive loops.
+type VisitedServerComponents = FxHashSet<(ModuleIdentifier, Option<String>, bool)>;
 
 #[derive(Debug, Default)]
 pub struct ComponentInfo {
   pub should_inject_ssr_modules: bool,
+  /// All client component imports reached from this RSC entry.
   pub client_component_imports: ClientComponentImports,
+  /// Client component imports reached through a server-side dynamic import.
+  ///
+  /// These imports mark modules that must be emitted as independent async
+  /// blocks in the client compiler, so `import("./Client")` from a server
+  /// component does not get merged into the synchronous root/server-entry
+  /// client owner group.
+  pub async_client_component_imports: ClientComponentImports,
+  /// Client component imports reached without a `use server-entry` owner.
+  pub root_client_component_imports: ClientComponentImports,
+  /// Client component imports reached under each `use server-entry` owner.
+  pub client_component_imports_by_server_entry: ClientComponentImportsByServerEntry,
   pub css_imports_by_server_entry: CssImportsByServerEntry,
   pub root_css_imports: RootCssImports,
   pub import_meta_rsc_importers: ImportMetaRscImporters,
@@ -62,6 +76,7 @@ pub fn collect_component_info_from_entry_dependency(
     resolved_module.as_ref(),
     &[],
     None,
+    false,
     &mut visited_client_modules,
     &mut visited_server_components,
     &mut component_info,
@@ -77,6 +92,7 @@ fn traverse_module(
   module: &dyn Module,
   imported_identifiers: &[Atom],
   current_server_entry: Option<&str>,
+  is_under_server_dynamic_import: bool,
   visited_client_modules: &mut IdentifierSet,
   visited_server_components: &mut VisitedServerComponents,
   component_info: &mut ComponentInfo,
@@ -101,7 +117,7 @@ fn traverse_module(
       .insert(resource.to_string());
   }
 
-  if is_css_mod(module) {
+  if is_css_mod(module, resource.as_ref()) {
     record_css_import(
       compilation,
       module,
@@ -119,6 +135,8 @@ fn traverse_module(
       module,
       resource.as_ref(),
       imported_identifiers,
+      current_server_entry,
+      is_under_server_dynamic_import,
       is_first_visit_client_module,
       component_info,
     );
@@ -128,6 +146,7 @@ fn traverse_module(
   let is_first_visit_server_component = visited_server_components.insert((
     module.identifier(),
     current_server_entry.map(ToOwned::to_owned),
+    is_under_server_dynamic_import,
   ));
   if !is_first_visit_server_component {
     return;
@@ -143,6 +162,11 @@ fn traverse_module(
       continue;
     };
     let imported_ids = get_imported_ids(module_graph, &connection.dependency_id);
+    // A dependency with a parent block is inside a server-side dynamic import.
+    // Propagate the flag so client components reached that way keep a matching
+    // independent async chunk in the client compiler.
+    let is_under_server_dynamic_import =
+      is_under_server_dynamic_import || module_graph.get_parent_block(dependency_id).is_some();
 
     let Some(resolved_module) = module_graph.module_by_identifier(&connection.resolved_module)
     else {
@@ -154,6 +178,7 @@ fn traverse_module(
       resolved_module.as_ref(),
       &imported_ids,
       current_server_entry,
+      is_under_server_dynamic_import,
       visited_client_modules,
       visited_server_components,
       component_info,
@@ -203,31 +228,38 @@ fn record_client_component_import(
   module: &dyn Module,
   resource: &str,
   imported_identifiers: &[Atom],
+  current_server_entry: Option<&str>,
+  is_under_server_dynamic_import: bool,
   is_first_visit_client_module: bool,
   component_info: &mut ComponentInfo,
 ) {
-  if is_first_visit_client_module {
-    component_info
+  if is_first_visit_client_module
+    || component_info
       .client_component_imports
-      .entry(resource.to_string())
-      .or_default();
-    add_client_import(
-      module,
-      resource,
-      imported_identifiers,
-      true,
-      &mut component_info.client_component_imports,
-    );
-  } else if component_info
-    .client_component_imports
-    .contains_key(resource)
+      .contains_key(resource)
   {
-    add_client_import(
+    if is_under_server_dynamic_import {
+      add_client_import_to_scope(
+        module,
+        resource,
+        imported_identifiers,
+        &mut component_info.client_component_imports,
+      );
+      add_client_import_to_scope(
+        module,
+        resource,
+        imported_identifiers,
+        &mut component_info.async_client_component_imports,
+      );
+      return;
+    }
+
+    add_client_import_for_server_entry(
       module,
       resource,
       imported_identifiers,
-      false,
-      &mut component_info.client_component_imports,
+      current_server_entry,
+      component_info,
     );
   }
 }
@@ -275,6 +307,61 @@ fn get_imported_ids(module_graph: &ModuleGraph, dependency_id: &DependencyId) ->
   } else {
     vec!["*".into()]
   }
+}
+
+fn add_client_import_for_server_entry(
+  module: &dyn Module,
+  resource: &str,
+  imported_identifiers: &[Atom],
+  current_server_entry: Option<&str>,
+  component_info: &mut ComponentInfo,
+) {
+  add_client_import_to_scope(
+    module,
+    resource,
+    imported_identifiers,
+    &mut component_info.client_component_imports,
+  );
+
+  let Some(server_entry) = current_server_entry else {
+    add_client_import_to_scope(
+      module,
+      resource,
+      imported_identifiers,
+      &mut component_info.root_client_component_imports,
+    );
+    return;
+  };
+
+  let client_component_imports = component_info
+    .client_component_imports_by_server_entry
+    .entry(server_entry.to_string())
+    .or_default();
+  add_client_import_to_scope(
+    module,
+    resource,
+    imported_identifiers,
+    client_component_imports,
+  );
+}
+
+fn add_client_import_to_scope(
+  module: &dyn Module,
+  mod_request: &str,
+  imported_identifiers: &[Atom],
+  client_component_imports: &mut ClientComponentImports,
+) {
+  let is_first_visit_module = !client_component_imports.contains_key(mod_request);
+  if is_first_visit_module {
+    client_component_imports.insert(mod_request.to_string(), Default::default());
+  }
+  add_client_import(
+    module,
+    mod_request,
+    imported_identifiers,
+    is_first_visit_module,
+    client_component_imports,
+  );
 }
 
 fn add_client_import(

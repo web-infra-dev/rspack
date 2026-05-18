@@ -10,7 +10,7 @@
   "devDependencies": {
     "@babel/core": "^7.29.0",
     "@babel/preset-react": "^7.28.5",
-    "@playwright/test": "1.59.1",
+    "@playwright/test": "1.60.0",
     "core-js": "3.49.0",
     "@rspack/core": "workspace:*",
     "@rspack/dev-server": "^2.0.1",
@@ -30,6 +30,6 @@
     "vue": "^3.5.34",
     "rspack-vue-loader": "^17.5.0",
     "css-loader": "^7.1.4",
-    "ws": "^8.20.0"
+    "ws": "^8.20.1"
   }
 }

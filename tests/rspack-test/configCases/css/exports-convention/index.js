@@ -7,25 +7,25 @@ const target = process.env.TARGET;
 const path = __non_webpack_require__("path");
 
 it("concatenation and mangling should work", () => {
-	expect(styles1.class).toBe(prod ? "_94e40b9f7fcee9c9" : "_style_module_css_camel-case_1-class");
-	expect(styles1["default"]).toBe(prod ? "_35bae0fc11bda5c1" : "_style_module_css_camel-case_1-default");
-	expect(styles1.fooBar).toBe(prod ? "f1dabc703f204afd" : "_style_module_css_camel-case_1-foo_bar");
-	expect(styles1.foo_bar).toBe(prod ? "f1dabc703f204afd" : "_style_module_css_camel-case_1-foo_bar");
+	expect(styles1.class).toBe(prod ? "lOQLn3" : "style_module_css_camel-case_1-class");
+	expect(styles1["default"]).toBe(prod ? "Nbrg_B" : "style_module_css_camel-case_1-default");
+	expect(styles1.fooBar).toBe(prod ? "_8dq8cD" : "style_module_css_camel-case_1-foo_bar");
+	expect(styles1.foo_bar).toBe(prod ? "_8dq8cD" : "style_module_css_camel-case_1-foo_bar");
 
 	if (prod) {
 		expect(styles2).toMatchObject({
-			'btn-info_is-disabled': 'f5b79c92c602eda6',
-			btnInfoIsDisabled: 'f5b79c92c602eda6',
-			'btn--info_is-disabled_1': 'af0173e628e9cfe2',
-			btnInfoIsDisabled1: 'af0173e628e9cfe2',
-			simple: '_963d4415d59a2388',
+			'btn-info_is-disabled': '_9becks',
+			btnInfoIsDisabled: '_9becks',
+			'btn--info_is-disabled_1': 'rwFz5i',
+			btnInfoIsDisabled1: 'rwFz5i',
+			simple: 'lj1EFd',
 			foo: 'bar',
 			'my-btn-info_is-disabled': 'value',
 			myBtnInfoIsDisabled: 'value',
-			foo_bar: '_6cb0911256f4876f',
-			fooBar: '_6cb0911256f4876f',
-			class: '_29d97f0793c21a32',
-			default: '_6d298e487bdfa215'
+			foo_bar: 'bLCREl',
+			fooBar: 'bLCREl',
+			class: 'Kdl_B5',
+			default: 'bSmOSH'
 		});
 
 		expect(Object.keys(__webpack_modules__).length).toBe(target === "web" ? 8 : 1)

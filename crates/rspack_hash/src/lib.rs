@@ -6,9 +6,11 @@ use std::{
 use base64_simd::{STANDARD, URL_SAFE_NO_PAD};
 use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_util::MergeFrom;
 use smol_str::SmolStr;
 use xxhash_rust::xxh64::Xxh64;
 
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum HashFunction {
   Xxhash64,
@@ -27,6 +29,13 @@ impl From<&str> for HashFunction {
   }
 }
 
+impl MergeFrom for HashFunction {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Copy)]
 pub enum HashDigest {
   Hex,
@@ -61,8 +70,16 @@ impl From<&str> for HashDigest {
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+impl MergeFrom for HashDigest {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Hash, Default)]
 pub enum HashSalt {
+  #[default]
   None,
   Salt(String),
 }
@@ -72,6 +89,16 @@ impl From<Option<String>> for HashSalt {
     match value {
       Some(salt) => Self::Salt(salt),
       None => Self::None,
+    }
+  }
+}
+
+impl MergeFrom for HashSalt {
+  fn merge_from(self, other: &Self) -> Self {
+    if matches!(other, HashSalt::None) {
+      self
+    } else {
+      other.clone()
     }
   }
 }

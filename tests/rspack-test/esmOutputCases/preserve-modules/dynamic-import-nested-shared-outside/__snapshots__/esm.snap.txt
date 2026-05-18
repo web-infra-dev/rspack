@@ -9,7 +9,8 @@ const feature = () => `feature:${util}`
 
 /* export default */ const src_feature = (feature);
 
-export { answer } from "../shared/util.mjs";
+var feature_answer = (/* inlined export .answer */42);
+export { feature_answer as answer };
 export default src_feature;
 
 ```
@@ -66,6 +67,7 @@ const answer = 42
 
 
 
-export { answer, util };
+var util_answer = (/* inlined export .answer */42);
+export { util, util_answer as answer };
 
 ```

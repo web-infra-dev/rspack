@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_util::atom::Atom;
 
-use crate::utils::escape_css;
+use crate::utils::{escape_css, replace_css_module_id_placeholder};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -112,7 +112,7 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
@@ -120,10 +120,15 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
       .expect("CssSelfReferenceLocalIdentDependencyTemplate should be used for CssSelfReferenceLocalIdentDependency");
 
     for replace in &dep.replaces {
+      let local_ident = replace_css_module_id_placeholder(
+        &replace.local_ident,
+        code_generatable_context.compilation,
+        code_generatable_context.module,
+      );
       source.replace(
         replace.range.start,
         replace.range.end,
-        escape_css(&replace.local_ident).into_owned(),
+        escape_css(&local_ident).into_owned(),
         None,
       );
     }
