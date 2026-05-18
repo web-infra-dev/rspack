@@ -413,7 +413,6 @@ async fn optimize_modules(
   Ok(None)
 }
 
-// implement apply method for the plugin
 impl Plugin for CircularDependencyRspackPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx
