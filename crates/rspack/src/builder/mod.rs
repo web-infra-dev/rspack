@@ -1811,6 +1811,9 @@ impl ModuleOptionsBuilder {
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),
+          local_ident_hash_digest: Some(HashDigest::Base64Url),
+          local_ident_hash_digest_length: Some(6),
+          local_ident_hash_function: Some(HashFunction::Xxhash64),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
 
           es_module: Some(true),
@@ -1823,6 +1826,9 @@ impl ModuleOptionsBuilder {
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),
+          local_ident_hash_digest: Some(HashDigest::Base64Url),
+          local_ident_hash_digest_length: Some(6),
+          local_ident_hash_function: Some(HashFunction::Xxhash64),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
           es_module: Some(true),
           ..Default::default()
@@ -1834,6 +1840,9 @@ impl ModuleOptionsBuilder {
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
           exports_convention: Some(CssExportsConvention::default()),
+          local_ident_hash_digest: Some(HashDigest::Base64Url),
+          local_ident_hash_digest_length: Some(6),
+          local_ident_hash_function: Some(HashFunction::Xxhash64),
           local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
           es_module: Some(true),
           ..Default::default()

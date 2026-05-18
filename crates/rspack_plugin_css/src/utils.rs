@@ -279,7 +279,12 @@ pub fn replace_css_module_id_placeholder<'a>(
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
     .expect("css module should have module id when rendering local ident");
   let module_id = prepare_css_module_id(module_id.as_str());
-  local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref())
+  let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
+  Cow::Owned(
+    LEADING_DIGIT_REGEX
+      .replace(&local_ident, "_${1}")
+      .into_owned(),
+  )
 }
 
 static PREPARE_CSS_MODULE_ID_START_REGEX: LazyLock<Regex> =

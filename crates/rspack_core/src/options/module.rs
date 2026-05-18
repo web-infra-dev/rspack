@@ -745,7 +745,7 @@ pub struct CssGeneratorOptions {
 }
 
 #[cacheable]
-#[derive(Default, Debug, Clone, MergeFrom)]
+#[derive(Default, Debug, Clone)]
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
@@ -755,6 +755,32 @@ pub struct CssModuleGeneratorOptions {
   pub local_ident_hash_salt: HashSalt,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
+}
+
+impl MergeFrom for CssModuleGeneratorOptions {
+  fn merge_from(mut self, other: &Self) -> Self {
+    self.exports_convention = self
+      .exports_convention
+      .merge_from(&other.exports_convention);
+    self.exports_only = self.exports_only.merge_from(&other.exports_only);
+    self.local_ident_hash_digest = self
+      .local_ident_hash_digest
+      .merge_from(&other.local_ident_hash_digest);
+    self.local_ident_hash_digest_length = self
+      .local_ident_hash_digest_length
+      .merge_from(&other.local_ident_hash_digest_length);
+    self.local_ident_hash_function = self
+      .local_ident_hash_function
+      .merge_from(&other.local_ident_hash_function);
+    if matches!(other.local_ident_hash_salt, HashSalt::Salt(_)) {
+      self.local_ident_hash_salt = self
+        .local_ident_hash_salt
+        .merge_from(&other.local_ident_hash_salt);
+    }
+    self.local_ident_name = self.local_ident_name.merge_from(&other.local_ident_name);
+    self.es_module = self.es_module.merge_from(&other.es_module);
+    self
+  }
 }
 
 impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
