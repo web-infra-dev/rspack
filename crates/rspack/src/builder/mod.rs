@@ -43,14 +43,14 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssExportsConvention, CssGeneratorOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserOptions,
-  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments,
-  ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
-  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  CompilerPlatform, Context, CrossOriginLoading, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription,
+  EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
+  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1810,14 +1810,7 @@ impl ModuleOptionsBuilder {
         "css/auto".to_string(),
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
-          exports_convention: Some(CssExportsConvention::default()),
-          local_ident_hash_digest: Some(HashDigest::Base64Url),
-          local_ident_hash_digest_length: Some(6),
-          local_ident_hash_function: Some(HashFunction::Xxhash64),
-          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
-
-          es_module: Some(true),
-          ..Default::default()
+          ..CssModuleGeneratorOptions::css_modules_default()
         }),
       );
 
@@ -1825,13 +1818,7 @@ impl ModuleOptionsBuilder {
         "css/module".to_string(),
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
-          exports_convention: Some(CssExportsConvention::default()),
-          local_ident_hash_digest: Some(HashDigest::Base64Url),
-          local_ident_hash_digest_length: Some(6),
-          local_ident_hash_function: Some(HashFunction::Xxhash64),
-          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
-          es_module: Some(true),
-          ..Default::default()
+          ..CssModuleGeneratorOptions::css_modules_default()
         }),
       );
 
@@ -1839,13 +1826,7 @@ impl ModuleOptionsBuilder {
         "css/global".to_string(),
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
-          exports_convention: Some(CssExportsConvention::default()),
-          local_ident_hash_digest: Some(HashDigest::Base64Url),
-          local_ident_hash_digest_length: Some(6),
-          local_ident_hash_function: Some(HashFunction::Xxhash64),
-          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
-          es_module: Some(true),
-          ..Default::default()
+          ..CssModuleGeneratorOptions::css_modules_default()
         }),
       );
     }
