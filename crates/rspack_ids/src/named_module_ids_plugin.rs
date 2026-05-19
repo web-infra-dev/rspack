@@ -27,6 +27,14 @@ fn add_conflicted_module_name(
   conflict_name_to_items.entry(name).or_default().insert(item);
 }
 
+fn is_module_id_reserved(
+  id: &ModuleId,
+  used_ids: &ModuleIdMap<ModuleIdentifier>,
+  name_to_items_keys: Option<&ModuleIdSet>,
+) -> bool {
+  used_ids.contains_key(id) || name_to_items_keys.is_some_and(|keys| keys.contains(id))
+}
+
 #[tracing::instrument(skip_all)]
 fn assign_named_module_ids(
   modules: IdentifierSet,
@@ -121,8 +129,11 @@ fn assign_named_module_ids(
     }
   }
 
-  let name_to_items_keys =
-    needs_name_to_items_keys.then(|| name_to_item.keys().cloned().collect::<ModuleIdSet>());
+  let name_to_items_keys = needs_name_to_items_keys.then(|| {
+    let mut keys = name_to_item.keys().cloned().collect::<ModuleIdSet>();
+    keys.extend(conflict_name_to_items.keys().cloned());
+    keys
+  });
   let mut unnamed_items = vec![];
 
   for (name, item) in name_to_item {
@@ -149,11 +160,7 @@ fn assign_named_module_ids(
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
         let mut formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
-        while name_to_items_keys
-          .as_ref()
-          .is_some_and(|keys| keys.contains(&formatted_name))
-          && used_ids.contains_key(&formatted_name)
-        {
+        while is_module_id_reserved(&formatted_name, used_ids, name_to_items_keys.as_ref()) {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
           formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));

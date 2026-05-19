@@ -14,6 +14,14 @@ use crate::id_helpers::{
   NaturalChunkCompareCache, compare_chunks_natural, get_long_chunk_name, get_short_chunk_name,
 };
 
+fn is_chunk_id_reserved(
+  id: &ChunkId,
+  used_ids: &ChunkIdMap<ChunkUkey>,
+  name_to_items_keys: Option<&ChunkIdSet>,
+) -> bool {
+  used_ids.contains_key(id) || name_to_items_keys.is_some_and(|keys| keys.contains(id))
+}
+
 #[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 fn assign_named_chunk_ids(
@@ -171,11 +179,7 @@ fn assign_named_chunk_ids(
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
         let mut formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));
-        while name_to_items_keys
-          .as_ref()
-          .is_some_and(|keys| keys.contains(&formatted_name))
-          && used_ids.contains_key(&formatted_name)
-        {
+        while is_chunk_id_reserved(&formatted_name, used_ids, name_to_items_keys.as_ref()) {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
           formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));
