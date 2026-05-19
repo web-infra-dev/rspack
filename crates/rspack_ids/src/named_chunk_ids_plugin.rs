@@ -142,11 +142,12 @@ fn assign_named_chunk_ids(
       needs_name_to_items_keys = true;
     }
     // Also rename the conflicting chunks in used_ids
-    if let Some(item) = used_ids.get(&name)
-    // Unless the chunk is explicitly using chunk name as id
-      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
-    {
-      items.insert(*item);
+    if let Some(item) = used_ids.get(&name) {
+      // Unless the chunk is explicitly using chunk name as id
+      if matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
+      {
+        items.insert(*item);
+      }
       needs_name_to_items_keys = true;
     }
   }
