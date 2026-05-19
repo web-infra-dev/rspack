@@ -106,6 +106,10 @@ export class RspackOptionsApply {
 
     if (options.externalsPresets.node) {
       new NodeTargetPlugin().apply(compiler);
+      // Keep this aligned with webpack's node externals preset: CSS HTTP(S)
+      // @import/url() requests are externalized during factorization. This
+      // happens before HttpUriPlugin can fetch buildHttp resources, so buildHttp
+      // does not bundle those CSS requests for node targets.
       new CssHttpExternalsRspackPlugin().apply(compiler);
     }
     if (options.externalsPresets.electronMain) {
