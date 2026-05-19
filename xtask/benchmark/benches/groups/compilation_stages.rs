@@ -185,6 +185,42 @@ pub(crate) fn create_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   });
 }
 
+pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "named", "deterministic");
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_module_ids(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_named_module_ids setup");
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_named_module_ids", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        compiler.compilation.module_ids_artifact.clear();
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_module_ids_hook(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box(compiler.compilation.module_ids_artifact.len());
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
 pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_split_chunks_stage_compiler(fs.clone());
@@ -315,6 +351,53 @@ pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
 
   let compiler = RefCell::new(compiler);
   c.bench_function("rust@create_chunk_ids", |b| {
+    b.iter_batched(
+      || {
+        (
+          initial_chunk_by_ukey.clone(),
+          ChunkNamedIdArtifact::default(),
+        )
+      },
+      |(mut chunk_by_ukey, mut named_chunk_ids_artifact)| {
+        let compiler = compiler.borrow();
+        rt.block_on(async {
+          run_chunk_ids_hook(
+            &compiler.compilation,
+            &mut chunk_by_ukey,
+            &mut named_chunk_ids_artifact,
+          )
+          .await
+          .unwrap();
+        });
+        black_box(named_chunk_ids_artifact.chunk_ids.len());
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+pub(crate) fn create_named_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "deterministic", "named");
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_chunk_ids(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_named_chunk_ids setup");
+  let initial_chunk_by_ukey = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .clone();
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_named_chunk_ids", |b| {
     b.iter_batched(
       || {
         (
@@ -907,6 +990,14 @@ fn load_random_table() -> Vec<Vec<usize>> {
 }
 
 fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  create_general_stage_compiler_with_ids(fs, "deterministic", "deterministic")
+}
+
+fn create_general_stage_compiler_with_ids(
+  fs: Arc<MemoryFileSystem>,
+  module_ids: &str,
+  chunk_ids: &str,
+) -> Compiler {
   Compiler::builder()
     .context("/")
     .mode(Mode::Development)
@@ -918,8 +1009,8 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
       Optimization::builder()
         .provided_exports(true)
         .used_exports(UsedExportsOption::True)
-        .module_ids("deterministic".to_string())
-        .chunk_ids("deterministic".to_string())
+        .module_ids(module_ids.to_string())
+        .chunk_ids(chunk_ids.to_string())
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())

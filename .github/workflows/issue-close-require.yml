@@ -4,9 +4,6 @@ on:
   schedule:
     - cron: '0 0 * * *'
 
-permissions:
-  contents: read
-
 jobs:
   issue-close-require:
     permissions:
@@ -14,29 +11,32 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'web-infra-dev'
     steps:
-      - name: need reproduce
-        uses: actions-cool/issues-helper@200c78641dbf33838311e5a1e0c31bbdb92d7cf0 # v3
+      - name: Close inactive need reproduction issues
+        uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
         with:
-          actions: 'close-issues'
-          labels: 'need reproduction'
-          inactive-day: 14
-          body: |
+          days-before-stale: -1
+          days-before-pr-close: -1
+          days-before-issue-close: 14
+          stale-issue-label: 'need reproduction'
+          close-issue-message: |
             Since the issue was labeled with `need reproduction`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 
-      - name: need more info
-        uses: actions-cool/issues-helper@200c78641dbf33838311e5a1e0c31bbdb92d7cf0 # v3
+      - name: Close inactive need more info issues
+        uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
         with:
-          actions: 'close-issues'
-          labels: 'need more info'
-          inactive-day: 14
-          body: |
+          days-before-stale: -1
+          days-before-pr-close: -1
+          days-before-issue-close: 14
+          stale-issue-label: 'need more info'
+          close-issue-message: |
             Since the issue was labeled with `need more info`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 
-      - name: awaiting feedback
-        uses: actions-cool/issues-helper@200c78641dbf33838311e5a1e0c31bbdb92d7cf0 # v3
+      - name: Close inactive awaiting feedback issues
+        uses: actions/stale@b5d41d4e1d5dceea10e7104786b73624c18a190f # v10.2.0
         with:
-          actions: 'close-issues'
-          labels: 'awaiting more feedback'
-          inactive-day: 14
-          body: |
+          days-before-stale: -1
+          days-before-pr-close: -1
+          days-before-issue-close: 14
+          stale-issue-label: 'awaiting more feedback'
+          close-issue-message: |
             Since the issue was labeled with `awaiting more feedback`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.

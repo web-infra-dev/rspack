@@ -1,5 +1,5 @@
 import fs from 'node:fs';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
 import type {
   MultiStats,
   MultiStatsOptions,
@@ -28,11 +28,12 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
   let createJsonStringifyStream: ((value: unknown) => Readable) | undefined;
 
   if (options.json) {
+    const stream = await import('node:stream');
     const jsonExt = await import(
       /* webpackChunkName: "json-ext" */ '@discoveryjs/json-ext'
     );
     createJsonStringifyStream = (value) =>
-      Readable.from(jsonExt.stringifyChunked(value));
+      stream.Readable.from(jsonExt.stringifyChunked(value));
   }
 
   const errorHandler = (
