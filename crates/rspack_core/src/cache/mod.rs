@@ -10,7 +10,7 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use self::{
   disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
 };
-use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions};
+use crate::{CacheOptions, Compilation, CompilationLogging, CompilerId, CompilerOptions};
 
 /// Cache trait
 ///
@@ -100,6 +100,7 @@ pub trait Cache: Debug + Send + Sync {
 }
 
 pub fn new_cache(
+  compiler_id: CompilerId,
   compiler_path: &str,
   compiler_option: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -111,6 +112,7 @@ pub fn new_cache(
     CacheOptions::Memory { .. } => Box::<MemoryCache>::default(),
     CacheOptions::Persistent(option) => {
       let persistent = PersistentCache::new(
+        compiler_id,
         compiler_path,
         option,
         compiler_option.clone(),

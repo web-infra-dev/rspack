@@ -154,7 +154,9 @@ impl Compiler {
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
+    let id = CompilerId::new();
     let cache = new_cache(
+      id,
       &compiler_path,
       options.clone(),
       input_filesystem.clone(),
@@ -164,7 +166,6 @@ impl Compiler {
     let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();
 
-    let id = CompilerId::new();
     let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,

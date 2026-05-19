@@ -27,7 +27,9 @@ use self::{
   storage::{StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
+use crate::{
+  Compilation, CompilationLogger, CompilationLogging, CompilerId, CompilerOptions, Logger,
+};
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
 
@@ -60,6 +62,7 @@ pub struct PersistentCache {
 
 impl PersistentCache {
   pub fn new(
+    compiler_id: CompilerId,
     compiler_path: &str,
     option: &PersistentCacheOptions,
     compiler_options: Arc<CompilerOptions>,
@@ -83,6 +86,7 @@ impl PersistentCache {
       compiler_path.hash(&mut hasher);
       option_bytes.hash(&mut hasher);
       rspack_pkg_version!().hash(&mut hasher);
+      compiler_id.hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
