@@ -417,22 +417,10 @@ opt-level = "s"
 [profile.release.package."wasmtime-internal-cranelift"]
 opt-level = "s"
 
-[profile.release.package.browserslist-rs]
-opt-level = "s"
-
-[profile.release.package.napi]
-opt-level = "s"
-
 [profile.release.package.notify]
 opt-level = "s"
 
 [profile.release.package.parcel_sourcemap]
-opt-level = "s"
-
-[profile.release.package."regex-automata"]
-opt-level = "s"
-
-[profile.release.package.rspack_napi]
 opt-level = "s"
 
 [profile.release.package.rspack_plugin_esm_library]
