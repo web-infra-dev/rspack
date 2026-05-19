@@ -7,7 +7,6 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_regex::RspackRegex;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
@@ -41,7 +40,7 @@ pub struct BeforeResolveData {
   // create_data
   // cacheable
   pub recursive: bool,
-  pub reg_exp: Option<RspackRegex>,
+  pub pattern: ContextModulePattern,
 }
 
 #[derive(Clone)]
@@ -64,7 +63,7 @@ pub struct AfterResolveData {
   pub request: String,
   // mode
   pub recursive: bool,
-  pub reg_exp: Option<RspackRegex>,
+  pub pattern: ContextModulePattern,
   // namespace_object
   // addon: String,
   // chunk_name: String,
@@ -179,7 +178,7 @@ impl ContextModuleFactory {
       context: data.context.to_string(),
       request: dependency.request().to_string(),
       recursive: dependency_options.recursive,
-      reg_exp: dependency_options.pattern.reg_exp().cloned(),
+      pattern: dependency_options.pattern.clone(),
       dependencies: data.dependencies.clone(),
     };
 
@@ -298,10 +297,7 @@ impl ContextModuleFactory {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.pattern = create_context_module_pattern(
-          &dependency_options.pattern,
-          before_resolve_data.reg_exp.clone(),
-        );
+        dependency_options.pattern = before_resolve_data.pattern.clone();
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -320,10 +316,7 @@ impl ContextModuleFactory {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.pattern = create_context_module_pattern(
-          &dependency_options.pattern,
-          before_resolve_data.reg_exp.clone(),
-        );
+        dependency_options.pattern = before_resolve_data.pattern.clone();
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -367,7 +360,7 @@ impl ContextModuleFactory {
       context: context_options.context.clone(),
       dependencies: data.dependencies.clone(),
       request: context_options.request.clone(),
-      reg_exp: context_options.pattern.reg_exp().cloned(),
+      pattern: context_options.pattern.clone(),
       recursive: context_options.recursive,
       resolve_dependencies: self.resolve_dependencies.clone(),
     };
@@ -398,10 +391,7 @@ impl ContextModuleFactory {
 
         context_module_options.resource = after_resolve_data.resource;
         context_module_options.context_options.context = after_resolve_data.context;
-        context_module_options.context_options.pattern = create_context_module_pattern(
-          &context_module_options.context_options.pattern,
-          after_resolve_data.reg_exp.clone(),
-        );
+        context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
         let module = ContextModule::new(
@@ -412,18 +402,6 @@ impl ContextModuleFactory {
 
         Ok(Some(ModuleFactoryResult::new_with_module(module)))
       }
-    }
-  }
-}
-
-fn create_context_module_pattern(
-  current: &ContextModulePattern,
-  reg_exp: Option<RspackRegex>,
-) -> ContextModulePattern {
-  match current {
-    ContextModulePattern::Glob(glob_pattern) => ContextModulePattern::Glob(glob_pattern.clone()),
-    ContextModulePattern::None | ContextModulePattern::RegExp(_) => {
-      ContextModulePattern::from(reg_exp)
     }
   }
 }

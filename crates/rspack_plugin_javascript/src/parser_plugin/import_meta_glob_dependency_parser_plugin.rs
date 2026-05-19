@@ -51,7 +51,7 @@ fn create_import_meta_glob_dependency(
     });
 
   let context_options = ContextOptions {
-    pattern: ContextModulePattern::Glob(glob_pattern),
+    pattern: ContextModulePattern::Glob(glob_pattern.into()),
     recursive,
     category: DependencyCategory::Esm,
     request: base_dir.clone(),

@@ -125,7 +125,7 @@ pub enum ContextTypePrefix {
 pub enum ContextModulePattern {
   None,
   RegExp(RspackRegex),
-  Glob(String),
+  Glob(Arc<str>),
 }
 
 impl ContextModulePattern {
@@ -139,7 +139,7 @@ impl ContextModulePattern {
   pub fn glob_pattern(&self) -> Option<&str> {
     match self {
       Self::None | Self::RegExp(_) => None,
-      Self::Glob(glob_pattern) => Some(glob_pattern),
+      Self::Glob(glob_pattern) => Some(glob_pattern.as_ref()),
     }
   }
 
@@ -151,7 +151,7 @@ impl ContextModulePattern {
     match self {
       Self::None => None,
       Self::RegExp(reg_exp) => Some(reg_exp.to_pretty_string(source)),
-      Self::Glob(glob_pattern) => Some(glob_pattern.clone()),
+      Self::Glob(glob_pattern) => Some(glob_pattern.to_string()),
     }
   }
 }
