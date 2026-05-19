@@ -86,6 +86,10 @@ impl StateLock {
 
   /// Checks if the process recorded in this lock is currently running.
   pub fn is_running(&self) -> bool {
+    if self.is_current() {
+      return true;
+    }
+
     let Some(actual_name) = get_process_name(self.pid) else {
       return false;
     };
